@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Logs & debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE / tooling
+.cursor/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Expo / React Native
+.expo/
+dist/
+web-build/
+
+# Metro / caches
+*.tsbuildinfo
+.cache/
+
+# Native builds (if added later)
+android/app/build/
+ios/Pods/
