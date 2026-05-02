@@ -144,22 +144,25 @@ Typical `.env` (see `pet-health-backend/.env.example`):
 
 ### API client
 
-- `src/api.ts` — `healthCheck`, `signUp`, `login`, `listPets`, `createPet`, `analyzePetImage` (FormData), `listHistoryByPet`. All protected calls send `Authorization: Bearer <token>`.
+- `src/api.ts` — `healthCheck`, `signUp`, `login`, `listPets`, `getPet`, `createPet`, `updatePet`, `deletePet`, `analyzePetImage` (FormData), `listHistoryByPet`.
+- Protected calls send `Authorization: Bearer <token>`.
+- `requestJson` handles `204 No Content` (delete) and backend error payload parsing consistently.
 
 ### Types
 
-- `src/types.ts` — `Pet`, `Analysis`, auth payloads, etc.
+- `src/types.ts` — `Pet`, `Analysis`, auth payloads, `CreatePetPayload`, `UpdatePetPayload`.
+- `CreatePetPayload.avatarUrl` maps to backend `avatar_url`.
 
 ### UI structure
 
 - `App.tsx` — shell only: picks screen, wires `usePetHealthApp`, shows `LoadingOverlay`.
-- `src/hooks/usePetHealthApp.ts` — auth, pets, image pick/compress, analyze, history, logout (API + AsyncStorage).
-- `src/screens/` — `LoginScreen`, `HomeScreen`, `AddPetScreen`, `CameraScreen`, `ResultsScreen`, `HistoryScreen`; `types.ts` exports `AppScreen`.
+- `src/hooks/usePetHealthApp.ts` — auth, pets CRUD, pull-to-refresh, image pick/compress, analyze, history detail open, logout (API + AsyncStorage).
+- `src/screens/` — `LoginScreen`, `HomeScreen`, `AddPetScreen` (create/edit variants), `CameraScreen`, `ResultsScreen`, `HistoryScreen`; `types.ts` exports `AppScreen` including `edit-pet`.
 - `src/components/` — `AppHeader`, `BottomTabBar` (shown on Home + History only), `LoadingOverlay`.
 - `src/constants/auth.ts` — token storage key.
 - `src/utils/severityStyles.ts` — severity badge classes for results.
 
-Flow (Figma-aligned): Login → Home → Add pet / Scan Health → Camera → Results; History tab loads list for selected pet.
+Flow (Figma-aligned): Login → Home (refresh, edit/delete/select pet) → Add/Edit pet / Scan Health → Camera → Results; History tab loads list for selected pet and opens full result detail on row tap.
 
 ### Run
 
@@ -202,14 +205,26 @@ Ensure backend is running and `LOCAL_IP` in `src/config.ts` is correct for Expo 
 
 ---
 
-## 10. Quick checklist for a new session
+## 10. Phase 1 FE integration changelog
+
+Latest frontend integration updates against `pet-health-backend/context/phase1-api.md`:
+
+- Added full pet API coverage in FE client: `listPets`, `getPet`, `createPet`, `updatePet`, `deletePet`.
+- Added analysis/history flow wiring: analyze result saves local preview, history row opens full result detail.
+- Added Home pet-management UX: pull-to-refresh, edit action, delete with confirmation.
+- Added create/edit pet form behavior with optional `avatarUrl` field mapped to backend `avatar_url`.
+- Improved API edge-case handling: consistent error parsing and explicit `204 No Content` handling for delete.
+
+---
+
+## 11. Quick checklist for a new session
 
 1. Read **this file** + `phase1-api.md`.
 2. Backend: `.env` filled; run `yarn dev` in `pet-health-backend`; note LAN URL in console.
 3. Supabase: run `supabase-schema.sql`; create storage bucket; enable email auth if needed.
 4. Frontend: set `LOCAL_IP` in `src/config.ts`; `npm start` in `pet-health-frontend`.
-5. Test: signup/login → create pet → upload image → see result + history.
+5. Test: signup/login → create/edit/delete pet → upload image → see result → open history row detail.
 
 ---
 
-*Last updated for context handoff: single source of truth for FE ↔ BE ↔ DB relationships and Phase 1 scope.*
+*Last updated for context handoff: includes frontend Phase 1 API integration state (auth, pet CRUD, analysis, history detail, refresh behaviors) and changelog notes.*

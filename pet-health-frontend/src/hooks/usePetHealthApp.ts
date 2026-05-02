@@ -1,9 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
-import { analyzePetImage, createPet, healthCheck, listHistoryByPet, listPets, login, signUp } from '../api';
+import {
+  analyzePetImage,
+  createPet,
+  deletePet,
+  getPet,
+  healthCheck,
+  listHistoryByPet,
+  listPets,
+  login,
+  signUp,
+  updatePet,
+} from '../api';
 import { TOKEN_STORAGE_KEY } from '../constants/auth';
 import type { Analysis, Pet } from '../types';
 import type { AppScreen } from '../screens/types';
@@ -11,6 +22,7 @@ import type { AppScreen } from '../screens/types';
 export function usePetHealthApp() {
   const [screen, setScreen] = useState<AppScreen>('login');
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [healthMessage, setHealthMessage] = useState('Checking backend...');
 
   const [email, setEmail] = useState('');
@@ -20,18 +32,52 @@ export function usePetHealthApp() {
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
+  const [editingPetId, setEditingPetId] = useState<string | null>(null);
 
   const [petName, setPetName] = useState('');
   const [petSpecies, setPetSpecies] = useState('cat');
   const [petBreed, setPetBreed] = useState('');
   const [petAge, setPetAge] = useState('');
+  const [petAvatarUrl, setPetAvatarUrl] = useState('');
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [currentResult, setCurrentResult] = useState<Analysis | null>(null);
+  const [resultImageUri, setResultImageUri] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [history, setHistory] = useState<Analysis[]>([]);
 
   const selectedPet = useMemo(() => pets.find((pet) => pet.id === selectedPetId) ?? null, [pets, selectedPetId]);
+
+  const petFormMode = editingPetId ? 'edit' : 'create';
+
+  function clearPetForm() {
+    setPetName('');
+    setPetSpecies('cat');
+    setPetBreed('');
+    setPetAge('');
+    setPetAvatarUrl('');
+    setEditingPetId(null);
+  }
+
+  const fetchPets = useCallback(async (accessToken: string) => {
+    const response = await listPets(accessToken);
+    setPets(response.data);
+    if (response.data.length > 0) {
+      setSelectedPetId((previous) => previous ?? response.data[0].id);
+    } else {
+      setSelectedPetId(null);
+    }
+  }, []);
+
+  const refreshPets = useCallback(async () => {
+    if (!token) return;
+    setRefreshing(true);
+    try {
+      await fetchPets(token);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [token, fetchPets]);
 
   useEffect(() => {
     void initializeApp();
@@ -48,16 +94,13 @@ export function usePetHealthApp() {
     const savedToken = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
     if (savedToken) {
       setToken(savedToken);
-      await fetchPets(savedToken);
-      setScreen('home');
-    }
-  }
-
-  async function fetchPets(accessToken: string) {
-    const response = await listPets(accessToken);
-    setPets(response.data);
-    if (response.data.length > 0) {
-      setSelectedPetId((previous) => previous ?? response.data[0].id);
+      try {
+        await fetchPets(savedToken);
+        setScreen('home');
+      } catch {
+        await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+        setToken(null);
+      }
     }
   }
 
@@ -68,10 +111,24 @@ export function usePetHealthApp() {
     }
     setLoading(true);
     try {
-      const response = isSignUp ? await signUp({ email, password }) : await login({ email, password });
+      if (isSignUp) {
+        const signUpRes = await signUp({ email, password });
+        const signUpToken = signUpRes.data.session?.access_token;
+        if (!signUpToken) {
+          Alert.alert('Verify email', 'Check your inbox to confirm, then use Sign in.');
+          return;
+        }
+        await AsyncStorage.setItem(TOKEN_STORAGE_KEY, signUpToken);
+        setToken(signUpToken);
+        await fetchPets(signUpToken);
+        setScreen('home');
+        return;
+      }
+
+      const response = await login({ email, password });
       const accessToken = response.data.session?.access_token;
       if (!accessToken) {
-        Alert.alert('Verify account', 'Signup successful. Please verify email and then sign in.');
+        Alert.alert('Login failed', 'No access token returned.');
         return;
       }
       await AsyncStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
@@ -100,15 +157,100 @@ export function usePetHealthApp() {
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || undefined,
         age: petAge ? Number(petAge) : undefined,
+        avatarUrl: petAvatarUrl.trim() || undefined,
       });
-      setPetName('');
-      setPetBreed('');
-      setPetAge('');
+      clearPetForm();
       await fetchPets(token);
       setScreen('home');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       Alert.alert('Create pet failed', message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUpdatePet() {
+    if (!token || !editingPetId) return;
+    if (!petName.trim() || !petSpecies.trim()) {
+      Alert.alert('Missing info', 'Pet name and species are required.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updatePet(token, editingPetId, {
+        name: petName.trim(),
+        species: petSpecies.trim().toLowerCase(),
+        breed: petBreed.trim() || null,
+        age: petAge ? Number(petAge) : null,
+        avatarUrl: petAvatarUrl.trim() || null,
+      });
+      clearPetForm();
+      await fetchPets(token);
+      setScreen('home');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Update pet failed', message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openCreatePet() {
+    clearPetForm();
+    setScreen('add-pet');
+  }
+
+  async function openEditPet(petId: string) {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const { data } = await getPet(token, petId);
+      setEditingPetId(data.id);
+      setPetName(data.name);
+      setPetSpecies(data.species);
+      setPetBreed(data.breed ?? '');
+      setPetAge(data.age !== null && data.age !== undefined ? String(data.age) : '');
+      setPetAvatarUrl(data.avatar_url ?? '');
+      setScreen('edit-pet');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Load pet failed', message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function cancelPetForm() {
+    clearPetForm();
+    setScreen('home');
+  }
+
+  function handleDeletePet(pet: Pet) {
+    if (!token) return;
+    Alert.alert('Delete pet?', `Remove ${pet.name} and their data cannot be restored from the app.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => void confirmDeletePet(pet.id),
+      },
+    ]);
+  }
+
+  async function confirmDeletePet(petId: string) {
+    if (!token) return;
+    setLoading(true);
+    try {
+      await deletePet(token, petId);
+      if (selectedPetId === petId) {
+        setSelectedPetId(null);
+      }
+      await fetchPets(token);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Delete failed', message);
     } finally {
       setLoading(false);
     }
@@ -143,6 +285,7 @@ export function usePetHealthApp() {
     try {
       const response = await analyzePetImage(token, selectedPetId, imageUri);
       setCurrentResult(response.data);
+      setResultImageUri(imageUri);
       setWarnings(response.warnings ?? []);
       const historyResponse = await listHistoryByPet(token, selectedPetId);
       setHistory(historyResponse.data);
@@ -160,9 +303,24 @@ export function usePetHealthApp() {
       Alert.alert('Select pet', 'Please select a pet first.');
       return;
     }
-    const response = await listHistoryByPet(token, selectedPetId);
-    setHistory(response.data);
-    setScreen('history');
+    setLoading(true);
+    try {
+      const response = await listHistoryByPet(token, selectedPetId);
+      setHistory(response.data);
+      setScreen('history');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('History failed', message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openHistoryDetail(entry: Analysis) {
+    setCurrentResult(entry);
+    setResultImageUri(entry.image_url);
+    setWarnings([]);
+    setScreen('results');
   }
 
   async function logout() {
@@ -172,7 +330,9 @@ export function usePetHealthApp() {
     setSelectedPetId(null);
     setImageUri(null);
     setCurrentResult(null);
+    setResultImageUri(null);
     setHistory([]);
+    clearPetForm();
     setScreen('login');
   }
 
@@ -182,10 +342,17 @@ export function usePetHealthApp() {
     setScreen('camera');
   }
 
+  function goHomeAndRefresh() {
+    setScreen('home');
+    void refreshPets();
+  }
+
   return {
     screen,
     setScreen,
     loading,
+    refreshing,
+    refreshPets,
     healthMessage,
     email,
     setEmail,
@@ -198,6 +365,7 @@ export function usePetHealthApp() {
     selectedPetId,
     setSelectedPetId,
     selectedPet,
+    petFormMode,
     petName,
     setPetName,
     petSpecies,
@@ -206,16 +374,26 @@ export function usePetHealthApp() {
     setPetBreed,
     petAge,
     setPetAge,
+    petAvatarUrl,
+    setPetAvatarUrl,
     imageUri,
     currentResult,
+    resultImageUri,
     warnings,
     history,
     submitAuth,
     handleAddPet,
+    handleUpdatePet,
+    openCreatePet,
+    openEditPet,
+    cancelPetForm,
+    handleDeletePet,
     chooseImage,
     analyzeImage,
     openHistory,
+    openHistoryDetail,
     logout,
     goToCameraForPet,
+    goHomeAndRefresh,
   };
 }

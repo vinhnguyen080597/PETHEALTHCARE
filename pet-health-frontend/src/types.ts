@@ -31,6 +31,16 @@ export type CreatePetPayload = {
   species: string;
   breed?: string;
   age?: number;
+  avatarUrl?: string;
+};
+
+/** Partial fields for PUT `/api/v1/pets/:petId` */
+export type UpdatePetPayload = {
+  name?: string;
+  species?: string;
+  breed?: string | null;
+  age?: number | null;
+  avatarUrl?: string | null;
 };
 
 export type Analysis = {

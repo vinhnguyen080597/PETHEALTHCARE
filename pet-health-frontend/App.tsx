@@ -1,5 +1,7 @@
+import './global.css';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, View } from 'react-native';
+import { View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from './src/components/AppHeader';
 import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
@@ -17,8 +19,8 @@ export default function App() {
   const showBottomTab = app.screen === 'home' || app.screen === 'history';
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      <StatusBar style="dark" />
+    <SafeAreaProvider>
+      <StatusBar style={app.screen === 'login' ? 'light' : 'dark'} />
       {app.screen === 'login' ? (
         <LoginScreen
           healthMessage={app.healthMessage}
@@ -31,65 +33,77 @@ export default function App() {
           onSubmit={app.submitAuth}
         />
       ) : (
-        <View className="flex-1">
-          <AppHeader />
+        <SafeAreaView className="flex-1 bg-slate-50" edges={['top', 'left', 'right']}>
+          <View className="flex-1">
+            <AppHeader />
 
-          {app.screen === 'home' && (
-            <HomeScreen
-              pets={app.pets}
-              selectedPetId={app.selectedPetId}
-              onAddPet={() => app.setScreen('add-pet')}
-              onSelectPet={app.setSelectedPetId}
-              onStartScan={app.goToCameraForPet}
-            />
-          )}
+            {app.screen === 'home' && (
+              <HomeScreen
+                pets={app.pets}
+                selectedPetId={app.selectedPetId}
+                refreshing={app.refreshing}
+                onRefresh={app.refreshPets}
+                onAddPet={app.openCreatePet}
+                onSelectPet={app.setSelectedPetId}
+                onStartScan={app.goToCameraForPet}
+                onEditPet={app.openEditPet}
+                onDeletePet={app.handleDeletePet}
+              />
+            )}
 
-          {app.screen === 'add-pet' && (
-            <AddPetScreen
-              petName={app.petName}
-              petSpecies={app.petSpecies}
-              petBreed={app.petBreed}
-              petAge={app.petAge}
-              onChangeName={app.setPetName}
-              onChangeSpecies={app.setPetSpecies}
-              onChangeBreed={app.setPetBreed}
-              onChangeAge={app.setPetAge}
-              onSave={app.handleAddPet}
-            />
-          )}
+            {(app.screen === 'add-pet' || app.screen === 'edit-pet') && (
+              <AddPetScreen
+                variant={app.petFormMode === 'edit' ? 'edit' : 'create'}
+                petName={app.petName}
+                petSpecies={app.petSpecies}
+                petBreed={app.petBreed}
+                petAge={app.petAge}
+                petAvatarUrl={app.petAvatarUrl}
+                onChangeName={app.setPetName}
+                onChangeSpecies={app.setPetSpecies}
+                onChangeBreed={app.setPetBreed}
+                onChangeAge={app.setPetAge}
+                onChangeAvatarUrl={app.setPetAvatarUrl}
+                onSubmit={app.petFormMode === 'edit' ? app.handleUpdatePet : app.handleAddPet}
+                onCancel={app.cancelPetForm}
+              />
+            )}
 
-          {app.screen === 'camera' && (
-            <CameraScreen
-              petName={app.selectedPet?.name ?? 'Pet'}
-              imageUri={app.imageUri}
-              onBack={() => app.setScreen('home')}
-              onPickImage={app.chooseImage}
-              onAnalyze={app.analyzeImage}
-            />
-          )}
+            {app.screen === 'camera' && (
+              <CameraScreen
+                petName={app.selectedPet?.name ?? 'Pet'}
+                imageUri={app.imageUri}
+                onBack={() => app.setScreen('home')}
+                onPickImage={app.chooseImage}
+                onAnalyze={app.analyzeImage}
+              />
+            )}
 
-          {app.screen === 'results' && app.currentResult && (
-            <ResultsScreen
-              result={app.currentResult}
-              imageUri={app.imageUri}
-              warnings={app.warnings}
-              onBackHome={() => app.setScreen('home')}
-            />
-          )}
+            {app.screen === 'results' && app.currentResult && (
+              <ResultsScreen
+                result={app.currentResult}
+                imageUri={app.resultImageUri}
+                warnings={app.warnings}
+                onBackHome={app.goHomeAndRefresh}
+              />
+            )}
 
-          {app.screen === 'history' && <HistoryScreen history={app.history} />}
+            {app.screen === 'history' && (
+              <HistoryScreen history={app.history} onSelectEntry={app.openHistoryDetail} />
+            )}
 
-          {showBottomTab ? (
-            <BottomTabBar
-              activeScreen={app.screen}
-              onHome={() => app.setScreen('home')}
-              onHistory={app.openHistory}
-              onLogout={app.logout}
-            />
-          ) : null}
-        </View>
+            {showBottomTab ? (
+              <BottomTabBar
+                activeScreen={app.screen}
+                onHome={app.goHomeAndRefresh}
+                onHistory={app.openHistory}
+                onLogout={app.logout}
+              />
+            ) : null}
+          </View>
+        </SafeAreaView>
       )}
       <LoadingOverlay visible={app.loading} />
-    </SafeAreaView>
+    </SafeAreaProvider>
   );
 }

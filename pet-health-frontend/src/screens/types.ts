@@ -1,1 +1,1 @@
-export type AppScreen = 'login' | 'home' | 'add-pet' | 'camera' | 'results' | 'history';
+export type AppScreen = 'login' | 'home' | 'add-pet' | 'edit-pet' | 'camera' | 'results' | 'history';

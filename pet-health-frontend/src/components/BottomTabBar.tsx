@@ -11,18 +11,26 @@ type BottomTabBarProps = {
 
 export function BottomTabBar({ activeScreen, onHome, onHistory, onLogout }: BottomTabBarProps) {
   return (
-    <View className="flex-row border-t border-slate-200 bg-white px-4 py-3">
-      <Pressable className={`flex-1 items-center py-2 ${activeScreen === 'home' ? 'bg-blue-50' : ''}`} onPress={onHome}>
-        <Ionicons name="home-outline" size={22} color="#334155" />
-        <Text className="text-xs">Home</Text>
+    <View className="flex-row border-t border-slate-200 bg-white px-2 py-2">
+      <Pressable
+        className={`flex-1 items-center rounded-xl py-2 ${activeScreen === 'home' ? 'bg-blue-50' : ''}`}
+        onPress={onHome}
+      >
+        <Ionicons name="home-outline" size={22} color={activeScreen === 'home' ? '#2563eb' : '#64748b'} />
+        <Text className={`text-xs font-medium ${activeScreen === 'home' ? 'text-blue-600' : 'text-slate-600'}`}>Home</Text>
       </Pressable>
-      <Pressable className={`flex-1 items-center py-2 ${activeScreen === 'history' ? 'bg-blue-50' : ''}`} onPress={onHistory}>
-        <Ionicons name="time-outline" size={22} color="#334155" />
-        <Text className="text-xs">History</Text>
+      <Pressable
+        className={`flex-1 items-center rounded-xl py-2 ${activeScreen === 'history' ? 'bg-blue-50' : ''}`}
+        onPress={onHistory}
+      >
+        <Ionicons name="time-outline" size={22} color={activeScreen === 'history' ? '#2563eb' : '#64748b'} />
+        <Text className={`text-xs font-medium ${activeScreen === 'history' ? 'text-blue-600' : 'text-slate-600'}`}>
+          History
+        </Text>
       </Pressable>
-      <Pressable className="flex-1 items-center py-2" onPress={onLogout}>
-        <Ionicons name="log-out-outline" size={22} color="#334155" />
-        <Text className="text-xs">Logout</Text>
+      <Pressable className="flex-1 items-center rounded-xl py-2" onPress={onLogout}>
+        <Ionicons name="log-out-outline" size={22} color="#64748b" />
+        <Text className="text-xs font-medium text-slate-600">Logout</Text>
       </Pressable>
     </View>
   );
