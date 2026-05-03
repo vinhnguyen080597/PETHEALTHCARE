@@ -1,7 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 type PetFormVariant = 'create' | 'edit';
+
+export const PET_TYPE_OPTIONS = [
+  { value: 'dog', label: 'Dog' },
+  { value: 'cat', label: 'Cat' },
+  { value: 'bird', label: 'Bird' },
+  { value: 'hamster', label: 'Hamster' },
+] as const;
+
+export const GENDER_OPTIONS = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+] as const;
+
+type SelectOption = { value: string; label: string };
 
 type AddPetScreenProps = {
   variant: PetFormVariant;
@@ -9,47 +24,163 @@ type AddPetScreenProps = {
   petSpecies: string;
   petBreed: string;
   petAge: string;
+  petGender: string;
   petAvatarUrl: string;
   onChangeName: (value: string) => void;
   onChangeSpecies: (value: string) => void;
   onChangeBreed: (value: string) => void;
   onChangeAge: (value: string) => void;
-  onChangeAvatarUrl: (value: string) => void;
+  onChangeGender: (value: string) => void;
+  onPickAvatar: () => void;
   onSubmit: () => void;
   onCancel: () => void;
+  /** Shown on edit only — remove pet from account (confirmation in handler). */
+  onDeletePet?: () => void;
+  /** Overrides default "Add New Pet" / "Edit Pet" title (e.g. first-time onboarding). */
+  headerTitle?: string;
+  /** Overrides default submit label ("Add Pet" / "Update Pet"). */
+  submitButtonLabel?: string;
 };
 
-/** Matches `figma/code` pet profile / add pet: top bar + form on gray background. */
+function FormSelect({
+  label,
+  value,
+  options,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = options.find((o) => o.value === value)?.label;
+
+  return (
+    <View className="mb-5">
+      <Text className="mb-2 text-sm font-semibold text-slate-900">{label}</Text>
+      <Pressable
+        className="flex-row items-center justify-between rounded-xl border border-gray-300 bg-white px-4 py-3 active:bg-gray-50"
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label} picker`}
+      >
+        <Text className={`text-base ${selectedLabel ? 'text-slate-900' : 'text-gray-400'}`}>
+          {selectedLabel ?? placeholder}
+        </Text>
+        <Ionicons name="chevron-down" size={20} color="#64748b" />
+      </Pressable>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <View className="flex-1 justify-end">
+          <Pressable className="absolute inset-0 bg-black/40" onPress={() => setOpen(false)} />
+          <View className="rounded-t-2xl bg-white px-4 pb-8 pt-2">
+            <View className="mb-2 self-center rounded-full bg-gray-200 px-10 py-1" />
+            {options.map((opt) => (
+              <Pressable
+                key={opt.value}
+                className="border-b border-gray-100 py-3.5 active:bg-gray-50"
+                onPress={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+              >
+                <Text className="text-center text-base text-slate-900">{opt.label}</Text>
+              </Pressable>
+            ))}
+            <Pressable className="mt-2 py-3" onPress={() => setOpen(false)}>
+              <Text className="text-center text-base text-blue-600">Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+/** Add / edit pet — layout aligned with `figma/UI/AddNewPet1.png`. */
 export function AddPetScreen({
   variant,
   petName,
   petSpecies,
   petBreed,
   petAge,
+  petGender,
   petAvatarUrl,
   onChangeName,
   onChangeSpecies,
   onChangeBreed,
   onChangeAge,
-  onChangeAvatarUrl,
+  onChangeGender,
+  onPickAvatar,
   onSubmit,
   onCancel,
+  onDeletePet,
+  headerTitle,
+  submitButtonLabel,
 }: AddPetScreenProps) {
-  const title = variant === 'create' ? 'Add New Pet' : 'Edit Pet';
-  const submitLabel = variant === 'create' ? 'Save Pet' : 'Update Pet';
+  const title = headerTitle ?? (variant === 'create' ? 'Add New Pet' : 'Edit Pet');
+  const submitLabel = submitButtonLabel ?? (variant === 'create' ? 'Add Pet' : 'Update Pet');
+
+  const speciesOptions = useMemo(() => {
+    const base: SelectOption[] = [...PET_TYPE_OPTIONS];
+    if (petSpecies && !base.some((o) => o.value === petSpecies)) {
+      base.push({ value: petSpecies, label: petSpecies });
+    }
+    return base;
+  }, [petSpecies]);
+
+  const genderOptions = useMemo(() => {
+    const base: SelectOption[] = [...GENDER_OPTIONS];
+    if (petGender && !base.some((o) => o.value === petGender)) {
+      base.push({ value: petGender, label: petGender });
+    }
+    return base;
+  }, [petGender]);
+
+  const hasAvatarUri = Boolean(petAvatarUrl?.trim());
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <View className="flex-row items-center gap-3 border-b border-gray-200 bg-white px-4 py-4">
-        <Pressable className="rounded-lg p-2 active:bg-gray-100" onPress={onCancel} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
+    <View className="flex-1 bg-gray-100">
+      <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-3">
+        <Pressable
+          className="h-10 w-10 items-center justify-center rounded-lg active:bg-gray-100"
+          onPress={onCancel}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="arrow-back" size={24} color="#0f172a" />
         </Pressable>
-        <Text className="text-lg font-semibold text-slate-900">{title}</Text>
+        <Text className="flex-1 text-center text-lg font-semibold text-slate-900" numberOfLines={1}>
+          {title}
+        </Text>
+        <View className="h-10 w-10" />
       </View>
 
       <ScrollView className="flex-1 px-6 py-6" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View className="mb-6 items-center">
+          <Pressable
+            onPress={onPickAvatar}
+            className="items-center active:opacity-90"
+            accessibilityRole="button"
+            accessibilityLabel="Pick pet avatar from library"
+          >
+            <View className="h-28 w-28 overflow-hidden rounded-full bg-blue-600 shadow-md">
+              {hasAvatarUri ? (
+                <Image source={{ uri: petAvatarUrl.trim() }} className="h-full w-full" resizeMode="cover" />
+              ) : (
+                <View className="h-full w-full items-center justify-center">
+                  <Ionicons name="paw" size={52} color="#ffffff" />
+                </View>
+              )}
+            </View>
+            <Text className="mt-2 text-center text-sm text-gray-500">Click to upload avatar</Text>
+          </Pressable>
+        </View>
+
         <View className="mb-5">
-          <Text className="mb-2 text-sm text-slate-700">Pet name</Text>
+          <Text className="mb-2 text-sm font-semibold text-slate-900">Pet Name</Text>
           <TextInput
             className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
             placeholder="Enter pet name"
@@ -59,20 +190,16 @@ export function AddPetScreen({
           />
         </View>
 
-        <View className="mb-5">
-          <Text className="mb-2 text-sm text-slate-700">Species</Text>
-          <TextInput
-            className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder="e.g. cat, dog, bird"
-            placeholderTextColor="#9ca3af"
-            value={petSpecies}
-            onChangeText={onChangeSpecies}
-            autoCapitalize="none"
-          />
-        </View>
+        <FormSelect
+          label="Pet Type"
+          value={petSpecies}
+          options={speciesOptions}
+          onChange={onChangeSpecies}
+          placeholder="Select pet type"
+        />
 
         <View className="mb-5">
-          <Text className="mb-2 text-sm text-slate-700">Breed</Text>
+          <Text className="mb-2 text-sm font-semibold text-slate-900">Breed</Text>
           <TextInput
             className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
             placeholder="Enter breed"
@@ -83,10 +210,10 @@ export function AddPetScreen({
         </View>
 
         <View className="mb-5">
-          <Text className="mb-2 text-sm text-slate-700">Age (years)</Text>
+          <Text className="mb-2 text-sm font-semibold text-slate-900">Age (years)</Text>
           <TextInput
             className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder="e.g. 3"
+            placeholder="e.g. 1"
             placeholderTextColor="#9ca3af"
             keyboardType="numeric"
             value={petAge}
@@ -94,21 +221,23 @@ export function AddPetScreen({
           />
         </View>
 
-        <View className="mb-6">
-          <Text className="mb-2 text-sm text-slate-700">Avatar URL (optional)</Text>
-          <TextInput
-            className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder="https://..."
-            placeholderTextColor="#9ca3af"
-            autoCapitalize="none"
-            value={petAvatarUrl}
-            onChangeText={onChangeAvatarUrl}
-          />
-        </View>
+        <FormSelect
+          label="Gender"
+          value={petGender}
+          options={genderOptions}
+          onChange={onChangeGender}
+          placeholder="Select gender"
+        />
 
-        <Pressable className="rounded-xl bg-blue-600 py-3 active:bg-blue-700" onPress={onSubmit}>
+        <Pressable className="mt-2 rounded-xl bg-blue-600 py-3.5 active:bg-blue-700" onPress={onSubmit}>
           <Text className="text-center text-base font-semibold text-white">{submitLabel}</Text>
         </Pressable>
+
+        {variant === 'edit' && onDeletePet ? (
+          <Pressable className="mt-6 py-3 active:opacity-80" onPress={onDeletePet} accessibilityRole="button">
+            <Text className="text-center text-base font-medium text-red-600">Remove pet</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </View>
   );

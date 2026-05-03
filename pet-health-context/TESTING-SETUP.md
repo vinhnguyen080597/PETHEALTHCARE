@@ -10,7 +10,7 @@ Step-by-step guide to run **Catties Health Care** end-to-end on your machine and
 2. **Google AI Studio** (or Google Cloud) — create an API key for **Gemini** (`GEMINI_API_KEY`).
 3. **Supabase** — free account at [supabase.com](https://supabase.com/)
 4. **Phone (optional)** — iOS or Android with **Expo Go** installed ([expo.dev/go](https://expo.dev/go))
-5. **Same Wi‑Fi** — computer and phone should be on the same network for **LAN** Expo and for the phone to call `http://<PC_LAN_IP>:3000`. If LAN is blocked (firewall/router), use a **backend tunnel** (§2.6) and/or Expo tunnel when ngrok works (§3.3).
+5. **Same Wi‑Fi** — computer and phone should be on the same network for **LAN** Expo and for the phone to call `http://<PC_LAN_IP>:3000`. If LAN is blocked (firewall/router), use a **backend tunnel** (§2.6, **ngrok**) and/or Expo **LAN + ngrok for API only** (§3.3).
 
 ---
 
@@ -229,17 +229,63 @@ If the phone still cannot open `http://<LAN_IP>:3000/health`, the router may use
 
 ### 2.6 Backend over a tunnel (when LAN is blocked)
 
-If iPhone and PC are on “guest” Wi‑Fi or the router blocks device-to-device traffic, expose port **3000** with a tunnel and set the frontend API base to that HTTPS host.
+If iPhone and PC are on “guest” Wi‑Fi or the router blocks device-to-device traffic, expose port **3000** with an HTTPS tunnel and point `pet-health-frontend/src/config.ts` at that host (`API_BASE_URL` = `https://<host>/api/v1`, `API_HEALTH_URL` = `https://<host>/health`). **URLs change each time you restart the tunnel** unless you use a paid reserved domain.
 
-Example with **localtunnel** (separate terminal, while `yarn dev` runs):
+#### 2.6.1 ngrok (recommended)
+
+1. **Install** (pick one that works on your PC):
+   - **npm (works on most Windows setups):**  
+     `npm install -g ngrok`
+   - **winget** (`winget install Ngrok.Ngrok`) can fail on some machines with “file cannot be accessed” — use npm if so.
+
+2. **Authtoken (once):** create a free account at [ngrok.com](https://ngrok.com), copy **Your Authtoken**, then:
+
+   ```powershell
+   ngrok config add-authtoken YOUR_TOKEN_HERE
+   ```
+
+   This saves to `%LOCALAPPDATA%\ngrok\ngrok.yml` (not your repo).
+
+3. **Run the tunnel** while the backend is listening on **3000** (`yarn dev` in `pet-health-backend`):
+
+   - **PowerShell or CMD:**  
+     `ngrok http 3000`
+   - **Git Bash:** the global `ngrok` script can try to run the wrong file and show **`cannot execute binary file: Exec format error`**. Use either:
+     - `ngrok.cmd http 3000`, or  
+     - the Windows binary under your npm global folder, e.g.  
+       `~/AppData/Roaming/npm/node_modules/ngrok/bin/ngrok.exe http 3000`  
+       (from Git Bash, `~` is your user profile.)
+
+4. In the ngrok UI (terminal or browser at `http://127.0.0.1:4040`), copy the **HTTPS** forwarding URL (e.g. `https://….ngrok-free.app` or `https://….ngrok-free.dev`).
+
+5. Put that base into `pet-health-frontend/src/config.ts` (no trailing slash on the host):
+
+   - `API_BASE_URL` → `https://<subdomain>.ngrok-free.app/api/v1` (or `.ngrok-free.dev` / domain ngrok shows)
+   - `API_HEALTH_URL` → `https://<subdomain>.ngrok-free.app/health`
+
+6. **Ngrok free “browser warning” / HTML interstitial:** ngrok may inject a warning page in front of **browser** traffic. For **JSON APIs** you must send header **`ngrok-skip-browser-warning: true`** (any value works). This repo’s **`src/api.ts`** adds it automatically when the base URL looks like ngrok. The backend **CORS** allows that header on preflight.
+
+7. **Quick API test (PowerShell)** — use `curl.exe` and the skip header (Chrome “Copy as cURL” often omits it):
+
+   ```powershell
+   curl.exe -sS -X POST "https://YOUR-SUBDOMAIN.ngrok-free.dev/api/v1/auth/signup" `
+     -H "Content-Type: application/json" `
+     -H "ngrok-skip-browser-warning: true" `
+     -d "{\"email\":\"you@example.com\",\"password\":\"your-password\"}"
+   ```
+
+8. **CORS:** the backend reflects `Origin` and allows `Content-Type`, `Authorization`, tunnel helper headers, and **`ngrok-skip-browser-warning`**. Expo Go uses the same HTTPS base as web.
+
+#### 2.6.2 localtunnel (optional fallback)
 
 ```powershell
 npx localtunnel --port 3000
 ```
 
-Copy the printed URL (e.g. `https://abc123.loca.lt`). In `pet-health-frontend/src/config.ts`, set your API base to that host (path `/api/v1` and `/health` as your app expects). **Note:** tunnel URLs change when you restart localtunnel; update config each time.
+Some networks block outbound access to **localtunnel.me** (control connection), which shows as **`connection refused: localtunnel.me:10021`**. The `*.loca.lt` interstitial can also break browsers unless extra headers are used. Prefer **ngrok (§2.6.1)** when localtunnel fails.
 
 ---
+
 
 ## 3. Frontend (FE)
 
@@ -288,13 +334,13 @@ That runs `expo start`. For **physical iPhone + Expo Go**, prefer an explicit mo
 npx expo start --go --lan --port 8081
 ```
 
-**Tunnel (works when LAN is blocked; needs ngrok):**
+**Expo “dev server” tunnel (optional; separate from API ngrok):**
 
 ```powershell
 npx expo start --go --tunnel --port 8081
 ```
 
-If Expo says **ngrok tunnel took too long to connect**, your network may block ngrok — stay on **LAN** (fix firewall / router) or use **LAN + backend tunnel** (§2.6).
+This uses ngrok (or similar) only for **Metro / Expo**, not your REST API. If it says **ngrok tunnel took too long to connect**, your network may block that path — prefer **`--lan`** for Expo and keep the **backend** on **ngrok `http 3000`** (§2.6.1) so the phone loads JS over LAN/Wi‑Fi but calls **`https://….ngrok-free.app`** for `/api/v1`.
 
 **Clear Metro cache** after adding native deps (e.g. Reanimated):
 
@@ -367,7 +413,11 @@ Use Postman / Thunder Client / curl:
 | `Backend unreachable` on login screen | BE running? **`LOCAL_IP` in `pet-health-frontend/src/config.ts` must match the LAN line from the backend** (e.g. if backend prints `192.168.1.4`, the app cannot still use `192.168.1.5`). Then: same Wi‑Fi, Windows firewall (**§2.5**), retry after restart BE. Test in phone browser: `http://YOUR_LAN_IP:3000/health`. |
 | Phone browser cannot open `http://<LAN_IP>:3000/health` or `http://<LAN_IP>:8081` | Network isolation or firewall: set Wi‑Fi to **Private**, allow **Node.js** / port rules (**§2.5**). If still failing, use **backend tunnel** (**§2.6**) and/or avoid relying on LAN to the PC. |
 | Expo Go “request timed out” for `exp://<LAN_IP>:8081` | Same as above — PC may be reachable locally but not from phone; confirm Safari on phone can hit LAN URLs; try tunnel mode or fix router AP isolation. |
-| `ngrok tunnel took too long to connect` | Network or ngrok blocked; use **`--lan`** instead of **`--tunnel`**, or fix outbound connectivity / try again later. |
+| `ngrok tunnel took too long to connect` (Expo `--tunnel`) | Network blocks Expo’s tunnel; use **`--lan`** for Metro and use **§2.6.1** ngrok only for **backend port 3000**. |
+| Git Bash: `cannot execute binary file` when running `ngrok` | Use **`ngrok.cmd http 3000`** or the **`.exe`** path (§2.6.1); do not rely on the extensionless npm shim in Git Bash. |
+| `connection refused: localtunnel.me:…` | Outbound blocked or localtunnel unstable; switch to **ngrok** (§2.6.1). |
+| ngrok signup/login returns **HTML** or **parse error** / CORS after ngrok URL | On the **free** tier, send **`ngrok-skip-browser-warning: true`** on every request (see §2.6.1 step 6–7). Ensure the backend was restarted after CORS updates. |
+| Postman: **`Cannot POST /auth/signup`** (404) | You called **`/auth/signup`** without the **`/api/v1`** prefix. Use `…/api/v1/auth/signup`, or set collection variable **`BASE`** to `https://<host>/api/v1` so `{{BASE}}/auth/signup` is correct. See `pet-health-backend/context/phase1-api.md` (Postman section). |
 | Babel: `.plugins is not a valid Plugin property` (NativeWind) | Put **`nativewind/babel` in `presets`**, not `plugins`, in `babel.config.js`. |
 | Babel: `Cannot find module 'react-native-worklets/plugin'` | Run `npx expo install react-native-worklets` in `pet-health-frontend`, restart Expo with `-c`. |
 | Metro: `Unable to resolve "react-native-reanimated"` | Run `npx expo install react-native-reanimated`, restart Expo with `-c`. |
@@ -390,10 +440,16 @@ yarn install
 # create .env from .env.example, then:
 yarn dev
 
-# Terminal 2 — Frontend
+# Terminal 2 — Backend HTTPS tunnel (when phone cannot use LAN to PC) — §2.6.1
+# ngrok config add-authtoken <once>
+# PowerShell/CMD: ngrok http 3000
+# Git Bash:       ngrok.cmd http 3000
+# Then set pet-health-frontend/src/config.ts to the https://….ngrok-free.app base.
+
+# Terminal 3 — Frontend
 cd pet-health-frontend
 yarn install
-# edit src/config.ts LOCAL_IP (or tunnel base URL — §2.6), then:
+# edit src/config.ts LOCAL_IP (or ngrok HTTPS base — §2.6.1), then:
 yarn start
 # iPhone + Expo Go + LAN (recommended explicit command):
 # npx expo start --go --lan --port 8081

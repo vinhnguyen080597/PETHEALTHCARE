@@ -8,6 +8,9 @@ type ResultsScreenProps = {
   imageUri: string | null;
   warnings: string[];
   onBackHome: () => void;
+  /** First-time setup: show primary "Finish" to My Pets instead of a back-only chrome. */
+  variant?: 'default' | 'onboarding';
+  onFinish?: () => void;
 };
 
 function severityIcon(severity: Severity) {
@@ -17,23 +20,43 @@ function severityIcon(severity: Severity) {
 }
 
 /** Matches `figma/code/src/app/components/ResultsScreen.tsx` structure. */
-export function ResultsScreen({ result, imageUri, warnings, onBackHome }: ResultsScreenProps) {
+export function ResultsScreen({
+  result,
+  imageUri,
+  warnings,
+  onBackHome,
+  variant = 'default',
+  onFinish,
+}: ResultsScreenProps) {
   const confPct = Math.round(result.confidence * 100);
   const icon = severityIcon(result.severity);
+  const onboarding = variant === 'onboarding';
 
   return (
     <View className="flex-1 bg-gray-50">
       <View className="flex-row items-center gap-3 border-b border-gray-200 bg-white px-4 py-4">
-        <Pressable className="rounded-lg p-2 active:bg-gray-100" onPress={onBackHome}>
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
-        </Pressable>
-        <View>
-          <Text className="text-lg font-semibold text-slate-900">Analysis Results</Text>
-          <Text className="text-sm text-gray-600">AI-assisted triage</Text>
+        {!onboarding ? (
+          <Pressable className="rounded-lg p-2 active:bg-gray-100" onPress={onBackHome}>
+            <Ionicons name="arrow-back" size={24} color="#1e293b" />
+          </Pressable>
+        ) : (
+          <View className="w-10" />
+        )}
+        <View className="flex-1">
+          <Text className="text-lg font-semibold text-slate-900">
+            {onboarding ? "Your pet's check" : 'Analysis Results'}
+          </Text>
+          <Text className="text-sm text-gray-600">
+            {onboarding ? 'Here is what we found — tap Finish when you are ready.' : 'AI-assisted triage'}
+          </Text>
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-6 py-6" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-6 py-6"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={onboarding ? { paddingBottom: 100 } : undefined}
+      >
         {imageUri ? (
           <View className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <Image source={{ uri: imageUri }} className="h-48 w-full" resizeMode="cover" />
@@ -89,6 +112,19 @@ export function ResultsScreen({ result, imageUri, warnings, onBackHome }: Result
           </View>
         ))}
       </ScrollView>
+
+      {onboarding && onFinish ? (
+        <View className="border-t border-gray-200 bg-white px-6 py-4">
+          <Pressable
+            className="rounded-xl bg-blue-600 py-4 active:bg-blue-700"
+            onPress={onFinish}
+            accessibilityRole="button"
+            accessibilityLabel="Finish and go to My Pets"
+          >
+            <Text className="text-center text-base font-bold text-white">Finish</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }

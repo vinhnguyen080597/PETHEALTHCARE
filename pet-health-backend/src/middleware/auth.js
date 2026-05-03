@@ -25,6 +25,7 @@ export async function requireUser(req, res, next) {
       id: data.user.id,
       email: data.user.email ?? null,
     };
+    req.accessToken = token;
     return next();
   } catch (_err) {
     return res.status(401).json({ error: 'Unauthorized' });

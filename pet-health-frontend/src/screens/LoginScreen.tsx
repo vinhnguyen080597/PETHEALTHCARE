@@ -11,6 +11,10 @@ type LoginScreenProps = {
   onChangePassword: (value: string) => void;
   onToggleSignUp: () => void;
   onSubmit: () => void;
+  onGoogleSignIn: () => void;
+  onAppleSignIn: () => void;
+  appleSignInAvailable: boolean;
+  googleSignInReady: boolean;
 };
 
 /** Mirrors `figma/code/src/app/components/LoginScreen.tsx` layout for React Native + NativeWind. */
@@ -23,12 +27,12 @@ export function LoginScreen({
   onChangePassword,
   onToggleSignUp,
   onSubmit,
+  onGoogleSignIn,
+  onAppleSignIn,
+  appleSignInAvailable,
+  googleSignInReady,
 }: LoginScreenProps) {
   const healthLooksBad = /unreachable|offline|failed|error|503|401|network/i.test(healthMessage);
-
-  const onSocial = (provider: 'google' | 'apple') => {
-    Alert.alert('Sign in with ' + (provider === 'google' ? 'Google' : 'Apple'), 'Not wired yet — use email and password.', [{ text: 'OK' }]);
-  };
 
   return (
     <SafeAreaView className="flex-1 bg-blue-600" edges={['top', 'bottom', 'left', 'right']}>
@@ -90,19 +94,22 @@ export function LoginScreen({
 
               <View className="gap-3">
                 <Pressable
-                  className="flex-row items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white py-3 active:bg-gray-50"
-                  onPress={() => onSocial('google')}
+                  className={`flex-row items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white py-3 active:bg-gray-50 ${!googleSignInReady ? 'opacity-50' : ''}`}
+                  disabled={!googleSignInReady}
+                  onPress={onGoogleSignIn}
                 >
                   <Ionicons name="logo-google" size={20} color="#4285F4" />
                   <Text className="text-base font-medium text-slate-800">Google</Text>
                 </Pressable>
-                <Pressable
-                  className="flex-row items-center justify-center gap-3 rounded-xl bg-black py-3 active:bg-gray-900"
-                  onPress={() => onSocial('apple')}
-                >
-                  <Ionicons name="logo-apple" size={20} color="#ffffff" />
-                  <Text className="text-base font-medium text-white">Apple</Text>
-                </Pressable>
+                {appleSignInAvailable ? (
+                  <Pressable
+                    className="flex-row items-center justify-center gap-3 rounded-xl bg-black py-3 active:bg-gray-900"
+                    onPress={onAppleSignIn}
+                  >
+                    <Ionicons name="logo-apple" size={20} color="#ffffff" />
+                    <Text className="text-base font-medium text-white">Apple</Text>
+                  </Pressable>
+                ) : null}
               </View>
 
               <Pressable className="mt-6" onPress={onToggleSignUp}>

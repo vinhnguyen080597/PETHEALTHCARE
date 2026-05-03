@@ -1,7 +1,10 @@
 import { GoogleGenAI } from '@google/genai';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const SUPPORTED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024;
+const SUPPORTED_IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MAX_VIDEO_FILE_SIZE = 10 * 1024 * 1024;
+const SUPPORTED_VIDEO_MIMES = new Set(['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp']);
+const MAX_IMAGES_FOR_MODEL = 6;
 const MODEL_CANDIDATES = ['gemini-3-flash-preview', 'gemini-1.5-flash-latest'];
 
 let ai = null;
@@ -64,25 +67,85 @@ export function validateImageFile(file) {
     throw err;
   }
 
-  if (!SUPPORTED_MIME_TYPES.has(file.mimetype)) {
+  if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
     const err = new Error('Unsupported file type. Use jpeg, png, or webp');
     err.status = 400;
     throw err;
   }
 
-  if (file.size > MAX_FILE_SIZE) {
+  if (file.size > MAX_IMAGE_FILE_SIZE) {
     const err = new Error('Image too large. Max 5MB');
     err.status = 400;
     throw err;
   }
 }
 
-export async function analyzePetImage(file) {
-  validateImageFile(file);
+/** Optional diagnosis clip: max 10 MB (client should cap length ≈10s). */
+export function validateVideoFile(file) {
+  if (!file) return;
 
-  const prompt = `
+  if (!SUPPORTED_VIDEO_MIMES.has(file.mimetype)) {
+    const err = new Error('Unsupported video type. Use MP4, MOV, WebM, or 3GP');
+    err.status = 400;
+    throw err;
+  }
+
+  if (file.size > MAX_VIDEO_FILE_SIZE) {
+    const err = new Error('Video too large. Max 10 MB (about 10 seconds).');
+    err.status = 400;
+    throw err;
+  }
+}
+
+export function buildHealthContextAppendix(body) {
+  const lines = [];
+  const w = typeof body.weightKg === 'string' ? body.weightKg.trim() : '';
+  if (w) lines.push(`Weight (kg): ${w}`);
+
+  const vac = body.vaccinated;
+  if (vac === 'yes' || vac === 'no') {
+    const vt = typeof body.vaccineType === 'string' ? body.vaccineType.trim() : '';
+    lines.push(
+      vac === 'yes'
+        ? `Vaccinated: yes${vt ? `; vaccine details: ${vt}` : ''}`
+        : 'Vaccinated: no',
+    );
+  }
+
+  const neu = body.neutered;
+  if (neu === 'yes' || neu === 'no') {
+    lines.push(`Neutered/spayed: ${neu}`);
+  }
+
+  const mh = typeof body.medicalHistory === 'string' ? body.medicalHistory.trim() : '';
+  if (mh) lines.push(`Medical history: ${mh}`);
+
+  const sx = typeof body.symptomDescription === 'string' ? body.symptomDescription.trim() : '';
+  if (sx) lines.push(`Symptom / owner notes: ${sx}`);
+
+  if (!lines.length) return '';
+  return `\n\nOwner-provided context (use together with images; this is not a substitute for an exam):\n${lines.join('\n')}`;
+}
+
+/**
+ * @param {import('multer').File[]} imageFiles - primary first, then extras (jpeg/png/webp)
+ * @param {string} healthContextAppendix - from buildHealthContextAppendix
+ */
+export async function analyzePetHealthImages(imageFiles, healthContextAppendix = '') {
+  const files = (imageFiles || []).filter(Boolean).slice(0, MAX_IMAGES_FOR_MODEL);
+  if (!files.length) {
+    const err = new Error('At least one image is required');
+    err.status = 400;
+    throw err;
+  }
+
+  for (const f of files) {
+    validateImageFile(f);
+  }
+
+  const basePrompt = `
 You are a professional veterinary triage assistant.
-Analyze the uploaded pet image and return JSON only.
+Analyze the uploaded pet image(s) and return JSON only.
 
 Required schema:
 {
@@ -96,16 +159,20 @@ Required schema:
 
 Rules:
 - confidence must be a number between 0 and 1.
-- If the image is not a pet or quality is too low, set diagnosis to "Unable to assess".
+- If images are not of a pet or quality is too low, set diagnosis to "Unable to assess".
 - Keep treatment cautious and safe.
+- If multiple images are provided, synthesize findings across all views.
+${healthContextAppendix}
 `;
 
-  const imagePart = {
+  const imageParts = files.map((file) => ({
     inlineData: {
       data: file.buffer.toString('base64'),
       mimeType: file.mimetype,
     },
-  };
+  }));
+
+  const contents = [basePrompt, ...imageParts];
 
   const client = getAiClient();
   let parsedResult = null;
@@ -116,7 +183,7 @@ Rules:
       const result = await client.models.generateContent({
         model: modelName,
         generationConfig: { responseMimeType: 'application/json' },
-        contents: [prompt, imagePart],
+        contents,
       });
 
       parsedResult = parseJsonSafely(result.text);
@@ -131,4 +198,9 @@ Rules:
   }
 
   return normalizeDiagnosisPayload(parsedResult);
+}
+
+/** @deprecated path — prefer analyzePetHealthImages with optional extras */
+export async function analyzePetImage(file) {
+  return analyzePetHealthImages([file], '');
 }

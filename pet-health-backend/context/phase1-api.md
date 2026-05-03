@@ -4,6 +4,22 @@ Base URL (local): `http://localhost:3000`
 
 Version prefix: `/api/v1`
 
+### Postman / Insomnia / `{{BASE}}` variables
+
+Use **one** of these patterns so paths match this document:
+
+1. **Recommended:** set **`BASE` = full API root including `/api/v1`**  
+   - Example (ngrok): `https://contest-patronage-sank.ngrok-free.dev/api/v1`  
+   - Example (LAN): `http://192.168.1.4:3000/api/v1`  
+   - Then request URL is: `{{BASE}}/auth/signup` → `…/api/v1/auth/signup` ✓  
+
+2. **Alternative:** set **`BASE` = origin only** (no `/api/v1`)  
+   - Example: `https://contest-patronage-sank.ngrok-free.dev`  
+   - Then every path must include the prefix: `{{BASE}}/api/v1/auth/signup` ✓  
+   - **`{{BASE}}/auth/signup` is wrong** → Express returns `Cannot POST /auth/signup` (404).
+
+**Ngrok free (browser / Postman):** add header `ngrok-skip-browser-warning: true` on every request (or use the mobile app, which sends it when configured as in `pet-health-frontend/src/api.ts`).
+
 ---
 
 ## 1) Health Check

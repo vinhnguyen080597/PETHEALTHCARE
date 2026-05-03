@@ -22,6 +22,7 @@ export type Pet = {
   species: string;
   breed: string | null;
   age: number | null;
+  gender?: string | null;
   avatar_url: string | null;
   created_at: string;
 };
@@ -31,6 +32,7 @@ export type CreatePetPayload = {
   species: string;
   breed?: string;
   age?: number;
+  gender?: string;
   avatarUrl?: string;
 };
 
@@ -40,6 +42,7 @@ export type UpdatePetPayload = {
   species?: string;
   breed?: string | null;
   age?: number | null;
+  gender?: string | null;
   avatarUrl?: string | null;
 };
 
@@ -55,6 +58,14 @@ export type Analysis = {
   disclaimer: string;
   image_url: string | null;
   created_at: string;
+  extra_image_urls?: string[] | null;
+  video_url?: string | null;
+  weight_kg?: number | null;
+  vaccination_status?: string | null;
+  vaccine_type?: string | null;
+  neutering_status?: string | null;
+  medical_history?: string | null;
+  symptom_description?: string | null;
 };
 
 export type AnalyzeResponse = {

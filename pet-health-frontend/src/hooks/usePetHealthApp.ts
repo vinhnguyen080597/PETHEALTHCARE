@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import {
-  analyzePetImage,
+  analyzePetHealthCheck,
   createPet,
   deletePet,
   getPet,
@@ -12,12 +14,32 @@ import {
   listHistoryByPet,
   listPets,
   login,
+  oauthApple,
+  oauthGoogle,
   signUp,
   updatePet,
+  uploadPetAvatar,
 } from '../api';
-import { TOKEN_STORAGE_KEY } from '../constants/auth';
+import { isGoogleOAuthConfigured } from '../config';
+import { PENDING_INITIAL_ONBOARDING_KEY, TOKEN_STORAGE_KEY } from '../constants/auth';
+import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
 import type { Analysis, Pet } from '../types';
 import type { AppScreen } from '../screens/types';
+
+/** `blob:` URLs only exist in that browser tab — the API cannot store them. */
+function avatarUrlForApi(uri: string): string | undefined {
+  const s = uri.trim();
+  if (!s) return undefined;
+  if (s.toLowerCase().startsWith('blob:')) return undefined;
+  return s;
+}
+
+function avatarUrlForUpdate(uri: string): string | null {
+  const s = uri.trim();
+  if (!s) return null;
+  if (s.toLowerCase().startsWith('blob:')) return null;
+  return s;
+}
 
 export function usePetHealthApp() {
   const [screen, setScreen] = useState<AppScreen>('login');
@@ -29,22 +51,37 @@ export function usePetHealthApp() {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  /** True during email sign-up first-run flow until user skips health or taps Finish on results. */
+  const [initialOnboarding, setInitialOnboarding] = useState(false);
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [editingPetId, setEditingPetId] = useState<string | null>(null);
 
   const [petName, setPetName] = useState('');
-  const [petSpecies, setPetSpecies] = useState('cat');
+  const [petSpecies, setPetSpecies] = useState('dog');
   const [petBreed, setPetBreed] = useState('');
   const [petAge, setPetAge] = useState('');
+  const [petGender, setPetGender] = useState('male');
   const [petAvatarUrl, setPetAvatarUrl] = useState('');
 
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  /** Health check intake (Figma) — only first photo is sent to the analysis API today. */
+  const [healthCheckPhotos, setHealthCheckPhotos] = useState<string[]>([]);
+  const [healthCheckVideoUri, setHealthCheckVideoUri] = useState<string | null>(null);
+  const [healthCheckWeightKg, setHealthCheckWeightKg] = useState('');
+  const [healthCheckVaccinated, setHealthCheckVaccinated] = useState<'yes' | 'no'>('yes');
+  const [healthCheckVaccineType, setHealthCheckVaccineType] = useState('');
+  const [healthCheckNeutered, setHealthCheckNeutered] = useState<'yes' | 'no'>('no');
+  const [healthCheckMedicalHistory, setHealthCheckMedicalHistory] = useState('');
+  const [healthCheckSymptoms, setHealthCheckSymptoms] = useState('');
+
   const [currentResult, setCurrentResult] = useState<Analysis | null>(null);
   const [resultImageUri, setResultImageUri] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [history, setHistory] = useState<Analysis[]>([]);
+  const [appleSignInAvailable, setAppleSignInAvailable] = useState(false);
+
+  const [googleAuthRequest, , promptGoogleAsync] = useGoogleIdTokenAuth();
 
   const selectedPet = useMemo(() => pets.find((pet) => pet.id === selectedPetId) ?? null, [pets, selectedPetId]);
 
@@ -52,14 +89,26 @@ export function usePetHealthApp() {
 
   function clearPetForm() {
     setPetName('');
-    setPetSpecies('cat');
+    setPetSpecies('dog');
     setPetBreed('');
     setPetAge('');
+    setPetGender('male');
     setPetAvatarUrl('');
     setEditingPetId(null);
   }
 
-  const fetchPets = useCallback(async (accessToken: string) => {
+  function clearHealthCheckForm() {
+    setHealthCheckPhotos([]);
+    setHealthCheckVideoUri(null);
+    setHealthCheckWeightKg('');
+    setHealthCheckVaccinated('yes');
+    setHealthCheckVaccineType('');
+    setHealthCheckNeutered('no');
+    setHealthCheckMedicalHistory('');
+    setHealthCheckSymptoms('');
+  }
+
+  const fetchPets = useCallback(async (accessToken: string): Promise<Pet[]> => {
     const response = await listPets(accessToken);
     setPets(response.data);
     if (response.data.length > 0) {
@@ -67,6 +116,7 @@ export function usePetHealthApp() {
     } else {
       setSelectedPetId(null);
     }
+    return response.data;
   }, []);
 
   const refreshPets = useCallback(async () => {
@@ -83,6 +133,10 @@ export function usePetHealthApp() {
     void initializeApp();
   }, []);
 
+  useEffect(() => {
+    void AppleAuthentication.isAvailableAsync().then(setAppleSignInAvailable);
+  }, []);
+
   async function initializeApp() {
     try {
       await healthCheck();
@@ -95,14 +149,64 @@ export function usePetHealthApp() {
     if (savedToken) {
       setToken(savedToken);
       try {
-        await fetchPets(savedToken);
-        setScreen('home');
+        const petsList = await fetchPets(savedToken);
+        const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
+        if (pending === '1') {
+          setInitialOnboarding(true);
+          if (petsList.length === 0) {
+            setScreen('onboarding-add-pet');
+          } else {
+            setSelectedPetId((prev) => prev ?? petsList[0]?.id ?? null);
+            setScreen('onboarding-health-prompt');
+          }
+        } else {
+          setScreen('home');
+        }
       } catch {
         await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+        await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
         setToken(null);
+        setInitialOnboarding(false);
       }
     }
   }
+
+  async function completeInitialOnboarding() {
+    await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
+    setInitialOnboarding(false);
+  }
+
+  const applySession = useCallback(
+    async (accessToken: string, options?: { startInitialPetOnboarding?: boolean }) => {
+      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+      setToken(accessToken);
+      const petsList = await fetchPets(accessToken);
+
+      if (options?.startInitialPetOnboarding) {
+        await AsyncStorage.setItem(PENDING_INITIAL_ONBOARDING_KEY, '1');
+        setInitialOnboarding(true);
+        clearPetForm();
+        setScreen('onboarding-add-pet');
+        return;
+      }
+
+      const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
+      if (pending === '1') {
+        setInitialOnboarding(true);
+        if (petsList.length === 0) {
+          setScreen('onboarding-add-pet');
+        } else {
+          setSelectedPetId((prev) => prev ?? petsList[0]?.id ?? null);
+          setScreen('onboarding-health-prompt');
+        }
+        return;
+      }
+
+      setInitialOnboarding(false);
+      setScreen('home');
+    },
+    [fetchPets],
+  );
 
   async function submitAuth() {
     if (!email || !password) {
@@ -118,10 +222,7 @@ export function usePetHealthApp() {
           Alert.alert('Verify email', 'Check your inbox to confirm, then use Sign in.');
           return;
         }
-        await AsyncStorage.setItem(TOKEN_STORAGE_KEY, signUpToken);
-        setToken(signUpToken);
-        await fetchPets(signUpToken);
-        setScreen('home');
+        await applySession(signUpToken, { startInitialPetOnboarding: true });
         return;
       }
 
@@ -131,13 +232,109 @@ export function usePetHealthApp() {
         Alert.alert('Login failed', 'No access token returned.');
         return;
       }
-      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
-      setToken(accessToken);
-      await fetchPets(accessToken);
-      setScreen('home');
+      await applySession(accessToken);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       Alert.alert('Auth failed', message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitGoogleAuth() {
+    if (!isGoogleOAuthConfigured()) {
+      Alert.alert(
+        'Google sign-in',
+        'Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (and iOS/Android client IDs for native builds) to a .env file, restart Expo, enable Google in Supabase Auth → Providers, then try again.',
+      );
+      return;
+    }
+    if (!googleAuthRequest) {
+      Alert.alert('Please wait', 'Google sign-in is still loading.');
+      return;
+    }
+    if (__DEV__) {
+      // If Google returns "redirect_uri_mismatch", add this EXACT string to the matching OAuth client in Google Cloud Console.
+      console.log('[Google OAuth] redirectUri (must be in Authorized redirect URIs):', googleAuthRequest.redirectUri);
+    }
+    setLoading(true);
+    try {
+      const result = await promptGoogleAsync();
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        return;
+      }
+      if (result.type !== 'success') {
+        const errMsg =
+          result.type === 'error'
+            ? (result.error instanceof Error ? result.error.message : result.errorCode) ?? 'Something went wrong'
+            : 'Sign-in was not completed.';
+        Alert.alert('Google sign-in', errMsg);
+        return;
+      }
+      const idToken = result.params.id_token;
+      if (!idToken) {
+        Alert.alert('Google sign-in', 'No ID token returned. Check your Google OAuth client configuration.');
+        return;
+      }
+      const response = await oauthGoogle(idToken);
+      const accessToken = response.data.session?.access_token;
+      if (!accessToken) {
+        Alert.alert('Google sign-in', 'No access token returned.');
+        return;
+      }
+      await applySession(accessToken);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (/nonce/i.test(message)) {
+        Alert.alert(
+          'Google sign-in (Supabase)',
+          'Turn ON “Skip nonce checks” for the Google provider in Supabase (Authentication → Providers → Google), then try again. Expo’s Google flow and Supabase’s nonce check do not line up without that setting.',
+        );
+        return;
+      }
+      Alert.alert('Google sign-in failed', message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitAppleAuth() {
+    if (!(await AppleAuthentication.isAvailableAsync())) {
+      Alert.alert('Apple sign-in', 'Sign in with Apple is only available on supported iOS devices.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const rawNonce = Crypto.randomUUID();
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: rawNonce,
+      });
+      if (!credential.identityToken) {
+        Alert.alert('Apple sign-in', 'No identity token returned.');
+        return;
+      }
+      const response = await oauthApple(credential.identityToken, rawNonce);
+      const accessToken = response.data.session?.access_token;
+      if (!accessToken) {
+        Alert.alert('Apple sign-in', 'No access token returned.');
+        return;
+      }
+      await applySession(accessToken);
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'ERR_REQUEST_CANCELED'
+      ) {
+        return;
+      }
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Apple sign-in failed', message);
     } finally {
       setLoading(false);
     }
@@ -152,12 +349,14 @@ export function usePetHealthApp() {
 
     setLoading(true);
     try {
+      const avatarForApi = avatarUrlForApi(petAvatarUrl);
       await createPet(token, {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || undefined,
         age: petAge ? Number(petAge) : undefined,
-        avatarUrl: petAvatarUrl.trim() || undefined,
+        gender: petGender,
+        ...(avatarForApi !== undefined ? { avatarUrl: avatarForApi } : {}),
       });
       clearPetForm();
       await fetchPets(token);
@@ -168,6 +367,70 @@ export function usePetHealthApp() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleOnboardingAddPet() {
+    if (!token) return;
+    if (!petName.trim() || !petSpecies.trim()) {
+      Alert.alert('Missing info', 'Pet name and species are required.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const avatarForApi = avatarUrlForApi(petAvatarUrl);
+      const { data: created } = await createPet(token, {
+        name: petName.trim(),
+        species: petSpecies.trim().toLowerCase(),
+        breed: petBreed.trim() || undefined,
+        age: petAge ? Number(petAge) : undefined,
+        gender: petGender,
+        ...(avatarForApi !== undefined ? { avatarUrl: avatarForApi } : {}),
+      });
+      clearPetForm();
+      await fetchPets(token);
+      setSelectedPetId(created.id);
+      setScreen('onboarding-health-prompt');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Create pet failed', message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function cancelOnboardingAddPet() {
+    Alert.alert('Exit setup?', 'You can sign in again later to add your pet.', [
+      { text: 'Stay', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: () => void signOutFromOnboarding(),
+      },
+    ]);
+  }
+
+  async function signOutFromOnboarding() {
+    await logout();
+  }
+
+  function goToOnboardingHealthCheckFromPrompt() {
+    if (!selectedPetId) return;
+    clearHealthCheckForm();
+    setScreen('onboarding-health-check');
+  }
+
+  async function skipInitialHealthOnboarding() {
+    await completeInitialOnboarding();
+    clearHealthCheckForm();
+    setScreen('home');
+    if (token) void fetchPets(token);
+  }
+
+  async function finishInitialOnboardingAfterResults() {
+    await completeInitialOnboarding();
+    setScreen('home');
+    if (token) await fetchPets(token);
   }
 
   async function handleUpdatePet() {
@@ -184,7 +447,8 @@ export function usePetHealthApp() {
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || null,
         age: petAge ? Number(petAge) : null,
-        avatarUrl: petAvatarUrl.trim() || null,
+        gender: petGender,
+        avatarUrl: avatarUrlForUpdate(petAvatarUrl),
       });
       clearPetForm();
       await fetchPets(token);
@@ -212,6 +476,7 @@ export function usePetHealthApp() {
       setPetSpecies(data.species);
       setPetBreed(data.breed ?? '');
       setPetAge(data.age !== null && data.age !== undefined ? String(data.age) : '');
+      setPetGender(data.gender === 'female' || data.gender === 'male' ? data.gender : 'male');
       setPetAvatarUrl(data.avatar_url ?? '');
       setScreen('edit-pet');
     } catch (error: unknown) {
@@ -247,6 +512,10 @@ export function usePetHealthApp() {
       if (selectedPetId === petId) {
         setSelectedPetId(null);
       }
+      if (editingPetId === petId) {
+        clearPetForm();
+        setScreen('home');
+      }
       await fetchPets(token);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -256,7 +525,41 @@ export function usePetHealthApp() {
     }
   }
 
-  async function chooseImage() {
+  async function pickPetAvatar() {
+    if (!token) {
+      Alert.alert('Sign in required', 'Please sign in before choosing a pet avatar.');
+      return;
+    }
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow gallery access to set an avatar.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    setLoading(true);
+    try {
+      const resized = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 512 } }],
+        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      const { data } = await uploadPetAvatar(token, resized.uri);
+      setPetAvatarUrl(data.avatarUrl);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Avatar upload failed', message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function pickHealthCheckPhotos() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert('Permission needed', 'Please allow gallery access.');
@@ -264,37 +567,87 @@ export function usePetHealthApp() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
+      allowsMultipleSelection: true,
+      selectionLimit: 6,
+      quality: 0.85,
     });
-    if (result.canceled || !result.assets[0]?.uri) return;
-    const compressed = await ImageManipulator.manipulateAsync(
-      result.assets[0].uri,
-      [{ resize: { width: 1200 } }],
-      { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG },
-    );
-    setImageUri(compressed.uri);
+    if (result.canceled || !result.assets?.length) return;
+    try {
+      const newUris: string[] = [];
+      for (const asset of result.assets) {
+        const compressed = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1200 } }],
+          { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG },
+        );
+        newUris.push(compressed.uri);
+      }
+      setHealthCheckPhotos((prev) => [...prev, ...newUris].slice(0, 6));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Photos', message);
+    }
   }
 
-  async function analyzeImage() {
-    if (!token || !selectedPetId || !imageUri) {
-      Alert.alert('Missing data', 'Select pet and image first.');
+  async function pickHealthCheckVideo() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow gallery access.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      videoMaxDuration: 10,
+      quality: 0.75,
+    });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    setHealthCheckVideoUri(result.assets[0].uri);
+  }
+
+  async function analyzeHealthCheck() {
+    if (!healthCheckPhotos.length) {
+      Alert.alert('Photos required', 'Please upload at least one photo.');
+      return;
+    }
+    if (!token || !selectedPetId) {
+      Alert.alert('Missing data', 'Please sign in and select a pet.');
       return;
     }
     setLoading(true);
     try {
-      const response = await analyzePetImage(token, selectedPetId, imageUri);
+      const response = await analyzePetHealthCheck({
+        token,
+        petId: selectedPetId,
+        imageUris: healthCheckPhotos,
+        videoUri: healthCheckVideoUri,
+        weightKg: healthCheckWeightKg.trim(),
+        vaccinated: healthCheckVaccinated,
+        vaccineType: healthCheckVaccineType.trim(),
+        neutered: healthCheckNeutered,
+        medicalHistory: healthCheckMedicalHistory.trim(),
+        symptomDescription: healthCheckSymptoms.trim(),
+      });
       setCurrentResult(response.data);
-      setResultImageUri(imageUri);
+      setResultImageUri(healthCheckPhotos[0]);
       setWarnings(response.warnings ?? []);
       const historyResponse = await listHistoryByPet(token, selectedPetId);
       setHistory(historyResponse.data);
-      setScreen('results');
+      clearHealthCheckForm();
+      setScreen(initialOnboarding ? 'onboarding-results' : 'results');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       Alert.alert('Analyze failed', message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function closeHealthCheck() {
+    clearHealthCheckForm();
+    if (initialOnboarding) {
+      setScreen('onboarding-health-prompt');
+    } else {
+      setScreen('home');
     }
   }
 
@@ -325,10 +678,12 @@ export function usePetHealthApp() {
 
   async function logout() {
     await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+    await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
+    setInitialOnboarding(false);
     setToken(null);
     setPets([]);
     setSelectedPetId(null);
-    setImageUri(null);
+    clearHealthCheckForm();
     setCurrentResult(null);
     setResultImageUri(null);
     setHistory([]);
@@ -338,8 +693,8 @@ export function usePetHealthApp() {
 
   function goToCameraForPet(petId: string) {
     setSelectedPetId(petId);
-    setImageUri(null);
-    setScreen('camera');
+    clearHealthCheckForm();
+    setScreen('health-check');
   }
 
   function goHomeAndRefresh() {
@@ -366,6 +721,7 @@ export function usePetHealthApp() {
     setSelectedPetId,
     selectedPet,
     petFormMode,
+    editingPetId,
     petName,
     setPetName,
     petSpecies,
@@ -374,26 +730,57 @@ export function usePetHealthApp() {
     setPetBreed,
     petAge,
     setPetAge,
+    petGender,
+    setPetGender,
     petAvatarUrl,
     setPetAvatarUrl,
-    imageUri,
+    pickPetAvatar,
+    healthCheckPhotos,
+    healthCheckVideoUri,
+    healthCheckWeightKg,
+    setHealthCheckWeightKg,
+    healthCheckVaccinated,
+    setHealthCheckVaccinated,
+    healthCheckVaccineType,
+    setHealthCheckVaccineType,
+    healthCheckNeutered,
+    setHealthCheckNeutered,
+    healthCheckMedicalHistory,
+    setHealthCheckMedicalHistory,
+    healthCheckSymptoms,
+    setHealthCheckSymptoms,
+    pickHealthCheckPhotos,
+    pickHealthCheckVideo,
+    removeHealthCheckPhoto: (index: number) => {
+      setHealthCheckPhotos((prev) => prev.filter((_, i) => i !== index));
+    },
+    clearHealthCheckVideo: () => setHealthCheckVideoUri(null),
+    analyzeHealthCheck,
+    closeHealthCheck,
     currentResult,
     resultImageUri,
     warnings,
     history,
     submitAuth,
+    submitGoogleAuth,
+    submitAppleAuth,
+    appleSignInAvailable,
+    googleSignInReady: Boolean(googleAuthRequest),
     handleAddPet,
     handleUpdatePet,
     openCreatePet,
     openEditPet,
     cancelPetForm,
     handleDeletePet,
-    chooseImage,
-    analyzeImage,
     openHistory,
     openHistoryDetail,
     logout,
     goToCameraForPet,
     goHomeAndRefresh,
+    handleOnboardingAddPet,
+    cancelOnboardingAddPet,
+    goToOnboardingHealthCheckFromPrompt,
+    skipInitialHealthOnboarding,
+    finishInitialOnboardingAfterResults,
   };
 }

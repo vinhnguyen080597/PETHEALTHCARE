@@ -8,7 +8,15 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 export function createApp() {
   const app = express();
-  app.use(cors());
+  // Explicit CORS for browser (Expo web / Vite) + localtunnel custom header
+  app.use(
+    cors({
+      origin: true,
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Bypass-Tunnel-Reminder', 'ngrok-skip-browser-warning'],
+      maxAge: 86400,
+    }),
+  );
   app.use(express.json());
 
   app.use('/health', healthRoutes);
