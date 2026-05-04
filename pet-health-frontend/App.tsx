@@ -12,6 +12,7 @@ import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { OnboardingHealthPromptScreen } from './src/screens/OnboardingHealthPromptScreen';
+import { PetProfileScreen } from './src/screens/PetProfileScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 
 export default function App() {
@@ -25,7 +26,8 @@ export default function App() {
     app.screen === 'onboarding-add-pet' ||
     app.screen === 'onboarding-health-prompt' ||
     app.screen === 'onboarding-health-check' ||
-    app.screen === 'onboarding-results';
+    app.screen === 'onboarding-results' ||
+    app.screen === 'pet-profile';
 
   return (
     <SafeAreaProvider>
@@ -57,9 +59,22 @@ export default function App() {
                 onRefresh={app.refreshPets}
                 onAddPet={app.openCreatePet}
                 onStartScan={app.goToCameraForPet}
-                onViewProfile={app.openEditPet}
+                onViewProfile={app.openPetProfile}
               />
             )}
+
+            {app.screen === 'pet-profile' && app.selectedPet ? (
+              <PetProfileScreen
+                pet={app.selectedPet}
+                history={app.history}
+                refreshing={app.refreshing}
+                onRefresh={app.refreshPetProfile}
+                onBack={app.closePetProfile}
+                onEdit={() => app.openEditPet(app.selectedPet!.id, { returnToProfile: true })}
+                onScanHealth={() => app.goToCameraForPet(app.selectedPet!.id, { returnToProfile: true })}
+                onSelectEntry={(entry) => app.openHistoryDetail(entry, 'pet-profile')}
+              />
+            ) : null}
 
             {(app.screen === 'add-pet' || app.screen === 'edit-pet') && (
               <AddPetScreen
@@ -176,7 +191,7 @@ export default function App() {
                 result={app.currentResult}
                 imageUri={app.resultImageUri}
                 warnings={app.warnings}
-                onBackHome={app.goHomeAndRefresh}
+                onBackHome={app.dismissResults}
               />
             )}
 
@@ -192,7 +207,10 @@ export default function App() {
             )}
 
             {app.screen === 'history' && (
-              <HistoryScreen history={app.history} onSelectEntry={app.openHistoryDetail} />
+              <HistoryScreen
+                history={app.history}
+                onSelectEntry={(entry) => app.openHistoryDetail(entry, 'history')}
+              />
             )}
 
             {showBottomTab ? (

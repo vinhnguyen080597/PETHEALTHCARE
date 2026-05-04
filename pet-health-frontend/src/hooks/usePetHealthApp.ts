@@ -79,6 +79,14 @@ export function usePetHealthApp() {
   const [resultImageUri, setResultImageUri] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [history, setHistory] = useState<Analysis[]>([]);
+  /** After saving pet form opened from profile, return to pet profile instead of home. */
+  const [petFormReturnToProfile, setPetFormReturnToProfile] = useState(false);
+  /** Where to go when closing the results screen opened from history vs profile vs default home. */
+  const [resultsReturnScreen, setResultsReturnScreen] = useState<'home' | 'history' | 'pet-profile' | null>(
+    null,
+  );
+  /** Health check opened from pet profile — back / results return to profile, not home. */
+  const [healthCheckReturnToProfile, setHealthCheckReturnToProfile] = useState(false);
   const [appleSignInAvailable, setAppleSignInAvailable] = useState(false);
 
   const [googleAuthRequest, , promptGoogleAsync] = useGoogleIdTokenAuth();
@@ -450,9 +458,23 @@ export function usePetHealthApp() {
         gender: petGender,
         avatarUrl: avatarUrlForUpdate(petAvatarUrl),
       });
+      const returnToProfile = petFormReturnToProfile;
+      const updatedPetId = editingPetId;
       clearPetForm();
+      setPetFormReturnToProfile(false);
       await fetchPets(token);
-      setScreen('home');
+      if (returnToProfile && updatedPetId && token) {
+        try {
+          const historyResponse = await listHistoryByPet(token, updatedPetId);
+          setHistory(historyResponse.data);
+        } catch {
+          setHistory([]);
+        }
+        setSelectedPetId(updatedPetId);
+        setScreen('pet-profile');
+      } else {
+        setScreen('home');
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       Alert.alert('Update pet failed', message);
@@ -466,8 +488,9 @@ export function usePetHealthApp() {
     setScreen('add-pet');
   }
 
-  async function openEditPet(petId: string) {
+  async function openEditPet(petId: string, opts?: { returnToProfile?: boolean }) {
     if (!token) return;
+    setPetFormReturnToProfile(Boolean(opts?.returnToProfile));
     setLoading(true);
     try {
       const { data } = await getPet(token, petId);
@@ -480,6 +503,7 @@ export function usePetHealthApp() {
       setPetAvatarUrl(data.avatar_url ?? '');
       setScreen('edit-pet');
     } catch (error: unknown) {
+      setPetFormReturnToProfile(false);
       const message = error instanceof Error ? error.message : 'Unknown error';
       Alert.alert('Load pet failed', message);
     } finally {
@@ -487,9 +511,46 @@ export function usePetHealthApp() {
     }
   }
 
-  function cancelPetForm() {
-    clearPetForm();
+  async function openPetProfile(petId: string) {
+    if (!token) return;
+    setSelectedPetId(petId);
+    setLoading(true);
+    try {
+      const response = await listHistoryByPet(token, petId);
+      setHistory(response.data);
+      setScreen('pet-profile');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Load profile failed', message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closePetProfile() {
     setScreen('home');
+  }
+
+  async function refreshPetProfile() {
+    if (!token || !selectedPetId) return;
+    setRefreshing(true);
+    try {
+      await fetchPets(token);
+      const response = await listHistoryByPet(token, selectedPetId);
+      setHistory(response.data);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Refresh failed', message);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  function cancelPetForm() {
+    const backToProfile = petFormReturnToProfile;
+    clearPetForm();
+    setPetFormReturnToProfile(false);
+    setScreen(backToProfile ? 'pet-profile' : 'home');
   }
 
   function handleDeletePet(pet: Pet) {
@@ -514,6 +575,7 @@ export function usePetHealthApp() {
       }
       if (editingPetId === petId) {
         clearPetForm();
+        setPetFormReturnToProfile(false);
         setScreen('home');
       }
       await fetchPets(token);
@@ -630,6 +692,9 @@ export function usePetHealthApp() {
       setCurrentResult(response.data);
       setResultImageUri(healthCheckPhotos[0]);
       setWarnings(response.warnings ?? []);
+      const returnToProfileAfterScan = healthCheckReturnToProfile;
+      setHealthCheckReturnToProfile(false);
+      setResultsReturnScreen(returnToProfileAfterScan ? 'pet-profile' : null);
       const historyResponse = await listHistoryByPet(token, selectedPetId);
       setHistory(historyResponse.data);
       clearHealthCheckForm();
@@ -646,6 +711,9 @@ export function usePetHealthApp() {
     clearHealthCheckForm();
     if (initialOnboarding) {
       setScreen('onboarding-health-prompt');
+    } else if (healthCheckReturnToProfile) {
+      setHealthCheckReturnToProfile(false);
+      setScreen('pet-profile');
     } else {
       setScreen('home');
     }
@@ -669,11 +737,32 @@ export function usePetHealthApp() {
     }
   }
 
-  function openHistoryDetail(entry: Analysis) {
+  function openHistoryDetail(
+    entry: Analysis,
+    source: 'home' | 'history' | 'pet-profile' = 'home',
+  ) {
+    setResultsReturnScreen(source === 'home' ? 'home' : source);
     setCurrentResult(entry);
     setResultImageUri(entry.image_url);
     setWarnings([]);
     setScreen('results');
+  }
+
+  function dismissResults() {
+    const target = resultsReturnScreen ?? 'home';
+    setResultsReturnScreen(null);
+    if (target === 'history') {
+      setScreen('history');
+      return;
+    }
+    if (target === 'pet-profile') {
+      setScreen('pet-profile');
+      if (token && selectedPetId) {
+        void listHistoryByPet(token, selectedPetId).then((r) => setHistory(r.data));
+      }
+      return;
+    }
+    goHomeAndRefresh();
   }
 
   async function logout() {
@@ -688,10 +777,14 @@ export function usePetHealthApp() {
     setResultImageUri(null);
     setHistory([]);
     clearPetForm();
+    setPetFormReturnToProfile(false);
+    setHealthCheckReturnToProfile(false);
+    setResultsReturnScreen(null);
     setScreen('login');
   }
 
-  function goToCameraForPet(petId: string) {
+  function goToCameraForPet(petId: string, opts?: { returnToProfile?: boolean }) {
+    setHealthCheckReturnToProfile(Boolean(opts?.returnToProfile));
     setSelectedPetId(petId);
     clearHealthCheckForm();
     setScreen('health-check');
@@ -774,6 +867,10 @@ export function usePetHealthApp() {
     handleDeletePet,
     openHistory,
     openHistoryDetail,
+    dismissResults,
+    openPetProfile,
+    closePetProfile,
+    refreshPetProfile,
     logout,
     goToCameraForPet,
     goHomeAndRefresh,
