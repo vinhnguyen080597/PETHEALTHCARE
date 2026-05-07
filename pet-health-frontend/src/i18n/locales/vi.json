@@ -123,7 +123,20 @@
     "symptomsPlaceholder": "Mô tả thêm tình trạng (vd: biếng ăn, mệt mỏi, gãi nhiều...)",
     "startAnalysis": "Bắt đầu phân tích",
     "photoRequiredError": "* Vui lòng tải ít nhất một ảnh",
-    "enterVaccineType": "Nhập loại vắc-xin"
+    "enterVaccineType": "Nhập loại vắc-xin",
+    "cooldownHint": "Vui lòng đợi {{seconds}} giây trước khi phân tích lần tiếp theo.",
+    "analysisBusyHint": "Hệ thống đang phân tích lượt hiện tại. Vui lòng chờ trong giây lát."
+  },
+  "analysisProgress": {
+    "title": "Đang phân tích kiểm tra sức khỏe",
+    "subtitle": "Vui lòng chờ trong khi hệ thống xử lý dữ liệu của {{name}}.",
+    "failedTitle": "Phân tích thất bại",
+    "failedBody": "Không thể hoàn tất lần phân tích này. Vui lòng thử lại.",
+    "stages": {
+      "uploading": "Đang tải ảnh/video",
+      "analyzing": "AI đang phân tích triệu chứng",
+      "saving": "Đang lưu kết quả"
+    }
   },
   "results": {
     "analysisResults": "Kết quả phân tích",
@@ -134,6 +147,13 @@
     "confidence": "Độ tin cậy",
     "identifiedSymptoms": "Triệu chứng ghi nhận",
     "recommendedTreatment": "Điều trị gợi ý",
+    "visualEvidence": "Dấu hiệu quan sát được",
+    "missingData": "Dữ liệu còn thiếu",
+    "nextAction": "Hành động tiếp theo",
+    "needMoreDataTitle": "Nên bổ sung thêm dữ liệu",
+    "needMoreDataBody": "Kết quả hiện còn độ chắc chắn thấp. Vui lòng bổ sung ảnh rõ hơn hoặc thêm mô tả.",
+    "emergencyTitle": "Cảnh báo khẩn cấp",
+    "emergencyBody": "Phát hiện dấu hiệu nguy cơ cao. Vui lòng đưa thú cưng đến cơ sở thú y sớm nhất có thể.",
     "importantDisclaimer": "Lưu ý quan trọng",
     "finish": "Hoàn tất"
   },
@@ -290,6 +310,38 @@
     "analyzeFailed": {
       "title": "Phân tích thất bại",
       "message": "{{message}}"
+    },
+    "analysisNeedMoreData": {
+      "title": "Cần thêm dữ liệu",
+      "message": "Ảnh/thông tin hiện chưa đủ. Vui lòng bổ sung ảnh rõ hơn và mô tả thêm rồi thử lại."
+    },
+    "analysisNeedBetterPetPhoto": {
+      "title": "Chưa nhận diện rõ chó/mèo",
+      "message": "Vui lòng tải ảnh rõ hơn, tập trung vào chó hoặc mèo."
+    },
+    "analysisCooldownFriendly": {
+      "title": "Vui lòng đợi thêm",
+      "message": "Lượt kiểm tra trước vừa xong. Bạn có thể bắt đầu lại sau {{seconds}} giây."
+    },
+    "analysisInProgressFriendly": {
+      "title": "Đang phân tích",
+      "message": "Hệ thống vẫn đang xử lý lượt kiểm tra hiện tại. Vui lòng chờ một chút."
+    },
+    "analysisRateLimitFriendly": {
+      "title": "Bạn thao tác quá nhanh",
+      "message": "Để hệ thống ổn định, vui lòng thử lại sau {{seconds}} giây."
+    },
+    "analysisModelUnavailableFriendly": {
+      "title": "Hệ thống đang cập nhật",
+      "message": "Mô hình AI tạm thời chưa sẵn sàng. Vui lòng thử lại sau vài phút."
+    },
+    "analysisQuotaFriendly": {
+      "title": "Máy chủ đang quá tải",
+      "message": "Hiện có nhiều lượt kiểm tra cùng lúc. Vui lòng thử lại sau vài phút."
+    },
+    "systemErrorFriendly": {
+      "title": "Lỗi hệ thống",
+      "message": "Đã có lỗi hệ thống, vui lòng thử lại sau."
     },
     "selectPet": {
       "title": "Chọn thú cưng",

@@ -123,7 +123,20 @@
     "symptomsPlaceholder": "Describe your pet's condition further (e.g., loss of appetite, lethargy, frequent scratching...)",
     "startAnalysis": "Start Analysis",
     "photoRequiredError": "* Please upload at least one photo",
-    "enterVaccineType": "Enter vaccine type"
+    "enterVaccineType": "Enter vaccine type",
+    "cooldownHint": "Please wait {{seconds}}s before starting another analysis.",
+    "analysisBusyHint": "An analysis is running. Please wait for it to complete."
+  },
+  "analysisProgress": {
+    "title": "Analyzing health check",
+    "subtitle": "Please wait while we process {{name}}'s data.",
+    "failedTitle": "Analysis failed",
+    "failedBody": "We could not complete this analysis. Please try again.",
+    "stages": {
+      "uploading": "Uploading media",
+      "analyzing": "AI is analyzing symptoms",
+      "saving": "Saving result"
+    }
   },
   "results": {
     "analysisResults": "Analysis Results",
@@ -134,6 +147,13 @@
     "confidence": "Confidence",
     "identifiedSymptoms": "Identified Symptoms",
     "recommendedTreatment": "Recommended Treatment",
+    "visualEvidence": "Visual Evidence",
+    "missingData": "Missing Data",
+    "nextAction": "Next Action",
+    "needMoreDataTitle": "More data recommended",
+    "needMoreDataBody": "This result has low certainty. Please add clearer photos or more context.",
+    "emergencyTitle": "Emergency warning",
+    "emergencyBody": "Potential high-risk signs detected. Seek in-person veterinary care as soon as possible.",
     "importantDisclaimer": "Important Disclaimer",
     "finish": "Finish"
   },
@@ -290,6 +310,38 @@
     "analyzeFailed": {
       "title": "Analyze failed",
       "message": "{{message}}"
+    },
+    "analysisNeedMoreData": {
+      "title": "Need more data",
+      "message": "The photos/context are not enough yet. Please add clearer photos and details, then try again."
+    },
+    "analysisNeedBetterPetPhoto": {
+      "title": "Could not identify dog/cat clearly",
+      "message": "Please upload clearer photos focused on your dog or cat."
+    },
+    "analysisCooldownFriendly": {
+      "title": "Please wait a bit",
+      "message": "Your last check just finished. You can start a new one in {{seconds}} seconds."
+    },
+    "analysisInProgressFriendly": {
+      "title": "Analysis is in progress",
+      "message": "We are still processing your current check. Please wait a moment."
+    },
+    "analysisRateLimitFriendly": {
+      "title": "Too many checks in a short time",
+      "message": "To keep the service stable, please try again in {{seconds}} seconds."
+    },
+    "analysisModelUnavailableFriendly": {
+      "title": "System is being updated",
+      "message": "The AI model is temporarily unavailable. Please try again in a few minutes."
+    },
+    "analysisQuotaFriendly": {
+      "title": "Server is busy",
+      "message": "There are many checks running right now. Please try again in a few minutes."
+    },
+    "systemErrorFriendly": {
+      "title": "System error",
+      "message": "A system error occurred. Please try again shortly."
     },
     "selectPet": {
       "title": "Select pet",

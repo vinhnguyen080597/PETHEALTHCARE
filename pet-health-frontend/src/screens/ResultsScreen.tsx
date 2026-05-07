@@ -34,6 +34,11 @@ export function ResultsScreen({
   const icon = severityIcon(result.severity);
   const onboarding = variant === 'onboarding';
   const severityLabel = t(`severity.${result.severity}`);
+  const status = result.status ?? 'ok';
+  const evidence = result.evidence?.filter(Boolean) ?? [];
+  const missingData = result.missing_data?.filter(Boolean) ?? [];
+  const nextActionSummary = result.next_action?.summary?.trim() ?? '';
+  const nextActionAdd = result.next_action?.ask_user_to_add?.filter(Boolean) ?? [];
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -82,6 +87,67 @@ export function ResultsScreen({
             <Text className="text-sm font-medium">{confPct}%</Text>
           </View>
         </View>
+
+        {status === 'emergency_flag' ? (
+          <View className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+            <View className="flex-row items-start gap-3">
+              <Ionicons name="warning" size={20} color="#b91c1c" style={{ marginTop: 2 }} />
+              <View className="flex-1">
+                <Text className="mb-1 text-sm font-semibold text-red-900">{t('results.emergencyTitle')}</Text>
+                <Text className="text-xs leading-relaxed text-red-800">{t('results.emergencyBody')}</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {status === 'need_more_data' || status === 'not_pet_or_unclear' ? (
+          <View className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <View className="flex-row items-start gap-3">
+              <Ionicons name="information-circle-outline" size={20} color="#1d4ed8" style={{ marginTop: 2 }} />
+              <View className="flex-1">
+                <Text className="mb-1 text-sm font-semibold text-blue-900">{t('results.needMoreDataTitle')}</Text>
+                <Text className="text-xs leading-relaxed text-blue-800">{t('results.needMoreDataBody')}</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {evidence.length > 0 ? (
+          <View className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <Text className="mb-3 text-base font-semibold text-slate-900">{t('results.visualEvidence')}</Text>
+            {evidence.map((item, index) => (
+              <View key={`${item}-${index}`} className="mb-2 flex-row items-start gap-2">
+                <View className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-600" />
+                <Text className="flex-1 text-sm leading-relaxed text-gray-700">{item}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {missingData.length > 0 ? (
+          <View className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <Text className="mb-3 text-base font-semibold text-slate-900">{t('results.missingData')}</Text>
+            {missingData.map((item, index) => (
+              <View key={`${item}-${index}`} className="mb-2 flex-row items-start gap-2">
+                <View className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-500" />
+                <Text className="flex-1 text-sm leading-relaxed text-gray-700">{item}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {nextActionSummary || nextActionAdd.length > 0 ? (
+          <View className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <Text className="mb-3 text-base font-semibold text-slate-900">{t('results.nextAction')}</Text>
+            {nextActionSummary ? <Text className="mb-2 text-sm leading-relaxed text-gray-700">{nextActionSummary}</Text> : null}
+            {nextActionAdd.map((item, index) => (
+              <View key={`${item}-${index}`} className="mb-2 flex-row items-start gap-2">
+                <View className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-600" />
+                <Text className="flex-1 text-sm leading-relaxed text-gray-700">{item}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <View className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <Text className="mb-3 text-base font-semibold text-slate-900">{t('results.identifiedSymptoms')}</Text>

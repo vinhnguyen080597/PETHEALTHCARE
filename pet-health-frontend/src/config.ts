@@ -18,6 +18,12 @@ export const GOOGLE_OAUTH = {
   androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '',
 };
 
+/**
+ * Build-time admin secret for internal/debug flows.
+ * Keep this only in temporary build/dev environments.
+ */
+export const ADMIN_INTERNAL_API_KEY = process.env.EXPO_PUBLIC_ADMIN_INTERNAL_API_KEY ?? '';
+
 export function isGoogleOAuthConfigured(): boolean {
   return Boolean(
     GOOGLE_OAUTH.webClientId || GOOGLE_OAUTH.iosClientId || GOOGLE_OAUTH.androidClientId,

@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import {
+  AnalyzeRequestError,
   analyzePetHealthCheck,
   createPet,
   deletePet,
@@ -25,6 +26,7 @@ import { PENDING_INITIAL_ONBOARDING_KEY, TOKEN_STORAGE_KEY } from '../constants/
 import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
 import type { Analysis, Pet } from '../types';
 import type { AppScreen } from '../screens/types';
+import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
@@ -90,6 +92,12 @@ export function usePetHealthApp() {
   );
   /** Health check opened from pet profile — back / results return to profile, not home. */
   const [healthCheckReturnToProfile, setHealthCheckReturnToProfile] = useState(false);
+  const [analysisProgressStage, setAnalysisProgressStage] = useState<AnalysisProgressStage>('uploading');
+  const [analysisProgressMessage, setAnalysisProgressMessage] = useState('');
+  const [healthCheckInlineError, setHealthCheckInlineError] = useState('');
+  const [analysisCooldownUntilMs, setAnalysisCooldownUntilMs] = useState(0);
+  const [analysisCooldownSeconds, setAnalysisCooldownSeconds] = useState(0);
+  const [analysisSubmitting, setAnalysisSubmitting] = useState(false);
   const [appleSignInAvailable, setAppleSignInAvailable] = useState(false);
 
   const [googleAuthRequest, , promptGoogleAsync] = useGoogleIdTokenAuth();
@@ -147,6 +155,20 @@ export function usePetHealthApp() {
   useEffect(() => {
     void AppleAuthentication.isAvailableAsync().then(setAppleSignInAvailable);
   }, []);
+
+  useEffect(() => {
+    if (!analysisCooldownUntilMs || analysisCooldownUntilMs <= Date.now()) {
+      setAnalysisCooldownSeconds(0);
+      return;
+    }
+    const tick = () => {
+      const remain = Math.max(0, Math.ceil((analysisCooldownUntilMs - Date.now()) / 1000));
+      setAnalysisCooldownSeconds(remain);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [analysisCooldownUntilMs]);
 
   async function initializeApp() {
     try {
@@ -683,7 +705,21 @@ export function usePetHealthApp() {
       Alert.alert(i18n.t('alerts.missingData.title'), i18n.t('alerts.missingData.message'));
       return;
     }
-    setLoading(true);
+    if (analysisSubmitting) {
+      setHealthCheckInlineError(i18n.t('alerts.analysisInProgressFriendly.message'));
+      return;
+    }
+    if (analysisCooldownSeconds > 0) {
+      setHealthCheckInlineError(i18n.t('alerts.analysisCooldownFriendly.message', { seconds: analysisCooldownSeconds }));
+      return;
+    }
+    setHealthCheckInlineError('');
+    const screenAfterProgress: AppScreen = initialOnboarding ? 'onboarding-health-check' : 'health-check';
+    setAnalysisSubmitting(true);
+    setAnalysisProgressStage('uploading');
+    setAnalysisProgressMessage('');
+    setScreen('analysis-progress');
+    const requestId = Crypto.randomUUID();
     try {
       const response = await analyzePetHealthCheck({
         token,
@@ -696,27 +732,88 @@ export function usePetHealthApp() {
         neutered: healthCheckNeutered,
         medicalHistory: healthCheckMedicalHistory.trim(),
         symptomDescription: healthCheckSymptoms.trim(),
+        requestId,
+        onProgressStage: (progress) => {
+          if (progress.stage === 'analyzing' || progress.stage === 'saving' || progress.stage === 'failed') {
+            setAnalysisProgressStage(progress.stage);
+          }
+          if (progress.message) {
+            setAnalysisProgressMessage(progress.message);
+          }
+        },
       });
+      const status = response.data.status;
+      if (status === 'need_more_data' || status === 'not_pet_or_unclear') {
+        const nextSummary = response.data.next_action?.summary?.trim() ?? '';
+        const askMore = response.data.next_action?.ask_user_to_add?.filter(Boolean) ?? [];
+        const missing = response.data.missing_data?.filter(Boolean) ?? [];
+        const detailLines = [nextSummary, ...askMore, ...missing].filter(Boolean).slice(0, 4);
+        const details = detailLines.length ? `\n\n- ${detailLines.join('\n- ')}` : '';
+        const title =
+          status === 'not_pet_or_unclear'
+            ? i18n.t('alerts.analysisNeedBetterPetPhoto.title')
+            : i18n.t('alerts.analysisNeedMoreData.title');
+        const message =
+          status === 'not_pet_or_unclear'
+            ? i18n.t('alerts.analysisNeedBetterPetPhoto.message')
+            : i18n.t('alerts.analysisNeedMoreData.message');
+        setHealthCheckInlineError(`${title}\n${message}${details}`);
+        setWarnings(response.warnings ?? []);
+        setScreen(screenAfterProgress);
+        return;
+      }
+      setAnalysisProgressStage('saving');
       setCurrentResult(response.data);
       setResultImageUri(healthCheckPhotos[0]);
-      setWarnings(response.warnings ?? []);
+      const redFlags = response.data.red_flags?.filter(Boolean) ?? [];
+      const mergedWarnings = [...(response.warnings ?? []), ...redFlags];
+      setWarnings(mergedWarnings);
       const returnToProfileAfterScan = healthCheckReturnToProfile;
       setHealthCheckReturnToProfile(false);
       setResultsReturnScreen(returnToProfileAfterScan ? 'pet-profile' : null);
       const historyResponse = await listHistoryByPet(token, selectedPetId);
       setHistory(historyResponse.data);
+      setAnalysisCooldownUntilMs(Date.now() + 90 * 1000);
       clearHealthCheckForm();
       setScreen(initialOnboarding ? 'onboarding-results' : 'results');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      Alert.alert(i18n.t('alerts.analyzeFailed.title'), i18n.t('alerts.analyzeFailed.message', { message }));
+      let message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      if (error instanceof AnalyzeRequestError) {
+        if (typeof error.retryAfterSeconds === 'number' && error.retryAfterSeconds > 0) {
+          setAnalysisCooldownUntilMs(Date.now() + error.retryAfterSeconds * 1000);
+        }
+        if (error.code === 'ANALYSIS_COOLDOWN') {
+          message = i18n.t('alerts.analysisCooldownFriendly.message', {
+            seconds: error.retryAfterSeconds ?? analysisCooldownSeconds,
+          });
+        } else if (error.code === 'ANALYSIS_IN_PROGRESS') {
+          message = i18n.t('alerts.analysisInProgressFriendly.message');
+        } else if (error.code === 'ANALYSIS_RATE_LIMIT_HOUR' || error.code === 'ANALYSIS_RATE_LIMIT_DAY') {
+          message = i18n.t('alerts.analysisRateLimitFriendly.message', { seconds: error.retryAfterSeconds ?? 0 });
+        } else if (error.code === 'AI_MODEL_UNAVAILABLE') {
+          message = i18n.t('alerts.analysisModelUnavailableFriendly.message');
+        } else if (error.code === 'AI_QUOTA_EXCEEDED') {
+          message = i18n.t('alerts.analysisQuotaFriendly.message');
+        } else if (error.code === 'INTERNAL_ERROR') {
+          message = i18n.t('alerts.systemErrorFriendly.message');
+        }
+      }
+      if (/models\/|not found.*generatecontent|NOT_FOUND/i.test(message)) {
+        message = i18n.t('alerts.analysisModelUnavailableFriendly.message');
+      }
+      setAnalysisProgressStage('failed');
+      setAnalysisProgressMessage(message);
+      setHealthCheckInlineError(`${i18n.t('alerts.analyzeFailed.title')}\n${message}`);
+      setScreen(screenAfterProgress);
     } finally {
-      setLoading(false);
+      setAnalysisSubmitting(false);
     }
   }
 
   function closeHealthCheck() {
     clearHealthCheckForm();
+    setAnalysisSubmitting(false);
+    setHealthCheckInlineError('');
     if (initialOnboarding) {
       setScreen('onboarding-health-prompt');
     } else if (healthCheckReturnToProfile) {
@@ -795,6 +892,7 @@ export function usePetHealthApp() {
     setHealthCheckReturnToProfile(Boolean(opts?.returnToProfile));
     setSelectedPetId(petId);
     clearHealthCheckForm();
+    setHealthCheckInlineError('');
     setScreen('health-check');
   }
 
@@ -859,6 +957,12 @@ export function usePetHealthApp() {
     analyzeHealthCheck,
     closeHealthCheck,
     currentResult,
+    analysisProgressStage,
+    analysisProgressMessage,
+    healthCheckInlineError,
+    setHealthCheckInlineError,
+    analysisCooldownSeconds,
+    analysisSubmitting,
     resultImageUri,
     warnings,
     history,

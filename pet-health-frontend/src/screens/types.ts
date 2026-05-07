@@ -5,6 +5,7 @@ export type AppScreen =
   | 'add-pet'
   | 'edit-pet'
   | 'health-check'
+  | 'analysis-progress'
   | 'results'
   | 'history'
   | 'onboarding-add-pet'

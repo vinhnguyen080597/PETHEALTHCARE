@@ -60,6 +60,50 @@ See `pet-health-context/idea.md` and `pet-health-context/plans.md` for full road
 
 ---
 
+## 3.1 System flow (end-to-end)
+
+```mermaid
+flowchart TD
+  A[User opens Expo app] --> B{Has access token?}
+  B -- No --> C[Login / Sign up]
+  C --> D[Backend auth endpoint]
+  D --> E[Supabase Auth]
+  E --> F[Return access token]
+  F --> G[Store token in AsyncStorage]
+  B -- Yes --> H[Restore session]
+  G --> I[Home / Onboarding]
+  H --> I
+
+  I --> J[Create or edit pet]
+  J --> K[Backend pets API with Bearer token]
+  K --> L[Supabase Postgres pets table via RLS]
+  L --> I
+
+  I --> M[Start health check]
+  M --> N[Upload photos/video + owner context]
+  N --> O[Backend analysis endpoint]
+  O --> P[Upload media to Supabase Storage]
+  O --> Q[Call Gemini from backend]
+  Q --> R[Diagnosis JSON result]
+  P --> S[Persist analysis in Supabase analyses table]
+  R --> S
+  S --> T[Return result to app]
+  T --> U[Results screen]
+  U --> V[History / Pet profile health list]
+
+  V --> W[Fetch /api/v1/analysis/:petId]
+  W --> X[Backend reads analyses by pet + user]
+  X --> V
+```
+
+**How to read this flow**
+- Mobile client talks only to the backend API (never directly to Gemini).
+- Supabase Auth issues the user token; that token is sent as Bearer for pets and analysis APIs.
+- Backend orchestrates storage upload, AI diagnosis, and DB persistence in one pipeline.
+- Results are displayed immediately, then reused later in History and Pet Profile health sections.
+
+---
+
 ## 4. Backend (`pet-health-backend`)
 
 ### Stack
@@ -208,6 +252,7 @@ Ensure backend is running and `src/config.ts` points to a reachable host for Exp
 |------|---------|
 | `pet-health-context/idea.md` | Product vision, AI fields, roadmap. |
 | `pet-health-context/plans.md` | Phase 1 task priorities. |
+| `pet-health-context/AI-ANALYSIS-RULEBOOK.md` | Rule chuẩn cho AI health-check: input policy, output schema, system prompt, UI mapping tiếng Việt. |
 | `pet-health-backend/context/phase1-api.md` | API contract for mobile integration. |
 | `pet-health-backend/context/supabase-schema.sql` | DB DDL + pets RLS + storage policies. |
 | `pet-health-backend/context/phase1-api-review.md` | Expo / optimization notes. |
@@ -237,4 +282,115 @@ Ensure backend is running and `src/config.ts` points to a reachable host for Exp
 
 ---
 
+## 12. Cost-control tuning profiles (AI guardrails)
+
+Use these backend `.env` variables to tune short-term AI cost controls without changing code:
+
+- `ANALYSIS_IN_FLIGHT_TTL_SECONDS`
+- `ANALYSIS_COOLDOWN_SECONDS`
+- `ANALYSIS_RATE_LIMIT_HOURLY`
+- `ANALYSIS_RATE_LIMIT_DAILY`
+
+### Recommended profiles
+
+#### A) Soft launch (small user group, prioritize stability)
+
+```env
+ANALYSIS_IN_FLIGHT_TTL_SECONDS=300
+ANALYSIS_COOLDOWN_SECONDS=120
+ANALYSIS_RATE_LIMIT_HOURLY=8
+ANALYSIS_RATE_LIMIT_DAILY=25
+```
+
+- Tight limits to protect budget while validating quality and UX.
+- Good when you are still calibrating prompts/model behavior.
+
+#### B) Public beta (balanced growth vs cost)
+
+```env
+ANALYSIS_IN_FLIGHT_TTL_SECONDS=300
+ANALYSIS_COOLDOWN_SECONDS=90
+ANALYSIS_RATE_LIMIT_HOURLY=12
+ANALYSIS_RATE_LIMIT_DAILY=40
+```
+
+- Balanced defaults for wider testing.
+- Keeps abuse under control while allowing normal usage.
+
+#### C) Growth phase (higher engagement, still controlled)
+
+```env
+ANALYSIS_IN_FLIGHT_TTL_SECONDS=300
+ANALYSIS_COOLDOWN_SECONDS=60
+ANALYSIS_RATE_LIMIT_HOURLY=20
+ANALYSIS_RATE_LIMIT_DAILY=70
+```
+
+- Better user throughput for active cohorts.
+- Requires budget monitoring and alerting in Google Cloud.
+
+### Operational notes
+
+- **Always keep in-flight lock enabled** (`ANALYSIS_IN_FLIGHT_TTL_SECONDS > 0`) to prevent duplicate concurrent scans per pet.
+- **Cooldown** reduces repeated accidental taps; start strict, relax later.
+- **Rate limits** are last-line defense against abuse and runaway costs.
+- Restart backend after `.env` changes for new thresholds to apply.
+- Pair with 24h analysis caching (same pet + same media + same health context) to maximize token savings.
+
+---
+
+## 13. Pending items from cost/onboarding proposal
+
+This section tracks what is **still pending** from the discussed proposal, so it can be executed later in phases.
+
+### 13.1 Done already (baseline)
+
+- [x] 24h analysis caching for same pet + same media + same health context.
+- [x] In-flight lock (prevent duplicate concurrent analysis per pet).
+- [x] Cooldown + hourly/daily rate limits.
+- [x] Guardrail thresholds moved to `.env` for tuning by launch phase.
+
+### 13.2 Pending — short to mid term (recommended next)
+
+- [ ] **Persist cache/guard state in Redis** (instead of in-memory maps) for production reliability across restarts/multi-instance backend.
+- [ ] **Structured progress states** from backend to frontend (`uploading -> analyzing -> saving`) so users do not re-tap while waiting.
+- [ ] **Frontend UX for guardrail errors**:
+  - map backend codes (`ANALYSIS_IN_PROGRESS`, `ANALYSIS_COOLDOWN`, `ANALYSIS_RATE_LIMIT_*`) to localized user-friendly messages.
+- [ ] **Model policy refinement**:
+  - default to low-cost Gemini model for routine scans;
+  - optional fallback policy only when confidence/quality requires it.
+- [ ] **Budget observability**:
+  - Google Cloud budget alert thresholds + internal dashboard/KPI tracking (cost/day, cache hit rate, blocked request rates).
+
+### 13.3 Pending — onboarding/product flow
+
+- [ ] **Integrated onboarding step**:
+  - create pet profile + first health check in one guided flow for new users.
+- [ ] **Dedicated progress screen** during first health check with animated stage updates.
+- [ ] **Onboarding completion flag in profile** (`has_completed_onboarding: true`) written/read from backend user profile metadata.
+
+### 13.4 Pending — business model phase
+
+- [ ] **Scan quota / pay-per-scan logic** (free scans, consume per analysis).
+- [ ] **Rewarded ads integration** (watch ad -> add scan credits).
+- [ ] **Premium subscription** (unlimited scans / no ads).
+- [ ] **Affiliate product recommendation layer** (diagnosis -> product mapping + tracking links), with compliance review for medical safety messaging.
+
+### 13.5 Suggested execution order
+
+1. Redis persistence for cache + locks + rate-limit counters.
+2. Progress-state API + frontend progress UI/error mapping.
+3. Model policy + observability (budget alerts, KPIs).
+4. Onboarding integration refinements.
+5. Monetization modules (quota/ads/premium/affiliate).
+
+---
+
 *Last updated: documents onboarding after email sign-up, health check + multipart analysis API, Supabase RLS/storage patterns, and frontend screen set without legacy camera screen.*
+
+## 14. Error handling & admin alerting
+
+- Added backend-safe error contract with machine-readable `code`.
+- User-facing messages are sanitized for system/provider failures.
+- Added admin email alert flow for severe backend errors (SMTP-based).
+- Error code definitions documented in `ERROR-HANDLING-RULEBOOK.md`.

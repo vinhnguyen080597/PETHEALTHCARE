@@ -31,6 +31,10 @@ type HealthCheckScreenProps = {
   onChangeMedicalHistory: (value: string) => void;
   onChangeSymptomDescription: (value: string) => void;
   onStartAnalysis: () => void;
+  inlineErrorMessage?: string;
+  onDismissInlineError?: () => void;
+  analysisCooldownSeconds?: number;
+  analyzeDisabled?: boolean;
 };
 
 function speciesLabel(species: string, petFallback: string): string {
@@ -91,12 +95,16 @@ export function HealthCheckScreen({
   onChangeMedicalHistory,
   onChangeSymptomDescription,
   onStartAnalysis,
+  inlineErrorMessage = '',
+  onDismissInlineError,
+  analysisCooldownSeconds = 0,
+  analyzeDisabled = false,
 }: HealthCheckScreenProps) {
   const { t } = useTranslation();
   const subtitle = [speciesLabel(pet.species, t('healthCheck.petFallback')), pet.breed?.trim() || null]
     .filter(Boolean)
     .join(' • ');
-  const canStart = photoUris.length > 0;
+  const canStart = photoUris.length > 0 && !analyzeDisabled && analysisCooldownSeconds <= 0;
   const photoCountHint =
     photoUris.length === 1
       ? t('healthCheck.photoCountOne', { count: photoUris.length })
@@ -136,6 +144,21 @@ export function HealthCheckScreen({
             {t('healthCheck.infoBanner')}
           </Text>
         </View>
+        {inlineErrorMessage ? (
+          <View className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <View className="flex-row items-start gap-3">
+              <Ionicons name="alert-circle-outline" size={20} color="#b45309" style={{ marginTop: 2 }} />
+              <View className="min-w-0 flex-1">
+                <Text className="text-sm leading-5 text-amber-900">{inlineErrorMessage}</Text>
+                {onDismissInlineError ? (
+                  <Pressable className="mt-2 self-start rounded-md bg-amber-100 px-3 py-1.5" onPress={onDismissInlineError}>
+                    <Text className="text-xs font-semibold text-amber-900">{t('common.ok')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          </View>
+        ) : null}
 
         <Text className="mb-2 text-base font-bold text-slate-900">
           {t('healthCheck.photos')} <Text className="text-red-500">{t('healthCheck.required')}</Text>
@@ -264,7 +287,13 @@ export function HealthCheckScreen({
           <Text className="text-center text-base font-bold text-white">{t('healthCheck.startAnalysis')}</Text>
         </Pressable>
         {!canStart ? (
-          <Text className="mt-2 text-center text-sm text-red-500">{t('healthCheck.photoRequiredError')}</Text>
+          <Text className="mt-2 text-center text-sm text-red-500">
+            {!photoUris.length
+              ? t('healthCheck.photoRequiredError')
+              : analysisCooldownSeconds > 0
+                ? t('healthCheck.cooldownHint', { seconds: analysisCooldownSeconds })
+                : t('healthCheck.analysisBusyHint')}
+          </Text>
         ) : null}
       </ScrollView>
     </View>

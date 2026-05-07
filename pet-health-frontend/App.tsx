@@ -8,6 +8,7 @@ import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
 import { AddPetScreen } from './src/screens/AddPetScreen';
+import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
 import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -25,6 +26,7 @@ export default function App() {
     app.screen === 'add-pet' ||
     app.screen === 'edit-pet' ||
     app.screen === 'health-check' ||
+    app.screen === 'analysis-progress' ||
     app.screen === 'onboarding-add-pet' ||
     app.screen === 'onboarding-health-prompt' ||
     app.screen === 'onboarding-health-check' ||
@@ -159,6 +161,10 @@ export default function App() {
                 onChangeMedicalHistory={app.setHealthCheckMedicalHistory}
                 onChangeSymptomDescription={app.setHealthCheckSymptoms}
                 onStartAnalysis={app.analyzeHealthCheck}
+                inlineErrorMessage={app.healthCheckInlineError}
+                onDismissInlineError={() => app.setHealthCheckInlineError('')}
+                analysisCooldownSeconds={app.analysisCooldownSeconds}
+                analyzeDisabled={app.analysisSubmitting}
               />
             ) : null}
 
@@ -185,6 +191,18 @@ export default function App() {
                 onChangeMedicalHistory={app.setHealthCheckMedicalHistory}
                 onChangeSymptomDescription={app.setHealthCheckSymptoms}
                 onStartAnalysis={app.analyzeHealthCheck}
+                inlineErrorMessage={app.healthCheckInlineError}
+                onDismissInlineError={() => app.setHealthCheckInlineError('')}
+                analysisCooldownSeconds={app.analysisCooldownSeconds}
+                analyzeDisabled={app.analysisSubmitting}
+              />
+            ) : null}
+
+            {app.screen === 'analysis-progress' && app.selectedPet ? (
+              <AnalysisProgressScreen
+                stage={app.analysisProgressStage}
+                petName={app.selectedPet.name}
+                message={app.analysisProgressMessage}
               />
             ) : null}
 

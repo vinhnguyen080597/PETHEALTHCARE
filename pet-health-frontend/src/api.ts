@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { API_BASE_URL, API_HEALTH_URL } from './config';
+import { ADMIN_INTERNAL_API_KEY, API_BASE_URL, API_HEALTH_URL } from './config';
 import type {
   Analysis,
   AnalyzeResponse,
@@ -22,6 +22,10 @@ function tunnelHeaders(): Record<string, string> {
   }
   if (/ngrok-free\.(app|dev)|\.ngrok\.io|\.ngrok\.app/i.test(API_BASE_URL)) {
     h['ngrok-skip-browser-warning'] = 'true';
+  }
+  const adminSecret = ADMIN_INTERNAL_API_KEY.trim();
+  if (adminSecret) {
+    h['x-admin-secret'] = adminSecret;
   }
   return h;
 }
@@ -265,9 +269,35 @@ export type AnalyzeHealthCheckParams = {
   neutered?: 'yes' | 'no' | '';
   medicalHistory?: string;
   symptomDescription?: string;
+  requestId?: string;
+  onProgressStage?: (progress: {
+    stage: 'uploading' | 'analyzing' | 'saving' | 'done' | 'failed';
+    message?: string;
+  }) => void;
   /** MIME hint for the first image only (e.g. image/png). */
   primaryMimeHint?: string;
 };
+
+type AnalysisProgressResponse = {
+  data: {
+    stage: 'analyzing' | 'saving' | 'done' | 'failed';
+    status: 'processing' | 'done' | 'failed';
+    updatedAt: number;
+    message?: string;
+  };
+};
+
+async function getAnalysisProgress(token: string, requestId: string) {
+  return requestJson<AnalysisProgressResponse>(`/analysis/progress/${encodeURIComponent(requestId)}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export class AnalyzeRequestError extends Error {
+  status?: number;
+  code?: string;
+  retryAfterSeconds?: number;
+}
 
 export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): Promise<AnalyzeResponse> {
   const {
@@ -281,6 +311,8 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
     neutered = '',
     medicalHistory = '',
     symptomDescription = '',
+    requestId = '',
+    onProgressStage,
     primaryMimeHint = 'image/jpeg',
   } = params;
 
@@ -296,6 +328,9 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
   formData.append('neutered', neutered);
   formData.append('medicalHistory', medicalHistory);
   formData.append('symptomDescription', symptomDescription);
+  if (requestId.trim()) {
+    formData.append('requestId', requestId.trim());
+  }
 
   await appendImageFileToFormData(formData, 'image', imageUris[0], `pet-primary-${Date.now()}`, primaryMimeHint);
   for (let i = 1; i < imageUris.length; i++) {
@@ -305,6 +340,21 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
   const v = videoUri?.trim();
   if (v) {
     await appendVideoFileToFormData(formData, 'video', v, `pet-vid-${Date.now()}`, 'video/mp4');
+  }
+
+  onProgressStage?.({ stage: 'uploading' });
+  const progressId = requestId.trim();
+  let timer: ReturnType<typeof setInterval> | null = null;
+  if (progressId) {
+    timer = setInterval(() => {
+      void getAnalysisProgress(token, progressId)
+        .then((p) => {
+          onProgressStage?.({ stage: p.data.stage, message: p.data.message });
+        })
+        .catch(() => {
+          // Progress endpoint may briefly not exist yet; ignore and continue polling.
+        });
+    }, 900);
   }
 
   const response = await fetch(`${API_BASE_URL}/analysis`, {
@@ -317,9 +367,23 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
   const body = contentType.includes('application/json') ? await response.json() : null;
 
   if (!response.ok) {
+    if (timer) clearInterval(timer);
+    onProgressStage?.({ stage: 'failed', message: body?.error });
     const message = body?.error || `Analyze failed (${response.status})`;
-    throw new Error(message);
+    const err = new AnalyzeRequestError(message);
+    err.status = response.status;
+    if (body && typeof body === 'object') {
+      if (typeof (body as { code?: unknown }).code === 'string') {
+        err.code = (body as { code: string }).code;
+      }
+      if (typeof (body as { retryAfterSeconds?: unknown }).retryAfterSeconds === 'number') {
+        err.retryAfterSeconds = (body as { retryAfterSeconds: number }).retryAfterSeconds;
+      }
+    }
+    throw err;
   }
+  if (timer) clearInterval(timer);
+  onProgressStage?.({ stage: 'done' });
 
   return body as AnalyzeResponse;
 }

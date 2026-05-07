@@ -5,9 +5,46 @@ const SUPPORTED_IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_VIDEO_FILE_SIZE = 10 * 1024 * 1024;
 const SUPPORTED_VIDEO_MIMES = new Set(['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp']);
 const MAX_IMAGES_FOR_MODEL = 6;
-const MODEL_CANDIDATES = ['gemini-3-flash-preview', 'gemini-1.5-flash-latest'];
+const MODEL_CANDIDATES = String(process.env.GEMINI_MODEL_CANDIDATES || 'gemini-2.5-flash,gemini-2.0-flash')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 let ai = null;
+const AI_DEBUG_LOG_ENABLED = /^(1|true|yes)$/i.test(String(process.env.AI_DEBUG_LOG_ENABLED || ''));
+const AI_DEBUG_LOG_INCLUDE_MEDIA_BASE64 = /^(1|true|yes)$/i.test(
+  String(process.env.AI_DEBUG_LOG_INCLUDE_MEDIA_BASE64 || ''),
+);
+
+function toMb(bytes) {
+  return Number(bytes || 0) / (1024 * 1024);
+}
+
+function buildAiRequestDebugPayload(modelName, files, prompt, imageParts) {
+  return {
+    model: modelName,
+    prompt,
+    mediaCount: imageParts.length,
+    media: files.map((file, idx) => ({
+      index: idx,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+      sizeMB: Number(toMb(file.size).toFixed(3)),
+      ...(AI_DEBUG_LOG_INCLUDE_MEDIA_BASE64
+        ? { base64Preview: file.buffer.toString('base64').slice(0, 120) }
+        : {}),
+    })),
+  };
+}
+
+function debugAiLog(label, payload) {
+  if (!AI_DEBUG_LOG_ENABLED) return;
+  try {
+    console.log(`[AI_DEBUG] ${label}:`, JSON.stringify(payload, null, 2));
+  } catch {
+    console.log(`[AI_DEBUG] ${label}:`, payload);
+  }
+}
 
 function getAiClient() {
   if (ai) return ai;
@@ -26,6 +63,39 @@ function getAiClient() {
 function clampZeroToOne(value) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(1, value));
+}
+
+function asStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v) => typeof v === 'string').map((v) => v.trim()).filter(Boolean);
+}
+
+function normalizeStatus(rawStatus, confidence) {
+  const allowed = new Set(['ok', 'need_more_data', 'not_pet_or_unclear', 'emergency_flag']);
+  if (typeof rawStatus === 'string' && allowed.has(rawStatus)) return rawStatus;
+  if (confidence < 0.45) return 'need_more_data';
+  return 'ok';
+}
+
+function normalizeDiagnosisCandidates(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => ({
+      name: typeof item.name === 'string' ? item.name.trim() : '',
+      confidence: clampZeroToOne(Number(item.confidence)),
+    }))
+    .filter((item) => item.name);
+}
+
+function normalizeNextAction(value) {
+  if (!value || typeof value !== 'object') {
+    return { summary: '', ask_user_to_add: [] };
+  }
+  return {
+    summary: typeof value.summary === 'string' ? value.summary.trim() : '',
+    ask_user_to_add: asStringArray(value.ask_user_to_add),
+  };
 }
 
 function parseJsonSafely(rawText) {
@@ -47,16 +117,30 @@ function parseJsonSafely(rawText) {
 }
 
 function normalizeDiagnosisPayload(raw) {
+  const confidence = clampZeroToOne(Number(raw?.confidence));
+  const status = normalizeStatus(raw?.status, confidence);
+  const nextAction = normalizeNextAction(raw?.next_action);
+
   return {
     diagnosis: typeof raw?.diagnosis === 'string' ? raw.diagnosis : 'Unable to assess',
     severity: ['low', 'medium', 'high'].includes(raw?.severity) ? raw.severity : 'medium',
-    symptoms: Array.isArray(raw?.symptoms) ? raw.symptoms : [],
+    symptoms: asStringArray(raw?.symptoms),
     treatment: typeof raw?.treatment === 'string' ? raw.treatment : 'Please consult a veterinarian.',
-    confidence: clampZeroToOne(Number(raw?.confidence)),
+    confidence,
     disclaimer:
       typeof raw?.disclaimer === 'string'
         ? raw.disclaimer
         : 'This AI response is not a final medical diagnosis.',
+    // Extended fields for richer UX; kept optional/derived for backward compatibility.
+    status,
+    red_flags: asStringArray(raw?.red_flags),
+    diagnosis_candidates: normalizeDiagnosisCandidates(raw?.diagnosis_candidates),
+    evidence: asStringArray(raw?.evidence),
+    missing_data: asStringArray(raw?.missing_data),
+    next_action: {
+      summary: nextAction.summary,
+      ask_user_to_add: nextAction.ask_user_to_add,
+    },
   };
 }
 
@@ -144,23 +228,40 @@ export async function analyzePetHealthImages(imageFiles, healthContextAppendix =
   }
 
   const basePrompt = `
-You are a professional veterinary triage assistant.
-Analyze the uploaded pet image(s) and return JSON only.
+You are a veterinary triage assistant for pet health checks.
+Analyze uploaded media and owner context, then return STRICT JSON only.
+
+Scope:
+- Supported species: dog, cat.
+- Provide triage guidance, not a definitive diagnosis.
+- Be conservative and safe.
 
 Required schema:
 {
+  "status": "ok|need_more_data|not_pet_or_unclear|emergency_flag",
   "diagnosis": "short possible condition name",
   "severity": "low|medium|high",
   "symptoms": ["symptom 1", "symptom 2"],
   "treatment": "safe first-aid guidance and when to visit clinic",
   "confidence": 0.0,
-  "disclaimer": "This is not a medical diagnosis..."
+  "disclaimer": "This is not a medical diagnosis...",
+  "red_flags": ["optional danger signs"],
+  "diagnosis_candidates": [{"name":"candidate","confidence":0.0}],
+  "evidence": ["visual findings from media"],
+  "missing_data": ["what is missing for better assessment"],
+  "next_action": {
+    "summary": "what user should do now",
+    "ask_user_to_add": ["specific additional photos/data to upload"]
+  }
 }
 
 Rules:
-- confidence must be a number between 0 and 1.
-- If images are not of a pet or quality is too low, set diagnosis to "Unable to assess".
-- Keep treatment cautious and safe.
+- confidence must be between 0 and 1.
+- If species is unclear/not dog-cat -> status = "not_pet_or_unclear".
+- If image quality/context is insufficient -> status = "need_more_data".
+- If emergency signs are present -> status = "emergency_flag", severity = "high".
+- If confidence < 0.45, prefer status = "need_more_data" unless emergency.
+- Do not invent findings not visible in media/context.
 - If multiple images are provided, synthesize findings across all views.
 ${healthContextAppendix}
 `;
@@ -180,15 +281,27 @@ ${healthContextAppendix}
 
   for (const modelName of MODEL_CANDIDATES) {
     try {
+      debugAiLog('REQUEST', buildAiRequestDebugPayload(modelName, files, basePrompt, imageParts));
       const result = await client.models.generateContent({
         model: modelName,
         generationConfig: { responseMimeType: 'application/json' },
         contents,
       });
-
+      debugAiLog('RAW_RESPONSE', {
+        model: modelName,
+        text: result?.text ?? null,
+      });
       parsedResult = parseJsonSafely(result.text);
+      debugAiLog('PARSED_RESPONSE', {
+        model: modelName,
+        parsed: parsedResult,
+      });
       break;
     } catch (err) {
+      debugAiLog('MODEL_ERROR', {
+        model: modelName,
+        message: err?.message || String(err),
+      });
       lastError = err;
     }
   }

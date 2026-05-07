@@ -1,4 +1,5 @@
 export type Severity = 'low' | 'medium' | 'high';
+export type AnalysisStatus = 'ok' | 'need_more_data' | 'not_pet_or_unclear' | 'emergency_flag';
 
 export type AuthPayload = {
   email: string;
@@ -66,6 +67,15 @@ export type Analysis = {
   neutering_status?: string | null;
   medical_history?: string | null;
   symptom_description?: string | null;
+  status?: AnalysisStatus;
+  red_flags?: string[] | null;
+  diagnosis_candidates?: { name: string; confidence: number }[] | null;
+  evidence?: string[] | null;
+  missing_data?: string[] | null;
+  next_action?: {
+    summary?: string;
+    ask_user_to_add?: string[];
+  } | null;
 };
 
 export type AnalyzeResponse = {
