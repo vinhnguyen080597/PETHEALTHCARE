@@ -1,5 +1,6 @@
 import './global.css';
 import { StatusBar } from 'expo-status-bar';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from './src/components/AppHeader';
@@ -16,6 +17,7 @@ import { PetProfileScreen } from './src/screens/PetProfileScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 
 export default function App() {
+  const { t } = useTranslation();
   const app = usePetHealthApp();
 
   const showBottomTab = app.screen === 'home' || app.screen === 'history';
@@ -34,7 +36,7 @@ export default function App() {
       <StatusBar style={app.screen === 'login' ? 'light' : 'dark'} />
       {app.screen === 'login' ? (
         <LoginScreen
-          healthMessage={app.healthMessage}
+          backendHealth={app.backendHealth}
           email={app.email}
           password={app.password}
           isSignUp={app.isSignUp}
@@ -107,8 +109,8 @@ export default function App() {
             {app.screen === 'onboarding-add-pet' && (
               <AddPetScreen
                 variant="create"
-                headerTitle="Create your pet's profile"
-                submitButtonLabel="Continue"
+                headerTitle={t('onboarding.createPetProfile')}
+                submitButtonLabel={t('common.continue')}
                 petName={app.petName}
                 petSpecies={app.petSpecies}
                 petBreed={app.petBreed}

@@ -1,20 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 type PetFormVariant = 'create' | 'edit';
 
-export const PET_TYPE_OPTIONS = [
-  { value: 'dog', label: 'Dog' },
-  { value: 'cat', label: 'Cat' },
-  { value: 'bird', label: 'Bird' },
-  { value: 'hamster', label: 'Hamster' },
-] as const;
-
-export const GENDER_OPTIONS = [
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-] as const;
+export const PET_SPECIES_VALUES = ['dog', 'cat', 'bird', 'hamster'] as const;
+export const PET_GENDER_VALUES = ['male', 'female'] as const;
 
 type SelectOption = { value: string; label: string };
 
@@ -55,6 +47,7 @@ function FormSelect({
   onChange: (value: string) => void;
   placeholder: string;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const selectedLabel = options.find((o) => o.value === value)?.label;
 
@@ -90,7 +83,7 @@ function FormSelect({
               </Pressable>
             ))}
             <Pressable className="mt-2 py-3" onPress={() => setOpen(false)}>
-              <Text className="text-center text-base text-blue-600">Cancel</Text>
+              <Text className="text-center text-base text-blue-600">{t('common.cancel')}</Text>
             </Pressable>
           </View>
         </View>
@@ -120,24 +113,31 @@ export function AddPetScreen({
   headerTitle,
   submitButtonLabel,
 }: AddPetScreenProps) {
-  const title = headerTitle ?? (variant === 'create' ? 'Add New Pet' : 'Edit Pet');
-  const submitLabel = submitButtonLabel ?? (variant === 'create' ? 'Add Pet' : 'Update Pet');
+  const { t } = useTranslation();
+  const title = headerTitle ?? (variant === 'create' ? t('addPet.addNewPet') : t('addPet.editPet'));
+  const submitLabel = submitButtonLabel ?? (variant === 'create' ? t('addPet.addPet') : t('addPet.updatePet'));
 
   const speciesOptions = useMemo(() => {
-    const base: SelectOption[] = [...PET_TYPE_OPTIONS];
+    const base: SelectOption[] = PET_SPECIES_VALUES.map((v) => ({
+      value: v,
+      label: t(`petTypes.${v}`),
+    }));
     if (petSpecies && !base.some((o) => o.value === petSpecies)) {
       base.push({ value: petSpecies, label: petSpecies });
     }
     return base;
-  }, [petSpecies]);
+  }, [petSpecies, t]);
 
   const genderOptions = useMemo(() => {
-    const base: SelectOption[] = [...GENDER_OPTIONS];
+    const base: SelectOption[] = PET_GENDER_VALUES.map((v) => ({
+      value: v,
+      label: t(`gender.${v}`),
+    }));
     if (petGender && !base.some((o) => o.value === petGender)) {
       base.push({ value: petGender, label: petGender });
     }
     return base;
-  }, [petGender]);
+  }, [petGender, t]);
 
   const hasAvatarUri = Boolean(petAvatarUrl?.trim());
 
@@ -175,15 +175,15 @@ export function AddPetScreen({
                 </View>
               )}
             </View>
-            <Text className="mt-2 text-center text-sm text-gray-500">Click to upload avatar</Text>
+            <Text className="mt-2 text-center text-sm text-gray-500">{t('addPet.clickAvatar')}</Text>
           </Pressable>
         </View>
 
         <View className="mb-5">
-          <Text className="mb-2 text-sm font-semibold text-slate-900">Pet Name</Text>
+          <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.petName')}</Text>
           <TextInput
             className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder="Enter pet name"
+            placeholder={t('addPet.enterPetName')}
             placeholderTextColor="#9ca3af"
             value={petName}
             onChangeText={onChangeName}
@@ -191,18 +191,18 @@ export function AddPetScreen({
         </View>
 
         <FormSelect
-          label="Pet Type"
+          label={t('addPet.petType')}
           value={petSpecies}
           options={speciesOptions}
           onChange={onChangeSpecies}
-          placeholder="Select pet type"
+          placeholder={t('addPet.selectPetType')}
         />
 
         <View className="mb-5">
-          <Text className="mb-2 text-sm font-semibold text-slate-900">Breed</Text>
+          <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.breed')}</Text>
           <TextInput
             className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder="Enter breed"
+            placeholder={t('addPet.enterBreed')}
             placeholderTextColor="#9ca3af"
             value={petBreed}
             onChangeText={onChangeBreed}
@@ -210,10 +210,10 @@ export function AddPetScreen({
         </View>
 
         <View className="mb-5">
-          <Text className="mb-2 text-sm font-semibold text-slate-900">Age (years)</Text>
+          <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.ageYears')}</Text>
           <TextInput
             className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder="e.g. 1"
+            placeholder={t('addPet.agePlaceholder')}
             placeholderTextColor="#9ca3af"
             keyboardType="numeric"
             value={petAge}
@@ -222,11 +222,11 @@ export function AddPetScreen({
         </View>
 
         <FormSelect
-          label="Gender"
+          label={t('addPet.gender')}
           value={petGender}
           options={genderOptions}
           onChange={onChangeGender}
-          placeholder="Select gender"
+          placeholder={t('addPet.selectGender')}
         />
 
         <Pressable className="mt-2 rounded-xl bg-blue-600 py-3.5 active:bg-blue-700" onPress={onSubmit}>
@@ -235,7 +235,7 @@ export function AddPetScreen({
 
         {variant === 'edit' && onDeletePet ? (
           <Pressable className="mt-6 py-3 active:opacity-80" onPress={onDeletePet} accessibilityRole="button">
-            <Text className="text-center text-base font-medium text-red-600">Remove pet</Text>
+            <Text className="text-center text-base font-medium text-red-600">{t('addPet.removePet')}</Text>
           </Pressable>
         ) : null}
       </ScrollView>

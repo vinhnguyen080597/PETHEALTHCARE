@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { Analysis, Severity } from '../types';
 import { severityCardClass } from '../utils/severityStyles';
 
@@ -28,9 +29,11 @@ export function ResultsScreen({
   variant = 'default',
   onFinish,
 }: ResultsScreenProps) {
+  const { t } = useTranslation();
   const confPct = Math.round(result.confidence * 100);
   const icon = severityIcon(result.severity);
   const onboarding = variant === 'onboarding';
+  const severityLabel = t(`severity.${result.severity}`);
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -44,10 +47,10 @@ export function ResultsScreen({
         )}
         <View className="flex-1">
           <Text className="text-lg font-semibold text-slate-900">
-            {onboarding ? "Your pet's check" : 'Analysis Results'}
+            {onboarding ? t('results.petCheck') : t('results.analysisResults')}
           </Text>
           <Text className="text-sm text-gray-600">
-            {onboarding ? 'Here is what we found — tap Finish when you are ready.' : 'AI-assisted triage'}
+            {onboarding ? t('results.onboardingSubtitle') : t('results.aiTriage')}
           </Text>
         </View>
       </View>
@@ -68,10 +71,10 @@ export function ResultsScreen({
             <Ionicons name={icon.name} size={24} color={icon.color} />
             <View className="flex-1">
               <Text className="text-lg font-semibold capitalize">{result.diagnosis}</Text>
-              <Text className="text-sm opacity-80">Severity: {result.severity}</Text>
+              <Text className="text-sm opacity-80">{t('results.severity', { level: severityLabel })}</Text>
             </View>
           </View>
-          <Text className="mb-1 text-sm opacity-75">Confidence</Text>
+          <Text className="mb-1 text-sm opacity-75">{t('results.confidence')}</Text>
           <View className="flex-row items-center gap-3">
             <View className="h-2 flex-1 overflow-hidden rounded-full bg-white/60">
               <View className="h-full rounded-full bg-blue-600" style={{ width: `${confPct}%` }} />
@@ -81,7 +84,7 @@ export function ResultsScreen({
         </View>
 
         <View className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <Text className="mb-3 text-base font-semibold text-slate-900">Identified Symptoms</Text>
+          <Text className="mb-3 text-base font-semibold text-slate-900">{t('results.identifiedSymptoms')}</Text>
           {result.symptoms.map((symptom, index) => (
             <View key={`${symptom}-${index}`} className="mb-2 flex-row items-start gap-2">
               <View className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-600" />
@@ -91,7 +94,7 @@ export function ResultsScreen({
         </View>
 
         <View className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <Text className="mb-3 text-base font-semibold text-slate-900">Recommended Treatment</Text>
+          <Text className="mb-3 text-base font-semibold text-slate-900">{t('results.recommendedTreatment')}</Text>
           <Text className="text-sm leading-relaxed text-gray-700">{result.treatment}</Text>
         </View>
 
@@ -99,7 +102,7 @@ export function ResultsScreen({
           <View className="flex-row items-start gap-3">
             <Ionicons name="warning-outline" size={20} color="#d97706" style={{ marginTop: 2 }} />
             <View className="flex-1">
-              <Text className="mb-1 text-sm font-semibold text-amber-900">Important Disclaimer</Text>
+              <Text className="mb-1 text-sm font-semibold text-amber-900">{t('results.importantDisclaimer')}</Text>
               <Text className="text-xs leading-relaxed text-amber-800">{result.disclaimer}</Text>
             </View>
           </View>
@@ -121,7 +124,7 @@ export function ResultsScreen({
             accessibilityRole="button"
             accessibilityLabel="Finish and go to My Pets"
           >
-            <Text className="text-center text-base font-bold text-white">Finish</Text>
+            <Text className="text-center text-base font-bold text-white">{t('results.finish')}</Text>
           </Pressable>
         </View>
       ) : null}

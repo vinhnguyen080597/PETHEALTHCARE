@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
@@ -32,8 +33,8 @@ type HealthCheckScreenProps = {
   onStartAnalysis: () => void;
 };
 
-function speciesLabel(species: string): string {
-  if (!species) return 'Pet';
+function speciesLabel(species: string, petFallback: string): string {
+  if (!species) return petFallback;
   return species.charAt(0).toUpperCase() + species.slice(1).toLowerCase();
 }
 
@@ -91,8 +92,15 @@ export function HealthCheckScreen({
   onChangeSymptomDescription,
   onStartAnalysis,
 }: HealthCheckScreenProps) {
-  const subtitle = [speciesLabel(pet.species), pet.breed?.trim() || null].filter(Boolean).join(' • ');
+  const { t } = useTranslation();
+  const subtitle = [speciesLabel(pet.species, t('healthCheck.petFallback')), pet.breed?.trim() || null]
+    .filter(Boolean)
+    .join(' • ');
   const canStart = photoUris.length > 0;
+  const photoCountHint =
+    photoUris.length === 1
+      ? t('healthCheck.photoCountOne', { count: photoUris.length })
+      : t('healthCheck.photoCountMany', { count: photoUris.length });
 
   return (
     <View className="flex-1 bg-white">
@@ -107,7 +115,7 @@ export function HealthCheckScreen({
         </Pressable>
         <View className="min-w-0 flex-1 pr-2">
           <Text className="text-lg font-bold text-slate-900" numberOfLines={1}>
-            Health Check for {pet.name}
+            {t('healthCheck.title', { name: pet.name })}
           </Text>
           {subtitle ? (
             <Text className="text-sm text-slate-500" numberOfLines={1}>
@@ -125,13 +133,12 @@ export function HealthCheckScreen({
       >
         <View className="mb-5 rounded-xl px-4 py-3" style={{ backgroundColor: INFO_BG }}>
           <Text className="text-sm leading-5" style={{ color: INFO_TEXT }}>
-            Provide clear photos to help Catties diagnose your pet as accurately as possible like Face, Ear, Eye,
-            Body... Let’s get started!
+            {t('healthCheck.infoBanner')}
           </Text>
         </View>
 
         <Text className="mb-2 text-base font-bold text-slate-900">
-          Photos <Text className="text-red-500">*</Text>
+          {t('healthCheck.photos')} <Text className="text-red-500">{t('healthCheck.required')}</Text>
         </Text>
         <Pressable
           onPress={onAddPhotos}
@@ -140,14 +147,12 @@ export function HealthCheckScreen({
           {photoUris.length === 0 ? (
             <>
               <Ionicons name="images-outline" size={40} color="#64748b" />
-              <Text className="mt-2 text-base font-semibold text-slate-800">Upload Photos</Text>
-              <Text className="mt-1 text-center text-sm text-slate-500">Up to 6 images per check</Text>
+              <Text className="mt-2 text-base font-semibold text-slate-800">{t('healthCheck.uploadPhotos')}</Text>
+              <Text className="mt-1 text-center text-sm text-slate-500">{t('healthCheck.upTo6')}</Text>
             </>
           ) : (
             <View className="w-full">
-              <Text className="mb-3 text-center text-sm font-medium text-slate-600">
-                {photoUris.length} photo{photoUris.length !== 1 ? 's' : ''} — tap area to add more
-              </Text>
+              <Text className="mb-3 text-center text-sm font-medium text-slate-600">{photoCountHint}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
                 {photoUris.map((uri, index) => (
                   <View key={`${uri}-${index}`} className="relative">
@@ -167,20 +172,20 @@ export function HealthCheckScreen({
           )}
         </Pressable>
 
-        <Text className="mb-2 text-base font-bold text-slate-900">Video (Optional)</Text>
+        <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.videoOptional')}</Text>
         <View className="mb-6 min-h-[100px] overflow-hidden rounded-xl border border-gray-300 bg-white px-4 py-5">
           {videoUri ? (
             <View className="items-center">
               <Ionicons name="videocam" size={32} color={PRIMARY} />
-              <Text className="mt-2 text-center text-sm font-medium text-slate-800">Video selected</Text>
+              <Text className="mt-2 text-center text-sm font-medium text-slate-800">{t('healthCheck.videoSelected')}</Text>
               <View className="mt-3 flex-row gap-4">
                 <Pressable onPress={onPickVideo} className="active:opacity-80">
                   <Text className="text-sm font-semibold" style={{ color: PRIMARY }}>
-                    Change video
+                    {t('healthCheck.changeVideo')}
                   </Text>
                 </Pressable>
                 <Pressable onPress={onClearVideo} className="active:opacity-80">
-                  <Text className="text-sm font-semibold text-slate-500">Remove</Text>
+                  <Text className="text-sm font-semibold text-slate-500">{t('healthCheck.remove')}</Text>
                 </Pressable>
               </View>
             </View>
@@ -190,30 +195,30 @@ export function HealthCheckScreen({
               className="min-h-[88px] items-center justify-center active:bg-gray-50"
             >
               <Ionicons name="videocam-outline" size={36} color="#64748b" />
-              <Text className="mt-2 text-base font-semibold text-slate-800">Upload Video</Text>
+              <Text className="mt-2 text-base font-semibold text-slate-800">{t('healthCheck.uploadVideo')}</Text>
             </Pressable>
           )}
         </View>
 
-        <Text className="mb-2 text-base font-bold text-slate-900">Weight (kg)</Text>
+        <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.weightKg')}</Text>
         <TextInput
           className="mb-6 rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-          placeholder="Enter weight in kg"
+          placeholder={t('healthCheck.enterWeight')}
           placeholderTextColor="#9ca3af"
           keyboardType="decimal-pad"
           value={weightKg}
           onChangeText={onChangeWeight}
         />
 
-        <Text className="mb-2 text-base font-bold text-slate-900">Vaccination Status</Text>
+        <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.vaccination')}</Text>
         <View className="mb-3 flex-row">
-          <RadioRow label="Yes" selected={vaccinated} value="yes" onSelect={onChangeVaccinated} />
-          <RadioRow label="No" selected={vaccinated} value="no" onSelect={onChangeVaccinated} />
+          <RadioRow label={t('common.yes')} selected={vaccinated} value="yes" onSelect={onChangeVaccinated} />
+          <RadioRow label={t('common.no')} selected={vaccinated} value="no" onSelect={onChangeVaccinated} />
         </View>
         {vaccinated === 'yes' ? (
           <TextInput
             className="mb-6 rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder="Enter vaccine type"
+            placeholder={t('healthCheck.enterVaccineType')}
             placeholderTextColor="#9ca3af"
             value={vaccineType}
             onChangeText={onChangeVaccineType}
@@ -222,16 +227,16 @@ export function HealthCheckScreen({
           <View className="mb-6" />
         )}
 
-        <Text className="mb-2 text-base font-bold text-slate-900">Neutering/Spaying Status</Text>
+        <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.neutering')}</Text>
         <View className="mb-6 flex-row">
-          <RadioRow label="Yes" selected={neutered} value="yes" onSelect={onChangeNeutered} />
-          <RadioRow label="No" selected={neutered} value="no" onSelect={onChangeNeutered} />
+          <RadioRow label={t('common.yes')} selected={neutered} value="yes" onSelect={onChangeNeutered} />
+          <RadioRow label={t('common.no')} selected={neutered} value="no" onSelect={onChangeNeutered} />
         </View>
 
-        <Text className="mb-2 text-base font-bold text-slate-900">Medical History (if applicable)</Text>
+        <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.medicalHistory')}</Text>
         <TextInput
           className="mb-6 min-h-[100px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-          placeholder="e.g., known drug allergies or previous conditions like skin fungus."
+          placeholder={t('healthCheck.medicalHistoryPlaceholder')}
           placeholderTextColor="#9ca3af"
           multiline
           textAlignVertical="top"
@@ -239,10 +244,10 @@ export function HealthCheckScreen({
           onChangeText={onChangeMedicalHistory}
         />
 
-        <Text className="mb-2 text-base font-bold text-slate-900">Symptom Description</Text>
+        <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.symptoms')}</Text>
         <TextInput
           className="mb-2 min-h-[120px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-          placeholder={"Describe your pet's condition further (e.g., loss of appetite, lethargy, frequent scratching...)"}
+          placeholder={t('healthCheck.symptomsPlaceholder')}
           placeholderTextColor="#9ca3af"
           multiline
           textAlignVertical="top"
@@ -256,10 +261,10 @@ export function HealthCheckScreen({
           onPress={onStartAnalysis}
           disabled={!canStart}
         >
-          <Text className="text-center text-base font-bold text-white">Start Analysis</Text>
+          <Text className="text-center text-base font-bold text-white">{t('healthCheck.startAnalysis')}</Text>
         </Pressable>
         {!canStart ? (
-          <Text className="mt-2 text-center text-sm text-red-500">* Please upload at least one photo</Text>
+          <Text className="mt-2 text-center text-sm text-red-500">{t('healthCheck.photoRequiredError')}</Text>
         ) : null}
       </ScrollView>
     </View>

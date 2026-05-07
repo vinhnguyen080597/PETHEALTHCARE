@@ -1,0 +1,303 @@
+{
+  "common": {
+    "stay": "Stay",
+    "signOut": "Sign out",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "continue": "Continue",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "confidence": "{{pct}}% confidence",
+    "unknownError": "Unknown error",
+    "somethingWentWrong": "Something went wrong"
+  },
+  "language": {
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
+  },
+  "health": {
+    "checking": "Checking backend...",
+    "online": "Backend online",
+    "offline": "Backend unreachable — check LOCAL_IP in src/config.ts"
+  },
+  "login": {
+    "appName": "Catties Health Care",
+    "tagline": "Your pet's health assistant powered by Catties",
+    "createAccount": "Create Account",
+    "welcomeBack": "Welcome Back",
+    "email": "Email",
+    "password": "Password",
+    "placeholderEmail": "your@email.com",
+    "placeholderPassword": "••••••••",
+    "signUp": "Sign Up",
+    "signIn": "Sign In",
+    "orContinueWith": "Or continue with",
+    "google": "Google",
+    "apple": "Apple",
+    "toggleToSignIn": "Already have an account? Sign in",
+    "toggleToSignUp": "Don't have an account? Sign up",
+    "termsFooter": "By continuing, you agree to our Terms of Service and Privacy Policy"
+  },
+  "tabs": {
+    "home": "Home",
+    "history": "History",
+    "logout": "Logout"
+  },
+  "header": {
+    "appName": "Catties Health Care",
+    "tagline": "Your pet's health assistant powered by Catties"
+  },
+  "home": {
+    "title": "My Pets",
+    "addPet": "Add Pet",
+    "noPetsTitle": "No pets yet",
+    "noPetsBody": "Add a pet to start tracking health scans.",
+    "addFirstPet": "Add Your First Pet",
+    "pullToRefresh": "Pull down to refresh",
+    "scanHealth": "Scan Health",
+    "viewProfile": "View Profile",
+    "petFallback": "Pet",
+    "yearOld": "{{count}} year old",
+    "yearsOld": "{{count}} years old",
+    "ageUnknown": "age unknown"
+  },
+  "petTypes": {
+    "dog": "Dog",
+    "cat": "Cat",
+    "bird": "Bird",
+    "hamster": "Hamster"
+  },
+  "gender": {
+    "male": "Male",
+    "female": "Female"
+  },
+  "addPet": {
+    "addNewPet": "Add New Pet",
+    "editPet": "Edit Pet",
+    "addPet": "Add Pet",
+    "updatePet": "Update Pet",
+    "clickAvatar": "Click to upload avatar",
+    "petName": "Pet Name",
+    "enterPetName": "Enter pet name",
+    "petType": "Pet Type",
+    "selectPetType": "Select pet type",
+    "breed": "Breed",
+    "enterBreed": "Enter breed",
+    "ageYears": "Age (years)",
+    "agePlaceholder": "e.g. 1",
+    "gender": "Gender",
+    "selectGender": "Select gender",
+    "removePet": "Remove pet"
+  },
+  "onboarding": {
+    "createPetProfile": "Create your pet's profile",
+    "niceWork": "Nice work!",
+    "healthPromptBody": "{{petName}} is on your profile. Would you like to run a quick health check with photos now?",
+    "checkHealthNow": "Check health now",
+    "maybeLater": "Maybe later",
+    "healthPromptFooter": "You can always start a scan from the home screen under your pet."
+  },
+  "healthCheck": {
+    "title": "Health Check for {{name}}",
+    "petFallback": "Pet",
+    "infoBanner": "Provide clear photos to help Catties diagnose your pet as accurately as possible like Face, Ear, Eye, Body... Let's get started!",
+    "photos": "Photos",
+    "required": "*",
+    "uploadPhotos": "Upload Photos",
+    "upTo6": "Up to 6 images per check",
+    "photoCountOne": "{{count}} photo — tap area to add more",
+    "photoCountMany": "{{count}} photos — tap area to add more",
+    "videoOptional": "Video (Optional)",
+    "videoSelected": "Video selected",
+    "changeVideo": "Change video",
+    "remove": "Remove",
+    "uploadVideo": "Upload Video",
+    "weightKg": "Weight (kg)",
+    "enterWeight": "Enter weight in kg",
+    "vaccination": "Vaccination Status",
+    "neutering": "Neutering/Spaying Status",
+    "medicalHistory": "Medical History (if applicable)",
+    "medicalHistoryPlaceholder": "e.g., known drug allergies or previous conditions like skin fungus.",
+    "symptoms": "Symptom Description",
+    "symptomsPlaceholder": "Describe your pet's condition further (e.g., loss of appetite, lethargy, frequent scratching...)",
+    "startAnalysis": "Start Analysis",
+    "photoRequiredError": "* Please upload at least one photo",
+    "enterVaccineType": "Enter vaccine type"
+  },
+  "results": {
+    "analysisResults": "Analysis Results",
+    "petCheck": "Your pet's check",
+    "onboardingSubtitle": "Here is what we found — tap Finish when you are ready.",
+    "aiTriage": "AI-assisted triage",
+    "severity": "Severity: {{level}}",
+    "confidence": "Confidence",
+    "identifiedSymptoms": "Identified Symptoms",
+    "recommendedTreatment": "Recommended Treatment",
+    "importantDisclaimer": "Important Disclaimer",
+    "finish": "Finish"
+  },
+  "severity": {
+    "low": "low",
+    "medium": "medium",
+    "high": "high"
+  },
+  "history": {
+    "title": "Diagnostic History",
+    "subtitle": "All previous scans — tap a row for details",
+    "empty": "No history yet."
+  },
+  "profile": {
+    "title": "Pet profile",
+    "edit": "Edit",
+    "species": "Species",
+    "breed": "Breed",
+    "age": "Age",
+    "gender": "Gender",
+    "ageNotSet": "Age not set",
+    "scanHealth": "Scan health",
+    "healthSection": "Health",
+    "healthHint": "Recent scans for {{name}} — tap a row for details",
+    "noHealthScans": "No health scans yet.",
+    "noHealthScansHint": "Use Scan health above to run a check.",
+    "dashGender": "—"
+  },
+  "alerts": {
+    "missingEmailPassword": {
+      "title": "Missing info",
+      "message": "Please enter email and password."
+    },
+    "verifyEmail": {
+      "title": "Verify email",
+      "message": "Check your inbox to confirm, then use Sign in."
+    },
+    "loginNoToken": {
+      "title": "Login failed",
+      "message": "No access token returned."
+    },
+    "authFailed": {
+      "title": "Auth failed",
+      "message": "{{message}}"
+    },
+    "googleNotConfigured": {
+      "title": "Google sign-in",
+      "message": "Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (and iOS/Android client IDs for native builds) to a .env file, restart Expo, enable Google in Supabase Auth → Providers, then try again."
+    },
+    "googleLoading": {
+      "title": "Please wait",
+      "message": "Google sign-in is still loading."
+    },
+    "googleSignInIncomplete": {
+      "title": "Google sign-in",
+      "message": "Sign-in was not completed."
+    },
+    "googleNoIdToken": {
+      "title": "Google sign-in",
+      "message": "No ID token returned. Check your Google OAuth client configuration."
+    },
+    "googleNoAccessToken": {
+      "title": "Google sign-in",
+      "message": "No access token returned."
+    },
+    "googleNonce": {
+      "title": "Google sign-in (Supabase)",
+      "message": "Turn ON \"Skip nonce checks\" for the Google provider in Supabase (Authentication → Providers → Google), then try again. Expo's Google flow and Supabase's nonce check do not line up without that setting."
+    },
+    "googleSignInFailed": {
+      "title": "Google sign-in failed",
+      "message": "{{message}}"
+    },
+    "appleUnavailable": {
+      "title": "Apple sign-in",
+      "message": "Sign in with Apple is only available on supported iOS devices."
+    },
+    "appleNoIdentityToken": {
+      "title": "Apple sign-in",
+      "message": "No identity token returned."
+    },
+    "appleNoAccessToken": {
+      "title": "Apple sign-in",
+      "message": "No access token returned."
+    },
+    "appleSignInFailed": {
+      "title": "Apple sign-in failed",
+      "message": "{{message}}"
+    },
+    "missingPetInfo": {
+      "title": "Missing info",
+      "message": "Pet name and species are required."
+    },
+    "createPetFailed": {
+      "title": "Create pet failed",
+      "message": "{{message}}"
+    },
+    "exitSetup": {
+      "title": "Exit setup?",
+      "message": "You can sign in again later to add your pet."
+    },
+    "updatePetFailed": {
+      "title": "Update pet failed",
+      "message": "{{message}}"
+    },
+    "loadPetFailed": {
+      "title": "Load pet failed",
+      "message": "{{message}}"
+    },
+    "loadProfileFailed": {
+      "title": "Load profile failed",
+      "message": "{{message}}"
+    },
+    "refreshFailed": {
+      "title": "Refresh failed",
+      "message": "{{message}}"
+    },
+    "deletePet": {
+      "title": "Delete pet?",
+      "message": "Remove {{name}} and their data cannot be restored from the app."
+    },
+    "deleteFailed": {
+      "title": "Delete failed",
+      "message": "{{message}}"
+    },
+    "signInRequired": {
+      "title": "Sign in required",
+      "message": "Please sign in before choosing a pet avatar."
+    },
+    "permissionGallery": {
+      "title": "Permission needed",
+      "message": "Please allow gallery access."
+    },
+    "permissionAvatar": {
+      "title": "Permission needed",
+      "message": "Please allow gallery access to set an avatar."
+    },
+    "avatarUploadFailed": {
+      "title": "Avatar upload failed",
+      "message": "{{message}}"
+    },
+    "photosError": {
+      "title": "Photos",
+      "message": "{{message}}"
+    },
+    "photosRequired": {
+      "title": "Photos required",
+      "message": "Please upload at least one photo."
+    },
+    "missingData": {
+      "title": "Missing data",
+      "message": "Please sign in and select a pet."
+    },
+    "analyzeFailed": {
+      "title": "Analyze failed",
+      "message": "{{message}}"
+    },
+    "selectPet": {
+      "title": "Select pet",
+      "message": "Please select a pet first."
+    },
+    "historyFailed": {
+      "title": "History failed",
+      "message": "{{message}}"
+    }
+  }
+}

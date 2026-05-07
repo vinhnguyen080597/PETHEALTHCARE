@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { Pet } from '../types';
 
 const PRIMARY_BLUE = '#1E6FE8';
@@ -13,14 +14,18 @@ type HomeScreenProps = {
   onViewProfile: (petId: string) => void;
 };
 
-function formatPetSubtitle(pet: Pet): string {
+function formatPetSubtitle(pet: Pet, t: (key: string, opts?: Record<string, unknown>) => string): string {
   const breed = pet.breed?.trim();
   const speciesLabel = pet.species
     ? pet.species.charAt(0).toUpperCase() + pet.species.slice(1).toLowerCase()
-    : 'Pet';
+    : t('home.petFallback');
   const breedPart = breed || speciesLabel;
   const agePart =
-    pet.age != null ? `${pet.age} ${pet.age === 1 ? 'year' : 'years'} old` : 'age unknown';
+    pet.age != null
+      ? pet.age === 1
+        ? t('home.yearOld', { count: pet.age })
+        : t('home.yearsOld', { count: pet.age })
+      : t('home.ageUnknown');
   return `${breedPart} • ${agePart}`;
 }
 
@@ -33,6 +38,7 @@ export function HomeScreen({
   onStartScan,
   onViewProfile,
 }: HomeScreenProps) {
+  const { t } = useTranslation();
   return (
     <ScrollView
       className="flex-1 bg-[#F2F4F8] px-5 pb-6 pt-5"
@@ -40,14 +46,14 @@ export function HomeScreen({
       showsVerticalScrollIndicator={false}
     >
       <View className="mb-5 flex-row items-center justify-between">
-        <Text className="text-xl font-bold text-slate-900">My Pets</Text>
+        <Text className="text-xl font-bold text-slate-900">{t('home.title')}</Text>
         <Pressable
           className="flex-row items-center gap-1.5 rounded-full px-4 py-2 active:opacity-90"
           style={{ backgroundColor: PRIMARY_BLUE }}
           onPress={onAddPet}
         >
           <Ionicons name="add" size={18} color="#ffffff" />
-          <Text className="text-sm font-semibold text-white">Add Pet</Text>
+          <Text className="text-sm font-semibold text-white">{t('home.addPet')}</Text>
         </Pressable>
       </View>
 
@@ -56,19 +62,17 @@ export function HomeScreen({
           <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-blue-100">
             <Ionicons name="paw-outline" size={36} color={PRIMARY_BLUE} />
           </View>
-          <Text className="mb-1 text-center text-base font-medium text-slate-800">No pets yet</Text>
-          <Text className="mb-6 max-w-xs px-4 text-center text-sm text-slate-500">
-            Add a pet to start tracking health scans.
-          </Text>
+          <Text className="mb-1 text-center text-base font-medium text-slate-800">{t('home.noPetsTitle')}</Text>
+          <Text className="mb-6 max-w-xs px-4 text-center text-sm text-slate-500">{t('home.noPetsBody')}</Text>
           <Pressable
             className="flex-row items-center gap-2 rounded-full px-6 py-3 active:opacity-90"
             style={{ backgroundColor: PRIMARY_BLUE }}
             onPress={onAddPet}
           >
             <Ionicons name="add" size={20} color="#ffffff" />
-            <Text className="font-semibold text-white">Add Your First Pet</Text>
+            <Text className="font-semibold text-white">{t('home.addFirstPet')}</Text>
           </Pressable>
-          <Text className="mt-4 text-center text-xs text-slate-400">Pull down to refresh</Text>
+          <Text className="mt-4 text-center text-xs text-slate-400">{t('home.pullToRefresh')}</Text>
         </View>
       ) : (
         <View className="gap-4">
@@ -91,7 +95,7 @@ export function HomeScreen({
                 <View className="min-w-0 flex-1">
                   <Text className="text-lg font-bold text-slate-900">{pet.name}</Text>
                   <Text className="mt-0.5 text-sm text-slate-500" numberOfLines={2}>
-                    {formatPetSubtitle(pet)}
+                    {formatPetSubtitle(pet, t)}
                   </Text>
                 </View>
               </View>
@@ -103,13 +107,13 @@ export function HomeScreen({
                   onPress={() => onStartScan(pet.id)}
                 >
                   <Ionicons name="camera" size={18} color="#ffffff" />
-                  <Text className="text-sm font-semibold text-white">Scan Health</Text>
+                  <Text className="text-sm font-semibold text-white">{t('home.scanHealth')}</Text>
                 </Pressable>
                 <Pressable
                   className="flex-1 items-center justify-center rounded-xl border border-gray-300 bg-white py-3.5 active:bg-slate-50"
                   onPress={() => onViewProfile(pet.id)}
                 >
-                  <Text className="text-sm font-semibold text-slate-800">View Profile</Text>
+                  <Text className="text-sm font-semibold text-slate-800">{t('home.viewProfile')}</Text>
                 </Pressable>
               </View>
             </View>

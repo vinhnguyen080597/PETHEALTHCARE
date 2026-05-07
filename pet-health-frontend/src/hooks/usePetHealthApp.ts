@@ -25,6 +25,9 @@ import { PENDING_INITIAL_ONBOARDING_KEY, TOKEN_STORAGE_KEY } from '../constants/
 import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
 import type { Analysis, Pet } from '../types';
 import type { AppScreen } from '../screens/types';
+import i18n from '../i18n';
+
+type BackendHealthStatus = 'checking' | 'online' | 'offline';
 
 /** `blob:` URLs only exist in that browser tab — the API cannot store them. */
 function avatarUrlForApi(uri: string): string | undefined {
@@ -45,7 +48,7 @@ export function usePetHealthApp() {
   const [screen, setScreen] = useState<AppScreen>('login');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [healthMessage, setHealthMessage] = useState('Checking backend...');
+  const [backendHealth, setBackendHealth] = useState<BackendHealthStatus>('checking');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -148,9 +151,9 @@ export function usePetHealthApp() {
   async function initializeApp() {
     try {
       await healthCheck();
-      setHealthMessage('Backend online');
+      setBackendHealth('online');
     } catch {
-      setHealthMessage('Backend unreachable - check LOCAL_IP in src/config.ts');
+      setBackendHealth('offline');
     }
 
     const savedToken = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
@@ -218,7 +221,10 @@ export function usePetHealthApp() {
 
   async function submitAuth() {
     if (!email || !password) {
-      Alert.alert('Missing info', 'Please enter email and password.');
+      Alert.alert(
+        i18n.t('alerts.missingEmailPassword.title'),
+        i18n.t('alerts.missingEmailPassword.message'),
+      );
       return;
     }
     setLoading(true);
@@ -227,7 +233,7 @@ export function usePetHealthApp() {
         const signUpRes = await signUp({ email, password });
         const signUpToken = signUpRes.data.session?.access_token;
         if (!signUpToken) {
-          Alert.alert('Verify email', 'Check your inbox to confirm, then use Sign in.');
+          Alert.alert(i18n.t('alerts.verifyEmail.title'), i18n.t('alerts.verifyEmail.message'));
           return;
         }
         await applySession(signUpToken, { startInitialPetOnboarding: true });
@@ -237,13 +243,13 @@ export function usePetHealthApp() {
       const response = await login({ email, password });
       const accessToken = response.data.session?.access_token;
       if (!accessToken) {
-        Alert.alert('Login failed', 'No access token returned.');
+        Alert.alert(i18n.t('alerts.loginNoToken.title'), i18n.t('alerts.loginNoToken.message'));
         return;
       }
       await applySession(accessToken);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Auth failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.authFailed.title'), i18n.t('alerts.authFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -252,13 +258,13 @@ export function usePetHealthApp() {
   async function submitGoogleAuth() {
     if (!isGoogleOAuthConfigured()) {
       Alert.alert(
-        'Google sign-in',
-        'Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (and iOS/Android client IDs for native builds) to a .env file, restart Expo, enable Google in Supabase Auth → Providers, then try again.',
+        i18n.t('alerts.googleNotConfigured.title'),
+        i18n.t('alerts.googleNotConfigured.message'),
       );
       return;
     }
     if (!googleAuthRequest) {
-      Alert.alert('Please wait', 'Google sign-in is still loading.');
+      Alert.alert(i18n.t('alerts.googleLoading.title'), i18n.t('alerts.googleLoading.message'));
       return;
     }
     if (__DEV__) {
@@ -274,33 +280,31 @@ export function usePetHealthApp() {
       if (result.type !== 'success') {
         const errMsg =
           result.type === 'error'
-            ? (result.error instanceof Error ? result.error.message : result.errorCode) ?? 'Something went wrong'
-            : 'Sign-in was not completed.';
-        Alert.alert('Google sign-in', errMsg);
+            ? (result.error instanceof Error ? result.error.message : result.errorCode) ??
+              i18n.t('common.somethingWentWrong')
+            : i18n.t('alerts.googleSignInIncomplete.message');
+        Alert.alert(i18n.t('alerts.googleSignInIncomplete.title'), errMsg);
         return;
       }
       const idToken = result.params.id_token;
       if (!idToken) {
-        Alert.alert('Google sign-in', 'No ID token returned. Check your Google OAuth client configuration.');
+        Alert.alert(i18n.t('alerts.googleNoIdToken.title'), i18n.t('alerts.googleNoIdToken.message'));
         return;
       }
       const response = await oauthGoogle(idToken);
       const accessToken = response.data.session?.access_token;
       if (!accessToken) {
-        Alert.alert('Google sign-in', 'No access token returned.');
+        Alert.alert(i18n.t('alerts.googleNoAccessToken.title'), i18n.t('alerts.googleNoAccessToken.message'));
         return;
       }
       await applySession(accessToken);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       if (/nonce/i.test(message)) {
-        Alert.alert(
-          'Google sign-in (Supabase)',
-          'Turn ON “Skip nonce checks” for the Google provider in Supabase (Authentication → Providers → Google), then try again. Expo’s Google flow and Supabase’s nonce check do not line up without that setting.',
-        );
+        Alert.alert(i18n.t('alerts.googleNonce.title'), i18n.t('alerts.googleNonce.message'));
         return;
       }
-      Alert.alert('Google sign-in failed', message);
+      Alert.alert(i18n.t('alerts.googleSignInFailed.title'), i18n.t('alerts.googleSignInFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -308,7 +312,7 @@ export function usePetHealthApp() {
 
   async function submitAppleAuth() {
     if (!(await AppleAuthentication.isAvailableAsync())) {
-      Alert.alert('Apple sign-in', 'Sign in with Apple is only available on supported iOS devices.');
+      Alert.alert(i18n.t('alerts.appleUnavailable.title'), i18n.t('alerts.appleUnavailable.message'));
       return;
     }
     setLoading(true);
@@ -322,13 +326,13 @@ export function usePetHealthApp() {
         nonce: rawNonce,
       });
       if (!credential.identityToken) {
-        Alert.alert('Apple sign-in', 'No identity token returned.');
+        Alert.alert(i18n.t('alerts.appleNoIdentityToken.title'), i18n.t('alerts.appleNoIdentityToken.message'));
         return;
       }
       const response = await oauthApple(credential.identityToken, rawNonce);
       const accessToken = response.data.session?.access_token;
       if (!accessToken) {
-        Alert.alert('Apple sign-in', 'No access token returned.');
+        Alert.alert(i18n.t('alerts.appleNoAccessToken.title'), i18n.t('alerts.appleNoAccessToken.message'));
         return;
       }
       await applySession(accessToken);
@@ -341,8 +345,8 @@ export function usePetHealthApp() {
       ) {
         return;
       }
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Apple sign-in failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.appleSignInFailed.title'), i18n.t('alerts.appleSignInFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -351,7 +355,7 @@ export function usePetHealthApp() {
   async function handleAddPet() {
     if (!token) return;
     if (!petName.trim() || !petSpecies.trim()) {
-      Alert.alert('Missing info', 'Pet name and species are required.');
+      Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
       return;
     }
 
@@ -370,8 +374,8 @@ export function usePetHealthApp() {
       await fetchPets(token);
       setScreen('home');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Create pet failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.createPetFailed.title'), i18n.t('alerts.createPetFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -380,7 +384,7 @@ export function usePetHealthApp() {
   async function handleOnboardingAddPet() {
     if (!token) return;
     if (!petName.trim() || !petSpecies.trim()) {
-      Alert.alert('Missing info', 'Pet name and species are required.');
+      Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
       return;
     }
 
@@ -400,18 +404,18 @@ export function usePetHealthApp() {
       setSelectedPetId(created.id);
       setScreen('onboarding-health-prompt');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Create pet failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.createPetFailed.title'), i18n.t('alerts.createPetFailed.message', { message }));
     } finally {
       setLoading(false);
     }
   }
 
   function cancelOnboardingAddPet() {
-    Alert.alert('Exit setup?', 'You can sign in again later to add your pet.', [
-      { text: 'Stay', style: 'cancel' },
+    Alert.alert(i18n.t('alerts.exitSetup.title'), i18n.t('alerts.exitSetup.message'), [
+      { text: i18n.t('common.stay'), style: 'cancel' },
       {
-        text: 'Sign out',
+        text: i18n.t('common.signOut'),
         style: 'destructive',
         onPress: () => void signOutFromOnboarding(),
       },
@@ -444,7 +448,7 @@ export function usePetHealthApp() {
   async function handleUpdatePet() {
     if (!token || !editingPetId) return;
     if (!petName.trim() || !petSpecies.trim()) {
-      Alert.alert('Missing info', 'Pet name and species are required.');
+      Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
       return;
     }
 
@@ -476,8 +480,8 @@ export function usePetHealthApp() {
         setScreen('home');
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Update pet failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.updatePetFailed.title'), i18n.t('alerts.updatePetFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -504,8 +508,8 @@ export function usePetHealthApp() {
       setScreen('edit-pet');
     } catch (error: unknown) {
       setPetFormReturnToProfile(false);
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Load pet failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.loadPetFailed.title'), i18n.t('alerts.loadPetFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -520,8 +524,8 @@ export function usePetHealthApp() {
       setHistory(response.data);
       setScreen('pet-profile');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Load profile failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.loadProfileFailed.title'), i18n.t('alerts.loadProfileFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -539,8 +543,8 @@ export function usePetHealthApp() {
       const response = await listHistoryByPet(token, selectedPetId);
       setHistory(response.data);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Refresh failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.refreshFailed.title'), i18n.t('alerts.refreshFailed.message', { message }));
     } finally {
       setRefreshing(false);
     }
@@ -555,14 +559,18 @@ export function usePetHealthApp() {
 
   function handleDeletePet(pet: Pet) {
     if (!token) return;
-    Alert.alert('Delete pet?', `Remove ${pet.name} and their data cannot be restored from the app.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => void confirmDeletePet(pet.id),
-      },
-    ]);
+    Alert.alert(
+      i18n.t('alerts.deletePet.title'),
+      i18n.t('alerts.deletePet.message', { name: pet.name }),
+      [
+        { text: i18n.t('common.cancel'), style: 'cancel' },
+        {
+          text: i18n.t('common.delete'),
+          style: 'destructive',
+          onPress: () => void confirmDeletePet(pet.id),
+        },
+      ],
+    );
   }
 
   async function confirmDeletePet(petId: string) {
@@ -580,8 +588,8 @@ export function usePetHealthApp() {
       }
       await fetchPets(token);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Delete failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.deleteFailed.title'), i18n.t('alerts.deleteFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -589,12 +597,12 @@ export function usePetHealthApp() {
 
   async function pickPetAvatar() {
     if (!token) {
-      Alert.alert('Sign in required', 'Please sign in before choosing a pet avatar.');
+      Alert.alert(i18n.t('alerts.signInRequired.title'), i18n.t('alerts.signInRequired.message'));
       return;
     }
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow gallery access to set an avatar.');
+      Alert.alert(i18n.t('alerts.permissionAvatar.title'), i18n.t('alerts.permissionAvatar.message'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -614,8 +622,8 @@ export function usePetHealthApp() {
       const { data } = await uploadPetAvatar(token, resized.uri);
       setPetAvatarUrl(data.avatarUrl);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Avatar upload failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.avatarUploadFailed.title'), i18n.t('alerts.avatarUploadFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -624,7 +632,7 @@ export function usePetHealthApp() {
   async function pickHealthCheckPhotos() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow gallery access.');
+      Alert.alert(i18n.t('alerts.permissionGallery.title'), i18n.t('alerts.permissionGallery.message'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -646,15 +654,15 @@ export function usePetHealthApp() {
       }
       setHealthCheckPhotos((prev) => [...prev, ...newUris].slice(0, 6));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Photos', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.photosError.title'), i18n.t('alerts.photosError.message', { message }));
     }
   }
 
   async function pickHealthCheckVideo() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow gallery access.');
+      Alert.alert(i18n.t('alerts.permissionGallery.title'), i18n.t('alerts.permissionGallery.message'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -668,11 +676,11 @@ export function usePetHealthApp() {
 
   async function analyzeHealthCheck() {
     if (!healthCheckPhotos.length) {
-      Alert.alert('Photos required', 'Please upload at least one photo.');
+      Alert.alert(i18n.t('alerts.photosRequired.title'), i18n.t('alerts.photosRequired.message'));
       return;
     }
     if (!token || !selectedPetId) {
-      Alert.alert('Missing data', 'Please sign in and select a pet.');
+      Alert.alert(i18n.t('alerts.missingData.title'), i18n.t('alerts.missingData.message'));
       return;
     }
     setLoading(true);
@@ -700,8 +708,8 @@ export function usePetHealthApp() {
       clearHealthCheckForm();
       setScreen(initialOnboarding ? 'onboarding-results' : 'results');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Analyze failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.analyzeFailed.title'), i18n.t('alerts.analyzeFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -721,7 +729,7 @@ export function usePetHealthApp() {
 
   async function openHistory() {
     if (!token || !selectedPetId) {
-      Alert.alert('Select pet', 'Please select a pet first.');
+      Alert.alert(i18n.t('alerts.selectPet.title'), i18n.t('alerts.selectPet.message'));
       return;
     }
     setLoading(true);
@@ -730,8 +738,8 @@ export function usePetHealthApp() {
       setHistory(response.data);
       setScreen('history');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('History failed', message);
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.historyFailed.title'), i18n.t('alerts.historyFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -801,7 +809,7 @@ export function usePetHealthApp() {
     loading,
     refreshing,
     refreshPets,
-    healthMessage,
+    backendHealth,
     email,
     setEmail,
     password,

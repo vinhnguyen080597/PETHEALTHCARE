@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { formatLocaleDateTime } from '../i18n/localeDate';
 import type { Analysis, Severity } from '../types';
 
 type HistoryScreenProps = {
@@ -21,16 +23,17 @@ function severityIconName(severity: Severity) {
 
 /** List layout inspired by `figma/code/src/app/components/HistoryScreen.tsx`. */
 export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
+  const { t, i18n } = useTranslation();
   return (
     <View className="flex-1 bg-gray-50">
       <View className="border-b border-gray-200 bg-white px-4 py-4">
-        <Text className="text-lg font-semibold text-slate-900">Diagnostic History</Text>
-        <Text className="text-sm text-gray-600">All previous scans — tap a row for details</Text>
+        <Text className="text-lg font-semibold text-slate-900">{t('history.title')}</Text>
+        <Text className="text-sm text-gray-600">{t('history.subtitle')}</Text>
       </View>
 
       <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
         {history.length === 0 ? (
-          <Text className="py-8 text-center text-gray-600">No history yet.</Text>
+          <Text className="py-8 text-center text-gray-600">{t('history.empty')}</Text>
         ) : (
           history.map((item) => (
             <Pressable
@@ -41,7 +44,7 @@ export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
               <View className={`self-start rounded-full px-2 py-1 ${severityBadgeClass(item.severity)}`}>
                 <View className="flex-row items-center gap-1">
                   <Ionicons name={severityIconName(item.severity)} size={14} />
-                  <Text className="text-xs font-semibold capitalize">{item.severity}</Text>
+                  <Text className="text-xs font-semibold capitalize">{t(`severity.${item.severity}`)}</Text>
                 </View>
               </View>
               <View className="min-w-0 flex-1">
@@ -49,7 +52,8 @@ export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
                   {item.diagnosis}
                 </Text>
                 <Text className="mt-1 text-xs text-gray-500">
-                  {(item.confidence * 100).toFixed(0)}% confidence · {new Date(item.created_at).toLocaleString()}
+                  {t('common.confidence', { pct: (item.confidence * 100).toFixed(0) })} ·{' '}
+                  {formatLocaleDateTime(item.created_at, i18n.language)}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#94a3b8" />

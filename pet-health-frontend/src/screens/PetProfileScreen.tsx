@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { formatLocaleDateTime } from '../i18n/localeDate';
 import type { Analysis, Pet, Severity } from '../types';
 
 const PRIMARY_BLUE = '#1E6FE8';
@@ -27,8 +29,8 @@ function severityIconName(severity: Severity) {
   return 'checkmark-circle-outline' as const;
 }
 
-function formatSpecies(pet: Pet): string {
-  if (!pet.species?.trim()) return 'Pet';
+function formatSpecies(pet: Pet, petFallback: string): string {
+  if (!pet.species?.trim()) return petFallback;
   const s = pet.species.trim();
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
@@ -43,13 +45,18 @@ export function PetProfileScreen({
   onScanHealth,
   onSelectEntry,
 }: PetProfileScreenProps) {
+  const { t, i18n } = useTranslation();
   const breed = pet.breed?.trim();
   const ageLabel =
-    pet.age != null ? `${pet.age} ${pet.age === 1 ? 'year' : 'years'} old` : 'Age not set';
+    pet.age != null
+      ? pet.age === 1
+        ? t('home.yearOld', { count: pet.age })
+        : t('home.yearsOld', { count: pet.age })
+      : t('profile.ageNotSet');
   const genderLabel =
     pet.gender === 'female' || pet.gender === 'male'
-      ? pet.gender.charAt(0).toUpperCase() + pet.gender.slice(1)
-      : '—';
+      ? t(`gender.${pet.gender}`)
+      : t('profile.dashGender');
 
   return (
     <View className="flex-1 bg-[#F2F4F8]">
@@ -59,11 +66,11 @@ export function PetProfileScreen({
             <Ionicons name="arrow-back" size={24} color="#1e293b" />
           </Pressable>
         </View>
-        <Text className="flex-1 text-center text-lg font-semibold text-slate-900">Pet profile</Text>
+        <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('profile.title')}</Text>
         <View className="w-14 items-end">
           <Pressable className="rounded-lg px-2 py-2 active:bg-gray-100" onPress={onEdit}>
             <Text className="text-sm font-semibold" style={{ color: PRIMARY_BLUE }}>
-              Edit
+              {t('profile.edit')}
             </Text>
           </Pressable>
         </View>
@@ -89,26 +96,26 @@ export function PetProfileScreen({
               )}
             </View>
             <Text className="text-xl font-bold text-slate-900">{pet.name}</Text>
-            <Text className="mt-1 text-sm text-slate-500">{breed || formatSpecies(pet)}</Text>
+            <Text className="mt-1 text-sm text-slate-500">{breed || formatSpecies(pet, t('home.petFallback'))}</Text>
           </View>
 
           <View className="mt-6 gap-3 border-t border-gray-100 pt-5">
             <View className="flex-row justify-between">
-              <Text className="text-sm text-slate-500">Species</Text>
-              <Text className="text-sm font-medium text-slate-900">{formatSpecies(pet)}</Text>
+              <Text className="text-sm text-slate-500">{t('profile.species')}</Text>
+              <Text className="text-sm font-medium text-slate-900">{formatSpecies(pet, t('home.petFallback'))}</Text>
             </View>
             {breed ? (
               <View className="flex-row justify-between">
-                <Text className="text-sm text-slate-500">Breed</Text>
+                <Text className="text-sm text-slate-500">{t('profile.breed')}</Text>
                 <Text className="text-sm font-medium text-slate-900">{breed}</Text>
               </View>
             ) : null}
             <View className="flex-row justify-between">
-              <Text className="text-sm text-slate-500">Age</Text>
+              <Text className="text-sm text-slate-500">{t('profile.age')}</Text>
               <Text className="text-sm font-medium text-slate-900">{ageLabel}</Text>
             </View>
             <View className="flex-row justify-between">
-              <Text className="text-sm text-slate-500">Gender</Text>
+              <Text className="text-sm text-slate-500">{t('profile.gender')}</Text>
               <Text className="text-sm font-medium text-slate-900">{genderLabel}</Text>
             </View>
           </View>
@@ -119,19 +126,17 @@ export function PetProfileScreen({
             onPress={onScanHealth}
           >
             <Ionicons name="camera" size={18} color="#ffffff" />
-            <Text className="text-sm font-semibold text-white">Scan health</Text>
+            <Text className="text-sm font-semibold text-white">{t('profile.scanHealth')}</Text>
           </Pressable>
         </View>
 
-        <Text className="mb-3 mt-8 text-base font-bold text-slate-900">Health</Text>
-        <Text className="mb-3 text-sm text-slate-500">Recent scans for {pet.name} — tap a row for details</Text>
+        <Text className="mb-3 mt-8 text-base font-bold text-slate-900">{t('profile.healthSection')}</Text>
+        <Text className="mb-3 text-sm text-slate-500">{t('profile.healthHint', { name: pet.name })}</Text>
 
         {history.length === 0 ? (
           <View className="rounded-2xl border border-gray-200 bg-white py-10">
-            <Text className="text-center text-slate-600">No health scans yet.</Text>
-            <Text className="mt-1 px-6 text-center text-sm text-slate-400">
-              Use Scan health above to run a check.
-            </Text>
+            <Text className="text-center text-slate-600">{t('profile.noHealthScans')}</Text>
+            <Text className="mt-1 px-6 text-center text-sm text-slate-400">{t('profile.noHealthScansHint')}</Text>
           </View>
         ) : (
           <View className="gap-3">
@@ -144,7 +149,7 @@ export function PetProfileScreen({
                 <View className={`self-start rounded-full px-2 py-1 ${severityBadgeClass(item.severity)}`}>
                   <View className="flex-row items-center gap-1">
                     <Ionicons name={severityIconName(item.severity)} size={14} />
-                    <Text className="text-xs font-semibold capitalize">{item.severity}</Text>
+                    <Text className="text-xs font-semibold capitalize">{t(`severity.${item.severity}`)}</Text>
                   </View>
                 </View>
                 <View className="min-w-0 flex-1">
@@ -152,8 +157,8 @@ export function PetProfileScreen({
                     {item.diagnosis}
                   </Text>
                   <Text className="mt-1 text-xs text-gray-500">
-                    {(item.confidence * 100).toFixed(0)}% confidence ·{' '}
-                    {new Date(item.created_at).toLocaleString()}
+                    {t('common.confidence', { pct: (item.confidence * 100).toFixed(0) })} ·{' '}
+                    {formatLocaleDateTime(item.created_at, i18n.language)}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#94a3b8" />

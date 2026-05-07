@@ -1,0 +1,303 @@
+{
+  "common": {
+    "stay": "Ở lại",
+    "signOut": "Đăng xuất",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "continue": "Tiếp tục",
+    "ok": "OK",
+    "yes": "Có",
+    "no": "Không",
+    "confidence": "{{pct}}% tin cậy",
+    "unknownError": "Lỗi không xác định",
+    "somethingWentWrong": "Đã xảy ra lỗi"
+  },
+  "language": {
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
+  },
+  "health": {
+    "checking": "Đang kiểm tra máy chủ...",
+    "online": "Đã kết nối máy chủ",
+    "offline": "Không kết nối được máy chủ — kiểm tra LOCAL_IP trong src/config.ts"
+  },
+  "login": {
+    "appName": "Catties Health Care",
+    "tagline": "Trợ lý sức khỏe thú cưng của bạn từ Catties",
+    "createAccount": "Tạo tài khoản",
+    "welcomeBack": "Chào mừng trở lại",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "placeholderEmail": "email@cuaban.com",
+    "placeholderPassword": "••••••••",
+    "signUp": "Đăng ký",
+    "signIn": "Đăng nhập",
+    "orContinueWith": "Hoặc tiếp tục với",
+    "google": "Google",
+    "apple": "Apple",
+    "toggleToSignIn": "Đã có tài khoản? Đăng nhập",
+    "toggleToSignUp": "Chưa có tài khoản? Đăng ký",
+    "termsFooter": "Tiếp tục nghĩa là bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật"
+  },
+  "tabs": {
+    "home": "Trang chủ",
+    "history": "Lịch sử",
+    "logout": "Đăng xuất"
+  },
+  "header": {
+    "appName": "Catties Health Care",
+    "tagline": "Trợ lý sức khỏe thú cưng của bạn từ Catties"
+  },
+  "home": {
+    "title": "Thú cưng của tôi",
+    "addPet": "Thêm thú cưng",
+    "noPetsTitle": "Chưa có thú cưng",
+    "noPetsBody": "Thêm thú cưng để bắt đầu theo dõi các lần quét sức khỏe.",
+    "addFirstPet": "Thêm thú cưng đầu tiên",
+    "pullToRefresh": "Kéo xuống để làm mới",
+    "scanHealth": "Quét sức khỏe",
+    "viewProfile": "Xem hồ sơ",
+    "petFallback": "Thú cưng",
+    "yearOld": "{{count}} tuổi",
+    "yearsOld": "{{count}} tuổi",
+    "ageUnknown": "chưa rõ tuổi"
+  },
+  "petTypes": {
+    "dog": "Chó",
+    "cat": "Mèo",
+    "bird": "Chim",
+    "hamster": "Chuột hamster"
+  },
+  "gender": {
+    "male": "Đực",
+    "female": "Cái"
+  },
+  "addPet": {
+    "addNewPet": "Thêm thú cưng",
+    "editPet": "Sửa thú cưng",
+    "addPet": "Thêm",
+    "updatePet": "Cập nhật",
+    "clickAvatar": "Chạm để tải ảnh đại diện",
+    "petName": "Tên thú cưng",
+    "enterPetName": "Nhập tên thú cưng",
+    "petType": "Loài",
+    "selectPetType": "Chọn loài",
+    "breed": "Giống",
+    "enterBreed": "Nhập giống",
+    "ageYears": "Tuổi (năm)",
+    "agePlaceholder": "vd: 1",
+    "gender": "Giới tính",
+    "selectGender": "Chọn giới tính",
+    "removePet": "Xóa thú cưng"
+  },
+  "onboarding": {
+    "createPetProfile": "Tạo hồ sơ thú cưng",
+    "niceWork": "Tuyệt vời!",
+    "healthPromptBody": "{{petName}} đã có trong hồ sơ. Bạn có muốn làm kiểm tra sức khỏe nhanh bằng ảnh ngay không?",
+    "checkHealthNow": "Kiểm tra ngay",
+    "maybeLater": "Để sau",
+    "healthPromptFooter": "Bạn luôn có thể bắt đầu quét từ màn hình chính dưới tên thú cưng."
+  },
+  "healthCheck": {
+    "title": "Kiểm tra sức khỏe — {{name}}",
+    "petFallback": "Thú cưng",
+    "infoBanner": "Hãy chụp ảnh rõ nét để Catties chẩn đoán chính xác nhất: Mặt, Tai, Mắt, Thân... Bắt đầu nhé!",
+    "photos": "Ảnh",
+    "required": "*",
+    "uploadPhotos": "Tải ảnh lên",
+    "upTo6": "Tối đa 6 ảnh mỗi lần kiểm tra",
+    "photoCountOne": "{{count}} ảnh — chạm vùng này để thêm",
+    "photoCountMany": "{{count}} ảnh — chạm vùng này để thêm",
+    "videoOptional": "Video (tuỳ chọn)",
+    "videoSelected": "Đã chọn video",
+    "changeVideo": "Đổi video",
+    "remove": "Gỡ",
+    "uploadVideo": "Tải video lên",
+    "weightKg": "Cân nặng (kg)",
+    "enterWeight": "Nhập cân nặng (kg)",
+    "vaccination": "Tình trạng tiêm phòng",
+    "neutering": "Triệt sản / đã thiến",
+    "medicalHistory": "Tiền sử bệnh (nếu có)",
+    "medicalHistoryPlaceholder": "vd: dị ứng thuốc, từng nấm da...",
+    "symptoms": "Mô tả triệu chứng",
+    "symptomsPlaceholder": "Mô tả thêm tình trạng (vd: biếng ăn, mệt mỏi, gãi nhiều...)",
+    "startAnalysis": "Bắt đầu phân tích",
+    "photoRequiredError": "* Vui lòng tải ít nhất một ảnh",
+    "enterVaccineType": "Nhập loại vắc-xin"
+  },
+  "results": {
+    "analysisResults": "Kết quả phân tích",
+    "petCheck": "Kết quả kiểm tra",
+    "onboardingSubtitle": "Đây là những gì chúng tìm thấy — chạm Hoàn tất khi bạn sẵn sàng.",
+    "aiTriage": "Hỗ trợ sàng lọc bằng AI",
+    "severity": "Mức độ: {{level}}",
+    "confidence": "Độ tin cậy",
+    "identifiedSymptoms": "Triệu chứng ghi nhận",
+    "recommendedTreatment": "Điều trị gợi ý",
+    "importantDisclaimer": "Lưu ý quan trọng",
+    "finish": "Hoàn tất"
+  },
+  "severity": {
+    "low": "thấp",
+    "medium": "trung bình",
+    "high": "cao"
+  },
+  "history": {
+    "title": "Lịch sử chẩn đoán",
+    "subtitle": "Các lần quét trước — chạm một dòng để xem chi tiết",
+    "empty": "Chưa có lịch sử."
+  },
+  "profile": {
+    "title": "Hồ sơ thú cưng",
+    "edit": "Sửa",
+    "species": "Loài",
+    "breed": "Giống",
+    "age": "Tuổi",
+    "gender": "Giới tính",
+    "ageNotSet": "Chưa nhập tuổi",
+    "scanHealth": "Quét sức khỏe",
+    "healthSection": "Sức khỏe",
+    "healthHint": "Các lần quét gần đây của {{name}} — chạm một dòng để xem chi tiết",
+    "noHealthScans": "Chưa có lần quét sức khỏe.",
+    "noHealthScansHint": "Dùng Quét sức khỏe phía trên để kiểm tra.",
+    "dashGender": "—"
+  },
+  "alerts": {
+    "missingEmailPassword": {
+      "title": "Thiếu thông tin",
+      "message": "Vui lòng nhập email và mật khẩu."
+    },
+    "verifyEmail": {
+      "title": "Xác minh email",
+      "message": "Kiểm tra hộp thư để xác nhận, sau đó dùng Đăng nhập."
+    },
+    "loginNoToken": {
+      "title": "Đăng nhập thất bại",
+      "message": "Không nhận được mã truy cập."
+    },
+    "authFailed": {
+      "title": "Xác thực thất bại",
+      "message": "{{message}}"
+    },
+    "googleNotConfigured": {
+      "title": "Đăng nhập Google",
+      "message": "Thêm EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (và client ID iOS/Android cho bản build) vào file .env, khởi động lại Expo, bật Google trong Supabase Auth → Providers, rồi thử lại."
+    },
+    "googleLoading": {
+      "title": "Vui lòng đợi",
+      "message": "Đăng nhập Google vẫn đang tải."
+    },
+    "googleSignInIncomplete": {
+      "title": "Đăng nhập Google",
+      "message": "Đăng nhập chưa hoàn tất."
+    },
+    "googleNoIdToken": {
+      "title": "Đăng nhập Google",
+      "message": "Không nhận được ID token. Kiểm tra cấu hình OAuth Google."
+    },
+    "googleNoAccessToken": {
+      "title": "Đăng nhập Google",
+      "message": "Không nhận được mã truy cập."
+    },
+    "googleNonce": {
+      "title": "Đăng nhập Google (Supabase)",
+      "message": "Bật \"Skip nonce checks\" cho nhà cung cấp Google trong Supabase (Authentication → Providers → Google), rồi thử lại. Luồng Google của Expo và kiểm tra nonce của Supabase không khớp nếu không bật."
+    },
+    "googleSignInFailed": {
+      "title": "Đăng nhập Google thất bại",
+      "message": "{{message}}"
+    },
+    "appleUnavailable": {
+      "title": "Đăng nhập Apple",
+      "message": "Đăng nhập Apple chỉ khả dụng trên thiết bị iOS được hỗ trợ."
+    },
+    "appleNoIdentityToken": {
+      "title": "Đăng nhập Apple",
+      "message": "Không nhận được identity token."
+    },
+    "appleNoAccessToken": {
+      "title": "Đăng nhập Apple",
+      "message": "Không nhận được mã truy cập."
+    },
+    "appleSignInFailed": {
+      "title": "Đăng nhập Apple thất bại",
+      "message": "{{message}}"
+    },
+    "missingPetInfo": {
+      "title": "Thiếu thông tin",
+      "message": "Cần có tên và loài thú cưng."
+    },
+    "createPetFailed": {
+      "title": "Tạo thú cưng thất bại",
+      "message": "{{message}}"
+    },
+    "exitSetup": {
+      "title": "Thoát thiết lập?",
+      "message": "Bạn có thể đăng nhập lại sau để thêm thú cưng."
+    },
+    "updatePetFailed": {
+      "title": "Cập nhật thất bại",
+      "message": "{{message}}"
+    },
+    "loadPetFailed": {
+      "title": "Tải thú cưng thất bại",
+      "message": "{{message}}"
+    },
+    "loadProfileFailed": {
+      "title": "Tải hồ sơ thất bại",
+      "message": "{{message}}"
+    },
+    "refreshFailed": {
+      "title": "Làm mới thất bại",
+      "message": "{{message}}"
+    },
+    "deletePet": {
+      "title": "Xóa thú cưng?",
+      "message": "Xóa {{name}} — dữ liệu không thể khôi phục trong ứng dụng."
+    },
+    "deleteFailed": {
+      "title": "Xóa thất bại",
+      "message": "{{message}}"
+    },
+    "signInRequired": {
+      "title": "Cần đăng nhập",
+      "message": "Vui lòng đăng nhập trước khi chọn ảnh đại diện."
+    },
+    "permissionGallery": {
+      "title": "Cần quyền",
+      "message": "Vui lòng cho phép truy cập thư viện ảnh."
+    },
+    "permissionAvatar": {
+      "title": "Cần quyền",
+      "message": "Vui lòng cho phép thư viện ảnh để đặt avatar."
+    },
+    "avatarUploadFailed": {
+      "title": "Tải avatar thất bại",
+      "message": "{{message}}"
+    },
+    "photosError": {
+      "title": "Ảnh",
+      "message": "{{message}}"
+    },
+    "photosRequired": {
+      "title": "Cần có ảnh",
+      "message": "Vui lòng tải ít nhất một ảnh."
+    },
+    "missingData": {
+      "title": "Thiếu dữ liệu",
+      "message": "Vui lòng đăng nhập và chọn thú cưng."
+    },
+    "analyzeFailed": {
+      "title": "Phân tích thất bại",
+      "message": "{{message}}"
+    },
+    "selectPet": {
+      "title": "Chọn thú cưng",
+      "message": "Vui lòng chọn thú cưng trước."
+    },
+    "historyFailed": {
+      "title": "Tải lịch sử thất bại",
+      "message": "{{message}}"
+    }
+  }
+}
