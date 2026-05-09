@@ -45,6 +45,10 @@ alter table public.analyses add column if not exists neutering_status text;
 alter table public.analyses add column if not exists medical_history text;
 alter table public.analyses add column if not exists symptom_description text;
 
+-- Original output language + cached translations for Vietnamese UI (see analysis translate-display API).
+alter table public.analyses add column if not exists output_locale text;
+alter table public.analyses add column if not exists display_translations jsonb not null default '{}'::jsonb;
+
 -- --- Pet RLS: required when the API uses the anon key + user JWT (not service role).
 -- Run this block in the SQL Editor if POST /api/v1/pets fails with row-level security errors.
 alter table public.pets enable row level security;

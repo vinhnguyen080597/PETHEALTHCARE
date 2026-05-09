@@ -14,6 +14,7 @@ import {
   healthCheck,
   listHistoryByPet,
   listPets,
+  translateAnalysesDisplay,
   login,
   oauthApple,
   oauthGoogle,
@@ -147,6 +148,39 @@ export function usePetHealthApp() {
       setRefreshing(false);
     }
   }, [token, fetchPets]);
+
+  /** History rows merged for current UI language; English-only archives get one-time Gemini translation via API. */
+  const fetchPetHistoryMerged = useCallback(
+    async (petId: string): Promise<Analysis[]> => {
+      if (!token) return [];
+      const wantVi = Boolean(i18n.language?.startsWith('vi'));
+      const res = await listHistoryByPet(token, petId, wantVi ? { displayLocale: 'vi' } : undefined);
+      let rows = res.data;
+      if (!wantVi) return rows;
+
+      const pending = rows.filter((a) => {
+        const ol = String(a.output_locale ?? '').toLowerCase();
+        if (ol.startsWith('vi')) return false;
+        return !(a.display_translations?.vi && typeof a.display_translations.vi === 'object');
+      });
+
+      if (pending.length === 0) return rows;
+
+      try {
+        const tr = await translateAnalysesDisplay(token, {
+          analysisIds: pending.map((p) => p.id),
+          petId,
+          targetLocale: 'vi',
+        });
+        const merged = new Map(tr.data.map((r) => [r.id, r]));
+        rows = rows.map((h) => merged.get(h.id) ?? h);
+      } catch {
+        /* offline or translate failure — leave English snippets */
+      }
+      return rows;
+    },
+    [token, i18n.language],
+  );
 
   useEffect(() => {
     void initializeApp();
@@ -491,8 +525,8 @@ export function usePetHealthApp() {
       await fetchPets(token);
       if (returnToProfile && updatedPetId && token) {
         try {
-          const historyResponse = await listHistoryByPet(token, updatedPetId);
-          setHistory(historyResponse.data);
+          const mergedHistory = await fetchPetHistoryMerged(updatedPetId);
+          setHistory(mergedHistory);
         } catch {
           setHistory([]);
         }
@@ -542,8 +576,8 @@ export function usePetHealthApp() {
     setSelectedPetId(petId);
     setLoading(true);
     try {
-      const response = await listHistoryByPet(token, petId);
-      setHistory(response.data);
+      const mergedHistory = await fetchPetHistoryMerged(petId);
+      setHistory(mergedHistory);
       setScreen('pet-profile');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -562,8 +596,8 @@ export function usePetHealthApp() {
     setRefreshing(true);
     try {
       await fetchPets(token);
-      const response = await listHistoryByPet(token, selectedPetId);
-      setHistory(response.data);
+      const mergedHistory = await fetchPetHistoryMerged(selectedPetId);
+      setHistory(mergedHistory);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('alerts.refreshFailed.title'), i18n.t('alerts.refreshFailed.message', { message }));
@@ -724,6 +758,7 @@ export function usePetHealthApp() {
       const response = await analyzePetHealthCheck({
         token,
         petId: selectedPetId,
+        locale: i18n.language || 'en',
         imageUris: healthCheckPhotos,
         videoUri: healthCheckVideoUri,
         weightKg: healthCheckWeightKg.trim(),
@@ -771,8 +806,8 @@ export function usePetHealthApp() {
       const returnToProfileAfterScan = healthCheckReturnToProfile;
       setHealthCheckReturnToProfile(false);
       setResultsReturnScreen(returnToProfileAfterScan ? 'pet-profile' : null);
-      const historyResponse = await listHistoryByPet(token, selectedPetId);
-      setHistory(historyResponse.data);
+      const mergedHistory = await fetchPetHistoryMerged(selectedPetId);
+      setHistory(mergedHistory);
       setAnalysisCooldownUntilMs(Date.now() + 90 * 1000);
       clearHealthCheckForm();
       setScreen(initialOnboarding ? 'onboarding-results' : 'results');
@@ -831,8 +866,8 @@ export function usePetHealthApp() {
     }
     setLoading(true);
     try {
-      const response = await listHistoryByPet(token, selectedPetId);
-      setHistory(response.data);
+      const mergedHistory = await fetchPetHistoryMerged(selectedPetId);
+      setHistory(mergedHistory);
       setScreen('history');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -863,7 +898,7 @@ export function usePetHealthApp() {
     if (target === 'pet-profile') {
       setScreen('pet-profile');
       if (token && selectedPetId) {
-        void listHistoryByPet(token, selectedPetId).then((r) => setHistory(r.data));
+        void fetchPetHistoryMerged(selectedPetId).then(setHistory);
       }
       return;
     }

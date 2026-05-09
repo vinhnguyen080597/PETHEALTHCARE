@@ -47,6 +47,21 @@ export type UpdatePetPayload = {
   avatarUrl?: string | null;
 };
 
+/** Cached UI translations for analyses (e.g. English rows shown in Vietnamese). */
+export type AnalysisDisplayTranslations = {
+  vi?: {
+    diagnosis?: string;
+    symptoms?: string[];
+    treatment?: string;
+    disclaimer?: string;
+    red_flags?: string[];
+    evidence?: string[];
+    missing_data?: string[];
+    diagnosis_candidates?: { name: string; confidence: number }[];
+    next_action?: { summary?: string; ask_user_to_add?: string[] };
+  };
+};
+
 export type Analysis = {
   id: string;
   user_id: string;
@@ -57,6 +72,9 @@ export type Analysis = {
   treatment: string;
   confidence: number;
   disclaimer: string;
+  /** Language the model originally used for diagnosis/treatment strings (`en`, `vi`, …). */
+  output_locale?: string | null;
+  display_translations?: AnalysisDisplayTranslations | null;
   image_url: string | null;
   created_at: string;
   extra_image_urls?: string[] | null;

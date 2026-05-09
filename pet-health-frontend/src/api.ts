@@ -251,9 +251,33 @@ export async function uploadPetAvatar(token: string, imageUri: string, mimeHint:
   return body as { data: { avatarUrl: string } };
 }
 
-export async function listHistoryByPet(token: string, petId: string) {
-  return requestJson<{ data: Analysis[] }>(`/analysis/${encodeURIComponent(petId)}`, {
+export async function listHistoryByPet(
+  token: string,
+  petId: string,
+  options?: { displayLocale?: string },
+) {
+  const loc = options?.displayLocale?.trim();
+  const qs = loc ? `?displayLocale=${encodeURIComponent(loc)}` : '';
+  return requestJson<{ data: Analysis[] }>(`/analysis/${encodeURIComponent(petId)}${qs}`, {
     headers: authHeaders(token),
+  });
+}
+
+export async function translateAnalysesDisplay(
+  token: string,
+  payload: { analysisIds: string[]; petId?: string; targetLocale?: string },
+) {
+  return requestJson<{ data: Analysis[] }>('/analysis/translate-display', {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      analysisIds: payload.analysisIds,
+      petId: payload.petId,
+      targetLocale: payload.targetLocale ?? 'vi',
+    }),
   });
 }
 
@@ -276,6 +300,8 @@ export type AnalyzeHealthCheckParams = {
   }) => void;
   /** MIME hint for the first image only (e.g. image/png). */
   primaryMimeHint?: string;
+  /** Matches app UI language (`en` | `vi`); Gemini returns readable fields in this language. */
+  locale?: string;
 };
 
 type AnalysisProgressResponse = {
@@ -314,6 +340,7 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
     requestId = '',
     onProgressStage,
     primaryMimeHint = 'image/jpeg',
+    locale,
   } = params;
 
   if (!imageUris.length) {
@@ -328,6 +355,10 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
   formData.append('neutered', neutered);
   formData.append('medicalHistory', medicalHistory);
   formData.append('symptomDescription', symptomDescription);
+  const loc = locale?.trim();
+  if (loc) {
+    formData.append('locale', loc.slice(0, 16));
+  }
   if (requestId.trim()) {
     formData.append('requestId', requestId.trim());
   }

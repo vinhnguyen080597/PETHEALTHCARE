@@ -11,7 +11,11 @@ function normalizeText(value) {
 }
 
 function stableBodySubset(body) {
+  const loc = typeof body.locale === 'string' ? body.locale.trim().toLowerCase() : '';
+  const locale = loc.startsWith('vi') ? 'vi' : 'en';
+
   return {
+    locale,
     weightKg: normalizeText(body.weightKg),
     vaccinated: normalizeText(body.vaccinated),
     vaccineType: normalizeText(body.vaccineType),

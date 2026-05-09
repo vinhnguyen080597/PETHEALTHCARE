@@ -7,7 +7,18 @@ import {
   validateImageFile,
   validateVideoFile,
 } from '../services/aiDiagnosisService.js';
-import { createAnalysisRecord, listAnalysesByPet } from '../repositories/analysisRepository.js';
+import {
+  createAnalysisRecord,
+  getAnalysisByIdForUser,
+  listAnalysesByPet,
+  mergeAnalysisDisplayTranslation,
+  mergeDisplayLocaleRow,
+} from '../repositories/analysisRepository.js';
+import {
+  extractTranslatablePayload,
+  translateAnalysisFieldsToVietnamese,
+  translateManyAnalysisRecordsToVietnamese,
+} from '../services/analysisTranslationService.js';
 import { getPetByIdForUser } from '../repositories/petRepository.js';
 import { storeDiagnosisImage, storeDiagnosisVideo } from '../services/imageStorageService.js';
 import { buildAnalysisCacheKey, getCachedAnalysis, setCachedAnalysis } from '../services/analysisCacheService.js';
@@ -46,8 +57,89 @@ router.get('/progress/:requestId', async (req, res) => {
 
 router.get('/:petId', async (req, res, next) => {
   try {
-    const data = await listAnalysesByPet(req.user.id, req.params.petId);
+    const q = typeof req.query.displayLocale === 'string' ? req.query.displayLocale.trim() : '';
+    const displayLocale = q || (typeof req.query.locale === 'string' ? req.query.locale.trim() : '');
+    const data = await listAnalysesByPet(req.user.id, req.params.petId, displayLocale || null);
     return res.json({ data });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/** Fill display_translations.vi via Gemini for older English-only rows; returns merged rows for client state. */
+router.post('/translate-display', async (req, res, next) => {
+  try {
+    const target = String(req.body?.targetLocale ?? 'vi').toLowerCase();
+    if (!target.startsWith('vi')) {
+      return res.status(400).json({ error: 'Only targetLocale vi is supported', code: 'UNSUPPORTED_LOCALE' });
+    }
+    const idsRaw = req.body?.analysisIds;
+    if (!Array.isArray(idsRaw) || idsRaw.length === 0) {
+      return res.status(400).json({ error: 'analysisIds array required', code: 'INVALID_INPUT' });
+    }
+    const petIdFilter = typeof req.body?.petId === 'string' && req.body.petId.trim() ? req.body.petId.trim() : null;
+    const analysisIds = [...new Set(idsRaw.map((x) => String(x)))].slice(0, 24);
+
+    const pending = [];
+    for (const id of analysisIds) {
+      const row = await getAnalysisByIdForUser(req.user.id, id);
+      if (!row) continue;
+      if (petIdFilter && row.pet_id !== petIdFilter) continue;
+      const ol = String(row.output_locale || '').toLowerCase();
+      if (ol.startsWith('vi')) continue;
+      if (row.display_translations?.vi && typeof row.display_translations.vi === 'object') continue;
+      pending.push(row);
+    }
+
+    const viOverlayById = new Map();
+    const BATCH = 6;
+    for (let i = 0; i < pending.length; i += BATCH) {
+      const batch = pending.slice(i, i + BATCH);
+      const records = batch.map((r) => ({ id: r.id, ...extractTranslatablePayload(r) }));
+      let translatedList = [];
+      try {
+        translatedList = await translateManyAnalysisRecordsToVietnamese(records);
+      } catch {
+        translatedList = [];
+      }
+      const byId = new Map(
+        translatedList.filter((t) => t && typeof t === 'object' && t.id).map((t) => [String(t.id), t]),
+      );
+
+      for (const r of batch) {
+        let pack = byId.get(String(r.id));
+        if (!pack || typeof pack !== 'object') {
+          try {
+            pack = await translateAnalysisFieldsToVietnamese(extractTranslatablePayload(r));
+          } catch (e) {
+            continue;
+          }
+        }
+        const { id: _drop, ...viFields } = pack;
+        viOverlayById.set(r.id, viFields);
+        await mergeAnalysisDisplayTranslation(req.user.id, r.id, 'vi', viFields);
+      }
+    }
+
+    const out = [];
+    for (const id of analysisIds) {
+      const fresh = await getAnalysisByIdForUser(req.user.id, id);
+      if (!fresh) continue;
+      const overlay = viOverlayById.get(id);
+      const persistedVi = fresh.display_translations?.vi && typeof fresh.display_translations.vi === 'object';
+      const row =
+        overlay && !persistedVi
+          ? {
+              ...fresh,
+              display_translations: {
+                ...(typeof fresh.display_translations === 'object' && fresh.display_translations ? fresh.display_translations : {}),
+                vi: overlay,
+              },
+            }
+          : fresh;
+      out.push(mergeDisplayLocaleRow(row, 'vi'));
+    }
+    return res.json({ data: out });
   } catch (err) {
     return next(err);
   }
@@ -219,7 +311,8 @@ router.post(
 
       const imageFilesForModel = [primary, ...extras];
       const healthAppendix = buildHealthContextAppendix(req.body);
-      const aiResult = await analyzePetHealthImages(imageFilesForModel, healthAppendix);
+      const outputLocale = typeof req.body.locale === 'string' && req.body.locale.trim() ? req.body.locale.trim() : 'en';
+      const aiResult = await analyzePetHealthImages(imageFilesForModel, healthAppendix, outputLocale);
       if (requestId) {
         setAnalysisProgress({
           requestId,
@@ -280,6 +373,8 @@ router.post(
       const weightNum = weightRaw === '' ? null : Number(weightRaw);
       const weightKg = Number.isFinite(weightNum) ? weightNum : null;
 
+      const normOutLoc = typeof outputLocale === 'string' && outputLocale.toLowerCase().startsWith('vi') ? 'vi' : 'en';
+
       const stored = await createAnalysisRecord({
         userId: req.user.id,
         petId,
@@ -289,6 +384,7 @@ router.post(
         treatment: aiResult.treatment,
         confidence: aiResult.confidence,
         disclaimer: aiResult.disclaimer,
+        outputLocale: normOutLoc,
         imageUrl,
         extraImageUrls,
         videoUrl,

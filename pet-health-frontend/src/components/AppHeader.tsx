@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { LanguageToggle } from './LanguageToggle';
 
 const HEADER_BLUE = '#1E6FE8';
 
@@ -17,7 +16,6 @@ export function AppHeader() {
         </Text>
       </View>
       <Text className="mb-3 text-[15px] leading-5 text-white/90">{t('header.tagline')}</Text>
-      <LanguageToggle />
     </View>
   );
 }

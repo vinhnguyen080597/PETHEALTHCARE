@@ -98,7 +98,7 @@ function normalizeNextAction(value) {
   };
 }
 
-function parseJsonSafely(rawText) {
+export function parseJsonSafely(rawText) {
   const text = String(rawText ?? '').trim();
   const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
   const candidate = fencedMatch ? fencedMatch[1].trim() : text;
@@ -181,6 +181,30 @@ export function validateVideoFile(file) {
   }
 }
 
+/** UI locale → model output language (string values in JSON only). */
+function normalizeOutputLocale(raw) {
+  const s = String(raw ?? '').trim().toLowerCase();
+  return s.startsWith('vi') ? 'vi' : 'en';
+}
+
+function buildOutputLanguageBlock(locale) {
+  const lang = normalizeOutputLocale(locale);
+  if (lang === 'vi') {
+    return `
+
+Output language (mandatory for Vietnamese users):
+- Write EVERY human-readable string value in Vietnamese (Tiếng Việt natural, clear): diagnosis, symptoms[], treatment, disclaimer, red_flags[], diagnosis_candidates[].name, evidence[], missing_data[], next_action.summary, next_action.ask_user_to_add[].
+- Keep ALL JSON keys in English exactly as in the schema above. Enum fields must stay in English tokens only: status (ok|need_more_data|not_pet_or_unclear|emergency_flag), severity (low|medium|high).
+- If the owner wrote notes in another language, you may still respond in Vietnamese.
+`;
+  }
+  return `
+
+Output language:
+- Write all human-readable string values in clear English. Keep JSON keys and enum tokens (status, severity) exactly as specified.
+`;
+}
+
 export function buildHealthContextAppendix(body) {
   const lines = [];
   const w = typeof body.weightKg === 'string' ? body.weightKg.trim() : '';
@@ -214,8 +238,9 @@ export function buildHealthContextAppendix(body) {
 /**
  * @param {import('multer').File[]} imageFiles - primary first, then extras (jpeg/png/webp)
  * @param {string} healthContextAppendix - from buildHealthContextAppendix
+ * @param {string} [outputLocale='en'] - 'vi' | 'en' (from client UI language)
  */
-export async function analyzePetHealthImages(imageFiles, healthContextAppendix = '') {
+export async function analyzePetHealthImages(imageFiles, healthContextAppendix = '', outputLocale = 'en') {
   const files = (imageFiles || []).filter(Boolean).slice(0, MAX_IMAGES_FOR_MODEL);
   if (!files.length) {
     const err = new Error('At least one image is required');
@@ -264,6 +289,7 @@ Rules:
 - Do not invent findings not visible in media/context.
 - If multiple images are provided, synthesize findings across all views.
 ${healthContextAppendix}
+${buildOutputLanguageBlock(outputLocale)}
 `;
 
   const imageParts = files.map((file) => ({
@@ -314,6 +340,6 @@ ${healthContextAppendix}
 }
 
 /** @deprecated path — prefer analyzePetHealthImages with optional extras */
-export async function analyzePetImage(file) {
-  return analyzePetHealthImages([file], '');
+export async function analyzePetImage(file, outputLocale = 'en') {
+  return analyzePetHealthImages([file], '', outputLocale);
 }

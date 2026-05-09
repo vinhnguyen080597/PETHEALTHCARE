@@ -3,13 +3,39 @@ import { getSupabaseServiceClient } from '../config/supabase.js';
 
 const memoryAnalyses = [];
 
+const DISPLAY_MERGE_KEYS = [
+  'diagnosis',
+  'symptoms',
+  'treatment',
+  'disclaimer',
+  'red_flags',
+  'evidence',
+  'missing_data',
+  'diagnosis_candidates',
+  'next_action',
+];
+
 function isMissingOptionalColumnError(error) {
   if (!error) return false;
   const msg = [error.message, error.details, error.hint, String(error.code ?? '')].filter(Boolean).join(' ');
   return (
     /Could not find the|column .* does not exist|42703/i.test(msg) ||
-    (String(error.code) === 'PGRST204' && /(weight_kg|video_url|extra_image|vaccination|neutering|medical_history|symptom_description)/i.test(msg))
+    (String(error.code) === 'PGRST204' &&
+      /(weight_kg|video_url|extra_image|vaccination|neutering|medical_history|symptom_description|output_locale|display_translations)/i.test(
+        msg,
+      ))
   );
+}
+
+function isLikelyTranslationColumnMissing(error) {
+  if (!error) return false;
+  const msg = [error.message, error.details, error.hint].filter(Boolean).join(' ');
+  return /output_locale|display_translations/i.test(msg);
+}
+
+function stripTranslationFields(row) {
+  const { output_locale: _o, display_translations: _d, ...rest } = row;
+  return rest;
 }
 
 function stripOptionalHealthFields(row) {
@@ -25,6 +51,18 @@ function stripOptionalHealthFields(row) {
     ...rest
   } = row;
   return rest;
+}
+
+/** When reading analyses with UI locale `vi`, merge cached Vietnamese strings from display_translations. */
+export function mergeDisplayLocaleRow(row, displayLocale) {
+  if (!row || displayLocale !== 'vi') return row;
+  const pack = row.display_translations?.vi;
+  if (!pack || typeof pack !== 'object') return row;
+  const out = { ...row };
+  for (const k of DISPLAY_MERGE_KEYS) {
+    if (pack[k] !== undefined) out[k] = pack[k];
+  }
+  return out;
 }
 
 export async function createAnalysisRecord(payload) {
@@ -48,6 +86,12 @@ export async function createAnalysisRecord(payload) {
     medical_history: payload.medicalHistory ?? null,
     symptom_description: payload.symptomDescription ?? null,
     created_at: new Date().toISOString(),
+    output_locale:
+      typeof payload.outputLocale === 'string' && payload.outputLocale.trim()
+        ? payload.outputLocale.trim().slice(0, 16).toLowerCase()
+        : 'en',
+    display_translations:
+      payload.displayTranslations && typeof payload.displayTranslations === 'object' ? payload.displayTranslations : {},
   };
 
   const supabase = getSupabaseServiceClient();
@@ -56,35 +100,98 @@ export async function createAnalysisRecord(payload) {
     return row;
   }
 
-  let { data, error } = await supabase.from('analyses').insert(row).select('*').single();
+  const variants = [
+    row,
+    stripTranslationFields(row),
+    stripOptionalHealthFields(row),
+    stripOptionalHealthFields(stripTranslationFields(row)),
+  ];
 
-  if (error && isMissingOptionalColumnError(error)) {
-    ({ data, error } = await supabase
-      .from('analyses')
-      .insert(stripOptionalHealthFields(row))
-      .select('*')
-      .single());
+  let lastError = null;
+  for (const attempt of variants) {
+    const { data, error } = await supabase.from('analyses').insert(attempt).select('*').single();
+    if (!error) return data;
+    lastError = error;
+    if (!isMissingOptionalColumnError(error)) {
+      throw error;
+    }
   }
+  throw lastError;
+}
 
+export async function listAnalysesByPet(userId, petId, displayLocale = null) {
+  let rows;
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    rows = memoryAnalyses
+      .filter((item) => item.user_id === userId && item.pet_id === petId)
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  } else {
+    const { data, error } = await supabase
+      .from('analyses')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('pet_id', petId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    rows = data;
+  }
+  const loc = typeof displayLocale === 'string' && displayLocale.trim().slice(0, 2).toLowerCase().startsWith('vi')
+    ? 'vi'
+    : null;
+  if (!loc) return rows;
+  return rows.map((r) => mergeDisplayLocaleRow(r, loc));
+}
+
+export async function getAnalysisByIdForUser(userId, analysisId) {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    return memoryAnalyses.find((x) => x.id === analysisId && x.user_id === userId) ?? null;
+  }
+  const { data, error } = await supabase
+    .from('analyses')
+    .select('*')
+    .eq('id', analysisId)
+    .eq('user_id', userId)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
 
-export async function listAnalysesByPet(userId, petId) {
+/** Merge `{ vi: {...} }` into display_translations and persist. Returns updated row when possible. */
+export async function mergeAnalysisDisplayTranslation(userId, analysisId, localeKey, partial) {
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
-    return memoryAnalyses
-      .filter((item) => item.user_id === userId && item.pet_id === petId)
-      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    const idx = memoryAnalyses.findIndex((x) => x.id === analysisId && x.user_id === userId);
+    if (idx < 0) return null;
+    const prev = memoryAnalyses[idx].display_translations && typeof memoryAnalyses[idx].display_translations === 'object'
+      ? memoryAnalyses[idx].display_translations
+      : {};
+    memoryAnalyses[idx] = {
+      ...memoryAnalyses[idx],
+      display_translations: { ...prev, [localeKey]: partial },
+    };
+    return memoryAnalyses[idx];
   }
+
+  const current = await getAnalysisByIdForUser(userId, analysisId);
+  if (!current) return null;
+
+  const prev = current.display_translations && typeof current.display_translations === 'object' ? current.display_translations : {};
+  const next = { ...prev, [localeKey]: partial };
 
   const { data, error } = await supabase
     .from('analyses')
-    .select('*')
+    .update({ display_translations: next })
+    .eq('id', analysisId)
     .eq('user_id', userId)
-    .eq('pet_id', petId)
-    .order('created_at', { ascending: false });
+    .select('*')
+    .single();
 
+  if (error && isLikelyTranslationColumnMissing(error)) {
+    console.warn('[analyses] display_translations column missing; translation not persisted for', analysisId);
+    return current;
+  }
   if (error) throw error;
   return data;
 }
