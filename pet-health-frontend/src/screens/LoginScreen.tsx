@@ -99,6 +99,7 @@ export function LoginScreen({
                 </Text>
               </Pressable>
 
+              {/* Temporarily disabled social sign-in (Google/Apple). Keep this block for future enhancement.
               <View className="mb-6 flex-row items-center">
                 <View className="h-px flex-1 bg-gray-300" />
                 <Text className="bg-white px-4 text-sm text-gray-500">{t('login.orContinueWith')}</Text>
@@ -124,6 +125,7 @@ export function LoginScreen({
                   </Pressable>
                 ) : null}
               </View>
+              */}
 
               <Pressable className="mt-6" onPress={onToggleSignUp}>
                 <Text className="text-center text-sm text-blue-600">
