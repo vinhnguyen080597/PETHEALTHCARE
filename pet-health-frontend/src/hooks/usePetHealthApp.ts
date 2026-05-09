@@ -29,6 +29,7 @@ import type { Analysis, Pet } from '../types';
 import type { AppScreen } from '../screens/types';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
+import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
 
@@ -731,23 +732,36 @@ export function usePetHealthApp() {
   }
 
   async function analyzeHealthCheck() {
-    if (!healthCheckPhotos.length) {
+    const block = getAnalyzeBlockReason({
+      hasPhotos: healthCheckPhotos.length > 0,
+      hasToken: Boolean(token),
+      hasSelectedPet: Boolean(selectedPetId),
+      analysisSubmitting,
+      analysisCooldownSeconds,
+    });
+    if (block === 'photos_required') {
       Alert.alert(i18n.t('alerts.photosRequired.title'), i18n.t('alerts.photosRequired.message'));
       return;
     }
-    if (!token || !selectedPetId) {
+    if (block === 'missing_session') {
       Alert.alert(i18n.t('alerts.missingData.title'), i18n.t('alerts.missingData.message'));
       return;
     }
-    if (analysisSubmitting) {
+    if (block === 'in_progress') {
       setHealthCheckInlineError(i18n.t('alerts.analysisInProgressFriendly.message'));
       return;
     }
-    if (analysisCooldownSeconds > 0) {
+    if (block === 'cooldown') {
       setHealthCheckInlineError(i18n.t('alerts.analysisCooldownFriendly.message', { seconds: analysisCooldownSeconds }));
       return;
     }
     setHealthCheckInlineError('');
+    const safeToken = token;
+    const safePetId = selectedPetId;
+    if (!safeToken || !safePetId) {
+      Alert.alert(i18n.t('alerts.missingData.title'), i18n.t('alerts.missingData.message'));
+      return;
+    }
     const screenAfterProgress: AppScreen = initialOnboarding ? 'onboarding-health-check' : 'health-check';
     setAnalysisSubmitting(true);
     setAnalysisProgressStage('uploading');
@@ -756,8 +770,8 @@ export function usePetHealthApp() {
     const requestId = Crypto.randomUUID();
     try {
       const response = await analyzePetHealthCheck({
-        token,
-        petId: selectedPetId,
+        token: safeToken,
+        petId: safePetId,
         locale: i18n.language || 'en',
         imageUris: healthCheckPhotos,
         videoUri: healthCheckVideoUri,
@@ -806,35 +820,21 @@ export function usePetHealthApp() {
       const returnToProfileAfterScan = healthCheckReturnToProfile;
       setHealthCheckReturnToProfile(false);
       setResultsReturnScreen(returnToProfileAfterScan ? 'pet-profile' : null);
-      const mergedHistory = await fetchPetHistoryMerged(selectedPetId);
+      const mergedHistory = await fetchPetHistoryMerged(safePetId);
       setHistory(mergedHistory);
       setAnalysisCooldownUntilMs(Date.now() + 90 * 1000);
       clearHealthCheckForm();
       setScreen(initialOnboarding ? 'onboarding-results' : 'results');
     } catch (error: unknown) {
-      let message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      let message = mapAnalyzeFriendlyMessage({
+        error,
+        analysisCooldownSeconds,
+        t: (k, options) => i18n.t(k, options),
+      });
       if (error instanceof AnalyzeRequestError) {
         if (typeof error.retryAfterSeconds === 'number' && error.retryAfterSeconds > 0) {
           setAnalysisCooldownUntilMs(Date.now() + error.retryAfterSeconds * 1000);
         }
-        if (error.code === 'ANALYSIS_COOLDOWN') {
-          message = i18n.t('alerts.analysisCooldownFriendly.message', {
-            seconds: error.retryAfterSeconds ?? analysisCooldownSeconds,
-          });
-        } else if (error.code === 'ANALYSIS_IN_PROGRESS') {
-          message = i18n.t('alerts.analysisInProgressFriendly.message');
-        } else if (error.code === 'ANALYSIS_RATE_LIMIT_HOUR' || error.code === 'ANALYSIS_RATE_LIMIT_DAY') {
-          message = i18n.t('alerts.analysisRateLimitFriendly.message', { seconds: error.retryAfterSeconds ?? 0 });
-        } else if (error.code === 'AI_MODEL_UNAVAILABLE') {
-          message = i18n.t('alerts.analysisModelUnavailableFriendly.message');
-        } else if (error.code === 'AI_QUOTA_EXCEEDED') {
-          message = i18n.t('alerts.analysisQuotaFriendly.message');
-        } else if (error.code === 'INTERNAL_ERROR') {
-          message = i18n.t('alerts.systemErrorFriendly.message');
-        }
-      }
-      if (/models\/|not found.*generatecontent|NOT_FOUND/i.test(message)) {
-        message = i18n.t('alerts.analysisModelUnavailableFriendly.message');
       }
       setAnalysisProgressStage('failed');
       setAnalysisProgressMessage(message);
