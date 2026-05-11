@@ -23,6 +23,7 @@ import {
   uploadPetAvatar,
 } from '../api';
 import { isGoogleOAuthConfigured } from '../config';
+import { preloadMaiOnboardingImages } from '../assets/maiOnboardingAssets';
 import { PENDING_INITIAL_ONBOARDING_KEY, TOKEN_STORAGE_KEY } from '../constants/auth';
 import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
 import type { Analysis, Pet } from '../types';
@@ -221,12 +222,12 @@ export function usePetHealthApp() {
         const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
         if (pending === '1') {
           setInitialOnboarding(true);
-          if (petsList.length === 0) {
-            setScreen('onboarding-add-pet');
-          } else {
-            setSelectedPetId((prev) => prev ?? petsList[0]?.id ?? null);
-            setScreen('onboarding-health-prompt');
+          try {
+            await preloadMaiOnboardingImages();
+          } catch {
+            /* still show intro; image may decode on mount */
           }
+          setScreen('onboarding-intro');
         } else {
           setScreen('home');
         }
@@ -254,19 +255,24 @@ export function usePetHealthApp() {
         await AsyncStorage.setItem(PENDING_INITIAL_ONBOARDING_KEY, '1');
         setInitialOnboarding(true);
         clearPetForm();
-        setScreen('onboarding-add-pet');
+        try {
+          await preloadMaiOnboardingImages();
+        } catch {
+          /* still show intro */
+        }
+        setScreen('onboarding-intro');
         return;
       }
 
       const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
       if (pending === '1') {
         setInitialOnboarding(true);
-        if (petsList.length === 0) {
-          setScreen('onboarding-add-pet');
-        } else {
-          setSelectedPetId((prev) => prev ?? petsList[0]?.id ?? null);
-          setScreen('onboarding-health-prompt');
+        try {
+          await preloadMaiOnboardingImages();
+        } catch {
+          /* still show intro */
         }
+        setScreen('onboarding-intro');
         return;
       }
 
@@ -466,6 +472,16 @@ export function usePetHealthApp() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function startInitialOnboardingFromIntro() {
+    if (pets.length === 0) {
+      clearPetForm();
+      setScreen('onboarding-add-pet');
+      return;
+    }
+    setSelectedPetId((prev) => prev ?? pets[0]?.id ?? null);
+    setScreen('onboarding-health-prompt');
   }
 
   function cancelOnboardingAddPet() {
@@ -1023,6 +1039,7 @@ export function usePetHealthApp() {
     goHomeAndRefresh,
     handleOnboardingAddPet,
     cancelOnboardingAddPet,
+    startInitialOnboardingFromIntro,
     goToOnboardingHealthCheckFromPrompt,
     skipInitialHealthOnboarding,
     finishInitialOnboardingAfterResults,

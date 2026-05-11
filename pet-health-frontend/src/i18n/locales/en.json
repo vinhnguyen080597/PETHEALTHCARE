@@ -91,7 +91,14 @@
     "removePet": "Remove pet"
   },
   "onboarding": {
+    "introTitle": "Welcome",
+    "introBubbleWelcome": "Hello! 👋 Welcome to Catties Health Care — a shared home where we join you to love, manage, and protect the health of your four-legged family. Let’s walk this care journey together and help your pets thrive!",
+    "introBubbleClosing": "Okie — now let’s create your first pet profile together!",
+    "introBody": "Mai is happy to accompany you on your pet health journey.",
+    "introEnding": "Okie, now let's start creating your first beloved pet profile together.",
+    "go": "Go",
     "createPetProfile": "Create your pet's profile",
+    "profileGuideByMai": "Dear pet parent, please help Mai fill in your pet's details.",
     "niceWork": "Nice work!",
     "healthPromptBody": "{{petName}} is on your profile. Would you like to run a quick health check with photos now?",
     "checkHealthNow": "Check health now",

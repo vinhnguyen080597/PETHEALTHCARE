@@ -8,6 +8,7 @@ export type AppScreen =
   | 'analysis-progress'
   | 'results'
   | 'history'
+  | 'onboarding-intro'
   | 'onboarding-add-pet'
   | 'onboarding-health-prompt'
   | 'onboarding-health-check'

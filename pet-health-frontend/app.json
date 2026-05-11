@@ -32,7 +32,8 @@
     "plugins": [
       "expo-web-browser",
       "expo-apple-authentication",
-      "expo-localization"
+      "expo-localization",
+      "expo-asset"
     ]
   }
 }

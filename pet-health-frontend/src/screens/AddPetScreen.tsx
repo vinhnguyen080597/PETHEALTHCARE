@@ -1,7 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+
+import { MAI_GREETING } from '../assets/maiOnboardingAssets';
 
 type PetFormVariant = 'create' | 'edit';
 
@@ -32,6 +35,8 @@ type AddPetScreenProps = {
   headerTitle?: string;
   /** Overrides default submit label ("Add Pet" / "Update Pet"). */
   submitButtonLabel?: string;
+  /** Optional onboarding helper sentence shown under header. */
+  helperMessage?: string;
 };
 
 function FormSelect({
@@ -112,6 +117,7 @@ export function AddPetScreen({
   onDeletePet,
   headerTitle,
   submitButtonLabel,
+  helperMessage,
 }: AddPetScreenProps) {
   const { t } = useTranslation();
   const title = headerTitle ?? (variant === 'create' ? t('addPet.addNewPet') : t('addPet.editPet'));
@@ -157,6 +163,12 @@ export function AddPetScreen({
         </Text>
         <View className="h-10 w-10" />
       </View>
+      {helperMessage ? (
+        <View className="flex-row items-center gap-3 border-b border-gray-200 bg-[#F8FAFF] px-4 py-3">
+          <Image source={MAI_GREETING} className="h-16 w-16 shrink-0 rounded-2xl" contentFit="cover" cachePolicy="memory-disk" accessibilityLabel="Mai" />
+          <Text className="flex-1 text-sm font-medium leading-5 text-slate-700">{helperMessage}</Text>
+        </View>
+      ) : null}
 
       <ScrollView className="flex-1 px-6 py-6" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View className="mb-6 items-center">
@@ -168,7 +180,7 @@ export function AddPetScreen({
           >
             <View className="h-28 w-28 overflow-hidden rounded-full bg-blue-600 shadow-md">
               {hasAvatarUri ? (
-                <Image source={{ uri: petAvatarUrl.trim() }} className="h-full w-full" resizeMode="cover" />
+                <Image source={{ uri: petAvatarUrl.trim() }} className="h-full w-full" contentFit="cover" />
               ) : (
                 <View className="h-full w-full items-center justify-center">
                   <Ionicons name="paw" size={52} color="#ffffff" />

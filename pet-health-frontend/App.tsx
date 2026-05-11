@@ -13,6 +13,7 @@ import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { OnboardingIntroScreen } from './src/screens/OnboardingIntroScreen';
 import { OnboardingHealthPromptScreen } from './src/screens/OnboardingHealthPromptScreen';
 import { PetProfileScreen } from './src/screens/PetProfileScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
@@ -27,6 +28,7 @@ export default function App() {
     app.screen === 'edit-pet' ||
     app.screen === 'health-check' ||
     app.screen === 'analysis-progress' ||
+    app.screen === 'onboarding-intro' ||
     app.screen === 'onboarding-add-pet' ||
     app.screen === 'onboarding-health-prompt' ||
     app.screen === 'onboarding-health-check' ||
@@ -113,6 +115,7 @@ export default function App() {
                 variant="create"
                 headerTitle={t('onboarding.createPetProfile')}
                 submitButtonLabel={t('common.continue')}
+                helperMessage={t('onboarding.profileGuideByMai')}
                 petName={app.petName}
                 petSpecies={app.petSpecies}
                 petBreed={app.petBreed}
@@ -128,6 +131,10 @@ export default function App() {
                 onSubmit={app.handleOnboardingAddPet}
                 onCancel={app.cancelOnboardingAddPet}
               />
+            )}
+
+            {app.screen === 'onboarding-intro' && (
+              <OnboardingIntroScreen onGo={app.startInitialOnboardingFromIntro} />
             )}
 
             {app.screen === 'onboarding-health-prompt' && app.selectedPet ? (

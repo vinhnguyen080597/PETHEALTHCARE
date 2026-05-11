@@ -91,7 +91,14 @@
     "removePet": "Xóa thú cưng"
   },
   "onboarding": {
+    "introTitle": "Lời ngỏ",
+    "introBubbleWelcome": "Xin chào Sen! 👋 Chào mừng bạn đến với Catties Health Care – ngôi nhà chung nơi chúng mình cùng bạn yêu thương, quản lý và bảo vệ sức khỏe cho những em bé bốn chân của bạn. Hãy để chúng mình cùng đồng hành trên hành trình chăm sóc các bé thật tốt nhé!",
+    "introBubbleClosing": "Okie, giờ chúng ta hãy cùng bắt đầu tạo hồ sơ đầu tiên cho bé yêu nhé!",
+    "introBody": "Mai rất vui được đồng hành cùng Sen trong hành trình chăm sóc sức khoẻ cho bé yêu.",
+    "introEnding": "Okie, giờ chúng ta hãy cùng bắt đầu tạo hồ sơ đầu tiên cho bé yêu nhé",
+    "go": "Go",
     "createPetProfile": "Tạo hồ sơ thú cưng",
+    "profileGuideByMai": "Sen ơi, hãy giúp Mai điền các thông tin của bé nhé!",
     "niceWork": "Tuyệt vời!",
     "healthPromptBody": "{{petName}} đã có trong hồ sơ. Bạn có muốn làm kiểm tra sức khỏe nhanh bằng ảnh ngay không?",
     "checkHealthNow": "Kiểm tra ngay",
