@@ -15,6 +15,7 @@ type PetProfileScreenProps = {
   onEdit: () => void;
   onScanHealth: () => void;
   onSelectEntry: (entry: Analysis) => void;
+  onOpenBreedRecognition?: () => void;
 };
 
 function severityBadgeClass(severity: Severity) {
@@ -44,6 +45,7 @@ export function PetProfileScreen({
   onEdit,
   onScanHealth,
   onSelectEntry,
+  onOpenBreedRecognition,
 }: PetProfileScreenProps) {
   const { t, i18n } = useTranslation();
   const breed = pet.breed?.trim();
@@ -128,6 +130,15 @@ export function PetProfileScreen({
             <Ionicons name="camera" size={18} color="#ffffff" />
             <Text className="text-sm font-semibold text-white">{t('profile.scanHealth')}</Text>
           </Pressable>
+          {String(pet.species).toLowerCase().trim() === 'cat' && onOpenBreedRecognition ? (
+            <Pressable
+              className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-3 active:bg-slate-50"
+              onPress={onOpenBreedRecognition}
+            >
+              <Ionicons name="sparkles-outline" size={18} color={PRIMARY_BLUE} />
+              <Text className="text-sm font-semibold text-slate-800">{t('breedRecognition.profileLink')}</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <Text className="mb-3 mt-8 text-base font-bold text-slate-900">{t('profile.healthSection')}</Text>

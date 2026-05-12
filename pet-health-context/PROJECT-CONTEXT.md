@@ -120,7 +120,7 @@ flowchart TD
 Main modules under `src/`:
 
 - `app.js` — mounts routes + global error handler.
-- `routes/` — `healthRoutes`, `authRoutes`, `petRoutes` (includes `POST .../pets/upload-avatar`), `analysisRoutes`.
+- `routes/` — `healthRoutes`, `authRoutes`, `petRoutes` (includes `POST .../pets/upload-avatar`), `analysisRoutes`, `breedRecognitionRoutes` (`POST .../breed-recognition`).
 - `middleware/auth.js` — **Bearer token** required on protected routes: validates with `supabase.auth.getUser(token)` (anon key). Attaches `req.user.id`, `req.accessToken`.
 - `config/supabase.js` — `getSupabaseServiceClient()` (only if `SUPABASE_SERVICE_ROLE_KEY` JWT `role` is `service_role`), `createSupabaseWithUserAccessToken()`, `parseSupabaseKeyRole()`.
 - `services/aiDiagnosisService.js` — `analyzePetHealthImages()` (up to 6 images + prompt appendix), `validateVideoFile` (≤10 MB), `buildHealthContextAppendix()` from form fields.
@@ -137,6 +137,7 @@ Main modules under `src/`:
 | GET/POST | `/api/v1/pets` | Bearer. CRUD: `GET/PUT/DELETE /api/v1/pets/:petId`. |
 | POST | `/api/v1/pets/upload-avatar` | Bearer + multipart field **`image`** (before `/:petId` routes). |
 | POST | `/api/v1/analysis` | Bearer + multipart: **`image`** (required), **`photos`** (0–5 extras), optional **`video`** (≤10 MB); form fields: `petId`, `weightKg`, `vaccinated`, `vaccineType`, `neutered`, `medicalHistory`, `symptomDescription`. |
+| POST | `/api/v1/breed-recognition` | Bearer + multipart: **`petId`**, **`locale`** (optional); image fields (each max 1 file, ≤5 MB jpeg/png/webp): **`face`**, **`eyes`**, **`coat`** (required), **`pawPads`**, **`fullBodySun`**, **`parentPedigree`** (optional). **Cats only** (`pet.species === cat`). Returns preliminary breed JSON. |
 | GET | `/api/v1/analysis/:petId` | Bearer; history for that pet. |
 
 ### Detailed API contract

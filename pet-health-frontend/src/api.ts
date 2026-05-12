@@ -1,10 +1,12 @@
 import { Platform } from 'react-native';
 import { ADMIN_INTERNAL_API_KEY, API_BASE_URL, API_HEALTH_URL } from './config';
+import { CAT_BREED_SLOT_ORDER } from './constants/catBreedRecognitionSlots';
 import type {
   Analysis,
   AnalyzeResponse,
   AuthPayload,
   AuthResponse,
+  CatBreedRecognitionResult,
   CreatePetPayload,
   Pet,
   UpdatePetPayload,
@@ -249,6 +251,42 @@ export async function uploadPetAvatar(token: string, imageUri: string, mimeHint:
   }
 
   return body as { data: { avatarUrl: string } };
+}
+
+export async function requestCatBreedRecognition(
+  token: string,
+  params: { petId: string; slotUris: Record<string, string>; locale?: string },
+): Promise<{ data: CatBreedRecognitionResult }> {
+  const formData = new FormData();
+  formData.append('petId', params.petId);
+  if (params.locale?.trim()) {
+    formData.append('locale', params.locale.trim().slice(0, 16));
+  }
+  for (const slot of CAT_BREED_SLOT_ORDER) {
+    const uri = params.slotUris[slot]?.trim();
+    if (uri) {
+      await appendImageFileToFormData(formData, slot, uri, `breed-${slot}-${Date.now()}`, 'image/jpeg');
+    }
+  }
+
+  const response = await fetch(`${API_BASE_URL}/breed-recognition`, {
+    method: 'POST',
+    headers: mergeHeaders(authHeaders(token)),
+    body: formData,
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  const body = contentType.includes('application/json') ? await response.json() : null;
+
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'error' in body && typeof (body as { error: string }).error === 'string'
+        ? (body as { error: string }).error
+        : `Request failed (${response.status})`;
+    throw new Error(message);
+  }
+
+  return body as { data: CatBreedRecognitionResult };
 }
 
 export async function listHistoryByPet(

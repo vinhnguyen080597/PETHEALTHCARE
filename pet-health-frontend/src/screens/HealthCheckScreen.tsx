@@ -39,6 +39,8 @@ type HealthCheckScreenProps = {
   onDismissInlineError?: () => void;
   analysisCooldownSeconds?: number;
   analyzeDisabled?: boolean;
+  /** Opens cat breed hint flow (cats only). */
+  onOpenBreedRecognition?: () => void;
 };
 
 function speciesLabel(species: string, petFallback: string): string {
@@ -140,6 +142,7 @@ export function HealthCheckScreen({
   onDismissInlineError,
   analysisCooldownSeconds = 0,
   analyzeDisabled = false,
+  onOpenBreedRecognition,
 }: HealthCheckScreenProps) {
   const { t } = useTranslation();
   const { height: windowHeight } = useWindowDimensions();
@@ -202,6 +205,17 @@ export function HealthCheckScreen({
             {t('healthCheck.infoBanner')}
           </Text>
         </View>
+        {pet.species?.toLowerCase().trim() === 'cat' && onOpenBreedRecognition ? (
+          <Pressable
+            onPress={onOpenBreedRecognition}
+            className="mb-5 flex-row items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-3 active:bg-blue-50"
+            accessibilityRole="button"
+          >
+            <Ionicons name="sparkles-outline" size={20} color={PRIMARY} />
+            <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-800">{t('breedRecognition.healthCheckLink')}</Text>
+            <Ionicons name="chevron-forward" size={20} color="#64748b" />
+          </Pressable>
+        ) : null}
         {inlineErrorMessage ? (
           <View className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
             <View className="flex-row items-start gap-3">

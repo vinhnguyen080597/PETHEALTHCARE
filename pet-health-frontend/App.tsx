@@ -9,6 +9,7 @@ import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
 import { AddPetScreen } from './src/screens/AddPetScreen';
 import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
+import { CatBreedRecognitionScreen } from './src/screens/CatBreedRecognitionScreen';
 import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -33,7 +34,8 @@ export default function App() {
     app.screen === 'onboarding-health-prompt' ||
     app.screen === 'onboarding-health-check' ||
     app.screen === 'onboarding-results' ||
-    app.screen === 'pet-profile';
+    app.screen === 'pet-profile' ||
+    app.screen === 'cat-breed-recognition';
 
   return (
     <SafeAreaProvider>
@@ -79,6 +81,7 @@ export default function App() {
                 onEdit={() => app.openEditPet(app.selectedPet!.id, { returnToProfile: true })}
                 onScanHealth={() => app.goToCameraForPet(app.selectedPet!.id, { returnToProfile: true })}
                 onSelectEntry={(entry) => app.openHistoryDetail(entry, 'pet-profile')}
+                onOpenBreedRecognition={() => app.openBreedRecognition('pet-profile')}
               />
             ) : null}
 
@@ -174,6 +177,7 @@ export default function App() {
                 onDismissInlineError={() => app.setHealthCheckInlineError('')}
                 analysisCooldownSeconds={app.analysisCooldownSeconds}
                 analyzeDisabled={app.analysisSubmitting}
+                onOpenBreedRecognition={() => app.openBreedRecognition('health-check')}
               />
             ) : null}
 
@@ -206,6 +210,21 @@ export default function App() {
                 onDismissInlineError={() => app.setHealthCheckInlineError('')}
                 analysisCooldownSeconds={app.analysisCooldownSeconds}
                 analyzeDisabled={app.analysisSubmitting}
+                onOpenBreedRecognition={() => app.openBreedRecognition('onboarding-health-check')}
+              />
+            ) : null}
+
+            {app.screen === 'cat-breed-recognition' && app.selectedPet ? (
+              <CatBreedRecognitionScreen
+                pet={app.selectedPet}
+                slotUris={app.breedRecognitionSlotUris}
+                result={app.breedRecognitionResult}
+                loading={app.breedRecognitionLoading}
+                onBack={app.closeBreedRecognition}
+                onPickSlot={app.pickBreedRecognitionSlot}
+                onClearSlot={app.clearBreedRecognitionSlot}
+                onAnalyze={app.submitBreedRecognition}
+                onApplyToProfile={app.applyBreedRecognitionToProfile}
               />
             ) : null}
 

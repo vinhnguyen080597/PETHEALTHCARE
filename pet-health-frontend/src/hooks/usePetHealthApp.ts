@@ -14,6 +14,7 @@ import {
   healthCheck,
   listHistoryByPet,
   listPets,
+  requestCatBreedRecognition,
   translateAnalysesDisplay,
   login,
   oauthApple,
@@ -25,8 +26,9 @@ import {
 import { isGoogleOAuthConfigured } from '../config';
 import { preloadMaiOnboardingImages } from '../assets/maiOnboardingAssets';
 import { PENDING_INITIAL_ONBOARDING_KEY, TOKEN_STORAGE_KEY } from '../constants/auth';
+import type { CatBreedSlot } from '../constants/catBreedRecognitionSlots';
 import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
-import type { Analysis, Pet } from '../types';
+import type { Analysis, CatBreedRecognitionResult, Pet } from '../types';
 import type { AppScreen } from '../screens/types';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
@@ -111,6 +113,13 @@ export function usePetHealthApp() {
   const [analysisCooldownSeconds, setAnalysisCooldownSeconds] = useState(0);
   const [analysisSubmitting, setAnalysisSubmitting] = useState(false);
   const [appleSignInAvailable, setAppleSignInAvailable] = useState(false);
+
+  const [breedRecognitionSlotUris, setBreedRecognitionSlotUris] = useState<Record<string, string>>({});
+  const [breedRecognitionResult, setBreedRecognitionResult] = useState<CatBreedRecognitionResult | null>(null);
+  const [breedRecognitionLoading, setBreedRecognitionLoading] = useState(false);
+  const [breedRecognitionReturnScreen, setBreedRecognitionReturnScreen] = useState<
+    'health-check' | 'onboarding-health-check' | 'pet-profile' | null
+  >(null);
 
   const [googleAuthRequest, , promptGoogleAsync] = useGoogleIdTokenAuth();
 
@@ -948,7 +957,110 @@ export function usePetHealthApp() {
     setPetFormReturnToProfile(false);
     setHealthCheckReturnToProfile(false);
     setResultsReturnScreen(null);
+    setBreedRecognitionReturnScreen(null);
+    setBreedRecognitionSlotUris({});
+    setBreedRecognitionResult(null);
+    setBreedRecognitionLoading(false);
     setScreen('login');
+  }
+
+  function resetBreedRecognitionForm() {
+    setBreedRecognitionSlotUris({});
+    setBreedRecognitionResult(null);
+    setBreedRecognitionLoading(false);
+  }
+
+  function openBreedRecognition(from: 'health-check' | 'onboarding-health-check' | 'pet-profile') {
+    if (!token || !selectedPetId) {
+      Alert.alert(i18n.t('alerts.selectPet.title'), i18n.t('alerts.selectPet.message'));
+      return;
+    }
+    const pet = pets.find((p) => p.id === selectedPetId);
+    if (!pet || String(pet.species).toLowerCase().trim() !== 'cat') {
+      Alert.alert(i18n.t('breedRecognition.title'), i18n.t('breedRecognition.catOnlyAlertBody'));
+      return;
+    }
+    setBreedRecognitionReturnScreen(from);
+    resetBreedRecognitionForm();
+    setScreen('cat-breed-recognition');
+  }
+
+  function closeBreedRecognition() {
+    const back = breedRecognitionReturnScreen;
+    setBreedRecognitionReturnScreen(null);
+    resetBreedRecognitionForm();
+    if (back === 'health-check') setScreen('health-check');
+    else if (back === 'onboarding-health-check') setScreen('onboarding-health-check');
+    else if (back === 'pet-profile') setScreen('pet-profile');
+    else setScreen('home');
+  }
+
+  async function pickBreedRecognitionSlot(slot: CatBreedSlot) {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(i18n.t('alerts.permissionGallery.title'), i18n.t('alerts.permissionGallery.message'));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: false,
+      quality: 0.9,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    try {
+      const compressed = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 1600 } }],
+        { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      setBreedRecognitionSlotUris((prev) => ({ ...prev, [slot]: compressed.uri }));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.photosError.title'), i18n.t('alerts.photosError.message', { message }));
+    }
+  }
+
+  function clearBreedRecognitionSlot(slot: CatBreedSlot) {
+    setBreedRecognitionSlotUris((prev) => {
+      const next = { ...prev };
+      delete next[slot];
+      return next;
+    });
+  }
+
+  async function submitBreedRecognition() {
+    if (!token || !selectedPetId) return;
+    setBreedRecognitionLoading(true);
+    setBreedRecognitionResult(null);
+    try {
+      const res = await requestCatBreedRecognition(token, {
+        petId: selectedPetId,
+        slotUris: breedRecognitionSlotUris,
+        locale: i18n.language,
+      });
+      setBreedRecognitionResult(res.data);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('breedRecognition.title'), message);
+    } finally {
+      setBreedRecognitionLoading(false);
+    }
+  }
+
+  async function applyBreedRecognitionToProfile() {
+    if (!token || !selectedPetId || !breedRecognitionResult?.primary_hypothesis?.trim()) return;
+    setLoading(true);
+    try {
+      await updatePet(token, selectedPetId, { breed: breedRecognitionResult.primary_hypothesis.trim() });
+      await fetchPets(token);
+      Alert.alert(i18n.t('common.ok'), i18n.t('breedRecognition.applySuccess'));
+      closeBreedRecognition();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('breedRecognition.title'), message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function goToCameraForPet(petId: string, opts?: { returnToProfile?: boolean }) {
@@ -1051,6 +1163,15 @@ export function usePetHealthApp() {
     logout,
     goToCameraForPet,
     goHomeAndRefresh,
+    openBreedRecognition,
+    closeBreedRecognition,
+    breedRecognitionSlotUris,
+    breedRecognitionResult,
+    breedRecognitionLoading,
+    pickBreedRecognitionSlot,
+    clearBreedRecognitionSlot,
+    submitBreedRecognition,
+    applyBreedRecognitionToProfile,
     handleOnboardingAddPet,
     cancelOnboardingAddPet,
     startInitialOnboardingFromIntro,

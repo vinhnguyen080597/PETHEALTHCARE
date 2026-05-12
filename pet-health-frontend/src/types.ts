@@ -47,6 +47,17 @@ export type UpdatePetPayload = {
   avatarUrl?: string | null;
 };
 
+/** POST /breed-recognition — preliminary cat breed / phenotype guess. */
+export type CatBreedRecognitionResult = {
+  primary_hypothesis: string;
+  confidence: number;
+  alternatives: { label: string; confidence: number }[];
+  visible_clues: string[];
+  missing_for_better_id: string[];
+  notes_for_owner: string;
+  disclaimer: string;
+};
+
 /** Cached UI translations for analyses (e.g. English rows shown in Vietnamese). */
 export type AnalysisDisplayTranslations = {
   vi?: {
