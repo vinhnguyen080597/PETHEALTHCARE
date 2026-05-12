@@ -131,6 +131,45 @@
     "startAnalysis": "Bắt đầu phân tích",
     "photoRequiredError": "* Vui lòng tải ít nhất một ảnh",
     "enterVaccineType": "Nhập loại vắc-xin",
+    "vaccineTypeLabel": "Loại vaccine đã tiêm",
+    "vaccineSelectPlaceholder": "Chạm để chọn vaccine đã tiêm",
+    "vaccineModalTitle": "Chọn các loại vaccine",
+    "vaccineDone": "Xong",
+    "vaccineOtherPlaceholder": "Mô tả loại vaccine đã tiêm (nếu có)",
+    "vaccines": {
+      "dog_5in1_dhppl": {
+        "label": "Vaccine 5 bệnh (5-trong-1 / DHPPL)",
+        "detail": ""
+      },
+      "dog_7in1": {
+        "label": "Vaccine 7 bệnh (7-trong-1)",
+        "detail": ""
+      },
+      "dog_rabies": {
+        "label": "Vaccine Dại (Rabies)",
+        "detail": ""
+      },
+      "dog_bordetella": {
+        "label": "Vaccine Bordetella (nhóm bổ sung)",
+        "detail": ""
+      },
+      "cat_3in1_fvrcp": {
+        "label": "Vaccine 3-trong-1 (FVRCP)",
+        "detail": "Ngừa Giảm bạch cầu, Viêm mũi khí quản, Calicivirus."
+      },
+      "cat_4in1": {
+        "label": "Vaccine 4-trong-1",
+        "detail": "Bao gồm các bệnh 3-trong-1 và thêm Chlamydia (viêm mắt)."
+      },
+      "cat_rabies": {
+        "label": "Vaccine Dại (Rabies)",
+        "detail": "Bắt buộc tiêm cho mèo từ 12 tuần tuổi."
+      },
+      "cat_felv": {
+        "label": "Vaccine Bạch cầu phân dòng (FeLV)",
+        "detail": "Ngừa bệnh ung thư bạch cầu ở mèo (tùy chọn)."
+      }
+    },
     "cooldownHint": "Vui lòng đợi {{seconds}} giây trước khi phân tích lần tiếp theo.",
     "analysisBusyHint": "Hệ thống đang phân tích lượt hiện tại. Vui lòng chờ trong giây lát."
   },

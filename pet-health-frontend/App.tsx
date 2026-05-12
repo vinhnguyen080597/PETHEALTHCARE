@@ -152,7 +152,8 @@ export default function App() {
                 videoUri={app.healthCheckVideoUri}
                 weightKg={app.healthCheckWeightKg}
                 vaccinated={app.healthCheckVaccinated}
-                vaccineType={app.healthCheckVaccineType}
+                vaccineIds={app.healthCheckVaccineIds}
+                vaccineOther={app.healthCheckVaccineOther}
                 neutered={app.healthCheckNeutered}
                 medicalHistory={app.healthCheckMedicalHistory}
                 symptomDescription={app.healthCheckSymptoms}
@@ -163,7 +164,8 @@ export default function App() {
                 onClearVideo={app.clearHealthCheckVideo}
                 onChangeWeight={app.setHealthCheckWeightKg}
                 onChangeVaccinated={app.setHealthCheckVaccinated}
-                onChangeVaccineType={app.setHealthCheckVaccineType}
+                onChangeVaccineIds={app.setHealthCheckVaccineIds}
+                onChangeVaccineOther={app.setHealthCheckVaccineOther}
                 onChangeNeutered={app.setHealthCheckNeutered}
                 onChangeMedicalHistory={app.setHealthCheckMedicalHistory}
                 onChangeSymptomDescription={app.setHealthCheckSymptoms}
@@ -182,7 +184,8 @@ export default function App() {
                 videoUri={app.healthCheckVideoUri}
                 weightKg={app.healthCheckWeightKg}
                 vaccinated={app.healthCheckVaccinated}
-                vaccineType={app.healthCheckVaccineType}
+                vaccineIds={app.healthCheckVaccineIds}
+                vaccineOther={app.healthCheckVaccineOther}
                 neutered={app.healthCheckNeutered}
                 medicalHistory={app.healthCheckMedicalHistory}
                 symptomDescription={app.healthCheckSymptoms}
@@ -193,7 +196,8 @@ export default function App() {
                 onClearVideo={app.clearHealthCheckVideo}
                 onChangeWeight={app.setHealthCheckWeightKg}
                 onChangeVaccinated={app.setHealthCheckVaccinated}
-                onChangeVaccineType={app.setHealthCheckVaccineType}
+                onChangeVaccineIds={app.setHealthCheckVaccineIds}
+                onChangeVaccineOther={app.setHealthCheckVaccineOther}
                 onChangeNeutered={app.setHealthCheckNeutered}
                 onChangeMedicalHistory={app.setHealthCheckMedicalHistory}
                 onChangeSymptomDescription={app.setHealthCheckSymptoms}

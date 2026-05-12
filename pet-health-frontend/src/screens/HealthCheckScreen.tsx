@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import type { Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
@@ -15,7 +17,8 @@ type HealthCheckScreenProps = {
   videoUri: string | null;
   weightKg: string;
   vaccinated: YesNo;
-  vaccineType: string;
+  vaccineIds: string[];
+  vaccineOther: string;
   neutered: YesNo;
   medicalHistory: string;
   symptomDescription: string;
@@ -26,7 +29,8 @@ type HealthCheckScreenProps = {
   onClearVideo: () => void;
   onChangeWeight: (value: string) => void;
   onChangeVaccinated: (value: YesNo) => void;
-  onChangeVaccineType: (value: string) => void;
+  onChangeVaccineIds: (ids: string[]) => void;
+  onChangeVaccineOther: (value: string) => void;
   onChangeNeutered: (value: YesNo) => void;
   onChangeMedicalHistory: (value: string) => void;
   onChangeSymptomDescription: (value: string) => void;
@@ -72,6 +76,41 @@ function RadioRow({
   );
 }
 
+function VaccineCheckboxRow({
+  checked,
+  onToggle,
+  label,
+  detail,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  label: string;
+  detail: string;
+}) {
+  return (
+    <Pressable
+      onPress={onToggle}
+      className="flex-row items-start gap-3 border-b border-slate-100 py-3 active:bg-slate-50"
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+    >
+      <View
+        className="mt-0.5 h-6 w-6 items-center justify-center rounded-md border-2"
+        style={{
+          borderColor: checked ? PRIMARY : '#cbd5e1',
+          backgroundColor: checked ? `${PRIMARY}22` : 'transparent',
+        }}
+      >
+        {checked ? <Ionicons name="checkmark" size={16} color={PRIMARY} /> : null}
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-base font-medium text-slate-900">{label}</Text>
+        {detail.trim() ? <Text className="mt-1 text-sm leading-5 text-slate-600">{detail}</Text> : null}
+      </View>
+    </Pressable>
+  );
+}
+
 /** Health check intake — `figma/UI/HealthCheck1.png` + `HealthCheck2.png`. */
 export function HealthCheckScreen({
   pet,
@@ -79,7 +118,8 @@ export function HealthCheckScreen({
   videoUri,
   weightKg,
   vaccinated,
-  vaccineType,
+  vaccineIds,
+  vaccineOther,
   neutered,
   medicalHistory,
   symptomDescription,
@@ -90,7 +130,8 @@ export function HealthCheckScreen({
   onClearVideo,
   onChangeWeight,
   onChangeVaccinated,
-  onChangeVaccineType,
+  onChangeVaccineIds,
+  onChangeVaccineOther,
   onChangeNeutered,
   onChangeMedicalHistory,
   onChangeSymptomDescription,
@@ -101,6 +142,18 @@ export function HealthCheckScreen({
   analyzeDisabled = false,
 }: HealthCheckScreenProps) {
   const { t } = useTranslation();
+  const { height: windowHeight } = useWindowDimensions();
+  const [vaccineModalOpen, setVaccineModalOpen] = useState(false);
+
+  const vaccineOptionIds = useMemo(() => vaccineIdsForPetSpecies(pet.species), [pet.species]);
+
+  const vaccineSummary = useMemo(() => {
+    if (!vaccineOptionIds || vaccineIds.length === 0) return '';
+    return vaccineIds.map((id) => t(`healthCheck.vaccines.${id}.label`)).join(', ');
+  }, [vaccineOptionIds, vaccineIds, t]);
+
+  const modalScrollMaxHeight = Math.min(Math.round(windowHeight * 0.55), 440);
+
   const subtitle = [speciesLabel(pet.species, t('healthCheck.petFallback')), pet.breed?.trim() || null]
     .filter(Boolean)
     .join(' • ');
@@ -109,6 +162,11 @@ export function HealthCheckScreen({
     photoUris.length === 1
       ? t('healthCheck.photoCountOne', { count: photoUris.length })
       : t('healthCheck.photoCountMany', { count: photoUris.length });
+
+  function toggleVaccineId(id: string) {
+    const next = vaccineIds.includes(id) ? vaccineIds.filter((x) => x !== id) : [...vaccineIds, id];
+    onChangeVaccineIds(next);
+  }
 
   return (
     <View className="flex-1 bg-white">
@@ -213,10 +271,7 @@ export function HealthCheckScreen({
               </View>
             </View>
           ) : (
-            <Pressable
-              onPress={onPickVideo}
-              className="min-h-[88px] items-center justify-center active:bg-gray-50"
-            >
+            <Pressable onPress={onPickVideo} className="min-h-[88px] items-center justify-center active:bg-gray-50">
               <Ionicons name="videocam-outline" size={36} color="#64748b" />
               <Text className="mt-2 text-base font-semibold text-slate-800">{t('healthCheck.uploadVideo')}</Text>
             </Pressable>
@@ -239,13 +294,61 @@ export function HealthCheckScreen({
           <RadioRow label={t('common.no')} selected={vaccinated} value="no" onSelect={onChangeVaccinated} />
         </View>
         {vaccinated === 'yes' ? (
-          <TextInput
-            className="mb-6 rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder={t('healthCheck.enterVaccineType')}
-            placeholderTextColor="#9ca3af"
-            value={vaccineType}
-            onChangeText={onChangeVaccineType}
-          />
+          vaccineOptionIds ? (
+            <View className="mb-6">
+              <Text className="mb-2 text-sm font-semibold text-slate-700">{t('healthCheck.vaccineTypeLabel')}</Text>
+              <Pressable
+                onPress={() => setVaccineModalOpen(true)}
+                className="flex-row items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 active:bg-slate-50"
+                accessibilityRole="button"
+                accessibilityLabel={t('healthCheck.vaccineSelectPlaceholder')}
+              >
+                <Text
+                  className={`min-w-0 flex-1 text-base ${vaccineSummary ? 'text-slate-900' : 'text-slate-400'}`}
+                  numberOfLines={3}
+                >
+                  {vaccineSummary || t('healthCheck.vaccineSelectPlaceholder')}
+                </Text>
+                <Ionicons name="chevron-down" size={22} color="#64748b" />
+              </Pressable>
+              <Modal visible={vaccineModalOpen} animationType="slide" transparent onRequestClose={() => setVaccineModalOpen(false)}>
+                <View className="flex-1 justify-end bg-black/50">
+                  <Pressable className="flex-1" onPress={() => setVaccineModalOpen(false)} accessibilityLabel="Close" />
+                  <View className="rounded-t-2xl bg-white px-4 pb-5 pt-4">
+                    <Text className="mb-1 text-lg font-bold text-slate-900">{t('healthCheck.vaccineModalTitle')}</Text>
+                    <ScrollView style={{ maxHeight: modalScrollMaxHeight }} keyboardShouldPersistTaps="handled">
+                      {vaccineOptionIds.map((id) => (
+                        <VaccineCheckboxRow
+                          key={id}
+                          checked={vaccineIds.includes(id)}
+                          onToggle={() => toggleVaccineId(id)}
+                          label={t(`healthCheck.vaccines.${id}.label`)}
+                          detail={t(`healthCheck.vaccines.${id}.detail`)}
+                        />
+                      ))}
+                    </ScrollView>
+                    <Pressable
+                      className="mt-3 rounded-xl py-3.5 active:opacity-90"
+                      style={{ backgroundColor: PRIMARY }}
+                      onPress={() => setVaccineModalOpen(false)}
+                    >
+                      <Text className="text-center text-base font-bold text-white">{t('healthCheck.vaccineDone')}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </Modal>
+            </View>
+          ) : (
+            <TextInput
+              className="mb-6 min-h-[88px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
+              placeholder={t('healthCheck.vaccineOtherPlaceholder')}
+              placeholderTextColor="#9ca3af"
+              value={vaccineOther}
+              onChangeText={onChangeVaccineOther}
+              multiline
+              textAlignVertical="top"
+            />
+          )
         ) : (
           <View className="mb-6" />
         )}

@@ -30,6 +30,7 @@ import type { Analysis, Pet } from '../types';
 import type { AppScreen } from '../screens/types';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
+import { formatHealthCheckVaccineTypeForApi } from '../utils/formatHealthCheckVaccineType';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
@@ -77,8 +78,16 @@ export function usePetHealthApp() {
   const [healthCheckPhotos, setHealthCheckPhotos] = useState<string[]>([]);
   const [healthCheckVideoUri, setHealthCheckVideoUri] = useState<string | null>(null);
   const [healthCheckWeightKg, setHealthCheckWeightKg] = useState('');
-  const [healthCheckVaccinated, setHealthCheckVaccinated] = useState<'yes' | 'no'>('yes');
-  const [healthCheckVaccineType, setHealthCheckVaccineType] = useState('');
+  const [healthCheckVaccinated, _setHealthCheckVaccinated] = useState<'yes' | 'no'>('yes');
+  const [healthCheckVaccineIds, setHealthCheckVaccineIds] = useState<string[]>([]);
+  const [healthCheckVaccineOther, setHealthCheckVaccineOther] = useState('');
+  const setHealthCheckVaccinated = useCallback((v: 'yes' | 'no') => {
+    _setHealthCheckVaccinated(v);
+    if (v === 'no') {
+      setHealthCheckVaccineIds([]);
+      setHealthCheckVaccineOther('');
+    }
+  }, []);
   const [healthCheckNeutered, setHealthCheckNeutered] = useState<'yes' | 'no'>('no');
   const [healthCheckMedicalHistory, setHealthCheckMedicalHistory] = useState('');
   const [healthCheckSymptoms, setHealthCheckSymptoms] = useState('');
@@ -124,7 +133,8 @@ export function usePetHealthApp() {
     setHealthCheckVideoUri(null);
     setHealthCheckWeightKg('');
     setHealthCheckVaccinated('yes');
-    setHealthCheckVaccineType('');
+    setHealthCheckVaccineIds([]);
+    setHealthCheckVaccineOther('');
     setHealthCheckNeutered('no');
     setHealthCheckMedicalHistory('');
     setHealthCheckSymptoms('');
@@ -793,7 +803,9 @@ export function usePetHealthApp() {
         videoUri: healthCheckVideoUri,
         weightKg: healthCheckWeightKg.trim(),
         vaccinated: healthCheckVaccinated,
-        vaccineType: healthCheckVaccineType.trim(),
+        vaccineType: selectedPet
+          ? formatHealthCheckVaccineTypeForApi(selectedPet.species, healthCheckVaccineIds, healthCheckVaccineOther)
+          : '',
         neutered: healthCheckNeutered,
         medicalHistory: healthCheckMedicalHistory.trim(),
         symptomDescription: healthCheckSymptoms.trim(),
@@ -991,8 +1003,10 @@ export function usePetHealthApp() {
     setHealthCheckWeightKg,
     healthCheckVaccinated,
     setHealthCheckVaccinated,
-    healthCheckVaccineType,
-    setHealthCheckVaccineType,
+    healthCheckVaccineIds,
+    setHealthCheckVaccineIds,
+    healthCheckVaccineOther,
+    setHealthCheckVaccineOther,
     healthCheckNeutered,
     setHealthCheckNeutered,
     healthCheckMedicalHistory,
