@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,9 +11,13 @@ type LoginScreenProps = {
   backendHealth: BackendHealthStatus;
   email: string;
   password: string;
+  confirmPassword: string;
+  signUpOwnerName: string;
   isSignUp: boolean;
   onChangeEmail: (value: string) => void;
   onChangePassword: (value: string) => void;
+  onChangeConfirmPassword: (value: string) => void;
+  onChangeSignUpOwnerName: (value: string) => void;
   onToggleSignUp: () => void;
   onSubmit: () => void;
   onGoogleSignIn: () => void;
@@ -26,17 +31,31 @@ export function LoginScreen({
   backendHealth,
   email,
   password,
+  confirmPassword,
+  signUpOwnerName,
   isSignUp,
   onChangeEmail,
   onChangePassword,
+  onChangeConfirmPassword,
+  onChangeSignUpOwnerName,
   onToggleSignUp,
   onSubmit,
-  onGoogleSignIn,
-  onAppleSignIn,
-  appleSignInAvailable,
-  googleSignInReady,
+  onGoogleSignIn: _onGoogleSignIn,
+  onAppleSignIn: _onAppleSignIn,
+  appleSignInAvailable: _appleSignInAvailable,
+  googleSignInReady: _googleSignInReady,
 }: LoginScreenProps) {
   const { t } = useTranslation();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    if (!isSignUp) {
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+    }
+  }, [isSignUp]);
+
   const healthLooksBad = backendHealth === 'offline';
   const healthText =
     backendHealth === 'checking'
@@ -68,6 +87,20 @@ export function LoginScreen({
                 {isSignUp ? t('login.createAccount') : t('login.welcomeBack')}
               </Text>
 
+              {isSignUp ? (
+                <View className="mb-4">
+                  <Text className="mb-2 text-sm text-slate-700">{t('login.senName')}</Text>
+                  <TextInput
+                    className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
+                    placeholder={t('login.placeholderSenName')}
+                    placeholderTextColor="#9ca3af"
+                    autoCapitalize="words"
+                    value={signUpOwnerName}
+                    onChangeText={onChangeSignUpOwnerName}
+                  />
+                </View>
+              ) : null}
+
               <View className="mb-4">
                 <Text className="mb-2 text-sm text-slate-700">{t('login.email')}</Text>
                 <TextInput
@@ -81,17 +114,59 @@ export function LoginScreen({
                 />
               </View>
 
-              <View className="mb-6">
+              <View className={isSignUp ? 'mb-4' : 'mb-6'}>
                 <Text className="mb-2 text-sm text-slate-700">{t('login.password')}</Text>
-                <TextInput
-                  className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-                  placeholder={t('login.placeholderPassword')}
-                  placeholderTextColor="#9ca3af"
-                  secureTextEntry
-                  value={password}
-                  onChangeText={onChangePassword}
-                />
+                <View className="flex-row items-center rounded-xl border border-gray-300 bg-white">
+                  <TextInput
+                    className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
+                    placeholder={t('login.placeholderPassword')}
+                    placeholderTextColor="#9ca3af"
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={onChangePassword}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                    hitSlop={8}
+                    className="px-3 py-3"
+                    onPress={() => setShowPassword((v) => !v)}
+                  >
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#64748b" />
+                  </Pressable>
+                </View>
               </View>
+
+              {isSignUp ? (
+                <View className="mb-6">
+                  <Text className="mb-2 text-sm text-slate-700">{t('login.confirmPassword')}</Text>
+                  <View className="flex-row items-center rounded-xl border border-gray-300 bg-white">
+                    <TextInput
+                      className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
+                      placeholder={t('login.placeholderConfirmPassword')}
+                      placeholderTextColor="#9ca3af"
+                      secureTextEntry={!showConfirmPassword}
+                      value={confirmPassword}
+                      onChangeText={onChangeConfirmPassword}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showConfirmPassword ? t('login.hidePassword') : t('login.showPassword')
+                      }
+                      hitSlop={8}
+                      className="px-3 py-3"
+                      onPress={() => setShowConfirmPassword((v) => !v)}
+                    >
+                      <Ionicons
+                        name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={22}
+                        color="#64748b"
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+              ) : null}
 
               <Pressable className="mb-6 w-full rounded-xl bg-blue-600 py-3 active:bg-blue-700" onPress={onSubmit}>
                 <Text className="text-center text-base font-semibold text-white">

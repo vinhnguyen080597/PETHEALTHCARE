@@ -28,8 +28,14 @@
     "welcomeBack": "Welcome Back",
     "email": "Email",
     "password": "Password",
+    "senName": "Your name (Sen)",
+    "confirmPassword": "Confirm password",
     "placeholderEmail": "your@email.com",
     "placeholderPassword": "••••••••",
+    "placeholderConfirmPassword": "••••••••",
+    "placeholderSenName": "What should we call you?",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "signUp": "Sign Up",
     "signIn": "Sign In",
     "orContinueWith": "Or continue with",
@@ -269,6 +275,14 @@
     "missingEmailPassword": {
       "title": "Missing info",
       "message": "Please enter email and password."
+    },
+    "signUpMissingSenName": {
+      "title": "Missing name",
+      "message": "Please enter your Sen name."
+    },
+    "signUpPasswordMismatch": {
+      "title": "Passwords do not match",
+      "message": "Please make sure both password fields are the same."
     },
     "verifyEmail": {
       "title": "Verify email",
