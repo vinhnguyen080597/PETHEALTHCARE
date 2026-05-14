@@ -28,12 +28,10 @@
     "welcomeBack": "Chào mừng trở lại",
     "email": "Email",
     "password": "Mật khẩu",
-    "senName": "Tên Sen",
     "confirmPassword": "Xác nhận lại mật khẩu",
     "placeholderEmail": "email@cuaban.com",
     "placeholderPassword": "••••••••",
     "placeholderConfirmPassword": "••••••••",
-    "placeholderSenName": "Bạn muốn được gọi là gì?",
     "showPassword": "Hiện mật khẩu",
     "hidePassword": "Ẩn mật khẩu",
     "signUp": "Đăng ký",
@@ -98,11 +96,9 @@
   },
   "onboarding": {
     "introTitle": "Lời ngỏ",
-    "introBubbleWelcome": "Xin chào Sen! 👋 Chào mừng bạn đến với Catties Health Care – ngôi nhà chung nơi chúng mình cùng bạn yêu thương, quản lý và bảo vệ sức khỏe cho những em bé bốn chân của bạn. Hãy để chúng mình cùng đồng hành trên hành trình chăm sóc các bé thật tốt nhé!",
-    "introBubbleClosing": "Okie, giờ chúng ta hãy cùng bắt đầu tạo hồ sơ đầu tiên cho bé yêu nhé!",
-    "introBody": "Mai rất vui được đồng hành cùng Sen trong hành trình chăm sóc sức khoẻ cho bé yêu.",
-    "introEnding": "Okie, giờ chúng ta hãy cùng bắt đầu tạo hồ sơ đầu tiên cho bé yêu nhé",
-    "go": "Go",
+    "introBubbleWelcome": "Sen ơi! 👋 Chào mừng bạn đến với Catties Health Care – ngôi nhà chung nơi chúng mình cùng bạn yêu thương, quản lý và bảo vệ sức khỏe cho những người bạn nhỏ của bạn. Hãy để chúng mình cùng đồng hành trên hành trình chăm sóc các bé thật tốt nhé!",
+    "introBubbleClosing": "Ứng dụng có sử dụng trí tuệ nhân tạo (AI), nên các kết quả chỉ là gợi ý, không phải chẩn đoán chính xác.",
+    "go": "Khám phá ngay",
     "createPetProfile": "Tạo hồ sơ thú cưng",
     "profileGuideByMai": "Sen ơi, hãy giúp Mai điền các thông tin của bé nhé!",
     "niceWork": "Tuyệt vời!",
@@ -275,10 +271,6 @@
     "missingEmailPassword": {
       "title": "Thiếu thông tin",
       "message": "Vui lòng nhập email và mật khẩu."
-    },
-    "signUpMissingSenName": {
-      "title": "Thiếu tên",
-      "message": "Vui lòng nhập Tên Sen."
     },
     "signUpPasswordMismatch": {
       "title": "Mật khẩu không khớp",

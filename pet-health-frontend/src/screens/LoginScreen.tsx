@@ -12,12 +12,10 @@ type LoginScreenProps = {
   email: string;
   password: string;
   confirmPassword: string;
-  signUpOwnerName: string;
   isSignUp: boolean;
   onChangeEmail: (value: string) => void;
   onChangePassword: (value: string) => void;
   onChangeConfirmPassword: (value: string) => void;
-  onChangeSignUpOwnerName: (value: string) => void;
   onToggleSignUp: () => void;
   onSubmit: () => void;
   onGoogleSignIn: () => void;
@@ -32,12 +30,10 @@ export function LoginScreen({
   email,
   password,
   confirmPassword,
-  signUpOwnerName,
   isSignUp,
   onChangeEmail,
   onChangePassword,
   onChangeConfirmPassword,
-  onChangeSignUpOwnerName,
   onToggleSignUp,
   onSubmit,
   onGoogleSignIn: _onGoogleSignIn,
@@ -86,20 +82,6 @@ export function LoginScreen({
               <Text className="mb-6 text-center text-xl font-semibold text-slate-900">
                 {isSignUp ? t('login.createAccount') : t('login.welcomeBack')}
               </Text>
-
-              {isSignUp ? (
-                <View className="mb-4">
-                  <Text className="mb-2 text-sm text-slate-700">{t('login.senName')}</Text>
-                  <TextInput
-                    className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-                    placeholder={t('login.placeholderSenName')}
-                    placeholderTextColor="#9ca3af"
-                    autoCapitalize="words"
-                    value={signUpOwnerName}
-                    onChangeText={onChangeSignUpOwnerName}
-                  />
-                </View>
-              ) : null}
 
               <View className="mb-4">
                 <Text className="mb-2 text-sm text-slate-700">{t('login.email')}</Text>

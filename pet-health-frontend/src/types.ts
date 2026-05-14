@@ -6,11 +6,6 @@ export type AuthPayload = {
   password: string;
 };
 
-/** Email/password sign-up; `displayName` is stored as Supabase user metadata (`full_name`). */
-export type SignUpPayload = AuthPayload & {
-  displayName: string;
-};
-
 export type AuthResponse = {
   user: {
     id: string;

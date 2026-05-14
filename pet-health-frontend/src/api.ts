@@ -9,7 +9,6 @@ import type {
   BreedRecognitionResult,
   CreatePetPayload,
   Pet,
-  SignUpPayload,
   UpdatePetPayload,
 } from './types';
 
@@ -151,7 +150,7 @@ export async function healthCheck() {
   return res.json() as Promise<{ status: string; service?: string; timestamp?: string }>;
 }
 
-export async function signUp(payload: SignUpPayload) {
+export async function signUp(payload: AuthPayload) {
   return requestJson<{ data: AuthResponse }>('/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -46,12 +46,10 @@ export default function App() {
           email={app.email}
           password={app.password}
           confirmPassword={app.confirmPassword}
-          signUpOwnerName={app.signUpOwnerName}
           isSignUp={app.isSignUp}
           onChangeEmail={app.setEmail}
           onChangePassword={app.setPassword}
           onChangeConfirmPassword={app.setConfirmPassword}
-          onChangeSignUpOwnerName={app.setSignUpOwnerName}
           onToggleSignUp={app.toggleLoginSignUpMode}
           onSubmit={app.submitAuth}
           onGoogleSignIn={app.submitGoogleAuth}

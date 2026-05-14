@@ -61,7 +61,6 @@ export function usePetHealthApp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [signUpOwnerName, setSignUpOwnerName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   /** True during email sign-up first-run flow until user skips health or taps Finish on results. */
@@ -307,7 +306,6 @@ export function usePetHealthApp() {
     setIsSignUp((prev) => {
       if (prev) {
         setConfirmPassword('');
-        setSignUpOwnerName('');
       }
       return !prev;
     });
@@ -322,14 +320,6 @@ export function usePetHealthApp() {
       return;
     }
     if (isSignUp) {
-      const owner = signUpOwnerName.trim();
-      if (!owner) {
-        Alert.alert(
-          i18n.t('alerts.signUpMissingSenName.title'),
-          i18n.t('alerts.signUpMissingSenName.message'),
-        );
-        return;
-      }
       if (password !== confirmPassword) {
         Alert.alert(
           i18n.t('alerts.signUpPasswordMismatch.title'),
@@ -341,7 +331,7 @@ export function usePetHealthApp() {
     setLoading(true);
     try {
       if (isSignUp) {
-        const signUpRes = await signUp({ email, password, displayName: signUpOwnerName.trim() });
+        const signUpRes = await signUp({ email, password });
         const signUpToken = signUpRes.data.session?.access_token;
         if (!signUpToken) {
           Alert.alert(i18n.t('alerts.verifyEmail.title'), i18n.t('alerts.verifyEmail.message'));
@@ -1118,8 +1108,6 @@ export function usePetHealthApp() {
     setPassword,
     confirmPassword,
     setConfirmPassword,
-    signUpOwnerName,
-    setSignUpOwnerName,
     isSignUp,
     toggleLoginSignUpMode,
     token,

@@ -28,12 +28,10 @@
     "welcomeBack": "Welcome Back",
     "email": "Email",
     "password": "Password",
-    "senName": "Your name (Sen)",
     "confirmPassword": "Confirm password",
     "placeholderEmail": "your@email.com",
     "placeholderPassword": "••••••••",
     "placeholderConfirmPassword": "••••••••",
-    "placeholderSenName": "What should we call you?",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
     "signUp": "Sign Up",
@@ -98,11 +96,9 @@
   },
   "onboarding": {
     "introTitle": "Welcome",
-    "introBubbleWelcome": "Hello! 👋 Welcome to Catties Health Care — a shared home where we join you to love, manage, and protect the health of your four-legged family. Let’s walk this care journey together and help your pets thrive!",
-    "introBubbleClosing": "Okie — now let’s create your first pet profile together!",
-    "introBody": "Mai is happy to accompany you on your pet health journey.",
-    "introEnding": "Okie, now let's start creating your first beloved pet profile together.",
-    "go": "Go",
+    "introBubbleWelcome": "Hey there! 👋 Welcome to Catties Health Care — a shared home where we join you to love, manage, and protect the health of your little companions. Let’s walk this care journey together and help your pets thrive!",
+    "introBubbleClosing": "This app uses artificial intelligence (AI), so results are suggestions only and not a precise medical diagnosis.",
+    "go": "Explore now",
     "createPetProfile": "Create your pet's profile",
     "profileGuideByMai": "Dear pet parent, please help Mai fill in your pet's details.",
     "niceWork": "Nice work!",
@@ -275,10 +271,6 @@
     "missingEmailPassword": {
       "title": "Missing info",
       "message": "Please enter email and password."
-    },
-    "signUpMissingSenName": {
-      "title": "Missing name",
-      "message": "Please enter your Sen name."
     },
     "signUpPasswordMismatch": {
       "title": "Passwords do not match",
