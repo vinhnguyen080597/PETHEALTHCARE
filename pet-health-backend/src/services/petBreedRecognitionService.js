@@ -89,10 +89,35 @@ const SLOT_LABELS_EN = {
 };
 
 /**
+ * @param {'cat' | 'dog'} species
+ */
+function buildSpeciesTaskBlock(species) {
+  if (species === 'cat') {
+    return `
+You help with PRELIMINARY domestic cat breed / phenotype guessing from labeled owner photos (multi-angle intake similar to pedigree-style documentation).
+This is NOT pedigree certification, NOT registration, and NOT a medical diagnosis.
+
+Rules specific to cats:
+- Prefer honest uncertainty. If the cat may be domestic random-bred / "mèo ta" or mixed, say so positively and kindly.
+- Use point / color / pattern language only when supported by visible evidence (e.g. colourpoint "points" on ears/face/tail).
+`;
+  }
+  return `
+You help with PRELIMINARY domestic dog breed / phenotype guessing from labeled owner photos (multi-angle intake similar to breed documentation).
+This is NOT pedigree certification, NOT registration, and NOT a medical diagnosis.
+
+Rules specific to dogs:
+- Prefer honest uncertainty. If the dog may be a village / street mix, random-bred, or heavily mixed, say so positively and kindly.
+- Mention size estimate, ear set, muzzle shape, tail, and coat only when visible; do not invent lineage.
+`;
+}
+
+/**
  * @param {Array<{ slot: string, file: import('multer').File }>} orderedSlots
+ * @param {'cat' | 'dog'} species
  * @param {string} [outputLocale='en']
  */
-export async function analyzeCatBreedFromLabeledImages(orderedSlots, outputLocale = 'en') {
+export async function analyzePetBreedFromLabeledImages(orderedSlots, species, outputLocale = 'en') {
   if (!orderedSlots?.length) {
     const err = new Error('At least one image is required');
     err.status = 400;
@@ -108,15 +133,14 @@ export async function analyzeCatBreedFromLabeledImages(orderedSlots, outputLocal
     return `Image ${i + 1} — slot "${slot}": ${label}. MIME: ${file.mimetype}.`;
   });
 
+  const speciesBlock = buildSpeciesTaskBlock(species);
+
   const basePrompt = `
-You help with PRELIMINARY domestic cat breed / phenotype guessing from labeled owner photos (Vietnam Cat Association–style intake: multiple angles).
-This is NOT pedigree certification, NOT registration, and NOT a medical diagnosis.
+${speciesBlock}
 
 ${slotLines.join('\n')}
 
-Rules:
-- Prefer honest uncertainty. If the cat may be domestic random-bred / "mèo ta" or mixed, say so positively and kindly.
-- Use point / color / pattern language only when supported by visible evidence (e.g. colourpoint "points" on ears/face/tail).
+Shared rules:
 - Do not invent pedigree or registration claims.
 - If images are insufficient for a confident guess, lower confidence and list what additional views would help.
 

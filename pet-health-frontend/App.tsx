@@ -9,7 +9,7 @@ import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
 import { AddPetScreen } from './src/screens/AddPetScreen';
 import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
-import { CatBreedRecognitionScreen } from './src/screens/CatBreedRecognitionScreen';
+import { PetBreedRecognitionScreen } from './src/screens/PetBreedRecognitionScreen';
 import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -35,7 +35,7 @@ export default function App() {
     app.screen === 'onboarding-health-check' ||
     app.screen === 'onboarding-results' ||
     app.screen === 'pet-profile' ||
-    app.screen === 'cat-breed-recognition';
+    app.screen === 'breed-recognition';
 
   return (
     <SafeAreaProvider>
@@ -214,8 +214,8 @@ export default function App() {
               />
             ) : null}
 
-            {app.screen === 'cat-breed-recognition' && app.selectedPet ? (
-              <CatBreedRecognitionScreen
+            {app.screen === 'breed-recognition' && app.selectedPet ? (
+              <PetBreedRecognitionScreen
                 pet={app.selectedPet}
                 slotUris={app.breedRecognitionSlotUris}
                 result={app.breedRecognitionResult}

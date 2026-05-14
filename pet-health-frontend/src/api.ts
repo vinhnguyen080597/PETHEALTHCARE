@@ -1,12 +1,12 @@
 import { Platform } from 'react-native';
 import { ADMIN_INTERNAL_API_KEY, API_BASE_URL, API_HEALTH_URL } from './config';
-import { CAT_BREED_SLOT_ORDER } from './constants/catBreedRecognitionSlots';
+import { BREED_RECOGNITION_SLOT_ORDER } from './constants/petBreedRecognitionSlots';
 import type {
   Analysis,
   AnalyzeResponse,
   AuthPayload,
   AuthResponse,
-  CatBreedRecognitionResult,
+  BreedRecognitionResult,
   CreatePetPayload,
   Pet,
   UpdatePetPayload,
@@ -253,16 +253,16 @@ export async function uploadPetAvatar(token: string, imageUri: string, mimeHint:
   return body as { data: { avatarUrl: string } };
 }
 
-export async function requestCatBreedRecognition(
+export async function requestBreedRecognition(
   token: string,
   params: { petId: string; slotUris: Record<string, string>; locale?: string },
-): Promise<{ data: CatBreedRecognitionResult }> {
+): Promise<{ data: BreedRecognitionResult }> {
   const formData = new FormData();
   formData.append('petId', params.petId);
   if (params.locale?.trim()) {
     formData.append('locale', params.locale.trim().slice(0, 16));
   }
-  for (const slot of CAT_BREED_SLOT_ORDER) {
+  for (const slot of BREED_RECOGNITION_SLOT_ORDER) {
     const uri = params.slotUris[slot]?.trim();
     if (uri) {
       await appendImageFileToFormData(formData, slot, uri, `breed-${slot}-${Date.now()}`, 'image/jpeg');
@@ -286,7 +286,7 @@ export async function requestCatBreedRecognition(
     throw new Error(message);
   }
 
-  return body as { data: CatBreedRecognitionResult };
+  return body as { data: BreedRecognitionResult };
 }
 
 export async function listHistoryByPet(

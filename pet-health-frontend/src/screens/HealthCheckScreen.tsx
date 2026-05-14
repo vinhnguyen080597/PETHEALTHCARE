@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
+import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
 import type { Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
@@ -205,7 +206,7 @@ export function HealthCheckScreen({
             {t('healthCheck.infoBanner')}
           </Text>
         </View>
-        {pet.species?.toLowerCase().trim() === 'cat' && onOpenBreedRecognition ? (
+        {isBreedRecognitionSpecies(pet.species) && onOpenBreedRecognition ? (
           <Pressable
             onPress={onOpenBreedRecognition}
             className="mb-5 flex-row items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-3 active:bg-blue-50"

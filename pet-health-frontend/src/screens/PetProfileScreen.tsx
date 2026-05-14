@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
+import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
 import type { Analysis, Pet, Severity } from '../types';
 
 const PRIMARY_BLUE = '#1E6FE8';
@@ -130,7 +131,7 @@ export function PetProfileScreen({
             <Ionicons name="camera" size={18} color="#ffffff" />
             <Text className="text-sm font-semibold text-white">{t('profile.scanHealth')}</Text>
           </Pressable>
-          {String(pet.species).toLowerCase().trim() === 'cat' && onOpenBreedRecognition ? (
+          {isBreedRecognitionSpecies(pet.species) && onOpenBreedRecognition ? (
             <Pressable
               className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-3 active:bg-slate-50"
               onPress={onOpenBreedRecognition}

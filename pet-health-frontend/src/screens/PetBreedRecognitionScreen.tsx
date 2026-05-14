@@ -2,26 +2,30 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
-import { CAT_BREED_REQUIRED_SLOTS, CAT_BREED_SLOT_ORDER, type CatBreedSlot } from '../constants/catBreedRecognitionSlots';
-import type { CatBreedRecognitionResult, Pet } from '../types';
+import {
+  BREED_RECOGNITION_REQUIRED_SLOTS,
+  BREED_RECOGNITION_SLOT_ORDER,
+  type BreedRecognitionSlot,
+} from '../constants/petBreedRecognitionSlots';
+import type { BreedRecognitionResult, Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
 const INFO_BG = '#E8F1FE';
 const INFO_TEXT = '#1A56B8';
 
-type CatBreedRecognitionScreenProps = {
+type PetBreedRecognitionScreenProps = {
   pet: Pet;
   slotUris: Record<string, string>;
-  result: CatBreedRecognitionResult | null;
+  result: BreedRecognitionResult | null;
   loading: boolean;
   onBack: () => void;
-  onPickSlot: (slot: CatBreedSlot) => void;
-  onClearSlot: (slot: CatBreedSlot) => void;
+  onPickSlot: (slot: BreedRecognitionSlot) => void;
+  onClearSlot: (slot: BreedRecognitionSlot) => void;
   onAnalyze: () => void;
   onApplyToProfile: () => void;
 };
 
-export function CatBreedRecognitionScreen({
+export function PetBreedRecognitionScreen({
   pet,
   slotUris,
   result,
@@ -31,10 +35,10 @@ export function CatBreedRecognitionScreen({
   onClearSlot,
   onAnalyze,
   onApplyToProfile,
-}: CatBreedRecognitionScreenProps) {
+}: PetBreedRecognitionScreenProps) {
   const { t } = useTranslation();
 
-  const requiredOk = CAT_BREED_REQUIRED_SLOTS.every((s) => Boolean(slotUris[s]?.trim()));
+  const requiredOk = BREED_RECOGNITION_REQUIRED_SLOTS.every((s) => Boolean(slotUris[s]?.trim()));
   const canAnalyze = requiredOk && !loading;
 
   return (
@@ -55,7 +59,7 @@ export function CatBreedRecognitionScreen({
         contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
       >
         <Text className="mb-1 text-base font-semibold text-slate-900">{pet.name}</Text>
-        <Text className="mb-4 text-sm text-slate-500">{t('breedRecognition.subtitleCatOnly')}</Text>
+        <Text className="mb-4 text-sm text-slate-500">{t('breedRecognition.subtitle')}</Text>
 
         <View className="mb-4 rounded-xl px-4 py-3" style={{ backgroundColor: INFO_BG }}>
           <Text className="text-sm font-bold" style={{ color: INFO_TEXT }}>
@@ -78,8 +82,8 @@ export function CatBreedRecognitionScreen({
 
         <Text className="mb-3 text-base font-bold text-slate-900">{t('breedRecognition.photoSectionTitle')}</Text>
 
-        {CAT_BREED_SLOT_ORDER.map((slot) => {
-          const required = CAT_BREED_REQUIRED_SLOTS.includes(slot);
+        {BREED_RECOGNITION_SLOT_ORDER.map((slot) => {
+          const required = BREED_RECOGNITION_REQUIRED_SLOTS.includes(slot);
           const uri = slotUris[slot]?.trim();
           return (
             <View key={slot} className="mb-4">

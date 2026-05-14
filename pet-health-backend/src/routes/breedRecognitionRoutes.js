@@ -2,11 +2,12 @@ import { Router } from 'express';
 import multer from 'multer';
 import { requireUser } from '../middleware/auth.js';
 import { getPetByIdForUser } from '../repositories/petRepository.js';
-import { analyzeCatBreedFromLabeledImages } from '../services/catBreedRecognitionService.js';
+import { analyzePetBreedFromLabeledImages } from '../services/petBreedRecognitionService.js';
 import { validateImageFile } from '../services/aiDiagnosisService.js';
 
 const SLOT_ORDER = ['face', 'eyes', 'pawPads', 'coat', 'fullBodySun', 'parentPedigree'];
 const REQUIRED_SLOTS = ['face', 'eyes', 'coat'];
+const SUPPORTED_SPECIES = new Set(['cat', 'dog']);
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -30,10 +31,13 @@ router.post(
       if (!pet) {
         return res.status(404).json({ error: 'Pet not found', code: 'PET_NOT_FOUND' });
       }
-      if (String(pet.species || '').toLowerCase() !== 'cat') {
+      const speciesNorm = String(pet.species || '')
+        .toLowerCase()
+        .trim();
+      if (!SUPPORTED_SPECIES.has(speciesNorm)) {
         return res.status(400).json({
-          error: 'Breed recognition is only available for cats',
-          code: 'SPECIES_NOT_CAT',
+          error: 'Breed recognition is only available for cats and dogs',
+          code: 'SPECIES_NOT_SUPPORTED',
         });
       }
 
@@ -59,7 +63,7 @@ router.post(
       }
 
       const locale = typeof req.body?.locale === 'string' ? req.body.locale : 'en';
-      const data = await analyzeCatBreedFromLabeledImages(ordered, locale);
+      const data = await analyzePetBreedFromLabeledImages(ordered, speciesNorm, locale);
       return res.json({ data });
     } catch (err) {
       return next(err);

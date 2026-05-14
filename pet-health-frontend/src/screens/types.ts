@@ -13,4 +13,4 @@ export type AppScreen =
   | 'onboarding-health-prompt'
   | 'onboarding-health-check'
   | 'onboarding-results'
-  | 'cat-breed-recognition';
+  | 'breed-recognition';

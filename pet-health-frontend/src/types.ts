@@ -47,8 +47,8 @@ export type UpdatePetPayload = {
   avatarUrl?: string | null;
 };
 
-/** POST /breed-recognition — preliminary cat breed / phenotype guess. */
-export type CatBreedRecognitionResult = {
+/** POST /breed-recognition — preliminary breed / phenotype guess (supported species: cat, dog). */
+export type BreedRecognitionResult = {
   primary_hypothesis: string;
   confidence: number;
   alternatives: { label: string; confidence: number }[];
