@@ -25,6 +25,7 @@ import {
 } from '../api';
 import { isGoogleOAuthConfigured } from '../config';
 import { preloadMaiOnboardingImages } from '../assets/maiOnboardingAssets';
+import { preloadServicesOnboardingImages } from '../assets/servicesOnboardingAssets';
 import { PENDING_INITIAL_ONBOARDING_KEY, TOKEN_STORAGE_KEY } from '../constants/auth';
 import { isBreedRecognitionSpecies, type BreedRecognitionSlot } from '../constants/petBreedRecognitionSlots';
 import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
@@ -119,7 +120,7 @@ export function usePetHealthApp() {
   const [breedRecognitionResult, setBreedRecognitionResult] = useState<BreedRecognitionResult | null>(null);
   const [breedRecognitionLoading, setBreedRecognitionLoading] = useState(false);
   const [breedRecognitionReturnScreen, setBreedRecognitionReturnScreen] = useState<
-    'health-check' | 'onboarding-health-check' | 'pet-profile' | null
+    'health-check' | 'onboarding-health-check' | 'onboarding-health-prompt' | 'pet-profile' | null
   >(null);
 
   const [googleAuthRequest, , promptGoogleAsync] = useGoogleIdTokenAuth();
@@ -503,6 +504,11 @@ export function usePetHealthApp() {
       clearPetForm();
       await fetchPets(token);
       setSelectedPetId(created.id);
+      try {
+        await preloadServicesOnboardingImages();
+      } catch {
+        /* show screen even if preload fails */
+      }
       setScreen('onboarding-health-prompt');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -519,7 +525,7 @@ export function usePetHealthApp() {
       return;
     }
     setSelectedPetId((prev) => prev ?? pets[0]?.id ?? null);
-    setScreen('onboarding-health-prompt');
+    void preloadServicesOnboardingImages().finally(() => setScreen('onboarding-health-prompt'));
   }
 
   function cancelOnboardingAddPet() {
@@ -989,7 +995,9 @@ export function usePetHealthApp() {
     setBreedRecognitionLoading(false);
   }
 
-  function openBreedRecognition(from: 'health-check' | 'onboarding-health-check' | 'pet-profile') {
+  function openBreedRecognition(
+    from: 'health-check' | 'onboarding-health-check' | 'onboarding-health-prompt' | 'pet-profile',
+  ) {
     if (!token || !selectedPetId) {
       Alert.alert(i18n.t('alerts.selectPet.title'), i18n.t('alerts.selectPet.message'));
       return;
@@ -1010,6 +1018,7 @@ export function usePetHealthApp() {
     resetBreedRecognitionForm();
     if (back === 'health-check') setScreen('health-check');
     else if (back === 'onboarding-health-check') setScreen('onboarding-health-check');
+    else if (back === 'onboarding-health-prompt') setScreen('onboarding-health-prompt');
     else if (back === 'pet-profile') setScreen('pet-profile');
     else setScreen('home');
   }

@@ -1,0 +1,12 @@
+{
+  "extends": "./pet-health-frontend/node_modules/expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true
+  },
+  "include": [
+    "pet-health-frontend/**/*.ts",
+    "pet-health-frontend/**/*.tsx",
+    "pet-health-frontend/**/*.d.ts"
+  ],
+  "exclude": ["pet-health-frontend/node_modules", "pet-health-frontend/test"]
+}

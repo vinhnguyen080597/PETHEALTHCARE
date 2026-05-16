@@ -101,11 +101,18 @@
     "go": "Khám phá ngay",
     "createPetProfile": "Tạo hồ sơ thú cưng",
     "profileGuideByMai": "Sen ơi, hãy giúp Mai điền các thông tin của bé nhé!",
-    "niceWork": "Tuyệt vời!",
-    "healthPromptBody": "{{petName}} đã có trong hồ sơ. Bạn có muốn làm kiểm tra sức khỏe nhanh bằng ảnh ngay không?",
-    "checkHealthNow": "Kiểm tra ngay",
-    "maybeLater": "Để sau",
-    "healthPromptFooter": "Bạn luôn có thể bắt đầu quét từ màn hình chính dưới tên thú cưng."
+    "servicesWelcomeTitle": "Chào mừng Sen đến với hệ sinh thái Catties! 👋",
+    "servicesWelcomeBody": "Catties được phát triển hoàn toàn vì cộng đồng yêu thú cưng. 🐾 Vì ứng dụng vẫn đang hoàn thiện mỗi ngày, nếu có gì sai sót, Sen ơi lượng thứ và hãy góp ý để tụi mình nâng cấp tốt hơn nhé!",
+    "serviceBreedTitle": "Nhận dạng giống loài AI",
+    "serviceBreedDesc": "AI phân tích ảnh, nhận dạng chính xác hàng trăm giống chó, mèo và màu lông.",
+    "serviceBreedCta": "Khám phá ngay",
+    "serviceHealthTitle": "Kiểm tra sức khoẻ AI",
+    "serviceHealthDesc": "Nhận diện sớm các dấu hiệu sức khỏe qua ảnh, cảnh báo vấn đề sơ bộ.",
+    "serviceHealthCta": "Kiểm tra ngay",
+    "serviceVaccineTitle": "Số tiêm & Lịch nhắc",
+    "serviceVaccineDesc": "Quản lý sổ tiêm chủng điện tử, nhắc lịch tiêm định kỳ thông minh.",
+    "serviceVaccineCta": "Quản lý",
+    "maybeLater": "Để sau"
   },
   "healthCheck": {
     "title": "Kiểm tra sức khỏe — {{name}}",

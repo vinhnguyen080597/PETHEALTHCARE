@@ -101,11 +101,18 @@
     "go": "Explore now",
     "createPetProfile": "Create your pet's profile",
     "profileGuideByMai": "Dear pet parent, please help Mai fill in your pet's details.",
-    "niceWork": "Nice work!",
-    "healthPromptBody": "{{petName}} is on your profile. Would you like to run a quick health check with photos now?",
-    "checkHealthNow": "Check health now",
-    "maybeLater": "Maybe later",
-    "healthPromptFooter": "You can always start a scan from the home screen under your pet."
+    "servicesWelcomeTitle": "Welcome to the Catties ecosystem! 👋",
+    "servicesWelcomeBody": "Catties is built entirely for the pet-loving community. 🐾 As we improve the app every day, please forgive any mistakes and share your feedback so we can make it better!",
+    "serviceBreedTitle": "AI breed recognition",
+    "serviceBreedDesc": "AI analyzes photos to suggest breeds and coat patterns for hundreds of dog and cat types.",
+    "serviceBreedCta": "Explore now",
+    "serviceHealthTitle": "AI health check",
+    "serviceHealthDesc": "Spot early health signs from photos with preliminary AI-assisted triage.",
+    "serviceHealthCta": "Check now",
+    "serviceVaccineTitle": "Vaccines & reminders",
+    "serviceVaccineDesc": "Track vaccination records digitally and get smart schedule reminders.",
+    "serviceVaccineCta": "Manage",
+    "maybeLater": "Maybe later"
   },
   "healthCheck": {
     "title": "Health Check for {{name}}",
