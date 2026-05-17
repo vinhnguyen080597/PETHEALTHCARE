@@ -454,36 +454,17 @@ export function usePetHealthApp() {
     }
   }
 
-  async function handleAddPet() {
-    if (!token) return;
-    if (!petName.trim() || !petSpecies.trim()) {
-      Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
-      return;
-    }
-
-    setLoading(true);
+  async function showServicesPromptForNewPet(petId: string) {
+    setSelectedPetId(petId);
     try {
-      const avatarForApi = avatarUrlForApi(petAvatarUrl);
-      await createPet(token, {
-        name: petName.trim(),
-        species: petSpecies.trim().toLowerCase(),
-        breed: petBreed.trim() || undefined,
-        age: petAge ? Number(petAge) : undefined,
-        gender: petGender,
-        ...(avatarForApi !== undefined ? { avatarUrl: avatarForApi } : {}),
-      });
-      clearPetForm();
-      await fetchPets(token);
-      setScreen('home');
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      Alert.alert(i18n.t('alerts.createPetFailed.title'), i18n.t('alerts.createPetFailed.message', { message }));
-    } finally {
-      setLoading(false);
+      await preloadServicesOnboardingImages();
+    } catch {
+      /* show screen even if preload fails */
     }
+    setScreen('onboarding-health-prompt');
   }
 
-  async function handleOnboardingAddPet() {
+  async function handleAddPet() {
     if (!token) return;
     if (!petName.trim() || !petSpecies.trim()) {
       Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
@@ -503,19 +484,18 @@ export function usePetHealthApp() {
       });
       clearPetForm();
       await fetchPets(token);
-      setSelectedPetId(created.id);
-      try {
-        await preloadServicesOnboardingImages();
-      } catch {
-        /* show screen even if preload fails */
-      }
-      setScreen('onboarding-health-prompt');
+      await showServicesPromptForNewPet(created.id);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('alerts.createPetFailed.title'), i18n.t('alerts.createPetFailed.message', { message }));
     } finally {
       setLoading(false);
     }
+  }
+
+  /** Same flow as handleAddPet — used from first-run onboarding pet form. */
+  async function handleOnboardingAddPet() {
+    await handleAddPet();
   }
 
   function startInitialOnboardingFromIntro() {
@@ -543,17 +523,29 @@ export function usePetHealthApp() {
     await logout();
   }
 
-  function goToOnboardingHealthCheckFromPrompt() {
+  function goToHealthCheckFromServicesPrompt() {
     if (!selectedPetId) return;
     clearHealthCheckForm();
-    setScreen('onboarding-health-check');
+    setScreen(initialOnboarding ? 'onboarding-health-check' : 'health-check');
   }
 
-  async function skipInitialHealthOnboarding() {
-    await completeInitialOnboarding();
+  /** @deprecated Use goToHealthCheckFromServicesPrompt */
+  function goToOnboardingHealthCheckFromPrompt() {
+    goToHealthCheckFromServicesPrompt();
+  }
+
+  async function dismissServicesPrompt() {
+    if (initialOnboarding) {
+      await completeInitialOnboarding();
+    }
     clearHealthCheckForm();
     setScreen('home');
     if (token) void fetchPets(token);
+  }
+
+  /** @deprecated Use dismissServicesPrompt */
+  async function skipInitialHealthOnboarding() {
+    await dismissServicesPrompt();
   }
 
   async function finishInitialOnboardingAfterResults() {
@@ -1205,6 +1197,8 @@ export function usePetHealthApp() {
     handleOnboardingAddPet,
     cancelOnboardingAddPet,
     startInitialOnboardingFromIntro,
+    goToHealthCheckFromServicesPrompt,
+    dismissServicesPrompt,
     goToOnboardingHealthCheckFromPrompt,
     skipInitialHealthOnboarding,
     finishInitialOnboardingAfterResults,

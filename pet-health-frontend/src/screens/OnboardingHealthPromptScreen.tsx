@@ -114,7 +114,7 @@ function ServiceCard({
   );
 }
 
-/** After first pet is created — showcase Catties services before home. */
+/** Shown after each new pet is added — showcase Catties services before home. */
 export function OnboardingHealthPromptScreen({
   onExploreBreed,
   onCheckHealth,

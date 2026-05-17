@@ -145,9 +145,9 @@ export default function App() {
             {app.screen === 'onboarding-health-prompt' && app.selectedPet ? (
               <OnboardingHealthPromptScreen
                 onExploreBreed={() => app.openBreedRecognition('onboarding-health-prompt')}
-                onCheckHealth={app.goToOnboardingHealthCheckFromPrompt}
-                onManageVaccines={app.goToOnboardingHealthCheckFromPrompt}
-                onSkip={app.skipInitialHealthOnboarding}
+                onCheckHealth={app.goToHealthCheckFromServicesPrompt}
+                onManageVaccines={app.goToHealthCheckFromServicesPrompt}
+                onSkip={app.dismissServicesPrompt}
               />
             ) : null}
 
