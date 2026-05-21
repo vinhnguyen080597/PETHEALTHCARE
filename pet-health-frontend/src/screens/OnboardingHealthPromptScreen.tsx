@@ -159,7 +159,7 @@ export function OnboardingHealthPromptScreen({
   );
 
   return (
-    <View className="flex-1 bg-slate-100">
+    <View testID="onboarding-health-prompt-screen" className="flex-1 bg-slate-100">
       <Image
         source={SERVICES_BACKGROUND}
         style={StyleSheet.absoluteFillObject}
@@ -270,6 +270,7 @@ export function OnboardingHealthPromptScreen({
         style={{ paddingBottom: Math.max(insets.bottom, 14) }}
       >
         <Pressable
+          testID="onboarding-health-prompt-skip-button"
           className="rounded-xl border-2 bg-white py-3.5 active:bg-slate-50"
           style={{ borderColor: TEAL }}
           onPress={onSkip}
