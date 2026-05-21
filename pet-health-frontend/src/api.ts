@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { ADMIN_INTERNAL_API_KEY, API_BASE_URL, API_HEALTH_URL } from './config';
+import { API_BASE_URL, API_HEALTH_URL } from './config';
 import { BREED_RECOGNITION_SLOT_ORDER } from './constants/petBreedRecognitionSlots';
 import type {
   Analysis,
@@ -29,10 +29,6 @@ function tunnelHeaders(): Record<string, string> {
   }
   if (/ngrok-free\.(app|dev)|\.ngrok\.io|\.ngrok\.app/i.test(API_BASE_URL)) {
     h['ngrok-skip-browser-warning'] = 'true';
-  }
-  const adminSecret = ADMIN_INTERNAL_API_KEY.trim();
-  if (adminSecret) {
-    h['x-admin-secret'] = adminSecret;
   }
   return h;
 }
