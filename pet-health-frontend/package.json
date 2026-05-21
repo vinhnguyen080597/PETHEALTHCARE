@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "node --test --experimental-strip-types \"test/**/*.test.ts\"",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=chromium --debug",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
