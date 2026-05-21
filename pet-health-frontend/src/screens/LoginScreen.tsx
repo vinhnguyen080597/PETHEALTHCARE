@@ -86,6 +86,8 @@ export function LoginScreen({
               <View className="mb-4">
                 <Text className="mb-2 text-sm text-slate-700">{t('login.email')}</Text>
                 <TextInput
+                  testID="login-email-input"
+                  accessibilityLabel="Email"
                   className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
                   placeholder={t('login.placeholderEmail')}
                   placeholderTextColor="#9ca3af"
@@ -100,6 +102,8 @@ export function LoginScreen({
                 <Text className="mb-2 text-sm text-slate-700">{t('login.password')}</Text>
                 <View className="flex-row items-center rounded-xl border border-gray-300 bg-white">
                   <TextInput
+                    testID="login-password-input"
+                    accessibilityLabel="Password"
                     className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
                     placeholder={t('login.placeholderPassword')}
                     placeholderTextColor="#9ca3af"
@@ -108,6 +112,7 @@ export function LoginScreen({
                     onChangeText={onChangePassword}
                   />
                   <Pressable
+                    testID="login-toggle-password-visibility-button"
                     accessibilityRole="button"
                     accessibilityLabel={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                     hitSlop={8}
@@ -124,6 +129,8 @@ export function LoginScreen({
                   <Text className="mb-2 text-sm text-slate-700">{t('login.confirmPassword')}</Text>
                   <View className="flex-row items-center rounded-xl border border-gray-300 bg-white">
                     <TextInput
+                      testID="login-confirm-password-input"
+                      accessibilityLabel="Confirm password"
                       className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
                       placeholder={t('login.placeholderConfirmPassword')}
                       placeholderTextColor="#9ca3af"
@@ -132,6 +139,7 @@ export function LoginScreen({
                       onChangeText={onChangeConfirmPassword}
                     />
                     <Pressable
+                      testID="login-toggle-confirm-password-visibility-button"
                       accessibilityRole="button"
                       accessibilityLabel={
                         showConfirmPassword ? t('login.hidePassword') : t('login.showPassword')
@@ -150,7 +158,13 @@ export function LoginScreen({
                 </View>
               ) : null}
 
-              <Pressable className="mb-6 w-full rounded-xl bg-blue-600 py-3 active:bg-blue-700" onPress={onSubmit}>
+              <Pressable
+                testID={isSignUp ? 'signup-submit-button' : 'login-submit-button'}
+                accessibilityRole="button"
+                accessibilityLabel={isSignUp ? 'Sign up' : 'Sign in'}
+                className="mb-6 w-full rounded-xl bg-blue-600 py-3 active:bg-blue-700"
+                onPress={onSubmit}
+              >
                 <Text className="text-center text-base font-semibold text-white">
                   {isSignUp ? t('login.signUp') : t('login.signIn')}
                 </Text>
@@ -184,7 +198,13 @@ export function LoginScreen({
               </View>
               */}
 
-              <Pressable className="mt-6" onPress={onToggleSignUp}>
+              <Pressable
+                testID={isSignUp ? 'login-mode-button' : 'signup-mode-button'}
+                accessibilityRole="button"
+                accessibilityLabel={isSignUp ? 'Switch to sign in' : 'Switch to sign up'}
+                className="mt-6"
+                onPress={onToggleSignUp}
+              >
                 <Text className="text-center text-sm text-blue-600">
                   {isSignUp ? t('login.toggleToSignIn') : t('login.toggleToSignUp')}
                 </Text>

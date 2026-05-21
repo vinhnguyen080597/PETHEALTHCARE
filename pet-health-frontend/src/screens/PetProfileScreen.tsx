@@ -66,16 +66,28 @@ export function PetProfileScreen({
       : t('profile.dashGender');
 
   return (
-    <View className="flex-1 bg-[#F2F4F8]">
+    <View testID="pet-profile-screen" className="flex-1 bg-[#F2F4F8]">
       <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
         <View className="w-14">
-          <Pressable className="rounded-lg p-2 active:bg-gray-100" onPress={onBack}>
+          <Pressable
+            testID="pet-profile-back-button"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            className="rounded-lg p-2 active:bg-gray-100"
+            onPress={onBack}
+          >
             <Ionicons name="arrow-back" size={24} color="#1e293b" />
           </Pressable>
         </View>
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('profile.title')}</Text>
         <View className="w-14 items-end">
-          <Pressable className="rounded-lg px-2 py-2 active:bg-gray-100" onPress={onEdit}>
+          <Pressable
+            testID="pet-profile-edit-button"
+            accessibilityRole="button"
+            accessibilityLabel="Edit pet"
+            className="rounded-lg px-2 py-2 active:bg-gray-100"
+            onPress={onEdit}
+          >
             <Text className="text-sm font-semibold" style={{ color: PRIMARY_BLUE }}>
               {t('profile.edit')}
             </Text>
@@ -128,6 +140,9 @@ export function PetProfileScreen({
           </View>
 
           <Pressable
+            testID="pet-profile-scan-health-button"
+            accessibilityRole="button"
+            accessibilityLabel={`Scan health for ${pet.name}`}
             className="mt-6 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
             style={{ backgroundColor: PRIMARY_BLUE }}
             onPress={onScanHealth}
@@ -137,6 +152,9 @@ export function PetProfileScreen({
           </Pressable>
           {isBreedRecognitionSpecies(pet.species) && onOpenBreedRecognition ? (
             <Pressable
+              testID="pet-profile-breed-recognition-button"
+              accessibilityRole="button"
+              accessibilityLabel={`Open breed recognition for ${pet.name}`}
               className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-3 active:bg-slate-50"
               onPress={onOpenBreedRecognition}
             >
@@ -146,6 +164,9 @@ export function PetProfileScreen({
           ) : null}
           {onOpenCoreCare ? (
             <Pressable
+              testID="pet-profile-core-care-button"
+              accessibilityRole="button"
+              accessibilityLabel={`Open care records for ${pet.name}`}
               className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"
               onPress={onOpenCoreCare}
             >
@@ -184,6 +205,9 @@ export function PetProfileScreen({
           <View className="gap-3">
             {history.map((item) => (
               <Pressable
+                testID={`pet-profile-history-entry-${item.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Open health scan ${item.diagnosis}`}
                 key={item.id}
                 className="flex-row gap-3 rounded-xl border border-gray-200 bg-white p-4 active:bg-gray-50"
                 onPress={() => onSelectEntry(item)}

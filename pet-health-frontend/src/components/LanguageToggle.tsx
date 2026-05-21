@@ -12,6 +12,9 @@ export function LanguageToggle() {
   return (
     <View className="mb-4 flex-row justify-center gap-2">
       <Pressable
+        testID="language-english-button"
+        accessibilityRole="button"
+        accessibilityLabel="Switch language to English"
         className="rounded-full border px-4 py-2 active:opacity-90"
         style={{
           borderColor: isVi ? INACTIVE : ACTIVE,
@@ -24,6 +27,9 @@ export function LanguageToggle() {
         </Text>
       </Pressable>
       <Pressable
+        testID="language-vietnamese-button"
+        accessibilityRole="button"
+        accessibilityLabel="Switch language to Vietnamese"
         className="rounded-full border px-4 py-2 active:opacity-90"
         style={{
           borderColor: isVi ? ACTIVE : INACTIVE,

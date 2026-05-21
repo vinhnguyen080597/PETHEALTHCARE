@@ -41,10 +41,16 @@ export function ResultsScreen({
   const nextActionAdd = result.next_action?.ask_user_to_add?.filter(Boolean) ?? [];
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View testID="results-screen" className="flex-1 bg-gray-50">
       <View className="flex-row items-center gap-3 border-b border-gray-200 bg-white px-4 py-4">
         {!onboarding ? (
-          <Pressable className="rounded-lg p-2 active:bg-gray-100" onPress={onBackHome}>
+          <Pressable
+            testID="results-back-button"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            className="rounded-lg p-2 active:bg-gray-100"
+            onPress={onBackHome}
+          >
             <Ionicons name="arrow-back" size={24} color="#1e293b" />
           </Pressable>
         ) : (
@@ -185,6 +191,7 @@ export function ResultsScreen({
       {onboarding && onFinish ? (
         <View className="border-t border-gray-200 bg-white px-6 py-4">
           <Pressable
+            testID="results-finish-button"
             className="rounded-xl bg-blue-600 py-4 active:bg-blue-700"
             onPress={onFinish}
             accessibilityRole="button"

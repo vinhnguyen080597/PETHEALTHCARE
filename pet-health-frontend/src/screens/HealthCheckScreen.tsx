@@ -56,15 +56,18 @@ function RadioRow({
   selected,
   value,
   onSelect,
+  testID,
 }: {
   label: string;
   selected: YesNo;
   value: YesNo;
   onSelect: (v: YesNo) => void;
+  testID?: string;
 }) {
   const active = selected === value;
   return (
     <Pressable
+      testID={testID}
       className="mr-6 flex-row items-center gap-2 py-1 active:opacity-80"
       onPress={() => onSelect(value)}
       accessibilityRole="radio"
@@ -86,14 +89,17 @@ function VaccineCheckboxRow({
   onToggle,
   label,
   detail,
+  testID,
 }: {
   checked: boolean;
   onToggle: () => void;
   label: string;
   detail: string;
+  testID?: string;
 }) {
   return (
     <Pressable
+      testID={testID}
       onPress={onToggle}
       className="flex-row items-start gap-3 border-b border-slate-100 py-3 active:bg-slate-50"
       accessibilityRole="checkbox"
@@ -178,9 +184,10 @@ export function HealthCheckScreen({
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View testID="health-check-screen" className="flex-1 bg-white">
       <View className="flex-row items-center border-b border-gray-200 px-2 py-3">
         <Pressable
+          testID="health-check-back-button"
           className="h-10 w-10 items-center justify-center rounded-lg active:bg-gray-100"
           onPress={onBack}
           accessibilityRole="button"
@@ -240,6 +247,7 @@ export function HealthCheckScreen({
         ) : null}
         {isBreedRecognitionSpecies(pet.species) && onOpenBreedRecognition ? (
           <Pressable
+            testID="health-check-open-breed-recognition-button"
             onPress={onOpenBreedRecognition}
             className="mb-5 flex-row items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-3 active:bg-blue-50"
             accessibilityRole="button"
@@ -269,6 +277,9 @@ export function HealthCheckScreen({
           {t('healthCheck.photos')} <Text className="text-red-500">{t('healthCheck.required')}</Text>
         </Text>
         <Pressable
+          testID="health-check-add-photos-button"
+          accessibilityRole="button"
+          accessibilityLabel="Add health check photos"
           onPress={onAddPhotos}
           className="mb-6 min-h-[140px] items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/80 px-4 py-6 active:bg-gray-100"
         >
@@ -286,6 +297,7 @@ export function HealthCheckScreen({
                   <View key={`${uri}-${index}`} className="relative">
                     <Image source={{ uri }} className="h-20 w-20 rounded-lg" resizeMode="cover" />
                     <Pressable
+                      testID={`health-check-remove-photo-${index}`}
                       className="absolute -right-1 -top-1 h-6 w-6 items-center justify-center rounded-full bg-slate-900/80"
                       onPress={() => onRemovePhoto(index)}
                       hitSlop={8}
@@ -307,18 +319,24 @@ export function HealthCheckScreen({
               <Ionicons name="videocam" size={32} color={PRIMARY} />
               <Text className="mt-2 text-center text-sm font-medium text-slate-800">{t('healthCheck.videoSelected')}</Text>
               <View className="mt-3 flex-row gap-4">
-                <Pressable onPress={onPickVideo} className="active:opacity-80">
+                <Pressable testID="health-check-change-video-button" onPress={onPickVideo} className="active:opacity-80">
                   <Text className="text-sm font-semibold" style={{ color: PRIMARY }}>
                     {t('healthCheck.changeVideo')}
                   </Text>
                 </Pressable>
-                <Pressable onPress={onClearVideo} className="active:opacity-80">
+                <Pressable testID="health-check-clear-video-button" onPress={onClearVideo} className="active:opacity-80">
                   <Text className="text-sm font-semibold text-slate-500">{t('healthCheck.remove')}</Text>
                 </Pressable>
               </View>
             </View>
           ) : (
-            <Pressable onPress={onPickVideo} className="min-h-[88px] items-center justify-center active:bg-gray-50">
+            <Pressable
+              testID="health-check-pick-video-button"
+              accessibilityRole="button"
+              accessibilityLabel="Pick health check video"
+              onPress={onPickVideo}
+              className="min-h-[88px] items-center justify-center active:bg-gray-50"
+            >
               <Ionicons name="videocam-outline" size={36} color="#64748b" />
               <Text className="mt-2 text-base font-semibold text-slate-800">{t('healthCheck.uploadVideo')}</Text>
             </Pressable>
@@ -327,6 +345,8 @@ export function HealthCheckScreen({
 
         <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.weightKg')}</Text>
         <TextInput
+          testID="health-check-weight-input"
+          accessibilityLabel="Weight in kilograms"
           className="mb-6 rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
           placeholder={t('healthCheck.enterWeight')}
           placeholderTextColor="#9ca3af"
@@ -337,14 +357,15 @@ export function HealthCheckScreen({
 
         <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.vaccination')}</Text>
         <View className="mb-3 flex-row">
-          <RadioRow label={t('common.yes')} selected={vaccinated} value="yes" onSelect={onChangeVaccinated} />
-          <RadioRow label={t('common.no')} selected={vaccinated} value="no" onSelect={onChangeVaccinated} />
+          <RadioRow testID="health-check-vaccinated-yes" label={t('common.yes')} selected={vaccinated} value="yes" onSelect={onChangeVaccinated} />
+          <RadioRow testID="health-check-vaccinated-no" label={t('common.no')} selected={vaccinated} value="no" onSelect={onChangeVaccinated} />
         </View>
         {vaccinated === 'yes' ? (
           vaccineOptionIds ? (
             <View className="mb-6">
               <Text className="mb-2 text-sm font-semibold text-slate-700">{t('healthCheck.vaccineTypeLabel')}</Text>
               <Pressable
+                testID="health-check-vaccine-select-button"
                 onPress={() => setVaccineModalOpen(true)}
                 className="flex-row items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 active:bg-slate-50"
                 accessibilityRole="button"
@@ -366,6 +387,7 @@ export function HealthCheckScreen({
                     <ScrollView style={{ maxHeight: modalScrollMaxHeight }} keyboardShouldPersistTaps="handled">
                       {vaccineOptionIds.map((id) => (
                         <VaccineCheckboxRow
+                          testID={`health-check-vaccine-option-${id}`}
                           key={id}
                           checked={vaccineIds.includes(id)}
                           onToggle={() => toggleVaccineId(id)}
@@ -375,6 +397,7 @@ export function HealthCheckScreen({
                       ))}
                     </ScrollView>
                     <Pressable
+                      testID="health-check-vaccine-done-button"
                       className="mt-3 rounded-xl py-3.5 active:opacity-90"
                       style={{ backgroundColor: PRIMARY }}
                       onPress={() => setVaccineModalOpen(false)}
@@ -387,6 +410,8 @@ export function HealthCheckScreen({
             </View>
           ) : (
             <TextInput
+              testID="health-check-vaccine-other-input"
+              accessibilityLabel="Other vaccine details"
               className="mb-6 min-h-[88px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
               placeholder={t('healthCheck.vaccineOtherPlaceholder')}
               placeholderTextColor="#9ca3af"
@@ -402,12 +427,14 @@ export function HealthCheckScreen({
 
         <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.neutering')}</Text>
         <View className="mb-6 flex-row">
-          <RadioRow label={t('common.yes')} selected={neutered} value="yes" onSelect={onChangeNeutered} />
-          <RadioRow label={t('common.no')} selected={neutered} value="no" onSelect={onChangeNeutered} />
+          <RadioRow testID="health-check-neutered-yes" label={t('common.yes')} selected={neutered} value="yes" onSelect={onChangeNeutered} />
+          <RadioRow testID="health-check-neutered-no" label={t('common.no')} selected={neutered} value="no" onSelect={onChangeNeutered} />
         </View>
 
         <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.medicalHistory')}</Text>
         <TextInput
+          testID="health-check-medical-history-input"
+          accessibilityLabel="Medical history"
           className="mb-6 min-h-[100px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
           placeholder={t('healthCheck.medicalHistoryPlaceholder')}
           placeholderTextColor="#9ca3af"
@@ -419,6 +446,8 @@ export function HealthCheckScreen({
 
         <Text className="mb-2 text-base font-bold text-slate-900">{t('healthCheck.symptoms')}</Text>
         <TextInput
+          testID="health-check-symptoms-input"
+          accessibilityLabel="Symptoms"
           className="mb-2 min-h-[120px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
           placeholder={t('healthCheck.symptomsPlaceholder')}
           placeholderTextColor="#9ca3af"
@@ -429,6 +458,9 @@ export function HealthCheckScreen({
         />
 
         <Pressable
+          testID="health-check-start-analysis-button"
+          accessibilityRole="button"
+          accessibilityLabel="Start health analysis"
           className={`mt-4 rounded-xl py-4 ${canStart ? 'active:opacity-90' : 'opacity-50'}`}
           style={{ backgroundColor: canStart ? PRIMARY : '#94a3b8' }}
           onPress={onStartAnalysis}

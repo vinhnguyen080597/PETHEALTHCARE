@@ -47,9 +47,15 @@ export function PetBreedRecognitionScreen({
   const canAnalyze = requiredOk && !loading && !hasInsufficientCredits;
 
   return (
-    <View className="flex-1 bg-white">
+    <View testID="breed-recognition-screen" className="flex-1 bg-white">
       <View className="flex-row items-center border-b border-gray-200 px-2 py-3">
-        <Pressable className="h-10 w-10 items-center justify-center rounded-lg active:bg-gray-100" onPress={onBack}>
+        <Pressable
+          testID="breed-recognition-back-button"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          className="h-10 w-10 items-center justify-center rounded-lg active:bg-gray-100"
+          onPress={onBack}
+        >
           <Ionicons name="arrow-back" size={24} color="#0f172a" />
         </Pressable>
         <Text className="min-w-0 flex-1 pr-2 text-lg font-bold text-slate-900" numberOfLines={1}>
@@ -138,18 +144,33 @@ export function PetBreedRecognitionScreen({
                   <View>
                     <Image source={{ uri }} className="h-44 w-full" contentFit="cover" />
                     <View className="flex-row justify-end gap-4 border-t border-gray-200 bg-white px-3 py-2">
-                      <Pressable onPress={() => onPickSlot(slot)} hitSlop={6}>
+                      <Pressable
+                        testID={`breed-recognition-change-photo-${slot}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Change ${slot} photo`}
+                        onPress={() => onPickSlot(slot)}
+                        hitSlop={6}
+                      >
                         <Text className="text-sm font-semibold" style={{ color: PRIMARY }}>
                           {t('breedRecognition.changePhoto')}
                         </Text>
                       </Pressable>
-                      <Pressable onPress={() => onClearSlot(slot)} hitSlop={6}>
+                      <Pressable
+                        testID={`breed-recognition-clear-photo-${slot}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${slot} photo`}
+                        onPress={() => onClearSlot(slot)}
+                        hitSlop={6}
+                      >
                         <Text className="text-sm font-semibold text-slate-500">{t('breedRecognition.removePhoto')}</Text>
                       </Pressable>
                     </View>
                   </View>
                 ) : (
                   <Pressable
+                    testID={`breed-recognition-pick-photo-${slot}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Pick ${slot} photo`}
                     onPress={() => onPickSlot(slot)}
                     className="min-h-[120px] items-center justify-center py-6 active:bg-gray-100"
                   >
@@ -165,6 +186,9 @@ export function PetBreedRecognitionScreen({
         })}
 
         <Pressable
+          testID="breed-recognition-analyze-button"
+          accessibilityRole="button"
+          accessibilityLabel="Analyze breed"
           className={`mt-2 flex-row items-center justify-center gap-2 rounded-xl py-4 ${canAnalyze ? 'active:opacity-90' : 'opacity-45'}`}
           style={{ backgroundColor: PRIMARY }}
           onPress={onAnalyze}
@@ -221,6 +245,9 @@ export function PetBreedRecognitionScreen({
             ) : null}
             <Text className="mt-4 text-xs leading-5 text-slate-500">{result.disclaimer}</Text>
             <Pressable
+              testID="breed-recognition-apply-profile-button"
+              accessibilityRole="button"
+              accessibilityLabel="Apply breed result to profile"
               className="mt-4 rounded-xl border border-slate-200 bg-slate-50 py-3 active:bg-slate-100"
               onPress={onApplyToProfile}
             >

@@ -45,12 +45,14 @@ function FormSelect({
   options,
   onChange,
   placeholder,
+  testID,
 }: {
   label: string;
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
   placeholder: string;
+  testID?: string;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -60,6 +62,7 @@ function FormSelect({
     <View className="mb-5">
       <Text className="mb-2 text-sm font-semibold text-slate-900">{label}</Text>
       <Pressable
+        testID={testID}
         className="flex-row items-center justify-between rounded-xl border border-gray-300 bg-white px-4 py-3 active:bg-gray-50"
         onPress={() => setOpen(true)}
         accessibilityRole="button"
@@ -77,6 +80,7 @@ function FormSelect({
             <View className="mb-2 self-center rounded-full bg-gray-200 px-10 py-1" />
             {options.map((opt) => (
               <Pressable
+                testID={testID ? `${testID}-option-${opt.value}` : undefined}
                 key={opt.value}
                 className="border-b border-gray-100 py-3.5 active:bg-gray-50"
                 onPress={() => {
@@ -151,6 +155,7 @@ export function AddPetScreen({
     <View className="flex-1 bg-gray-100">
       <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-3">
         <Pressable
+          testID="add-pet-back-button"
           className="h-10 w-10 items-center justify-center rounded-lg active:bg-gray-100"
           onPress={onCancel}
           accessibilityRole="button"
@@ -173,6 +178,7 @@ export function AddPetScreen({
       <ScrollView className="flex-1 px-6 py-6" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View className="mb-6 items-center">
           <Pressable
+            testID="add-pet-avatar-button"
             onPress={onPickAvatar}
             className="items-center active:opacity-90"
             accessibilityRole="button"
@@ -194,6 +200,8 @@ export function AddPetScreen({
         <View className="mb-5">
           <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.petName')}</Text>
           <TextInput
+            testID="add-pet-name-input"
+            accessibilityLabel="Pet name"
             className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
             placeholder={t('addPet.enterPetName')}
             placeholderTextColor="#9ca3af"
@@ -208,11 +216,14 @@ export function AddPetScreen({
           options={speciesOptions}
           onChange={onChangeSpecies}
           placeholder={t('addPet.selectPetType')}
+          testID="add-pet-species-select"
         />
 
         <View className="mb-5">
           <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.breed')}</Text>
           <TextInput
+            testID="add-pet-breed-input"
+            accessibilityLabel="Pet breed"
             className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
             placeholder={t('addPet.enterBreed')}
             placeholderTextColor="#9ca3af"
@@ -224,6 +235,8 @@ export function AddPetScreen({
         <View className="mb-5">
           <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.ageYears')}</Text>
           <TextInput
+            testID="add-pet-age-input"
+            accessibilityLabel="Pet age"
             className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
             placeholder={t('addPet.agePlaceholder')}
             placeholderTextColor="#9ca3af"
@@ -239,14 +252,27 @@ export function AddPetScreen({
           options={genderOptions}
           onChange={onChangeGender}
           placeholder={t('addPet.selectGender')}
+          testID="add-pet-gender-select"
         />
 
-        <Pressable className="mt-2 rounded-xl bg-blue-600 py-3.5 active:bg-blue-700" onPress={onSubmit}>
+        <Pressable
+          testID={variant === 'create' ? 'add-pet-submit-button' : 'edit-pet-submit-button'}
+          accessibilityRole="button"
+          accessibilityLabel={submitLabel}
+          className="mt-2 rounded-xl bg-blue-600 py-3.5 active:bg-blue-700"
+          onPress={onSubmit}
+        >
           <Text className="text-center text-base font-semibold text-white">{submitLabel}</Text>
         </Pressable>
 
         {variant === 'edit' && onDeletePet ? (
-          <Pressable className="mt-6 py-3 active:opacity-80" onPress={onDeletePet} accessibilityRole="button">
+          <Pressable
+            testID="edit-pet-delete-button"
+            className="mt-6 py-3 active:opacity-80"
+            onPress={onDeletePet}
+            accessibilityRole="button"
+            accessibilityLabel="Remove pet"
+          >
             <Text className="text-center text-base font-medium text-red-600">{t('addPet.removePet')}</Text>
           </Pressable>
         ) : null}

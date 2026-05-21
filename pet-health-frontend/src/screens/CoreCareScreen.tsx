@@ -97,10 +97,16 @@ export function CoreCareScreen({
   }
 
   return (
-    <View className="flex-1 bg-[#F2F4F8]">
+    <View testID="core-care-screen" className="flex-1 bg-[#F2F4F8]">
       <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
         <View className="w-14">
-          <Pressable className="rounded-lg p-2 active:bg-gray-100" onPress={onBack}>
+          <Pressable
+            testID="core-care-back-button"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            className="rounded-lg p-2 active:bg-gray-100"
+            onPress={onBack}
+          >
             <Ionicons name="arrow-back" size={24} color="#1e293b" />
           </Pressable>
         </View>
@@ -140,6 +146,9 @@ export function CoreCareScreen({
               const active = selectedType === type;
               return (
                 <Pressable
+                  testID={`core-care-type-${type}-button`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select ${type} record type`}
                   key={type}
                   className={`flex-row items-center gap-1 rounded-full border px-3 py-2 ${active ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
                   onPress={() => setSelectedType(type)}
@@ -153,12 +162,16 @@ export function CoreCareScreen({
             })}
           </View>
           <TextInput
+            testID="core-care-title-input"
+            accessibilityLabel="Care record title"
             className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900"
             placeholder={defaultTitle(selectedType, t)}
             value={title}
             onChangeText={setTitle}
           />
           <TextInput
+            testID="core-care-note-input"
+            accessibilityLabel="Care record note"
             className="mt-3 min-h-[90px] rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900"
             placeholder={t('coreCare.notePlaceholder')}
             multiline
@@ -168,6 +181,8 @@ export function CoreCareScreen({
           />
           {selectedType === 'reminder' ? (
             <TextInput
+              testID="core-care-due-date-input"
+              accessibilityLabel="Care record due date"
               className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900"
               placeholder={t('coreCare.duePlaceholder')}
               value={dueAt}
@@ -175,6 +190,9 @@ export function CoreCareScreen({
             />
           ) : null}
           <Pressable
+            testID="core-care-save-record-button"
+            accessibilityRole="button"
+            accessibilityLabel="Save care record"
             className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl py-3 ${submitting ? 'opacity-60' : 'active:opacity-90'}`}
             style={{ backgroundColor: PRIMARY }}
             onPress={submit}
@@ -199,7 +217,13 @@ export function CoreCareScreen({
                   {record.due_at ? formatLocaleDateTime(record.due_at, i18n.language) : t('coreCare.noDueDate')}
                 </Text>
                 {record.note ? <Text className="mt-2 text-sm leading-5 text-slate-700">{record.note}</Text> : null}
-                <Pressable className="mt-3 self-start rounded-full bg-emerald-50 px-3 py-1.5" onPress={() => onMarkReminderDone(record)}>
+                <Pressable
+                  testID={`core-care-mark-reminder-done-${record.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Mark reminder ${record.title} done`}
+                  className="mt-3 self-start rounded-full bg-emerald-50 px-3 py-1.5"
+                  onPress={() => onMarkReminderDone(record)}
+                >
                   <Text className="text-xs font-bold text-emerald-700">{t('coreCare.markDone')}</Text>
                 </Pressable>
               </View>
@@ -231,7 +255,13 @@ export function CoreCareScreen({
               ? t('coreCare.creditsBody', { credits: aiCredits.creditBalance })
               : t('coreCare.creditsUnavailable')}
           </Text>
-          <Pressable className="mt-3 rounded-xl bg-white px-4 py-3 active:bg-amber-100" onPress={onClaimRewardedAd}>
+          <Pressable
+            testID="core-care-claim-ad-credit-button"
+            accessibilityRole="button"
+            accessibilityLabel="Earn one AI credit with rewarded ad"
+            className="mt-3 rounded-xl bg-white px-4 py-3 active:bg-amber-100"
+            onPress={onClaimRewardedAd}
+          >
             <Text className="text-center text-sm font-bold text-amber-900">{t('coreCare.claimAdCredit')}</Text>
           </Pressable>
           {creditLedger.length > 0 ? (
@@ -249,7 +279,7 @@ export function CoreCareScreen({
         ) : (
           <View className="gap-3">
             {records.slice(0, 12).map((record) => (
-              <View key={record.id} className="rounded-xl border border-gray-200 bg-white p-4">
+              <View key={record.id} testID={`core-care-record-${record.id}`} className="rounded-xl border border-gray-200 bg-white p-4">
                 <View className="flex-row items-start gap-3">
                   <Ionicons name={typeIcon(record.type)} size={20} color={PRIMARY} />
                   <View className="min-w-0 flex-1">

@@ -27,7 +27,7 @@ export function AnalysisProgressScreen({ stage, petName, message }: AnalysisProg
   const failed = stage === 'failed';
 
   return (
-    <View className="flex-1 items-center justify-center bg-slate-50 px-6">
+    <View testID="analysis-progress-screen" className="flex-1 items-center justify-center bg-slate-50 px-6">
       <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-blue-100">
         <Ionicons name="pulse" size={40} color="#2563eb" />
       </View>
@@ -44,7 +44,10 @@ export function AnalysisProgressScreen({ stage, petName, message }: AnalysisProg
             <ActivityIndicator size="large" color="#2563eb" />
           )}
         </View>
-        <Text className={`mb-4 text-center text-base font-semibold ${failed ? 'text-red-700' : 'text-slate-800'}`}>
+        <Text
+          testID={`analysis-progress-stage-${stage}`}
+          className={`mb-4 text-center text-base font-semibold ${failed ? 'text-red-700' : 'text-slate-800'}`}
+        >
           {failed ? t('analysisProgress.failedTitle') : labels[current]}
         </Text>
         {failed ? (

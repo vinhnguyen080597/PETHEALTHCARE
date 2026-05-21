@@ -43,6 +43,7 @@ export function HomeScreen({
   const { t } = useTranslation();
   return (
     <ScrollView
+      testID="home-screen"
       className="flex-1 bg-[#F2F4F8] px-5 pb-6 pt-5"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY_BLUE} />}
       showsVerticalScrollIndicator={false}
@@ -50,6 +51,9 @@ export function HomeScreen({
       <View className="mb-5 flex-row items-center justify-between">
         <Text className="text-xl font-bold text-slate-900">{t('home.title')}</Text>
         <Pressable
+          testID="home-add-pet-button"
+          accessibilityRole="button"
+          accessibilityLabel="Add pet"
           className="flex-row items-center gap-1.5 rounded-full px-4 py-2 active:opacity-90"
           style={{ backgroundColor: PRIMARY_BLUE }}
           onPress={onAddPet}
@@ -67,6 +71,9 @@ export function HomeScreen({
           <Text className="mb-1 text-center text-base font-medium text-slate-800">{t('home.noPetsTitle')}</Text>
           <Text className="mb-6 max-w-xs px-4 text-center text-sm text-slate-500">{t('home.noPetsBody')}</Text>
           <Pressable
+            testID="home-add-first-pet-button"
+            accessibilityRole="button"
+            accessibilityLabel="Add first pet"
             className="flex-row items-center gap-2 rounded-full px-6 py-3 active:opacity-90"
             style={{ backgroundColor: PRIMARY_BLUE }}
             onPress={onAddPet}
@@ -80,6 +87,7 @@ export function HomeScreen({
         <View className="gap-4">
           {pets.map((pet) => (
             <View
+              testID={`home-pet-card-${pet.id}`}
               key={pet.id}
               className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
             >
@@ -104,6 +112,9 @@ export function HomeScreen({
 
               <View className="mt-4 flex-row gap-3">
                 <Pressable
+                  testID={`home-scan-health-button-${pet.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Scan health for ${pet.name}`}
                   className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
                   style={{ backgroundColor: PRIMARY_BLUE }}
                   onPress={() => onStartScan(pet.id)}
@@ -112,6 +123,9 @@ export function HomeScreen({
                   <Text className="text-sm font-semibold text-white">{t('home.scanHealth')}</Text>
                 </Pressable>
                 <Pressable
+                  testID={`home-view-profile-button-${pet.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View profile for ${pet.name}`}
                   className="flex-1 items-center justify-center rounded-xl border border-gray-300 bg-white py-3.5 active:bg-slate-50"
                   onPress={() => onViewProfile(pet.id)}
                 >
@@ -120,6 +134,9 @@ export function HomeScreen({
               </View>
               {onOpenCoreCare ? (
                 <Pressable
+                  testID={`home-core-care-button-${pet.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open care records for ${pet.name}`}
                   className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
                   onPress={() => onOpenCoreCare(pet.id)}
                 >
