@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseServiceClient } from '../config/supabase.js';
 
-const DEFAULT_FREE_MONTHLY_CREDITS = numberFromEnv('AI_FREE_MONTHLY_CREDITS', 5);
+const DEFAULT_INITIAL_TRIAL_CREDITS = numberFromEnv('AI_INITIAL_TRIAL_CREDITS', 2);
+const DEFAULT_FREE_MONTHLY_CREDITS = numberFromEnv('AI_FREE_MONTHLY_CREDITS', 0);
 const DEFAULT_PLAN_TIER = process.env.AI_DEFAULT_PLAN_TIER || 'free';
+const GLOBAL_DAILY_BUDGET_USD = numberFromEnv('AI_GLOBAL_DAILY_BUDGET_USD', 10);
+const GLOBAL_MONTHLY_BUDGET_USD = numberFromEnv('AI_GLOBAL_MONTHLY_BUDGET_USD', 200);
+const REWARDED_AD_CREDITS = numberFromEnv('AI_REWARDED_AD_CREDITS', 1);
+const REWARDED_AD_DAILY_CAP = numberFromEnv('AI_REWARDED_AD_DAILY_CAP', 3);
 
 const FEATURE_DEFAULTS = {
   health_analysis: { credits: 1, inputTokens: 7000, outputTokens: 1200 },
@@ -23,6 +28,10 @@ let supabaseDisabled = false;
 function numberFromEnv(name, fallback) {
   const n = Number(process.env[name]);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+function envKeyForFeature(feature) {
+  return String(feature || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
 }
 
 function featureConfig(feature) {
@@ -48,12 +57,20 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function startOfDayIso(now = new Date()) {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)).toISOString();
+}
+
+function startOfMonthIso(now = new Date()) {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0)).toISOString();
+}
+
 function createDefaultAccount(userId) {
   const now = new Date();
   return {
     user_id: userId,
     plan_tier: DEFAULT_PLAN_TIER,
-    credit_balance: DEFAULT_FREE_MONTHLY_CREDITS,
+    credit_balance: DEFAULT_INITIAL_TRIAL_CREDITS,
     monthly_allowance: DEFAULT_FREE_MONTHLY_CREDITS,
     monthly_reset_at: nextMonthlyResetDate(now).toISOString(),
     updated_at: now.toISOString(),
@@ -73,6 +90,7 @@ function normalizeAccount(row) {
 }
 
 function maybeResetAccount(row) {
+  if (Number(row.monthly_allowance ?? 0) <= 0) return row;
   const resetAt = row.monthly_reset_at ? new Date(row.monthly_reset_at).getTime() : 0;
   if (resetAt > Date.now()) return row;
   const allowance = Number(row.monthly_allowance ?? DEFAULT_FREE_MONTHLY_CREDITS);
@@ -83,6 +101,83 @@ function maybeResetAccount(row) {
     monthly_reset_at: nextMonthlyResetDate().toISOString(),
     updated_at: nowIso(),
   };
+}
+
+function sumUsageRows(rows, predicate = () => true) {
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row) => row && row.status === 'ok' && !row.cached && predicate(row))
+    .reduce((sum, row) => sum + Number(row.estimated_cost_usd ?? 0), 0);
+}
+
+async function listUsageRowsSince(iso) {
+  const supabase = supabaseDisabled ? null : getSupabaseServiceClient();
+  if (!supabase) {
+    return memoryUsage.filter((row) => String(row.created_at) >= iso);
+  }
+  const { data, error } = await supabase
+    .from('ai_usage_events')
+    .select('feature,status,cached,estimated_cost_usd,created_at')
+    .gte('created_at', iso);
+  if (error) {
+    if (isMissingEconomicsTable(error)) {
+      supabaseDisabled = true;
+      return listUsageRowsSince(iso);
+    }
+    throw error;
+  }
+  return data ?? [];
+}
+
+async function checkGlobalAiBudget(feature, estimate) {
+  const featureDailyBudget = numberFromEnv(`AI_FEATURE_DAILY_BUDGET_USD_${envKeyForFeature(feature)}`, 0);
+  const todayRows = await listUsageRowsSince(startOfDayIso());
+  const todaySpend = sumUsageRows(todayRows);
+  const projectedDaily = todaySpend + estimate.estimatedCostUsd;
+  if (GLOBAL_DAILY_BUDGET_USD > 0 && projectedDaily > GLOBAL_DAILY_BUDGET_USD) {
+    return {
+      ok: false,
+      status: 503,
+      code: 'AI_APP_BUDGET_EXHAUSTED',
+      error: 'Free AI capacity is used up for today. Please try again later or use paid credits.',
+      budgetWindow: 'day',
+      budgetUsd: GLOBAL_DAILY_BUDGET_USD,
+      projectedSpendUsd: Number(projectedDaily.toFixed(6)),
+    };
+  }
+
+  if (featureDailyBudget > 0) {
+    const featureSpend = sumUsageRows(todayRows, (row) => row.feature === feature);
+    const projectedFeature = featureSpend + estimate.estimatedCostUsd;
+    if (projectedFeature > featureDailyBudget) {
+      return {
+        ok: false,
+        status: 503,
+        code: 'AI_FEATURE_BUDGET_EXHAUSTED',
+        error: 'Free AI capacity for this feature is used up for today.',
+        budgetWindow: 'day',
+        feature,
+        budgetUsd: featureDailyBudget,
+        projectedSpendUsd: Number(projectedFeature.toFixed(6)),
+      };
+    }
+  }
+
+  const monthRows = await listUsageRowsSince(startOfMonthIso());
+  const monthSpend = sumUsageRows(monthRows);
+  const projectedMonthly = monthSpend + estimate.estimatedCostUsd;
+  if (GLOBAL_MONTHLY_BUDGET_USD > 0 && projectedMonthly > GLOBAL_MONTHLY_BUDGET_USD) {
+    return {
+      ok: false,
+      status: 503,
+      code: 'AI_APP_BUDGET_EXHAUSTED',
+      error: 'Free AI capacity is used up for this month.',
+      budgetWindow: 'month',
+      budgetUsd: GLOBAL_MONTHLY_BUDGET_USD,
+      projectedSpendUsd: Number(projectedMonthly.toFixed(6)),
+    };
+  }
+
+  return { ok: true };
 }
 
 async function getAccountRow(userId) {
@@ -191,6 +286,8 @@ export async function getAiCreditSummary(userId) {
 
 export async function reserveAiCredits({ userId, feature, petId = null, details = {}, metadata = {} }) {
   const estimate = estimateAiUsage(feature, details);
+  const budget = await checkGlobalAiBudget(feature, estimate);
+  if (!budget.ok) return { ...budget, estimate };
   const amount = estimate.creditCost;
   if (amount <= 0) {
     return { ok: true, skipped: true, reservationId: null, amount: 0, estimate, account: await getAiCreditSummary(userId) };
@@ -203,7 +300,7 @@ export async function reserveAiCredits({ userId, feature, petId = null, details 
       ok: false,
       status: 402,
       code: 'AI_CREDITS_EXHAUSTED',
-      error: 'You have used all free AI credits for this month.',
+      error: 'You have used your available AI credits.',
       creditBalance: balance,
       creditCost: amount,
       monthlyResetAt: row.monthly_reset_at,
@@ -238,6 +335,79 @@ export async function reserveAiCredits({ userId, feature, petId = null, details 
     estimate,
     account: normalizeAccount(next),
   };
+}
+
+async function listLedgerRowsForUser(userId, sinceIso = null) {
+  const supabase = supabaseDisabled ? null : getSupabaseServiceClient();
+  if (!supabase) {
+    return memoryLedger
+      .filter((row) => row.user_id === userId && (!sinceIso || String(row.created_at) >= sinceIso))
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  }
+  let query = supabase.from('ai_credit_ledger').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  if (sinceIso) query = query.gte('created_at', sinceIso);
+  const { data, error } = await query;
+  if (error) {
+    if (isMissingEconomicsTable(error)) {
+      supabaseDisabled = true;
+      return listLedgerRowsForUser(userId, sinceIso);
+    }
+    throw error;
+  }
+  return data ?? [];
+}
+
+export async function listAiCreditLedger(userId) {
+  return listLedgerRowsForUser(userId);
+}
+
+export async function grantAiCredits({ userId, amount, reason, metadata = {} }) {
+  const creditAmount = Number(amount);
+  if (!Number.isFinite(creditAmount) || creditAmount <= 0) {
+    const err = new Error('amount must be positive');
+    err.status = 400;
+    err.code = 'INVALID_CREDIT_AMOUNT';
+    throw err;
+  }
+  const row = await getAccountRow(userId);
+  const next = {
+    ...row,
+    credit_balance: Number((Number(row.credit_balance ?? 0) + creditAmount).toFixed(2)),
+    updated_at: nowIso(),
+  };
+  await saveAccountRow(next);
+  await insertLedger({
+    id: randomUUID(),
+    user_id: userId,
+    delta: creditAmount,
+    reason,
+    feature: null,
+    pet_id: null,
+    metadata,
+    created_at: nowIso(),
+  });
+  return normalizeAccount(next);
+}
+
+export async function claimRewardedAdCredits(userId) {
+  const todayRows = await listLedgerRowsForUser(userId, startOfDayIso());
+  const claimedToday = todayRows.filter((row) => row.reason === 'ad_reward').length;
+  if (claimedToday >= REWARDED_AD_DAILY_CAP) {
+    return {
+      ok: false,
+      status: 429,
+      code: 'AD_REWARD_DAILY_CAP',
+      error: 'Daily rewarded ad credit limit reached.',
+      dailyCap: REWARDED_AD_DAILY_CAP,
+    };
+  }
+  const account = await grantAiCredits({
+    userId,
+    amount: REWARDED_AD_CREDITS,
+    reason: 'ad_reward',
+    metadata: { source: 'rewarded_ad_placeholder', dailyCap: REWARDED_AD_DAILY_CAP },
+  });
+  return { ok: true, account, grantedCredits: REWARDED_AD_CREDITS, remainingToday: REWARDED_AD_DAILY_CAP - claimedToday - 1 };
 }
 
 export async function refundAiCredits(reservation, reason = 'ai_refund') {
@@ -318,11 +488,17 @@ export function attachReservationContext(reservation, context) {
 export function getAiEconomicsConfig() {
   return {
     freeMonthlyCredits: DEFAULT_FREE_MONTHLY_CREDITS,
+    initialTrialCredits: DEFAULT_INITIAL_TRIAL_CREDITS,
     defaultPlanTier: DEFAULT_PLAN_TIER,
+    budgetGuard: {
+      globalDailyBudgetUsd: GLOBAL_DAILY_BUDGET_USD,
+      globalMonthlyBudgetUsd: GLOBAL_MONTHLY_BUDGET_USD,
+    },
     pricingExperiment: {
       market: 'Vietnam beta',
       rewardedAdCredits: 1,
       freeMonthlyCredits: DEFAULT_FREE_MONTHLY_CREDITS,
+      initialTrialCredits: DEFAULT_INITIAL_TRIAL_CREDITS,
       creditPacks: [
         { credits: 5, priceVnd: 19000, label: 'Starter' },
         { credits: 20, priceVnd: 59000, label: 'Family' },
@@ -338,5 +514,33 @@ export function getAiEconomicsConfig() {
       Object.keys(FEATURE_DEFAULTS).map((feature) => [feature, estimateAiUsage(feature)]),
     ),
     pricing: PAID_MODEL_PRICING,
+  };
+}
+
+export async function getAiOpsSummary() {
+  const todayRows = await listUsageRowsSince(startOfDayIso());
+  const monthRows = await listUsageRowsSince(startOfMonthIso());
+  const byFeature = {};
+  for (const row of monthRows) {
+    const key = row.feature || 'unknown';
+    byFeature[key] = byFeature[key] ?? { calls: 0, estimatedCostUsd: 0 };
+    if (row.status === 'ok' && !row.cached) {
+      byFeature[key].calls += 1;
+      byFeature[key].estimatedCostUsd = Number((byFeature[key].estimatedCostUsd + Number(row.estimated_cost_usd ?? 0)).toFixed(6));
+    }
+  }
+  return {
+    today: {
+      estimatedSpendUsd: Number(sumUsageRows(todayRows).toFixed(6)),
+      budgetUsd: GLOBAL_DAILY_BUDGET_USD,
+      remainingBudgetUsd: Number(Math.max(0, GLOBAL_DAILY_BUDGET_USD - sumUsageRows(todayRows)).toFixed(6)),
+    },
+    month: {
+      estimatedSpendUsd: Number(sumUsageRows(monthRows).toFixed(6)),
+      budgetUsd: GLOBAL_MONTHLY_BUDGET_USD,
+      remainingBudgetUsd: Number(Math.max(0, GLOBAL_MONTHLY_BUDGET_USD - sumUsageRows(monthRows)).toFixed(6)),
+    },
+    byFeature,
+    config: getAiEconomicsConfig(),
   };
 }

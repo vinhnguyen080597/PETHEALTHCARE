@@ -12,6 +12,7 @@ type HomeScreenProps = {
   onAddPet: () => void;
   onStartScan: (petId: string) => void;
   onViewProfile: (petId: string) => void;
+  onOpenCoreCare?: (petId: string) => void;
 };
 
 function formatPetSubtitle(pet: Pet, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -37,6 +38,7 @@ export function HomeScreen({
   onAddPet,
   onStartScan,
   onViewProfile,
+  onOpenCoreCare,
 }: HomeScreenProps) {
   const { t } = useTranslation();
   return (
@@ -116,6 +118,17 @@ export function HomeScreen({
                   <Text className="text-sm font-semibold text-slate-800">{t('home.viewProfile')}</Text>
                 </Pressable>
               </View>
+              {onOpenCoreCare ? (
+                <Pressable
+                  className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
+                  onPress={() => onOpenCoreCare(pet.id)}
+                >
+                  <Ionicons name="calendar-outline" size={18} color={PRIMARY_BLUE} />
+                  <Text className="text-sm font-semibold" style={{ color: PRIMARY_BLUE }}>
+                    {t('home.openCoreCare')}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
           ))}
         </View>

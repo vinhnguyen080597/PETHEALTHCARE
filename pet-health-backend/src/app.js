@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import breedRecognitionRoutes from './routes/breedRecognitionRoutes.js';
 import aiCreditsRoutes from './routes/aiCreditsRoutes.js';
+import coreCareRoutes from './routes/coreCareRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 
@@ -30,6 +31,7 @@ export function createApp() {
   app.use('/api/v1/analysis', analysisRoutes);
   app.use('/api/v1/breed-recognition', breedRecognitionRoutes);
   app.use('/api/v1/ai-credits', aiCreditsRoutes);
+  app.use('/api/v1/core-care', coreCareRoutes);
   app.use('/api/v1/admin', adminRoutes);
 
   app.use(errorHandler);

@@ -9,7 +9,10 @@ import type {
   AuthPayload,
   AuthResponse,
   BreedRecognitionResult,
+  CoreCareRecord,
+  CoreCareSummary,
   CreatePetPayload,
+  CreateCoreCareRecordPayload,
   Pet,
   UpdatePetPayload,
 } from './types';
@@ -267,6 +270,54 @@ export async function deletePet(token: string, petId: string) {
 export async function getAiCreditSummary(token: string) {
   return requestJson<{ data: { account: AiCreditAccount; config: AiEconomicsConfig } }>('/ai-credits/summary', {
     headers: authHeaders(token),
+  });
+}
+
+export async function listAiCreditLedger(token: string) {
+  return requestJson<{ data: Array<Record<string, unknown>> }>('/ai-credits/ledger', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function claimRewardedAdCredit(token: string) {
+  return requestJson<{ data: { grantedCredits: number; remainingToday: number; account: AiCreditAccount } }>(
+    '/ai-credits/rewarded-ad',
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+    },
+  );
+}
+
+export async function listCoreCareRecords(token: string, petId: string, type?: string) {
+  const qs = type ? `?type=${encodeURIComponent(type)}` : '';
+  return requestJson<{ data: CoreCareRecord[]; summary: CoreCareSummary }>(
+    `/core-care/pets/${encodeURIComponent(petId)}/records${qs}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
+}
+
+export async function createCoreCareRecord(token: string, petId: string, payload: CreateCoreCareRecordPayload) {
+  return requestJson<{ data: CoreCareRecord }>(`/core-care/pets/${encodeURIComponent(petId)}/records`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateCoreCareRecord(token: string, recordId: string, payload: Partial<CreateCoreCareRecordPayload>) {
+  return requestJson<{ data: CoreCareRecord }>(`/core-care/records/${encodeURIComponent(recordId)}`, {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
   });
 }
 

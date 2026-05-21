@@ -9,6 +9,7 @@ import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
 import { AddPetScreen } from './src/screens/AddPetScreen';
 import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
+import { CoreCareScreen } from './src/screens/CoreCareScreen';
 import { PetBreedRecognitionScreen } from './src/screens/PetBreedRecognitionScreen';
 import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
@@ -27,6 +28,7 @@ export default function App() {
   const hideAppHeader =
     app.screen === 'add-pet' ||
     app.screen === 'edit-pet' ||
+    app.screen === 'core-care' ||
     app.screen === 'health-check' ||
     app.screen === 'analysis-progress' ||
     app.screen === 'onboarding-intro' ||
@@ -72,6 +74,7 @@ export default function App() {
                 onAddPet={app.openCreatePet}
                 onStartScan={app.goToCameraForPet}
                 onViewProfile={app.openPetProfile}
+                onOpenCoreCare={app.openCoreCare}
               />
             )}
 
@@ -86,6 +89,8 @@ export default function App() {
                 onScanHealth={() => app.goToCameraForPet(app.selectedPet!.id, { returnToProfile: true })}
                 onSelectEntry={(entry) => app.openHistoryDetail(entry, 'pet-profile')}
                 onOpenBreedRecognition={() => app.openBreedRecognition('pet-profile')}
+                onOpenCoreCare={() => app.openCoreCare(app.selectedPet!.id)}
+                coreCareSummary={app.coreCareSummary}
               />
             ) : null}
 
@@ -148,8 +153,24 @@ export default function App() {
               <OnboardingHealthPromptScreen
                 onExploreBreed={() => app.openBreedRecognition('onboarding-health-prompt')}
                 onCheckHealth={app.goToHealthCheckFromServicesPrompt}
-                onManageVaccines={app.goToHealthCheckFromServicesPrompt}
+                onManageVaccines={app.goToCoreCareFromServicesPrompt}
                 onSkip={app.dismissServicesPrompt}
+              />
+            ) : null}
+
+            {app.screen === 'core-care' && app.selectedPet ? (
+              <CoreCareScreen
+                pet={app.selectedPet}
+                records={app.coreCareRecords}
+                summary={app.coreCareSummary}
+                refreshing={app.refreshing}
+                aiCredits={app.aiCredits}
+                creditLedger={app.creditLedger}
+                onBack={app.closeCoreCare}
+                onRefresh={() => app.openCoreCare(app.selectedPet!.id)}
+                onCreateRecord={app.createCoreCareEntry}
+                onMarkReminderDone={app.markReminderDone}
+                onClaimRewardedAd={app.claimAdCredit}
               />
             ) : null}
 

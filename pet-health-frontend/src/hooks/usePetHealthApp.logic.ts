@@ -45,6 +45,9 @@ export function mapAnalyzeFriendlyMessage(params: {
     if (analyzeError.code === 'AI_CREDITS_EXHAUSTED') {
       return t('alerts.aiCreditsExhausted.message');
     }
+    if (analyzeError.code === 'AI_APP_BUDGET_EXHAUSTED' || analyzeError.code === 'AI_FEATURE_BUDGET_EXHAUSTED') {
+      return t('alerts.aiBudgetExhausted.message');
+    }
     if (analyzeError.code === 'INTERNAL_ERROR') {
       return t('alerts.systemErrorFriendly.message');
     }

@@ -11,6 +11,7 @@ import {
   validateTranslationRecords,
   validateTranslationRequestPayload,
 } from '../services/aiPayloadQualityService.js';
+import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 export function createAnalysisRouter(deps) {
   const {
@@ -462,6 +463,12 @@ export function createAnalysisRouter(deps) {
         });
 
         markAnalysisCompleted(req.user.id, petId);
+        void recordProductEvent({
+          userId: req.user.id,
+          petId,
+          event: 'ai_health_scan_completed',
+          metadata: { outputLocale: normOutLoc, status: aiResult.status },
+        });
         await recordAiUsageEvent({
           userId: req.user.id,
           petId,

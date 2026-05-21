@@ -89,8 +89,8 @@ using (bucket_id = 'pet-diagnosis-images');
 create table if not exists public.ai_credit_accounts (
   user_id text primary key,
   plan_tier text not null default 'free',
-  credit_balance numeric(10,2) not null default 5,
-  monthly_allowance numeric(10,2) not null default 5,
+  credit_balance numeric(10,2) not null default 2,
+  monthly_allowance numeric(10,2) not null default 0,
   monthly_reset_at timestamptz not null default (date_trunc('month', now()) + interval '1 month'),
   updated_at timestamptz not null default now()
 );
@@ -146,5 +146,76 @@ using (auth.uid()::text = user_id);
 
 create policy "ai_credit_ledger_select_own"
 on public.ai_credit_ledger for select
+to authenticated
+using (auth.uid()::text = user_id);
+
+-- --- Free core pet care records: diary, vet visits, documents, reminders.
+
+create table if not exists public.pet_care_records (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  pet_id uuid not null references public.pets(id) on delete cascade,
+  type text not null check (type in ('diary', 'vet_visit', 'document', 'reminder')),
+  title text not null,
+  note text not null default '',
+  occurred_at timestamptz not null default now(),
+  due_at timestamptz,
+  status text not null default 'active',
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_pet_care_records_user_pet on public.pet_care_records(user_id, pet_id, occurred_at desc);
+create index if not exists idx_pet_care_records_type on public.pet_care_records(user_id, type, occurred_at desc);
+create index if not exists idx_pet_care_records_due on public.pet_care_records(user_id, due_at) where due_at is not null;
+
+alter table public.pet_care_records enable row level security;
+
+drop policy if exists "pet_care_records_select_own" on public.pet_care_records;
+drop policy if exists "pet_care_records_insert_own" on public.pet_care_records;
+drop policy if exists "pet_care_records_update_own" on public.pet_care_records;
+drop policy if exists "pet_care_records_delete_own" on public.pet_care_records;
+
+create policy "pet_care_records_select_own"
+on public.pet_care_records for select
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "pet_care_records_insert_own"
+on public.pet_care_records for insert
+to authenticated
+with check (auth.uid()::text = user_id);
+
+create policy "pet_care_records_update_own"
+on public.pet_care_records for update
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "pet_care_records_delete_own"
+on public.pet_care_records for delete
+to authenticated
+using (auth.uid()::text = user_id);
+
+-- --- Product analytics events for activation and monetization funnels.
+
+create table if not exists public.app_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  pet_id uuid references public.pets(id) on delete set null,
+  event text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_app_events_created on public.app_events(created_at desc);
+create index if not exists idx_app_events_user_created on public.app_events(user_id, created_at desc);
+create index if not exists idx_app_events_event_created on public.app_events(event, created_at desc);
+
+alter table public.app_events enable row level security;
+
+drop policy if exists "app_events_select_own" on public.app_events;
+create policy "app_events_select_own"
+on public.app_events for select
 to authenticated
 using (auth.uid()::text = user_id);

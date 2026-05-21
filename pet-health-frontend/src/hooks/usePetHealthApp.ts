@@ -9,12 +9,16 @@ import {
   AnalyzeRequestError,
   ApiRequestError,
   analyzePetHealthCheck,
+  claimRewardedAdCredit,
+  createCoreCareRecord,
   createPet,
   deletePet,
   getPet,
   healthCheck,
   getAiCreditSummary,
   listHistoryByPet,
+  listAiCreditLedger,
+  listCoreCareRecords,
   listPets,
   requestBreedRecognition,
   translateAnalysesDisplay,
@@ -22,6 +26,7 @@ import {
   oauthApple,
   oauthGoogle,
   signUp,
+  updateCoreCareRecord,
   updatePet,
   uploadPetAvatar,
 } from '../api';
@@ -31,7 +36,16 @@ import { preloadServicesOnboardingImages } from '../assets/servicesOnboardingAss
 import { PENDING_INITIAL_ONBOARDING_KEY, TOKEN_STORAGE_KEY } from '../constants/auth';
 import { isBreedRecognitionSpecies, type BreedRecognitionSlot } from '../constants/petBreedRecognitionSlots';
 import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
-import type { AiCreditAccount, AiEconomicsConfig, Analysis, BreedRecognitionResult, Pet } from '../types';
+import type {
+  AiCreditAccount,
+  AiEconomicsConfig,
+  Analysis,
+  BreedRecognitionResult,
+  CoreCareRecord,
+  CoreCareSummary,
+  CreateCoreCareRecordPayload,
+  Pet,
+} from '../types';
 import type { AppScreen } from '../screens/types';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
@@ -104,6 +118,9 @@ export function usePetHealthApp() {
   const [history, setHistory] = useState<Analysis[]>([]);
   const [aiCredits, setAiCredits] = useState<AiCreditAccount | null>(null);
   const [aiEconomicsConfig, setAiEconomicsConfig] = useState<AiEconomicsConfig | null>(null);
+  const [creditLedger, setCreditLedger] = useState<Array<Record<string, unknown>>>([]);
+  const [coreCareRecords, setCoreCareRecords] = useState<CoreCareRecord[]>([]);
+  const [coreCareSummary, setCoreCareSummary] = useState<CoreCareSummary | null>(null);
   /** After saving pet form opened from profile, return to pet profile instead of home. */
   const [petFormReturnToProfile, setPetFormReturnToProfile] = useState(false);
   /** Where to go when closing the results screen opened from history vs profile vs default home. */
@@ -171,10 +188,22 @@ export function usePetHealthApp() {
       const response = await getAiCreditSummary(accessToken);
       setAiCredits(response.data.account);
       setAiEconomicsConfig(response.data.config);
+      const ledger = await listAiCreditLedger(accessToken);
+      setCreditLedger(ledger.data.slice(0, 20));
     } catch {
       // Credits are advisory in the UI; backend remains the source of truth.
     }
   }, []);
+
+  const refreshCoreCare = useCallback(
+    async (petId: string = selectedPetId ?? '') => {
+      if (!token || !petId) return;
+      const response = await listCoreCareRecords(token, petId);
+      setCoreCareRecords(response.data);
+      setCoreCareSummary(response.summary);
+    },
+    [token, selectedPetId],
+  );
 
   const refreshPets = useCallback(async () => {
     if (!token) return;
@@ -546,6 +575,11 @@ export function usePetHealthApp() {
     setScreen(initialOnboarding ? 'onboarding-health-check' : 'health-check');
   }
 
+  async function goToCoreCareFromServicesPrompt() {
+    if (!selectedPetId) return;
+    await openCoreCare(selectedPetId);
+  }
+
   /** @deprecated Use goToHealthCheckFromServicesPrompt */
   function goToOnboardingHealthCheckFromPrompt() {
     goToHealthCheckFromServicesPrompt();
@@ -648,6 +682,7 @@ export function usePetHealthApp() {
     try {
       const mergedHistory = await fetchPetHistoryMerged(petId);
       setHistory(mergedHistory);
+      await refreshCoreCare(petId);
       setScreen('pet-profile');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -668,11 +703,60 @@ export function usePetHealthApp() {
       await fetchPets(token);
       const mergedHistory = await fetchPetHistoryMerged(selectedPetId);
       setHistory(mergedHistory);
+      await refreshCoreCare(selectedPetId);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('alerts.refreshFailed.title'), i18n.t('alerts.refreshFailed.message', { message }));
     } finally {
       setRefreshing(false);
+    }
+  }
+
+  async function openCoreCare(petId: string = selectedPetId ?? '') {
+    if (!token || !petId) {
+      Alert.alert(i18n.t('alerts.selectPet.title'), i18n.t('alerts.selectPet.message'));
+      return;
+    }
+    setSelectedPetId(petId);
+    setLoading(true);
+    try {
+      await refreshCoreCare(petId);
+      await refreshAiCredits(token);
+      setScreen('core-care');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.loadProfileFailed.title'), i18n.t('alerts.loadProfileFailed.message', { message }));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closeCoreCare() {
+    setScreen('pet-profile');
+  }
+
+  async function createCoreCareEntry(payload: CreateCoreCareRecordPayload) {
+    if (!token || !selectedPetId) return;
+    await createCoreCareRecord(token, selectedPetId, payload);
+    await refreshCoreCare(selectedPetId);
+  }
+
+  async function markReminderDone(record: CoreCareRecord) {
+    if (!token) return;
+    await updateCoreCareRecord(token, record.id, { status: 'done' });
+    await refreshCoreCare(record.pet_id);
+  }
+
+  async function claimAdCredit() {
+    if (!token) return;
+    try {
+      const response = await claimRewardedAdCredit(token);
+      setAiCredits(response.data.account);
+      await refreshAiCredits(token);
+      Alert.alert(i18n.t('common.ok'), i18n.t('coreCare.claimAdSuccess', { credits: response.data.grantedCredits }));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('coreCare.creditsTitle'), message);
     }
   }
 
@@ -996,6 +1080,9 @@ export function usePetHealthApp() {
     setPets([]);
     setAiCredits(null);
     setAiEconomicsConfig(null);
+    setCreditLedger([]);
+    setCoreCareRecords([]);
+    setCoreCareSummary(null);
     setSelectedPetId(null);
     clearHealthCheckForm();
     setCurrentResult(null);
@@ -1233,6 +1320,14 @@ export function usePetHealthApp() {
     openPetProfile,
     closePetProfile,
     refreshPetProfile,
+    openCoreCare,
+    closeCoreCare,
+    coreCareRecords,
+    coreCareSummary,
+    creditLedger,
+    createCoreCareEntry,
+    markReminderDone,
+    claimAdCredit,
     logout,
     goToCameraForPet,
     goHomeAndRefresh,
@@ -1249,6 +1344,7 @@ export function usePetHealthApp() {
     cancelOnboardingAddPet,
     startInitialOnboardingFromIntro,
     goToHealthCheckFromServicesPrompt,
+    goToCoreCareFromServicesPrompt,
     dismissServicesPrompt,
     goToOnboardingHealthCheckFromPrompt,
     skipInitialHealthOnboarding,

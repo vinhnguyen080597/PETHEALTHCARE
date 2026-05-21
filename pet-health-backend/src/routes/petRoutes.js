@@ -9,6 +9,7 @@ import {
   updatePetForUser,
 } from '../repositories/petRepository.js';
 import { storePetAvatar } from '../services/imageStorageService.js';
+import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 const router = Router();
 
@@ -48,6 +49,12 @@ router.post('/', async (req, res, next) => {
     }
 
     const created = await createPetForUser(req.user.id, req.body, req.accessToken);
+    void recordProductEvent({
+      userId: req.user.id,
+      petId: created.id,
+      event: 'pet_created',
+      metadata: { species: created.species },
+    });
     return res.status(201).json({ data: created });
   } catch (err) {
     return next(err);

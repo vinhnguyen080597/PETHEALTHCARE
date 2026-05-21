@@ -27,6 +27,7 @@ export type AiCreditAccount = {
 
 export type AiEconomicsConfig = {
   freeMonthlyCredits: number;
+  initialTrialCredits?: number;
   defaultPlanTier: string;
   features: Record<
     string,
@@ -38,6 +39,42 @@ export type AiEconomicsConfig = {
       estimatedCostUsd: number;
     }
   >;
+};
+
+export type CoreCareRecordType = 'diary' | 'vet_visit' | 'document' | 'reminder';
+
+export type CoreCareRecord = {
+  id: string;
+  user_id: string;
+  pet_id: string;
+  type: CoreCareRecordType;
+  title: string;
+  note: string;
+  occurred_at: string;
+  due_at?: string | null;
+  status: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type CoreCareSummary = {
+  diary: number;
+  vet_visit: number;
+  document: number;
+  reminder: number;
+  pendingReminders: number;
+  overdueReminders: number;
+};
+
+export type CreateCoreCareRecordPayload = {
+  type: CoreCareRecordType;
+  title: string;
+  note?: string;
+  occurredAt?: string;
+  dueAt?: string | null;
+  status?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type Pet = {

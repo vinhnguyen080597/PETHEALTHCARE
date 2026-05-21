@@ -3,7 +3,7 @@ import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
 import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
-import type { Analysis, Pet, Severity } from '../types';
+import type { Analysis, CoreCareSummary, Pet, Severity } from '../types';
 
 const PRIMARY_BLUE = '#1E6FE8';
 
@@ -17,6 +17,8 @@ type PetProfileScreenProps = {
   onScanHealth: () => void;
   onSelectEntry: (entry: Analysis) => void;
   onOpenBreedRecognition?: () => void;
+  onOpenCoreCare?: () => void;
+  coreCareSummary?: CoreCareSummary | null;
 };
 
 function severityBadgeClass(severity: Severity) {
@@ -47,6 +49,8 @@ export function PetProfileScreen({
   onScanHealth,
   onSelectEntry,
   onOpenBreedRecognition,
+  onOpenCoreCare,
+  coreCareSummary,
 }: PetProfileScreenProps) {
   const { t, i18n } = useTranslation();
   const breed = pet.breed?.trim();
@@ -140,7 +144,33 @@ export function PetProfileScreen({
               <Text className="text-sm font-semibold text-slate-800">{t('breedRecognition.profileLink')}</Text>
             </Pressable>
           ) : null}
+          {onOpenCoreCare ? (
+            <Pressable
+              className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"
+              onPress={onOpenCoreCare}
+            >
+              <Ionicons name="calendar-outline" size={18} color={PRIMARY_BLUE} />
+              <Text className="text-sm font-semibold" style={{ color: PRIMARY_BLUE }}>
+                {t('profile.openCoreCare')}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
+
+        {coreCareSummary ? (
+          <View className="mt-5 flex-row gap-2">
+            {[
+              ['diary', coreCareSummary.diary],
+              ['reminders', coreCareSummary.pendingReminders],
+              ['documents', coreCareSummary.document],
+            ].map(([key, value]) => (
+              <View key={String(key)} className="flex-1 rounded-xl border border-gray-200 bg-white p-3">
+                <Text className="text-xs font-semibold uppercase text-slate-500">{t(`coreCare.stats.${key}`)}</Text>
+                <Text className="mt-1 text-xl font-bold text-slate-900">{String(value)}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <Text className="mb-3 mt-8 text-base font-bold text-slate-900">{t('profile.healthSection')}</Text>
         <Text className="mb-3 text-sm text-slate-500">{t('profile.healthHint', { name: pet.name })}</Text>

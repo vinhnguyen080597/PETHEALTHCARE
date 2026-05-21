@@ -61,6 +61,7 @@
     "pullToRefresh": "Pull down to refresh",
     "scanHealth": "Scan Health",
     "viewProfile": "View Profile",
+    "openCoreCare": "Care records & reminders",
     "petFallback": "Pet",
     "yearOld": "{{count}} year old",
     "yearsOld": "{{count}} years old",
@@ -272,7 +273,65 @@
     "healthHint": "Recent scans for {{name}} — tap a row for details",
     "noHealthScans": "No health scans yet.",
     "noHealthScansHint": "Use Scan health above to run a check.",
+    "openCoreCare": "Care records & reminders",
     "dashGender": "—"
+  },
+  "coreCare": {
+    "title": "Care records",
+    "heroTitle": "{{name}}'s free care hub",
+    "heroBody": "Track diary notes, reminders, vet visits, documents, and care education without spending AI credits.",
+    "quickAdd": "Quick add",
+    "saveRecord": "Save record",
+    "notePlaceholder": "Notes, symptoms, clinic details, document link, or care instructions",
+    "duePlaceholder": "Due date, e.g. 2026-06-20",
+    "upcomingReminders": "Upcoming reminders",
+    "noReminders": "No pending reminders yet.",
+    "noDueDate": "No due date",
+    "markDone": "Mark done",
+    "libraryTitle": "Free care library",
+    "creditsTitle": "AI credits",
+    "creditsBody": "{{credits}} AI credits available. Use free care tools anytime; spend credits only when AI is really needed.",
+    "creditsUnavailable": "Credit status is unavailable, but free care tools still work.",
+    "claimAdCredit": "Earn 1 credit with rewarded ad",
+    "claimAdSuccess": "Added {{credits}} AI credit.",
+    "lastCreditEvent": "Last credit event: {{reason}}",
+    "recentRecords": "Recent records",
+    "emptyRecords": "No care records yet. Add a diary note, reminder, vet visit, or document above.",
+    "stats": {
+      "diary": "Diary",
+      "reminders": "Reminders",
+      "documents": "Documents"
+    },
+    "types": {
+      "diary": "Diary",
+      "reminder": "Reminder",
+      "vet_visit": "Vet visit",
+      "document": "Document"
+    },
+    "typeDefaults": {
+      "diary": "Daily health note",
+      "reminder": "Care reminder",
+      "vet_visit": "Vet visit",
+      "document": "Pet document"
+    },
+    "library": {
+      "emergency": {
+        "title": "Emergency signs",
+        "body": "Go to a vet urgently for breathing trouble, collapse, seizures, severe bleeding, repeated vomiting, or suspected poisoning."
+      },
+      "vaccines": {
+        "title": "Vaccines and parasite prevention",
+        "body": "Keep vaccine, deworming, and flea/tick dates visible so you do not need AI to remember basic preventive care."
+      },
+      "nutrition": {
+        "title": "Nutrition basics",
+        "body": "Track appetite, weight, water intake, and stool changes. Sudden changes are useful context for your vet."
+      },
+      "grooming": {
+        "title": "Grooming checklist",
+        "body": "Schedule brushing, nail trim, ear cleaning, baths, and skin checks based on your pet's coat and age."
+      }
+    }
   },
   "aiCredits": {
     "cardTitle": "AI credits",
@@ -450,6 +509,10 @@
     "aiCreditsExhausted": {
       "title": "Out of AI credits",
       "message": "You have used this month's free AI credits. You can earn credits with rewarded ads, buy a small pack, or wait for the monthly reset."
+    },
+    "aiBudgetExhausted": {
+      "title": "Free AI capacity used",
+      "message": "Today's free AI capacity is used up. You can keep using free care records and try AI later."
     },
     "systemErrorFriendly": {
       "title": "System error",

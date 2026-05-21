@@ -61,6 +61,7 @@
     "pullToRefresh": "Kéo xuống để làm mới",
     "scanHealth": "Quét sức khỏe",
     "viewProfile": "Xem hồ sơ",
+    "openCoreCare": "Hồ sơ chăm sóc & nhắc lịch",
     "petFallback": "Thú cưng",
     "yearOld": "{{count}} tuổi",
     "yearsOld": "{{count}} tuổi",
@@ -272,7 +273,65 @@
     "healthHint": "Các lần quét gần đây của {{name}} — chạm một dòng để xem chi tiết",
     "noHealthScans": "Chưa có lần quét sức khỏe.",
     "noHealthScansHint": "Dùng Quét sức khỏe phía trên để kiểm tra.",
+    "openCoreCare": "Hồ sơ chăm sóc & nhắc lịch",
     "dashGender": "—"
+  },
+  "coreCare": {
+    "title": "Hồ sơ chăm sóc",
+    "heroTitle": "Trung tâm chăm sóc miễn phí của {{name}}",
+    "heroBody": "Ghi nhật ký, nhắc lịch, lần khám thú y, tài liệu và kiến thức chăm sóc mà không tốn AI credits.",
+    "quickAdd": "Thêm nhanh",
+    "saveRecord": "Lưu ghi chú",
+    "notePlaceholder": "Ghi chú, triệu chứng, thông tin phòng khám, link tài liệu hoặc hướng dẫn chăm sóc",
+    "duePlaceholder": "Ngày đến hạn, ví dụ 2026-06-20",
+    "upcomingReminders": "Nhắc lịch sắp tới",
+    "noReminders": "Chưa có nhắc lịch nào.",
+    "noDueDate": "Chưa có ngày đến hạn",
+    "markDone": "Đánh dấu xong",
+    "libraryTitle": "Thư viện chăm sóc miễn phí",
+    "creditsTitle": "AI credits",
+    "creditsBody": "Bạn còn {{credits}} AI credits. Công cụ chăm sóc miễn phí dùng bất cứ lúc nào; chỉ dùng credit khi thật sự cần AI.",
+    "creditsUnavailable": "Chưa tải được trạng thái credit, nhưng công cụ chăm sóc miễn phí vẫn dùng được.",
+    "claimAdCredit": "Nhận 1 credit qua quảng cáo thưởng",
+    "claimAdSuccess": "Đã cộng {{credits}} AI credit.",
+    "lastCreditEvent": "Sự kiện credit gần nhất: {{reason}}",
+    "recentRecords": "Ghi chú gần đây",
+    "emptyRecords": "Chưa có hồ sơ chăm sóc. Hãy thêm nhật ký, nhắc lịch, lần khám hoặc tài liệu ở trên.",
+    "stats": {
+      "diary": "Nhật ký",
+      "reminders": "Nhắc lịch",
+      "documents": "Tài liệu"
+    },
+    "types": {
+      "diary": "Nhật ký",
+      "reminder": "Nhắc lịch",
+      "vet_visit": "Khám thú y",
+      "document": "Tài liệu"
+    },
+    "typeDefaults": {
+      "diary": "Ghi chú sức khỏe hằng ngày",
+      "reminder": "Nhắc lịch chăm sóc",
+      "vet_visit": "Lần khám thú y",
+      "document": "Tài liệu thú cưng"
+    },
+    "library": {
+      "emergency": {
+        "title": "Dấu hiệu khẩn cấp",
+        "body": "Hãy đi thú y ngay nếu khó thở, ngất, co giật, chảy máu nặng, nôn liên tục hoặc nghi ngộ độc."
+      },
+      "vaccines": {
+        "title": "Vaccine và phòng ký sinh",
+        "body": "Lưu ngày tiêm, xổ giun và phòng ve/rận để không cần AI vẫn nhớ các việc chăm sóc cơ bản."
+      },
+      "nutrition": {
+        "title": "Dinh dưỡng cơ bản",
+        "body": "Theo dõi ăn uống, cân nặng, nước uống và phân. Thay đổi đột ngột là thông tin hữu ích cho bác sĩ thú y."
+      },
+      "grooming": {
+        "title": "Checklist vệ sinh",
+        "body": "Lên lịch chải lông, cắt móng, vệ sinh tai, tắm và kiểm tra da theo độ tuổi và bộ lông của bé."
+      }
+    }
   },
   "aiCredits": {
     "cardTitle": "AI credits",
@@ -450,6 +509,10 @@
     "aiCreditsExhausted": {
       "title": "Hết AI credits",
       "message": "Bạn đã dùng hết AI credits miễn phí trong tháng này. Bạn có thể nhận credit qua quảng cáo thưởng, mua gói nhỏ, hoặc chờ reset hằng tháng."
+    },
+    "aiBudgetExhausted": {
+      "title": "Hết ngân sách AI miễn phí",
+      "message": "Sức chứa AI miễn phí hôm nay đã hết. Bạn vẫn có thể dùng hồ sơ chăm sóc miễn phí và thử AI lại sau."
     },
     "systemErrorFriendly": {
       "title": "Lỗi hệ thống",

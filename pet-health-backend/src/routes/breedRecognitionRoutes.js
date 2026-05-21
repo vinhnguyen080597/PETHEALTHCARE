@@ -11,6 +11,7 @@ import {
   reserveAiCredits,
 } from '../services/aiEconomicsService.js';
 import { validateBreedRecognitionPayload } from '../services/aiPayloadQualityService.js';
+import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 const SLOT_ORDER = ['face', 'eyes', 'pawPads', 'coat', 'fullBodySun', 'parentPedigree'];
 const REQUIRED_SLOTS = ['face', 'eyes', 'coat'];
@@ -190,6 +191,12 @@ router.post(
       const locale = quality.locale;
       const data = await analyzePetBreedFromLabeledImages(ordered, speciesNorm, locale);
       lastCompletedAt.set(guardKey(req.user.id, petId), Date.now());
+      void recordProductEvent({
+        userId: req.user.id,
+        petId,
+        event: 'ai_breed_recognition_completed',
+        metadata: { species: speciesNorm, imageCount: quality.imageCount },
+      });
       await recordAiUsageEvent({
         userId: req.user.id,
         petId,
