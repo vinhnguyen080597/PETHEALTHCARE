@@ -7,11 +7,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import {
   AnalyzeRequestError,
+  ApiRequestError,
   analyzePetHealthCheck,
   createPet,
   deletePet,
   getPet,
   healthCheck,
+  getAiCreditSummary,
   listHistoryByPet,
   listPets,
   requestBreedRecognition,
@@ -29,7 +31,7 @@ import { preloadServicesOnboardingImages } from '../assets/servicesOnboardingAss
 import { PENDING_INITIAL_ONBOARDING_KEY, TOKEN_STORAGE_KEY } from '../constants/auth';
 import { isBreedRecognitionSpecies, type BreedRecognitionSlot } from '../constants/petBreedRecognitionSlots';
 import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
-import type { Analysis, BreedRecognitionResult, Pet } from '../types';
+import type { AiCreditAccount, AiEconomicsConfig, Analysis, BreedRecognitionResult, Pet } from '../types';
 import type { AppScreen } from '../screens/types';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
@@ -100,6 +102,8 @@ export function usePetHealthApp() {
   const [resultImageUri, setResultImageUri] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [history, setHistory] = useState<Analysis[]>([]);
+  const [aiCredits, setAiCredits] = useState<AiCreditAccount | null>(null);
+  const [aiEconomicsConfig, setAiEconomicsConfig] = useState<AiEconomicsConfig | null>(null);
   /** After saving pet form opened from profile, return to pet profile instead of home. */
   const [petFormReturnToProfile, setPetFormReturnToProfile] = useState(false);
   /** Where to go when closing the results screen opened from history vs profile vs default home. */
@@ -162,6 +166,16 @@ export function usePetHealthApp() {
     return response.data;
   }, []);
 
+  const refreshAiCredits = useCallback(async (accessToken: string) => {
+    try {
+      const response = await getAiCreditSummary(accessToken);
+      setAiCredits(response.data.account);
+      setAiEconomicsConfig(response.data.config);
+    } catch {
+      // Credits are advisory in the UI; backend remains the source of truth.
+    }
+  }, []);
+
   const refreshPets = useCallback(async () => {
     if (!token) return;
     setRefreshing(true);
@@ -197,12 +211,13 @@ export function usePetHealthApp() {
         });
         const merged = new Map(tr.data.map((r) => [r.id, r]));
         rows = rows.map((h) => merged.get(h.id) ?? h);
+        void refreshAiCredits(token);
       } catch {
         /* offline or translate failure — leave English snippets */
       }
       return rows;
     },
-    [token, i18n.language],
+    [token, i18n.language, refreshAiCredits],
   );
 
   useEffect(() => {
@@ -240,6 +255,7 @@ export function usePetHealthApp() {
       setToken(savedToken);
       try {
         const petsList = await fetchPets(savedToken);
+        await refreshAiCredits(savedToken);
         const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
         if (pending === '1') {
           setInitialOnboarding(true);
@@ -271,6 +287,7 @@ export function usePetHealthApp() {
       await AsyncStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
       setToken(accessToken);
       const petsList = await fetchPets(accessToken);
+      await refreshAiCredits(accessToken);
 
       if (options?.startInitialPetOnboarding) {
         await AsyncStorage.setItem(PENDING_INITIAL_ONBOARDING_KEY, '1');
@@ -300,7 +317,7 @@ export function usePetHealthApp() {
       setInitialOnboarding(false);
       setScreen('home');
     },
-    [fetchPets],
+    [fetchPets, refreshAiCredits],
   );
 
   function toggleLoginSignUpMode() {
@@ -845,6 +862,7 @@ export function usePetHealthApp() {
           }
         },
       });
+      void refreshAiCredits(safeToken);
       const status = response.data.status;
       if (status === 'need_more_data' || status === 'not_pet_or_unclear') {
         const nextSummary = response.data.next_action?.summary?.trim() ?? '';
@@ -886,6 +904,17 @@ export function usePetHealthApp() {
         t: (k, options) => i18n.t(k, options),
       });
       if (error instanceof AnalyzeRequestError) {
+        if (error.code === 'AI_CREDITS_EXHAUSTED') {
+          setAiCredits((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  creditBalance: typeof error.creditBalance === 'number' ? error.creditBalance : prev.creditBalance,
+                  monthlyResetAt: error.monthlyResetAt ?? prev.monthlyResetAt,
+                }
+              : prev,
+          );
+        }
         if (typeof error.retryAfterSeconds === 'number' && error.retryAfterSeconds > 0) {
           setAnalysisCooldownUntilMs(Date.now() + error.retryAfterSeconds * 1000);
         }
@@ -965,6 +994,8 @@ export function usePetHealthApp() {
     setInitialOnboarding(false);
     setToken(null);
     setPets([]);
+    setAiCredits(null);
+    setAiEconomicsConfig(null);
     setSelectedPetId(null);
     clearHealthCheckForm();
     setCurrentResult(null);
@@ -1059,8 +1090,25 @@ export function usePetHealthApp() {
         locale: i18n.language,
       });
       setBreedRecognitionResult(res.data);
+      void refreshAiCredits(token);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      if (error instanceof ApiRequestError && error.code === 'AI_CREDITS_EXHAUSTED') {
+        setAiCredits((prev) =>
+          prev
+            ? {
+                ...prev,
+                creditBalance: typeof error.creditBalance === 'number' ? error.creditBalance : prev.creditBalance,
+                monthlyResetAt: error.monthlyResetAt ?? prev.monthlyResetAt,
+              }
+            : prev,
+        );
+      }
+      const message =
+        error instanceof ApiRequestError && error.code === 'AI_CREDITS_EXHAUSTED'
+          ? i18n.t('alerts.aiCreditsExhausted.message')
+          : error instanceof Error
+            ? error.message
+            : i18n.t('common.unknownError');
       Alert.alert(i18n.t('breedRecognition.title'), message);
     } finally {
       setBreedRecognitionLoading(false);
@@ -1165,6 +1213,9 @@ export function usePetHealthApp() {
     resultImageUri,
     warnings,
     history,
+    aiCredits,
+    aiEconomicsConfig,
+    refreshAiCredits: token ? () => refreshAiCredits(token) : undefined,
     submitAuth,
     submitGoogleAuth,
     submitAppleAuth,

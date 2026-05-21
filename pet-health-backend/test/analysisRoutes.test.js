@@ -3,6 +3,18 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import { createAnalysisRouter } from '../src/routes/createAnalysisRouter.js';
 
+function fakeJpegBytes(seed = 1) {
+  const bytes = new Uint8Array(256);
+  bytes[0] = 0xff;
+  bytes[1] = 0xd8;
+  bytes[2] = 0xff;
+  bytes[3] = 0xe0;
+  bytes[4] = seed;
+  bytes[254] = 0xff;
+  bytes[255] = 0xd9;
+  return bytes;
+}
+
 function buildDeps(overrides = {}) {
   return {
     requireUser: (req, _res, next) => {
@@ -59,7 +71,9 @@ async function withServer(router, run) {
   const app = express();
   app.use(express.json());
   app.use('/analysis', router);
-  app.use((err, _req, res, _next) => res.status(500).json({ error: err?.message || 'internal' }));
+  app.use((err, _req, res, _next) =>
+    res.status(err?.status || 500).json({ error: err?.message || 'internal', ...(err?.code ? { code: err.code } : {}) }),
+  );
   const server = app.listen(0);
   try {
     const port = server.address().port;
@@ -151,12 +165,38 @@ test('POST /analysis returns cached response when cache hit', async () => {
   await withServer(router, async (base) => {
     const form = new FormData();
     form.append('petId', 'p1');
-    form.append('image', new Blob(['hello'], { type: 'image/jpeg' }), 'img.jpg');
+    form.append('image', new Blob([fakeJpegBytes()], { type: 'image/jpeg' }), 'img.jpg');
     const res = await fetch(`${base}/analysis`, { method: 'POST', body: form });
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.metadata.cached, true);
     assert.equal(body.data.id, 'cached');
+  });
+
+  assert.equal(analyzeCalled, false);
+});
+
+test('POST /analysis rejects duplicate photos before AI call', async () => {
+  let analyzeCalled = false;
+  const router = createAnalysisRouter(
+    buildDeps({
+      analyzePetHealthImages: async () => {
+        analyzeCalled = true;
+        return {};
+      },
+    }),
+  );
+
+  await withServer(router, async (base) => {
+    const form = new FormData();
+    const duplicate = fakeJpegBytes(7);
+    form.append('petId', 'p1');
+    form.append('image', new Blob([duplicate], { type: 'image/jpeg' }), 'img.jpg');
+    form.append('photos', new Blob([duplicate], { type: 'image/jpeg' }), 'same.jpg');
+    const res = await fetch(`${base}/analysis`, { method: 'POST', body: form });
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.equal(body.code, 'AI_PAYLOAD_DUPLICATE_IMAGE');
   });
 
   assert.equal(analyzeCalled, false);

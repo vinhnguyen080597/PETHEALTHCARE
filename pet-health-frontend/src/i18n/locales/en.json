@@ -274,6 +274,18 @@
     "noHealthScansHint": "Use Scan health above to run a check.",
     "dashGender": "—"
   },
+  "aiCredits": {
+    "cardTitle": "AI credits",
+    "remaining": "{{remaining}} / {{allowance}} credits left this month.",
+    "healthCheckCost": "Health check costs {{cost}} credit.",
+    "breedCost": "Breed recognition costs {{cost}} credit.",
+    "outOfCredits": "You are out of AI credits. Watch an ad, buy a credit pack, or wait for the monthly reset.",
+    "prompts": {
+      "rewardedAd": "Watch ad",
+      "topUp": "Buy credits",
+      "subscription": "Premium quota"
+    }
+  },
   "alerts": {
     "missingEmailPassword": {
       "title": "Missing info",
@@ -434,6 +446,10 @@
     "analysisQuotaFriendly": {
       "title": "Server is busy",
       "message": "There are many checks running right now. Please try again in a few minutes."
+    },
+    "aiCreditsExhausted": {
+      "title": "Out of AI credits",
+      "message": "You have used this month's free AI credits. You can earn credits with rewarded ads, buy a small pack, or wait for the monthly reset."
     },
     "systemErrorFriendly": {
       "title": "System error",

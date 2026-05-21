@@ -4,7 +4,7 @@ import { Image, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDi
 import { useTranslation } from 'react-i18next';
 import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
-import type { Pet } from '../types';
+import type { AiCreditAccount, Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
 const INFO_BG = '#E8F1FE';
@@ -40,6 +40,8 @@ type HealthCheckScreenProps = {
   onDismissInlineError?: () => void;
   analysisCooldownSeconds?: number;
   analyzeDisabled?: boolean;
+  aiCredits?: AiCreditAccount | null;
+  aiCreditCost?: number;
   /** Opens cat breed hint flow (cats only). */
   onOpenBreedRecognition?: () => void;
 };
@@ -143,6 +145,8 @@ export function HealthCheckScreen({
   onDismissInlineError,
   analysisCooldownSeconds = 0,
   analyzeDisabled = false,
+  aiCredits = null,
+  aiCreditCost = 1,
   onOpenBreedRecognition,
 }: HealthCheckScreenProps) {
   const { t } = useTranslation();
@@ -161,7 +165,8 @@ export function HealthCheckScreen({
   const subtitle = [speciesLabel(pet.species, t('healthCheck.petFallback')), pet.breed?.trim() || null]
     .filter(Boolean)
     .join(' • ');
-  const canStart = photoUris.length > 0 && !analyzeDisabled && analysisCooldownSeconds <= 0;
+  const hasInsufficientCredits = Boolean(aiCredits && aiCredits.creditBalance < aiCreditCost);
+  const canStart = photoUris.length > 0 && !analyzeDisabled && analysisCooldownSeconds <= 0 && !hasInsufficientCredits;
   const photoCountHint =
     photoUris.length === 1
       ? t('healthCheck.photoCountOne', { count: photoUris.length })
@@ -206,6 +211,33 @@ export function HealthCheckScreen({
             {t('healthCheck.infoBanner')}
           </Text>
         </View>
+        {aiCredits ? (
+          <View className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="wallet-outline" size={18} color={PRIMARY} />
+              <Text className="text-sm font-bold text-slate-900">{t('aiCredits.cardTitle')}</Text>
+            </View>
+            <Text className="mt-2 text-sm leading-5 text-slate-700">
+              {t('aiCredits.remaining', {
+                remaining: aiCredits.creditBalance,
+                allowance: aiCredits.monthlyAllowance,
+              })}{' '}
+              {t('aiCredits.healthCheckCost', { cost: aiCreditCost })}
+            </Text>
+            {hasInsufficientCredits ? (
+              <View>
+                <Text className="mt-2 text-sm font-semibold text-amber-900">{t('aiCredits.outOfCredits')}</Text>
+                <View className="mt-3 flex-row flex-wrap gap-2">
+                  {['rewardedAd', 'topUp', 'subscription'].map((key) => (
+                    <Text key={key} className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
+                      {t(`aiCredits.prompts.${key}`)}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
         {isBreedRecognitionSpecies(pet.species) && onOpenBreedRecognition ? (
           <Pressable
             onPress={onOpenBreedRecognition}

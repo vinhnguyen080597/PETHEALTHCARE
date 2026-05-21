@@ -7,7 +7,7 @@ import {
   BREED_RECOGNITION_SLOT_ORDER,
   type BreedRecognitionSlot,
 } from '../constants/petBreedRecognitionSlots';
-import type { BreedRecognitionResult, Pet } from '../types';
+import type { AiCreditAccount, BreedRecognitionResult, Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
 const INFO_BG = '#E8F1FE';
@@ -18,6 +18,8 @@ type PetBreedRecognitionScreenProps = {
   slotUris: Record<string, string>;
   result: BreedRecognitionResult | null;
   loading: boolean;
+  aiCredits?: AiCreditAccount | null;
+  aiCreditCost?: number;
   onBack: () => void;
   onPickSlot: (slot: BreedRecognitionSlot) => void;
   onClearSlot: (slot: BreedRecognitionSlot) => void;
@@ -30,6 +32,8 @@ export function PetBreedRecognitionScreen({
   slotUris,
   result,
   loading,
+  aiCredits = null,
+  aiCreditCost = 1,
   onBack,
   onPickSlot,
   onClearSlot,
@@ -39,7 +43,8 @@ export function PetBreedRecognitionScreen({
   const { t } = useTranslation();
 
   const requiredOk = BREED_RECOGNITION_REQUIRED_SLOTS.every((s) => Boolean(slotUris[s]?.trim()));
-  const canAnalyze = requiredOk && !loading;
+  const hasInsufficientCredits = Boolean(aiCredits && aiCredits.creditBalance < aiCreditCost);
+  const canAnalyze = requiredOk && !loading && !hasInsufficientCredits;
 
   return (
     <View className="flex-1 bg-white">
@@ -79,6 +84,34 @@ export function PetBreedRecognitionScreen({
           <Text className="text-sm font-bold text-slate-800">{t('breedRecognition.requirementsTitle')}</Text>
           <Text className="mt-2 text-sm leading-5 text-slate-700">{t('breedRecognition.requirementsBody')}</Text>
         </View>
+
+        {aiCredits ? (
+          <View className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="wallet-outline" size={18} color={PRIMARY} />
+              <Text className="text-sm font-bold text-slate-900">{t('aiCredits.cardTitle')}</Text>
+            </View>
+            <Text className="mt-2 text-sm leading-5 text-slate-700">
+              {t('aiCredits.remaining', {
+                remaining: aiCredits.creditBalance,
+                allowance: aiCredits.monthlyAllowance,
+              })}{' '}
+              {t('aiCredits.breedCost', { cost: aiCreditCost })}
+            </Text>
+            {hasInsufficientCredits ? (
+              <View>
+                <Text className="mt-2 text-sm font-semibold text-amber-900">{t('aiCredits.outOfCredits')}</Text>
+                <View className="mt-3 flex-row flex-wrap gap-2">
+                  {['rewardedAd', 'topUp', 'subscription'].map((key) => (
+                    <Text key={key} className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
+                      {t(`aiCredits.prompts.${key}`)}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         <Text className="mb-3 text-base font-bold text-slate-900">{t('breedRecognition.photoSectionTitle')}</Text>
 

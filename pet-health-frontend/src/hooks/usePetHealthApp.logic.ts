@@ -42,6 +42,9 @@ export function mapAnalyzeFriendlyMessage(params: {
     if (analyzeError.code === 'AI_QUOTA_EXCEEDED') {
       return t('alerts.analysisQuotaFriendly.message');
     }
+    if (analyzeError.code === 'AI_CREDITS_EXHAUSTED') {
+      return t('alerts.aiCreditsExhausted.message');
+    }
     if (analyzeError.code === 'INTERNAL_ERROR') {
       return t('alerts.systemErrorFriendly.message');
     }

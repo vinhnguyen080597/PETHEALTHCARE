@@ -274,6 +274,18 @@
     "noHealthScansHint": "Dùng Quét sức khỏe phía trên để kiểm tra.",
     "dashGender": "—"
   },
+  "aiCredits": {
+    "cardTitle": "AI credits",
+    "remaining": "Còn {{remaining}} / {{allowance}} credits trong tháng này.",
+    "healthCheckCost": "Quét sức khỏe tốn {{cost}} credit.",
+    "breedCost": "Nhận diện giống tốn {{cost}} credit.",
+    "outOfCredits": "Bạn đã hết AI credits. Hãy xem quảng cáo, mua gói credit nhỏ, hoặc chờ lần reset hằng tháng.",
+    "prompts": {
+      "rewardedAd": "Xem quảng cáo",
+      "topUp": "Mua credits",
+      "subscription": "Gói Premium"
+    }
+  },
   "alerts": {
     "missingEmailPassword": {
       "title": "Thiếu thông tin",
@@ -434,6 +446,10 @@
     "analysisQuotaFriendly": {
       "title": "Máy chủ đang quá tải",
       "message": "Hiện có nhiều lượt kiểm tra cùng lúc. Vui lòng thử lại sau vài phút."
+    },
+    "aiCreditsExhausted": {
+      "title": "Hết AI credits",
+      "message": "Bạn đã dùng hết AI credits miễn phí trong tháng này. Bạn có thể nhận credit qua quảng cáo thưởng, mua gói nhỏ, hoặc chờ reset hằng tháng."
     },
     "systemErrorFriendly": {
       "title": "Lỗi hệ thống",

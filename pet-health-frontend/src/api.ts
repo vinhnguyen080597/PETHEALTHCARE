@@ -3,6 +3,8 @@ import { ADMIN_INTERNAL_API_KEY, API_BASE_URL, API_HEALTH_URL } from './config';
 import { BREED_RECOGNITION_SLOT_ORDER } from './constants/petBreedRecognitionSlots';
 import type {
   Analysis,
+  AiCreditAccount,
+  AiEconomicsConfig,
   AnalyzeResponse,
   AuthPayload,
   AuthResponse,
@@ -101,11 +103,44 @@ function mergeHeaders(init?: HeadersInit): Record<string, string> {
   return out;
 }
 
+export class ApiRequestError extends Error {
+  status?: number;
+  code?: string;
+  retryAfterSeconds?: number;
+  creditBalance?: number;
+  creditCost?: number;
+  monthlyResetAt?: string;
+}
+
 function parseErrorMessage(response: Response, body: unknown): string {
   if (body && typeof body === 'object' && 'error' in body && typeof (body as { error: unknown }).error === 'string') {
     return (body as { error: string }).error;
   }
   return `Request failed (${response.status})`;
+}
+
+function buildApiRequestError(response: Response, body: unknown, fallback: string): ApiRequestError {
+  const err = new ApiRequestError(
+    body && typeof body === 'object' && 'error' in body && typeof (body as { error: unknown }).error === 'string'
+      ? (body as { error: string }).error
+      : fallback,
+  );
+  err.status = response.status;
+  if (body && typeof body === 'object') {
+    const b = body as {
+      code?: unknown;
+      retryAfterSeconds?: unknown;
+      creditBalance?: unknown;
+      creditCost?: unknown;
+      monthlyResetAt?: unknown;
+    };
+    if (typeof b.code === 'string') err.code = b.code;
+    if (typeof b.retryAfterSeconds === 'number') err.retryAfterSeconds = b.retryAfterSeconds;
+    if (typeof b.creditBalance === 'number') err.creditBalance = b.creditBalance;
+    if (typeof b.creditCost === 'number') err.creditCost = b.creditCost;
+    if (typeof b.monthlyResetAt === 'string') err.monthlyResetAt = b.monthlyResetAt;
+  }
+  return err;
 }
 
 async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -132,7 +167,7 @@ async function requestJson<T>(path: string, options: RequestInit = {}): Promise<
   if (!response.ok) {
     const message =
       typeof body === 'object' && body !== null ? parseErrorMessage(response, body) : `Request failed (${response.status})`;
-    throw new Error(message);
+    throw buildApiRequestError(response, body, message);
   }
 
   if (response.status === 204) {
@@ -229,6 +264,12 @@ export async function deletePet(token: string, petId: string) {
   });
 }
 
+export async function getAiCreditSummary(token: string) {
+  return requestJson<{ data: { account: AiCreditAccount; config: AiEconomicsConfig } }>('/ai-credits/summary', {
+    headers: authHeaders(token),
+  });
+}
+
 /** Multipart upload → Supabase Storage; returns public `avatarUrl` for `createPet` / `updatePet`. */
 export async function uploadPetAvatar(token: string, imageUri: string, mimeHint: string = 'image/jpeg') {
   const formData = new FormData();
@@ -283,7 +324,7 @@ export async function requestBreedRecognition(
       body && typeof body === 'object' && 'error' in body && typeof (body as { error: string }).error === 'string'
         ? (body as { error: string }).error
         : `Request failed (${response.status})`;
-    throw new Error(message);
+    throw buildApiRequestError(response, body, message);
   }
 
   return body as { data: BreedRecognitionResult };
@@ -361,6 +402,9 @@ export class AnalyzeRequestError extends Error {
   status?: number;
   code?: string;
   retryAfterSeconds?: number;
+  creditBalance?: number;
+  creditCost?: number;
+  monthlyResetAt?: string;
 }
 
 export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): Promise<AnalyzeResponse> {
@@ -447,6 +491,15 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
       }
       if (typeof (body as { retryAfterSeconds?: unknown }).retryAfterSeconds === 'number') {
         err.retryAfterSeconds = (body as { retryAfterSeconds: number }).retryAfterSeconds;
+      }
+      if (typeof (body as { creditBalance?: unknown }).creditBalance === 'number') {
+        err.creditBalance = (body as { creditBalance: number }).creditBalance;
+      }
+      if (typeof (body as { creditCost?: unknown }).creditCost === 'number') {
+        err.creditCost = (body as { creditCost: number }).creditCost;
+      }
+      if (typeof (body as { monthlyResetAt?: unknown }).monthlyResetAt === 'string') {
+        err.monthlyResetAt = (body as { monthlyResetAt: string }).monthlyResetAt;
       }
     }
     throw err;

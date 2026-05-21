@@ -36,6 +36,8 @@ export default function App() {
     app.screen === 'onboarding-results' ||
     app.screen === 'pet-profile' ||
     app.screen === 'breed-recognition';
+  const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;
+  const breedCreditCost = app.aiEconomicsConfig?.features.breed_recognition?.creditCost ?? 1;
 
   return (
     <SafeAreaProvider>
@@ -180,6 +182,8 @@ export default function App() {
                 onDismissInlineError={() => app.setHealthCheckInlineError('')}
                 analysisCooldownSeconds={app.analysisCooldownSeconds}
                 analyzeDisabled={app.analysisSubmitting}
+                aiCredits={app.aiCredits}
+                aiCreditCost={healthCreditCost}
                 onOpenBreedRecognition={() => app.openBreedRecognition('health-check')}
               />
             ) : null}
@@ -213,6 +217,8 @@ export default function App() {
                 onDismissInlineError={() => app.setHealthCheckInlineError('')}
                 analysisCooldownSeconds={app.analysisCooldownSeconds}
                 analyzeDisabled={app.analysisSubmitting}
+                aiCredits={app.aiCredits}
+                aiCreditCost={healthCreditCost}
                 onOpenBreedRecognition={() => app.openBreedRecognition('onboarding-health-check')}
               />
             ) : null}
@@ -223,6 +229,8 @@ export default function App() {
                 slotUris={app.breedRecognitionSlotUris}
                 result={app.breedRecognitionResult}
                 loading={app.breedRecognitionLoading}
+                aiCredits={app.aiCredits}
+                aiCreditCost={breedCreditCost}
                 onBack={app.closeBreedRecognition}
                 onPickSlot={app.pickBreedRecognitionSlot}
                 onClearSlot={app.clearBreedRecognitionSlot}

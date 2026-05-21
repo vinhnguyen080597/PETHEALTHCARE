@@ -1,5 +1,16 @@
 import { Router } from 'express';
 import multer from 'multer';
+import {
+  attachReservationContext,
+  recordAiUsageEvent,
+  refundAiCredits,
+  reserveAiCredits,
+} from '../services/aiEconomicsService.js';
+import {
+  validateHealthAnalysisPayload,
+  validateTranslationRecords,
+  validateTranslationRequestPayload,
+} from '../services/aiPayloadQualityService.js';
 
 export function createAnalysisRouter(deps) {
   const {
@@ -66,17 +77,9 @@ export function createAnalysisRouter(deps) {
   });
 
   router.post('/translate-display', async (req, res, next) => {
+    let creditReservation = null;
     try {
-      const target = String(req.body?.targetLocale ?? 'vi').toLowerCase();
-      if (!target.startsWith('vi')) {
-        return res.status(400).json({ error: 'Only targetLocale vi is supported', code: 'UNSUPPORTED_LOCALE' });
-      }
-      const idsRaw = req.body?.analysisIds;
-      if (!Array.isArray(idsRaw) || idsRaw.length === 0) {
-        return res.status(400).json({ error: 'analysisIds array required', code: 'INVALID_INPUT' });
-      }
-      const petIdFilter = typeof req.body?.petId === 'string' && req.body.petId.trim() ? req.body.petId.trim() : null;
-      const analysisIds = [...new Set(idsRaw.map((x) => String(x)))].slice(0, 24);
+      const { targetLocale, analysisIds, petIdFilter } = validateTranslationRequestPayload(req.body);
 
       const pending = [];
       for (const id of analysisIds) {
@@ -88,12 +91,33 @@ export function createAnalysisRouter(deps) {
         if (row.display_translations?.vi && typeof row.display_translations.vi === 'object') continue;
         pending.push(row);
       }
+      const pendingRecords = validateTranslationRecords(
+        pending.map((row) => ({ id: row.id, ...extractTranslatablePayload(row) })),
+      );
 
       const viOverlayById = new Map();
       const BATCH = 6;
-      for (let i = 0; i < pending.length; i += BATCH) {
-        const batch = pending.slice(i, i + BATCH);
-        const records = batch.map((r) => ({ id: r.id, ...extractTranslatablePayload(r) }));
+      if (pendingRecords.length > 0) {
+        const reserve = await reserveAiCredits({
+          userId: req.user.id,
+          feature: 'analysis_translation',
+          details: { recordCount: pendingRecords.length },
+          metadata: { analysisCount: pendingRecords.length, targetLocale, qualityGate: 'passed' },
+        });
+        if (!reserve.ok) {
+          return res.status(reserve.status ?? 402).json({
+            error: reserve.error,
+            code: reserve.code,
+            creditBalance: reserve.creditBalance,
+            creditCost: reserve.creditCost,
+            monthlyResetAt: reserve.monthlyResetAt,
+          });
+        }
+        creditReservation = attachReservationContext(reserve, { userId: req.user.id, feature: 'analysis_translation' });
+      }
+
+      for (let i = 0; i < pendingRecords.length; i += BATCH) {
+        const records = pendingRecords.slice(i, i + BATCH);
         let translatedList = [];
         try {
           translatedList = await translateManyAnalysisRecordsToVietnamese(records);
@@ -104,11 +128,12 @@ export function createAnalysisRouter(deps) {
           translatedList.filter((t) => t && typeof t === 'object' && t.id).map((t) => [String(t.id), t]),
         );
 
-        for (const r of batch) {
+        for (const r of records) {
           let pack = byId.get(String(r.id));
           if (!pack || typeof pack !== 'object') {
             try {
-              pack = await translateAnalysisFieldsToVietnamese(extractTranslatablePayload(r));
+              const { id: _recordId, ...payload } = r;
+              pack = await translateAnalysisFieldsToVietnamese(payload);
             } catch {
               continue;
             }
@@ -117,6 +142,17 @@ export function createAnalysisRouter(deps) {
           viOverlayById.set(r.id, viFields);
           await mergeAnalysisDisplayTranslation(req.user.id, r.id, 'vi', viFields);
         }
+      }
+
+      if (pendingRecords.length > 0) {
+        await recordAiUsageEvent({
+          userId: req.user.id,
+          feature: 'analysis_translation',
+          status: 'ok',
+          reservation: creditReservation,
+          estimate: creditReservation?.estimate,
+          metadata: { analysisCount: pendingRecords.length, translatedCount: viOverlayById.size, targetLocale },
+        });
       }
 
       const out = [];
@@ -141,6 +177,17 @@ export function createAnalysisRouter(deps) {
       }
       return res.json({ data: out });
     } catch (err) {
+      await refundAiCredits(creditReservation, 'ai_error_refund');
+      if (creditReservation) {
+        await recordAiUsageEvent({
+          userId: req.user.id,
+          feature: 'analysis_translation',
+          status: 'failed',
+          reservation: creditReservation,
+          estimate: creditReservation.estimate,
+          metadata: { reason: err?.message ?? 'translation failed' },
+        });
+      }
       return next(err);
     }
   });
@@ -155,6 +202,7 @@ export function createAnalysisRouter(deps) {
     async (req, res, next) => {
       let acquiredLockKey = null;
       let requestId = null;
+      let creditReservation = null;
       try {
         const { petId } = req.body;
         requestId = typeof req.body.requestId === 'string' && req.body.requestId.trim() ? req.body.requestId.trim() : null;
@@ -205,6 +253,8 @@ export function createAnalysisRouter(deps) {
         validateImageFile(primary);
         for (const f of extras) validateImageFile(f);
         if (video) validateVideoFile(video);
+        const quality = validateHealthAnalysisPayload({ body: req.body, primary, extras, video });
+        req.body = quality.body;
 
         const cacheKey = buildAnalysisCacheKey({
           userId: req.user.id,
@@ -216,6 +266,14 @@ export function createAnalysisRouter(deps) {
         });
         const cached = getCachedAnalysis(cacheKey);
         if (cached) {
+          await recordAiUsageEvent({
+            userId: req.user.id,
+            petId,
+            feature: 'health_analysis',
+            status: 'ok',
+            cached: true,
+            metadata: { extraPhotos: extras.length, hasVideo: Boolean(video), qualityGate: 'cache_hit' },
+          });
           if (requestId) {
             setAnalysisProgress({
               requestId,
@@ -295,6 +353,33 @@ export function createAnalysisRouter(deps) {
             retryAfterSeconds: rate.retryAfterSeconds,
           });
         }
+
+        const reserve = await reserveAiCredits({
+          userId: req.user.id,
+          feature: 'health_analysis',
+          petId,
+          details: { imageCount: quality.imageCount, hasVideo: quality.hasVideo },
+          metadata: { extraPhotos: extras.length, hasVideo: Boolean(video), qualityGate: 'passed' },
+        });
+        if (!reserve.ok) {
+          if (requestId) {
+            setAnalysisProgress({
+              requestId,
+              userId: req.user.id,
+              stage: 'failed',
+              status: 'failed',
+              message: reserve.error,
+            });
+          }
+          return res.status(reserve.status ?? 402).json({
+            error: reserve.error,
+            code: reserve.code,
+            creditBalance: reserve.creditBalance,
+            creditCost: reserve.creditCost,
+            monthlyResetAt: reserve.monthlyResetAt,
+          });
+        }
+        creditReservation = attachReservationContext(reserve, { userId: req.user.id, feature: 'health_analysis', petId });
         markUserAnalysisAttempt(req.user.id, rate.kept);
         if (requestId) {
           setAnalysisProgress({
@@ -307,7 +392,7 @@ export function createAnalysisRouter(deps) {
 
         const imageFilesForModel = [primary, ...extras];
         const healthAppendix = buildHealthContextAppendix(req.body);
-        const outputLocale = typeof req.body.locale === 'string' && req.body.locale.trim() ? req.body.locale.trim() : 'en';
+        const outputLocale = quality.outputLocale;
         const aiResult = await analyzePetHealthImages(imageFilesForModel, healthAppendix, outputLocale);
         if (requestId) {
           setAnalysisProgress({
@@ -377,6 +462,15 @@ export function createAnalysisRouter(deps) {
         });
 
         markAnalysisCompleted(req.user.id, petId);
+        await recordAiUsageEvent({
+          userId: req.user.id,
+          petId,
+          feature: 'health_analysis',
+          status: 'ok',
+          reservation: creditReservation,
+          estimate: creditReservation?.estimate,
+          metadata: { extraPhotos: extras.length, hasVideo: Boolean(video), outputLocale: normOutLoc },
+        });
         const enrichedData = {
           ...stored,
           status: aiResult.status,
@@ -409,6 +503,18 @@ export function createAnalysisRouter(deps) {
           warnings: storageWarning ? [storageWarning] : [],
         });
       } catch (err) {
+        await refundAiCredits(creditReservation, 'ai_error_refund');
+        if (creditReservation) {
+          await recordAiUsageEvent({
+            userId: req.user.id,
+            petId: typeof req.body?.petId === 'string' ? req.body.petId : null,
+            feature: 'health_analysis',
+            status: 'failed',
+            reservation: creditReservation,
+            estimate: creditReservation.estimate,
+            metadata: { reason: err?.message ?? 'analysis failed' },
+          });
+        }
         if (requestId) {
           setAnalysisProgress({
             requestId,

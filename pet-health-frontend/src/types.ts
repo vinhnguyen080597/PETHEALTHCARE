@@ -16,6 +16,30 @@ export type AuthResponse = {
   } | null;
 };
 
+export type AiCreditAccount = {
+  userId: string;
+  planTier: string;
+  creditBalance: number;
+  monthlyAllowance: number;
+  monthlyResetAt: string;
+  updatedAt?: string;
+};
+
+export type AiEconomicsConfig = {
+  freeMonthlyCredits: number;
+  defaultPlanTier: string;
+  features: Record<
+    string,
+    {
+      feature: string;
+      creditCost: number;
+      estimatedInputTokens: number;
+      estimatedOutputTokens: number;
+      estimatedCostUsd: number;
+    }
+  >;
+};
+
 export type Pet = {
   id: string;
   user_id: string;
