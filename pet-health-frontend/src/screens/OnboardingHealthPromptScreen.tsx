@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +6,6 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -81,7 +79,7 @@ function ServiceCard({
 
   return (
     <View
-      className="rounded-2xl border border-slate-100 bg-white px-4 py-4"
+      className="rounded-2xl border border-slate-100 bg-white px-0 pb-4 pt-0"
       style={{
         width,
         marginRight: CARD_GAP,
@@ -92,10 +90,10 @@ function ServiceCard({
         elevation: 4,
       }}
     >
-      <View className="items-center">
+      <View className="items-center p-0 m-0">
         <Image
           source={item.icon}
-          style={{ width: 100, height: 100 }}
+          style={{ width: 150, height: 150 }}
           contentFit="contain"
           accessibilityIgnoresInvertColors
         />
@@ -123,13 +121,14 @@ export function OnboardingHealthPromptScreen({
 }: OnboardingHealthPromptScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const listRef = useRef<FlatList<ServiceCardConfig>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const horizontalPadding = 20;
-  const cardWidth = Math.round(windowWidth * 0.62);
+  const cardWidth = Math.round(windowWidth * 0.54);
   const snapInterval = cardWidth + CARD_GAP;
+  const heroHeight = Math.min(250, Math.round(windowWidth * 0.62), Math.round(windowHeight * 0.32));
 
   const cardActions = useMemo(
     () =>
@@ -168,27 +167,17 @@ export function OnboardingHealthPromptScreen({
         accessibilityIgnoresInvertColors
       />
 
-      <ScrollView
+      <View
         className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingTop: Math.max(insets.top, 8),
-          paddingBottom: 100 + Math.max(insets.bottom, 12),
+        style={{
+          paddingTop: Math.max(insets.top - 16, 0),
+          paddingBottom: 84 + Math.max(insets.bottom, 12),
         }}
       >
-        <View className="items-center px-5 pb-2">
-          <View className="flex-row items-center gap-2">
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-blue-600">
-              <Ionicons name="paw" size={18} color="#ffffff" />
-            </View>
-            <Text className="text-lg font-bold text-slate-900">{t('login.appName')}</Text>
-          </View>
-        </View>
-
         <View className="w-full items-center px-2" style={{ backgroundColor: 'transparent' }}>
           <Image
             source={SERVICES_HERO_MAI}
-            style={{ width: windowWidth - 24, height: Math.min(280, windowWidth * 0.68) }}
+            style={{ width: windowWidth - 24, height: heroHeight }}
             contentFit="contain"
             cachePolicy="memory-disk"
             accessibilityLabel="Mai with pets"
@@ -196,7 +185,7 @@ export function OnboardingHealthPromptScreen({
         </View>
 
         <View
-          className="mx-4 -mt-6 overflow-hidden rounded-t-3xl bg-white px-5 pb-6 pt-5"
+          className="mx-4 -mt-7 overflow-hidden rounded-3xl bg-white px-5 pb-5 pt-4"
           style={{
             shadowColor: '#0f172a',
             shadowOffset: { width: 0, height: -2 },
@@ -205,13 +194,9 @@ export function OnboardingHealthPromptScreen({
             elevation: 6,
           }}
         >
-          <Text className="text-center text-lg font-bold leading-7 text-slate-900">
-            {t('onboarding.servicesWelcomeTitle')}
-          </Text>
-          <Text className="mt-3 text-center text-[15px] leading-[22px] text-slate-600">
+          <Text className="mb-3 text-center text-[15px] leading-[22px] text-slate-600">
             {t('onboarding.servicesWelcomeBody')}
           </Text>
-
           <FlatList
             ref={listRef}
             data={SERVICE_CARDS}
@@ -232,7 +217,7 @@ export function OnboardingHealthPromptScreen({
             })}
             onScrollToIndexFailed={() => undefined}
             contentContainerStyle={{
-              paddingTop: 20,
+              paddingTop: 4,
               paddingHorizontal: horizontalPadding - 4,
               paddingRight: horizontalPadding + 8,
             }}
@@ -263,7 +248,7 @@ export function OnboardingHealthPromptScreen({
             ))}
           </View>
         </View>
-      </ScrollView>
+      </View>
 
       <View
         className="absolute bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 px-5 pt-3"
