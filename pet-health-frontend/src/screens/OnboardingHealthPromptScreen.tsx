@@ -79,7 +79,7 @@ function ServiceCard({
 
   return (
     <View
-      className="rounded-2xl border border-slate-100 bg-white px-0 pb-4 pt-0"
+      className="rounded-2xl border border-slate-100 bg-white px-4 py-4"
       style={{
         width,
         marginRight: CARD_GAP,
@@ -93,7 +93,7 @@ function ServiceCard({
       <View className="items-center p-0 m-0">
         <Image
           source={item.icon}
-          style={{ width: 150, height: 150 }}
+          style={{ width: 150, height: 130 }}
           contentFit="contain"
           accessibilityIgnoresInvertColors
         />
