@@ -96,9 +96,9 @@
     "removePet": "Xóa thú cưng"
   },
   "onboarding": {
-    "introTitle": "Lời ngỏ",
-    "introBubbleWelcome": "Sen ơi! 👋 Chào mừng bạn đến với Catties Health Care – ngôi nhà chung nơi chúng mình cùng bạn yêu thương, quản lý và bảo vệ sức khỏe cho những người bạn nhỏ của bạn. Hãy để chúng mình cùng đồng hành trên hành trình chăm sóc các bé thật tốt nhé!",
-    "introBubbleClosing": "Ứng dụng có sử dụng trí tuệ nhân tạo (AI), nên các kết quả chỉ là gợi ý, không phải chẩn đoán chính xác.",
+    "introTitle": "Sen ơi!",
+    "introBubbleWelcome": "👋 Chào mừng bạn đến với Catties Health Care. \nNơi chúng mình cùng bạn lưu giữ, theo dõi và chăm sóc sức khỏe cho các bé mỗi ngày.",
+    "introBubbleMission": "Với Catties, mỗi bé thú cưng không chỉ là một người bạn nhỏ, mà là một thành viên trong gia đình. Chúng mình mong được cùng Sen lưu lại từng thay đổi, từng thói quen và từng khoảnh khắc chăm sóc để các bé luôn được yêu thương đúng lúc.",
     "go": "Khám phá ngay",
     "createPetProfile": "Tạo hồ sơ thú cưng",
     "profileGuideByMai": "Sen ơi, hãy giúp Mai điền các thông tin của bé nhé!",

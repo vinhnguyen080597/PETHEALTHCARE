@@ -58,12 +58,15 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
         >
           <View className="items-center">
             <View
-              className="w-full max-w-md rounded-2xl border px-4 py-3"
+              className="w-full max-w-md rounded-3xl border px-5 py-4"
               style={{ backgroundColor: BUBBLE_BG, borderColor: BUBBLE_BORDER }}
             >
-              <Text className="text-center text-[15px] leading-[22px] text-slate-800">{t('onboarding.introBubbleWelcome')}</Text>
-              <Text className="mt-3 text-center text-[15px] font-semibold leading-[22px] text-slate-900">
-                {t('onboarding.introBubbleClosing')}
+              <Text className="text-center text-[15px] font-bold leading-[23px] text-slate-900">
+                {t('onboarding.introBubbleWelcome')}
+              </Text>
+              <View className="mx-auto my-3 h-px w-16 bg-blue-200" />
+              <Text className="text-center text-[15px] font-medium leading-[23px] text-slate-800">
+                {t('onboarding.introBubbleMission')}
               </Text>
             </View>
             <View className="items-center" style={{ marginTop: -1 }}>

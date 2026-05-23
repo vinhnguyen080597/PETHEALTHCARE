@@ -96,9 +96,9 @@
     "removePet": "Remove pet"
   },
   "onboarding": {
-    "introTitle": "Welcome",
-    "introBubbleWelcome": "Hey there! 👋 Welcome to Catties Health Care — a shared home where we join you to love, manage, and protect the health of your little companions. Let’s walk this care journey together and help your pets thrive!",
-    "introBubbleClosing": "This app uses artificial intelligence (AI), so results are suggestions only and not a precise medical diagnosis.",
+    "introTitle": "Hey there!",
+    "introBubbleWelcome": "👋 Welcome to Catties Health Care. \nA place to help you keep, track, and care for your pets' health every day.",
+    "introBubbleMission": "At Catties, every pet is more than a little companion — they are family. We hope to help you keep every change, habit, and care moment close, so your pets can be loved at the right time.",
     "go": "Explore now",
     "createPetProfile": "Create your pet's profile",
     "profileGuideByMai": "Dear pet parent, please help Mai fill in your pet's details.",
