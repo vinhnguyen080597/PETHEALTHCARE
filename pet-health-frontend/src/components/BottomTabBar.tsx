@@ -15,6 +15,9 @@ export function BottomTabBar({ activeScreen, onHome, onHistory, onLogout }: Bott
   return (
     <View className="flex-row border-t border-slate-200 bg-white px-2 py-2">
       <Pressable
+        testID="bottom-tab-home-button"
+        accessibilityRole="button"
+        accessibilityLabel="Open home tab"
         className={`flex-1 items-center rounded-xl py-2 ${activeScreen === 'home' ? 'bg-blue-50' : ''}`}
         onPress={onHome}
       >
@@ -24,6 +27,9 @@ export function BottomTabBar({ activeScreen, onHome, onHistory, onLogout }: Bott
         </Text>
       </Pressable>
       <Pressable
+        testID="bottom-tab-history-button"
+        accessibilityRole="button"
+        accessibilityLabel="Open history tab"
         className={`flex-1 items-center rounded-xl py-2 ${activeScreen === 'history' ? 'bg-blue-50' : ''}`}
         onPress={onHistory}
       >
@@ -32,7 +38,13 @@ export function BottomTabBar({ activeScreen, onHome, onHistory, onLogout }: Bott
           {t('tabs.history')}
         </Text>
       </Pressable>
-      <Pressable className="flex-1 items-center rounded-xl py-2" onPress={onLogout}>
+      <Pressable
+        testID="bottom-tab-logout-button"
+        accessibilityRole="button"
+        accessibilityLabel="Log out"
+        className="flex-1 items-center rounded-xl py-2"
+        onPress={onLogout}
+      >
         <Ionicons name="log-out-outline" size={22} color="#64748b" />
         <Text className="text-xs font-medium text-slate-600">{t('tabs.logout')}</Text>
       </Pressable>

@@ -27,13 +27,49 @@ type CareRecord = {
   updated_at: string;
 };
 
+type Analysis = {
+  id: string;
+  user_id: string;
+  pet_id: string;
+  diagnosis: string;
+  severity: 'low' | 'medium' | 'high';
+  symptoms: string[];
+  treatment: string;
+  confidence: number;
+  disclaimer: string;
+  output_locale?: string | null;
+  display_translations?: Record<string, unknown> | null;
+  image_url: string | null;
+  created_at: string;
+  extra_image_urls?: string[] | null;
+  video_url?: string | null;
+  weight_kg?: number | null;
+  vaccination_status?: string | null;
+  vaccine_type?: string | null;
+  neutering_status?: string | null;
+  medical_history?: string | null;
+  symptom_description?: string | null;
+  status?: 'ok' | 'need_more_data' | 'not_pet_or_unclear' | 'emergency_flag';
+  red_flags?: string[] | null;
+  diagnosis_candidates?: { name: string; confidence: number }[] | null;
+  evidence?: string[] | null;
+  missing_data?: string[] | null;
+  next_action?: {
+    summary?: string;
+    ask_user_to_add?: string[];
+  } | null;
+};
+
 type MockApiState = {
   token: string;
   pets: Pet[];
   careRecords: CareRecord[];
+  analyses: Analysis[];
   creditBalance: number;
   ledger: Array<Record<string, unknown>>;
 };
+
+const API_DELAY_MS = Number(process.env.E2E_API_DELAY_MS ?? 0);
 
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({
@@ -41,6 +77,12 @@ function json(route: Route, body: unknown, status = 200) {
     contentType: 'application/json',
     body: JSON.stringify(body),
   });
+}
+
+async function delay(ms: number) {
+  if (ms > 0) {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
 }
 
 async function bodyJson(route: Route) {
@@ -74,11 +116,42 @@ function defaultCreditAccount(state: MockApiState) {
   };
 }
 
+function createAnalysis(state: MockApiState, petId: string): Analysis {
+  const now = new Date().toISOString();
+  const analysis: Analysis = {
+    id: `analysis-${state.analyses.length + 1}`,
+    user_id: 'e2e-user',
+    pet_id: petId,
+    diagnosis: 'Healthy pet baseline',
+    severity: 'low',
+    symptoms: ['Bright eyes', 'Normal appetite'],
+    treatment: 'Continue routine care and monitor hydration.',
+    confidence: 0.91,
+    disclaimer: 'AI triage is not a substitute for veterinary advice.',
+    output_locale: 'en',
+    image_url: null,
+    created_at: now,
+    status: 'ok',
+    red_flags: [],
+    evidence: ['No urgent visual concerns in the submitted photos.'],
+    missing_data: [],
+    next_action: {
+      summary: 'Keep watching for any behavior changes.',
+      ask_user_to_add: ['Add a note if appetite or energy changes.'],
+    },
+  };
+  state.analyses.unshift(analysis);
+  state.creditBalance = Math.max(0, state.creditBalance - 1);
+  state.ledger.unshift({ id: `ledger-${state.ledger.length + 1}`, reason: 'health_analysis', delta: -1 });
+  return analysis;
+}
+
 export async function installMockApi(page: Page, initial?: Partial<MockApiState>) {
   const state: MockApiState = {
     token: 'e2e-token',
     pets: [],
     careRecords: [],
+    analyses: [],
     creditBalance: 2,
     ledger: [],
     ...initial,
@@ -127,9 +200,82 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
       return pet ? json(route, { data: pet }) : json(route, { error: 'Pet not found' }, 404);
     }
 
+    if (method === 'PUT' && petMatch) {
+      const petId = decodeURIComponent(petMatch[1]);
+      const idx = state.pets.findIndex((p) => p.id === petId);
+      if (idx < 0) return json(route, { error: 'Pet not found' }, 404);
+      const payload = await bodyJson(route);
+      state.pets[idx] = {
+        ...state.pets[idx],
+        name: payload.name !== undefined ? String(payload.name) : state.pets[idx].name,
+        species: payload.species !== undefined ? String(payload.species) : state.pets[idx].species,
+        breed: payload.breed !== undefined ? (payload.breed === null ? null : String(payload.breed)) : state.pets[idx].breed,
+        age: payload.age !== undefined && payload.age !== null ? Number(payload.age) : payload.age === null ? null : state.pets[idx].age,
+        gender: payload.gender !== undefined ? String(payload.gender) : state.pets[idx].gender,
+        avatar_url: payload.avatarUrl !== undefined ? (payload.avatarUrl === null ? null : String(payload.avatarUrl)) : state.pets[idx].avatar_url,
+      };
+      return json(route, { data: state.pets[idx] });
+    }
+
+    if (method === 'DELETE' && petMatch) {
+      const petId = decodeURIComponent(petMatch[1]);
+      state.pets = state.pets.filter((p) => p.id !== petId);
+      state.careRecords = state.careRecords.filter((record) => record.pet_id !== petId);
+      state.analyses = state.analyses.filter((analysis) => analysis.pet_id !== petId);
+      return route.fulfill({ status: 204 });
+    }
+
+    if (method === 'POST' && path === '/pets/upload-avatar') {
+      return json(route, { data: { avatarUrl: 'https://example.test/avatar.jpg' } });
+    }
+
+    if (method === 'GET' && path.startsWith('/analysis/progress/')) {
+      return json(route, {
+        data: {
+          stage: 'done',
+          status: 'done',
+          updatedAt: Date.now(),
+          message: 'Analysis complete',
+        },
+      });
+    }
+
+    if (method === 'POST' && path === '/analysis') {
+      await delay(API_DELAY_MS);
+      const petId = state.pets[0]?.id ?? 'pet-1';
+      const analysis = createAnalysis(state, petId);
+      return json(route, {
+        data: analysis,
+        metadata: { fileType: 'image/jpeg', fileSize: 1024 },
+        warnings: [],
+      });
+    }
+
     const analysisListMatch = path.match(/^\/analysis\/([^/]+)$/);
     if (method === 'GET' && analysisListMatch) {
-      return json(route, { data: [] });
+      const petId = decodeURIComponent(analysisListMatch[1]);
+      return json(route, { data: state.analyses.filter((analysis) => analysis.pet_id === petId) });
+    }
+
+    if (method === 'POST' && path === '/analysis/translate-display') {
+      return json(route, { data: state.analyses });
+    }
+
+    if (method === 'POST' && path === '/breed-recognition') {
+      await delay(API_DELAY_MS);
+      state.creditBalance = Math.max(0, state.creditBalance - 1);
+      state.ledger.unshift({ id: `ledger-${state.ledger.length + 1}`, reason: 'breed_recognition', delta: -1 });
+      return json(route, {
+        data: {
+          primary_hypothesis: 'British Shorthair mix',
+          confidence: 0.87,
+          alternatives: [{ label: 'Domestic Shorthair', confidence: 0.55 }],
+          visible_clues: ['Round face', 'Dense coat'],
+          missing_for_better_id: ['Pedigree document'],
+          notes_for_owner: 'Treat this as a visual estimate, not a pedigree certificate.',
+          disclaimer: 'Breed recognition is an AI estimate and may be wrong.',
+        },
+      });
     }
 
     if (method === 'GET' && path === '/ai-credits/summary') {

@@ -1,8 +1,40 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import { installMockApi } from './fixtures/mockApi';
 
-async function openFreshApp(page: Parameters<typeof installMockApi>[0]) {
+const tinyPng = {
+  name: 'pet-photo.png',
+  mimeType: 'image/png',
+  buffer: Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l8Rk9QAAAABJRU5ErkJggg==',
+    'base64',
+  ),
+};
+
+const seededAnalysis = {
+  id: 'analysis-1',
+  user_id: 'e2e-user',
+  pet_id: 'pet-1',
+  diagnosis: 'Routine wellness check',
+  severity: 'low' as const,
+  symptoms: ['Normal appetite', 'Playful behavior'],
+  treatment: 'Keep routine care and monitor hydration.',
+  confidence: 0.88,
+  disclaimer: 'AI triage is not a substitute for veterinary advice.',
+  output_locale: 'en',
+  image_url: null,
+  created_at: '2026-05-20T09:00:00.000Z',
+  status: 'ok' as const,
+  red_flags: [],
+  evidence: ['No visible emergency signs.'],
+  missing_data: [],
+  next_action: {
+    summary: 'Continue normal monitoring.',
+    ask_user_to_add: ['Add more details if symptoms change.'],
+  },
+};
+
+async function openFreshApp(page: Page) {
   page.on('dialog', (dialog) => dialog.dismiss());
   await page.addInitScript(() => {
     window.localStorage.clear();
@@ -11,51 +43,158 @@ async function openFreshApp(page: Parameters<typeof installMockApi>[0]) {
   await page.goto('/');
 }
 
-async function login(page: Parameters<typeof installMockApi>[0]) {
-  await expect(page.getByTestId('login-email-input')).toBeVisible();
-  await page.getByTestId('login-email-input').fill('e2e@example.com');
-  await page.getByTestId('login-password-input').fill('password123');
-  await page.getByTestId('login-submit-button').click();
-  await expect(page.getByTestId('home-screen')).toBeVisible();
+async function chooseImage(page: Page, testID: string) {
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByTestId(testID).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(tinyPng);
 }
 
-test.describe('Phase 1 Web E2E before', () => {
-  test('creates a pet, adds core care records, and claims an ad credit', async ({ page }) => {
-    await installMockApi(page);
+const EXPECT_DELAY_MS = Number(process.env.E2E_EXPECT_DELAY_MS ?? process.env.E2E_SLOW_MO_MS ?? 0);
+
+async function verify(page: Page, assertion: Promise<void>) {
+  await assertion;
+  if (EXPECT_DELAY_MS > 0) {
+    await page.waitForTimeout(EXPECT_DELAY_MS);
+  }
+}
+
+test.describe('Web feature smoke coverage', () => {
+  test.setTimeout(240_000);
+
+  test('runs the full web feature smoke flow', async ({ page }) => {
+    await installMockApi(page, { analyses: [seededAnalysis], creditBalance: 4 });
     await openFreshApp(page);
 
-    await login(page);
-    await expect(page.getByTestId('home-add-first-pet-button')).toBeVisible();
-    await page.getByTestId('home-add-first-pet-button').click();
+    await test.step('sign up and create first pet', async () => {
+      await verify(page, expect(page.getByTestId('login-email-input')).toBeVisible());
+      await page.getByTestId('language-vietnamese-button').click();
+      await page.getByTestId('language-english-button').click();
 
-    await expect(page.getByTestId('add-pet-name-input')).toBeVisible();
-    await page.getByTestId('add-pet-name-input').fill('Luna');
-    await page.getByTestId('add-pet-breed-input').fill('Poodle');
-    await page.getByTestId('add-pet-age-input').fill('2');
-    await page.getByTestId('add-pet-submit-button').click();
+      await page.getByTestId('signup-mode-button').click();
+      await page.getByTestId('login-email-input').fill('new-user@example.com');
+      await page.getByTestId('login-password-input').fill('password123');
+      await page.getByTestId('login-confirm-password-input').fill('password123');
+      await page.getByTestId('signup-submit-button').click();
 
-    await expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible();
-    await page.getByTestId('onboarding-health-prompt-skip-button').click();
-    await expect(page.getByTestId('home-pet-card-pet-1')).toBeVisible();
-    await expect(page.getByText('Luna')).toBeVisible();
+      await verify(page, expect(page.getByTestId('onboarding-intro-screen')).toBeVisible());
+      await page.getByTestId('onboarding-intro-go-button').click();
+      await verify(page, expect(page.getByTestId('add-pet-name-input')).toBeVisible());
+      await page.getByTestId('add-pet-name-input').fill('Luna');
+      await page.getByTestId('add-pet-species-select').click();
+      await page.getByTestId('add-pet-species-select-option-cat').click();
+      await page.getByTestId('add-pet-breed-input').fill('Domestic Shorthair');
+      await page.getByTestId('add-pet-age-input').fill('2');
+      await page.getByTestId('add-pet-submit-button').click();
 
-    await page.getByTestId('home-core-care-button-pet-1').click();
-    await expect(page.getByTestId('core-care-screen')).toBeVisible();
-    await expect(page.getByText('2 AI credits available.')).toBeVisible();
+      await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
+      await page.getByTestId('onboarding-health-prompt-skip-button').click();
+      await verify(page, expect(page.getByTestId('home-pet-card-pet-1')).toBeVisible());
+      await verify(page, expect(page.getByText('Luna')).toBeVisible());
+    });
 
-    await page.getByTestId('core-care-title-input').fill('Ate breakfast');
-    await page.getByTestId('core-care-note-input').fill('Finished the full bowl and drank water.');
-    await page.getByTestId('core-care-save-record-button').click();
-    await expect(page.getByText('Ate breakfast')).toBeVisible();
+    await test.step('add core care records and claim ad credit', async () => {
+      await page.getByTestId('home-core-care-button-pet-1').click();
+      await verify(page, expect(page.getByTestId('core-care-screen')).toBeVisible());
+      await verify(page, expect(page.getByText('4 AI credits available.')).toBeVisible());
 
-    await page.getByTestId('core-care-type-reminder-button').click();
-    await page.getByTestId('core-care-title-input').fill('Flea medicine');
-    await page.getByTestId('core-care-note-input').fill('Monthly prevention dose.');
-    await page.getByTestId('core-care-due-date-input').fill('2026-06-01T09:00:00Z');
-    await page.getByTestId('core-care-save-record-button').click();
-    await expect(page.getByTestId('core-care-record-record-2').getByText('Flea medicine')).toBeVisible();
+      await page.getByTestId('core-care-title-input').fill('Ate breakfast');
+      await page.getByTestId('core-care-note-input').fill('Finished the full bowl and drank water.');
+      await page.getByTestId('core-care-save-record-button').click();
+      await verify(page, expect(page.getByText('Ate breakfast')).toBeVisible());
 
-    await page.getByTestId('core-care-claim-ad-credit-button').click();
-    await expect(page.getByText('3 AI credits available.')).toBeVisible();
+      await page.getByTestId('core-care-type-reminder-button').click();
+      await page.getByTestId('core-care-title-input').fill('Flea medicine');
+      await page.getByTestId('core-care-note-input').fill('Monthly prevention dose.');
+      await page.getByTestId('core-care-due-date-input').fill('2026-06-01T09:00:00Z');
+      await page.getByTestId('core-care-save-record-button').click();
+      await verify(page, expect(page.getByTestId('core-care-record-record-2').getByText('Flea medicine')).toBeVisible());
+
+      await page.getByTestId('core-care-claim-ad-credit-button').click();
+      await verify(page, expect(page.getByText('5 AI credits available.')).toBeVisible());
+      await page.getByTestId('core-care-back-button').click();
+      await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
+    });
+
+    await test.step('review history and edit profile', async () => {
+      await page.getByTestId('pet-profile-back-button').click();
+      await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
+      await page.getByTestId('home-view-profile-button-pet-1').click();
+      await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
+      await verify(page, expect(page.getByTestId('pet-profile-screen').getByText('Luna', { exact: true }).first()).toBeVisible());
+      await page.getByTestId('pet-profile-history-entry-analysis-1').click();
+      await verify(page, expect(page.getByTestId('results-screen')).toBeVisible());
+      await verify(page, expect(page.getByText('Routine wellness check')).toBeVisible());
+      await page.getByTestId('results-back-button').click();
+      await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
+
+      await page.getByTestId('pet-profile-edit-button').click();
+      await verify(page, expect(page.getByTestId('add-pet-name-input')).toBeVisible());
+      await page.getByTestId('add-pet-name-input').fill('Luna Prime');
+      await page.getByTestId('add-pet-breed-input').fill('Tabby mix');
+      await page.getByTestId('edit-pet-submit-button').click();
+      await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
+      await verify(page, expect(page.getByTestId('pet-profile-screen').getByText('Luna Prime', { exact: true }).first()).toBeVisible());
+      await verify(page, expect(page.getByTestId('pet-profile-screen').getByText('Tabby mix').first()).toBeVisible());
+    });
+
+    await test.step('fill health check and verify breed navigation', async () => {
+      await page.getByTestId('pet-profile-scan-health-button').click();
+      await verify(page, expect(page.getByTestId('health-check-screen')).toBeVisible());
+      await page.getByTestId('health-check-weight-input').fill('4.2');
+      await page.getByTestId('health-check-vaccinated-yes').click();
+      await page.getByTestId('health-check-vaccine-select-button').click();
+      await page.getByTestId('health-check-vaccine-option-cat_rabies').click();
+      await page.getByTestId('health-check-vaccine-done-button').click();
+      await page.getByTestId('health-check-neutered-yes').click();
+      await page.getByTestId('health-check-medical-history-input').fill('No chronic conditions.');
+      await page.getByTestId('health-check-symptoms-input').fill('Routine wellness check.');
+      await page.getByTestId('health-check-open-breed-recognition-button').click();
+      await verify(page, expect(page.getByTestId('breed-recognition-screen')).toBeVisible());
+      await page.getByTestId('breed-recognition-back-button').click();
+      await verify(page, expect(page.getByTestId('health-check-screen')).toBeVisible());
+    });
+
+    await test.step('run health analysis and breed recognition with media uploads', async () => {
+      await chooseImage(page, 'health-check-add-photos-button');
+      await page.getByTestId('health-check-symptoms-input').fill('Eyes look bright, appetite is normal.');
+      await verify(page, expect(page.getByTestId('health-check-start-analysis-button')).toBeEnabled());
+      await page.getByTestId('health-check-start-analysis-button').click();
+      await verify(
+        page,
+        expect(page.getByTestId('analysis-progress-screen').or(page.getByTestId('results-screen')).first()).toBeVisible(),
+      );
+      await verify(page, expect(page.getByTestId('results-screen')).toBeVisible());
+      await verify(page, expect(page.getByText('Healthy pet baseline')).toBeVisible());
+      await page.getByTestId('results-back-button').click();
+      await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
+
+      await page.getByTestId('pet-profile-breed-recognition-button').click();
+      await verify(page, expect(page.getByTestId('breed-recognition-screen')).toBeVisible());
+      await chooseImage(page, 'breed-recognition-pick-photo-face');
+      await chooseImage(page, 'breed-recognition-pick-photo-eyes');
+      await chooseImage(page, 'breed-recognition-pick-photo-coat');
+      await verify(page, expect(page.getByTestId('breed-recognition-analyze-button')).toBeEnabled());
+      await page.getByTestId('breed-recognition-analyze-button').click();
+      await verify(page, expect(page.getByText('British Shorthair mix')).toBeVisible());
+      await page.getByTestId('breed-recognition-apply-profile-button').click();
+      await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
+      await verify(page, expect(page.getByTestId('pet-profile-screen').getByText('British Shorthair mix').first()).toBeVisible());
+    });
+
+    await test.step('use bottom tabs and log out', async () => {
+      await page.getByTestId('pet-profile-back-button').click();
+      await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
+      await page.getByTestId('bottom-tab-history-button').click();
+      await verify(page, expect(page.getByTestId('history-screen')).toBeVisible());
+      await page.getByTestId('history-entry-analysis-1').click();
+      await verify(page, expect(page.getByTestId('results-screen')).toBeVisible());
+      await page.getByTestId('results-back-button').click();
+      await verify(page, expect(page.getByTestId('history-screen')).toBeVisible());
+      await page.getByTestId('bottom-tab-home-button').click();
+      await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
+      await page.getByTestId('bottom-tab-logout-button').click();
+      await verify(page, expect(page.getByTestId('login-email-input')).toBeVisible());
+    });
   });
 });

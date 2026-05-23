@@ -27,7 +27,7 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
   const bubbleScrollMaxHeight = Math.round(windowHeight * 0.44);
 
   return (
-    <View className="flex-1 bg-white">
+    <View testID="onboarding-intro-screen" className="flex-1 bg-white">
       <Image
         source={MAI_AND_PETS}
         style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]}
@@ -97,7 +97,14 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
           backgroundColor: 'rgba(255,255,255,0.88)',
         }}
       >
-        <Pressable className="rounded-xl py-4 active:opacity-90" style={{ backgroundColor: PRIMARY }} onPress={onGo}>
+        <Pressable
+          testID="onboarding-intro-go-button"
+          accessibilityRole="button"
+          accessibilityLabel="Start pet onboarding"
+          className="rounded-xl py-4 active:opacity-90"
+          style={{ backgroundColor: PRIMARY }}
+          onPress={onGo}
+        >
           <Text className="text-center text-base font-bold text-white">{t('onboarding.go')}</Text>
         </Pressable>
       </View>

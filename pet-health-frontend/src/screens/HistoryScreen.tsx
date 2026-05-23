@@ -25,7 +25,7 @@ function severityIconName(severity: Severity) {
 export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
   const { t, i18n } = useTranslation();
   return (
-    <View className="flex-1 bg-gray-50">
+    <View testID="history-screen" className="flex-1 bg-gray-50">
       <View className="border-b border-gray-200 bg-white px-4 py-4">
         <Text className="text-lg font-semibold text-slate-900">{t('history.title')}</Text>
         <Text className="text-sm text-gray-600">{t('history.subtitle')}</Text>
@@ -37,6 +37,9 @@ export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
         ) : (
           history.map((item) => (
             <Pressable
+              testID={`history-entry-${item.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Open health scan ${item.diagnosis}`}
               key={item.id}
               className="mb-3 flex-row gap-3 rounded-xl border border-gray-200 bg-white p-4 active:bg-gray-50"
               onPress={() => onSelectEntry(item)}
