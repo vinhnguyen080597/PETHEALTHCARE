@@ -49,6 +49,10 @@ alter table public.analyses add column if not exists symptom_description text;
 alter table public.analyses add column if not exists output_locale text;
 alter table public.analyses add column if not exists display_translations jsonb not null default '{}'::jsonb;
 
+-- Normalized, policy-checked source of truth for AI health output.
+-- Legacy columns above are retained for compatibility and are derived from this assessment contract.
+alter table public.analyses add column if not exists assessment jsonb not null default '{}'::jsonb;
+
 -- --- Pet RLS: required when the API uses the anon key + user JWT (not service role).
 -- Run this block in the SQL Editor if POST /api/v1/pets fails with row-level security errors.
 alter table public.pets enable row level security;

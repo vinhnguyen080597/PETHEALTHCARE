@@ -32,6 +32,7 @@ type Analysis = {
   user_id: string;
   pet_id: string;
   diagnosis: string;
+  assessment?: Record<string, unknown> | null;
   severity: 'low' | 'medium' | 'high';
   symptoms: string[];
   treatment: string;
@@ -123,6 +124,32 @@ function createAnalysis(state: MockApiState, petId: string): Analysis {
     user_id: 'e2e-user',
     pet_id: petId,
     diagnosis: 'Routine wellness baseline',
+    assessment: {
+      schema_version: 'health_assessment.v1',
+      output_locale: 'en',
+      status: 'ok',
+      severity: 'low',
+      confidence: 0.91,
+      possible_finding: 'Routine wellness baseline',
+      observed_signs: ['Bright eyes', 'Normal appetite'],
+      visual_evidence: ['No urgent visual concerns in the submitted photos.'],
+      missing_data: [],
+      care_guidance: 'Continue routine care, monitor hydration, and contact a veterinarian if signs change.',
+      red_flags: [],
+      next_action: {
+        urgency: 'self_monitor',
+        summary: 'Keep watching for any behavior changes.',
+        ask_user_to_add: ['Add a note if appetite or energy changes.'],
+      },
+      candidates: [],
+      safety: {
+        is_definitive_diagnosis: false,
+        contains_medication_dosage: false,
+        requires_vet_attention: false,
+        disclaimer:
+          'This information is for reference only and does not replace diagnosis or treatment from a licensed veterinarian.',
+      },
+    },
     severity: 'low',
     symptoms: ['Bright eyes', 'Normal appetite'],
     treatment: 'Continue routine care, monitor hydration, and contact a veterinarian if signs change.',

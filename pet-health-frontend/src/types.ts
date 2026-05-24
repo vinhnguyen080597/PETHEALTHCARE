@@ -1,5 +1,6 @@
 export type Severity = 'low' | 'medium' | 'high';
 export type AnalysisStatus = 'ok' | 'need_more_data' | 'not_pet_or_unclear' | 'emergency_flag';
+export type AiHealthUrgency = 'self_monitor' | 'book_vet' | 'urgent_vet' | 'emergency_vet';
 
 export type AuthPayload = {
   email: string;
@@ -130,7 +131,40 @@ export type AnalysisDisplayTranslations = {
     evidence?: string[];
     missing_data?: string[];
     diagnosis_candidates?: { name: string; confidence: number }[];
-    next_action?: { summary?: string; ask_user_to_add?: string[] };
+    next_action?: { summary?: string; ask_user_to_add?: string[]; urgency?: AiHealthUrgency };
+    assessment?: AiHealthAssessmentV1;
+  };
+};
+
+export type AiHealthAssessmentV1 = {
+  schema_version: 'health_assessment.v1';
+  output_locale: 'en' | 'vi';
+  status: AnalysisStatus;
+  severity: Severity;
+  confidence: number;
+  possible_finding: string;
+  observed_signs: string[];
+  visual_evidence: string[];
+  missing_data: string[];
+  care_guidance: string;
+  red_flags: string[];
+  next_action: {
+    urgency: AiHealthUrgency;
+    summary: string;
+    ask_user_to_add: string[];
+  };
+  candidates: {
+    name: string;
+    confidence: number;
+    rationale?: string;
+  }[];
+  safety: {
+    is_definitive_diagnosis: false;
+    contains_medication_dosage: false;
+    requires_vet_attention: boolean;
+    disclaimer: string;
+    policy_fallback?: boolean;
+    reason?: string;
   };
 };
 
@@ -139,6 +173,7 @@ export type Analysis = {
   user_id: string;
   pet_id: string;
   diagnosis: string;
+  assessment?: AiHealthAssessmentV1 | null;
   severity: Severity;
   symptoms: string[];
   treatment: string;
@@ -165,7 +200,21 @@ export type Analysis = {
   next_action?: {
     summary?: string;
     ask_user_to_add?: string[];
+    urgency?: AiHealthUrgency;
   } | null;
+  media?: {
+    image_url: string | null;
+    extra_image_urls: string[];
+    video_url: string | null;
+  };
+  input_context?: {
+    weight_kg: number | null;
+    vaccination_status: 'yes' | 'no' | null;
+    vaccine_type: string | null;
+    neutering_status: 'yes' | 'no' | null;
+    medical_history: string | null;
+    symptom_description: string | null;
+  };
 };
 
 export type AnalyzeResponse = {
@@ -173,6 +222,15 @@ export type AnalyzeResponse = {
   metadata: {
     fileType: string;
     fileSize: number;
+    file_type?: string;
+    file_size?: number;
+    extraPhotos?: number;
+    extra_photos?: number;
+    hasVideo?: boolean;
+    has_video?: boolean;
+    cached?: boolean;
+    requestId?: string;
+    request_id?: string;
   };
   warnings?: string[];
 };

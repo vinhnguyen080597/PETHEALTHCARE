@@ -25,11 +25,17 @@ function getAiClient() {
  */
 export function extractTranslatablePayload(row) {
   const safeArray = (v) => (Array.isArray(v) ? v : []);
-  const next = row?.next_action && typeof row.next_action === 'object' ? row.next_action : {};
+  const assessment = row?.assessment && typeof row.assessment === 'object' ? row.assessment : null;
+  const next =
+    assessment?.next_action && typeof assessment.next_action === 'object'
+      ? assessment.next_action
+      : row?.next_action && typeof row.next_action === 'object'
+        ? row.next_action
+        : {};
   const summary = typeof next.summary === 'string' ? next.summary : '';
   const ask = safeArray(next.ask_user_to_add);
 
-  const candidates = safeArray(row?.diagnosis_candidates)
+  const candidates = safeArray(assessment?.candidates ?? row?.diagnosis_candidates)
     .filter((x) => x && typeof x === 'object')
     .map((x) => ({
       name: typeof x.name === 'string' ? x.name : '',
@@ -37,13 +43,28 @@ export function extractTranslatablePayload(row) {
     }));
 
   return {
-    diagnosis: typeof row?.diagnosis === 'string' ? row.diagnosis : '',
-    symptoms: safeArray(row?.symptoms),
-    treatment: typeof row?.treatment === 'string' ? row.treatment : '',
-    disclaimer: typeof row?.disclaimer === 'string' ? row.disclaimer : '',
-    red_flags: safeArray(row?.red_flags),
-    evidence: safeArray(row?.evidence),
-    missing_data: safeArray(row?.missing_data),
+    diagnosis:
+      typeof assessment?.possible_finding === 'string'
+        ? assessment.possible_finding
+        : typeof row?.diagnosis === 'string'
+          ? row.diagnosis
+          : '',
+    symptoms: safeArray(assessment?.observed_signs ?? row?.symptoms),
+    treatment:
+      typeof assessment?.care_guidance === 'string'
+        ? assessment.care_guidance
+        : typeof row?.treatment === 'string'
+          ? row.treatment
+          : '',
+    disclaimer:
+      typeof assessment?.safety?.disclaimer === 'string'
+        ? assessment.safety.disclaimer
+        : typeof row?.disclaimer === 'string'
+          ? row.disclaimer
+          : '',
+    red_flags: safeArray(assessment?.red_flags ?? row?.red_flags),
+    evidence: safeArray(assessment?.visual_evidence ?? row?.evidence),
+    missing_data: safeArray(assessment?.missing_data ?? row?.missing_data),
     diagnosis_candidates: candidates,
     next_action: {
       summary,

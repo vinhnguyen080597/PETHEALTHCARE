@@ -947,11 +947,15 @@ export function usePetHealthApp() {
         },
       });
       void refreshAiCredits(safeToken);
-      const status = response.data.status;
+      const assessment = response.data.assessment;
+      const status = assessment?.status ?? response.data.status;
       if (status === 'need_more_data' || status === 'not_pet_or_unclear') {
-        const nextSummary = response.data.next_action?.summary?.trim() ?? '';
-        const askMore = response.data.next_action?.ask_user_to_add?.filter(Boolean) ?? [];
-        const missing = response.data.missing_data?.filter(Boolean) ?? [];
+        const nextSummary = assessment?.next_action?.summary?.trim() ?? response.data.next_action?.summary?.trim() ?? '';
+        const askMore =
+          assessment?.next_action?.ask_user_to_add?.filter(Boolean) ??
+          response.data.next_action?.ask_user_to_add?.filter(Boolean) ??
+          [];
+        const missing = assessment?.missing_data?.filter(Boolean) ?? response.data.missing_data?.filter(Boolean) ?? [];
         const detailLines = [nextSummary, ...askMore, ...missing].filter(Boolean).slice(0, 4);
         const details = detailLines.length ? `\n\n- ${detailLines.join('\n- ')}` : '';
         const title =
@@ -970,7 +974,7 @@ export function usePetHealthApp() {
       setAnalysisProgressStage('saving');
       setCurrentResult(response.data);
       setResultImageUri(healthCheckPhotos[0]);
-      const redFlags = response.data.red_flags?.filter(Boolean) ?? [];
+      const redFlags = assessment?.red_flags?.filter(Boolean) ?? response.data.red_flags?.filter(Boolean) ?? [];
       const mergedWarnings = [...(response.warnings ?? []), ...redFlags];
       setWarnings(mergedWarnings);
       const returnToProfileAfterScan = healthCheckReturnToProfile;

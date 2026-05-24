@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseServiceClient } from '../config/supabase.js';
+import { legacyFieldsFromAssessment, normalizeAnalysisRow } from '../services/healthAssessmentContract.js';
 
 const memoryAnalyses = [];
 
@@ -13,6 +14,7 @@ const DISPLAY_MERGE_KEYS = [
   'missing_data',
   'diagnosis_candidates',
   'next_action',
+  'assessment',
 ];
 
 function isMissingOptionalColumnError(error) {
@@ -21,7 +23,7 @@ function isMissingOptionalColumnError(error) {
   return (
     /Could not find the|column .* does not exist|42703/i.test(msg) ||
     (String(error.code) === 'PGRST204' &&
-      /(weight_kg|video_url|extra_image|vaccination|neutering|medical_history|symptom_description|output_locale|display_translations)/i.test(
+      /(weight_kg|video_url|extra_image|vaccination|neutering|medical_history|symptom_description|output_locale|display_translations|assessment)/i.test(
         msg,
       ))
   );
@@ -48,9 +50,36 @@ function stripOptionalHealthFields(row) {
     neutering_status: _ns,
     medical_history: _mh,
     symptom_description: _sd,
+    assessment: _a,
     ...rest
   } = row;
   return rest;
+}
+
+function overlayAssessmentFromLegacy(row) {
+  if (!row?.assessment || typeof row.assessment !== 'object') return row;
+  const legacy = legacyFieldsFromAssessment(row.assessment);
+  const assessment = {
+    ...row.assessment,
+    possible_finding: typeof row.diagnosis === 'string' ? row.diagnosis : legacy.diagnosis,
+    observed_signs: Array.isArray(row.symptoms) ? row.symptoms : legacy.symptoms,
+    care_guidance: typeof row.treatment === 'string' ? row.treatment : legacy.treatment,
+    red_flags: Array.isArray(row.red_flags) ? row.red_flags : legacy.red_flags,
+    visual_evidence: Array.isArray(row.evidence) ? row.evidence : legacy.evidence,
+    missing_data: Array.isArray(row.missing_data) ? row.missing_data : legacy.missing_data,
+    candidates: Array.isArray(row.diagnosis_candidates)
+      ? row.diagnosis_candidates.map((item) => ({ name: item.name, confidence: item.confidence }))
+      : row.assessment.candidates,
+    next_action:
+      row.next_action && typeof row.next_action === 'object'
+        ? { ...row.assessment.next_action, ...row.next_action }
+        : row.assessment.next_action,
+    safety: {
+      ...(row.assessment.safety && typeof row.assessment.safety === 'object' ? row.assessment.safety : {}),
+      disclaimer: typeof row.disclaimer === 'string' ? row.disclaimer : legacy.disclaimer,
+    },
+  };
+  return { ...row, assessment };
 }
 
 /** When reading analyses with UI locale `vi`, merge cached Vietnamese strings from display_translations. */
@@ -62,7 +91,7 @@ export function mergeDisplayLocaleRow(row, displayLocale) {
   for (const k of DISPLAY_MERGE_KEYS) {
     if (pack[k] !== undefined) out[k] = pack[k];
   }
-  return out;
+  return pack.assessment ? out : overlayAssessmentFromLegacy(out);
 }
 
 export async function createAnalysisRecord(payload) {
@@ -76,6 +105,7 @@ export async function createAnalysisRecord(payload) {
     treatment: payload.treatment,
     confidence: payload.confidence,
     disclaimer: payload.disclaimer,
+    assessment: payload.assessment && typeof payload.assessment === 'object' ? payload.assessment : {},
     image_url: payload.imageUrl ?? null,
     extra_image_urls: Array.isArray(payload.extraImageUrls) ? payload.extraImageUrls : [],
     video_url: payload.videoUrl ?? null,
@@ -97,7 +127,7 @@ export async function createAnalysisRecord(payload) {
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
     memoryAnalyses.push(row);
-    return row;
+    return normalizeAnalysisRow(row);
   }
 
   const variants = [
@@ -110,7 +140,7 @@ export async function createAnalysisRecord(payload) {
   let lastError = null;
   for (const attempt of variants) {
     const { data, error } = await supabase.from('analyses').insert(attempt).select('*').single();
-    if (!error) return data;
+    if (!error) return normalizeAnalysisRow(data);
     lastError = error;
     if (!isMissingOptionalColumnError(error)) {
       throw error;
@@ -139,14 +169,15 @@ export async function listAnalysesByPet(userId, petId, displayLocale = null) {
   const loc = typeof displayLocale === 'string' && displayLocale.trim().slice(0, 2).toLowerCase().startsWith('vi')
     ? 'vi'
     : null;
-  if (!loc) return rows;
-  return rows.map((r) => mergeDisplayLocaleRow(r, loc));
+  const merged = loc ? rows.map((r) => mergeDisplayLocaleRow(r, loc)) : rows;
+  return merged.map((r) => normalizeAnalysisRow(r));
 }
 
 export async function getAnalysisByIdForUser(userId, analysisId) {
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
-    return memoryAnalyses.find((x) => x.id === analysisId && x.user_id === userId) ?? null;
+    const row = memoryAnalyses.find((x) => x.id === analysisId && x.user_id === userId) ?? null;
+    return row ? normalizeAnalysisRow(row) : null;
   }
   const { data, error } = await supabase
     .from('analyses')
@@ -155,7 +186,7 @@ export async function getAnalysisByIdForUser(userId, analysisId) {
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
-  return data;
+  return data ? normalizeAnalysisRow(data) : data;
 }
 
 /** Merge `{ vi: {...} }` into display_translations and persist. Returns updated row when possible. */
@@ -171,7 +202,7 @@ export async function mergeAnalysisDisplayTranslation(userId, analysisId, locale
       ...memoryAnalyses[idx],
       display_translations: { ...prev, [localeKey]: partial },
     };
-    return memoryAnalyses[idx];
+    return normalizeAnalysisRow(memoryAnalyses[idx]);
   }
 
   const current = await getAnalysisByIdForUser(userId, analysisId);
@@ -190,8 +221,8 @@ export async function mergeAnalysisDisplayTranslation(userId, analysisId, locale
 
   if (error && isLikelyTranslationColumnMissing(error)) {
     console.warn('[analyses] display_translations column missing; translation not persisted for', analysisId);
-    return current;
+    return current ? normalizeAnalysisRow(current) : current;
   }
   if (error) throw error;
-  return data;
+  return data ? normalizeAnalysisRow(data) : data;
 }

@@ -288,10 +288,15 @@ export function createAnalysisRouter(deps) {
             metadata: {
               fileType: primary.mimetype,
               fileSize: primary.size,
+              file_type: primary.mimetype,
+              file_size: primary.size,
               extraPhotos: extras.length,
+              extra_photos: extras.length,
               hasVideo: Boolean(video),
+              has_video: Boolean(video),
               cached: true,
               cacheAgeSeconds: Math.round(cached.ageMs / 1000),
+              cache_age_seconds: Math.round(cached.ageMs / 1000),
             },
             warnings: ['Returned cached result from the last 24 hours for the same input.'],
           });
@@ -438,9 +443,25 @@ export function createAnalysisRouter(deps) {
         const weightKg = Number.isFinite(weightNum) ? weightNum : null;
         const normOutLoc = typeof outputLocale === 'string' && outputLocale.toLowerCase().startsWith('vi') ? 'vi' : 'en';
 
+        const inputContext = {
+          weight_kg: weightKg,
+          vaccination_status: req.body.vaccinated === 'yes' || req.body.vaccinated === 'no' ? req.body.vaccinated : null,
+          vaccine_type: typeof req.body.vaccineType === 'string' && req.body.vaccineType.trim() ? req.body.vaccineType.trim() : null,
+          neutering_status: req.body.neutered === 'yes' || req.body.neutered === 'no' ? req.body.neutered : null,
+          medical_history:
+            typeof req.body.medicalHistory === 'string' && req.body.medicalHistory.trim()
+              ? req.body.medicalHistory.trim()
+              : null,
+          symptom_description:
+            typeof req.body.symptomDescription === 'string' && req.body.symptomDescription.trim()
+              ? req.body.symptomDescription.trim()
+              : null,
+        };
+
         const stored = await createAnalysisRecord({
           userId: req.user.id,
           petId,
+          assessment: aiResult.assessment,
           diagnosis: aiResult.diagnosis,
           severity: aiResult.severity,
           symptoms: aiResult.symptoms,
@@ -452,14 +473,11 @@ export function createAnalysisRouter(deps) {
           extraImageUrls,
           videoUrl,
           weightKg,
-          vaccinationStatus: req.body.vaccinated === 'yes' || req.body.vaccinated === 'no' ? req.body.vaccinated : null,
-          vaccineType: typeof req.body.vaccineType === 'string' && req.body.vaccineType.trim() ? req.body.vaccineType.trim() : null,
-          neuteringStatus: req.body.neutered === 'yes' || req.body.neutered === 'no' ? req.body.neutered : null,
-          medicalHistory: typeof req.body.medicalHistory === 'string' && req.body.medicalHistory.trim() ? req.body.medicalHistory.trim() : null,
-          symptomDescription:
-            typeof req.body.symptomDescription === 'string' && req.body.symptomDescription.trim()
-              ? req.body.symptomDescription.trim()
-              : null,
+          vaccinationStatus: inputContext.vaccination_status,
+          vaccineType: inputContext.vaccine_type,
+          neuteringStatus: inputContext.neutering_status,
+          medicalHistory: inputContext.medical_history,
+          symptomDescription: inputContext.symptom_description,
         });
 
         markAnalysisCompleted(req.user.id, petId);
@@ -480,12 +498,19 @@ export function createAnalysisRouter(deps) {
         });
         const enrichedData = {
           ...stored,
+          assessment: aiResult.assessment ?? stored.assessment,
           status: aiResult.status,
           red_flags: aiResult.red_flags,
           diagnosis_candidates: aiResult.diagnosis_candidates,
           evidence: aiResult.evidence,
           missing_data: aiResult.missing_data,
           next_action: aiResult.next_action,
+          media: {
+            image_url: imageUrl,
+            extra_image_urls: extraImageUrls,
+            video_url: videoUrl,
+          },
+          input_context: inputContext,
         };
         setCachedAnalysis(cacheKey, enrichedData);
         if (requestId) {
@@ -502,10 +527,15 @@ export function createAnalysisRouter(deps) {
           metadata: {
             fileType: primary.mimetype,
             fileSize: primary.size,
+            file_type: primary.mimetype,
+            file_size: primary.size,
             extraPhotos: extras.length,
+            extra_photos: extras.length,
             hasVideo: Boolean(video),
+            has_video: Boolean(video),
             cached: false,
             ...(requestId ? { requestId } : {}),
+            ...(requestId ? { request_id: requestId } : {}),
           },
           warnings: storageWarning ? [storageWarning] : [],
         });

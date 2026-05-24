@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { legacyFieldsFromAssessment, normalizeHealthAssessment } from './healthAssessmentContract.js';
 
 const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024;
 const SUPPORTED_IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -60,44 +61,6 @@ function getAiClient() {
   return ai;
 }
 
-function clampZeroToOne(value) {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.min(1, value));
-}
-
-function asStringArray(value) {
-  if (!Array.isArray(value)) return [];
-  return value.filter((v) => typeof v === 'string').map((v) => v.trim()).filter(Boolean);
-}
-
-function normalizeStatus(rawStatus, confidence) {
-  const allowed = new Set(['ok', 'need_more_data', 'not_pet_or_unclear', 'emergency_flag']);
-  if (typeof rawStatus === 'string' && allowed.has(rawStatus)) return rawStatus;
-  if (confidence < 0.45) return 'need_more_data';
-  return 'ok';
-}
-
-function normalizeDiagnosisCandidates(value) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((item) => item && typeof item === 'object')
-    .map((item) => ({
-      name: typeof item.name === 'string' ? item.name.trim() : '',
-      confidence: clampZeroToOne(Number(item.confidence)),
-    }))
-    .filter((item) => item.name);
-}
-
-function normalizeNextAction(value) {
-  if (!value || typeof value !== 'object') {
-    return { summary: '', ask_user_to_add: [] };
-  }
-  return {
-    summary: typeof value.summary === 'string' ? value.summary.trim() : '',
-    ask_user_to_add: asStringArray(value.ask_user_to_add),
-  };
-}
-
 export function parseJsonSafely(rawText) {
   const text = String(rawText ?? '').trim();
   const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
@@ -116,34 +79,11 @@ export function parseJsonSafely(rawText) {
   }
 }
 
-function normalizeDiagnosisPayload(raw) {
-  const confidence = clampZeroToOne(Number(raw?.confidence));
-  const status = normalizeStatus(raw?.status, confidence);
-  const nextAction = normalizeNextAction(raw?.next_action);
-
+function normalizeDiagnosisPayload(raw, outputLocale = 'en') {
+  const assessment = normalizeHealthAssessment(raw, outputLocale);
   return {
-    diagnosis: typeof raw?.diagnosis === 'string' ? raw.diagnosis : 'Unable to assess',
-    severity: ['low', 'medium', 'high'].includes(raw?.severity) ? raw.severity : 'medium',
-    symptoms: asStringArray(raw?.symptoms),
-    treatment:
-      typeof raw?.treatment === 'string'
-        ? raw.treatment
-        : 'Monitor your pet closely and consult a veterinarian if signs persist or worsen.',
-    confidence,
-    disclaimer:
-      typeof raw?.disclaimer === 'string'
-        ? raw.disclaimer
-        : 'This AI wellness screening is for early guidance only and is not a veterinary diagnosis. Consult a licensed veterinarian for medical decisions.',
-    // Extended fields for richer UX; kept optional/derived for backward compatibility.
-    status,
-    red_flags: asStringArray(raw?.red_flags),
-    diagnosis_candidates: normalizeDiagnosisCandidates(raw?.diagnosis_candidates),
-    evidence: asStringArray(raw?.evidence),
-    missing_data: asStringArray(raw?.missing_data),
-    next_action: {
-      summary: nextAction.summary,
-      ask_user_to_add: nextAction.ask_user_to_add,
-    },
+    assessment,
+    ...legacyFieldsFromAssessment(assessment),
   };
 }
 
@@ -196,7 +136,7 @@ function buildOutputLanguageBlock(locale) {
     return `
 
 Output language (mandatory for Vietnamese users):
-- Write EVERY human-readable string value in Vietnamese (Tiếng Việt natural, clear): diagnosis, symptoms[], treatment, disclaimer, red_flags[], diagnosis_candidates[].name, evidence[], missing_data[], next_action.summary, next_action.ask_user_to_add[].
+- Write EVERY human-readable string value in Vietnamese (Tiếng Việt natural, clear): possible_finding, observed_signs[], care_guidance, safety.disclaimer, red_flags[], candidates[].name, candidates[].rationale, visual_evidence[], missing_data[], next_action.summary, next_action.ask_user_to_add[].
 - Wording must be cautious: describe "dấu hiệu có thể gặp", "gợi ý chăm sóc tham khảo", and "nên thăm khám thú y" when needed. Do not phrase output as a confirmed diagnosis.
 - Keep ALL JSON keys in English exactly as in the schema above. Enum fields must stay in English tokens only: status (ok|need_more_data|not_pet_or_unclear|emergency_flag), severity (low|medium|high).
 - If the owner wrote notes in another language, you may still respond in Vietnamese.
@@ -268,20 +208,34 @@ Scope:
 
 Required schema:
 {
+  "schema_version": "health_assessment.v1",
+  "output_locale": "en|vi",
   "status": "ok|need_more_data|not_pet_or_unclear|emergency_flag",
-  "diagnosis": "short possible finding or condition; phrase as possible/not confirmed",
   "severity": "low|medium|high",
-  "symptoms": ["observed sign 1", "observed sign 2"],
-  "treatment": "safe care guidance and when to visit a veterinarian",
   "confidence": 0.0,
-  "disclaimer": "This AI wellness screening is for early guidance only and is not a veterinary diagnosis. Consult a licensed veterinarian for medical decisions.",
-  "red_flags": ["optional danger signs"],
-  "diagnosis_candidates": [{"name":"possible candidate, not confirmed","confidence":0.0}],
-  "evidence": ["visual findings from media"],
+  "possible_finding": "short possible finding or condition; phrase as possible/not confirmed",
+  "observed_signs": ["observed sign 1", "observed sign 2"],
+  "visual_evidence": ["visual findings from media"],
   "missing_data": ["what is missing for better assessment"],
+  "care_guidance": "safe temporary care guidance and when to visit a veterinarian",
+  "red_flags": ["optional danger signs"],
   "next_action": {
+    "urgency": "self_monitor|book_vet|urgent_vet|emergency_vet",
     "summary": "what user should do now",
     "ask_user_to_add": ["specific additional photos/data to upload"]
+  },
+  "candidates": [
+    {
+      "name": "possible candidate, not confirmed",
+      "confidence": 0.0,
+      "rationale": "brief visible rationale"
+    }
+  ],
+  "safety": {
+    "is_definitive_diagnosis": false,
+    "contains_medication_dosage": false,
+    "requires_vet_attention": false,
+    "disclaimer": "This information is for reference only and does not replace diagnosis or treatment from a licensed veterinarian."
   }
 }
 
@@ -289,10 +243,11 @@ Rules:
 - confidence must be between 0 and 1.
 - If species is unclear/not dog-cat -> status = "not_pet_or_unclear".
 - If image quality/context is insufficient -> status = "need_more_data".
-- If emergency signs are present -> status = "emergency_flag", severity = "high".
+- If emergency signs are present -> status = "emergency_flag", severity = "high", next_action.urgency = "emergency_vet".
 - If confidence < 0.45, prefer status = "need_more_data" unless emergency.
 - Do not invent findings not visible in media/context.
 - Avoid definitive wording such as "has", "diagnosed with", "confirmed", or exact treatment plans.
+- Do not provide medication dosage, human medication suggestions, injections, antibiotics, or instructions to delay veterinary care.
 - For concerning signs, recommend timely in-person veterinary care instead of home diagnosis.
 - If multiple images are provided, synthesize findings across all views.
 ${healthContextAppendix}
@@ -343,7 +298,7 @@ ${buildOutputLanguageBlock(outputLocale)}
     throw lastError ?? new Error('Failed to analyze image');
   }
 
-  return normalizeDiagnosisPayload(parsedResult);
+  return normalizeDiagnosisPayload(parsedResult, outputLocale);
 }
 
 /** @deprecated path — prefer analyzePetHealthImages with optional extras */
