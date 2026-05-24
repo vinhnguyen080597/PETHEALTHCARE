@@ -75,7 +75,7 @@ function videoExtension(mimetype) {
   return 'mp4';
 }
 
-/** Short diagnosis clips — same bucket, path `userId/petId/videos/...` (≤10s / ≤10MB enforced in route). */
+/** Short health-check clips — same bucket, path `userId/petId/videos/...` (≤10s / ≤10MB enforced in route). */
 export async function storeDiagnosisVideo({ userId, petId, file, accessToken }) {
   const extension = videoExtension(file.mimetype);
   const filePath = `${userId}/${petId}/videos/${Date.now()}-${randomUUID()}.${extension}`;

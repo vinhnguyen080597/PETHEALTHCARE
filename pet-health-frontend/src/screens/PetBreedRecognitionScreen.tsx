@@ -10,8 +10,6 @@ import {
 import type { AiCreditAccount, BreedRecognitionResult, Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
-const INFO_BG = '#E8F1FE';
-const INFO_TEXT = '#1A56B8';
 
 type PetBreedRecognitionScreenProps = {
   pet: Pet;
@@ -42,7 +40,10 @@ export function PetBreedRecognitionScreen({
 }: PetBreedRecognitionScreenProps) {
   const { t } = useTranslation();
 
-  const requiredOk = BREED_RECOGNITION_REQUIRED_SLOTS.every((s) => Boolean(slotUris[s]?.trim()));
+  const completedRequiredSlots = BREED_RECOGNITION_REQUIRED_SLOTS.filter((s) => Boolean(slotUris[s]?.trim()));
+  const missingRequiredSlots = BREED_RECOGNITION_REQUIRED_SLOTS.filter((s) => !slotUris[s]?.trim());
+  const requiredOk = missingRequiredSlots.length === 0;
+  const missingRequiredText = missingRequiredSlots.map((slot) => t(`breedRecognition.slots.${slot}.title`)).join(', ');
   const hasInsufficientCredits = Boolean(aiCredits && aiCredits.creditBalance < aiCreditCost);
   const canAnalyze = requiredOk && !loading && !hasInsufficientCredits;
 
@@ -67,144 +68,118 @@ export function PetBreedRecognitionScreen({
         className="flex-1 px-5"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingTop: 14, paddingBottom: 150 }}
       >
-        <Text className="mb-1 text-base font-semibold text-slate-900">{pet.name}</Text>
-        <Text className="mb-4 text-sm text-slate-500">{t('breedRecognition.subtitle')}</Text>
-
-        <View className="mb-4 rounded-xl px-4 py-3" style={{ backgroundColor: INFO_BG }}>
-          <Text className="text-sm font-bold" style={{ color: INFO_TEXT }}>
-            {t('breedRecognition.purposeTitle')}
-          </Text>
-          <Text className="mt-2 text-sm leading-5" style={{ color: INFO_TEXT }}>
-            {t('breedRecognition.purposeBody')}
-          </Text>
-        </View>
-
-        <View className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <Text className="text-sm font-bold text-amber-900">{t('breedRecognition.accuracyTitle')}</Text>
-          <Text className="mt-2 text-sm leading-5 text-amber-900">{t('breedRecognition.accuracyBody')}</Text>
-        </View>
-
-        <View className="mb-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <Text className="text-sm font-bold text-slate-800">{t('breedRecognition.requirementsTitle')}</Text>
-          <Text className="mt-2 text-sm leading-5 text-slate-700">{t('breedRecognition.requirementsBody')}</Text>
-        </View>
-
-        {aiCredits ? (
-          <View className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-            <View className="flex-row items-center gap-2">
-              <Ionicons name="wallet-outline" size={18} color={PRIMARY} />
-              <Text className="text-sm font-bold text-slate-900">{t('aiCredits.cardTitle')}</Text>
+        <View className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+          <View className="flex-row items-start justify-between gap-3">
+            <View className="min-w-0 flex-1">
+              <Text className="text-base font-bold text-slate-900">{pet.name}</Text>
+              <Text className="mt-1 text-sm leading-5 text-slate-700">{t('breedRecognition.quickGuide')}</Text>
             </View>
-            <Text className="mt-2 text-sm leading-5 text-slate-700">
-              {t('aiCredits.remaining', {
-                remaining: aiCredits.creditBalance,
-                allowance: aiCredits.monthlyAllowance,
-              })}{' '}
-              {t('aiCredits.breedCost', { cost: aiCreditCost })}
-            </Text>
-            {hasInsufficientCredits ? (
-              <View>
-                <Text className="mt-2 text-sm font-semibold text-amber-900">{t('aiCredits.outOfCredits')}</Text>
-                <View className="mt-3 flex-row flex-wrap gap-2">
-                  {['rewardedAd', 'topUp', 'subscription'].map((key) => (
-                    <Text key={key} className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
-                      {t(`aiCredits.prompts.${key}`)}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            ) : null}
+            <View className="rounded-full bg-white px-3 py-1">
+              <Text className="text-xs font-bold" style={{ color: PRIMARY }}>
+                {t('breedRecognition.requiredProgress', {
+                  done: completedRequiredSlots.length,
+                  total: BREED_RECOGNITION_REQUIRED_SLOTS.length,
+                })}
+              </Text>
+            </View>
+          </View>
+          <View className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+            <View
+              className="h-full rounded-full"
+              style={{
+                width: `${(completedRequiredSlots.length / BREED_RECOGNITION_REQUIRED_SLOTS.length) * 100}%`,
+                backgroundColor: PRIMARY,
+              }}
+            />
+          </View>
+        </View>
+
+        <View className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <Text className="text-sm font-bold text-amber-950">{t('breedRecognition.noteTitle')}</Text>
+          <Text className="mt-1 text-sm leading-5 text-amber-900">{t('breedRecognition.noteBody')}</Text>
+        </View>
+
+        {aiCredits && hasInsufficientCredits ? (
+          <View className="mb-4 rounded-xl border border-amber-200 bg-white px-4 py-3">
+            <Text className="text-sm font-semibold text-amber-900">{t('aiCredits.outOfCredits')}</Text>
           </View>
         ) : null}
 
         <Text className="mb-3 text-base font-bold text-slate-900">{t('breedRecognition.photoSectionTitle')}</Text>
 
-        {BREED_RECOGNITION_SLOT_ORDER.map((slot) => {
-          const required = BREED_RECOGNITION_REQUIRED_SLOTS.includes(slot);
-          const uri = slotUris[slot]?.trim();
-          return (
-            <View key={slot} className="mb-4">
-              <View className="mb-1 flex-row flex-wrap items-center gap-2">
-                <Text className="text-sm font-semibold text-slate-900">{t(`breedRecognition.slots.${slot}.title`)}</Text>
-                <Text
-                  className="rounded-full px-2 py-0.5 text-xs font-semibold"
-                  style={{
-                    backgroundColor: required ? `${PRIMARY}22` : '#e2e8f0',
-                    color: required ? PRIMARY : '#64748b',
-                  }}
-                >
-                  {required ? t('breedRecognition.requiredBadge') : t('breedRecognition.optionalBadge')}
-                </Text>
-              </View>
-              <Text className="mb-2 text-xs leading-5 text-slate-600">{t(`breedRecognition.slots.${slot}.hint`)}</Text>
-              <View className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
-                {uri ? (
-                  <View>
-                    <Image source={{ uri }} className="h-44 w-full" contentFit="cover" />
-                    <View className="flex-row justify-end gap-4 border-t border-gray-200 bg-white px-3 py-2">
-                      <Pressable
-                        testID={`breed-recognition-change-photo-${slot}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Change ${slot} photo`}
-                        onPress={() => onPickSlot(slot)}
-                        hitSlop={6}
+        <View className="gap-3">
+          {BREED_RECOGNITION_SLOT_ORDER.map((slot) => {
+            const required = BREED_RECOGNITION_REQUIRED_SLOTS.includes(slot);
+            const uri = slotUris[slot]?.trim();
+            return (
+              <View key={slot} className="rounded-2xl border border-gray-200 bg-white p-3">
+                <View className="mb-2 flex-row items-start justify-between gap-3">
+                  <View className="min-w-0 flex-1">
+                    <View className="flex-row flex-wrap items-center gap-2">
+                      <Text className="text-sm font-bold text-slate-900">{t(`breedRecognition.slots.${slot}.title`)}</Text>
+                      <Text
+                        className="rounded-full px-2 py-0.5 text-xs font-semibold"
+                        style={{
+                          backgroundColor: required ? `${PRIMARY}18` : '#eef2f7',
+                          color: required ? PRIMARY : '#64748b',
+                        }}
                       >
-                        <Text className="text-sm font-semibold" style={{ color: PRIMARY }}>
-                          {t('breedRecognition.changePhoto')}
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        testID={`breed-recognition-clear-photo-${slot}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Remove ${slot} photo`}
-                        onPress={() => onClearSlot(slot)}
-                        hitSlop={6}
-                      >
-                        <Text className="text-sm font-semibold text-slate-500">{t('breedRecognition.removePhoto')}</Text>
-                      </Pressable>
+                        {required ? t('breedRecognition.requiredBadge') : t('breedRecognition.optionalBadge')}
+                      </Text>
                     </View>
+                    <Text className="mt-1 text-xs leading-5 text-slate-500">{t(`breedRecognition.slots.${slot}.hint`)}</Text>
                   </View>
+                  {uri ? (
+                    <Pressable
+                      testID={`breed-recognition-clear-photo-${slot}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${slot} photo`}
+                      className="rounded-full bg-slate-100 px-3 py-1.5"
+                      onPress={() => onClearSlot(slot)}
+                    >
+                      <Text className="text-xs font-semibold text-slate-600">{t('breedRecognition.removePhoto')}</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+
+                {uri ? (
+                  <Pressable
+                    testID={`breed-recognition-change-photo-${slot}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Change ${slot} photo`}
+                    className="overflow-hidden rounded-xl border border-gray-200 active:opacity-90"
+                    onPress={() => onPickSlot(slot)}
+                  >
+                    <Image source={{ uri }} className="h-28 w-full" contentFit="cover" />
+                    <View className="bg-white px-3 py-2">
+                      <Text className="text-center text-sm font-semibold" style={{ color: PRIMARY }}>
+                        {t('breedRecognition.changePhoto')}
+                      </Text>
+                    </View>
+                  </Pressable>
                 ) : (
                   <Pressable
                     testID={`breed-recognition-pick-photo-${slot}`}
                     accessibilityRole="button"
                     accessibilityLabel={`Pick ${slot} photo`}
                     onPress={() => onPickSlot(slot)}
-                    className="min-h-[120px] items-center justify-center py-6 active:bg-gray-100"
+                    className="min-h-[88px] items-center justify-center rounded-xl border border-dashed border-gray-300 bg-slate-50 active:bg-gray-100"
                   >
-                    <Ionicons name="camera-outline" size={32} color="#64748b" />
-                    <Text className="mt-2 text-sm font-semibold" style={{ color: PRIMARY }}>
+                    <Ionicons name="camera-outline" size={28} color="#64748b" />
+                    <Text className="mt-1 text-sm font-semibold" style={{ color: PRIMARY }}>
                       {t('breedRecognition.pickPhoto')}
                     </Text>
                   </Pressable>
                 )}
               </View>
-            </View>
-          );
-        })}
-
-        <Pressable
-          testID="breed-recognition-analyze-button"
-          accessibilityRole="button"
-          accessibilityLabel="Analyze breed"
-          className={`mt-2 flex-row items-center justify-center gap-2 rounded-xl py-4 ${canAnalyze ? 'active:opacity-90' : 'opacity-45'}`}
-          style={{ backgroundColor: PRIMARY }}
-          onPress={onAnalyze}
-          disabled={!canAnalyze}
-        >
-          {loading ? <ActivityIndicator color="#fff" /> : null}
-          <Text className="text-center text-base font-bold text-white">
-            {loading ? t('breedRecognition.analyzing') : t('breedRecognition.analyze')}
-          </Text>
-        </Pressable>
-        {!requiredOk ? (
-          <Text className="mt-2 text-center text-xs text-slate-500">{t('breedRecognition.needRequiredPhotos')}</Text>
-        ) : null}
+            );
+          })}
+        </View>
 
         {result ? (
-          <View className="mt-8 rounded-xl border border-slate-200 bg-white p-4">
+          <View className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
             <Text className="text-base font-bold text-slate-900">{t('breedRecognition.resultTitle')}</Text>
             <Text className="mt-3 text-base leading-6 text-slate-800">{result.primary_hypothesis}</Text>
             <Text className="mt-2 text-sm text-slate-600">
@@ -256,6 +231,38 @@ export function PetBreedRecognitionScreen({
           </View>
         ) : null}
       </ScrollView>
+
+      <View className="border-t border-gray-200 bg-white px-5 pb-5 pt-3">
+        {aiCredits ? (
+          <Text className="mb-2 text-center text-xs text-slate-500">
+            {t('breedRecognition.creditLine', {
+              remaining: aiCredits.creditBalance,
+              cost: aiCreditCost,
+            })}
+          </Text>
+        ) : null}
+        <Pressable
+          testID="breed-recognition-analyze-button"
+          accessibilityRole="button"
+          accessibilityLabel="Analyze breed"
+          className={`mt-2 flex-row items-center justify-center gap-2 rounded-xl py-4 ${canAnalyze ? 'active:opacity-90' : 'opacity-45'}`}
+          style={{ backgroundColor: PRIMARY }}
+          onPress={onAnalyze}
+          disabled={!canAnalyze}
+        >
+          {loading ? <ActivityIndicator color="#fff" /> : null}
+          <Text className="text-center text-base font-bold text-white">
+            {loading ? t('breedRecognition.analyzing') : t('breedRecognition.analyze')}
+          </Text>
+        </Pressable>
+        {!requiredOk ? (
+          <Text className="mt-2 text-center text-xs text-slate-500">
+            {missingRequiredText
+              ? t('breedRecognition.needRequiredPhotosWithList', { photos: missingRequiredText })
+              : t('breedRecognition.needRequiredPhotos')}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }

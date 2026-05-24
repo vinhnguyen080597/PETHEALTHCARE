@@ -142,7 +142,7 @@ export function PetProfileScreen({
           <Pressable
             testID="pet-profile-scan-health-button"
             accessibilityRole="button"
-            accessibilityLabel={`Scan health for ${pet.name}`}
+            accessibilityLabel={`Start health check for ${pet.name}`}
             className="mt-6 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
             style={{ backgroundColor: PRIMARY_BLUE }}
             onPress={onScanHealth}
@@ -207,7 +207,7 @@ export function PetProfileScreen({
               <Pressable
                 testID={`pet-profile-history-entry-${item.id}`}
                 accessibilityRole="button"
-                accessibilityLabel={`Open health scan ${item.diagnosis}`}
+                accessibilityLabel={`Open health check ${item.diagnosis}`}
                 key={item.id}
                 className="flex-row gap-3 rounded-xl border border-gray-200 bg-white p-4 active:bg-gray-50"
                 onPress={() => onSelectEntry(item)}

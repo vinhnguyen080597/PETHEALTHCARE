@@ -81,6 +81,7 @@ export function ResultsScreen({
           <View className="mb-2 flex-row items-center gap-3">
             <Ionicons name={icon.name} size={24} color={icon.color} />
             <View className="flex-1">
+              <Text className="mb-0.5 text-xs font-semibold uppercase opacity-70">{t('results.possibleFinding')}</Text>
               <Text className="text-lg font-semibold capitalize">{result.diagnosis}</Text>
               <Text className="text-sm opacity-80">{t('results.severity', { level: severityLabel })}</Text>
             </View>
@@ -175,7 +176,10 @@ export function ResultsScreen({
             <Ionicons name="warning-outline" size={20} color="#d97706" style={{ marginTop: 2 }} />
             <View className="flex-1">
               <Text className="mb-1 text-sm font-semibold text-amber-900">{t('results.importantDisclaimer')}</Text>
-              <Text className="text-xs leading-relaxed text-amber-800">{result.disclaimer}</Text>
+              <Text className="text-xs leading-relaxed text-amber-800">{t('results.fixedDisclaimer')}</Text>
+              {result.disclaimer ? (
+                <Text className="mt-2 text-xs leading-relaxed text-amber-800">{result.disclaimer}</Text>
+              ) : null}
             </View>
           </View>
         </View>

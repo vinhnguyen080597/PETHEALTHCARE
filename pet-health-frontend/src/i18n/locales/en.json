@@ -8,7 +8,7 @@
     "ok": "OK",
     "yes": "Yes",
     "no": "No",
-    "confidence": "{{pct}}% confidence",
+    "confidence": "{{pct}}% estimated AI confidence",
     "unknownError": "Unknown error",
     "somethingWentWrong": "Something went wrong"
   },
@@ -22,8 +22,8 @@
     "offline": "Backend unreachable — check LOCAL_IP in src/config.ts"
   },
   "login": {
-    "appName": "Catties Health Care",
-    "tagline": "Your pet's health assistant powered by Catties",
+    "appName": "Pet Health Care",
+    "tagline": "Your pet wellness companion",
     "createAccount": "Create Account",
     "welcomeBack": "Welcome Back",
     "email": "Email",
@@ -49,17 +49,17 @@
     "logout": "Logout"
   },
   "header": {
-    "appName": "Catties Health Care",
-    "tagline": "Your pet's health assistant powered by Catties"
+    "appName": "Pet Health Care",
+    "tagline": "Your pet wellness companion"
   },
   "home": {
     "title": "My Pets",
     "addPet": "Add Pet",
     "noPetsTitle": "No pets yet",
-    "noPetsBody": "Add a pet to start tracking health scans.",
+    "noPetsBody": "Add a pet to start tracking health checks.",
     "addFirstPet": "Add Your First Pet",
     "pullToRefresh": "Pull down to refresh",
-    "scanHealth": "Scan Health",
+    "scanHealth": "Health Check",
     "viewProfile": "View Profile",
     "openCoreCare": "Care records & reminders",
     "petFallback": "Pet",
@@ -97,18 +97,18 @@
   },
   "onboarding": {
     "introTitle": "Hey there!",
-    "introBubbleWelcome": "👋 Welcome to Catties Health Care. \nA place to help you keep, track, and care for your pets' health every day.",
-    "introBubbleMission": "At Catties, every pet is more than a little companion — they are family. We hope to help you keep every change, habit, and care moment close, so your pets can be loved at the right time.",
+    "introBubbleWelcome": "👋 Welcome to Pet Health Care. \nA place to help you keep, track, and care for your pets' health every day.",
+    "introBubbleMission": "At Pet Health Care, every pet is more than a little companion — they are family. We hope to help you keep every change, habit, and care moment close, so your pets can be loved at the right time.",
     "go": "Explore now",
     "createPetProfile": "Create your pet's profile",
     "profileGuideByMai": "Dear pet parent, please help Mai fill in your pet's details.",
-    "servicesWelcomeTitle": "Welcome to the Catties ecosystem! 👋",
-    "servicesWelcomeBody": "Catties uses AI technology. 🐾 As we improve the app every day, please forgive any mistakes and share your feedback so we can make it better!",
+    "servicesWelcomeTitle": "Welcome to Pet Health Care! 👋",
+    "servicesWelcomeBody": "Pet Health Care uses AI technology for early guidance only. 🐾 It does not replace a veterinarian; if your pet shows serious signs, please seek in-person veterinary care.",
     "serviceBreedTitle": "AI breed recognition",
-    "serviceBreedDesc": "AI analyzes photos to suggest breeds and coat patterns for hundreds of dog and cat types.",
+    "serviceBreedDesc": "AI analyzes photos to suggest dog/cat breed and coat patterns as a reference.",
     "serviceBreedCta": "Explore now",
-    "serviceHealthTitle": "AI health check",
-    "serviceHealthDesc": "Spot early health signs from photos with preliminary AI-assisted triage.",
+    "serviceHealthTitle": "AI wellness screening",
+    "serviceHealthDesc": "AI reviews photos for early health signs and guidance. It does not replace a veterinarian.",
     "serviceHealthCta": "Check now",
     "serviceVaccineTitle": "Vaccines & reminders",
     "serviceVaccineDesc": "Track vaccination records digitally and get smart schedule reminders.",
@@ -116,9 +116,9 @@
     "maybeLater": "Maybe later"
   },
   "healthCheck": {
-    "title": "Health Check for {{name}}",
+    "title": "Wellness Screening for {{name}}",
     "petFallback": "Pet",
-    "infoBanner": "Provide clear photos to help Catties diagnose your pet as accurately as possible like Face, Ear, Eye, Body... Let's get started!",
+    "infoBanner": "Upload clear photos so Pet Health Care can support an early wellness screening: face, ears, eyes, body... Results are for guidance only.",
     "photos": "Photos",
     "required": "*",
     "uploadPhotos": "Upload Photos",
@@ -134,11 +134,11 @@
     "enterWeight": "Enter weight in kg",
     "vaccination": "Vaccination Status",
     "neutering": "Neutering/Spaying Status",
-    "medicalHistory": "Medical History (if applicable)",
-    "medicalHistoryPlaceholder": "e.g., known drug allergies or previous conditions like skin fungus.",
-    "symptoms": "Symptom Description",
+    "medicalHistory": "Health history (if applicable)",
+    "medicalHistoryPlaceholder": "e.g., known drug allergies or previous skin issues.",
+    "symptoms": "Observed signs or concerns",
     "symptomsPlaceholder": "Describe your pet's condition further (e.g., loss of appetite, lethargy, frequent scratching...)",
-    "startAnalysis": "Start Analysis",
+    "startAnalysis": "Start check",
     "photoRequiredError": "* Please upload at least one photo",
     "enterVaccineType": "Enter vaccine type",
     "vaccineTypeLabel": "Vaccines received",
@@ -180,12 +180,17 @@
         "detail": "Optional; helps protect against FeLV-related disease."
       }
     },
-    "cooldownHint": "Please wait {{seconds}}s before starting another analysis.",
-    "analysisBusyHint": "An analysis is running. Please wait for it to complete."
+    "cooldownHint": "Please wait {{seconds}}s before starting another check.",
+    "analysisBusyHint": "A health check is being processed. Please wait for it to complete."
   },
   "breedRecognition": {
     "title": "Breed hint (preliminary)",
     "subtitle": "Cats and dogs — optional extra context for health checks.",
+    "quickGuide": "Add 3 clear photos: face, eyes, and coat/pattern. Add full-body or pedigree photos if available for a better result.",
+    "requiredProgress": "{{done}}/{{total}} required",
+    "noteTitle": "Before you use this",
+    "noteBody": "This is a preliminary appearance-based suggestion and may be wrong for mixed or unknown-lineage pets. You can always edit the profile manually.",
+    "creditLine": "{{remaining}} credits left. Breed recognition costs {{cost}} credit.",
     "purposeTitle": "Purpose",
     "purposeBody": "This page collects angle-specific photos (similar to pedigree-style intake) so AI can suggest breed / coat pattern preliminarily. It does not replace a veterinary exam or health analysis.",
     "accuracyTitle": "Accuracy and limits",
@@ -201,6 +206,7 @@
     "analyze": "Get suggestion",
     "analyzing": "Analyzing…",
     "needRequiredPhotos": "Please add all three required photos: face, eyes, coat/pattern.",
+    "needRequiredPhotosWithList": "Still needed: {{photos}}.",
     "resultTitle": "Preliminary result",
     "confidenceLabel": "Estimated confidence: {{pct}}%",
     "alternativesTitle": "Other possibilities",
@@ -221,33 +227,35 @@
     }
   },
   "analysisProgress": {
-    "title": "Analyzing health check",
+    "title": "Reviewing wellness signs",
     "subtitle": "Please wait while we process {{name}}'s data.",
-    "failedTitle": "Analysis failed",
-    "failedBody": "We could not complete this analysis. Please try again.",
+    "failedTitle": "Health check failed",
+    "failedBody": "We could not complete this check. Please try again.",
     "stages": {
       "uploading": "Uploading media",
-      "analyzing": "AI is analyzing symptoms",
+      "analyzing": "AI is reviewing signs from photos and notes",
       "saving": "Saving result"
     }
   },
   "results": {
-    "analysisResults": "Analysis Results",
+    "analysisResults": "Screening Results",
     "petCheck": "Your pet's check",
-    "onboardingSubtitle": "Here is what we found — tap Finish when you are ready.",
-    "aiTriage": "AI-assisted triage",
+    "onboardingSubtitle": "Here is the early guidance — tap Finish when you are ready.",
+    "aiTriage": "AI-assisted wellness screening",
     "severity": "Severity: {{level}}",
-    "confidence": "Confidence",
-    "identifiedSymptoms": "Identified Symptoms",
-    "recommendedTreatment": "Recommended Treatment",
+    "confidence": "Estimated AI confidence",
+    "possibleFinding": "Possible finding",
+    "identifiedSymptoms": "Observed signs",
+    "recommendedTreatment": "Care guidance",
     "visualEvidence": "Visual Evidence",
     "missingData": "Missing Data",
     "nextAction": "Next Action",
     "needMoreDataTitle": "More data recommended",
     "needMoreDataBody": "This result has low certainty. Please add clearer photos or more context.",
     "emergencyTitle": "Emergency warning",
-    "emergencyBody": "Potential high-risk signs detected. Seek in-person veterinary care as soon as possible.",
+    "emergencyBody": "Potential high-risk signs are present. Please take your pet to the nearest veterinary clinic immediately.",
     "importantDisclaimer": "Important Disclaimer",
+    "fixedDisclaimer": "This information is for reference only and does not replace diagnosis or treatment from a licensed veterinarian.",
     "finish": "Finish"
   },
   "severity": {
@@ -256,8 +264,8 @@
     "high": "high"
   },
   "history": {
-    "title": "Diagnostic History",
-    "subtitle": "All previous scans — tap a row for details",
+    "title": "Health Check History",
+    "subtitle": "All previous checks — tap a row for details",
     "empty": "No history yet."
   },
   "profile": {
@@ -268,11 +276,11 @@
     "age": "Age",
     "gender": "Gender",
     "ageNotSet": "Age not set",
-    "scanHealth": "Scan health",
+    "scanHealth": "Health Check",
     "healthSection": "Health",
-    "healthHint": "Recent scans for {{name}} — tap a row for details",
-    "noHealthScans": "No health scans yet.",
-    "noHealthScansHint": "Use Scan health above to run a check.",
+    "healthHint": "Recent checks for {{name}} — tap a row for details",
+    "noHealthScans": "No health checks yet.",
+    "noHealthScansHint": "Use Health Check above to start.",
     "openCoreCare": "Care records & reminders",
     "dashGender": "—"
   },
@@ -336,7 +344,7 @@
   "aiCredits": {
     "cardTitle": "AI credits",
     "remaining": "{{remaining}} / {{allowance}} credits left this month.",
-    "healthCheckCost": "Health check costs {{cost}} credit.",
+    "healthCheckCost": "Wellness check costs {{cost}} credit.",
     "breedCost": "Breed recognition costs {{cost}} credit.",
     "outOfCredits": "You are out of AI credits. Watch an ad, buy a credit pack, or wait for the monthly reset.",
     "prompts": {
@@ -475,7 +483,7 @@
       "message": "Please sign in and select a pet."
     },
     "analyzeFailed": {
-      "title": "Analyze failed",
+      "title": "Health check failed",
       "message": "{{message}}"
     },
     "analysisNeedMoreData": {
@@ -491,7 +499,7 @@
       "message": "Your last check just finished. You can start a new one in {{seconds}} seconds."
     },
     "analysisInProgressFriendly": {
-      "title": "Analysis is in progress",
+      "title": "Health check in progress",
       "message": "We are still processing your current check. Please wait a moment."
     },
     "analysisRateLimitFriendly": {

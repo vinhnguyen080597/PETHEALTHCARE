@@ -30,7 +30,7 @@ function formatPetSubtitle(pet: Pet, t: (key: string, opts?: Record<string, unkn
   return `${breedPart} • ${agePart}`;
 }
 
-/** Home list — aligned with `figma/UI/Home.PNG`: My Pets header, cards with Scan Health + View Profile only. */
+/** Home list — aligned with `figma/UI/Home.PNG`: My Pets header, cards with Health Check + View Profile only. */
 export function HomeScreen({
   pets,
   refreshing,
@@ -114,7 +114,7 @@ export function HomeScreen({
                 <Pressable
                   testID={`home-scan-health-button-${pet.id}`}
                   accessibilityRole="button"
-                  accessibilityLabel={`Scan health for ${pet.name}`}
+                  accessibilityLabel={`Start health check for ${pet.name}`}
                   className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
                   style={{ backgroundColor: PRIMARY_BLUE }}
                   onPress={() => onStartScan(pet.id)}

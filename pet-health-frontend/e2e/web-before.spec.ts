@@ -18,9 +18,10 @@ const seededAnalysis = {
   diagnosis: 'Routine wellness check',
   severity: 'low' as const,
   symptoms: ['Normal appetite', 'Playful behavior'],
-  treatment: 'Keep routine care and monitor hydration.',
+  treatment: 'Keep routine care, monitor hydration, and contact a veterinarian if signs change.',
   confidence: 0.88,
-  disclaimer: 'AI triage is not a substitute for veterinary advice.',
+  disclaimer:
+    'This AI wellness screening is for early guidance only and is not a veterinary diagnosis. Consult a licensed veterinarian for medical decisions.',
   output_locale: 'en',
   image_url: null,
   created_at: '2026-05-20T09:00:00.000Z',

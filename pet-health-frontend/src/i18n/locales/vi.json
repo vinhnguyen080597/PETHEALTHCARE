@@ -8,7 +8,7 @@
     "ok": "OK",
     "yes": "Có",
     "no": "Không",
-    "confidence": "{{pct}}% tin cậy",
+    "confidence": "{{pct}}% mức tự tin AI ước lượng",
     "unknownError": "Lỗi không xác định",
     "somethingWentWrong": "Đã xảy ra lỗi"
   },
@@ -22,8 +22,8 @@
     "offline": "Không kết nối được máy chủ — kiểm tra LOCAL_IP trong src/config.ts"
   },
   "login": {
-    "appName": "Catties Health Care",
-    "tagline": "Trợ lý sức khỏe thú cưng của bạn từ Catties",
+    "appName": "Pet Health Care",
+    "tagline": "Trợ lý chăm sóc sức khỏe thú cưng",
     "createAccount": "Tạo tài khoản",
     "welcomeBack": "Chào mừng trở lại",
     "email": "Email",
@@ -49,17 +49,17 @@
     "logout": "Đăng xuất"
   },
   "header": {
-    "appName": "Catties Health Care",
-    "tagline": "Trợ lý sức khỏe thú cưng của bạn từ Catties"
+    "appName": "Pet Health Care",
+    "tagline": "Trợ lý chăm sóc sức khỏe thú cưng"
   },
   "home": {
     "title": "Thú cưng của tôi",
     "addPet": "Thêm thú cưng",
     "noPetsTitle": "Chưa có thú cưng",
-    "noPetsBody": "Thêm thú cưng để bắt đầu theo dõi các lần quét sức khỏe.",
+    "noPetsBody": "Thêm thú cưng để bắt đầu theo dõi các lần kiểm tra sức khỏe.",
     "addFirstPet": "Thêm thú cưng đầu tiên",
     "pullToRefresh": "Kéo xuống để làm mới",
-    "scanHealth": "Quét sức khỏe",
+    "scanHealth": "Kiểm tra sức khỏe",
     "viewProfile": "Xem hồ sơ",
     "openCoreCare": "Hồ sơ chăm sóc & nhắc lịch",
     "petFallback": "Thú cưng",
@@ -97,18 +97,18 @@
   },
   "onboarding": {
     "introTitle": "Sen ơi!",
-    "introBubbleWelcome": "👋 Chào mừng bạn đến với Catties Health Care. \nNơi chúng mình cùng bạn lưu giữ, theo dõi và chăm sóc sức khỏe cho các bé mỗi ngày.",
-    "introBubbleMission": "Với Catties, mỗi bé thú cưng không chỉ là một người bạn nhỏ, mà là một thành viên trong gia đình. Chúng mình mong được cùng Sen lưu lại từng thay đổi, từng thói quen và từng khoảnh khắc chăm sóc để các bé luôn được yêu thương đúng lúc.",
+    "introBubbleWelcome": "👋 Chào mừng bạn đến với Pet Health Care. \nNơi chúng mình cùng bạn lưu giữ, theo dõi và chăm sóc sức khỏe cho các bé mỗi ngày.",
+    "introBubbleMission": "Với Pet Health Care, mỗi bé thú cưng không chỉ là một người bạn nhỏ, mà là một thành viên trong gia đình. Chúng mình mong được cùng Sen lưu lại từng thay đổi, từng thói quen và từng khoảnh khắc chăm sóc để các bé luôn được yêu thương đúng lúc.",
     "go": "Khám phá ngay",
     "createPetProfile": "Tạo hồ sơ thú cưng",
     "profileGuideByMai": "Sen ơi, hãy giúp Mai điền các thông tin của bé nhé!",
-    "servicesWelcomeTitle": "Chào mừng Sen đến với hệ sinh thái Catties! 👋",
-    "servicesWelcomeBody": "Catties có sử dụng công nghệ AI. 🐾 Vì ứng dụng vẫn đang hoàn thiện mỗi ngày, nếu có gì sai sót, Sen ơi lượng thứ và hãy góp ý để tụi mình nâng cấp tốt hơn nhé!",
-    "serviceBreedTitle": "Nhận dạng giống loài AI",
-    "serviceBreedDesc": "AI phân tích ảnh, nhận dạng chính xác hàng trăm giống chó, mèo và màu lông.",
+    "servicesWelcomeTitle": "Chào mừng Sen đến với Pet Health Care! 👋",
+    "servicesWelcomeBody": "Pet Health Care có sử dụng công nghệ AI để hỗ trợ tham khảo ban đầu. 🐾 Ứng dụng không thay thế bác sĩ thú y; nếu có dấu hiệu nặng, Sen hãy đưa bé đi thăm khám sớm nhé.",
+    "serviceBreedTitle": "Nhận diện giống bằng AI",
+    "serviceBreedDesc": "AI phân tích ảnh để gợi ý giống chó/mèo và màu lông ở mức tham khảo.",
     "serviceBreedCta": "Khám phá ngay",
-    "serviceHealthTitle": "Kiểm tra sức khoẻ AI",
-    "serviceHealthDesc": "Nhận diện sớm các dấu hiệu sức khỏe qua ảnh, cảnh báo vấn đề sơ bộ.",
+    "serviceHealthTitle": "Sàng lọc sức khỏe AI",
+    "serviceHealthDesc": "AI hỗ trợ xem ảnh và ghi nhận dấu hiệu sức khỏe ban đầu, không thay thế bác sĩ thú y.",
     "serviceHealthCta": "Kiểm tra ngay",
     "serviceVaccineTitle": "Số tiêm & Lịch nhắc",
     "serviceVaccineDesc": "Quản lý sổ tiêm chủng điện tử, nhắc lịch tiêm định kỳ thông minh.",
@@ -116,9 +116,9 @@
     "maybeLater": "Để sau"
   },
   "healthCheck": {
-    "title": "Kiểm tra sức khỏe — {{name}}",
+    "title": "Sàng lọc sức khỏe — {{name}}",
     "petFallback": "Thú cưng",
-    "infoBanner": "Hãy chụp ảnh rõ nét để Catties chẩn đoán chính xác nhất: Mặt, Tai, Mắt, Thân... Bắt đầu nhé!",
+    "infoBanner": "Hãy tải ảnh rõ nét để Pet Health Care hỗ trợ sàng lọc sức khỏe ban đầu: mặt, tai, mắt, thân... Kết quả chỉ mang tính tham khảo.",
     "photos": "Ảnh",
     "required": "*",
     "uploadPhotos": "Tải ảnh lên",
@@ -134,11 +134,11 @@
     "enterWeight": "Nhập cân nặng (kg)",
     "vaccination": "Tình trạng tiêm phòng",
     "neutering": "Triệt sản / đã thiến",
-    "medicalHistory": "Tiền sử bệnh (nếu có)",
-    "medicalHistoryPlaceholder": "vd: dị ứng thuốc, từng nấm da...",
-    "symptoms": "Mô tả triệu chứng",
+    "medicalHistory": "Tiền sử sức khỏe (nếu có)",
+    "medicalHistoryPlaceholder": "vd: dị ứng thuốc, từng có vấn đề về da...",
+    "symptoms": "Mô tả dấu hiệu quan sát được",
     "symptomsPlaceholder": "Mô tả thêm tình trạng (vd: biếng ăn, mệt mỏi, gãi nhiều...)",
-    "startAnalysis": "Bắt đầu phân tích",
+    "startAnalysis": "Bắt đầu kiểm tra",
     "photoRequiredError": "* Vui lòng tải ít nhất một ảnh",
     "enterVaccineType": "Nhập loại vắc-xin",
     "vaccineTypeLabel": "Loại vaccine đã tiêm",
@@ -180,14 +180,19 @@
         "detail": "Ngừa bệnh ung thư bạch cầu ở mèo (tùy chọn)."
       }
     },
-    "cooldownHint": "Vui lòng đợi {{seconds}} giây trước khi phân tích lần tiếp theo.",
-    "analysisBusyHint": "Hệ thống đang phân tích lượt hiện tại. Vui lòng chờ trong giây lát."
+    "cooldownHint": "Vui lòng đợi {{seconds}} giây trước khi bắt đầu lượt kiểm tra tiếp theo.",
+    "analysisBusyHint": "Hệ thống đang xử lý lượt kiểm tra hiện tại. Vui lòng chờ trong giây lát."
   },
   "breedRecognition": {
-    "title": "Gợn ý giống (sơ bộ)",
+    "title": "Gợi ý giống (sơ bộ)",
     "subtitle": "Áp dụng cho mèo và chó — bổ sung ngữ cảnh tùy chọn cho kiểm tra sức khỏe.",
+    "quickGuide": "Cần 3 ảnh rõ: mặt, mắt, lông/vân màu. Thêm ảnh toàn thân hoặc phả hệ nếu có để kết quả tốt hơn.",
+    "requiredProgress": "{{done}}/{{total}} bắt buộc",
+    "noteTitle": "Lưu ý trước khi dùng",
+    "noteBody": "Đây là gợi ý sơ bộ theo ngoại hình và có thể sai với thú lai hoặc giống chưa rõ nguồn. Bạn luôn có thể chỉnh tay trong hồ sơ.",
+    "creditLine": "Còn {{remaining}} credits. Nhận diện giống tốn {{cost}} credit.",
     "purposeTitle": "Mục đích",
-    "purposeBody": "Trang này thu thập ảnh theo từng vùng (giống hướng dẫn khi đăng ký giống) để AI đưa ra gợn ý giống / màu lông / pattern sơ bộ. Không thay thế kiểm tra sức khỏe hay chẩn đoán thú y.",
+    "purposeBody": "Trang này thu thập ảnh theo từng vùng (giống hướng dẫn khi đăng ký giống) để AI đưa ra gợi ý giống / màu lông / hoa văn lông sơ bộ. Không thay thế kiểm tra sức khỏe hay thăm khám thú y.",
     "accuracyTitle": "Độ chính xác và giới hạn",
     "accuracyBody": "Đăng ký giống chính thức thường cần bộ ảnh rất chi tiết (mặt, mắt, đệm chân, lông, toàn thân ngoài nắng, phả bố mẹ…). Ở đây chỉ là bước sơ bộ: kết quả tham khảo theo ngoại hình, có thể sai với thú lai, mèo ta, hoặc chó xóm. Bạn luôn có thể chỉnh tay trong hồ sơ.",
     "requirementsTitle": "Yêu cầu chụp (khuyến nghị)",
@@ -198,17 +203,18 @@
     "pickPhoto": "Chọn ảnh",
     "changePhoto": "Đổi ảnh",
     "removePhoto": "Gỡ",
-    "analyze": "Phân tích gợn ý",
+    "analyze": "Phân tích gợi ý",
     "analyzing": "Đang phân tích…",
     "needRequiredPhotos": "Vui lòng tải đủ 3 ảnh bắt buộc: mặt, mắt, lông/vân màu.",
+    "needRequiredPhotosWithList": "Cần thêm: {{photos}}.",
     "resultTitle": "Kết quả sơ bộ",
     "confidenceLabel": "Độ tin (ước lượng): {{pct}}%",
     "alternativesTitle": "Phương án khác",
-    "cluesTitle": "Gợn ý từ hình ảnh",
+    "cluesTitle": "Gợi ý từ hình ảnh",
     "missingTitle": "Có thể bổ sung thêm",
-    "applyToProfile": "Ghi gợn ý vào ô Giống trong hồ sơ",
-    "healthCheckLink": "Gợn ý giống (sơ bộ) — bổ sung cho kiểm tra",
-    "profileLink": "Gợn ý giống (sơ bộ)",
+    "applyToProfile": "Ghi gợi ý vào ô Giống trong hồ sơ",
+    "healthCheckLink": "Gợi ý giống (sơ bộ) — bổ sung cho kiểm tra",
+    "profileLink": "Gợi ý giống (sơ bộ)",
     "unsupportedSpeciesAlertBody": "Tính năng này hiện chỉ dành cho hồ sơ loài mèo hoặc chó.",
     "applySuccess": "Đã cập nhật ô Giống trong hồ sơ.",
     "slots": {
@@ -221,33 +227,35 @@
     }
   },
   "analysisProgress": {
-    "title": "Đang phân tích kiểm tra sức khỏe",
+    "title": "Đang sàng lọc sức khỏe",
     "subtitle": "Vui lòng chờ trong khi hệ thống xử lý dữ liệu của {{name}}.",
-    "failedTitle": "Phân tích thất bại",
-    "failedBody": "Không thể hoàn tất lần phân tích này. Vui lòng thử lại.",
+    "failedTitle": "Kiểm tra thất bại",
+    "failedBody": "Không thể hoàn tất lần kiểm tra này. Vui lòng thử lại.",
     "stages": {
       "uploading": "Đang tải ảnh/video",
-      "analyzing": "AI đang phân tích triệu chứng",
+      "analyzing": "AI đang rà soát dấu hiệu từ ảnh và mô tả",
       "saving": "Đang lưu kết quả"
     }
   },
   "results": {
-    "analysisResults": "Kết quả phân tích",
+    "analysisResults": "Kết quả sàng lọc",
     "petCheck": "Kết quả kiểm tra",
-    "onboardingSubtitle": "Đây là những gì chúng tìm thấy — chạm Hoàn tất khi bạn sẵn sàng.",
-    "aiTriage": "Hỗ trợ sàng lọc bằng AI",
+    "onboardingSubtitle": "Đây là thông tin tham khảo ban đầu — chạm Hoàn tất khi bạn sẵn sàng.",
+    "aiTriage": "Hỗ trợ sàng lọc sức khỏe bằng AI",
     "severity": "Mức độ: {{level}}",
-    "confidence": "Độ tin cậy",
-    "identifiedSymptoms": "Triệu chứng ghi nhận",
-    "recommendedTreatment": "Điều trị gợi ý",
+    "confidence": "Mức tự tin ước lượng của AI",
+    "possibleFinding": "Dấu hiệu có thể gặp",
+    "identifiedSymptoms": "Dấu hiệu ghi nhận",
+    "recommendedTreatment": "Hướng dẫn chăm sóc tham khảo",
     "visualEvidence": "Dấu hiệu quan sát được",
     "missingData": "Dữ liệu còn thiếu",
     "nextAction": "Hành động tiếp theo",
     "needMoreDataTitle": "Nên bổ sung thêm dữ liệu",
     "needMoreDataBody": "Kết quả hiện còn độ chắc chắn thấp. Vui lòng bổ sung ảnh rõ hơn hoặc thêm mô tả.",
     "emergencyTitle": "Cảnh báo khẩn cấp",
-    "emergencyBody": "Phát hiện dấu hiệu nguy cơ cao. Vui lòng đưa thú cưng đến cơ sở thú y sớm nhất có thể.",
+    "emergencyBody": "Có dấu hiệu nguy cơ cao. Vui lòng đưa thú cưng đến cơ sở thú y gần nhất ngay lập tức.",
     "importantDisclaimer": "Lưu ý quan trọng",
+    "fixedDisclaimer": "Thông tin này chỉ để tham khảo, không thay thế chẩn đoán hoặc điều trị của bác sĩ thú y.",
     "finish": "Hoàn tất"
   },
   "severity": {
@@ -256,8 +264,8 @@
     "high": "cao"
   },
   "history": {
-    "title": "Lịch sử chẩn đoán",
-    "subtitle": "Các lần quét trước — chạm một dòng để xem chi tiết",
+    "title": "Lịch sử kiểm tra sức khỏe",
+    "subtitle": "Các lần kiểm tra trước — chạm một dòng để xem chi tiết",
     "empty": "Chưa có lịch sử."
   },
   "profile": {
@@ -271,8 +279,8 @@
     "scanHealth": "Quét sức khỏe",
     "healthSection": "Sức khỏe",
     "healthHint": "Các lần quét gần đây của {{name}} — chạm một dòng để xem chi tiết",
-    "noHealthScans": "Chưa có lần quét sức khỏe.",
-    "noHealthScansHint": "Dùng Quét sức khỏe phía trên để kiểm tra.",
+    "noHealthScans": "Chưa có lần kiểm tra sức khỏe.",
+    "noHealthScansHint": "Dùng Kiểm tra sức khỏe phía trên để bắt đầu.",
     "openCoreCare": "Hồ sơ chăm sóc & nhắc lịch",
     "dashGender": "—"
   },
@@ -336,7 +344,7 @@
   "aiCredits": {
     "cardTitle": "AI credits",
     "remaining": "Còn {{remaining}} / {{allowance}} credits trong tháng này.",
-    "healthCheckCost": "Quét sức khỏe tốn {{cost}} credit.",
+    "healthCheckCost": "Kiểm tra sức khỏe tốn {{cost}} credit.",
     "breedCost": "Nhận diện giống tốn {{cost}} credit.",
     "outOfCredits": "Bạn đã hết AI credits. Hãy xem quảng cáo, mua gói credit nhỏ, hoặc chờ lần reset hằng tháng.",
     "prompts": {
@@ -475,7 +483,7 @@
       "message": "Vui lòng đăng nhập và chọn thú cưng."
     },
     "analyzeFailed": {
-      "title": "Phân tích thất bại",
+      "title": "Kiểm tra thất bại",
       "message": "{{message}}"
     },
     "analysisNeedMoreData": {
@@ -491,7 +499,7 @@
       "message": "Lượt kiểm tra trước vừa xong. Bạn có thể bắt đầu lại sau {{seconds}} giây."
     },
     "analysisInProgressFriendly": {
-      "title": "Đang phân tích",
+      "title": "Đang kiểm tra",
       "message": "Hệ thống vẫn đang xử lý lượt kiểm tra hiện tại. Vui lòng chờ một chút."
     },
     "analysisRateLimitFriendly": {

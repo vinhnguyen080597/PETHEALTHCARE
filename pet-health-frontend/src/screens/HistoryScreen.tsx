@@ -39,7 +39,7 @@ export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
             <Pressable
               testID={`history-entry-${item.id}`}
               accessibilityRole="button"
-              accessibilityLabel={`Open health scan ${item.diagnosis}`}
+              accessibilityLabel={`Open health check ${item.diagnosis}`}
               key={item.id}
               className="mb-3 flex-row gap-3 rounded-xl border border-gray-200 bg-white p-4 active:bg-gray-50"
               onPress={() => onSelectEntry(item)}

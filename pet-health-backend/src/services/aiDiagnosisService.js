@@ -125,12 +125,15 @@ function normalizeDiagnosisPayload(raw) {
     diagnosis: typeof raw?.diagnosis === 'string' ? raw.diagnosis : 'Unable to assess',
     severity: ['low', 'medium', 'high'].includes(raw?.severity) ? raw.severity : 'medium',
     symptoms: asStringArray(raw?.symptoms),
-    treatment: typeof raw?.treatment === 'string' ? raw.treatment : 'Please consult a veterinarian.',
+    treatment:
+      typeof raw?.treatment === 'string'
+        ? raw.treatment
+        : 'Monitor your pet closely and consult a veterinarian if signs persist or worsen.',
     confidence,
     disclaimer:
       typeof raw?.disclaimer === 'string'
         ? raw.disclaimer
-        : 'This AI response is not a final medical diagnosis.',
+        : 'This AI wellness screening is for early guidance only and is not a veterinary diagnosis. Consult a licensed veterinarian for medical decisions.',
     // Extended fields for richer UX; kept optional/derived for backward compatibility.
     status,
     red_flags: asStringArray(raw?.red_flags),
@@ -164,7 +167,7 @@ export function validateImageFile(file) {
   }
 }
 
-/** Optional diagnosis clip: max 10 MB (client should cap length ≈10s). */
+/** Optional health-check clip: max 10 MB (client should cap length ≈10s). */
 export function validateVideoFile(file) {
   if (!file) return;
 
@@ -194,6 +197,7 @@ function buildOutputLanguageBlock(locale) {
 
 Output language (mandatory for Vietnamese users):
 - Write EVERY human-readable string value in Vietnamese (Tiếng Việt natural, clear): diagnosis, symptoms[], treatment, disclaimer, red_flags[], diagnosis_candidates[].name, evidence[], missing_data[], next_action.summary, next_action.ask_user_to_add[].
+- Wording must be cautious: describe "dấu hiệu có thể gặp", "gợi ý chăm sóc tham khảo", and "nên thăm khám thú y" when needed. Do not phrase output as a confirmed diagnosis.
 - Keep ALL JSON keys in English exactly as in the schema above. Enum fields must stay in English tokens only: status (ok|need_more_data|not_pet_or_unclear|emergency_flag), severity (low|medium|high).
 - If the owner wrote notes in another language, you may still respond in Vietnamese.
 `;
@@ -253,25 +257,26 @@ export async function analyzePetHealthImages(imageFiles, healthContextAppendix =
   }
 
   const basePrompt = `
-You are a veterinary triage assistant for pet health checks.
+You are a veterinary wellness screening assistant for pet health checks.
 Analyze uploaded media and owner context, then return STRICT JSON only.
 
 Scope:
 - Supported species: dog, cat.
-- Provide triage guidance, not a definitive diagnosis.
+- Provide early wellness screening guidance, not a definitive diagnosis.
 - Be conservative and safe.
+- Never imply that AI replaces an in-person veterinarian.
 
 Required schema:
 {
   "status": "ok|need_more_data|not_pet_or_unclear|emergency_flag",
-  "diagnosis": "short possible condition name",
+  "diagnosis": "short possible finding or condition; phrase as possible/not confirmed",
   "severity": "low|medium|high",
-  "symptoms": ["symptom 1", "symptom 2"],
-  "treatment": "safe first-aid guidance and when to visit clinic",
+  "symptoms": ["observed sign 1", "observed sign 2"],
+  "treatment": "safe care guidance and when to visit a veterinarian",
   "confidence": 0.0,
-  "disclaimer": "This is not a medical diagnosis...",
+  "disclaimer": "This AI wellness screening is for early guidance only and is not a veterinary diagnosis. Consult a licensed veterinarian for medical decisions.",
   "red_flags": ["optional danger signs"],
-  "diagnosis_candidates": [{"name":"candidate","confidence":0.0}],
+  "diagnosis_candidates": [{"name":"possible candidate, not confirmed","confidence":0.0}],
   "evidence": ["visual findings from media"],
   "missing_data": ["what is missing for better assessment"],
   "next_action": {
@@ -287,6 +292,8 @@ Rules:
 - If emergency signs are present -> status = "emergency_flag", severity = "high".
 - If confidence < 0.45, prefer status = "need_more_data" unless emergency.
 - Do not invent findings not visible in media/context.
+- Avoid definitive wording such as "has", "diagnosed with", "confirmed", or exact treatment plans.
+- For concerning signs, recommend timely in-person veterinary care instead of home diagnosis.
 - If multiple images are provided, synthesize findings across all views.
 ${healthContextAppendix}
 ${buildOutputLanguageBlock(outputLocale)}
