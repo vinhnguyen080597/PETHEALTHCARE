@@ -1174,6 +1174,7 @@ export function usePetHealthApp() {
     if (!token || !selectedPetId) return;
     setBreedRecognitionLoading(true);
     setBreedRecognitionResult(null);
+    setScreen('breed-recognition-progress');
     try {
       const res = await requestBreedRecognition(token, {
         petId: selectedPetId,
@@ -1201,9 +1202,14 @@ export function usePetHealthApp() {
             ? error.message
             : i18n.t('common.unknownError');
       Alert.alert(i18n.t('breedRecognition.title'), message);
+      setScreen('breed-recognition');
     } finally {
       setBreedRecognitionLoading(false);
     }
+  }
+
+  function editBreedRecognitionPhotos() {
+    setScreen('breed-recognition');
   }
 
   async function applyBreedRecognitionToProfile() {
@@ -1343,6 +1349,7 @@ export function usePetHealthApp() {
     pickBreedRecognitionSlot,
     clearBreedRecognitionSlot,
     submitBreedRecognition,
+    editBreedRecognitionPhotos,
     applyBreedRecognitionToProfile,
     handleOnboardingAddPet,
     cancelOnboardingAddPet,

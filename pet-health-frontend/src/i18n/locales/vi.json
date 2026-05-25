@@ -227,6 +227,7 @@
     "cluesTitle": "Gợi ý từ hình ảnh",
     "missingTitle": "Có thể bổ sung thêm",
     "applyToProfile": "Ghi gợi ý vào ô Giống trong hồ sơ",
+    "editPhotos": "Xem hoặc đổi lại ảnh",
     "healthCheckLink": "Nhận diện giống — bổ sung cho kiểm tra",
     "profileLink": "Nhận diện giống",
     "unsupportedSpeciesAlertBody": "Tính năng này hiện chỉ dành cho hồ sơ loài mèo hoặc chó.",
@@ -243,6 +244,21 @@
       "ears": { "title": "Tai", "hint": "Cận cảnh vị trí, hình dạng, kích thước và dáng tai." },
       "parentPedigree": { "title": "Phả / bố mẹ (nếu có)", "hint": "Sổ phả hoặc ảnh bố mẹ — không bắt buộc." }
     }
+  },
+  "breedRecognitionProgress": {
+    "title": "Mai đang rà soát ảnh",
+    "subtitle": "Chờ Mai một chút để xem các góc ảnh của {{name}} nha.",
+    "resultReadyTitle": "Mai đã có gợi ý sơ bộ",
+    "resultReadyBody": "Kết quả của {{name}} nằm ngay bên dưới, Sen xem thử nha.",
+    "noPreview": "Đang chuẩn bị ảnh",
+    "stageTitle": "Đang nhận diện đặc điểm ngoại hình",
+    "stageBody": "Mai đang so sánh dáng đầu, thân, lông/vân màu và các góc ảnh Sen đã tải lên để đưa ra gợi ý sơ bộ.",
+    "resultStageBody": "Mai đã rà soát xong ảnh đã tải lên. Đây vẫn là gợi ý tham khảo, Sen có thể chỉnh lại trong hồ sơ bất cứ lúc nào.",
+    "scanLabels": [
+      "mặt & đầu",
+      "thân & tỷ lệ",
+      "lông & hoa văn"
+    ]
   },
   "analysisProgress": {
     "title": "Đang sàng lọc sức khỏe",

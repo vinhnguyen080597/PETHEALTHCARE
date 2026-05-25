@@ -202,6 +202,11 @@ test.describe('Web feature smoke coverage', () => {
       await chooseImage(page, 'breed-recognition-pick-photo-coat');
       await verify(page, expect(page.getByTestId('breed-recognition-analyze-button')).toBeEnabled());
       await page.getByTestId('breed-recognition-analyze-button').click();
+      await verify(
+        page,
+        expect(page.getByTestId('breed-recognition-progress-screen')).toBeVisible(),
+      );
+      await verify(page, expect(page.getByTestId('breed-recognition-result-card')).toBeVisible());
       await verify(page, expect(page.getByText('British Shorthair mix')).toBeVisible());
       await page.getByTestId('breed-recognition-apply-profile-button').click();
       await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());

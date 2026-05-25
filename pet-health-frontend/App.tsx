@@ -9,6 +9,7 @@ import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
 import { AddPetScreen } from './src/screens/AddPetScreen';
 import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
+import { BreedRecognitionProgressScreen } from './src/screens/BreedRecognitionProgressScreen';
 import { CoreCareScreen } from './src/screens/CoreCareScreen';
 import { PetBreedRecognitionScreen } from './src/screens/PetBreedRecognitionScreen';
 import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
@@ -37,6 +38,7 @@ export default function App() {
     app.screen === 'onboarding-health-check' ||
     app.screen === 'onboarding-results' ||
     app.screen === 'pet-profile' ||
+    app.screen === 'breed-recognition-progress' ||
     app.screen === 'breed-recognition';
   const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;
   const breedCreditCost = app.aiEconomicsConfig?.features.breed_recognition?.creditCost ?? 1;
@@ -257,6 +259,17 @@ export default function App() {
                 onClearSlot={app.clearBreedRecognitionSlot}
                 onAnalyze={app.submitBreedRecognition}
                 onApplyToProfile={app.applyBreedRecognitionToProfile}
+              />
+            ) : null}
+
+            {app.screen === 'breed-recognition-progress' && app.selectedPet ? (
+              <BreedRecognitionProgressScreen
+                pet={app.selectedPet}
+                slotUris={app.breedRecognitionSlotUris}
+                result={app.breedRecognitionResult}
+                loading={app.breedRecognitionLoading}
+                onApplyToProfile={app.applyBreedRecognitionToProfile}
+                onEditPhotos={app.editBreedRecognitionPhotos}
               />
             ) : null}
 

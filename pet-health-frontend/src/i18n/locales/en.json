@@ -227,6 +227,7 @@
     "cluesTitle": "Visible clues",
     "missingTitle": "Could improve with",
     "applyToProfile": "Save suggestion to Breed field",
+    "editPhotos": "Review or change photos",
     "healthCheckLink": "Breed recognition — supplement health check",
     "profileLink": "Breed recognition",
     "unsupportedSpeciesAlertBody": "This feature is available for cat and dog profiles only.",
@@ -243,6 +244,21 @@
       "ears": { "title": "Ears", "hint": "Close view of ear set, shape, size, and carriage." },
       "parentPedigree": { "title": "Pedigree / parents (optional)", "hint": "Pedigree book or parents — optional." }
     }
+  },
+  "breedRecognitionProgress": {
+    "title": "Mai is scanning the photos",
+    "subtitle": "Please wait while Mai reviews {{name}}'s uploaded angles.",
+    "resultReadyTitle": "Mai has a preliminary breed suggestion",
+    "resultReadyBody": "{{name}}'s result is shown below for you to review.",
+    "noPreview": "Preparing photo preview",
+    "stageTitle": "Reviewing visible breed traits",
+    "stageBody": "Mai is comparing head shape, body proportions, coat pattern, and the uploaded angles to prepare a preliminary suggestion.",
+    "resultStageBody": "Mai has finished reviewing the uploaded photos. This remains a reference suggestion, and you can edit the profile anytime.",
+    "scanLabels": [
+      "face & head",
+      "body shape",
+      "coat pattern"
+    ]
   },
   "analysisProgress": {
     "title": "Reviewing wellness signs",
