@@ -198,7 +198,7 @@ test.describe('Web feature smoke coverage', () => {
       await page.getByTestId('pet-profile-breed-recognition-button').click();
       await verify(page, expect(page.getByTestId('breed-recognition-screen')).toBeVisible());
       await chooseImage(page, 'breed-recognition-pick-photo-face');
-      await chooseImage(page, 'breed-recognition-pick-photo-eyes');
+      await chooseImage(page, 'breed-recognition-pick-photo-fullBodySide');
       await chooseImage(page, 'breed-recognition-pick-photo-coat');
       await verify(page, expect(page.getByTestId('breed-recognition-analyze-button')).toBeEnabled());
       await page.getByTestId('breed-recognition-analyze-button').click();

@@ -1,15 +1,40 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import {
-  BREED_RECOGNITION_REQUIRED_SLOTS,
-  BREED_RECOGNITION_SLOT_ORDER,
+  getBreedRecognitionRequiredSlots,
+  getBreedRecognitionSlotOrder,
   type BreedRecognitionSlot,
 } from '../constants/petBreedRecognitionSlots';
+import { MAI_GREETING } from '../assets/maiOnboardingAssets';
 import type { AiCreditAccount, BreedRecognitionResult, Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
+
+const REFERENCE_LINKS = [
+  {
+    key: 'wcf',
+    species: ['cat'],
+    url: 'https://wcf.de/en/breeding-rules/',
+  },
+  {
+    key: 'tica',
+    species: ['cat'],
+    url: 'https://tica.org/how-do-i-register-my-cat/',
+  },
+  {
+    key: 'akcPal',
+    species: ['dog'],
+    url: 'https://www.akc.org/register/information/purebred-alternative-listing-pal/',
+  },
+] as const;
+
+function referenceLinksForSpecies(species: string) {
+  const normalized = species.trim().toLowerCase();
+  const links = REFERENCE_LINKS.filter((ref) => (ref.species as readonly string[]).includes(normalized));
+  return links.length ? links : REFERENCE_LINKS;
+}
 
 type PetBreedRecognitionScreenProps = {
   pet: Pet;
@@ -39,9 +64,11 @@ export function PetBreedRecognitionScreen({
   onApplyToProfile,
 }: PetBreedRecognitionScreenProps) {
   const { t } = useTranslation();
+  const slotOrder = getBreedRecognitionSlotOrder(pet.species);
+  const requiredSlots = getBreedRecognitionRequiredSlots(pet.species);
+  const referenceLinks = referenceLinksForSpecies(pet.species);
 
-  const completedRequiredSlots = BREED_RECOGNITION_REQUIRED_SLOTS.filter((s) => Boolean(slotUris[s]?.trim()));
-  const missingRequiredSlots = BREED_RECOGNITION_REQUIRED_SLOTS.filter((s) => !slotUris[s]?.trim());
+  const missingRequiredSlots = requiredSlots.filter((s) => !slotUris[s]?.trim());
   const requiredOk = missingRequiredSlots.length === 0;
   const missingRequiredText = missingRequiredSlots.map((slot) => t(`breedRecognition.slots.${slot}.title`)).join(', ');
   const hasInsufficientCredits = Boolean(aiCredits && aiCredits.creditBalance < aiCreditCost);
@@ -70,35 +97,43 @@ export function PetBreedRecognitionScreen({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 14, paddingBottom: 150 }}
       >
-        <View className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
-          <View className="flex-row items-start justify-between gap-3">
-            <View className="min-w-0 flex-1">
-              <Text className="text-base font-bold text-slate-900">{pet.name}</Text>
-              <Text className="mt-1 text-sm leading-5 text-slate-700">{t('breedRecognition.quickGuide')}</Text>
-            </View>
-            <View className="rounded-full bg-white px-3 py-1">
-              <Text className="text-xs font-bold" style={{ color: PRIMARY }}>
-                {t('breedRecognition.requiredProgress', {
-                  done: completedRequiredSlots.length,
-                  total: BREED_RECOGNITION_REQUIRED_SLOTS.length,
-                })}
-              </Text>
-            </View>
-          </View>
-          <View className="mt-3 h-2 overflow-hidden rounded-full bg-white">
-            <View
-              className="h-full rounded-full"
-              style={{
-                width: `${(completedRequiredSlots.length / BREED_RECOGNITION_REQUIRED_SLOTS.length) * 100}%`,
-                backgroundColor: PRIMARY,
-              }}
-            />
+        <View className="mb-4 flex-row items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <Image
+            source={MAI_GREETING}
+            className="h-14 w-14 rounded-2xl"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            accessibilityLabel="Mai"
+          />
+          <View className="min-w-0 flex-1">
+            <Text className="text-sm font-bold text-amber-950">{t('breedRecognition.noteTitle')}</Text>
+            <Text className="mt-1 text-sm leading-5 text-amber-900">{t('breedRecognition.noteBody')}</Text>
           </View>
         </View>
 
-        <View className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <Text className="text-sm font-bold text-amber-950">{t('breedRecognition.noteTitle')}</Text>
-          <Text className="mt-1 text-sm leading-5 text-amber-900">{t('breedRecognition.noteBody')}</Text>
+        <View className="mb-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <Text className="text-sm font-bold text-slate-900">{t('breedRecognition.referencesTitle')}</Text>
+          <Text className="mt-1 text-xs leading-5 text-slate-600">{t('breedRecognition.referencesBody')}</Text>
+          <View className="mt-3 gap-2">
+            {referenceLinks.map((ref) => (
+              <Pressable
+                key={ref.key}
+                accessibilityRole="link"
+                accessibilityLabel={t(`breedRecognition.references.${ref.key}.label`)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 active:bg-slate-100"
+                onPress={() => {
+                  void Linking.openURL(ref.url);
+                }}
+              >
+                <Text className="text-xs font-bold" style={{ color: PRIMARY }}>
+                  {t(`breedRecognition.references.${ref.key}.label`)}
+                </Text>
+                <Text className="mt-1 text-xs leading-4 text-slate-600">
+                  {t(`breedRecognition.references.${ref.key}.summary`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         {aiCredits && hasInsufficientCredits ? (
@@ -110,8 +145,8 @@ export function PetBreedRecognitionScreen({
         <Text className="mb-3 text-base font-bold text-slate-900">{t('breedRecognition.photoSectionTitle')}</Text>
 
         <View className="gap-3">
-          {BREED_RECOGNITION_SLOT_ORDER.map((slot) => {
-            const required = BREED_RECOGNITION_REQUIRED_SLOTS.includes(slot);
+          {slotOrder.map((slot) => {
+            const required = requiredSlots.includes(slot);
             const uri = slotUris[slot]?.trim();
             return (
               <View key={slot} className="rounded-2xl border border-gray-200 bg-white p-3">

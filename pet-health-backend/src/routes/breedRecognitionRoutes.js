@@ -13,8 +13,19 @@ import {
 import { validateBreedRecognitionPayload } from '../services/aiPayloadQualityService.js';
 import { recordProductEvent } from '../services/productAnalyticsService.js';
 
-const SLOT_ORDER = ['face', 'eyes', 'pawPads', 'coat', 'fullBodySun', 'parentPedigree'];
-const REQUIRED_SLOTS = ['face', 'eyes', 'coat'];
+const SLOT_ORDER = [
+  'face',
+  'fullBodySide',
+  'coat',
+  'eyes',
+  'headProfile',
+  'pawPads',
+  'tail',
+  'frontFullBody',
+  'ears',
+  'parentPedigree',
+];
+const REQUIRED_SLOTS = ['face', 'fullBodySide', 'coat'];
 const SUPPORTED_SPECIES = new Set(['cat', 'dog']);
 const BREED_IN_FLIGHT_TTL_MS = intFromEnv('BREED_RECOGNITION_IN_FLIGHT_TTL_SECONDS', 5 * 60) * 1000;
 const BREED_COOLDOWN_MS = intFromEnv('BREED_RECOGNITION_COOLDOWN_SECONDS', 120) * 1000;

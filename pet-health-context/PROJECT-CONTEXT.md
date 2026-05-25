@@ -137,7 +137,7 @@ Main modules under `src/`:
 | GET/POST | `/api/v1/pets` | Bearer. CRUD: `GET/PUT/DELETE /api/v1/pets/:petId`. |
 | POST | `/api/v1/pets/upload-avatar` | Bearer + multipart field **`image`** (before `/:petId` routes). |
 | POST | `/api/v1/analysis` | Bearer + multipart: **`image`** (required), **`photos`** (0–5 extras), optional **`video`** (≤10 MB); form fields: `petId`, `weightKg`, `vaccinated`, `vaccineType`, `neutered`, `medicalHistory`, `symptomDescription`. |
-| POST | `/api/v1/breed-recognition` | Bearer + multipart: **`petId`**, **`locale`** (optional); image fields (each max 1 file, ≤5 MB jpeg/png/webp): **`face`**, **`eyes`**, **`coat`** (required), **`pawPads`**, **`fullBodySun`**, **`parentPedigree`** (optional). **Cats and dogs** (`pet.species` is `cat` or `dog`). Returns preliminary breed JSON. |
+| POST | `/api/v1/breed-recognition` | Bearer + multipart: **`petId`**, **`locale`** (optional); image fields (each max 1 file, ≤5 MB jpeg/png/webp): **`face`**, **`fullBodySide`**, **`coat`** (required), plus optional **`eyes`**, **`headProfile`**, **`pawPads`**, **`tail`**, **`frontFullBody`**, **`ears`**, **`parentPedigree`**. **Cats and dogs** (`pet.species` is `cat` or `dog`). Returns preliminary breed JSON. |
 | GET | `/api/v1/analysis/:petId` | Bearer; history for that pet. |
 
 ### Detailed API contract

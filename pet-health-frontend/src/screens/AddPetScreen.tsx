@@ -8,7 +8,7 @@ import { MAI_GREETING } from '../assets/maiOnboardingAssets';
 
 type PetFormVariant = 'create' | 'edit';
 
-export const PET_SPECIES_VALUES = ['dog', 'cat', 'bird', 'hamster'] as const;
+export const PET_SPECIES_VALUES = ['dog', 'cat'] as const;
 export const PET_GENDER_VALUES = ['male', 'female'] as const;
 
 type SelectOption = { value: string; label: string };
@@ -219,18 +219,14 @@ export function AddPetScreen({
           testID="add-pet-species-select"
         />
 
-        <View className="mb-5">
-          <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.breed')}</Text>
-          <TextInput
-            testID="add-pet-breed-input"
-            accessibilityLabel="Pet breed"
-            className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder={t('addPet.enterBreed')}
-            placeholderTextColor="#9ca3af"
-            value={petBreed}
-            onChangeText={onChangeBreed}
-          />
-        </View>
+        <FormSelect
+          label={t('addPet.gender')}
+          value={petGender}
+          options={genderOptions}
+          onChange={onChangeGender}
+          placeholder={t('addPet.selectGender')}
+          testID="add-pet-gender-select"
+        />
 
         <View className="mb-5">
           <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.ageYears')}</Text>
@@ -246,14 +242,18 @@ export function AddPetScreen({
           />
         </View>
 
-        <FormSelect
-          label={t('addPet.gender')}
-          value={petGender}
-          options={genderOptions}
-          onChange={onChangeGender}
-          placeholder={t('addPet.selectGender')}
-          testID="add-pet-gender-select"
-        />
+        <View className="mb-5">
+          <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.breed')}</Text>
+          <TextInput
+            testID="add-pet-breed-input"
+            accessibilityLabel="Pet breed"
+            className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
+            placeholder={t('addPet.enterBreed')}
+            placeholderTextColor="#9ca3af"
+            value={petBreed}
+            onChangeText={onChangeBreed}
+          />
+        </View>
 
         <Pressable
           testID={variant === 'create' ? 'add-pet-submit-button' : 'edit-pet-submit-button'}

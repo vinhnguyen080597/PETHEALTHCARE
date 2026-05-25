@@ -81,10 +81,14 @@ function normalizeBreedPayload(raw) {
 
 const SLOT_LABELS_EN = {
   face: 'FACE (front / clear head shape, ears)',
+  fullBodySide: 'FULL BODY SIDE PROFILE (standing on a flat surface; whole body visible)',
+  coat: 'COAT / COLOR / PATTERN (body fur, markings, texture)',
   eyes: 'EYES (close-up: iris color, shape)',
+  headProfile: 'HEAD SIDE PROFILE (nose bridge, muzzle, forehead, stop/profile)',
   pawPads: 'PAW PADS / TOES (underside of paws if visible)',
-  coat: 'COAT / COLOR / PATTERN (body fur, markings)',
-  fullBodySun: 'FULL BODY in natural outdoor daylight (helps true color)',
+  tail: 'TAIL (length, carriage, coat, shape)',
+  frontFullBody: 'FULL FRONT BODY VIEW (standing; front structure and facial characteristics)',
+  ears: 'EARS (set, shape, size, carriage)',
   parentPedigree: 'PARENT / PEDIGREE photo (pedigree book or parents if available)',
 };
 
@@ -99,6 +103,7 @@ This is NOT pedigree certification, NOT registration, and NOT a medical diagnosi
 
 Rules specific to cats:
 - Prefer honest uncertainty. If the cat may be domestic random-bred / "mèo ta" or mixed, say so positively and kindly.
+- Focus on head shape, side profile, ears, eyes, body type, coat texture/color/pattern, tail, and paws only when visible.
 - Use point / color / pattern language only when supported by visible evidence (e.g. colourpoint "points" on ears/face/tail).
 `;
   }
@@ -108,7 +113,8 @@ This is NOT pedigree certification, NOT registration, and NOT a medical diagnosi
 
 Rules specific to dogs:
 - Prefer honest uncertainty. If the dog may be a village / street mix, random-bred, or heavily mixed, say so positively and kindly.
-- Mention size estimate, ear set, muzzle shape, tail, and coat only when visible; do not invent lineage.
+- A full front view and full side profile are important for visual breed-type intake; use them when available.
+- Mention size estimate, body proportions, ear set, muzzle shape, tail, and coat only when visible; do not invent lineage.
 `;
 }
 
@@ -143,6 +149,7 @@ ${slotLines.join('\n')}
 Shared rules:
 - Do not invent pedigree or registration claims.
 - If images are insufficient for a confident guess, lower confidence and list what additional views would help.
+- Treat these photos as informal visual context only. Official registries typically require pedigree/registration records, microchip/tattoo, DNA/testing, or judge review rather than app photos alone.
 
 Return STRICT JSON only with this schema:
 {

@@ -101,7 +101,7 @@
     "introBubbleMission": "Với Pet Health Care, mỗi bé thú cưng không chỉ là một người bạn nhỏ, mà là một thành viên trong gia đình. Chúng mình mong được cùng Sen lưu lại từng thay đổi, từng thói quen và từng khoảnh khắc chăm sóc để các bé luôn được yêu thương đúng lúc.",
     "go": "Khám phá ngay",
     "createPetProfile": "Tạo hồ sơ thú cưng",
-    "profileGuideByMai": "Sen ơi, hãy giúp Mai điền các thông tin của bé nhé!",
+    "profileGuideByMai": "Sen ơi, hãy giúp mình điền các thông tin của bé nhé!",
     "servicesWelcomeTitle": "Chào mừng Sen đến với Pet Health Care! 👋",
     "servicesWelcomeBody": "Pet Health Care có sử dụng công nghệ AI để hỗ trợ tham khảo ban đầu. 🐾 Ứng dụng không thay thế bác sĩ thú y; nếu có dấu hiệu nặng, Sen hãy đưa bé đi thăm khám sớm nhé.",
     "serviceBreedTitle": "Nhận diện giống bằng AI",
@@ -184,19 +184,33 @@
     "analysisBusyHint": "Hệ thống đang xử lý lượt kiểm tra hiện tại. Vui lòng chờ trong giây lát."
   },
   "breedRecognition": {
-    "title": "Gợi ý giống (sơ bộ)",
+    "title": "Nhận diện giống (sơ bộ)",
     "subtitle": "Áp dụng cho mèo và chó — bổ sung ngữ cảnh tùy chọn cho kiểm tra sức khỏe.",
-    "quickGuide": "Cần 3 ảnh rõ: mặt, mắt, lông/vân màu. Thêm ảnh toàn thân hoặc phả hệ nếu có để kết quả tốt hơn.",
-    "requiredProgress": "{{done}}/{{total}} bắt buộc",
-    "noteTitle": "Lưu ý trước khi dùng",
-    "noteBody": "Đây là gợi ý sơ bộ theo ngoại hình và có thể sai với thú lai hoặc giống chưa rõ nguồn. Bạn luôn có thể chỉnh tay trong hồ sơ.",
+    "noteTitle": "Mai nhắn Sen",
+    "noteBody": "Sen ơi, đây là gợi ý sơ bộ theo ngoại hình thôi nha. Kết quả có thể sai với thú lai hoặc giống chưa rõ nguồn, nên Sen luôn có thể chỉnh lại trong hồ sơ của bé.",
     "creditLine": "Còn {{remaining}} credits. Nhận diện giống tốn {{cost}} credit.",
     "purposeTitle": "Mục đích",
     "purposeBody": "Trang này thu thập ảnh theo từng vùng (giống hướng dẫn khi đăng ký giống) để AI đưa ra gợi ý giống / màu lông / hoa văn lông sơ bộ. Không thay thế kiểm tra sức khỏe hay thăm khám thú y.",
     "accuracyTitle": "Độ chính xác và giới hạn",
-    "accuracyBody": "Đăng ký giống chính thức thường cần bộ ảnh rất chi tiết (mặt, mắt, đệm chân, lông, toàn thân ngoài nắng, phả bố mẹ…). Ở đây chỉ là bước sơ bộ: kết quả tham khảo theo ngoại hình, có thể sai với thú lai, mèo ta, hoặc chó xóm. Bạn luôn có thể chỉnh tay trong hồ sơ.",
+    "accuracyBody": "Đăng ký giống chính thức thường dựa vào phả hệ, giấy đăng ký, microchip/tattoo, DNA/xét nghiệm hoặc đánh giá của giám khảo. Ở đây chỉ là bước sơ bộ theo ngoại hình: kết quả tham khảo và có thể sai với thú lai, mèo ta, hoặc chó xóm. Bạn luôn có thể chỉnh tay trong hồ sơ.",
     "requirementsTitle": "Yêu cầu chụp (khuyến nghị)",
-    "requirementsBody": "Mỗi ô một ảnh. Chụp nét, tránh filter màu mạnh. Ảnh toàn thân ngoài nắng giúp đọc màu lông trung thực hơn.",
+    "requirementsBody": "Mỗi ô một ảnh. Chụp nét, ngang tầm mắt của bé, nền tương phản nếu có thể và tránh filter màu mạnh.",
+    "referencesTitle": "Nguồn tham khảo cho hướng dẫn ảnh",
+    "referencesBody": "Các registry chính thức không xác nhận giống chỉ bằng ảnh trong app, nhưng quy định của họ cho thấy những bằng chứng quan trọng: phả hệ/giấy đăng ký, đánh giá giám khảo và ảnh chính diện/ngang rõ trong một số chương trình thay thế.",
+    "references": {
+      "wcf": {
+        "label": "Quy định breeding của WCF",
+        "summary": "WCF tập trung vào phả hệ, giống, màu/vân lông và các đặc điểm nhận dạng khi ghi sổ."
+      },
+      "tica": {
+        "label": "Đăng ký mèo TICA",
+        "summary": "TICA dựa vào giấy phả hệ hoặc chứng nhận của giám khảo khi bố mẹ unknown/unregistered."
+      },
+      "akcPal": {
+        "label": "Hướng dẫn ảnh AKC PAL",
+        "summary": "AKC PAL yêu cầu ảnh chó đứng chính diện và ngang thân rõ cho chó chưa có đăng ký tiêu chuẩn."
+      }
+    },
     "photoSectionTitle": "Ảnh theo từng vùng",
     "requiredBadge": "Bắt buộc",
     "optionalBadge": "Khuyến nghị",
@@ -205,7 +219,7 @@
     "removePhoto": "Gỡ",
     "analyze": "Phân tích gợi ý",
     "analyzing": "Đang phân tích…",
-    "needRequiredPhotos": "Vui lòng tải đủ 3 ảnh bắt buộc: mặt, mắt, lông/vân màu.",
+    "needRequiredPhotos": "Vui lòng tải đủ 3 ảnh bắt buộc: mặt chính diện, toàn thân ngang, lông/vân màu.",
     "needRequiredPhotosWithList": "Cần thêm: {{photos}}.",
     "resultTitle": "Kết quả sơ bộ",
     "confidenceLabel": "Độ tin (ước lượng): {{pct}}%",
@@ -213,16 +227,20 @@
     "cluesTitle": "Gợi ý từ hình ảnh",
     "missingTitle": "Có thể bổ sung thêm",
     "applyToProfile": "Ghi gợi ý vào ô Giống trong hồ sơ",
-    "healthCheckLink": "Gợi ý giống (sơ bộ) — bổ sung cho kiểm tra",
-    "profileLink": "Gợi ý giống (sơ bộ)",
+    "healthCheckLink": "Nhận diện giống — bổ sung cho kiểm tra",
+    "profileLink": "Nhận diện giống",
     "unsupportedSpeciesAlertBody": "Tính năng này hiện chỉ dành cho hồ sơ loài mèo hoặc chó.",
     "applySuccess": "Đã cập nhật ô Giống trong hồ sơ.",
     "slots": {
-      "face": { "title": "Mặt", "hint": "Chính diện, rõ đầu và tai." },
-      "eyes": { "title": "Mắt", "hint": "Cận cảnh: màu mống mắt, hình dạng." },
-      "pawPads": { "title": "Đệm / bàn chân", "hint": "Lòng bàn chân hoặc ngón — áp dụng cho mèo và chó nếu chụp được." },
-      "coat": { "title": "Lông và vân màu", "hint": "Thân hoặc sườn: thấy rõ màu và vân." },
-      "fullBodySun": { "title": "Toàn thân (nắng)", "hint": "Toàn thân ngoài trời ánh nắng tự nhiên." },
+      "face": { "title": "Mặt chính diện", "hint": "Thấy rõ đầu, tai, mắt, mõm/mũi." },
+      "fullBodySide": { "title": "Toàn thân ngang", "hint": "Đứng trên mặt phẳng; thấy toàn thân ở ngang tầm mắt của bé." },
+      "coat": { "title": "Lông và vân màu", "hint": "Thân hoặc sườn đủ gần để thấy màu, vân và texture lông." },
+      "eyes": { "title": "Mắt", "hint": "Cận cảnh: màu mống mắt, hình dạng, khoảng cách và độ rõ." },
+      "headProfile": { "title": "Đầu nhìn nghiêng", "hint": "Góc nghiêng của sống mũi, trán, mõm và profile đầu." },
+      "pawPads": { "title": "Đệm / bàn chân", "hint": "Lòng bàn chân hoặc ngón nếu chụp được; hữu ích với một số đặc điểm mèo." },
+      "tail": { "title": "Đuôi", "hint": "Thấy độ dài, dáng đuôi, độ xù và lông đuôi." },
+      "frontFullBody": { "title": "Toàn thân chính diện", "hint": "Chó đứng chính diện; thấy chân, ngực, mặt và tai." },
+      "ears": { "title": "Tai", "hint": "Cận cảnh vị trí, hình dạng, kích thước và dáng tai." },
       "parentPedigree": { "title": "Phả / bố mẹ (nếu có)", "hint": "Sổ phả hoặc ảnh bố mẹ — không bắt buộc." }
     }
   },

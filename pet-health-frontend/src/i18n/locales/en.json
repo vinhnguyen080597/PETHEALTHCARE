@@ -101,7 +101,7 @@
     "introBubbleMission": "At Pet Health Care, every pet is more than a little companion — they are family. We hope to help you keep every change, habit, and care moment close, so your pets can be loved at the right time.",
     "go": "Explore now",
     "createPetProfile": "Create your pet's profile",
-    "profileGuideByMai": "Dear pet parent, please help Mai fill in your pet's details.",
+    "profileGuideByMai": "Dear pet parent, please help me fill in your pet's details.",
     "servicesWelcomeTitle": "Welcome to Pet Health Care! 👋",
     "servicesWelcomeBody": "Pet Health Care uses AI technology for early guidance only. 🐾 It does not replace a veterinarian; if your pet shows serious signs, please seek in-person veterinary care.",
     "serviceBreedTitle": "AI breed recognition",
@@ -184,19 +184,33 @@
     "analysisBusyHint": "A health check is being processed. Please wait for it to complete."
   },
   "breedRecognition": {
-    "title": "Breed hint (preliminary)",
+    "title": "Breed recognition (preliminary)",
     "subtitle": "Cats and dogs — optional extra context for health checks.",
-    "quickGuide": "Add 3 clear photos: face, eyes, and coat/pattern. Add full-body or pedigree photos if available for a better result.",
-    "requiredProgress": "{{done}}/{{total}} required",
-    "noteTitle": "Before you use this",
-    "noteBody": "This is a preliminary appearance-based suggestion and may be wrong for mixed or unknown-lineage pets. You can always edit the profile manually.",
+    "noteTitle": "A note from Mai",
+    "noteBody": "Dear pet parent, this is only a preliminary appearance-based suggestion. It may be wrong for mixed or unknown-lineage pets, and you can always edit your pet's profile manually.",
     "creditLine": "{{remaining}} credits left. Breed recognition costs {{cost}} credit.",
     "purposeTitle": "Purpose",
     "purposeBody": "This page collects angle-specific photos (similar to pedigree-style intake) so AI can suggest breed / coat pattern preliminarily. It does not replace a veterinary exam or health analysis.",
     "accuracyTitle": "Accuracy and limits",
-    "accuracyBody": "Formal breed registration often needs a very detailed photo set (face, eyes, paw pads, coat, full body in natural sun, pedigree/parents). Here we only do a lightweight step: results are appearance-based and may be wrong for mixed, random-bred, or village pets. You can always edit the profile manually.",
+    "accuracyBody": "Formal breed registration usually depends on pedigree records, registry documents, microchip/tattoo, DNA/tests, or judge review. Here we only do a lightweight visual step: results are appearance-based and may be wrong for mixed, random-bred, or village pets. You can always edit the profile manually.",
     "requirementsTitle": "Photo tips",
-    "requirementsBody": "One photo per slot. Use sharp photos; avoid heavy color filters. Outdoor natural light helps true coat color.",
+    "requirementsBody": "One photo per slot. Use sharp photos, eye-level angles, a solid contrasting background when possible, and avoid heavy color filters.",
+    "referencesTitle": "References behind the photo guide",
+    "referencesBody": "Official registries do not confirm breed from app photos alone, but their rules show which evidence matters: pedigree/registry records, judge review, and clear front/side photos in some alternative programs.",
+    "references": {
+      "wcf": {
+        "label": "WCF breeding rules",
+        "summary": "WCF full/supplementary registers focus on pedigree, breed, colour/pattern, and related identifying traits."
+      },
+      "tica": {
+        "label": "TICA cat registration",
+        "summary": "TICA registration relies on pedigree documents or judge certification for unknown/unregistered parentage."
+      },
+      "akcPal": {
+        "label": "AKC PAL photo guidelines",
+        "summary": "AKC PAL asks for clear front and side standing photos for unregistered dogs of registrable breeds."
+      }
+    },
     "photoSectionTitle": "Photos by area",
     "requiredBadge": "Required",
     "optionalBadge": "Recommended",
@@ -205,7 +219,7 @@
     "removePhoto": "Remove",
     "analyze": "Get suggestion",
     "analyzing": "Analyzing…",
-    "needRequiredPhotos": "Please add all three required photos: face, eyes, coat/pattern.",
+    "needRequiredPhotos": "Please add all three required photos: front face, full-body side profile, coat/pattern.",
     "needRequiredPhotosWithList": "Still needed: {{photos}}.",
     "resultTitle": "Preliminary result",
     "confidenceLabel": "Estimated confidence: {{pct}}%",
@@ -213,16 +227,20 @@
     "cluesTitle": "Visible clues",
     "missingTitle": "Could improve with",
     "applyToProfile": "Save suggestion to Breed field",
-    "healthCheckLink": "Breed hint (preliminary) — supplement health check",
-    "profileLink": "Breed hint (preliminary)",
+    "healthCheckLink": "Breed recognition — supplement health check",
+    "profileLink": "Breed recognition",
     "unsupportedSpeciesAlertBody": "This feature is available for cat and dog profiles only.",
     "applySuccess": "Breed field in the profile was updated.",
     "slots": {
-      "face": { "title": "Face", "hint": "Front view; clear head and ears." },
-      "eyes": { "title": "Eyes", "hint": "Close-up: iris color and shape." },
-      "pawPads": { "title": "Paw pads / toes", "hint": "Underside of paws if possible (works for cats and dogs)." },
-      "coat": { "title": "Coat and pattern", "hint": "Body/side showing color and markings." },
-      "fullBodySun": { "title": "Full body (sunlight)", "hint": "Full body outdoors in natural daylight." },
+      "face": { "title": "Front face", "hint": "Clear front view of head, ears, eyes, muzzle/nose." },
+      "fullBodySide": { "title": "Full-body side profile", "hint": "Standing on a flat surface; whole body visible at pet eye level." },
+      "coat": { "title": "Coat and pattern", "hint": "Body/side close enough to show color, markings, and texture." },
+      "eyes": { "title": "Eyes", "hint": "Close-up: iris color, shape, set, and clarity." },
+      "headProfile": { "title": "Head side profile", "hint": "Side view of nose bridge, forehead, muzzle, and stop/profile." },
+      "pawPads": { "title": "Paw pads / toes", "hint": "Underside of paws or toes if possible; useful for some cat traits." },
+      "tail": { "title": "Tail", "hint": "Show length, carriage, shape, and tail coat." },
+      "frontFullBody": { "title": "Full front body", "hint": "Dog standing from the front; include legs, chest, face, and ears." },
+      "ears": { "title": "Ears", "hint": "Close view of ear set, shape, size, and carriage." },
       "parentPedigree": { "title": "Pedigree / parents (optional)", "hint": "Pedigree book or parents — optional." }
     }
   },
