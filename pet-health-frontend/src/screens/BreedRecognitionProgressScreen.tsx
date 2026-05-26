@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
 import { getBreedRecognitionSlotOrder } from '../constants/petBreedRecognitionSlots';
@@ -14,7 +14,8 @@ type BreedRecognitionProgressScreenProps = {
   onEditPhotos: () => void;
 };
 
-const SCAN_DISTANCE = 300;
+const HERO_IMAGE_HEIGHT = 288;
+const SCAN_DISTANCE = HERO_IMAGE_HEIGHT - 2;
 
 export function BreedRecognitionProgressScreen({
   pet,
@@ -26,7 +27,8 @@ export function BreedRecognitionProgressScreen({
 }: BreedRecognitionProgressScreenProps) {
   const { t } = useTranslation();
   const scan = useRef(new Animated.Value(0)).current;
-  const orderedSlots = getBreedRecognitionSlotOrder(pet.species);
+  const [activeScanIndex, setActiveScanIndex] = useState(0);
+  const orderedSlots = useMemo(() => getBreedRecognitionSlotOrder(pet.species), [pet.species]);
 
   const selectedSlots = useMemo(
     () =>
@@ -36,24 +38,46 @@ export function BreedRecognitionProgressScreen({
       }),
     [orderedSlots, slotUris],
   );
-  const hero = selectedSlots[0];
+  const hero = selectedSlots[activeScanIndex] ?? selectedSlots[0];
+  const isScanning = loading && !result && selectedSlots.length > 0;
 
   useEffect(() => {
-    scan.setValue(0);
-    const loop = Animated.loop(
+    setActiveScanIndex(0);
+  }, [selectedSlots.length]);
+
+  useEffect(() => {
+    let stopped = false;
+
+    function runScan() {
+      scan.setValue(0);
+      if (!isScanning) return;
+
       Animated.timing(scan, {
         toValue: 1,
-        duration: 1800,
+        duration: 1700,
         useNativeDriver: true,
-      }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [scan]);
+      }).start(({ finished }) => {
+        if (!finished || stopped) return;
+        setActiveScanIndex((current) => (selectedSlots.length > 1 ? (current + 1) % selectedSlots.length : current));
+        runScan();
+      });
+    }
+
+    runScan();
+    return () => {
+      stopped = true;
+      scan.stopAnimation();
+    };
+  }, [isScanning, scan, selectedSlots.length]);
+
+  useEffect(() => {
+    if (isScanning) return;
+    scan.setValue(0);
+  }, [isScanning, scan]);
 
   const scanTranslateY = scan.interpolate({
     inputRange: [0, 1],
-    outputRange: [-48, SCAN_DISTANCE],
+    outputRange: [0, SCAN_DISTANCE],
   });
 
   return (
@@ -77,7 +101,7 @@ export function BreedRecognitionProgressScreen({
         <View className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/40 bg-slate-900 shadow-lg">
           <View className="relative h-72">
             {hero ? (
-              <Image source={{ uri: hero.uri }} className="h-full w-full" contentFit="cover" />
+              <Image source={{ uri: hero.uri }} className="h-full w-full" contentFit="cover" transition={180} />
             ) : (
               <View className="h-full w-full items-center justify-center bg-slate-800">
                 <Text className="text-sm text-slate-300">{t('breedRecognitionProgress.noPreview')}</Text>
@@ -92,15 +116,6 @@ export function BreedRecognitionProgressScreen({
               </Text>
             </View>
 
-            <Animated.View
-              className="absolute left-0 right-0 h-16"
-              style={{ transform: [{ translateY: scanTranslateY }] }}
-            >
-              <View className="h-px bg-cyan-100" />
-              <View className="h-14 bg-cyan-300/20" />
-              <View className="h-1 bg-cyan-200 shadow-lg shadow-cyan-200" />
-            </Animated.View>
-
             {[0.22, 0.48, 0.74].map((top, index) => (
               <View
                 key={top}
@@ -112,13 +127,36 @@ export function BreedRecognitionProgressScreen({
                 </Text>
               </View>
             ))}
+
+            {isScanning ? (
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 4,
+                  zIndex: 30,
+                  elevation: 30,
+                  transform: [{ translateY: scanTranslateY }],
+                }}
+              >
+                <View style={{ height: 4, backgroundColor: '#22d3ee' }} />
+              </Animated.View>
+            ) : null}
           </View>
         </View>
 
         <View className="mt-5 flex-row justify-center gap-2">
-          {selectedSlots.slice(0, 5).map((item) => (
-            <View key={item.slot} className="h-12 w-12 overflow-hidden rounded-xl border border-cyan-200/40 bg-slate-800">
-              <Image source={{ uri: item.uri }} className="h-full w-full" contentFit="cover" />
+          {selectedSlots.slice(0, 5).map((item, index) => (
+            <View
+              key={item.slot}
+              className={`h-12 w-12 overflow-hidden rounded-xl border bg-slate-800 ${
+                index === activeScanIndex && isScanning ? 'border-cyan-200' : 'border-cyan-200/40'
+              }`}
+            >
+              <Image source={{ uri: item.uri }} className="h-full w-full" contentFit="cover" transition={120} />
             </View>
           ))}
         </View>
