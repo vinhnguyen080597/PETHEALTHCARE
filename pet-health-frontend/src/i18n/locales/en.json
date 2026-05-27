@@ -260,6 +260,27 @@
       "coat pattern"
     ]
   },
+  "breedRecognitionResult": {
+    "title": "Breed Recognition Report",
+    "heroEyebrow": "Preliminary breed suggestion",
+    "confidence": "Visual match level",
+    "quickFacts": "Quick facts",
+    "origin": "Origin",
+    "size": "Size",
+    "coat": "Coat",
+    "activityLevel": "Activity",
+    "groomingNeeds": "Grooming",
+    "temperament": "Common traits",
+    "whyMaiSuggests": "Why Mai suggests this",
+    "observedFrom": "Observed from {{slot}}",
+    "profileAndCare": "Origin, traits & care",
+    "sources": "References",
+    "levels": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    }
+  },
   "analysisProgress": {
     "title": "Reviewing wellness signs",
     "subtitle": "Please wait while we process {{name}}'s data.",

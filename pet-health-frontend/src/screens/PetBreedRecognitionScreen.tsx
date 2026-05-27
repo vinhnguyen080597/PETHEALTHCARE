@@ -8,7 +8,7 @@ import {
   type BreedRecognitionSlot,
 } from '../constants/petBreedRecognitionSlots';
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
-import type { AiCreditAccount, BreedRecognitionResult, Pet } from '../types';
+import type { AiCreditAccount, Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
 
@@ -39,7 +39,6 @@ function referenceLinksForSpecies(species: string) {
 type PetBreedRecognitionScreenProps = {
   pet: Pet;
   slotUris: Record<string, string>;
-  result: BreedRecognitionResult | null;
   loading: boolean;
   aiCredits?: AiCreditAccount | null;
   aiCreditCost?: number;
@@ -47,13 +46,11 @@ type PetBreedRecognitionScreenProps = {
   onPickSlot: (slot: BreedRecognitionSlot) => void;
   onClearSlot: (slot: BreedRecognitionSlot) => void;
   onAnalyze: () => void;
-  onApplyToProfile: () => void;
 };
 
 export function PetBreedRecognitionScreen({
   pet,
   slotUris,
-  result,
   loading,
   aiCredits = null,
   aiCreditCost = 1,
@@ -61,7 +58,6 @@ export function PetBreedRecognitionScreen({
   onPickSlot,
   onClearSlot,
   onAnalyze,
-  onApplyToProfile,
 }: PetBreedRecognitionScreenProps) {
   const { t } = useTranslation();
   const slotOrder = getBreedRecognitionSlotOrder(pet.species);
@@ -213,58 +209,6 @@ export function PetBreedRecognitionScreen({
           })}
         </View>
 
-        {result ? (
-          <View className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
-            <Text className="text-base font-bold text-slate-900">{t('breedRecognition.resultTitle')}</Text>
-            <Text className="mt-3 text-base leading-6 text-slate-800">{result.primary_hypothesis}</Text>
-            <Text className="mt-2 text-sm text-slate-600">
-              {t('breedRecognition.confidenceLabel', { pct: Math.round(result.confidence * 100) })}
-            </Text>
-            {result.alternatives.length > 0 ? (
-              <View className="mt-3">
-                <Text className="text-sm font-semibold text-slate-700">{t('breedRecognition.alternativesTitle')}</Text>
-                {result.alternatives.map((a, i) => (
-                  <Text key={`${a.label}-${i}`} className="mt-1 text-sm text-slate-700">
-                    • {a.label} ({Math.round(a.confidence * 100)}%)
-                  </Text>
-                ))}
-              </View>
-            ) : null}
-            {result.visible_clues.length > 0 ? (
-              <View className="mt-3">
-                <Text className="text-sm font-semibold text-slate-700">{t('breedRecognition.cluesTitle')}</Text>
-                {result.visible_clues.map((c, i) => (
-                  <Text key={`${c}-${i}`} className="mt-1 text-sm text-slate-600">
-                    • {c}
-                  </Text>
-                ))}
-              </View>
-            ) : null}
-            {result.missing_for_better_id.length > 0 ? (
-              <View className="mt-3">
-                <Text className="text-sm font-semibold text-slate-700">{t('breedRecognition.missingTitle')}</Text>
-                {result.missing_for_better_id.map((m, i) => (
-                  <Text key={`${m}-${i}`} className="mt-1 text-sm text-slate-600">
-                    • {m}
-                  </Text>
-                ))}
-              </View>
-            ) : null}
-            {result.notes_for_owner ? (
-              <Text className="mt-3 text-sm leading-5 text-slate-700">{result.notes_for_owner}</Text>
-            ) : null}
-            <Text className="mt-4 text-xs leading-5 text-slate-500">{result.disclaimer}</Text>
-            <Pressable
-              testID="breed-recognition-apply-profile-button"
-              accessibilityRole="button"
-              accessibilityLabel="Apply breed result to profile"
-              className="mt-4 rounded-xl border border-slate-200 bg-slate-50 py-3 active:bg-slate-100"
-              onPress={onApplyToProfile}
-            >
-              <Text className="text-center text-sm font-bold text-slate-900">{t('breedRecognition.applyToProfile')}</Text>
-            </Pressable>
-          </View>
-        ) : null}
       </ScrollView>
 
       <View className="border-t border-gray-200 bg-white px-5 pb-5 pt-3">

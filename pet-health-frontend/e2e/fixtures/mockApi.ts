@@ -295,9 +295,33 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
       state.ledger.unshift({ id: `ledger-${state.ledger.length + 1}`, reason: 'breed_recognition', delta: -1 });
       return json(route, {
         data: {
+          schema_version: 'breed_recognition.v2',
+          primary: {
+            breed_name: 'British Shorthair mix',
+            phenotype_label: 'Blue short coat',
+            confidence: 0.87,
+            summary: 'Mai sees a round face, dense blue short coat, and compact body proportions that can fit a British Shorthair mix.',
+          },
+          breed_profile: {
+            origin: 'United Kingdom',
+            size: 'Medium',
+            coat: 'Short, dense coat',
+            temperament: ['Calm', 'Gentle', 'Independent'],
+            activity_level: 'medium',
+            grooming_needs: 'low',
+          },
+          visual_evidence: [
+            { trait: 'Face shape', observation: 'Round face and full cheeks.', source_slot: 'face' },
+            { trait: 'Coat', observation: 'Dense blue short coat.', source_slot: 'coat' },
+          ],
+          care_overview: [
+            { title: 'Coat care', body: 'Short dense coats usually need regular brushing, especially during shedding seasons.' },
+            { title: 'Breed certainty', body: 'Official confirmation still depends on pedigree records, breeder documents, or registry review.' },
+          ],
+          sources: [{ title: 'TICA cat registration guidance', url: 'https://tica.org/how-do-i-register-my-cat/' }],
           primary_hypothesis: 'British Shorthair mix',
           confidence: 0.87,
-          alternatives: [{ label: 'Domestic Shorthair', confidence: 0.55 }],
+          alternatives: [{ label: 'Domestic Shorthair', confidence: 0.55, reason: 'Similar short coat and common mixed background.' }],
           visible_clues: ['Round face', 'Dense coat'],
           missing_for_better_id: ['Pedigree document'],
           notes_for_owner: 'Treat this as a visual estimate, not a pedigree certificate.',

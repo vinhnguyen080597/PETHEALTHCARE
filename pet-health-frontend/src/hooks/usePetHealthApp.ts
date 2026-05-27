@@ -1183,6 +1183,7 @@ export function usePetHealthApp() {
       });
       setBreedRecognitionResult(res.data);
       void refreshAiCredits(token);
+      setScreen('breed-recognition-result');
     } catch (error: unknown) {
       if (error instanceof ApiRequestError && error.code === 'AI_CREDITS_EXHAUSTED') {
         setAiCredits((prev) =>
@@ -1213,10 +1214,12 @@ export function usePetHealthApp() {
   }
 
   async function applyBreedRecognitionToProfile() {
-    if (!token || !selectedPetId || !breedRecognitionResult?.primary_hypothesis?.trim()) return;
+    const breedSuggestion =
+      breedRecognitionResult?.primary?.breed_name?.trim() || breedRecognitionResult?.primary_hypothesis?.trim() || '';
+    if (!token || !selectedPetId || !breedSuggestion) return;
     setLoading(true);
     try {
-      await updatePet(token, selectedPetId, { breed: breedRecognitionResult.primary_hypothesis.trim() });
+      await updatePet(token, selectedPetId, { breed: breedSuggestion });
       await fetchPets(token);
       Alert.alert(i18n.t('common.ok'), i18n.t('breedRecognition.applySuccess'));
       closeBreedRecognition();

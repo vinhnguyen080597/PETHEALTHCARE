@@ -1,17 +1,14 @@
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, ScrollView, Text, View } from 'react-native';
 import { getBreedRecognitionSlotOrder } from '../constants/petBreedRecognitionSlots';
-import type { BreedRecognitionResult, Pet } from '../types';
+import type { Pet } from '../types';
 
 type BreedRecognitionProgressScreenProps = {
   pet: Pet;
   slotUris: Record<string, string>;
-  result: BreedRecognitionResult | null;
   loading: boolean;
-  onApplyToProfile: () => void;
-  onEditPhotos: () => void;
 };
 
 const HERO_IMAGE_HEIGHT = 288;
@@ -20,10 +17,7 @@ const SCAN_DISTANCE = HERO_IMAGE_HEIGHT - 2;
 export function BreedRecognitionProgressScreen({
   pet,
   slotUris,
-  result,
   loading,
-  onApplyToProfile,
-  onEditPhotos,
 }: BreedRecognitionProgressScreenProps) {
   const { t } = useTranslation();
   const scan = useRef(new Animated.Value(0)).current;
@@ -39,7 +33,7 @@ export function BreedRecognitionProgressScreen({
     [orderedSlots, slotUris],
   );
   const hero = selectedSlots[activeScanIndex] ?? selectedSlots[0];
-  const isScanning = loading && !result && selectedSlots.length > 0;
+  const isScanning = loading && selectedSlots.length > 0;
 
   useEffect(() => {
     setActiveScanIndex(0);
@@ -88,13 +82,9 @@ export function BreedRecognitionProgressScreen({
         contentContainerStyle={{ paddingTop: 32, paddingBottom: 32 }}
       >
         <View className="items-center">
-          <Text className="text-center text-2xl font-bold text-white">
-            {result ? t('breedRecognitionProgress.resultReadyTitle') : t('breedRecognitionProgress.title')}
-          </Text>
+          <Text className="text-center text-2xl font-bold text-white">{t('breedRecognitionProgress.title')}</Text>
           <Text className="mt-2 text-center text-sm leading-5 text-blue-100">
-            {result
-              ? t('breedRecognitionProgress.resultReadyBody', { name: pet.name })
-              : t('breedRecognitionProgress.subtitle', { name: pet.name })}
+            {t('breedRecognitionProgress.subtitle', { name: pet.name })}
           </Text>
         </View>
 
@@ -164,72 +154,9 @@ export function BreedRecognitionProgressScreen({
         <View className="mt-8 rounded-2xl border border-white/10 bg-white/10 px-4 py-4">
           <Text className="text-center text-base font-bold text-white">{t('breedRecognitionProgress.stageTitle')}</Text>
           <Text className="mt-2 text-center text-sm leading-5 text-slate-200">
-            {result ? t('breedRecognitionProgress.resultStageBody') : t('breedRecognitionProgress.stageBody')}
+            {t('breedRecognitionProgress.stageBody')}
           </Text>
         </View>
-
-        {result ? (
-          <View testID="breed-recognition-result-card" className="mt-6 rounded-3xl border border-cyan-200/30 bg-white p-4">
-            <Text className="text-base font-bold text-slate-900">{t('breedRecognition.resultTitle')}</Text>
-            <Text className="mt-3 text-base leading-6 text-slate-800">{result.primary_hypothesis}</Text>
-            <Text className="mt-2 text-sm text-slate-600">
-              {t('breedRecognition.confidenceLabel', { pct: Math.round(result.confidence * 100) })}
-            </Text>
-            {result.alternatives.length > 0 ? (
-              <View className="mt-3">
-                <Text className="text-sm font-semibold text-slate-700">{t('breedRecognition.alternativesTitle')}</Text>
-                {result.alternatives.map((a, i) => (
-                  <Text key={`${a.label}-${i}`} className="mt-1 text-sm text-slate-700">
-                    - {a.label} ({Math.round(a.confidence * 100)}%)
-                  </Text>
-                ))}
-              </View>
-            ) : null}
-            {result.visible_clues.length > 0 ? (
-              <View className="mt-3">
-                <Text className="text-sm font-semibold text-slate-700">{t('breedRecognition.cluesTitle')}</Text>
-                {result.visible_clues.map((c, i) => (
-                  <Text key={`${c}-${i}`} className="mt-1 text-sm text-slate-600">
-                    - {c}
-                  </Text>
-                ))}
-              </View>
-            ) : null}
-            {result.missing_for_better_id.length > 0 ? (
-              <View className="mt-3">
-                <Text className="text-sm font-semibold text-slate-700">{t('breedRecognition.missingTitle')}</Text>
-                {result.missing_for_better_id.map((m, i) => (
-                  <Text key={`${m}-${i}`} className="mt-1 text-sm text-slate-600">
-                    - {m}
-                  </Text>
-                ))}
-              </View>
-            ) : null}
-            {result.notes_for_owner ? (
-              <Text className="mt-3 text-sm leading-5 text-slate-700">{result.notes_for_owner}</Text>
-            ) : null}
-            <Text className="mt-4 text-xs leading-5 text-slate-500">{result.disclaimer}</Text>
-            <Pressable
-              testID="breed-recognition-apply-profile-button"
-              accessibilityRole="button"
-              accessibilityLabel="Apply breed result to profile"
-              className={`mt-4 rounded-xl border border-slate-200 bg-slate-50 py-3 active:bg-slate-100 ${loading ? 'opacity-50' : ''}`}
-              onPress={onApplyToProfile}
-              disabled={loading}
-            >
-              <Text className="text-center text-sm font-bold text-slate-900">{t('breedRecognition.applyToProfile')}</Text>
-            </Pressable>
-            <Pressable
-              testID="breed-recognition-edit-photos-button"
-              accessibilityRole="button"
-              accessibilityLabel="Edit breed recognition photos"
-              className="mt-3 rounded-xl border border-cyan-200/70 bg-cyan-50 py-3 active:bg-cyan-100"
-              onPress={onEditPhotos}
-            >
-              <Text className="text-center text-sm font-bold text-cyan-900">{t('breedRecognition.editPhotos')}</Text>
-            </Pressable>
-          </View>
-        ) : null}
       </ScrollView>
     </View>
   );

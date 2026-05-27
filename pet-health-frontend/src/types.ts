@@ -111,9 +111,37 @@ export type UpdatePetPayload = {
 
 /** POST /breed-recognition — preliminary breed / phenotype guess (supported species: cat, dog). */
 export type BreedRecognitionResult = {
+  schema_version?: 'breed_recognition.v2';
+  primary?: {
+    breed_name: string;
+    phenotype_label?: string;
+    confidence: number;
+    summary: string;
+  };
+  breed_profile?: {
+    origin?: string;
+    size?: string;
+    coat?: string;
+    temperament?: string[];
+    activity_level?: 'low' | 'medium' | 'high';
+    grooming_needs?: 'low' | 'medium' | 'high';
+  };
+  visual_evidence?: {
+    trait?: string;
+    observation: string;
+    source_slot?: string;
+  }[];
+  care_overview?: {
+    title: string;
+    body: string;
+  }[];
+  sources?: {
+    title: string;
+    url: string;
+  }[];
   primary_hypothesis: string;
   confidence: number;
-  alternatives: { label: string; confidence: number }[];
+  alternatives: { label: string; confidence: number; reason?: string }[];
   visible_clues: string[];
   missing_for_better_id: string[];
   notes_for_owner: string;

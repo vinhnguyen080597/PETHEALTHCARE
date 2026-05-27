@@ -45,6 +45,87 @@ function clamp01(n) {
   return Math.max(0, Math.min(1, n));
 }
 
+function cleanString(value, fallback = '') {
+  if (typeof value !== 'string') return fallback;
+  return value.replace(/\s+/g, ' ').trim() || fallback;
+}
+
+function cleanStringArray(value, limit) {
+  return Array.isArray(value)
+    ? value
+        .map((s) => cleanString(s))
+        .filter(Boolean)
+        .slice(0, limit)
+    : [];
+}
+
+function normalizeLevel(value) {
+  const v = cleanString(value).toLowerCase();
+  return ['low', 'medium', 'high'].includes(v) ? v : 'medium';
+}
+
+function normalizePrimary(raw, primary, confidence) {
+  const src = raw?.primary && typeof raw.primary === 'object' ? raw.primary : {};
+  return {
+    breed_name: cleanString(src.breed_name, primary || 'Unknown breed type'),
+    phenotype_label: cleanString(src.phenotype_label),
+    confidence,
+    summary: cleanString(src.summary, primary || 'Preliminary visual breed suggestion.'),
+  };
+}
+
+function normalizeBreedProfile(raw) {
+  const src = raw?.breed_profile && typeof raw.breed_profile === 'object' ? raw.breed_profile : {};
+  return {
+    origin: cleanString(src.origin),
+    size: cleanString(src.size),
+    coat: cleanString(src.coat),
+    temperament: cleanStringArray(src.temperament, 6),
+    activity_level: normalizeLevel(src.activity_level),
+    grooming_needs: normalizeLevel(src.grooming_needs),
+  };
+}
+
+function normalizeVisualEvidence(raw, fallbackClues) {
+  const src = Array.isArray(raw?.visual_evidence) ? raw.visual_evidence : [];
+  const evidence = src
+    .filter((x) => x && typeof x === 'object')
+    .map((x) => ({
+      trait: cleanString(x.trait),
+      observation: cleanString(x.observation),
+      source_slot: cleanString(x.source_slot),
+    }))
+    .filter((x) => x.trait || x.observation)
+    .slice(0, 10);
+
+  if (evidence.length) return evidence;
+  return fallbackClues.slice(0, 8).map((clue) => ({ trait: '', observation: clue, source_slot: '' }));
+}
+
+function normalizeCareOverview(raw) {
+  const src = Array.isArray(raw?.care_overview) ? raw.care_overview : [];
+  return src
+    .filter((x) => x && typeof x === 'object')
+    .map((x) => ({
+      title: cleanString(x.title),
+      body: cleanString(x.body),
+    }))
+    .filter((x) => x.title || x.body)
+    .slice(0, 4);
+}
+
+function normalizeSources(raw) {
+  const src = Array.isArray(raw?.sources) ? raw.sources : [];
+  return src
+    .filter((x) => x && typeof x === 'object')
+    .map((x) => ({
+      title: cleanString(x.title),
+      url: cleanString(x.url),
+    }))
+    .filter((x) => x.title && /^https?:\/\//i.test(x.url))
+    .slice(0, 4);
+}
+
 function normalizeBreedPayload(raw) {
   const primary = typeof raw?.primary_hypothesis === 'string' ? raw.primary_hypothesis.trim() : '';
   const disclaimer =
@@ -57,6 +138,7 @@ function normalizeBreedPayload(raw) {
         .map((x) => ({
           label: typeof x.label === 'string' ? x.label.trim() : '',
           confidence: clamp01(Number(x.confidence)),
+          reason: cleanString(x.reason),
         }))
         .filter((x) => x.label)
     : [];
@@ -67,10 +149,18 @@ function normalizeBreedPayload(raw) {
     ? raw.missing_for_better_id.filter((s) => typeof s === 'string').map((s) => s.trim()).filter(Boolean)
     : [];
   const notes = typeof raw?.notes_for_owner === 'string' ? raw.notes_for_owner.trim() : '';
+  const confidence = clamp01(Number(raw?.confidence ?? raw?.primary?.confidence));
+  const primaryResult = normalizePrimary(raw, primary, confidence);
 
   return {
-    primary_hypothesis: primary || 'Unable to summarize from images',
-    confidence: clamp01(Number(raw?.confidence)),
+    schema_version: 'breed_recognition.v2',
+    primary: primaryResult,
+    breed_profile: normalizeBreedProfile(raw),
+    visual_evidence: normalizeVisualEvidence(raw, clues),
+    care_overview: normalizeCareOverview(raw),
+    sources: normalizeSources(raw),
+    primary_hypothesis: primary || primaryResult.breed_name || 'Unable to summarize from images',
+    confidence,
     alternatives: alts.slice(0, 5),
     visible_clues: clues.slice(0, 12),
     missing_for_better_id: missing.slice(0, 8),
@@ -153,9 +243,33 @@ Shared rules:
 
 Return STRICT JSON only with this schema:
 {
+  "schema_version": "breed_recognition.v2",
+  "primary": {
+    "breed_name": "short breed/type name only",
+    "phenotype_label": "optional color, coat, or phenotype label",
+    "confidence": 0.0,
+    "summary": "1-2 concise sentences summarizing the result"
+  },
+  "breed_profile": {
+    "origin": "short origin/history if commonly known; empty string if uncertain",
+    "size": "small|medium|large or short natural text",
+    "coat": "short coat description",
+    "temperament": ["common temperament traits, phrased as typical/not guaranteed"],
+    "activity_level": "low|medium|high",
+    "grooming_needs": "low|medium|high"
+  },
+  "visual_evidence": [
+    { "trait": "e.g. face, ears, coat, body", "observation": "what is visible", "source_slot": "slot key if known" }
+  ],
+  "care_overview": [
+    { "title": "short care/profile topic", "body": "1 sentence practical context" }
+  ],
+  "sources": [
+    { "title": "relevant registry or general source name", "url": "https://..." }
+  ],
   "primary_hypothesis": "short best guess: breed and/or color pattern in user-facing language",
   "confidence": 0.0,
-  "alternatives": [{"label":"other plausible guess","confidence":0.0}],
+  "alternatives": [{"label":"other plausible guess","confidence":0.0,"reason":"short visual reason"}],
   "visible_clues": ["bullet observations tied to what you see"],
   "missing_for_better_id": ["what extra photos would help"],
   "notes_for_owner": "1-3 sentences: mixed-breed friendly, practical",
@@ -163,6 +277,7 @@ Return STRICT JSON only with this schema:
 }
 
 confidence must be between 0 and 1.
+Do not fabricate precise pedigree, breeder, DNA, or registration claims. If breed profile data is uncertain, keep it general and say it is typical for the suggested breed/type.
 ${buildBreedOutputLanguageBlock(outputLocale)}
 `;
 

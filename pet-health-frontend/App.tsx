@@ -10,6 +10,7 @@ import { usePetHealthApp } from './src/hooks/usePetHealthApp';
 import { AddPetScreen } from './src/screens/AddPetScreen';
 import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
 import { BreedRecognitionProgressScreen } from './src/screens/BreedRecognitionProgressScreen';
+import { BreedRecognitionResultScreen } from './src/screens/BreedRecognitionResultScreen';
 import { CoreCareScreen } from './src/screens/CoreCareScreen';
 import { PetBreedRecognitionScreen } from './src/screens/PetBreedRecognitionScreen';
 import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
@@ -39,6 +40,7 @@ export default function App() {
     app.screen === 'onboarding-results' ||
     app.screen === 'pet-profile' ||
     app.screen === 'breed-recognition-progress' ||
+    app.screen === 'breed-recognition-result' ||
     app.screen === 'breed-recognition';
   const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;
   const breedCreditCost = app.aiEconomicsConfig?.features.breed_recognition?.creditCost ?? 1;
@@ -250,7 +252,6 @@ export default function App() {
               <PetBreedRecognitionScreen
                 pet={app.selectedPet}
                 slotUris={app.breedRecognitionSlotUris}
-                result={app.breedRecognitionResult}
                 loading={app.breedRecognitionLoading}
                 aiCredits={app.aiCredits}
                 aiCreditCost={breedCreditCost}
@@ -258,7 +259,6 @@ export default function App() {
                 onPickSlot={app.pickBreedRecognitionSlot}
                 onClearSlot={app.clearBreedRecognitionSlot}
                 onAnalyze={app.submitBreedRecognition}
-                onApplyToProfile={app.applyBreedRecognitionToProfile}
               />
             ) : null}
 
@@ -266,10 +266,19 @@ export default function App() {
               <BreedRecognitionProgressScreen
                 pet={app.selectedPet}
                 slotUris={app.breedRecognitionSlotUris}
-                result={app.breedRecognitionResult}
                 loading={app.breedRecognitionLoading}
-                onApplyToProfile={app.applyBreedRecognitionToProfile}
+              />
+            ) : null}
+
+            {app.screen === 'breed-recognition-result' && app.selectedPet && app.breedRecognitionResult ? (
+              <BreedRecognitionResultScreen
+                pet={app.selectedPet}
+                result={app.breedRecognitionResult}
+                slotUris={app.breedRecognitionSlotUris}
+                loading={app.loading}
+                onBack={app.closeBreedRecognition}
                 onEditPhotos={app.editBreedRecognitionPhotos}
+                onApplyToProfile={app.applyBreedRecognitionToProfile}
               />
             ) : null}
 

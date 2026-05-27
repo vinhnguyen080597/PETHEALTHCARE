@@ -260,6 +260,27 @@
       "lông & hoa văn"
     ]
   },
+  "breedRecognitionResult": {
+    "title": "Báo cáo nhận diện giống",
+    "heroEyebrow": "Gợi ý giống sơ bộ",
+    "confidence": "Mức khớp hình ảnh",
+    "quickFacts": "Thông tin nhanh",
+    "origin": "Nguồn gốc",
+    "size": "Kích thước",
+    "coat": "Bộ lông",
+    "activityLevel": "Mức vận động",
+    "groomingNeeds": "Chăm sóc lông",
+    "temperament": "Đặc tính thường gặp",
+    "whyMaiSuggests": "Vì sao Mai gợi ý như vậy",
+    "observedFrom": "Quan sát từ {{slot}}",
+    "profileAndCare": "Nguồn gốc, đặc tính & chăm sóc",
+    "sources": "Nguồn tham khảo",
+    "levels": {
+      "low": "Thấp",
+      "medium": "Trung bình",
+      "high": "Cao"
+    }
+  },
   "analysisProgress": {
     "title": "Đang sàng lọc sức khỏe",
     "subtitle": "Vui lòng chờ trong khi hệ thống xử lý dữ liệu của {{name}}.",
