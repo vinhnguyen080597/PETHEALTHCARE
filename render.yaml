@@ -1,0 +1,65 @@
+services:
+  - type: web
+    name: pet-health-backend
+    runtime: node
+    plan: free
+    rootDir: pet-health-backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_IMAGE_BUCKET
+        value: pet-diagnosis-images
+      - key: GEMINI_MODEL_CANDIDATES
+        value: gemini-2.5-flash,gemini-2.0-flash
+      - key: AI_DEBUG_LOG_ENABLED
+        value: "false"
+      - key: AI_DEBUG_LOG_INCLUDE_MEDIA_BASE64
+        value: "false"
+      - key: LOG_ALL_REQUESTS
+        value: "false"
+      - key: LOG_REQUEST_BODY
+        value: "false"
+      - key: LOG_RESPONSE_BODY
+        value: "false"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: AI_INITIAL_TRIAL_CREDITS
+        value: "2"
+      - key: AI_FREE_MONTHLY_CREDITS
+        value: "0"
+      - key: AI_DEFAULT_PLAN_TIER
+        value: free
+      - key: AI_CREDITS_HEALTH_ANALYSIS
+        value: "1"
+      - key: AI_CREDITS_BREED_RECOGNITION
+        value: "1"
+      - key: AI_CREDITS_ANALYSIS_TRANSLATION
+        value: "0.25"
+      - key: AI_GLOBAL_DAILY_BUDGET_USD
+        value: "10"
+      - key: AI_GLOBAL_MONTHLY_BUDGET_USD
+        value: "200"
+      - key: AI_FEATURE_DAILY_BUDGET_USD_HEALTH_ANALYSIS
+        value: "6"
+      - key: AI_FEATURE_DAILY_BUDGET_USD_BREED_RECOGNITION
+        value: "3"
+      - key: AI_FEATURE_DAILY_BUDGET_USD_ANALYSIS_TRANSLATION
+        value: "1"
+      - key: AI_REWARDED_AD_CREDITS
+        value: "1"
+      - key: AI_REWARDED_AD_DAILY_CAP
+        value: "3"
+      - key: ADMIN_INTERNAL_API_KEY
+        sync: false

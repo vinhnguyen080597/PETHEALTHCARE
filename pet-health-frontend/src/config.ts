@@ -1,15 +1,21 @@
-// Must match the PC IPv4 printed by the backend: "LAN URLs for Expo devices"
+// Must match the PC IPv4 printed by the backend: "LAN URLs for Expo devices".
+// Production/staging builds should set EXPO_PUBLIC_API_ORIGIN to the deployed backend origin.
 const LOCAL_IP = '192.168.1.4';
+const LOCAL_API_ORIGIN = `http://${LOCAL_IP}:3000`;
 
-export const API_BASE_URL = "https://contest-patronage-sank.ngrok-free.dev/api/v1"
-  // Platform.OS === 'android'
-  //   ? `http://${LOCAL_IP}:3000/api/v1`
-  //   : `http://${LOCAL_IP}:3000/api/v1`;
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, '');
+}
 
-export const API_HEALTH_URL = "https://contest-patronage-sank.ngrok-free.dev/health"
-  // Platform.OS === 'android'
-  //   ? `http://${LOCAL_IP}:3000/health`
-  //   : `http://${LOCAL_IP}:3000/health`;
+const configuredApiOrigin = process.env.EXPO_PUBLIC_API_ORIGIN?.trim();
+const configuredApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+const configuredApiHealthUrl = process.env.EXPO_PUBLIC_API_HEALTH_URL?.trim();
+
+const apiOrigin = trimTrailingSlash(configuredApiOrigin || LOCAL_API_ORIGIN);
+
+export const API_BASE_URL = trimTrailingSlash(configuredApiBaseUrl || `${apiOrigin}/api/v1`);
+
+export const API_HEALTH_URL = trimTrailingSlash(configuredApiHealthUrl || `${apiOrigin}/health`);
 
 /** Google OAuth client IDs from Google Cloud Console (Web + iOS + Android types). */
 export const GOOGLE_OAUTH = {

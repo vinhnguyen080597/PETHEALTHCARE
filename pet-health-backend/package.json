@@ -4,9 +4,12 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
   },
   "keywords": [],
   "author": "",

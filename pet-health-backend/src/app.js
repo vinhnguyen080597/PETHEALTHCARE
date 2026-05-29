@@ -11,12 +11,34 @@ import coreCareRoutes from './routes/coreCareRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 
+function configuredCorsOrigins() {
+  return String(process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+}
+
+function corsOrigin() {
+  const allowed = configuredCorsOrigins();
+  if (allowed.length === 0) {
+    return true;
+  }
+
+  return (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    callback(null, allowed.includes(origin.replace(/\/+$/, '')));
+  };
+}
+
 export function createApp() {
   const app = express();
-  // Explicit CORS for browser (Expo web / Vite) + localtunnel custom header
+  // Explicit CORS for browser clients. Native mobile requests usually have no Origin header.
   app.use(
     cors({
-      origin: true,
+      origin: corsOrigin(),
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'Bypass-Tunnel-Reminder', 'ngrok-skip-browser-warning'],
       maxAge: 86400,
