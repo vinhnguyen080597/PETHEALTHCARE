@@ -48,7 +48,7 @@ export function BreedRecognitionProgressScreen({
 
       Animated.timing(scan, {
         toValue: 1,
-        duration: 1700,
+        duration: 5000,
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (!finished || stopped) return;
