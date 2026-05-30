@@ -57,6 +57,12 @@ function sanitizeAvatarUrl(url) {
   return t;
 }
 
+function normalizeAgeMonths(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const months = Number(value);
+  return Number.isFinite(months) ? Math.max(0, Math.round(months)) : null;
+}
+
 /** Remote DB may not have run `alter table pets add column gender` yet. */
 function isMissingGenderColumnError(error) {
   if (!error) return false;
@@ -76,7 +82,7 @@ export async function createPetForUser(userId, payload, accessToken) {
     name: String(payload.name).trim(),
     species: String(payload.species).trim().toLowerCase(),
     breed: payload.breed ? String(payload.breed).trim() : null,
-    age: Number.isFinite(Number(payload.age)) ? Number(payload.age) : null,
+    age: normalizeAgeMonths(payload.age),
     gender: normalizeGender(payload.gender),
     avatar_url: sanitizeAvatarUrl(payload.avatarUrl),
     created_at: new Date().toISOString(),
@@ -104,7 +110,7 @@ export async function updatePetForUser(userId, petId, payload, accessToken) {
   if (payload.name !== undefined) updates.name = String(payload.name).trim();
   if (payload.species !== undefined) updates.species = String(payload.species).trim().toLowerCase();
   if (payload.breed !== undefined) updates.breed = payload.breed ? String(payload.breed).trim() : null;
-  if (payload.age !== undefined) updates.age = Number.isFinite(Number(payload.age)) ? Number(payload.age) : null;
+  if (payload.age !== undefined) updates.age = normalizeAgeMonths(payload.age);
   if (payload.gender !== undefined) updates.gender = normalizeGender(payload.gender);
   if (payload.avatarUrl !== undefined) {
     updates.avatar_url = sanitizeAvatarUrl(payload.avatarUrl);

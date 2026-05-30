@@ -12,6 +12,8 @@ create table if not exists public.pets (
   created_at timestamptz not null default now()
 );
 
+comment on column public.pets.age is 'Pet age stored as whole months.';
+
 -- Existing projects: run once if `pets` was created before `gender` existed.
 alter table public.pets add column if not exists gender text;
 

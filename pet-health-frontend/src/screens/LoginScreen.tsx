@@ -84,18 +84,20 @@ export function LoginScreen({
               </Text>
 
               <View className="mb-4">
-                <Text className="mb-2 text-sm text-slate-700">{t('login.email')}</Text>
+                <Text className="mb-2 text-sm text-slate-700">
+                  {isSignUp ? t('login.loginName') : t('login.emailOrLoginName')}
+                </Text>
                 <TextInput
                   testID="login-email-input"
-                  accessibilityLabel="Email"
+                  accessibilityLabel={isSignUp ? t('login.loginName') : t('login.emailOrLoginName')}
                   className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-                  placeholder={t('login.placeholderEmail')}
+                  placeholder={isSignUp ? t('login.placeholderLoginName') : t('login.placeholderEmailOrLoginName')}
                   placeholderTextColor="#9ca3af"
                   autoCapitalize="none"
-                  keyboardType="email-address"
                   value={email}
                   onChangeText={onChangeEmail}
                 />
+                {isSignUp ? <Text className="mt-2 text-xs leading-4 text-slate-500">{t('login.freeTextHint')}</Text> : null}
               </View>
 
               <View className={isSignUp ? 'mb-4' : 'mb-6'}>
@@ -141,9 +143,7 @@ export function LoginScreen({
                     <Pressable
                       testID="login-toggle-confirm-password-visibility-button"
                       accessibilityRole="button"
-                      accessibilityLabel={
-                        showConfirmPassword ? t('login.hidePassword') : t('login.showPassword')
-                      }
+                      accessibilityLabel={showConfirmPassword ? t('login.hidePassword') : t('login.showPassword')}
                       hitSlop={8}
                       className="px-3 py-3"
                       onPress={() => setShowConfirmPassword((v) => !v)}

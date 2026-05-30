@@ -80,7 +80,7 @@ export function usePetHealthApp() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [token, setToken] = useState<string | null>(null);
-  /** True during email sign-up first-run flow until user skips health or taps Finish on results. */
+  /** True during first-run flow until user skips health or taps Finish on results. */
   const [initialOnboarding, setInitialOnboarding] = useState(false);
 
   const [pets, setPets] = useState<Pet[]>([]);
@@ -158,6 +158,11 @@ export function usePetHealthApp() {
     setPetGender('male');
     setPetAvatarUrl('');
     setEditingPetId(null);
+  }
+
+  function petAgeMonthsForApi(value: string) {
+    const months = Number(value);
+    return Number.isFinite(months) ? Math.max(0, Math.round(months)) : undefined;
   }
 
   function clearHealthCheckForm() {
@@ -359,7 +364,7 @@ export function usePetHealthApp() {
   }
 
   async function submitAuth() {
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       Alert.alert(
         i18n.t('alerts.missingEmailPassword.title'),
         i18n.t('alerts.missingEmailPassword.message'),
@@ -378,7 +383,7 @@ export function usePetHealthApp() {
     setLoading(true);
     try {
       if (isSignUp) {
-        const signUpRes = await signUp({ email, password });
+        const signUpRes = await signUp({ email: email.trim(), password });
         const signUpToken = signUpRes.data.session?.access_token;
         if (!signUpToken) {
           Alert.alert(i18n.t('alerts.verifyEmail.title'), i18n.t('alerts.verifyEmail.message'));
@@ -388,7 +393,7 @@ export function usePetHealthApp() {
         return;
       }
 
-      const response = await login({ email, password });
+      const response = await login({ email: email.trim(), password });
       const accessToken = response.data.session?.access_token;
       if (!accessToken) {
         Alert.alert(i18n.t('alerts.loginNoToken.title'), i18n.t('alerts.loginNoToken.message'));
@@ -524,7 +529,7 @@ export function usePetHealthApp() {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || undefined,
-        age: petAge ? Number(petAge) : undefined,
+        age: petAge ? petAgeMonthsForApi(petAge) : undefined,
         gender: petGender,
         ...(avatarForApi !== undefined ? { avatarUrl: avatarForApi } : {}),
       });
@@ -618,7 +623,7 @@ export function usePetHealthApp() {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || null,
-        age: petAge ? Number(petAge) : null,
+        age: petAge ? petAgeMonthsForApi(petAge) : null,
         gender: petGender,
         avatarUrl: avatarUrlForUpdate(petAvatarUrl),
       });

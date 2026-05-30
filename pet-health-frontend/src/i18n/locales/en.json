@@ -27,15 +27,21 @@
     "createAccount": "Create Account",
     "welcomeBack": "Welcome Back",
     "email": "Email",
+    "loginName": "Login name",
+    "emailOrLoginName": "Email or login name",
     "password": "Password",
     "confirmPassword": "Confirm password",
     "placeholderEmail": "your@email.com",
+    "placeholderLoginName": "e.g. Luna's parent",
+    "placeholderEmailOrLoginName": "Email or login name",
     "placeholderPassword": "••••••••",
     "placeholderConfirmPassword": "••••••••",
+    "freeTextHint": "No email verification needed. Use this same name with your password next time.",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
     "signUp": "Sign Up",
     "signIn": "Sign In",
+    "continue": "Continue",
     "orContinueWith": "Or continue with",
     "google": "Google",
     "apple": "Apple",
@@ -63,8 +69,8 @@
     "viewProfile": "View Profile",
     "openCoreCare": "Care records & reminders",
     "petFallback": "Pet",
-    "yearOld": "{{count}} year old",
-    "yearsOld": "{{count}} years old",
+    "yearOld": "{{count}} month old",
+    "yearsOld": "{{count}} months old",
     "ageUnknown": "age unknown"
   },
   "petTypes": {
@@ -89,8 +95,8 @@
     "selectPetType": "Select pet type",
     "breed": "Breed",
     "enterBreed": "Enter breed",
-    "ageYears": "Age (years)",
-    "agePlaceholder": "e.g. 1",
+    "ageYears": "Age (months)",
+    "agePlaceholder": "e.g. 6",
     "gender": "Gender",
     "selectGender": "Select gender",
     "removePet": "Remove pet"
@@ -411,7 +417,7 @@
   "alerts": {
     "missingEmailPassword": {
       "title": "Missing info",
-      "message": "Please enter email and password."
+      "message": "Please enter your login name/email and password."
     },
     "signUpPasswordMismatch": {
       "title": "Passwords do not match",

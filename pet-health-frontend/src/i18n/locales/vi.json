@@ -27,15 +27,21 @@
     "createAccount": "Tạo tài khoản",
     "welcomeBack": "Chào mừng trở lại",
     "email": "Email",
+    "loginName": "Tên đăng nhập",
+    "emailOrLoginName": "Email hoặc tên đăng nhập",
     "password": "Mật khẩu",
     "confirmPassword": "Xác nhận lại mật khẩu",
     "placeholderEmail": "email@cuaban.com",
+    "placeholderLoginName": "vd: Sen của Miu",
+    "placeholderEmailOrLoginName": "Email hoặc tên đăng nhập",
     "placeholderPassword": "••••••••",
     "placeholderConfirmPassword": "••••••••",
+    "freeTextHint": "Không cần xác minh email. Lần sau dùng đúng tên này kèm mật khẩu để quay lại.",
     "showPassword": "Hiện mật khẩu",
     "hidePassword": "Ẩn mật khẩu",
     "signUp": "Đăng ký",
     "signIn": "Đăng nhập",
+    "continue": "Tiếp tục",
     "orContinueWith": "Hoặc tiếp tục với",
     "google": "Google",
     "apple": "Apple",
@@ -63,8 +69,8 @@
     "viewProfile": "Xem hồ sơ",
     "openCoreCare": "Hồ sơ chăm sóc & nhắc lịch",
     "petFallback": "Thú cưng",
-    "yearOld": "{{count}} tuổi",
-    "yearsOld": "{{count}} tuổi",
+    "yearOld": "{{count}} tháng tuổi",
+    "yearsOld": "{{count}} tháng tuổi",
     "ageUnknown": "chưa rõ tuổi"
   },
   "petTypes": {
@@ -89,8 +95,8 @@
     "selectPetType": "Chọn loài",
     "breed": "Giống",
     "enterBreed": "Nhập giống",
-    "ageYears": "Tuổi (năm)",
-    "agePlaceholder": "vd: 1",
+    "ageYears": "Tuổi (tháng)",
+    "agePlaceholder": "vd: 6",
     "gender": "Giới tính",
     "selectGender": "Chọn giới tính",
     "removePet": "Xóa thú cưng"
@@ -411,7 +417,7 @@
   "alerts": {
     "missingEmailPassword": {
       "title": "Thiếu thông tin",
-      "message": "Vui lòng nhập email và mật khẩu."
+      "message": "Vui lòng nhập tên đăng nhập/email và mật khẩu."
     },
     "signUpPasswordMismatch": {
       "title": "Mật khẩu không khớp",

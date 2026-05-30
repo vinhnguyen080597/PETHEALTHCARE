@@ -60,6 +60,7 @@ Required non-secret config:
 - `LOG_ALL_REQUESTS=false`
 - `LOG_REQUEST_BODY=false`
 - `LOG_RESPONSE_BODY=false`
+- `AUTH_FREE_TEXT_DOMAIN=pethealth.local`
 - `CORS_ORIGINS=https://<allowed-web-origin>` if testing from web. Leave empty temporarily for native-only beta testing if needed.
 
 Recommended beta credit settings:

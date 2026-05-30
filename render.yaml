@@ -21,6 +21,8 @@ services:
         sync: false
       - key: SUPABASE_IMAGE_BUCKET
         value: pet-diagnosis-images
+      - key: AUTH_FREE_TEXT_DOMAIN
+        value: pethealth.local
       - key: GEMINI_MODEL_CANDIDATES
         value: gemini-2.5-flash,gemini-2.0-flash
       - key: AI_DEBUG_LOG_ENABLED

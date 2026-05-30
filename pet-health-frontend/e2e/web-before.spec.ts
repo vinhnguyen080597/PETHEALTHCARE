@@ -98,7 +98,7 @@ test.describe('Web feature smoke coverage', () => {
       await page.getByTestId('language-english-button').click();
 
       await page.getByTestId('signup-mode-button').click();
-      await page.getByTestId('login-email-input').fill('new-user@example.com');
+      await page.getByTestId('login-email-input').fill("Luna's parent");
       await page.getByTestId('login-password-input').fill('password123');
       await page.getByTestId('login-confirm-password-input').fill('password123');
       await page.getByTestId('signup-submit-button').click();

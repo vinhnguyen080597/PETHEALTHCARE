@@ -238,7 +238,7 @@ export function AddPetScreen({
             placeholderTextColor="#9ca3af"
             keyboardType="numeric"
             value={petAge}
-            onChangeText={onChangeAge}
+            onChangeText={(value) => onChangeAge(value.replace(/[^0-9]/g, ''))}
           />
         </View>
 
