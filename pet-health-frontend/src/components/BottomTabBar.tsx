@@ -5,15 +5,27 @@ import type { AppScreen } from '../screens/types';
 
 type BottomTabBarProps = {
   activeScreen: AppScreen;
+  onPetFeed: () => void;
   onHome: () => void;
-  onHistory: () => void;
-  onLogout: () => void;
+  onAccount: () => void;
 };
 
-export function BottomTabBar({ activeScreen, onHome, onHistory, onLogout }: BottomTabBarProps) {
+export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount }: BottomTabBarProps) {
   const { t } = useTranslation();
   return (
     <View className="flex-row border-t border-slate-200 bg-white px-2 py-2">
+      <Pressable
+        testID="bottom-tab-pet-feed-button"
+        accessibilityRole="button"
+        accessibilityLabel="Open pet feed tab"
+        className={`flex-1 items-center rounded-xl py-2 ${activeScreen === 'pet-feed' ? 'bg-blue-50' : ''}`}
+        onPress={onPetFeed}
+      >
+        <Ionicons name="newspaper-outline" size={22} color={activeScreen === 'pet-feed' ? '#2563eb' : '#64748b'} />
+        <Text className={`text-xs font-medium ${activeScreen === 'pet-feed' ? 'text-blue-600' : 'text-slate-600'}`}>
+          {t('tabs.petFeed')}
+        </Text>
+      </Pressable>
       <Pressable
         testID="bottom-tab-home-button"
         accessibilityRole="button"
@@ -27,26 +39,16 @@ export function BottomTabBar({ activeScreen, onHome, onHistory, onLogout }: Bott
         </Text>
       </Pressable>
       <Pressable
-        testID="bottom-tab-history-button"
+        testID="bottom-tab-account-button"
         accessibilityRole="button"
-        accessibilityLabel="Open history tab"
-        className={`flex-1 items-center rounded-xl py-2 ${activeScreen === 'history' ? 'bg-blue-50' : ''}`}
-        onPress={onHistory}
+        accessibilityLabel="Open account tab"
+        className={`flex-1 items-center rounded-xl py-2 ${activeScreen === 'account' ? 'bg-blue-50' : ''}`}
+        onPress={onAccount}
       >
-        <Ionicons name="time-outline" size={22} color={activeScreen === 'history' ? '#2563eb' : '#64748b'} />
-        <Text className={`text-xs font-medium ${activeScreen === 'history' ? 'text-blue-600' : 'text-slate-600'}`}>
-          {t('tabs.history')}
+        <Ionicons name="person-circle-outline" size={22} color={activeScreen === 'account' ? '#2563eb' : '#64748b'} />
+        <Text className={`text-xs font-medium ${activeScreen === 'account' ? 'text-blue-600' : 'text-slate-600'}`}>
+          {t('tabs.account')}
         </Text>
-      </Pressable>
-      <Pressable
-        testID="bottom-tab-logout-button"
-        accessibilityRole="button"
-        accessibilityLabel="Log out"
-        className="flex-1 items-center rounded-xl py-2"
-        onPress={onLogout}
-      >
-        <Ionicons name="log-out-outline" size={22} color="#64748b" />
-        <Text className="text-xs font-medium text-slate-600">{t('tabs.logout')}</Text>
       </Pressable>
     </View>
   );

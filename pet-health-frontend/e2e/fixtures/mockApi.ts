@@ -201,6 +201,54 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
       });
     }
 
+    if (method === 'GET' && path === '/pet-feed/posts') {
+      return json(route, {
+        data: [
+          {
+            id: 'feed-post-1',
+            user_id: 'breeder-user-1',
+            breeder_profile_id: 'breeder-1',
+            title: 'British Shorthair kitten looking for a caring home',
+            species: 'cat',
+            breed: 'British Shorthair',
+            gender: 'female',
+            age_months: 4,
+            location: 'Ho Chi Minh City',
+            price_note: 'Contact breeder',
+            description: 'Raised indoors with daily socialization. Please verify documents and meet the breeder directly.',
+            personality: ['calm', 'friendly'],
+            vaccine_status: 'First vaccine recorded by breeder',
+            deworming_status: 'Deworming record available',
+            paperwork: ['Vaccine book'],
+            media_urls: [],
+            contact: { facebook: 'https://facebook.com/example' },
+            status: 'published',
+            metadata: {},
+            is_favorited: false,
+            breeder_profile: {
+              id: 'breeder-1',
+              user_id: 'breeder-user-1',
+              display_name: 'Mai Cattery',
+              bio: 'Small home breeder focused on transparent care records.',
+              location: 'Ho Chi Minh City',
+              avatar_url: null,
+              contact: { facebook: 'https://facebook.com/example' },
+              verification_status: 'verified',
+              metadata: {},
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ],
+      });
+    }
+
+    if ((method === 'POST' || method === 'DELETE') && path.match(/^\/pet-feed\/posts\/[^/]+\/favorite$/)) {
+      return route.fulfill({ status: 204 });
+    }
+
     if (method === 'GET' && path === '/pets') {
       return json(route, { data: state.pets });
     }

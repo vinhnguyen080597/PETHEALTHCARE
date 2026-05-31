@@ -1,6 +1,8 @@
 export type AppScreen =
   | 'login'
+  | 'pet-feed'
   | 'home'
+  | 'account'
   | 'pet-profile'
   | 'add-pet'
   | 'edit-pet'

@@ -230,3 +230,115 @@ create policy "app_events_select_own"
 on public.app_events for select
 to authenticated
 using (auth.uid()::text = user_id);
+
+-- --- Structured pet discovery feed: breeder profiles, moderated posts, and saved listings.
+
+create table if not exists public.breeder_profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null unique,
+  display_name text not null,
+  bio text not null default '',
+  location text not null default '',
+  avatar_url text,
+  contact jsonb not null default '{}'::jsonb,
+  verification_status text not null default 'unverified'
+    check (verification_status in ('unverified', 'pending_review', 'verified', 'suspended')),
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.pet_feed_posts (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  breeder_profile_id uuid references public.breeder_profiles(id) on delete set null,
+  title text not null,
+  species text not null,
+  breed text not null default '',
+  gender text not null default '',
+  age_months integer,
+  location text not null default '',
+  price_note text not null default '',
+  description text not null default '',
+  personality jsonb not null default '[]'::jsonb,
+  vaccine_status text not null default '',
+  deworming_status text not null default '',
+  paperwork jsonb not null default '[]'::jsonb,
+  media_urls jsonb not null default '[]'::jsonb,
+  contact jsonb not null default '{}'::jsonb,
+  status text not null default 'draft' check (status in ('draft', 'pending_review', 'published', 'archived')),
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.pet_feed_favorites (
+  user_id text not null,
+  post_id uuid not null references public.pet_feed_posts(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, post_id)
+);
+
+create index if not exists idx_breeder_profiles_user on public.breeder_profiles(user_id);
+create index if not exists idx_pet_feed_posts_status_created on public.pet_feed_posts(status, created_at desc);
+create index if not exists idx_pet_feed_posts_user_created on public.pet_feed_posts(user_id, created_at desc);
+create index if not exists idx_pet_feed_favorites_user on public.pet_feed_favorites(user_id, created_at desc);
+
+alter table public.breeder_profiles enable row level security;
+alter table public.pet_feed_posts enable row level security;
+alter table public.pet_feed_favorites enable row level security;
+
+drop policy if exists "breeder_profiles_select_visible" on public.breeder_profiles;
+drop policy if exists "breeder_profiles_insert_own" on public.breeder_profiles;
+drop policy if exists "breeder_profiles_update_own" on public.breeder_profiles;
+drop policy if exists "pet_feed_posts_select_visible" on public.pet_feed_posts;
+drop policy if exists "pet_feed_posts_insert_own" on public.pet_feed_posts;
+drop policy if exists "pet_feed_posts_update_own" on public.pet_feed_posts;
+drop policy if exists "pet_feed_favorites_select_own" on public.pet_feed_favorites;
+drop policy if exists "pet_feed_favorites_insert_own" on public.pet_feed_favorites;
+drop policy if exists "pet_feed_favorites_delete_own" on public.pet_feed_favorites;
+
+create policy "breeder_profiles_select_visible"
+on public.breeder_profiles for select
+to authenticated
+using (verification_status <> 'suspended' or auth.uid()::text = user_id);
+
+create policy "breeder_profiles_insert_own"
+on public.breeder_profiles for insert
+to authenticated
+with check (auth.uid()::text = user_id);
+
+create policy "breeder_profiles_update_own"
+on public.breeder_profiles for update
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "pet_feed_posts_select_visible"
+on public.pet_feed_posts for select
+to authenticated
+using (status = 'published' or auth.uid()::text = user_id);
+
+create policy "pet_feed_posts_insert_own"
+on public.pet_feed_posts for insert
+to authenticated
+with check (auth.uid()::text = user_id);
+
+create policy "pet_feed_posts_update_own"
+on public.pet_feed_posts for update
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "pet_feed_favorites_select_own"
+on public.pet_feed_favorites for select
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "pet_feed_favorites_insert_own"
+on public.pet_feed_favorites for insert
+to authenticated
+with check (auth.uid()::text = user_id);
+
+create policy "pet_feed_favorites_delete_own"
+on public.pet_feed_favorites for delete
+to authenticated
+using (auth.uid()::text = user_id);

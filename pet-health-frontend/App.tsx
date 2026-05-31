@@ -7,6 +7,7 @@ import { AppHeader } from './src/components/AppHeader';
 import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
+import { AccountScreen } from './src/screens/AccountScreen';
 import { AddPetScreen } from './src/screens/AddPetScreen';
 import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
 import { BreedRecognitionProgressScreen } from './src/screens/BreedRecognitionProgressScreen';
@@ -20,6 +21,7 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { OnboardingIntroScreen } from './src/screens/OnboardingIntroScreen';
 import { OnboardingHealthPromptScreen } from './src/screens/OnboardingHealthPromptScreen';
 import { PetProfileScreen } from './src/screens/PetProfileScreen';
+import { PetFeedScreen } from './src/screens/PetFeedScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { VetSummaryScreen } from './src/screens/VetSummaryScreen';
 
@@ -27,7 +29,7 @@ export default function App() {
   const { t } = useTranslation();
   const app = usePetHealthApp();
 
-  const showBottomTab = app.screen === 'home' || app.screen === 'history';
+  const showBottomTab = app.screen === 'pet-feed' || app.screen === 'home' || app.screen === 'account';
   const hideAppHeader =
     app.screen === 'add-pet' ||
     app.screen === 'edit-pet' ||
@@ -81,6 +83,23 @@ export default function App() {
                 onStartScan={app.goToCameraForPet}
                 onViewProfile={app.openPetProfile}
                 onOpenCoreCare={app.openCoreCare}
+              />
+            )}
+
+            {app.screen === 'pet-feed' && (
+              <PetFeedScreen
+                posts={app.petFeedPosts}
+                refreshing={app.refreshing}
+                onRefresh={app.refreshPetFeed}
+                onToggleFavorite={app.togglePetFeedFavorite}
+              />
+            )}
+
+            {app.screen === 'account' && (
+              <AccountScreen
+                petCount={app.pets.length}
+                savedPostCount={app.petFeedPosts.filter((post) => post.is_favorited).length}
+                onLogout={app.logout}
               />
             )}
 
@@ -334,9 +353,9 @@ export default function App() {
             {showBottomTab ? (
               <BottomTabBar
                 activeScreen={app.screen}
+                onPetFeed={app.openPetFeed}
                 onHome={app.goHomeAndRefresh}
-                onHistory={app.openHistory}
-                onLogout={app.logout}
+                onAccount={app.openAccount}
               />
             ) : null}
           </View>

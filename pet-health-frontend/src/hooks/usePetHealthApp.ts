@@ -13,12 +13,14 @@ import {
   createCoreCareRecord,
   createPet,
   deletePet,
+  favoritePetFeedPost,
   getPet,
   healthCheck,
   getAiCreditSummary,
   listHistoryByPet,
   listAiCreditLedger,
   listCoreCareRecords,
+  listPetFeedPosts,
   listPets,
   requestBreedRecognition,
   translateAnalysesDisplay,
@@ -28,6 +30,7 @@ import {
   signUp,
   updateCoreCareRecord,
   updatePet,
+  unfavoritePetFeedPost,
   uploadPetAvatar,
 } from '../api';
 import { isGoogleOAuthConfigured } from '../config';
@@ -45,6 +48,7 @@ import type {
   CoreCareSummary,
   CreateCoreCareRecordPayload,
   Pet,
+  PetFeedPost,
 } from '../types';
 import type { AppScreen } from '../screens/types';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
@@ -121,6 +125,7 @@ export function usePetHealthApp() {
   const [creditLedger, setCreditLedger] = useState<Array<Record<string, unknown>>>([]);
   const [coreCareRecords, setCoreCareRecords] = useState<CoreCareRecord[]>([]);
   const [coreCareSummary, setCoreCareSummary] = useState<CoreCareSummary | null>(null);
+  const [petFeedPosts, setPetFeedPosts] = useState<PetFeedPost[]>([]);
   /** After saving pet form opened from profile, return to pet profile instead of home. */
   const [petFormReturnToProfile, setPetFormReturnToProfile] = useState(false);
   /** Where to go when closing the results screen opened from history vs profile vs default home. */
@@ -219,6 +224,17 @@ export function usePetHealthApp() {
       setRefreshing(false);
     }
   }, [token, fetchPets]);
+
+  const refreshPetFeed = useCallback(async () => {
+    if (!token) return;
+    setRefreshing(true);
+    try {
+      const response = await listPetFeedPosts(token);
+      setPetFeedPosts(response.data);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [token]);
 
   /** History rows merged for current UI language; English-only archives get one-time Gemini translation via API. */
   const fetchPetHistoryMerged = useCallback(
@@ -776,6 +792,42 @@ export function usePetHealthApp() {
     await refreshCoreCare(record.pet_id);
   }
 
+  async function openPetFeed() {
+    if (!token) return;
+    setScreen('pet-feed');
+    try {
+      const response = await listPetFeedPosts(token);
+      setPetFeedPosts(response.data);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.title'), message);
+    }
+  }
+
+  function openAccount() {
+    setScreen('account');
+  }
+
+  async function togglePetFeedFavorite(post: PetFeedPost) {
+    if (!token) return;
+    setPetFeedPosts((prev) =>
+      prev.map((item) => (item.id === post.id ? { ...item, is_favorited: !item.is_favorited } : item)),
+    );
+    try {
+      if (post.is_favorited) {
+        await unfavoritePetFeedPost(token, post.id);
+      } else {
+        await favoritePetFeedPost(token, post.id);
+      }
+    } catch (error: unknown) {
+      setPetFeedPosts((prev) =>
+        prev.map((item) => (item.id === post.id ? { ...item, is_favorited: post.is_favorited } : item)),
+      );
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.favoriteFailed'), message);
+    }
+  }
+
   async function claimAdCredit() {
     if (!token) return;
     try {
@@ -1116,6 +1168,7 @@ export function usePetHealthApp() {
     setCreditLedger([]);
     setCoreCareRecords([]);
     setCoreCareSummary(null);
+    setPetFeedPosts([]);
     setSelectedPetId(null);
     clearHealthCheckForm();
     setCurrentResult(null);
@@ -1375,6 +1428,11 @@ export function usePetHealthApp() {
     logout,
     goToCameraForPet,
     goHomeAndRefresh,
+    openPetFeed,
+    openAccount,
+    refreshPetFeed,
+    petFeedPosts,
+    togglePetFeedFavorite,
     openBreedRecognition,
     closeBreedRecognition,
     breedRecognitionSlotUris,

@@ -14,6 +14,7 @@ import type {
   CreatePetPayload,
   CreateCoreCareRecordPayload,
   Pet,
+  PetFeedPost,
   UpdatePetPayload,
 } from './types';
 
@@ -258,6 +259,26 @@ export async function updatePet(token: string, petId: string, payload: UpdatePet
 
 export async function deletePet(token: string, petId: string) {
   await requestJson<null>(`/pets/${encodeURIComponent(petId)}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
+export async function listPetFeedPosts(token: string) {
+  return requestJson<{ data: PetFeedPost[] }>('/pet-feed/posts', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function favoritePetFeedPost(token: string, postId: string) {
+  await requestJson<null>(`/pet-feed/posts/${encodeURIComponent(postId)}/favorite`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+}
+
+export async function unfavoritePetFeedPost(token: string, postId: string) {
+  await requestJson<null>(`/pet-feed/posts/${encodeURIComponent(postId)}/favorite`, {
     method: 'DELETE',
     headers: authHeaders(token),
   });

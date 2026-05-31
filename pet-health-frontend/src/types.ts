@@ -80,6 +80,55 @@ export type CreateCoreCareRecordPayload = {
   metadata?: Record<string, unknown>;
 };
 
+export type PetFeedPostStatus = 'draft' | 'pending_review' | 'published' | 'archived';
+export type BreederVerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'suspended';
+
+export type BreederContact = {
+  phone?: string;
+  zalo?: string;
+  facebook?: string;
+};
+
+export type BreederProfile = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  bio: string;
+  location: string;
+  avatar_url: string | null;
+  contact: BreederContact & Record<string, unknown>;
+  verification_status: BreederVerificationStatus;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type PetFeedPost = {
+  id: string;
+  user_id: string;
+  breeder_profile_id: string | null;
+  title: string;
+  species: string;
+  breed: string;
+  gender: string;
+  age_months: number | null;
+  location: string;
+  price_note: string;
+  description: string;
+  personality: string[];
+  vaccine_status: string;
+  deworming_status: string;
+  paperwork: string[];
+  media_urls: string[];
+  contact: BreederContact & Record<string, unknown>;
+  status: PetFeedPostStatus;
+  metadata: Record<string, unknown>;
+  breeder_profile: BreederProfile | null;
+  is_favorited: boolean;
+  created_at: string;
+  updated_at?: string;
+};
+
 export type Pet = {
   id: string;
   user_id: string;

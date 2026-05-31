@@ -218,15 +218,14 @@ test.describe('Web feature smoke coverage', () => {
     await test.step('use bottom tabs and log out', async () => {
       await page.getByTestId('pet-profile-back-button').click();
       await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
-      await page.getByTestId('bottom-tab-history-button').click();
-      await verify(page, expect(page.getByTestId('history-screen')).toBeVisible());
-      await page.getByTestId('history-entry-analysis-1').click();
-      await verify(page, expect(page.getByTestId('results-screen')).toBeVisible());
-      await page.getByTestId('results-back-button').click();
-      await verify(page, expect(page.getByTestId('history-screen')).toBeVisible());
+      await page.getByTestId('bottom-tab-pet-feed-button').click();
+      await verify(page, expect(page.getByTestId('pet-feed-screen')).toBeVisible());
+      await verify(page, expect(page.getByText('British Shorthair kitten looking for a caring home')).toBeVisible());
       await page.getByTestId('bottom-tab-home-button').click();
       await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
-      await page.getByTestId('bottom-tab-logout-button').click();
+      await page.getByTestId('bottom-tab-account-button').click();
+      await verify(page, expect(page.getByTestId('account-screen')).toBeVisible());
+      await page.getByTestId('account-logout-button').click();
       await verify(page, expect(page.getByTestId('login-email-input')).toBeVisible());
     });
   });

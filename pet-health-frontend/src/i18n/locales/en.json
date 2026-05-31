@@ -47,8 +47,10 @@
     "termsFooter": "By continuing, you agree to our Terms of Service and Privacy Policy"
   },
   "tabs": {
+    "petFeed": "Pet Feed",
     "home": "Home",
     "history": "History",
+    "account": "Account",
     "logout": "Logout"
   },
   "header": {
@@ -69,6 +71,44 @@
     "yearOld": "{{count}} month old",
     "yearsOld": "{{count}} months old",
     "ageUnknown": "age unknown"
+  },
+  "petFeed": {
+    "title": "Pet Feed",
+    "subtitle": "Structured breeder posts so pet parents can compare important information more clearly than scattered social posts.",
+    "disclaimer": "Listings are provided by breeders. Please verify identity, documents, vaccine records, and arrange an in-person or veterinary check before making decisions.",
+    "emptyTitle": "No published listings yet",
+    "emptyBody": "Approved breeder posts will appear here. This MVP avoids in-app payments and only helps you discover and contact breeders.",
+    "breederFallback": "Breeder",
+    "locationUnknown": "Location not shared",
+    "ageMonths": "{{count}} months old",
+    "personality": "Personality",
+    "healthInfo": "Care information",
+    "vaccineUnknown": "Vaccine information not provided",
+    "paperwork": "Documents",
+    "contact": "Contact",
+    "favoriteFailed": "Save failed"
+  },
+  "account": {
+    "title": "Account",
+    "subtitle": "Manage your role, saved posts, and app session.",
+    "myRole": "Roles in Pet Health Care",
+    "pets": "Pets",
+    "savedPosts": "Saved",
+    "communitySafety": "Community posts should stay transparent and respectful. Pet Health Care does not handle payments or replace direct breeder/veterinary verification.",
+    "roles": {
+      "sen": {
+        "title": "Pet parent",
+        "body": "Browse structured posts, save pets, and keep Care Passport records after bringing a pet home."
+      },
+      "breeder": {
+        "title": "Breeder",
+        "body": "Create a trustworthy profile and structured pet posts for admin review."
+      },
+      "vet": {
+        "title": "Veterinarian",
+        "body": "Future role for educational content and record review, not in-app diagnosis."
+      }
+    }
   },
   "petTypes": {
     "dog": "Dog",

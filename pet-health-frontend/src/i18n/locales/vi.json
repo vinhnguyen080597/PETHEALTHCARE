@@ -47,8 +47,10 @@
     "termsFooter": "Tiếp tục nghĩa là bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật"
   },
   "tabs": {
+    "petFeed": "Pet Feed",
     "home": "Trang chủ",
     "history": "Lịch sử",
+    "account": "Tài khoản",
     "logout": "Đăng xuất"
   },
   "header": {
@@ -69,6 +71,44 @@
     "yearOld": "{{count}} tháng tuổi",
     "yearsOld": "{{count}} tháng tuổi",
     "ageUnknown": "chưa rõ tuổi"
+  },
+  "petFeed": {
+    "title": "Pet Feed",
+    "subtitle": "Bài đăng breeder có cấu trúc để Sen dễ so sánh thông tin quan trọng hơn các bài mạng xã hội rời rạc.",
+    "disclaimer": "Thông tin do breeder cung cấp. Sen nên tự xác minh danh tính, giấy tờ, vaccine và sắp xếp gặp trực tiếp hoặc kiểm tra thú y trước khi quyết định.",
+    "emptyTitle": "Chưa có bài đã duyệt",
+    "emptyBody": "Các bài breeder được duyệt sẽ hiển thị ở đây. MVP này chưa xử lý thanh toán trong app, chỉ giúp Sen tìm hiểu và liên hệ breeder.",
+    "breederFallback": "Breeder",
+    "locationUnknown": "Chưa chia sẻ khu vực",
+    "ageMonths": "{{count}} tháng tuổi",
+    "personality": "Tính cách",
+    "healthInfo": "Thông tin chăm sóc",
+    "vaccineUnknown": "Chưa có thông tin vaccine",
+    "paperwork": "Giấy tờ",
+    "contact": "Liên hệ",
+    "favoriteFailed": "Không thể lưu"
+  },
+  "account": {
+    "title": "Tài khoản",
+    "subtitle": "Quản lý vai trò, bài đã lưu và phiên đăng nhập.",
+    "myRole": "Vai trò trong Pet Health Care",
+    "pets": "Thú cưng",
+    "savedPosts": "Đã lưu",
+    "communitySafety": "Bài đăng cộng đồng cần minh bạch và tôn trọng. Pet Health Care không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
+    "roles": {
+      "sen": {
+        "title": "Sen",
+        "body": "Xem bài có cấu trúc, lưu bé quan tâm và tiếp tục chăm sóc bằng Care Passport sau khi đón bé về."
+      },
+      "breeder": {
+        "title": "Breeder",
+        "body": "Tạo hồ sơ uy tín và bài đăng thú cưng có cấu trúc để admin duyệt."
+      },
+      "vet": {
+        "title": "Bác sĩ thú y",
+        "body": "Vai trò tương lai cho nội dung giáo dục và xem hồ sơ, không phải chẩn đoán trong app."
+      }
+    }
   },
   "petTypes": {
     "dog": "Chó",
