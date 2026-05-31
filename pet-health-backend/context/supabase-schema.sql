@@ -161,7 +161,7 @@ create table if not exists public.pet_care_records (
   id uuid primary key default gen_random_uuid(),
   user_id text not null,
   pet_id uuid not null references public.pets(id) on delete cascade,
-  type text not null check (type in ('diary', 'vet_visit', 'document', 'reminder')),
+  type text not null check (type in ('diary', 'vet_visit', 'document', 'reminder', 'vaccine', 'weight')),
   title text not null,
   note text not null default '',
   occurred_at timestamptz not null default now(),
@@ -171,6 +171,11 @@ create table if not exists public.pet_care_records (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Existing projects: widen the record type check when new Care Passport types are added.
+alter table public.pet_care_records drop constraint if exists pet_care_records_type_check;
+alter table public.pet_care_records add constraint pet_care_records_type_check
+check (type in ('diary', 'vet_visit', 'document', 'reminder', 'vaccine', 'weight'));
 
 create index if not exists idx_pet_care_records_user_pet on public.pet_care_records(user_id, pet_id, occurred_at desc);
 create index if not exists idx_pet_care_records_type on public.pet_care_records(user_id, type, occurred_at desc);

@@ -21,6 +21,7 @@ import { OnboardingIntroScreen } from './src/screens/OnboardingIntroScreen';
 import { OnboardingHealthPromptScreen } from './src/screens/OnboardingHealthPromptScreen';
 import { PetProfileScreen } from './src/screens/PetProfileScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
+import { VetSummaryScreen } from './src/screens/VetSummaryScreen';
 
 export default function App() {
   const { t } = useTranslation();
@@ -31,6 +32,7 @@ export default function App() {
     app.screen === 'add-pet' ||
     app.screen === 'edit-pet' ||
     app.screen === 'core-care' ||
+    app.screen === 'vet-summary' ||
     app.screen === 'health-check' ||
     app.screen === 'analysis-progress' ||
     app.screen === 'onboarding-intro' ||
@@ -94,7 +96,9 @@ export default function App() {
                 onSelectEntry={(entry) => app.openHistoryDetail(entry, 'pet-profile')}
                 onOpenBreedRecognition={() => app.openBreedRecognition('pet-profile')}
                 onOpenCoreCare={() => app.openCoreCare(app.selectedPet!.id)}
+                onOpenVetSummary={() => app.openVetSummary(app.selectedPet!.id)}
                 coreCareSummary={app.coreCareSummary}
+                coreCareRecords={app.coreCareRecords}
               />
             ) : null}
 
@@ -166,6 +170,7 @@ export default function App() {
               <CoreCareScreen
                 pet={app.selectedPet}
                 records={app.coreCareRecords}
+                history={app.history}
                 summary={app.coreCareSummary}
                 refreshing={app.refreshing}
                 aiCredits={app.aiCredits}
@@ -175,6 +180,15 @@ export default function App() {
                 onCreateRecord={app.createCoreCareEntry}
                 onMarkReminderDone={app.markReminderDone}
                 onClaimRewardedAd={app.claimAdCredit}
+              />
+            ) : null}
+
+            {app.screen === 'vet-summary' && app.selectedPet ? (
+              <VetSummaryScreen
+                pet={app.selectedPet}
+                records={app.coreCareRecords}
+                history={app.history}
+                onBack={app.closeVetSummary}
               />
             ) : null}
 

@@ -740,6 +740,30 @@ export function usePetHealthApp() {
     setScreen('pet-profile');
   }
 
+  async function openVetSummary(petId: string = selectedPetId ?? '') {
+    if (!token || !petId) {
+      Alert.alert(i18n.t('alerts.selectPet.title'), i18n.t('alerts.selectPet.message'));
+      return;
+    }
+    setSelectedPetId(petId);
+    setLoading(true);
+    try {
+      await refreshCoreCare(petId);
+      const merged = await fetchPetHistoryMerged(petId);
+      setHistory(merged);
+      setScreen('vet-summary');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.loadProfileFailed.title'), i18n.t('alerts.loadProfileFailed.message', { message }));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closeVetSummary() {
+    setScreen('pet-profile');
+  }
+
   async function createCoreCareEntry(payload: CreateCoreCareRecordPayload) {
     if (!token || !selectedPetId) return;
     await createCoreCareRecord(token, selectedPetId, payload);
@@ -1340,6 +1364,8 @@ export function usePetHealthApp() {
     refreshPetProfile,
     openCoreCare,
     closeCoreCare,
+    openVetSummary,
+    closeVetSummary,
     coreCareRecords,
     coreCareSummary,
     creditLedger,

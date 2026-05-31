@@ -42,7 +42,7 @@ export type AiEconomicsConfig = {
   >;
 };
 
-export type CoreCareRecordType = 'diary' | 'vet_visit' | 'document' | 'reminder';
+export type CoreCareRecordType = 'diary' | 'vet_visit' | 'document' | 'reminder' | 'vaccine' | 'weight';
 
 export type CoreCareRecord = {
   id: string;
@@ -64,6 +64,8 @@ export type CoreCareSummary = {
   vet_visit: number;
   document: number;
   reminder: number;
+  vaccine: number;
+  weight: number;
   pendingReminders: number;
   overdueReminders: number;
 };

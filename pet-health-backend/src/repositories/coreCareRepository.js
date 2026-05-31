@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
 
-const ALLOWED_TYPES = new Set(['diary', 'vet_visit', 'document', 'reminder']);
+const ALLOWED_TYPES = new Set(['diary', 'vet_visit', 'document', 'reminder', 'vaccine', 'weight']);
 const memoryRecords = [];
 
 function getCoreCareSupabase(accessToken) {
@@ -38,7 +38,7 @@ function normalizeDate(value) {
 function normalizePayload(userId, petId, payload) {
   const type = normalizeType(payload.type);
   if (!type) {
-    const err = new Error('type must be diary, vet_visit, document, or reminder');
+    const err = new Error('type must be diary, vet_visit, document, reminder, vaccine, or weight');
     err.status = 400;
     err.code = 'INVALID_CORE_CARE_TYPE';
     throw err;
@@ -174,7 +174,16 @@ export async function deleteCoreCareRecord(userId, recordId, accessToken) {
 }
 
 export function summarizeCoreCareRecords(records) {
-  const summary = { diary: 0, vet_visit: 0, document: 0, reminder: 0, pendingReminders: 0, overdueReminders: 0 };
+  const summary = {
+    diary: 0,
+    vet_visit: 0,
+    document: 0,
+    reminder: 0,
+    vaccine: 0,
+    weight: 0,
+    pendingReminders: 0,
+    overdueReminders: 0,
+  };
   const now = Date.now();
   for (const record of records) {
     if (record.type in summary) summary[record.type] += 1;

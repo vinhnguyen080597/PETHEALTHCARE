@@ -6,6 +6,7 @@ export type AppScreen =
   | 'edit-pet'
   | 'health-check'
   | 'core-care'
+  | 'vet-summary'
   | 'analysis-progress'
   | 'results'
   | 'history'

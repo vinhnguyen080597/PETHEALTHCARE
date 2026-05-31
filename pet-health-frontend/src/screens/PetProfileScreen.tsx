@@ -3,7 +3,8 @@ import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
 import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
-import type { Analysis, CoreCareSummary, Pet, Severity } from '../types';
+import { buildCarePassportStats, metadataNumber } from '../utils/carePassport';
+import type { Analysis, CoreCareRecord, CoreCareSummary, Pet, Severity } from '../types';
 
 const PRIMARY_BLUE = '#1E6FE8';
 
@@ -18,7 +19,9 @@ type PetProfileScreenProps = {
   onSelectEntry: (entry: Analysis) => void;
   onOpenBreedRecognition?: () => void;
   onOpenCoreCare?: () => void;
+  onOpenVetSummary?: () => void;
   coreCareSummary?: CoreCareSummary | null;
+  coreCareRecords?: CoreCareRecord[];
 };
 
 function severityBadgeClass(severity: Severity) {
@@ -50,7 +53,9 @@ export function PetProfileScreen({
   onSelectEntry,
   onOpenBreedRecognition,
   onOpenCoreCare,
+  onOpenVetSummary,
   coreCareSummary,
+  coreCareRecords = [],
 }: PetProfileScreenProps) {
   const { t, i18n } = useTranslation();
   const breed = pet.breed?.trim();
@@ -64,6 +69,7 @@ export function PetProfileScreen({
     pet.gender === 'female' || pet.gender === 'male'
       ? t(`gender.${pet.gender}`)
       : t('profile.dashGender');
+  const passport = buildCarePassportStats(coreCareRecords, history);
 
   return (
     <View testID="pet-profile-screen" className="flex-1 bg-[#F2F4F8]">
@@ -176,13 +182,63 @@ export function PetProfileScreen({
               </Text>
             </Pressable>
           ) : null}
+          {onOpenVetSummary ? (
+            <Pressable
+              testID="pet-profile-vet-summary-button"
+              accessibilityRole="button"
+              accessibilityLabel={`Open vet summary for ${pet.name}`}
+              className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 active:bg-emerald-100"
+              onPress={onOpenVetSummary}
+            >
+              <Ionicons name="share-outline" size={18} color="#047857" />
+              <Text className="text-sm font-semibold text-emerald-700">{t('profile.openVetSummary')}</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {coreCareSummary ? (
-          <View className="mt-5 flex-row gap-2">
+          <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-base font-bold text-slate-900">{t('profile.passportTitle')}</Text>
+              {passport.overdueReminders.length > 0 ? (
+                <Text className="rounded-full bg-red-50 px-2 py-1 text-xs font-bold text-red-700">
+                  {t('profile.overdueCare', { count: passport.overdueReminders.length })}
+                </Text>
+              ) : (
+                <Text className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                  {t('profile.onTrack')}
+                </Text>
+              )}
+            </View>
+            <View className="mt-3 flex-row gap-2">
+              <View className="flex-1 rounded-xl bg-slate-50 p-3">
+                <Text className="text-xs font-semibold text-slate-500">{t('coreCare.latestWeight')}</Text>
+                <Text className="mt-1 text-sm font-bold text-slate-900">
+                  {passport.latestWeight
+                    ? t('coreCare.weightKgValue', { value: metadataNumber(passport.latestWeight, 'weightKg') ?? '-' })
+                    : t('coreCare.notLogged')}
+                </Text>
+              </View>
+              <View className="flex-1 rounded-xl bg-slate-50 p-3">
+                <Text className="text-xs font-semibold text-slate-500">{t('coreCare.latestVaccine')}</Text>
+                <Text className="mt-1 text-sm font-bold text-slate-900" numberOfLines={1}>
+                  {passport.latestVaccine?.title ?? t('coreCare.notLogged')}
+                </Text>
+              </View>
+            </View>
+            {passport.nextReminder?.due_at ? (
+              <Text className="mt-3 text-sm leading-5 text-slate-600">
+                {t('coreCare.nextReminderLine', {
+                  title: passport.nextReminder.title,
+                  date: formatLocaleDateTime(passport.nextReminder.due_at, i18n.language),
+                })}
+              </Text>
+            ) : null}
+            <View className="mt-4 flex-row gap-2">
             {[
               ['diary', coreCareSummary.diary],
               ['reminders', coreCareSummary.pendingReminders],
+              ['vaccines', coreCareSummary.vaccine ?? 0],
               ['documents', coreCareSummary.document],
             ].map(([key, value]) => (
               <View key={String(key)} className="flex-1 rounded-xl border border-gray-200 bg-white p-3">
@@ -190,6 +246,7 @@ export function PetProfileScreen({
                 <Text className="mt-1 text-xl font-bold text-slate-900">{String(value)}</Text>
               </View>
             ))}
+            </View>
           </View>
         ) : null}
 
