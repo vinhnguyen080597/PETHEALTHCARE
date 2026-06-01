@@ -102,9 +102,23 @@
     "myRole": "Vai trò trong Pet Health Care",
     "pets": "Thú cưng",
     "savedPosts": "Đã lưu",
+    "myPosts": "Bài của tôi",
     "communitySafety": "Bài đăng cộng đồng cần minh bạch và tôn trọng. Pet Health Care không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
     "openBreederProfile": "Hồ sơ breeder & bài đăng",
     "openAdminReview": "Admin review",
+    "requestBreeder": "Đăng ký xác minh Breeder",
+    "senSummary": "Các bài Pet Feed đã lưu và hồ sơ chăm sóc của Sen sẽ nằm ở đây. Khi đã sẵn sàng, Sen có thể tạo hồ sơ thú cưng bất cứ lúc nào.",
+    "vetSummary": "Vai trò bác sĩ thú y sẽ dành cho nội dung giáo dục và xem hồ sơ chăm sóc, không phải chẩn đoán trong app.",
+    "roleRequiredTitle": "Cần đúng vai trò",
+    "breederOnly": "Tính năng này dành cho tài khoản Breeder.",
+    "adminOnly": "Tính năng này dành cho tài khoản Admin.",
+    "breederRequestStatus": {
+      "unverified": "Chưa gửi yêu cầu xác minh Breeder.",
+      "pending_review": "Yêu cầu Breeder đang chờ admin xem xét.",
+      "verified": "Hồ sơ Breeder đã được xác minh.",
+      "rejected": "Yêu cầu Breeder chưa được duyệt. Bạn có thể bổ sung thông tin và gửi lại.",
+      "suspended": "Quyền Breeder đang bị tạm khóa."
+    },
     "roles": {
       "sen": {
         "title": "Sen",
@@ -113,6 +127,10 @@
       "breeder": {
         "title": "Breeder",
         "body": "Tạo hồ sơ uy tín và bài đăng thú cưng có cấu trúc để admin duyệt."
+      },
+      "admin": {
+        "title": "Admin",
+        "body": "Quản lý account, xác minh breeder, duyệt bài đăng và xử lý báo cáo cộng đồng."
       },
       "vet": {
         "title": "Bác sĩ thú y",
@@ -126,10 +144,13 @@
     "displayName": "Tên hiển thị",
     "location": "Khu vực",
     "bio": "Giới thiệu ngắn về cách chăm sóc, môi trường nuôi",
+    "primarySpecies": "Loài chính, cách nhau bằng dấu phẩy: cat, dog",
+    "mainBreeds": "Giống chính, cách nhau bằng dấu phẩy",
+    "careEnvironment": "Môi trường chăm sóc và thông tin xác thực",
     "phone": "Số điện thoại",
-    "save": "Lưu hồ sơ",
-    "saved": "Đã lưu hồ sơ breeder.",
-    "saveFailed": "Không thể lưu hồ sơ",
+    "save": "Gửi yêu cầu xác minh",
+    "saved": "Đã gửi thông tin Breeder để admin xem xét.",
+    "saveFailed": "Không thể gửi yêu cầu Breeder",
     "myPosts": "Bài đăng của tôi",
     "createPost": "Tạo bài",
     "noPosts": "Chưa có bài đăng nào."
@@ -154,17 +175,27 @@
   },
   "adminReview": {
     "title": "Admin review",
-    "secretNote": "Nhập admin secret để tải bài chờ duyệt và báo cáo. Không lưu secret trong app.",
-    "secretPlaceholder": "Admin secret",
+    "roleNote": "Cần role Admin. Dùng console này để quản lý account, uy tín breeder, bài đăng và báo cáo.",
     "load": "Tải danh sách",
     "loadFailed": "Không thể tải danh sách",
+    "createAccount": "Tạo account",
+    "accountEmail": "Email hoặc tên đăng nhập",
+    "accountDisplayName": "Tên hiển thị",
+    "accounts": "Accounts",
+    "breeders": "Hồ sơ breeder",
+    "noBreeders": "Chưa có hồ sơ breeder.",
+    "verify": "Xác minh",
+    "reject": "Từ chối",
+    "suspend": "Tạm khóa",
     "pendingPosts": "Bài chờ duyệt",
     "noPendingPosts": "Không có bài chờ duyệt.",
     "approve": "Duyệt",
     "archive": "Ẩn",
     "updateFailed": "Không thể cập nhật bài",
     "reports": "Báo cáo bài đăng",
-    "noReports": "Chưa có báo cáo mở."
+    "noReports": "Chưa có báo cáo mở.",
+    "markReviewed": "Đã xem",
+    "dismiss": "Bỏ qua"
   },
   "petTypes": {
     "dog": "Chó",

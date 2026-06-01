@@ -63,6 +63,17 @@ type Analysis = {
 
 type MockApiState = {
   token: string;
+  account: {
+    user_id: string;
+    email: string | null;
+    login_identifier: string;
+    display_name: string;
+    primary_role: 'sen' | 'breeder' | 'admin' | 'vet';
+    account_status: 'active' | 'suspended';
+    metadata: Record<string, unknown>;
+    created_at: string;
+    updated_at: string;
+  };
   pets: Pet[];
   careRecords: CareRecord[];
   analyses: Analysis[];
@@ -177,6 +188,17 @@ function createAnalysis(state: MockApiState, petId: string): Analysis {
 export async function installMockApi(page: Page, initial?: Partial<MockApiState>) {
   const state: MockApiState = {
     token: 'e2e-token',
+    account: {
+      user_id: 'e2e-user',
+      email: 'e2e@example.com',
+      login_identifier: "Luna's parent",
+      display_name: "Luna's parent",
+      primary_role: 'sen',
+      account_status: 'active',
+      metadata: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
     pets: [],
     careRecords: [],
     analyses: [],
@@ -192,13 +214,29 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     const path = url.pathname.replace(/^.*\/api\/v1/, '');
     const method = route.request().method();
 
-    if (method === 'POST' && (path === '/auth/login' || path === '/auth/signup')) {
+    if (method === 'POST' && path === '/auth/signup') {
+      state.account.primary_role = 'sen';
       return json(route, {
         data: {
           user: { id: 'e2e-user', email: 'e2e@example.com' },
           session: { access_token: state.token },
+          account: state.account,
         },
       });
+    }
+
+    if (method === 'POST' && path === '/auth/login') {
+      return json(route, {
+        data: {
+          user: { id: 'e2e-user', email: 'e2e@example.com' },
+          session: { access_token: state.token },
+          account: state.account,
+        },
+      });
+    }
+
+    if (method === 'GET' && path === '/auth/me') {
+      return json(route, { data: state.account });
     }
 
     if (method === 'GET' && path === '/pet-feed/posts') {

@@ -41,7 +41,7 @@ export function createApp() {
     cors({
       origin: corsOrigin(),
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Bypass-Tunnel-Reminder', 'ngrok-skip-browser-warning'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'Bypass-Tunnel-Reminder', 'ngrok-skip-browser-warning'],
       maxAge: 86400,
     }),
   );

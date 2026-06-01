@@ -104,8 +104,11 @@ export default function App() {
 
             {app.screen === 'account' && (
               <AccountScreen
+                account={app.accountProfile}
+                breederProfile={app.breederProfile}
                 petCount={app.pets.length}
                 savedPostCount={app.petFeedPosts.filter((post) => post.is_favorited).length}
+                myPostCount={app.myPetFeedPosts.length}
                 onOpenBreederProfile={app.openBreederProfile}
                 onOpenAdminReview={app.openAdminReview}
                 onLogout={app.logout}
@@ -116,6 +119,7 @@ export default function App() {
               <BreederProfileScreen
                 profile={app.breederProfile}
                 posts={app.myPetFeedPosts}
+                canCreatePost={app.accountProfile?.primary_role === 'breeder' && app.breederProfile?.verification_status === 'verified'}
                 onBack={app.closeBreederProfile}
                 onSaveProfile={app.saveBreederProfile}
                 onCreatePost={app.openCreatePetFeedPost}
@@ -128,11 +132,17 @@ export default function App() {
 
             {app.screen === 'admin-review' && (
               <AdminReviewScreen
+                accounts={app.adminAccounts}
+                breederProfiles={app.adminBreederProfiles}
                 posts={app.adminFeedPosts}
                 reports={app.adminFeedReports}
                 onBack={app.closeAdminReview}
                 onLoad={app.loadAdminReview}
+                onCreateAccount={app.createAdminManagedAccount}
+                onUpdateAccount={app.updateAdminManagedAccount}
+                onUpdateBreederStatus={app.updateAdminBreederStatus}
                 onUpdateStatus={app.updateAdminPostStatus}
+                onUpdateReportStatus={app.updateAdminReportStatus}
               />
             )}
 

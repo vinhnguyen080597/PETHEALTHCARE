@@ -5,6 +5,9 @@ import type {
   Analysis,
   AiCreditAccount,
   AiEconomicsConfig,
+  AccountProfile,
+  AdminCreateAccountPayload,
+  AdminUpdateAccountPayload,
   AnalyzeResponse,
   AuthPayload,
   AuthResponse,
@@ -205,6 +208,12 @@ export async function login(payload: AuthPayload) {
   });
 }
 
+export async function getMe(token: string) {
+  return requestJson<{ data: AccountProfile }>('/auth/me', {
+    headers: authHeaders(token),
+  });
+}
+
 export async function oauthGoogle(idToken: string) {
   return requestJson<{ data: AuthResponse }>('/auth/oauth/google', {
     method: 'POST',
@@ -333,33 +342,84 @@ export async function reportPetFeedPost(token: string, postId: string, payload: 
   });
 }
 
-export async function listAdminPetFeedPosts(token: string, adminSecret: string, status: string = 'pending_review') {
-  return requestJson<{ data: PetFeedPost[] }>(`/pet-feed/admin/posts?status=${encodeURIComponent(status)}`, {
-    headers: {
-      ...authHeaders(token),
-      'x-admin-secret': adminSecret,
-    },
+export async function listAdminAccounts(token: string, search: string = '') {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+  return requestJson<{ data: AccountProfile[] }>(`/admin/accounts${qs}`, {
+    headers: authHeaders(token),
   });
 }
 
-export async function updateAdminPetFeedPostStatus(token: string, adminSecret: string, postId: string, status: string) {
-  return requestJson<{ data: PetFeedPost }>(`/pet-feed/admin/posts/${encodeURIComponent(postId)}/status`, {
+export async function createAdminAccount(token: string, payload: AdminCreateAccountPayload) {
+  return requestJson<{ data: AccountProfile }>('/admin/accounts', {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminAccount(token: string, userId: string, payload: AdminUpdateAccountPayload) {
+  return requestJson<{ data: AccountProfile }>(`/admin/accounts/${encodeURIComponent(userId)}`, {
     method: 'PUT',
     headers: {
       ...authHeaders(token),
-      'x-admin-secret': adminSecret,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listAdminBreederProfiles(token: string, status: string = '') {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return requestJson<{ data: BreederProfile[] }>(`/admin/breeder-profiles${qs}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export async function updateAdminBreederProfileStatus(token: string, userId: string, verificationStatus: string) {
+  return requestJson<{ data: BreederProfile }>(`/admin/breeder-profiles/${encodeURIComponent(userId)}/status`, {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ verificationStatus }),
+  });
+}
+
+export async function listAdminPetFeedPosts(token: string, status: string = 'pending_review') {
+  return requestJson<{ data: PetFeedPost[] }>(`/admin/pet-feed/posts?status=${encodeURIComponent(status)}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export async function updateAdminPetFeedPostStatus(token: string, postId: string, status: string) {
+  return requestJson<{ data: PetFeedPost }>(`/admin/pet-feed/posts/${encodeURIComponent(postId)}/status`, {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ status }),
   });
 }
 
-export async function listAdminPetFeedReports(token: string, adminSecret: string, status: string = 'open') {
-  return requestJson<{ data: PetFeedReport[] }>(`/pet-feed/admin/reports?status=${encodeURIComponent(status)}`, {
+export async function listAdminPetFeedReports(token: string, status: string = 'open') {
+  return requestJson<{ data: PetFeedReport[] }>(`/admin/pet-feed/reports?status=${encodeURIComponent(status)}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export async function updateAdminPetFeedReportStatus(token: string, reportId: string, status: string) {
+  return requestJson<{ data: PetFeedReport }>(`/admin/pet-feed/reports/${encodeURIComponent(reportId)}/status`, {
+    method: 'PUT',
     headers: {
       ...authHeaders(token),
-      'x-admin-secret': adminSecret,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ status }),
   });
 }
 

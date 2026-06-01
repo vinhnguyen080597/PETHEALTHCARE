@@ -1,39 +1,10 @@
 import { Router } from 'express';
-import { createHash } from 'node:crypto';
 import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supabase.js';
+import { ensureAccountProfile } from '../repositories/accountRepository.js';
+import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../services/authIdentifierService.js';
+import { requireUser } from '../middleware/auth.js';
 
 const router = Router();
-
-function compactText(value) {
-  return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
-}
-
-function normalizeIdentifier(value) {
-  const identifier = compactText(value);
-  if (identifier.length < 2 || identifier.length > 120) {
-    const err = new Error('Please enter a login name or email between 2 and 120 characters.');
-    err.status = 400;
-    err.code = 'INVALID_AUTH_IDENTIFIER';
-    throw err;
-  }
-  return identifier;
-}
-
-function sha256(value) {
-  return createHash('sha256').update(value).digest('hex');
-}
-
-function looksLikeEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function authEmailFromIdentifier(identifier) {
-  const normalized = normalizeIdentifier(identifier).toLocaleLowerCase('en-US');
-  if (looksLikeEmail(normalized)) return normalized;
-  const domain = compactText(process.env.AUTH_FREE_TEXT_DOMAIN) || 'pethealth.local';
-  const digest = sha256(normalized);
-  return `login-${digest.slice(0, 32)}@${domain}`;
-}
 
 function isAlreadyRegistered(error) {
   const text = [error?.message, String(error?.code ?? ''), String(error?.status ?? '')].filter(Boolean).join(' ');
@@ -61,6 +32,7 @@ router.post('/signup', async (req, res, next) => {
       full_name: name,
       login_identifier: compactText(email),
       auth_mode: looksLikeEmail(compactText(email)) ? 'email' : 'free_text_identifier',
+      primary_role: 'sen',
     };
 
     const admin = getSupabaseServiceClient();
@@ -75,7 +47,17 @@ router.post('/signup', async (req, res, next) => {
 
       const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
       if (error) throw error;
-      return res.status(created.error ? 200 : 201).json({ data });
+      const account = data.user?.id
+        ? await ensureAccountProfile({
+            userId: data.user.id,
+            email: data.user.email,
+            loginIdentifier: metadata.login_identifier,
+            displayName: name,
+            primaryRole: metadata.primary_role,
+            metadata: { auth_mode: metadata.auth_mode },
+          })
+        : null;
+      return res.status(created.error ? 200 : 201).json({ data: { ...data, account } });
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -84,7 +66,17 @@ router.post('/signup', async (req, res, next) => {
       options: { data: metadata },
     });
     if (error) throw error;
-    return res.status(201).json({ data });
+    const account = data.user?.id
+      ? await ensureAccountProfile({
+          userId: data.user.id,
+          email: data.user.email,
+          loginIdentifier: metadata.login_identifier,
+          displayName: name,
+          primaryRole: metadata.primary_role,
+          metadata: { auth_mode: metadata.auth_mode },
+        })
+      : null;
+    return res.status(201).json({ data: { ...data, account } });
   } catch (err) {
     return next(err);
   }
@@ -106,7 +98,18 @@ router.post('/login', async (req, res, next) => {
 
     const { data, error } = await supabase.auth.signInWithPassword({ email: authEmailFromIdentifier(email), password });
     if (error) throw error;
-    return res.json({ data });
+    const metadata = data.user?.user_metadata ?? {};
+    const account = data.user?.id
+      ? await ensureAccountProfile({
+          userId: data.user.id,
+          email: data.user.email,
+          loginIdentifier: typeof metadata.login_identifier === 'string' ? metadata.login_identifier : compactText(email),
+          displayName: typeof metadata.full_name === 'string' ? metadata.full_name : compactText(email),
+          primaryRole: 'sen',
+          metadata: { auth_mode: metadata.auth_mode },
+        })
+      : null;
+    return res.json({ data: { ...data, account } });
   } catch (err) {
     return next(err);
   }
@@ -134,7 +137,18 @@ router.post('/oauth/google', async (req, res, next) => {
       token: idToken,
     });
     if (error) throw error;
-    return res.json({ data });
+    const metadata = data.user?.user_metadata ?? {};
+    const account = data.user?.id
+      ? await ensureAccountProfile({
+          userId: data.user.id,
+          email: data.user.email,
+          loginIdentifier: data.user.email ?? '',
+          displayName: typeof metadata.full_name === 'string' ? metadata.full_name : data.user.email ?? '',
+          primaryRole: 'sen',
+          metadata: { auth_mode: 'google' },
+        })
+      : null;
+    return res.json({ data: { ...data, account } });
   } catch (err) {
     return next(err);
   }
@@ -160,10 +174,25 @@ router.post('/oauth/apple', async (req, res, next) => {
       ...(typeof nonce === 'string' && nonce.length > 0 ? { nonce } : {}),
     });
     if (error) throw error;
-    return res.json({ data });
+    const metadata = data.user?.user_metadata ?? {};
+    const account = data.user?.id
+      ? await ensureAccountProfile({
+          userId: data.user.id,
+          email: data.user.email,
+          loginIdentifier: data.user.email ?? '',
+          displayName: typeof metadata.full_name === 'string' ? metadata.full_name : data.user.email ?? '',
+          primaryRole: 'sen',
+          metadata: { auth_mode: 'apple' },
+        })
+      : null;
+    return res.json({ data: { ...data, account } });
   } catch (err) {
     return next(err);
   }
+});
+
+router.get('/me', requireUser, async (req, res) => {
+  return res.json({ data: req.account });
 });
 
 export default router;

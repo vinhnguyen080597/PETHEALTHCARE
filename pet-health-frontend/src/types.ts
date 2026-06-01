@@ -1,10 +1,24 @@
 export type Severity = 'low' | 'medium' | 'high';
 export type AnalysisStatus = 'ok' | 'need_more_data' | 'not_pet_or_unclear' | 'emergency_flag';
 export type AiHealthUrgency = 'self_monitor' | 'book_vet' | 'urgent_vet' | 'emergency_vet';
+export type UserRole = 'sen' | 'breeder' | 'admin' | 'vet';
+export type AccountStatus = 'active' | 'suspended';
 
 export type AuthPayload = {
   email: string;
   password: string;
+};
+
+export type AccountProfile = {
+  user_id: string;
+  email: string | null;
+  login_identifier: string;
+  display_name: string;
+  primary_role: UserRole;
+  account_status: AccountStatus;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at?: string;
 };
 
 export type AuthResponse = {
@@ -15,6 +29,7 @@ export type AuthResponse = {
   session: {
     access_token: string;
   } | null;
+  account?: AccountProfile | null;
 };
 
 export type AiCreditAccount = {
@@ -81,7 +96,7 @@ export type CreateCoreCareRecordPayload = {
 };
 
 export type PetFeedPostStatus = 'draft' | 'pending_review' | 'published' | 'archived';
-export type BreederVerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'suspended';
+export type BreederVerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected' | 'suspended';
 
 export type BreederContact = {
   phone?: string;
@@ -97,6 +112,9 @@ export type BreederProfile = {
   location: string;
   avatar_url: string | null;
   contact: BreederContact & Record<string, unknown>;
+  primary_species: string[];
+  main_breeds: string[];
+  care_environment: string;
   verification_status: BreederVerificationStatus;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -145,6 +163,9 @@ export type UpsertBreederProfilePayload = {
   bio?: string;
   location?: string;
   contact?: BreederContact;
+  primarySpecies?: string[];
+  mainBreeds?: string[];
+  careEnvironment?: string;
 };
 
 export type CreatePetFeedPostPayload = {
@@ -163,6 +184,19 @@ export type CreatePetFeedPostPayload = {
   mediaUrls?: string[];
   contact?: BreederContact;
   status?: PetFeedPostStatus;
+};
+
+export type AdminCreateAccountPayload = {
+  email: string;
+  password: string;
+  displayName?: string;
+  primaryRole: UserRole;
+};
+
+export type AdminUpdateAccountPayload = {
+  displayName?: string;
+  primaryRole?: UserRole;
+  accountStatus?: AccountStatus;
 };
 
 export type Pet = {

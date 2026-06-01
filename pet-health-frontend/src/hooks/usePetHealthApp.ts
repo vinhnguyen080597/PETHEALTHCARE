@@ -10,17 +10,21 @@ import {
   ApiRequestError,
   analyzePetHealthCheck,
   claimRewardedAdCredit,
+  createAdminAccount,
   createCoreCareRecord,
   createPetFeedPost,
   createPet,
   deletePet,
   favoritePetFeedPost,
+  getMe,
   getMyBreederProfile,
   getPet,
   healthCheck,
   getAiCreditSummary,
   listAdminPetFeedPosts,
   listAdminPetFeedReports,
+  listAdminAccounts,
+  listAdminBreederProfiles,
   listHistoryByPet,
   listAiCreditLedger,
   listCoreCareRecords,
@@ -35,7 +39,10 @@ import {
   oauthGoogle,
   signUp,
   updateCoreCareRecord,
+  updateAdminAccount,
+  updateAdminBreederProfileStatus,
   updateAdminPetFeedPostStatus,
+  updateAdminPetFeedReportStatus,
   updatePet,
   unfavoritePetFeedPost,
   upsertMyBreederProfile,
@@ -51,6 +58,9 @@ import type {
   AiCreditAccount,
   AiEconomicsConfig,
   Analysis,
+  AccountProfile,
+  AdminCreateAccountPayload,
+  AdminUpdateAccountPayload,
   BreedRecognitionResult,
   CoreCareRecord,
   CoreCareSummary,
@@ -61,6 +71,7 @@ import type {
   PetFeedPost,
   PetFeedReport,
   UpsertBreederProfilePayload,
+  UserRole,
 } from '../types';
 import type { AppScreen } from '../screens/types';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
@@ -96,6 +107,7 @@ export function usePetHealthApp() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
   /** True during first-run flow until user skips health or taps Finish on results. */
   const [initialOnboarding, setInitialOnboarding] = useState(false);
 
@@ -140,6 +152,8 @@ export function usePetHealthApp() {
   const [petFeedPosts, setPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [myPetFeedPosts, setMyPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
+  const [adminAccounts, setAdminAccounts] = useState<AccountProfile[]>([]);
+  const [adminBreederProfiles, setAdminBreederProfiles] = useState<BreederProfile[]>([]);
   const [adminFeedPosts, setAdminFeedPosts] = useState<PetFeedPost[]>([]);
   const [adminFeedReports, setAdminFeedReports] = useState<PetFeedReport[]>([]);
   /** After saving pet form opened from profile, return to pet profile instead of home. */
@@ -219,6 +233,12 @@ export function usePetHealthApp() {
     } catch {
       // Credits are advisory in the UI; backend remains the source of truth.
     }
+  }, []);
+
+  const fetchAccountProfile = useCallback(async (accessToken: string) => {
+    const response = await getMe(accessToken);
+    setAccountProfile(response.data);
+    return response.data;
   }, []);
 
   const refreshCoreCare = useCallback(
@@ -322,6 +342,7 @@ export function usePetHealthApp() {
       try {
         const petsList = await fetchPets(savedToken);
         await refreshAiCredits(savedToken);
+        await fetchAccountProfile(savedToken);
         const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
         if (pending === '1') {
           setInitialOnboarding(true);
@@ -354,6 +375,7 @@ export function usePetHealthApp() {
       setToken(accessToken);
       const petsList = await fetchPets(accessToken);
       await refreshAiCredits(accessToken);
+      await fetchAccountProfile(accessToken);
 
       if (options?.startInitialOnboarding) {
         await AsyncStorage.setItem(PENDING_INITIAL_ONBOARDING_KEY, '1');
@@ -383,7 +405,7 @@ export function usePetHealthApp() {
       setInitialOnboarding(false);
       setScreen('home');
     },
-    [fetchPets, refreshAiCredits],
+    [fetchAccountProfile, fetchPets, refreshAiCredits],
   );
 
   function toggleLoginSignUpMode() {
@@ -816,17 +838,35 @@ export function usePetHealthApp() {
     }
   }
 
-  function openAccount() {
+  async function openAccount() {
+    if (token) {
+      try {
+        const profileRes = await getMyBreederProfile(token);
+        setBreederProfile(profileRes.data);
+      } catch {
+        setBreederProfile(null);
+      }
+    }
     setScreen('account');
+  }
+
+  function hasAccountRole(...roles: UserRole[]) {
+    const role = accountProfile?.primary_role;
+    return Boolean(role && roles.includes(role));
   }
 
   async function openBreederProfile() {
     if (!token) return;
     setLoading(true);
     try {
-      const [profileRes, postsRes] = await Promise.all([getMyBreederProfile(token), listMyPetFeedPosts(token)]);
+      const profileRes = await getMyBreederProfile(token);
       setBreederProfile(profileRes.data);
-      setMyPetFeedPosts(postsRes.data);
+      if (hasAccountRole('breeder', 'admin')) {
+        const postsRes = await listMyPetFeedPosts(token);
+        setMyPetFeedPosts(postsRes.data);
+      } else {
+        setMyPetFeedPosts([]);
+      }
       setScreen('breeder-profile');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -844,11 +884,18 @@ export function usePetHealthApp() {
     if (!token) return;
     const response = await upsertMyBreederProfile(token, payload);
     setBreederProfile(response.data);
-    const postsRes = await listMyPetFeedPosts(token);
-    setMyPetFeedPosts(postsRes.data);
+    if (hasAccountRole('breeder', 'admin')) {
+      const postsRes = await listMyPetFeedPosts(token);
+      setMyPetFeedPosts(postsRes.data);
+    }
+    await fetchAccountProfile(token);
   }
 
   function openCreatePetFeedPost() {
+    if (!hasAccountRole('breeder', 'admin') || breederProfile?.verification_status !== 'verified') {
+      Alert.alert(i18n.t('account.roleRequiredTitle'), i18n.t('account.breederOnly'));
+      return;
+    }
     setScreen('create-pet-feed-post');
   }
 
@@ -876,8 +923,20 @@ export function usePetHealthApp() {
   }
 
   async function openAdminReview() {
+    if (!hasAccountRole('admin')) {
+      Alert.alert(i18n.t('account.roleRequiredTitle'), i18n.t('account.adminOnly'));
+      return;
+    }
+    if (!token) return;
+    setAdminAccounts([]);
+    setAdminBreederProfiles([]);
     setAdminFeedPosts([]);
     setAdminFeedReports([]);
+    try {
+      await loadAdminReview();
+    } catch {
+      // The admin screen can still show and let the user retry manually.
+    }
     setScreen('admin-review');
   }
 
@@ -885,20 +944,48 @@ export function usePetHealthApp() {
     setScreen('account');
   }
 
-  async function loadAdminReview(adminSecret: string) {
+  async function loadAdminReview() {
     if (!token) return;
-    const [postsRes, reportsRes] = await Promise.all([
-      listAdminPetFeedPosts(token, adminSecret, 'pending_review'),
-      listAdminPetFeedReports(token, adminSecret, 'open'),
+    const [accountsRes, breedersRes, postsRes, reportsRes] = await Promise.all([
+      listAdminAccounts(token),
+      listAdminBreederProfiles(token),
+      listAdminPetFeedPosts(token, 'pending_review'),
+      listAdminPetFeedReports(token, 'open'),
     ]);
+    setAdminAccounts(accountsRes.data);
+    setAdminBreederProfiles(breedersRes.data);
     setAdminFeedPosts(postsRes.data);
     setAdminFeedReports(reportsRes.data);
   }
 
-  async function updateAdminPostStatus(adminSecret: string, postId: string, status: string) {
+  async function createAdminManagedAccount(payload: AdminCreateAccountPayload) {
     if (!token) return;
-    await updateAdminPetFeedPostStatus(token, adminSecret, postId, status);
-    await loadAdminReview(adminSecret);
+    await createAdminAccount(token, payload);
+    await loadAdminReview();
+  }
+
+  async function updateAdminManagedAccount(userId: string, payload: AdminUpdateAccountPayload) {
+    if (!token) return;
+    await updateAdminAccount(token, userId, payload);
+    await loadAdminReview();
+  }
+
+  async function updateAdminBreederStatus(userId: string, verificationStatus: string) {
+    if (!token) return;
+    await updateAdminBreederProfileStatus(token, userId, verificationStatus);
+    await loadAdminReview();
+  }
+
+  async function updateAdminPostStatus(postId: string, status: string) {
+    if (!token) return;
+    await updateAdminPetFeedPostStatus(token, postId, status);
+    await loadAdminReview();
+  }
+
+  async function updateAdminReportStatus(reportId: string, status: string) {
+    if (!token) return;
+    await updateAdminPetFeedReportStatus(token, reportId, status);
+    await loadAdminReview();
   }
 
   async function togglePetFeedFavorite(post: PetFeedPost) {
@@ -1255,6 +1342,7 @@ export function usePetHealthApp() {
     await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
     setInitialOnboarding(false);
     setToken(null);
+    setAccountProfile(null);
     setPets([]);
     setAiCredits(null);
     setAiEconomicsConfig(null);
@@ -1264,6 +1352,8 @@ export function usePetHealthApp() {
     setPetFeedPosts([]);
     setMyPetFeedPosts([]);
     setBreederProfile(null);
+    setAdminAccounts([]);
+    setAdminBreederProfiles([]);
     setAdminFeedPosts([]);
     setAdminFeedReports([]);
     setSelectedPetId(null);
@@ -1439,6 +1529,7 @@ export function usePetHealthApp() {
     isSignUp,
     toggleLoginSignUpMode,
     token,
+    accountProfile,
     pets,
     selectedPetId,
     setSelectedPetId,
@@ -1541,10 +1632,16 @@ export function usePetHealthApp() {
     submitPetFeedReport,
     adminFeedPosts,
     adminFeedReports,
+    adminAccounts,
+    adminBreederProfiles,
     openAdminReview,
     closeAdminReview,
     loadAdminReview,
+    createAdminManagedAccount,
+    updateAdminManagedAccount,
+    updateAdminBreederStatus,
     updateAdminPostStatus,
+    updateAdminReportStatus,
     openBreedRecognition,
     closeBreedRecognition,
     breedRecognitionSlotUris,

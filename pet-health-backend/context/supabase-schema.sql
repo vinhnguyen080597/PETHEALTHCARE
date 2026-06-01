@@ -231,6 +231,32 @@ on public.app_events for select
 to authenticated
 using (auth.uid()::text = user_id);
 
+-- --- App account profiles and primary roles.
+
+create table if not exists public.app_user_profiles (
+  user_id text primary key,
+  email text,
+  login_identifier text not null default '',
+  display_name text not null default '',
+  primary_role text not null default 'sen' check (primary_role in ('sen', 'breeder', 'admin', 'vet')),
+  account_status text not null default 'active' check (account_status in ('active', 'suspended')),
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_app_user_profiles_role on public.app_user_profiles(primary_role);
+create index if not exists idx_app_user_profiles_status on public.app_user_profiles(account_status);
+
+alter table public.app_user_profiles enable row level security;
+
+drop policy if exists "app_user_profiles_select_own" on public.app_user_profiles;
+
+create policy "app_user_profiles_select_own"
+on public.app_user_profiles for select
+to authenticated
+using (auth.uid()::text = user_id);
+
 -- --- Structured pet discovery feed: breeder profiles, moderated posts, and saved listings.
 
 create table if not exists public.breeder_profiles (
@@ -241,12 +267,25 @@ create table if not exists public.breeder_profiles (
   location text not null default '',
   avatar_url text,
   contact jsonb not null default '{}'::jsonb,
+  primary_species jsonb not null default '[]'::jsonb,
+  main_breeds jsonb not null default '[]'::jsonb,
+  care_environment text not null default '',
   verification_status text not null default 'unverified'
-    check (verification_status in ('unverified', 'pending_review', 'verified', 'suspended')),
+    check (verification_status in ('unverified', 'pending_review', 'verified', 'rejected', 'suspended')),
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.breeder_profiles
+  add column if not exists primary_species jsonb not null default '[]'::jsonb,
+  add column if not exists main_breeds jsonb not null default '[]'::jsonb,
+  add column if not exists care_environment text not null default '';
+
+alter table public.breeder_profiles drop constraint if exists breeder_profiles_verification_status_check;
+alter table public.breeder_profiles
+  add constraint breeder_profiles_verification_status_check
+  check (verification_status in ('unverified', 'pending_review', 'verified', 'rejected', 'suspended'));
 
 create table if not exists public.pet_feed_posts (
   id uuid primary key default gen_random_uuid(),

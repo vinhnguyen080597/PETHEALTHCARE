@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
 
 const POST_STATUSES = new Set(['draft', 'pending_review', 'published', 'archived']);
-const VERIFICATION_STATUSES = new Set(['unverified', 'pending_review', 'verified', 'suspended']);
+const VERIFICATION_STATUSES = new Set(['unverified', 'pending_review', 'verified', 'rejected', 'suspended']);
 const memoryProfiles = [];
 const memoryPosts = [];
 const memoryFavorites = [];
@@ -43,6 +43,8 @@ function normalizeStringArray(value, limit = 8) {
 }
 
 function normalizeProfilePayload(userId, payload, existingId) {
+  const existingStatus = normalizeVerificationStatus(payload.existingVerificationStatus);
+  const nextStatus = existingStatus === 'verified' || existingStatus === 'suspended' ? existingStatus : 'pending_review';
   return {
     id: existingId ?? payload.id ?? randomUUID(),
     user_id: userId,
@@ -51,7 +53,10 @@ function normalizeProfilePayload(userId, payload, existingId) {
     location: trimText(payload.location, 160),
     avatar_url: trimText(payload.avatarUrl ?? payload.avatar_url, 1000) || null,
     contact: normalizeJsonObject(payload.contact),
-    verification_status: normalizeVerificationStatus(payload.verificationStatus ?? payload.verification_status),
+    primary_species: normalizeStringArray(payload.primarySpecies ?? payload.primary_species, 2),
+    main_breeds: normalizeStringArray(payload.mainBreeds ?? payload.main_breeds, 12),
+    care_environment: trimText(payload.careEnvironment ?? payload.care_environment, 1500),
+    verification_status: nextStatus,
     metadata: normalizeJsonObject(payload.metadata),
     updated_at: new Date().toISOString(),
   };
@@ -95,6 +100,9 @@ function toProfile(row) {
     location: row.location ?? '',
     avatar_url: row.avatar_url ?? null,
     contact: row.contact ?? {},
+    primary_species: row.primary_species ?? [],
+    main_breeds: row.main_breeds ?? [],
+    care_environment: row.care_environment ?? '',
     verification_status: row.verification_status ?? 'unverified',
     metadata: row.metadata ?? {},
     created_at: row.created_at,
@@ -143,6 +151,14 @@ function toReport(row) {
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
+}
+
+function assertVerifiedBreederProfile(profile) {
+  if (profile?.verification_status === 'verified') return;
+  const err = new Error('Breeder verification is required before creating or managing Pet Feed posts.');
+  err.status = 403;
+  err.code = 'BREEDER_VERIFICATION_REQUIRED';
+  throw err;
 }
 
 async function favoriteIdsForUser(supabase, userId) {
@@ -200,7 +216,7 @@ export async function getMyBreederProfile(userId, accessToken) {
 
 export async function upsertMyBreederProfile(userId, payload, accessToken) {
   const existing = await getMyBreederProfile(userId, accessToken);
-  const row = normalizeProfilePayload(userId, payload, existing?.id);
+  const row = normalizeProfilePayload(userId, { ...payload, existingVerificationStatus: existing?.verification_status }, existing?.id);
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) {
     const idx = memoryProfiles.findIndex((profile) => profile.user_id === userId);
@@ -216,6 +232,7 @@ export async function upsertMyBreederProfile(userId, payload, accessToken) {
 
 export async function createPetFeedPost(userId, payload, accessToken) {
   const profile = await getMyBreederProfile(userId, accessToken);
+  assertVerifiedBreederProfile(profile);
   const row = {
     ...normalizePostPayload(userId, { ...payload, breederProfileId: profile?.id }),
     status: normalizeUserEditablePostStatus(payload.status, 'draft'),
@@ -236,11 +253,15 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
   if (!supabase) {
     const idx = memoryPosts.findIndex((post) => post.id === postId && post.user_id === userId);
     if (idx < 0) return null;
+    const profile = await getMyBreederProfile(userId, accessToken);
+    assertVerifiedBreederProfile(profile);
     memoryPosts[idx] = { ...memoryPosts[idx], ...normalizePostPayload(userId, payload, memoryPosts[idx]) };
     return toPost(memoryPosts[idx]);
   }
   const existing = await getPetFeedPost(userId, postId, accessToken);
   if (!existing || existing.user_id !== userId) return null;
+  const profile = await getMyBreederProfile(userId, accessToken);
+  assertVerifiedBreederProfile(profile);
   const updates = {
     ...normalizePostPayload(userId, payload, existing),
     status: normalizeUserEditablePostStatus(payload.status, existing.status),
@@ -377,4 +398,58 @@ export async function listAdminPetFeedReports(status = 'open') {
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map(toReport);
+}
+
+export async function listAdminBreederProfiles(status = '') {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    return memoryProfiles
+      .filter((profile) => !status || profile.verification_status === status)
+      .map(toProfile);
+  }
+  let query = supabase.from('breeder_profiles').select('*').order('created_at', { ascending: false });
+  if (status) query = query.eq('verification_status', status);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(toProfile);
+}
+
+export async function adminUpdateBreederProfileStatus(userId, verificationStatus) {
+  const safeStatus = normalizeVerificationStatus(verificationStatus);
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const idx = memoryProfiles.findIndex((profile) => profile.user_id === userId);
+    if (idx < 0) return null;
+    memoryProfiles[idx] = { ...memoryProfiles[idx], verification_status: safeStatus, updated_at: new Date().toISOString() };
+    return toProfile(memoryProfiles[idx]);
+  }
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .update({ verification_status: safeStatus, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  return toProfile(data);
+}
+
+export async function adminUpdatePetFeedReportStatus(reportId, status) {
+  const safeStatus = ['open', 'reviewed', 'dismissed'].includes(trimText(status, 32).toLowerCase())
+    ? trimText(status, 32).toLowerCase()
+    : 'reviewed';
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const idx = memoryReports.findIndex((report) => report.id === reportId);
+    if (idx < 0) return null;
+    memoryReports[idx] = { ...memoryReports[idx], status: safeStatus, updated_at: new Date().toISOString() };
+    return toReport(memoryReports[idx]);
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_reports')
+    .update({ status: safeStatus, updated_at: new Date().toISOString() })
+    .eq('id', reportId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  return toReport(data);
 }

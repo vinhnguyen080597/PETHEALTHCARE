@@ -102,9 +102,23 @@
     "myRole": "Roles in Pet Health Care",
     "pets": "Pets",
     "savedPosts": "Saved",
+    "myPosts": "My posts",
     "communitySafety": "Community posts should stay transparent and respectful. Pet Health Care does not handle payments or replace direct breeder/veterinary verification.",
     "openBreederProfile": "Breeder profile & posts",
     "openAdminReview": "Admin review",
+    "requestBreeder": "Request Breeder verification",
+    "senSummary": "Your saved Pet Feed posts and pet care records stay here. You can create a pet profile whenever you are ready.",
+    "vetSummary": "Veterinarian features are planned for educational content and care-record review, not in-app diagnosis.",
+    "roleRequiredTitle": "Role required",
+    "breederOnly": "This action is available for Breeder accounts.",
+    "adminOnly": "This action is available for Admin accounts.",
+    "breederRequestStatus": {
+      "unverified": "No breeder verification request yet.",
+      "pending_review": "Breeder request is pending admin review.",
+      "verified": "Breeder profile is verified.",
+      "rejected": "Breeder request was rejected. You can update your information and submit again.",
+      "suspended": "Breeder access is suspended."
+    },
     "roles": {
       "sen": {
         "title": "Pet parent",
@@ -113,6 +127,10 @@
       "breeder": {
         "title": "Breeder",
         "body": "Create a trustworthy profile and structured pet posts for admin review."
+      },
+      "admin": {
+        "title": "Admin",
+        "body": "Manage accounts, breeder verification, listing review, and community reports."
       },
       "vet": {
         "title": "Veterinarian",
@@ -126,10 +144,13 @@
     "displayName": "Display name",
     "location": "Location",
     "bio": "Short intro about care style and home environment",
+    "primarySpecies": "Primary species, comma separated: cat, dog",
+    "mainBreeds": "Main breeds, comma separated",
+    "careEnvironment": "Care environment and verification details",
     "phone": "Phone number",
-    "save": "Save profile",
-    "saved": "Breeder profile saved.",
-    "saveFailed": "Could not save profile",
+    "save": "Submit breeder request",
+    "saved": "Breeder information submitted for admin review.",
+    "saveFailed": "Could not submit breeder request",
     "myPosts": "My listings",
     "createPost": "Create post",
     "noPosts": "No listings yet."
@@ -154,17 +175,27 @@
   },
   "adminReview": {
     "title": "Admin review",
-    "secretNote": "Enter the admin secret to load pending listings and reports. The app does not store this secret.",
-    "secretPlaceholder": "Admin secret",
+    "roleNote": "Admin role is required. Use this console to manage accounts, breeder trust, listings, and reports.",
     "load": "Load review queue",
     "loadFailed": "Could not load review queue",
+    "createAccount": "Create account",
+    "accountEmail": "Email or login name",
+    "accountDisplayName": "Display name",
+    "accounts": "Accounts",
+    "breeders": "Breeder profiles",
+    "noBreeders": "No breeder profiles yet.",
+    "verify": "Verify",
+    "reject": "Reject",
+    "suspend": "Suspend",
     "pendingPosts": "Pending listings",
     "noPendingPosts": "No pending listings.",
     "approve": "Approve",
     "archive": "Hide",
     "updateFailed": "Could not update listing",
     "reports": "Listing reports",
-    "noReports": "No open reports."
+    "noReports": "No open reports.",
+    "markReviewed": "Reviewed",
+    "dismiss": "Dismiss"
   },
   "petTypes": {
     "dog": "Dog",
