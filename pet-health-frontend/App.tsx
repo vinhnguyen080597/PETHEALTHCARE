@@ -8,11 +8,14 @@ import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
 import { AccountScreen } from './src/screens/AccountScreen';
+import { AdminReviewScreen } from './src/screens/AdminReviewScreen';
 import { AddPetScreen } from './src/screens/AddPetScreen';
 import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
+import { BreederProfileScreen } from './src/screens/BreederProfileScreen';
 import { BreedRecognitionProgressScreen } from './src/screens/BreedRecognitionProgressScreen';
 import { BreedRecognitionResultScreen } from './src/screens/BreedRecognitionResultScreen';
 import { CoreCareScreen } from './src/screens/CoreCareScreen';
+import { CreatePetFeedPostScreen } from './src/screens/CreatePetFeedPostScreen';
 import { PetBreedRecognitionScreen } from './src/screens/PetBreedRecognitionScreen';
 import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
@@ -35,6 +38,9 @@ export default function App() {
     app.screen === 'edit-pet' ||
     app.screen === 'core-care' ||
     app.screen === 'vet-summary' ||
+    app.screen === 'breeder-profile' ||
+    app.screen === 'create-pet-feed-post' ||
+    app.screen === 'admin-review' ||
     app.screen === 'health-check' ||
     app.screen === 'analysis-progress' ||
     app.screen === 'onboarding-intro' ||
@@ -92,6 +98,7 @@ export default function App() {
                 refreshing={app.refreshing}
                 onRefresh={app.refreshPetFeed}
                 onToggleFavorite={app.togglePetFeedFavorite}
+                onReportPost={app.submitPetFeedReport}
               />
             )}
 
@@ -99,7 +106,33 @@ export default function App() {
               <AccountScreen
                 petCount={app.pets.length}
                 savedPostCount={app.petFeedPosts.filter((post) => post.is_favorited).length}
+                onOpenBreederProfile={app.openBreederProfile}
+                onOpenAdminReview={app.openAdminReview}
                 onLogout={app.logout}
+              />
+            )}
+
+            {app.screen === 'breeder-profile' && (
+              <BreederProfileScreen
+                profile={app.breederProfile}
+                posts={app.myPetFeedPosts}
+                onBack={app.closeBreederProfile}
+                onSaveProfile={app.saveBreederProfile}
+                onCreatePost={app.openCreatePetFeedPost}
+              />
+            )}
+
+            {app.screen === 'create-pet-feed-post' && (
+              <CreatePetFeedPostScreen onBack={app.closeCreatePetFeedPost} onSubmit={app.submitPetFeedPost} />
+            )}
+
+            {app.screen === 'admin-review' && (
+              <AdminReviewScreen
+                posts={app.adminFeedPosts}
+                reports={app.adminFeedReports}
+                onBack={app.closeAdminReview}
+                onLoad={app.loadAdminReview}
+                onUpdateStatus={app.updateAdminPostStatus}
               />
             )}
 

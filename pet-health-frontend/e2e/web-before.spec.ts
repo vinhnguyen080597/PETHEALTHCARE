@@ -92,7 +92,7 @@ test.describe('Web feature smoke coverage', () => {
     await installMockApi(page, { analyses: [seededAnalysis], creditBalance: 4 });
     await openFreshApp(page);
 
-    await test.step('sign up and create first pet', async () => {
+    await test.step('sign up, land on home, and create first pet when ready', async () => {
       await verify(page, expect(page.getByTestId('login-email-input')).toBeVisible());
       await page.getByTestId('language-vietnamese-button').click();
       await page.getByTestId('language-english-button').click();
@@ -105,6 +105,9 @@ test.describe('Web feature smoke coverage', () => {
 
       await verify(page, expect(page.getByTestId('onboarding-intro-screen')).toBeVisible());
       await page.getByTestId('onboarding-intro-go-button').click();
+      await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
+      await verify(page, expect(page.getByTestId('home-add-first-pet-button')).toBeVisible());
+      await page.getByTestId('home-add-first-pet-button').click();
       await verify(page, expect(page.getByTestId('add-pet-name-input')).toBeVisible());
       await page.getByTestId('add-pet-name-input').fill('Luna');
       await page.getByTestId('add-pet-species-select').click();

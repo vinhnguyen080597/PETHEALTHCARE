@@ -19,7 +19,7 @@ const titleShadow = {
   textShadowRadius: 10,
 };
 
-/** First-login welcome before creating the first pet profile. */
+/** First-login welcome before the user chooses their own next step. */
 export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -103,7 +103,7 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
         <Pressable
           testID="onboarding-intro-go-button"
           accessibilityRole="button"
-          accessibilityLabel="Start pet onboarding"
+          accessibilityLabel="Go to home"
           className="rounded-xl py-4 active:opacity-90"
           style={{ backgroundColor: PRIMARY }}
           onPress={onGo}

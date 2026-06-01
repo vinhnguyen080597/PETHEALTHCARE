@@ -13,9 +13,13 @@ import type {
   CoreCareSummary,
   CreatePetPayload,
   CreateCoreCareRecordPayload,
+  CreatePetFeedPostPayload,
+  BreederProfile,
   Pet,
   PetFeedPost,
+  PetFeedReport,
   UpdatePetPayload,
+  UpsertBreederProfilePayload,
 } from './types';
 
 /**
@@ -270,6 +274,40 @@ export async function listPetFeedPosts(token: string) {
   });
 }
 
+export async function listMyPetFeedPosts(token: string) {
+  return requestJson<{ data: PetFeedPost[] }>('/pet-feed/my-posts', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function getMyBreederProfile(token: string) {
+  return requestJson<{ data: BreederProfile | null }>('/pet-feed/breeder-profile/me', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function upsertMyBreederProfile(token: string, payload: UpsertBreederProfilePayload) {
+  return requestJson<{ data: BreederProfile }>('/pet-feed/breeder-profile/me', {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createPetFeedPost(token: string, payload: CreatePetFeedPostPayload) {
+  return requestJson<{ data: PetFeedPost }>('/pet-feed/posts', {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function favoritePetFeedPost(token: string, postId: string) {
   await requestJson<null>(`/pet-feed/posts/${encodeURIComponent(postId)}/favorite`, {
     method: 'POST',
@@ -281,6 +319,47 @@ export async function unfavoritePetFeedPost(token: string, postId: string) {
   await requestJson<null>(`/pet-feed/posts/${encodeURIComponent(postId)}/favorite`, {
     method: 'DELETE',
     headers: authHeaders(token),
+  });
+}
+
+export async function reportPetFeedPost(token: string, postId: string, payload: { reason: string; note?: string }) {
+  return requestJson<{ data: PetFeedReport }>(`/pet-feed/posts/${encodeURIComponent(postId)}/report`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listAdminPetFeedPosts(token: string, adminSecret: string, status: string = 'pending_review') {
+  return requestJson<{ data: PetFeedPost[] }>(`/pet-feed/admin/posts?status=${encodeURIComponent(status)}`, {
+    headers: {
+      ...authHeaders(token),
+      'x-admin-secret': adminSecret,
+    },
+  });
+}
+
+export async function updateAdminPetFeedPostStatus(token: string, adminSecret: string, postId: string, status: string) {
+  return requestJson<{ data: PetFeedPost }>(`/pet-feed/admin/posts/${encodeURIComponent(postId)}/status`, {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'x-admin-secret': adminSecret,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function listAdminPetFeedReports(token: string, adminSecret: string, status: string = 'open') {
+  return requestJson<{ data: PetFeedReport[] }>(`/pet-feed/admin/reports?status=${encodeURIComponent(status)}`, {
+    headers: {
+      ...authHeaders(token),
+      'x-admin-secret': adminSecret,
+    },
   });
 }
 

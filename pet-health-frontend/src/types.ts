@@ -129,6 +129,42 @@ export type PetFeedPost = {
   updated_at?: string;
 };
 
+export type PetFeedReport = {
+  id: string;
+  user_id: string;
+  post_id: string;
+  reason: string;
+  note: string;
+  status: 'open' | 'reviewed' | 'dismissed';
+  created_at: string;
+  updated_at?: string;
+};
+
+export type UpsertBreederProfilePayload = {
+  displayName: string;
+  bio?: string;
+  location?: string;
+  contact?: BreederContact;
+};
+
+export type CreatePetFeedPostPayload = {
+  title: string;
+  species: string;
+  breed?: string;
+  gender?: string;
+  ageMonths?: number | null;
+  location?: string;
+  priceNote?: string;
+  description?: string;
+  personality?: string[];
+  vaccineStatus?: string;
+  dewormingStatus?: string;
+  paperwork?: string[];
+  mediaUrls?: string[];
+  contact?: BreederContact;
+  status?: PetFeedPostStatus;
+};
+
 export type Pet = {
   id: string;
   user_id: string;

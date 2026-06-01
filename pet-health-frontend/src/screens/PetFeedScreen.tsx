@@ -10,6 +10,7 @@ type PetFeedScreenProps = {
   refreshing: boolean;
   onRefresh: () => void;
   onToggleFavorite: (post: PetFeedPost) => void;
+  onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
 };
 
 function firstContact(post: PetFeedPost) {
@@ -53,7 +54,7 @@ function DetailLine({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text
   );
 }
 
-export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite }: PetFeedScreenProps) {
+export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, onReportPost }: PetFeedScreenProps) {
   const { t } = useTranslation();
   return (
     <ScrollView
@@ -133,6 +134,15 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite }
                   {post.description ? <Text className="mt-3 text-sm leading-5 text-slate-700">{post.description}</Text> : null}
                   <View className="mt-4 flex-row gap-3">
                     <ContactButton post={post} />
+                    <Pressable
+                      testID={`pet-feed-report-button-${post.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Report listing ${post.title}`}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 active:bg-slate-50"
+                      onPress={() => onReportPost(post, 'needs_review')}
+                    >
+                      <Ionicons name="flag-outline" size={18} color="#64748b" />
+                    </Pressable>
                   </View>
                 </View>
               </View>

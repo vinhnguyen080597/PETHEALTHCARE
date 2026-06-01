@@ -279,14 +279,27 @@ create table if not exists public.pet_feed_favorites (
   primary key (user_id, post_id)
 );
 
+create table if not exists public.pet_feed_reports (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  post_id uuid not null references public.pet_feed_posts(id) on delete cascade,
+  reason text not null,
+  note text not null default '',
+  status text not null default 'open' check (status in ('open', 'reviewed', 'dismissed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists idx_breeder_profiles_user on public.breeder_profiles(user_id);
 create index if not exists idx_pet_feed_posts_status_created on public.pet_feed_posts(status, created_at desc);
 create index if not exists idx_pet_feed_posts_user_created on public.pet_feed_posts(user_id, created_at desc);
 create index if not exists idx_pet_feed_favorites_user on public.pet_feed_favorites(user_id, created_at desc);
+create index if not exists idx_pet_feed_reports_status_created on public.pet_feed_reports(status, created_at desc);
 
 alter table public.breeder_profiles enable row level security;
 alter table public.pet_feed_posts enable row level security;
 alter table public.pet_feed_favorites enable row level security;
+alter table public.pet_feed_reports enable row level security;
 
 drop policy if exists "breeder_profiles_select_visible" on public.breeder_profiles;
 drop policy if exists "breeder_profiles_insert_own" on public.breeder_profiles;
@@ -297,6 +310,8 @@ drop policy if exists "pet_feed_posts_update_own" on public.pet_feed_posts;
 drop policy if exists "pet_feed_favorites_select_own" on public.pet_feed_favorites;
 drop policy if exists "pet_feed_favorites_insert_own" on public.pet_feed_favorites;
 drop policy if exists "pet_feed_favorites_delete_own" on public.pet_feed_favorites;
+drop policy if exists "pet_feed_reports_select_own" on public.pet_feed_reports;
+drop policy if exists "pet_feed_reports_insert_own" on public.pet_feed_reports;
 
 create policy "breeder_profiles_select_visible"
 on public.breeder_profiles for select
@@ -321,12 +336,13 @@ using (status = 'published' or auth.uid()::text = user_id);
 create policy "pet_feed_posts_insert_own"
 on public.pet_feed_posts for insert
 to authenticated
-with check (auth.uid()::text = user_id);
+with check (auth.uid()::text = user_id and status in ('draft', 'pending_review'));
 
 create policy "pet_feed_posts_update_own"
 on public.pet_feed_posts for update
 to authenticated
-using (auth.uid()::text = user_id);
+using (auth.uid()::text = user_id)
+with check (auth.uid()::text = user_id and status in ('draft', 'pending_review'));
 
 create policy "pet_feed_favorites_select_own"
 on public.pet_feed_favorites for select
@@ -342,3 +358,13 @@ create policy "pet_feed_favorites_delete_own"
 on public.pet_feed_favorites for delete
 to authenticated
 using (auth.uid()::text = user_id);
+
+create policy "pet_feed_reports_select_own"
+on public.pet_feed_reports for select
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "pet_feed_reports_insert_own"
+on public.pet_feed_reports for insert
+to authenticated
+with check (auth.uid()::text = user_id);

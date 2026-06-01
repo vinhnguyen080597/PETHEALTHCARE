@@ -61,8 +61,8 @@
     "title": "Thú cưng của tôi",
     "addPet": "Thêm thú cưng",
     "noPetsTitle": "Chưa có thú cưng",
-    "noPetsBody": "Thêm thú cưng để bắt đầu theo dõi các lần kiểm tra sức khỏe.",
-    "addFirstPet": "Thêm thú cưng đầu tiên",
+    "noPetsBody": "Khi Sen đã có bé ở nhà, hãy thêm hồ sơ để lưu chăm sóc, nhắc lịch và theo dõi sức khỏe. Nếu đang tìm bé mới, Sen có thể xem Pet Feed trước.",
+    "addFirstPet": "Tạo hồ sơ khi đã sẵn sàng",
     "pullToRefresh": "Kéo xuống để làm mới",
     "scanHealth": "Kiểm tra sức khỏe",
     "viewProfile": "Xem hồ sơ",
@@ -86,7 +86,15 @@
     "vaccineUnknown": "Chưa có thông tin vaccine",
     "paperwork": "Giấy tờ",
     "contact": "Liên hệ",
-    "favoriteFailed": "Không thể lưu"
+    "favoriteFailed": "Không thể lưu",
+    "reportSuccess": "Cảm ơn Sen. Bài đăng đã được gửi để admin xem xét.",
+    "reportFailed": "Không thể báo cáo bài đăng",
+    "status": {
+      "draft": "Bản nháp",
+      "pending_review": "Chờ admin duyệt",
+      "published": "Đã duyệt",
+      "archived": "Đã lưu trữ"
+    }
   },
   "account": {
     "title": "Tài khoản",
@@ -95,6 +103,8 @@
     "pets": "Thú cưng",
     "savedPosts": "Đã lưu",
     "communitySafety": "Bài đăng cộng đồng cần minh bạch và tôn trọng. Pet Health Care không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
+    "openBreederProfile": "Hồ sơ breeder & bài đăng",
+    "openAdminReview": "Admin review",
     "roles": {
       "sen": {
         "title": "Sen",
@@ -109,6 +119,52 @@
         "body": "Vai trò tương lai cho nội dung giáo dục và xem hồ sơ, không phải chẩn đoán trong app."
       }
     }
+  },
+  "breederProfile": {
+    "title": "Hồ sơ breeder",
+    "profileInfo": "Thông tin breeder",
+    "displayName": "Tên hiển thị",
+    "location": "Khu vực",
+    "bio": "Giới thiệu ngắn về cách chăm sóc, môi trường nuôi",
+    "phone": "Số điện thoại",
+    "save": "Lưu hồ sơ",
+    "saved": "Đã lưu hồ sơ breeder.",
+    "saveFailed": "Không thể lưu hồ sơ",
+    "myPosts": "Bài đăng của tôi",
+    "createPost": "Tạo bài",
+    "noPosts": "Chưa có bài đăng nào."
+  },
+  "createPetFeedPost": {
+    "title": "Tạo bài Pet Feed",
+    "reviewNote": "Bài đăng sẽ ở trạng thái chờ duyệt. Hãy mô tả minh bạch, tránh cam kết sức khỏe tuyệt đối hoặc nội dung gây hiểu nhầm.",
+    "postTitle": "Tiêu đề bài đăng",
+    "species": "Loài: cat hoặc dog",
+    "breed": "Giống",
+    "gender": "Giới tính",
+    "ageMonths": "Tuổi (tháng)",
+    "location": "Khu vực",
+    "priceNote": "Ghi chú chi phí/điều kiện",
+    "personality": "Tính cách, cách nhau bằng dấu phẩy",
+    "vaccineStatus": "Tình trạng vaccine",
+    "dewormingStatus": "Tình trạng tẩy giun",
+    "paperwork": "Giấy tờ, cách nhau bằng dấu phẩy",
+    "description": "Mô tả bé và điều kiện tìm nhà mới",
+    "submit": "Gửi duyệt",
+    "submitFailed": "Không thể gửi bài"
+  },
+  "adminReview": {
+    "title": "Admin review",
+    "secretNote": "Nhập admin secret để tải bài chờ duyệt và báo cáo. Không lưu secret trong app.",
+    "secretPlaceholder": "Admin secret",
+    "load": "Tải danh sách",
+    "loadFailed": "Không thể tải danh sách",
+    "pendingPosts": "Bài chờ duyệt",
+    "noPendingPosts": "Không có bài chờ duyệt.",
+    "approve": "Duyệt",
+    "archive": "Ẩn",
+    "updateFailed": "Không thể cập nhật bài",
+    "reports": "Báo cáo bài đăng",
+    "noReports": "Chưa có báo cáo mở."
   },
   "petTypes": {
     "dog": "Chó",

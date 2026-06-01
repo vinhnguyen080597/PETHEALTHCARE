@@ -6,6 +6,7 @@ const VERIFICATION_STATUSES = new Set(['unverified', 'pending_review', 'verified
 const memoryProfiles = [];
 const memoryPosts = [];
 const memoryFavorites = [];
+const memoryReports = [];
 
 function getFeedSupabase(accessToken) {
   const withJwt = createSupabaseWithUserAccessToken(accessToken);
@@ -26,6 +27,11 @@ function normalizeStatus(value, fallback = 'draft') {
 function normalizeVerificationStatus(value) {
   const status = trimText(value, 32).toLowerCase();
   return VERIFICATION_STATUSES.has(status) ? status : 'unverified';
+}
+
+function normalizeUserEditablePostStatus(value, existingStatus = 'draft') {
+  const status = normalizeStatus(value, existingStatus);
+  return status === 'pending_review' || status === 'draft' ? status : existingStatus;
 }
 
 function normalizeJsonObject(value) {
@@ -125,6 +131,20 @@ function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
   };
 }
 
+function toReport(row) {
+  if (!row) return row;
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    post_id: row.post_id,
+    reason: row.reason,
+    note: row.note ?? '',
+    status: row.status ?? 'open',
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
 async function favoriteIdsForUser(supabase, userId) {
   const { data, error } = await supabase.from('pet_feed_favorites').select('post_id').eq('user_id', userId);
   if (error) throw error;
@@ -198,7 +218,7 @@ export async function createPetFeedPost(userId, payload, accessToken) {
   const profile = await getMyBreederProfile(userId, accessToken);
   const row = {
     ...normalizePostPayload(userId, { ...payload, breederProfileId: profile?.id }),
-    status: normalizeStatus(payload.status, 'draft'),
+    status: normalizeUserEditablePostStatus(payload.status, 'draft'),
     created_at: new Date().toISOString(),
   };
   const supabase = getFeedSupabase(accessToken);
@@ -221,7 +241,10 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
   }
   const existing = await getPetFeedPost(userId, postId, accessToken);
   if (!existing || existing.user_id !== userId) return null;
-  const updates = normalizePostPayload(userId, payload, existing);
+  const updates = {
+    ...normalizePostPayload(userId, payload, existing),
+    status: normalizeUserEditablePostStatus(payload.status, existing.status),
+  };
   const { id: _id, user_id: _userId, ...patch } = updates;
   const { data, error } = await supabase
     .from('pet_feed_posts')
@@ -262,4 +285,96 @@ export async function unfavoritePetFeedPost(userId, postId, accessToken) {
 export async function listFavoritePetFeedPosts(userId, accessToken) {
   const posts = await listPublishedPetFeedPosts(userId, accessToken);
   return posts.filter((post) => post.is_favorited);
+}
+
+export async function listMyPetFeedPosts(userId, accessToken) {
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
+    return memoryPosts
+      .filter((post) => post.user_id === userId)
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .map((post) => toPost(post, new Set(), profilesById));
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => toPost(row));
+}
+
+export async function reportPetFeedPost(userId, postId, payload, accessToken) {
+  const row = {
+    id: randomUUID(),
+    user_id: userId,
+    post_id: postId,
+    reason: trimText(payload.reason, 120) || 'other',
+    note: trimText(payload.note, 1200),
+    status: 'open',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    memoryReports.push(row);
+    return toReport(row);
+  }
+  const { data, error } = await supabase.from('pet_feed_reports').insert(row).select('*').single();
+  if (error) throw error;
+  return toReport(data);
+}
+
+export async function listAdminPetFeedPosts(status = 'pending_review') {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
+    return memoryPosts
+      .filter((post) => !status || post.status === status)
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .map((post) => toPost(post, new Set(), profilesById));
+  }
+  let query = supabase.from('pet_feed_posts').select('*, breeder_profile:breeder_profiles(*)').order('created_at', { ascending: false });
+  if (status) query = query.eq('status', status);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row) => toPost(row));
+}
+
+export async function adminUpdatePetFeedPostStatus(postId, status) {
+  const safeStatus = normalizeStatus(status, '');
+  if (!safeStatus) {
+    const err = new Error('Invalid post status');
+    err.status = 400;
+    err.code = 'INVALID_POST_STATUS';
+    throw err;
+  }
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const idx = memoryPosts.findIndex((post) => post.id === postId);
+    if (idx < 0) return null;
+    memoryPosts[idx] = { ...memoryPosts[idx], status: safeStatus, updated_at: new Date().toISOString() };
+    return toPost(memoryPosts[idx]);
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .update({ status: safeStatus, updated_at: new Date().toISOString() })
+    .eq('id', postId)
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .maybeSingle();
+  if (error) throw error;
+  return toPost(data);
+}
+
+export async function listAdminPetFeedReports(status = 'open') {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    return memoryReports.filter((report) => !status || report.status === status).map(toReport);
+  }
+  let query = supabase.from('pet_feed_reports').select('*').order('created_at', { ascending: false });
+  if (status) query = query.eq('status', status);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(toReport);
 }
