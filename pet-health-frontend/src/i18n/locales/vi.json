@@ -78,8 +78,24 @@
     "disclaimer": "Thông tin do breeder cung cấp. Sen nên tự xác minh danh tính, giấy tờ, vaccine và sắp xếp gặp trực tiếp hoặc kiểm tra thú y trước khi quyết định.",
     "emptyTitle": "Chưa có bài đã duyệt",
     "emptyBody": "Các bài breeder được duyệt sẽ hiển thị ở đây. MVP này chưa xử lý thanh toán trong app, chỉ giúp Sen tìm hiểu và liên hệ breeder.",
+    "emptyFilteredTitle": "Chưa có bài phù hợp",
+    "emptyFilteredBody": "Sen thử đổi bộ lọc khác để xem thêm bài đăng nhé.",
     "breederFallback": "Breeder",
     "locationUnknown": "Chưa chia sẻ khu vực",
+    "searchPlaceholder": "Tìm giống, breeder, tuổi, vị trí...",
+    "filtersTitle": "Lọc nhanh",
+    "filters": {
+      "all": "Tất cả",
+      "cat": "Mèo",
+      "dog": "Chó",
+      "video": "Có video"
+    },
+    "sortTitle": "Sắp xếp",
+    "sort": {
+      "date": "Ngày đăng",
+      "age": "Tuổi",
+      "price": "Giá"
+    },
     "ageMonths": "{{count}} tháng tuổi",
     "personality": "Tính cách",
     "healthInfo": "Thông tin chăm sóc",

@@ -78,8 +78,24 @@
     "disclaimer": "Listings are provided by breeders. Please verify identity, documents, vaccine records, and arrange an in-person or veterinary check before making decisions.",
     "emptyTitle": "No published listings yet",
     "emptyBody": "Approved breeder posts will appear here. This MVP avoids in-app payments and only helps you discover and contact breeders.",
+    "emptyFilteredTitle": "No matching listings",
+    "emptyFilteredBody": "Try another filter to browse more listings.",
     "breederFallback": "Breeder",
     "locationUnknown": "Location not shared",
+    "searchPlaceholder": "Search breed, breeder, age, location...",
+    "filtersTitle": "Quick filters",
+    "filters": {
+      "all": "All",
+      "cat": "Cats",
+      "dog": "Dogs",
+      "video": "Has video"
+    },
+    "sortTitle": "Sort",
+    "sort": {
+      "date": "Post date",
+      "age": "Age",
+      "price": "Price"
+    },
     "ageMonths": "{{count}} months old",
     "personality": "Personality",
     "healthInfo": "Care information",
