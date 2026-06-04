@@ -80,6 +80,7 @@
     "emptyBody": "Approved breeder posts will appear here. This MVP avoids in-app payments and only helps you discover and contact breeders.",
     "emptyFilteredTitle": "No matching listings",
     "emptyFilteredBody": "Try another filter to browse more listings.",
+    "detailTitle": "Listing details",
     "breederFallback": "Breeder",
     "locationUnknown": "Location not shared",
     "searchPlaceholder": "Search breed, breeder, age, location...",

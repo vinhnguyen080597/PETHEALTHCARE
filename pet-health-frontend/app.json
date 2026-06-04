@@ -33,7 +33,8 @@
       "expo-web-browser",
       "expo-apple-authentication",
       "expo-localization",
-      "expo-asset"
+      "expo-asset",
+      "expo-video"
     ]
   }
 }

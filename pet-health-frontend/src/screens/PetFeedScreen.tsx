@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { PetFeedPost } from '../types';
@@ -83,6 +83,7 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
   const [speciesFilter, setSpeciesFilter] = useState<SpeciesFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   const searchMatchedPosts = useMemo(() => {
     const q = normalizeSearchText(query);
@@ -125,8 +126,10 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
       return sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a);
     });
   }, [searchMatchedPosts, sortDirection, sortField, speciesFilter]);
+  const selectedPost = selectedPostId ? posts.find((post) => post.id === selectedPostId) ?? null : null;
 
   return (
+    <>
     <ScrollView
       testID="pet-feed-screen"
       className="flex-1 bg-[#F2F4F8] px-5 pb-6 pt-5"
@@ -227,12 +230,39 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
             <PetFeedPostCard
               key={post.id}
               post={post}
-              onToggleFavorite={onToggleFavorite}
-              onReportPost={onReportPost}
+              variant="compact"
+              autoPlayVideo
+              showFavorite={false}
+              showContact={false}
+              showReport={false}
+              onPress={(item) => setSelectedPostId(item.id)}
             />
           ))}
         </View>
       )}
     </ScrollView>
+    <Modal visible={Boolean(selectedPost)} animationType="slide" onRequestClose={() => setSelectedPostId(null)}>
+      <View className="flex-1 bg-[#F2F4F8]">
+        <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
+          <Pressable className="w-14 rounded-lg p-2" onPress={() => setSelectedPostId(null)}>
+            <Ionicons name="close" size={24} color="#1e293b" />
+          </Pressable>
+          <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('petFeed.detailTitle')}</Text>
+          <View className="w-14" />
+        </View>
+        <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}>
+          {selectedPost ? (
+            <PetFeedPostCard
+              post={selectedPost}
+              onToggleFavorite={onToggleFavorite}
+              onReportPost={onReportPost}
+              autoPlayVideo={false}
+              testID={`pet-feed-detail-post-${selectedPost.id}`}
+            />
+          ) : null}
+        </ScrollView>
+      </View>
+    </Modal>
+    </>
   );
 }

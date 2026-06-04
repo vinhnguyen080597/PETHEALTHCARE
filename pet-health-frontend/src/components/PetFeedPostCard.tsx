@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { useEffect } from 'react';
 import { Image, Linking, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { PetFeedPost } from '../types';
@@ -12,6 +14,9 @@ type PetFeedPostCardProps = {
   showFavorite?: boolean;
   showContact?: boolean;
   showReport?: boolean;
+  variant?: 'compact' | 'full';
+  autoPlayVideo?: boolean;
+  onPress?: (post: PetFeedPost) => void;
   testID?: string;
 };
 
@@ -56,6 +61,44 @@ function DetailLine({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text
   );
 }
 
+function AutoPlayVideo({ uri, autoPlay }: { uri: string; autoPlay: boolean }) {
+  const player = useVideoPlayer({ uri }, (instance) => {
+    instance.loop = true;
+    instance.muted = true;
+    if (autoPlay) instance.play();
+  });
+
+  useEffect(() => {
+    player.muted = true;
+    if (autoPlay) player.play();
+    else player.pause();
+  }, [autoPlay, player]);
+
+  return (
+    <VideoView
+      player={player}
+      nativeControls={!autoPlay}
+      contentFit="cover"
+      style={{ height: '100%', width: '100%' }}
+    />
+  );
+}
+
+function PetFeedMedia({ post, autoPlayVideo }: { post: PetFeedPost; autoPlayVideo: boolean }) {
+  const imageUrl = post.media_urls[0];
+  if (post.video_url) {
+    return <AutoPlayVideo uri={post.video_url} autoPlay={autoPlayVideo} />;
+  }
+  if (imageUrl) {
+    return <Image source={{ uri: imageUrl }} className="h-full w-full" resizeMode="cover" />;
+  }
+  return (
+    <View className="h-full w-full items-center justify-center">
+      <Ionicons name="paw-outline" size={46} color={PRIMARY} />
+    </View>
+  );
+}
+
 export function PetFeedPostCard({
   post,
   onToggleFavorite,
@@ -63,31 +106,41 @@ export function PetFeedPostCard({
   showFavorite = true,
   showContact = true,
   showReport = true,
+  variant = 'full',
+  autoPlayVideo = false,
+  onPress,
   testID,
 }: PetFeedPostCardProps) {
   const { t } = useTranslation();
   const breeder = post.breeder_profile;
-  const imageUrl = post.media_urls[0];
-  const hasVideo = Boolean(post.video_url);
   const showActions = showContact || showReport;
+  const isCompact = variant === 'compact';
 
-  return (
-    <View testID={testID ?? `pet-feed-post-${post.id}`} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+  const content = (
+    <>
       <View className="h-48 bg-blue-50">
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} className="h-full w-full" resizeMode="cover" />
-        ) : (
-          <View className="h-full w-full items-center justify-center">
-            <Ionicons name="paw-outline" size={46} color={PRIMARY} />
-          </View>
-        )}
-        {hasVideo ? (
-          <View className="absolute bottom-3 right-3 flex-row items-center gap-1.5 rounded-full bg-slate-900/80 px-3 py-1.5">
-            <Ionicons name="videocam" size={14} color="#fff" />
-            <Text className="text-xs font-bold text-white">{t('petFeed.hasVideo')}</Text>
-          </View>
-        ) : null}
+        <PetFeedMedia post={post} autoPlayVideo={autoPlayVideo} />
       </View>
+      {isCompact ? (
+        <View className="p-4">
+          <View className="flex-row items-start justify-between gap-3">
+            <Text className="min-w-0 flex-1 text-lg font-bold text-slate-900" numberOfLines={2}>{post.title}</Text>
+            {post.price_note ? (
+              <Text className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-sm font-bold text-blue-700" numberOfLines={1}>
+                {post.price_note}
+              </Text>
+            ) : null}
+          </View>
+          <Text className="mt-1 text-sm text-slate-500" numberOfLines={1}>
+            {breeder?.display_name ?? t('petFeed.breederFallback')}
+          </Text>
+          <View className="mt-3 flex-row flex-wrap gap-2">
+            <DetailLine icon="male-female-outline" text={post.gender} />
+            <DetailLine icon="calendar-outline" text={post.age_months != null ? t('petFeed.ageMonths', { count: post.age_months }) : ''} />
+            <DetailLine icon="location-outline" text={post.location || t('petFeed.locationUnknown')} />
+          </View>
+        </View>
+      ) : (
       <View className="p-4">
         <View className="flex-row items-start justify-between gap-3">
           <View className="min-w-0 flex-1">
@@ -145,6 +198,27 @@ export function PetFeedPostCard({
           </View>
         ) : null}
       </View>
+      )}
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        testID={testID ?? `pet-feed-post-${post.id}`}
+        accessibilityRole="button"
+        accessibilityLabel={`Open listing ${post.title}`}
+        className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm active:opacity-95"
+        onPress={() => onPress(post)}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View testID={testID ?? `pet-feed-post-${post.id}`} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      {content}
     </View>
   );
 }
