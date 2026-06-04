@@ -83,6 +83,7 @@ function normalizePostPayload(userId, payload, existing = {}) {
     deworming_status: trimText(payload.dewormingStatus ?? payload.deworming_status, 300),
     paperwork: normalizeStringArray(payload.paperwork, 10),
     media_urls: normalizeStringArray(payload.mediaUrls ?? payload.media_urls, 10),
+    video_url: trimText(payload.videoUrl ?? payload.video_url, 1000) || null,
     contact: normalizeJsonObject(payload.contact),
     status: normalizeStatus(payload.status, existing.status ?? 'draft'),
     metadata,
@@ -129,6 +130,7 @@ function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
     deworming_status: row.deworming_status,
     paperwork: row.paperwork ?? [],
     media_urls: row.media_urls ?? [],
+    video_url: row.video_url ?? null,
     contact: row.contact ?? {},
     status: row.status,
     metadata: row.metadata ?? {},
@@ -230,15 +232,17 @@ export async function upsertMyBreederProfile(userId, payload, accessToken) {
   return toProfile(data);
 }
 
-export async function createPetFeedPost(userId, payload, accessToken) {
+export async function createPetFeedPost(userId, payload, accessToken, options = {}) {
   const profile = await getMyBreederProfile(userId, accessToken);
-  assertVerifiedBreederProfile(profile);
+  if (!options.isAdmin) {
+    assertVerifiedBreederProfile(profile);
+  }
   const row = {
     ...normalizePostPayload(userId, { ...payload, breederProfileId: profile?.id }),
-    status: normalizeUserEditablePostStatus(payload.status, 'draft'),
+    status: options.isAdmin ? normalizeStatus(payload.status, 'published') : normalizeUserEditablePostStatus(payload.status, 'draft'),
     created_at: new Date().toISOString(),
   };
-  const supabase = getFeedSupabase(accessToken);
+  const supabase = options.isAdmin ? (getSupabaseServiceClient() ?? getFeedSupabase(accessToken)) : getFeedSupabase(accessToken);
   if (!supabase) {
     memoryPosts.push(row);
     return toPost(row, new Set(), new Map(profile ? [[profile.id, profile]] : []));

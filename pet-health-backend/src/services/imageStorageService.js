@@ -68,6 +68,24 @@ export async function storeDiagnosisImage({ userId, petId, file, accessToken }) 
   return `memory://${bucketName}/${filePath}`;
 }
 
+/** Pet Feed photos — same bucket, path `userId/pet-feed/photos/...` for listing media. */
+export async function storePetFeedImage({ userId, file, accessToken }) {
+  const extension = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
+  const filePath = `${userId}/pet-feed/photos/${Date.now()}-${randomUUID()}.${extension}`;
+  const bucketName = getImageBucketName();
+
+  const publicUrl = await uploadToImageBucket({
+    accessToken,
+    filePath,
+    buffer: file.buffer,
+    contentType: file.mimetype,
+  });
+  if (publicUrl) return publicUrl;
+
+  memoryImages.set(filePath, file.buffer);
+  return `memory://${bucketName}/${filePath}`;
+}
+
 function videoExtension(mimetype) {
   if (mimetype === 'video/webm') return 'webm';
   if (mimetype === 'video/quicktime') return 'mov';
@@ -79,6 +97,24 @@ function videoExtension(mimetype) {
 export async function storeDiagnosisVideo({ userId, petId, file, accessToken }) {
   const extension = videoExtension(file.mimetype);
   const filePath = `${userId}/${petId}/videos/${Date.now()}-${randomUUID()}.${extension}`;
+  const bucketName = getImageBucketName();
+
+  const publicUrl = await uploadToImageBucket({
+    accessToken,
+    filePath,
+    buffer: file.buffer,
+    contentType: file.mimetype,
+  });
+  if (publicUrl) return publicUrl;
+
+  memoryImages.set(filePath, file.buffer);
+  return `memory://${bucketName}/${filePath}`;
+}
+
+/** Pet Feed video — same bucket, path `userId/pet-feed/videos/...` for listing preview clips. */
+export async function storePetFeedVideo({ userId, file, accessToken }) {
+  const extension = videoExtension(file.mimetype);
+  const filePath = `${userId}/pet-feed/videos/${Date.now()}-${randomUUID()}.${extension}`;
   const bucketName = getImageBucketName();
 
   const publicUrl = await uploadToImageBucket({

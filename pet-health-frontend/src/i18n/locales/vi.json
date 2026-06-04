@@ -85,6 +85,7 @@
     "healthInfo": "Thông tin chăm sóc",
     "vaccineUnknown": "Chưa có thông tin vaccine",
     "paperwork": "Giấy tờ",
+    "hasVideo": "Có video",
     "contact": "Liên hệ",
     "favoriteFailed": "Không thể lưu",
     "reportSuccess": "Cảm ơn Sen. Bài đăng đã được gửi để admin xem xét.",
@@ -99,12 +100,43 @@
   "account": {
     "title": "Tài khoản",
     "subtitle": "Quản lý vai trò, bài đã lưu và phiên đăng nhập.",
+    "adminSubtitle": "Quản lý request, breeder, bài đăng và an toàn cộng đồng.",
     "myRole": "Vai trò trong Pet Health Care",
     "pets": "Thú cưng",
     "savedPosts": "Đã lưu",
     "myPosts": "Bài của tôi",
+    "adminMetrics": {
+      "requests": "Requests",
+      "breeders": "Breeders",
+      "myPosts": "My posts"
+    },
+    "adminSections": {
+      "requests": {
+        "title": "Requests",
+        "body": "Các request đăng ký breeder và bài viết đang/đã được review theo trạng thái.",
+        "pendingBreeders": "Breeder đang chờ duyệt",
+        "pendingPosts": "Bài viết đang chờ duyệt",
+        "approved": "Approved",
+        "rejected": "Rejected / archived"
+      },
+      "breeders": {
+        "title": "Breeders",
+        "body": "Các trại theo trạng thái hoạt động để admin theo dõi độ tin cậy và hoạt động.",
+        "active": "Active breeders",
+        "inactive": "Inactive / suspended",
+        "waiting": "Waiting review"
+      },
+      "posts": {
+        "title": "My posts",
+        "body": "Các bài viết do tài khoản admin tạo và trạng thái review chung của feed.",
+        "mine": "My admin posts",
+        "published": "Published listings",
+        "waiting": "Waiting review"
+      }
+    },
     "communitySafety": "Bài đăng cộng đồng cần minh bạch và tôn trọng. Pet Health Care không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
     "openBreederProfile": "Hồ sơ breeder & bài đăng",
+    "createPost": "Tạo bài đăng",
     "openAdminReview": "Admin review",
     "requestBreeder": "Đăng ký xác minh Breeder",
     "senSummary": "Các bài Pet Feed đã lưu và hồ sơ chăm sóc của Sen sẽ nằm ở đây. Khi đã sẵn sàng, Sen có thể tạo hồ sơ thú cưng bất cứ lúc nào.",
@@ -138,6 +170,58 @@
       }
     }
   },
+  "adminRequests": {
+    "filters": "Bộ lọc request",
+    "filterType": "Loại",
+    "filterStatus": "Trạng thái",
+    "filterDate": "Thời gian",
+    "empty": "Không có request phù hợp.",
+    "untitledBreeder": "Breeder chưa có tên",
+    "untitledPost": "Bài đăng chưa có tiêu đề",
+    "report": "Report bài đăng",
+    "postId": "Post ID",
+    "types": {
+      "all": "Tất cả",
+      "breeder": "Breeder",
+      "post": "Bài đăng",
+      "report": "Report"
+    },
+    "statuses": {
+      "all": "Tất cả",
+      "waiting": "Waiting",
+      "approved": "Approved",
+      "rejected": "Rejected / archived",
+      "resolved": "Reviewed / dismissed"
+    },
+    "dates": {
+      "newest": "Mới nhất",
+      "oldest": "Cũ nhất",
+      "today": "Hôm nay",
+      "week": "7 ngày"
+    },
+    "reportStatus": {
+      "open": "Đang mở",
+      "reviewed": "Đã review",
+      "dismissed": "Đã bỏ qua"
+    }
+  },
+  "adminBreeders": {
+    "filters": "Bộ lọc breeder",
+    "filterStatus": "Trạng thái",
+    "filterSpecies": "Loài",
+    "filterDate": "Thời gian",
+    "empty": "Không có breeder phù hợp.",
+    "untitled": "Breeder chưa có tên",
+    "statuses": {
+      "all": "Tất cả",
+      "active": "Active",
+      "inactive": "Inactive",
+      "waiting": "Waiting"
+    },
+    "species": {
+      "all": "Tất cả"
+    }
+  },
   "breederProfile": {
     "title": "Hồ sơ breeder",
     "profileInfo": "Thông tin breeder",
@@ -158,20 +242,87 @@
   "createPetFeedPost": {
     "title": "Tạo bài Pet Feed",
     "reviewNote": "Bài đăng sẽ ở trạng thái chờ duyệt. Hãy mô tả minh bạch, tránh cam kết sức khỏe tuyệt đối hoặc nội dung gây hiểu nhầm.",
+    "adminReviewNote": "Bài đăng do Admin tạo sẽ được đăng ngay sau khi xác nhận. Hãy kiểm tra ảnh, video và thông tin hiển thị trước khi đăng.",
+    "basicInfo": "Thông tin cơ bản",
+    "mediaSection": "Ảnh & video",
+    "mediaHint": "Bài đăng cần ít nhất 1 ảnh rõ và 1 video ngắn để người xem có thêm ngữ cảnh trước khi liên hệ.",
+    "careInfo": "Chăm sóc & giấy tờ",
+    "descriptionAndContact": "Mô tả & liên hệ",
     "postTitle": "Tiêu đề bài đăng",
-    "species": "Loài: cat hoặc dog",
+    "species": "Loài",
     "breed": "Giống",
     "gender": "Giới tính",
     "ageMonths": "Tuổi (tháng)",
     "location": "Khu vực",
     "priceNote": "Ghi chú chi phí/điều kiện",
-    "personality": "Tính cách, cách nhau bằng dấu phẩy",
+    "personality": "Tính cách",
     "vaccineStatus": "Tình trạng vaccine",
     "dewormingStatus": "Tình trạng tẩy giun",
-    "paperwork": "Giấy tờ, cách nhau bằng dấu phẩy",
+    "paperwork": "Giấy tờ",
     "description": "Mô tả bé và điều kiện tìm nhà mới",
+    "pickPhotos": "Chọn ảnh ({{count}}/{{max}})",
+    "pickVideo": "Chọn 1 video ngắn",
+    "videoSelected": "Đã chọn video",
+    "removeVideo": "Gỡ video",
+    "review": "Review",
+    "edit": "Quay lại chỉnh sửa",
+    "publish": "Đăng",
     "submit": "Gửi duyệt",
-    "submitFailed": "Không thể gửi bài"
+    "submitFailed": "Không thể gửi bài",
+    "previewUntitled": "Bài đăng chưa có tiêu đề",
+    "errors": {
+      "titleRequired": "Vui lòng nhập tiêu đề bài đăng.",
+      "photoRequired": "Vui lòng tải ít nhất 1 ảnh rõ của bé.",
+      "videoRequired": "Vui lòng tải 1 video ngắn của bé."
+    },
+    "options": {
+      "species": {
+        "cat": "Mèo",
+        "dog": "Chó"
+      },
+      "gender": {
+        "unknown": "Chưa rõ",
+        "male": "Đực",
+        "female": "Cái"
+      },
+      "age": {
+        "two": "2 tháng",
+        "three": "3 tháng",
+        "six": "6 tháng",
+        "twelve": "12 tháng",
+        "twentyFour": "24 tháng+"
+      },
+      "location": {
+        "unspecified": "Chưa chia sẻ khu vực",
+        "other": "Khu vực khác"
+      },
+      "personality": {
+        "friendly": "Thân thiện",
+        "calm": "Hiền, dễ gần",
+        "playful": "Năng động",
+        "kidFriendly": "Hợp với trẻ nhỏ",
+        "petFriendly": "Hợp với thú cưng khác"
+      },
+      "vaccine": {
+        "unknown": "Chưa rõ",
+        "notYet": "Chưa tiêm",
+        "firstDose": "Đã tiêm mũi đầu",
+        "basicDone": "Đã tiêm cơ bản",
+        "needUpdate": "Cần cập nhật lịch tiêm"
+      },
+      "deworming": {
+        "unknown": "Chưa rõ",
+        "notYet": "Chưa tẩy giun",
+        "recent": "Đã tẩy gần đây",
+        "due": "Sắp tới lịch tẩy"
+      },
+      "paperwork": {
+        "vaccineBook": "Sổ tiêm",
+        "origin": "Giấy nguồn gốc",
+        "microchip": "Microchip",
+        "contract": "Hợp đồng/thoả thuận"
+      }
+    }
   },
   "adminReview": {
     "title": "Admin review",

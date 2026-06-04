@@ -304,12 +304,15 @@ create table if not exists public.pet_feed_posts (
   deworming_status text not null default '',
   paperwork jsonb not null default '[]'::jsonb,
   media_urls jsonb not null default '[]'::jsonb,
+  video_url text,
   contact jsonb not null default '{}'::jsonb,
   status text not null default 'draft' check (status in ('draft', 'pending_review', 'published', 'archived')),
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.pet_feed_posts add column if not exists video_url text;
 
 create table if not exists public.pet_feed_favorites (
   user_id text not null,

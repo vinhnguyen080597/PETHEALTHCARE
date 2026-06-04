@@ -31,6 +31,7 @@ import { VetSummaryScreen } from './src/screens/VetSummaryScreen';
 export default function App() {
   const { t } = useTranslation();
   const app = usePetHealthApp();
+  const isAdmin = app.accountProfile?.primary_role === 'admin';
 
   const showBottomTab = app.screen === 'pet-feed' || app.screen === 'home' || app.screen === 'account';
   const hideAppHeader =
@@ -54,6 +55,34 @@ export default function App() {
     app.screen === 'breed-recognition';
   const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;
   const breedCreditCost = app.aiEconomicsConfig?.features.breed_recognition?.creditCost ?? 1;
+  const accountDashboard = (
+    <AccountScreen
+      account={app.accountProfile}
+      breederProfile={app.breederProfile}
+      petCount={app.pets.length}
+      savedPostCount={app.petFeedPosts.filter((post) => post.is_favorited).length}
+      myPostCount={app.myPetFeedPosts.length}
+      myPosts={app.myPetFeedPosts}
+      adminBreederProfiles={app.adminBreederProfiles}
+      adminFeedPosts={app.adminFeedPosts}
+      adminFeedReports={app.adminFeedReports}
+      adminPendingBreederRequestCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'pending_review').length}
+      adminRejectedBreederRequestCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'rejected').length}
+      adminPendingPostCount={app.adminFeedPosts.filter((post) => post.status === 'pending_review').length}
+      adminPublishedPostCount={app.adminFeedPosts.filter((post) => post.status === 'published').length}
+      adminArchivedPostCount={app.adminFeedPosts.filter((post) => post.status === 'archived').length}
+      activeBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'verified').length}
+      inactiveBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'rejected' || profile.verification_status === 'suspended').length}
+      onOpenBreederProfile={app.openBreederProfile}
+      onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
+      onOpenAdminReview={app.openAdminReview}
+      onUpdateBreederStatus={app.updateAdminBreederStatus}
+      onUpdatePostStatus={app.updateAdminPostStatus}
+      onUpdateReportStatus={app.updateAdminReportStatus}
+      onLogout={app.logout}
+      showHeaderLogout={!isAdmin}
+    />
+  );
 
   return (
     <SafeAreaProvider>
@@ -80,7 +109,9 @@ export default function App() {
           <View className="flex-1">
             {!hideAppHeader ? <AppHeader /> : null}
 
-            {app.screen === 'home' && (
+            {app.screen === 'home' && isAdmin ? accountDashboard : null}
+
+            {app.screen === 'home' && !isAdmin && (
               <HomeScreen
                 pets={app.pets}
                 refreshing={app.refreshing}
@@ -102,18 +133,7 @@ export default function App() {
               />
             )}
 
-            {app.screen === 'account' && (
-              <AccountScreen
-                account={app.accountProfile}
-                breederProfile={app.breederProfile}
-                petCount={app.pets.length}
-                savedPostCount={app.petFeedPosts.filter((post) => post.is_favorited).length}
-                myPostCount={app.myPetFeedPosts.length}
-                onOpenBreederProfile={app.openBreederProfile}
-                onOpenAdminReview={app.openAdminReview}
-                onLogout={app.logout}
-              />
-            )}
+            {app.screen === 'account' && !isAdmin ? accountDashboard : null}
 
             {app.screen === 'breeder-profile' && (
               <BreederProfileScreen
@@ -127,7 +147,11 @@ export default function App() {
             )}
 
             {app.screen === 'create-pet-feed-post' && (
-              <CreatePetFeedPostScreen onBack={app.closeCreatePetFeedPost} onSubmit={app.submitPetFeedPost} />
+              <CreatePetFeedPostScreen
+                role={app.accountProfile?.primary_role}
+                onBack={app.closeCreatePetFeedPost}
+                onSubmit={app.submitPetFeedPost}
+              />
             )}
 
             {app.screen === 'admin-review' && (
@@ -398,7 +422,8 @@ export default function App() {
                 activeScreen={app.screen}
                 onPetFeed={app.openPetFeed}
                 onHome={app.goHomeAndRefresh}
-                onAccount={app.openAccount}
+                onAccount={isAdmin ? app.logout : app.openAccount}
+                accountTabMode={isAdmin ? 'logout' : 'account'}
               />
             ) : null}
           </View>

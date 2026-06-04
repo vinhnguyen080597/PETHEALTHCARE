@@ -65,6 +65,7 @@ import type {
   CoreCareRecord,
   CoreCareSummary,
   CreateCoreCareRecordPayload,
+  CreatePetFeedPostMedia,
   CreatePetFeedPostPayload,
   BreederProfile,
   Pet,
@@ -342,7 +343,10 @@ export function usePetHealthApp() {
       try {
         const petsList = await fetchPets(savedToken);
         await refreshAiCredits(savedToken);
-        await fetchAccountProfile(savedToken);
+        const profile = await fetchAccountProfile(savedToken);
+        if (profile.primary_role === 'admin') {
+          await loadAccountDashboard(savedToken, profile.primary_role);
+        }
         const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
         if (pending === '1') {
           setInitialOnboarding(true);
@@ -375,7 +379,10 @@ export function usePetHealthApp() {
       setToken(accessToken);
       const petsList = await fetchPets(accessToken);
       await refreshAiCredits(accessToken);
-      await fetchAccountProfile(accessToken);
+      const profile = await fetchAccountProfile(accessToken);
+      if (profile.primary_role === 'admin') {
+        await loadAccountDashboard(accessToken, profile.primary_role);
+      }
 
       if (options?.startInitialOnboarding) {
         await AsyncStorage.setItem(PENDING_INITIAL_ONBOARDING_KEY, '1');
@@ -838,16 +845,29 @@ export function usePetHealthApp() {
     }
   }
 
-  async function openAccount() {
-    if (token) {
+  async function loadAccountDashboard(accessToken: string, role: UserRole | undefined = accountProfile?.primary_role) {
+    try {
+      const profileRes = await getMyBreederProfile(accessToken);
+      setBreederProfile(profileRes.data);
+    } catch {
+      setBreederProfile(null);
+    }
+    if (role === 'admin') {
       try {
-        const profileRes = await getMyBreederProfile(token);
-        setBreederProfile(profileRes.data);
+        await loadAdminReview(accessToken);
+        const postsRes = await listMyPetFeedPosts(accessToken);
+        setMyPetFeedPosts(postsRes.data);
       } catch {
-        setBreederProfile(null);
+        // Admin dashboard can still render with the data already in memory.
       }
     }
-    setScreen('account');
+  }
+
+  async function openAccount() {
+    if (token) {
+      await loadAccountDashboard(token);
+    }
+    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'account');
   }
 
   function hasAccountRole(...roles: UserRole[]) {
@@ -877,7 +897,7 @@ export function usePetHealthApp() {
   }
 
   function closeBreederProfile() {
-    setScreen('account');
+    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'account');
   }
 
   async function saveBreederProfile(payload: UpsertBreederProfilePayload) {
@@ -892,7 +912,11 @@ export function usePetHealthApp() {
   }
 
   function openCreatePetFeedPost() {
-    if (!hasAccountRole('breeder', 'admin') || breederProfile?.verification_status !== 'verified') {
+    if (hasAccountRole('admin')) {
+      setScreen('create-pet-feed-post');
+      return;
+    }
+    if (!hasAccountRole('breeder') || breederProfile?.verification_status !== 'verified') {
       Alert.alert(i18n.t('account.roleRequiredTitle'), i18n.t('account.breederOnly'));
       return;
     }
@@ -900,15 +924,15 @@ export function usePetHealthApp() {
   }
 
   function closeCreatePetFeedPost() {
-    setScreen('breeder-profile');
+    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'breeder-profile');
   }
 
-  async function submitPetFeedPost(payload: CreatePetFeedPostPayload) {
+  async function submitPetFeedPost(payload: CreatePetFeedPostPayload, media: CreatePetFeedPostMedia) {
     if (!token) return;
-    await createPetFeedPost(token, payload);
+    await createPetFeedPost(token, payload, media);
     const postsRes = await listMyPetFeedPosts(token);
     setMyPetFeedPosts(postsRes.data);
-    setScreen('breeder-profile');
+    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'breeder-profile');
   }
 
   async function submitPetFeedReport(post: PetFeedPost, reason: string, note?: string) {
@@ -941,16 +965,16 @@ export function usePetHealthApp() {
   }
 
   function closeAdminReview() {
-    setScreen('account');
+    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'account');
   }
 
-  async function loadAdminReview() {
-    if (!token) return;
+  async function loadAdminReview(accessToken: string | null = token) {
+    if (!accessToken) return;
     const [accountsRes, breedersRes, postsRes, reportsRes] = await Promise.all([
-      listAdminAccounts(token),
-      listAdminBreederProfiles(token),
-      listAdminPetFeedPosts(token, 'pending_review'),
-      listAdminPetFeedReports(token, 'open'),
+      listAdminAccounts(accessToken),
+      listAdminBreederProfiles(accessToken),
+      listAdminPetFeedPosts(accessToken, ''),
+      listAdminPetFeedReports(accessToken, ''),
     ]);
     setAdminAccounts(accountsRes.data);
     setAdminBreederProfiles(breedersRes.data);
@@ -1510,6 +1534,10 @@ export function usePetHealthApp() {
 
   function goHomeAndRefresh() {
     setScreen('home');
+    if (token && accountProfile?.primary_role === 'admin') {
+      void loadAccountDashboard(token, accountProfile.primary_role);
+      return;
+    }
     void refreshPets();
   }
 

@@ -1,9 +1,76 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { AccountProfile, BreederProfile, UserRole } from '../types';
+import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 
 const PRIMARY = '#1E6FE8';
+
+const REQUEST_TYPE_FILTERS: Array<{ key: AdminRequestTypeFilter; labelKey: string }> = [
+  { key: 'all', labelKey: 'adminRequests.types.all' },
+  { key: 'breeder', labelKey: 'adminRequests.types.breeder' },
+  { key: 'post', labelKey: 'adminRequests.types.post' },
+  { key: 'report', labelKey: 'adminRequests.types.report' },
+];
+
+const REQUEST_STATUS_FILTERS: Array<{ key: AdminRequestStatusFilter; labelKey: string }> = [
+  { key: 'all', labelKey: 'adminRequests.statuses.all' },
+  { key: 'waiting', labelKey: 'adminRequests.statuses.waiting' },
+  { key: 'approved', labelKey: 'adminRequests.statuses.approved' },
+  { key: 'rejected', labelKey: 'adminRequests.statuses.rejected' },
+  { key: 'resolved', labelKey: 'adminRequests.statuses.resolved' },
+];
+
+const REQUEST_DATE_FILTERS: Array<{ key: AdminRequestDateFilter; labelKey: string }> = [
+  { key: 'newest', labelKey: 'adminRequests.dates.newest' },
+  { key: 'oldest', labelKey: 'adminRequests.dates.oldest' },
+  { key: 'today', labelKey: 'adminRequests.dates.today' },
+  { key: 'week', labelKey: 'adminRequests.dates.week' },
+];
+
+const BREEDER_STATUS_FILTERS: Array<{ key: AdminBreederStatusFilter; labelKey: string }> = [
+  { key: 'all', labelKey: 'adminBreeders.statuses.all' },
+  { key: 'active', labelKey: 'adminBreeders.statuses.active' },
+  { key: 'inactive', labelKey: 'adminBreeders.statuses.inactive' },
+  { key: 'waiting', labelKey: 'adminBreeders.statuses.waiting' },
+];
+
+type AdminRequestTypeFilter = 'all' | 'breeder' | 'post' | 'report';
+type AdminRequestStatusFilter = 'all' | 'waiting' | 'approved' | 'rejected' | 'resolved';
+type AdminRequestDateFilter = 'newest' | 'oldest' | 'today' | 'week';
+type AdminBreederStatusFilter = 'all' | 'active' | 'inactive' | 'waiting';
+
+type AdminRequestItem =
+  | {
+      id: string;
+      type: 'breeder';
+      status: string;
+      createdAt: string;
+      title: string;
+      subtitle: string;
+      body: string;
+      profile: BreederProfile;
+    }
+  | {
+      id: string;
+      type: 'post';
+      status: string;
+      createdAt: string;
+      title: string;
+      subtitle: string;
+      body: string;
+      post: PetFeedPost;
+    }
+  | {
+      id: string;
+      type: 'report';
+      status: string;
+      createdAt: string;
+      title: string;
+      subtitle: string;
+      body: string;
+      report: PetFeedReport;
+    };
 
 type AccountScreenProps = {
   account: AccountProfile | null;
@@ -11,9 +78,25 @@ type AccountScreenProps = {
   petCount: number;
   savedPostCount: number;
   myPostCount: number;
+  myPosts: PetFeedPost[];
+  adminBreederProfiles: BreederProfile[];
+  adminFeedPosts: PetFeedPost[];
+  adminFeedReports: PetFeedReport[];
+  adminPendingBreederRequestCount: number;
+  adminRejectedBreederRequestCount: number;
+  adminPendingPostCount: number;
+  adminPublishedPostCount: number;
+  adminArchivedPostCount: number;
+  activeBreederCount: number;
+  inactiveBreederCount: number;
   onOpenBreederProfile: () => void;
+  onOpenCreatePetFeedPost: () => void;
   onOpenAdminReview: () => void;
+  onUpdateBreederStatus: (userId: string, verificationStatus: string) => Promise<void>;
+  onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
+  onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
   onLogout: () => void;
+  showHeaderLogout?: boolean;
 };
 
 function roleIcon(role: UserRole | undefined) {
@@ -23,25 +106,213 @@ function roleIcon(role: UserRole | undefined) {
   return 'heart-outline';
 }
 
+function adminRequestStatusGroup(item: AdminRequestItem): Exclude<AdminRequestStatusFilter, 'all'> {
+  if (item.type === 'report') return item.status === 'open' ? 'waiting' : 'resolved';
+  if (item.type === 'breeder') {
+    if (item.status === 'verified') return 'approved';
+    if (item.status === 'rejected' || item.status === 'suspended') return 'rejected';
+    return 'waiting';
+  }
+  if (item.status === 'published') return 'approved';
+  if (item.status === 'archived') return 'rejected';
+  return 'waiting';
+}
+
+function formatRequestDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString();
+}
+
+function breederStatusGroup(profile: BreederProfile): Exclude<AdminBreederStatusFilter, 'all'> {
+  if (profile.verification_status === 'verified') return 'active';
+  if (profile.verification_status === 'rejected' || profile.verification_status === 'suspended') return 'inactive';
+  return 'waiting';
+}
+
 export function AccountScreen({
   account,
   breederProfile,
   petCount,
   savedPostCount,
   myPostCount,
+  myPosts,
+  adminBreederProfiles,
+  adminFeedPosts,
+  adminFeedReports,
+  adminPendingBreederRequestCount,
+  adminRejectedBreederRequestCount,
+  adminPendingPostCount,
+  adminPublishedPostCount,
+  adminArchivedPostCount,
+  activeBreederCount,
+  inactiveBreederCount,
   onOpenBreederProfile,
+  onOpenCreatePetFeedPost,
   onOpenAdminReview,
+  onUpdateBreederStatus,
+  onUpdatePostStatus,
+  onUpdateReportStatus,
   onLogout,
+  showHeaderLogout = true,
 }: AccountScreenProps) {
   const { t } = useTranslation();
+  const [adminSection, setAdminSection] = useState<'requests' | 'breeders' | 'posts'>('requests');
+  const [requestTypeFilter, setRequestTypeFilter] = useState<AdminRequestTypeFilter>('all');
+  const [requestStatusFilter, setRequestStatusFilter] = useState<AdminRequestStatusFilter>('all');
+  const [requestDateFilter, setRequestDateFilter] = useState<AdminRequestDateFilter>('newest');
+  const [activeRequestDropdown, setActiveRequestDropdown] = useState<'type' | 'status' | 'date' | null>(null);
+  const [breederStatusFilter, setBreederStatusFilter] = useState<AdminBreederStatusFilter>('all');
+  const [breederSpeciesFilter, setBreederSpeciesFilter] = useState('all');
+  const [breederDateFilter, setBreederDateFilter] = useState<AdminRequestDateFilter>('newest');
+  const [activeBreederDropdown, setActiveBreederDropdown] = useState<'status' | 'species' | 'date' | null>(null);
   const role = account?.primary_role ?? 'sen';
   const breederStatus = breederProfile?.verification_status ?? 'unverified';
+  const isAdmin = role === 'admin';
+  const pendingReportCount = adminFeedReports.filter((report) => report.status === 'open').length;
+  const pendingRequestCount = adminPendingBreederRequestCount + adminPendingPostCount + pendingReportCount;
+  const adminRequestItems = useMemo<AdminRequestItem[]>(() => {
+    const breederItems: AdminRequestItem[] = adminBreederProfiles.map((profile) => ({
+      id: `breeder-${profile.id}`,
+      type: 'breeder',
+      status: profile.verification_status,
+      createdAt: profile.created_at,
+      title: profile.display_name || t('adminRequests.untitledBreeder'),
+      subtitle: [profile.location, profile.primary_species.join(', ')].filter(Boolean).join(' - '),
+      body: profile.care_environment || profile.bio || profile.main_breeds.join(', '),
+      profile,
+    }));
+    const postItems: AdminRequestItem[] = adminFeedPosts.map((post) => ({
+      id: `post-${post.id}`,
+      type: 'post',
+      status: post.status,
+      createdAt: post.created_at,
+      title: post.title || t('adminRequests.untitledPost'),
+      subtitle: [post.species, post.breed, post.location].filter(Boolean).join(' - '),
+      body: post.description || post.vaccine_status || post.price_note,
+      post,
+    }));
+    const reportItems: AdminRequestItem[] = adminFeedReports.map((report) => ({
+      id: `report-${report.id}`,
+      type: 'report',
+      status: report.status,
+      createdAt: report.created_at,
+      title: report.reason || t('adminRequests.report'),
+      subtitle: `${t('adminRequests.postId')}: ${report.post_id}`,
+      body: report.note,
+      report,
+    }));
+    return [...breederItems, ...postItems, ...reportItems];
+  }, [adminBreederProfiles, adminFeedPosts, adminFeedReports, t]);
+  const filteredAdminRequestItems = useMemo(() => {
+    const now = Date.now();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    return adminRequestItems
+      .filter((item) => requestTypeFilter === 'all' || item.type === requestTypeFilter)
+      .filter((item) => requestStatusFilter === 'all' || adminRequestStatusGroup(item) === requestStatusFilter)
+      .filter((item) => {
+        const createdMs = new Date(item.createdAt).getTime();
+        if (!Number.isFinite(createdMs)) return requestDateFilter !== 'today' && requestDateFilter !== 'week';
+        if (requestDateFilter === 'today') return createdMs >= startOfToday.getTime();
+        if (requestDateFilter === 'week') return createdMs >= sevenDaysAgo;
+        return true;
+      })
+      .sort((a, b) => {
+        const aMs = new Date(a.createdAt).getTime() || 0;
+        const bMs = new Date(b.createdAt).getTime() || 0;
+        return requestDateFilter === 'oldest' ? aMs - bMs : bMs - aMs;
+      });
+  }, [adminRequestItems, requestDateFilter, requestStatusFilter, requestTypeFilter]);
+  const breederSpeciesOptions = useMemo(() => {
+    const species = Array.from(
+      new Set(
+        adminBreederProfiles
+          .flatMap((profile) => profile.primary_species)
+          .map((item) => item.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ).sort();
+    return [
+      { key: 'all', label: t('adminBreeders.species.all') },
+      ...species.map((item) => ({ key: item, label: item })),
+    ];
+  }, [adminBreederProfiles, t]);
+  const filteredBreederProfiles = useMemo(() => {
+    const now = Date.now();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    return adminBreederProfiles
+      .filter((profile) => breederStatusFilter === 'all' || breederStatusGroup(profile) === breederStatusFilter)
+      .filter((profile) => breederSpeciesFilter === 'all' || profile.primary_species.map((item) => item.trim().toLowerCase()).includes(breederSpeciesFilter))
+      .filter((profile) => {
+        const createdMs = new Date(profile.created_at).getTime();
+        if (!Number.isFinite(createdMs)) return breederDateFilter !== 'today' && breederDateFilter !== 'week';
+        if (breederDateFilter === 'today') return createdMs >= startOfToday.getTime();
+        if (breederDateFilter === 'week') return createdMs >= sevenDaysAgo;
+        return true;
+      })
+      .sort((a, b) => {
+        const aMs = new Date(a.created_at).getTime() || 0;
+        const bMs = new Date(b.created_at).getTime() || 0;
+        return breederDateFilter === 'oldest' ? aMs - bMs : bMs - aMs;
+      });
+  }, [adminBreederProfiles, breederDateFilter, breederSpeciesFilter, breederStatusFilter]);
+  const metricItems = isAdmin
+    ? [
+        { key: 'requests' as const, label: t('account.adminMetrics.requests'), value: pendingRequestCount },
+        { key: 'breeders' as const, label: t('account.adminMetrics.breeders'), value: activeBreederCount },
+        { key: 'posts' as const, label: t('account.adminMetrics.myPosts'), value: myPostCount },
+      ]
+    : [
+        { key: 'pets', label: t('account.pets'), value: petCount },
+        { key: 'saved', label: t('account.savedPosts'), value: savedPostCount },
+        ...(role === 'breeder' ? [{ key: 'posts', label: t('account.myPosts'), value: myPostCount }] : []),
+      ];
+  async function runAdminAction(action: () => Promise<void>) {
+    try {
+      await action();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t('common.unknownError');
+      Alert.alert(t('adminReview.updateFailed'), message);
+    }
+  }
+
+  function requestStatusLabel(item: AdminRequestItem) {
+    return t(`adminRequests.statuses.${adminRequestStatusGroup(item)}`);
+  }
+
+  const requestTypeFilterLabel = t(REQUEST_TYPE_FILTERS.find((filter) => filter.key === requestTypeFilter)?.labelKey ?? 'adminRequests.types.all');
+  const requestStatusFilterLabel = t(REQUEST_STATUS_FILTERS.find((filter) => filter.key === requestStatusFilter)?.labelKey ?? 'adminRequests.statuses.all');
+  const requestDateFilterLabel = t(REQUEST_DATE_FILTERS.find((filter) => filter.key === requestDateFilter)?.labelKey ?? 'adminRequests.dates.newest');
+  const breederStatusFilterLabel = t(BREEDER_STATUS_FILTERS.find((filter) => filter.key === breederStatusFilter)?.labelKey ?? 'adminBreeders.statuses.all');
+  const breederSpeciesFilterLabel = breederSpeciesOptions.find((filter) => filter.key === breederSpeciesFilter)?.label ?? t('adminBreeders.species.all');
+  const breederDateFilterLabel = t(REQUEST_DATE_FILTERS.find((filter) => filter.key === breederDateFilter)?.labelKey ?? 'adminRequests.dates.newest');
+
   return (
     <ScrollView testID="account-screen" className="flex-1 bg-[#F2F4F8] px-5 pb-6 pt-5">
-      <Text className="text-2xl font-bold text-slate-900">{t('account.title')}</Text>
-      <Text className="mt-1 text-sm leading-5 text-slate-600">{t('account.subtitle')}</Text>
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-2xl font-bold text-slate-900">{t(`account.roles.${role}.title`)}</Text>
+          <Text className="mt-1 text-sm leading-5 text-slate-600">
+            {isAdmin ? t('account.adminSubtitle') : t('account.subtitle')}
+          </Text>
+        </View>
+        {showHeaderLogout ? <Pressable
+          testID="account-logout-button"
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
+          className="flex-row items-center gap-1.5 rounded-full border border-red-100 bg-white px-3 py-2 active:bg-red-50"
+          onPress={onLogout}
+        >
+          <Ionicons name="log-out-outline" size={16} color="#dc2626" />
+          <Text className="text-xs font-bold text-red-600">{t('tabs.logout')}</Text>
+        </Pressable> : null}
+      </View>
 
-      <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+      {!isAdmin ? <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
         <Text className="text-base font-bold text-slate-900">{t('account.myRole')}</Text>
         <View className="mt-3 flex-row items-center gap-3 rounded-xl bg-slate-50 p-3">
           <View className="h-10 w-10 items-center justify-center rounded-full bg-blue-50">
@@ -53,28 +324,299 @@ export function AccountScreen({
             {account?.display_name ? <Text className="mt-2 text-xs text-slate-500">{account.display_name}</Text> : null}
           </View>
         </View>
-      </View>
+      </View> : null}
 
       <View className="mt-5 flex-row gap-3">
-        <View className="flex-1 rounded-2xl border border-gray-200 bg-white p-4">
-          <Text className="text-xs font-bold uppercase text-slate-500">{t('account.pets')}</Text>
-          <Text className="mt-1 text-2xl font-bold text-slate-900">{petCount}</Text>
-        </View>
-        <View className="flex-1 rounded-2xl border border-gray-200 bg-white p-4">
-          <Text className="text-xs font-bold uppercase text-slate-500">{t('account.savedPosts')}</Text>
-          <Text className="mt-1 text-2xl font-bold text-slate-900">{savedPostCount}</Text>
-        </View>
-        {role === 'breeder' || role === 'admin' ? (
-          <View className="flex-1 rounded-2xl border border-gray-200 bg-white p-4">
-            <Text className="text-xs font-bold uppercase text-slate-500">{t('account.myPosts')}</Text>
-            <Text className="mt-1 text-2xl font-bold text-slate-900">{myPostCount}</Text>
-          </View>
-        ) : null}
+        {metricItems.map((item) => (
+          <Pressable
+            key={item.key}
+            accessibilityRole={isAdmin ? 'button' : undefined}
+            testID={isAdmin ? `account-admin-section-${item.key}-button` : undefined}
+            className={`flex-1 rounded-2xl border p-4 ${isAdmin && adminSection === item.key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
+            onPress={isAdmin ? () => setAdminSection(item.key as 'requests' | 'breeders' | 'posts') : undefined}
+          >
+            <Text className="text-xs font-bold uppercase text-slate-500">{item.label}</Text>
+            <Text className="mt-1 text-2xl font-bold text-slate-900">{item.value}</Text>
+          </Pressable>
+        ))}
       </View>
 
-      <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+      {isAdmin ? (
+        <Pressable
+          testID="account-create-post-button"
+          accessibilityRole="button"
+          accessibilityLabel="Create post"
+          className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 active:opacity-90"
+          onPress={onOpenCreatePetFeedPost}
+        >
+          <Ionicons name="add-circle-outline" size={19} color="#fff" />
+          <Text className="text-sm font-bold text-white">{t('account.createPost')}</Text>
+        </Pressable>
+      ) : null}
+
+      {isAdmin && adminSection === 'requests' ? (
+        <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
+          <Text className="text-sm font-bold text-slate-900">{t('adminRequests.filters')}</Text>
+          <View className="mt-3 flex-row gap-2">
+            <FilterDropdownButton
+              label={t('adminRequests.filterType')}
+              value={requestTypeFilterLabel}
+              active={activeRequestDropdown === 'type'}
+              onPress={() => setActiveRequestDropdown((current) => (current === 'type' ? null : 'type'))}
+            />
+            <FilterDropdownButton
+              label={t('adminRequests.filterStatus')}
+              value={requestStatusFilterLabel}
+              active={activeRequestDropdown === 'status'}
+              onPress={() => setActiveRequestDropdown((current) => (current === 'status' ? null : 'status'))}
+            />
+            <FilterDropdownButton
+              label={t('adminRequests.filterDate')}
+              value={requestDateFilterLabel}
+              active={activeRequestDropdown === 'date'}
+              onPress={() => setActiveRequestDropdown((current) => (current === 'date' ? null : 'date'))}
+            />
+          </View>
+          {activeRequestDropdown === 'type' ? (
+            <View className="mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              {REQUEST_TYPE_FILTERS.map((filter) => (
+                <DropdownOption
+                  key={filter.key}
+                  label={t(filter.labelKey)}
+                  active={requestTypeFilter === filter.key}
+                  onPress={() => {
+                    setRequestTypeFilter(filter.key);
+                    setActiveRequestDropdown(null);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
+          {activeRequestDropdown === 'status' ? (
+            <View className="mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              {REQUEST_STATUS_FILTERS.map((filter) => (
+                <DropdownOption
+                  key={filter.key}
+                  label={t(filter.labelKey)}
+                  active={requestStatusFilter === filter.key}
+                  onPress={() => {
+                    setRequestStatusFilter(filter.key);
+                    setActiveRequestDropdown(null);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
+          {activeRequestDropdown === 'date' ? (
+            <View className="mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              {REQUEST_DATE_FILTERS.map((filter) => (
+                <DropdownOption
+                  key={filter.key}
+                  label={t(filter.labelKey)}
+                  active={requestDateFilter === filter.key}
+                  onPress={() => {
+                    setRequestDateFilter(filter.key);
+                    setActiveRequestDropdown(null);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {isAdmin && adminSection === 'breeders' ? (
+        <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
+          <Text className="text-sm font-bold text-slate-900">{t('adminBreeders.filters')}</Text>
+          <View className="mt-3 flex-row gap-2">
+            <FilterDropdownButton
+              label={t('adminBreeders.filterStatus')}
+              value={breederStatusFilterLabel}
+              active={activeBreederDropdown === 'status'}
+              onPress={() => setActiveBreederDropdown((current) => (current === 'status' ? null : 'status'))}
+            />
+            <FilterDropdownButton
+              label={t('adminBreeders.filterSpecies')}
+              value={breederSpeciesFilterLabel}
+              active={activeBreederDropdown === 'species'}
+              onPress={() => setActiveBreederDropdown((current) => (current === 'species' ? null : 'species'))}
+            />
+            <FilterDropdownButton
+              label={t('adminBreeders.filterDate')}
+              value={breederDateFilterLabel}
+              active={activeBreederDropdown === 'date'}
+              onPress={() => setActiveBreederDropdown((current) => (current === 'date' ? null : 'date'))}
+            />
+          </View>
+          {activeBreederDropdown === 'status' ? (
+            <View className="mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              {BREEDER_STATUS_FILTERS.map((filter) => (
+                <DropdownOption
+                  key={filter.key}
+                  label={t(filter.labelKey)}
+                  active={breederStatusFilter === filter.key}
+                  onPress={() => {
+                    setBreederStatusFilter(filter.key);
+                    setActiveBreederDropdown(null);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
+          {activeBreederDropdown === 'species' ? (
+            <View className="mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              {breederSpeciesOptions.map((filter) => (
+                <DropdownOption
+                  key={filter.key}
+                  label={filter.label}
+                  active={breederSpeciesFilter === filter.key}
+                  onPress={() => {
+                    setBreederSpeciesFilter(filter.key);
+                    setActiveBreederDropdown(null);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
+          {activeBreederDropdown === 'date' ? (
+            <View className="mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              {REQUEST_DATE_FILTERS.map((filter) => (
+                <DropdownOption
+                  key={filter.key}
+                  label={t(filter.labelKey)}
+                  active={breederDateFilter === filter.key}
+                  onPress={() => {
+                    setBreederDateFilter(filter.key);
+                    setActiveBreederDropdown(null);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {isAdmin ? (
+        adminSection === 'requests' ? (
+          <View className="mt-5 gap-3">
+            {filteredAdminRequestItems.length === 0 ? (
+              <Text className="rounded-2xl border border-gray-200 bg-white p-4 text-sm leading-5 text-slate-500">
+                {t('adminRequests.empty')}
+              </Text>
+            ) : null}
+            {filteredAdminRequestItems.map((item) => (
+              <View key={item.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+                <View className="gap-2">
+                  <View className="flex-row flex-wrap gap-2">
+                    <Text className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
+                      {t(`adminRequests.types.${item.type}`)}
+                    </Text>
+                    <Text className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
+                      {requestStatusLabel(item)}
+                    </Text>
+                  </View>
+                  <Text className="text-xs font-semibold text-slate-400">{formatRequestDate(item.createdAt)}</Text>
+                </View>
+                <Text className="mt-3 text-base font-bold text-slate-900" numberOfLines={2}>{item.title}</Text>
+                {item.subtitle ? <Text className="mt-1 text-sm text-slate-500" numberOfLines={2}>{item.subtitle}</Text> : null}
+                {item.body ? <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>{item.body}</Text> : null}
+                {item.type === 'breeder' ? (
+                  <View className="mt-4 flex-row gap-2">
+                    <AdminActionButton label={t('adminReview.verify')} variant="success" onPress={() => void runAdminAction(() => onUpdateBreederStatus(item.profile.user_id, 'verified'))} />
+                    <AdminActionButton label={t('adminReview.reject')} variant="warning" onPress={() => void runAdminAction(() => onUpdateBreederStatus(item.profile.user_id, 'rejected'))} />
+                    <AdminActionButton label={t('adminReview.suspend')} variant="neutral" onPress={() => void runAdminAction(() => onUpdateBreederStatus(item.profile.user_id, 'suspended'))} />
+                  </View>
+                ) : null}
+                {item.type === 'post' ? (
+                  <View className="mt-4 flex-row gap-2">
+                    <AdminActionButton label={t('adminReview.approve')} variant="success" onPress={() => void runAdminAction(() => onUpdatePostStatus(item.post.id, 'published'))} />
+                    <AdminActionButton label={t('adminReview.archive')} variant="neutral" onPress={() => void runAdminAction(() => onUpdatePostStatus(item.post.id, 'archived'))} />
+                  </View>
+                ) : null}
+                {item.type === 'report' ? (
+                  <View className="mt-4 flex-row gap-2">
+                    <AdminActionButton label={t('adminReview.markReviewed')} variant="primary" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'reviewed'))} />
+                    <AdminActionButton label={t('adminReview.dismiss')} variant="neutral" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'dismissed'))} />
+                  </View>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ) : adminSection === 'posts' ? (
+          <View className="mt-5 gap-3">
+            {myPosts.map((post) => (
+              <View key={post.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-base font-bold text-slate-900" numberOfLines={2}>{post.title}</Text>
+                    <Text className="mt-1 text-xs font-semibold uppercase text-slate-500">{t(`petFeed.status.${post.status}`)}</Text>
+                  </View>
+                  <Text className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
+                    {post.species || 'pet'}
+                  </Text>
+                </View>
+                <Text className="mt-2 text-sm leading-5 text-slate-600" numberOfLines={3}>
+                  {post.description || [post.breed, post.location].filter(Boolean).join(' - ')}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View className="mt-5 gap-3">
+            {filteredBreederProfiles.length === 0 ? (
+              <Text className="rounded-2xl border border-gray-200 bg-white p-4 text-sm leading-5 text-slate-500">
+                {t('adminBreeders.empty')}
+              </Text>
+            ) : null}
+            {filteredBreederProfiles.map((profile) => {
+              const statusGroup = breederStatusGroup(profile);
+              const species = profile.primary_species.join(', ');
+              const breeds = profile.main_breeds.join(', ');
+              return (
+                <View key={profile.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+                  <View className="gap-2">
+                    <View className="flex-row flex-wrap gap-2">
+                      <Text className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
+                        {t(`adminBreeders.statuses.${statusGroup}`)}
+                      </Text>
+                      {species ? (
+                        <Text className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{species}</Text>
+                      ) : null}
+                    </View>
+                    <Text className="text-xs font-semibold text-slate-400">{formatRequestDate(profile.created_at)}</Text>
+                  </View>
+                  <Text className="mt-3 text-base font-bold text-slate-900" numberOfLines={2}>
+                    {profile.display_name || t('adminBreeders.untitled')}
+                  </Text>
+                  <Text className="mt-1 text-sm text-slate-500" numberOfLines={2}>
+                    {[profile.location, breeds].filter(Boolean).join(' - ')}
+                  </Text>
+                  {profile.care_environment || profile.bio ? (
+                    <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>
+                      {profile.care_environment || profile.bio}
+                    </Text>
+                  ) : null}
+                  <View className="mt-4 flex-row gap-2">
+                    {profile.verification_status !== 'verified' ? (
+                      <AdminActionButton label={t('adminReview.verify')} variant="success" onPress={() => void runAdminAction(() => onUpdateBreederStatus(profile.user_id, 'verified'))} />
+                    ) : null}
+                    {profile.verification_status !== 'rejected' ? (
+                      <AdminActionButton label={t('adminReview.reject')} variant="warning" onPress={() => void runAdminAction(() => onUpdateBreederStatus(profile.user_id, 'rejected'))} />
+                    ) : null}
+                    {profile.verification_status !== 'suspended' ? (
+                      <AdminActionButton label={t('adminReview.suspend')} variant="neutral" onPress={() => void runAdminAction(() => onUpdateBreederStatus(profile.user_id, 'suspended'))} />
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )
+      ) : null}
+
+      {!isAdmin ? <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <Text className="text-sm leading-5 text-amber-900">{t('account.communitySafety')}</Text>
-      </View>
+      </View> : null}
 
       <View className="mt-5 gap-3">
         {role === 'sen' ? (
@@ -102,7 +644,7 @@ export function AccountScreen({
             {t('account.vetSummary')}
           </Text>
         ) : null}
-        {role === 'breeder' || role === 'admin' ? (
+        {role === 'breeder' ? (
         <Pressable
           testID="account-breeder-profile-button"
           accessibilityRole="button"
@@ -114,30 +656,83 @@ export function AccountScreen({
           <Text className="text-sm font-bold text-white">{t('account.openBreederProfile')}</Text>
         </Pressable>
         ) : null}
-        {role === 'admin' ? (
-        <Pressable
-          testID="account-admin-review-button"
-          accessibilityRole="button"
-          accessibilityLabel="Open admin review"
-          className="flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3.5 active:bg-slate-50"
-          onPress={onOpenAdminReview}
-        >
-          <Ionicons name="shield-checkmark-outline" size={19} color={PRIMARY} />
-          <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('account.openAdminReview')}</Text>
-        </Pressable>
-        ) : null}
       </View>
-
-      <Pressable
-        testID="account-logout-button"
-        accessibilityRole="button"
-        accessibilityLabel="Log out"
-        className="mt-6 flex-row items-center justify-center gap-2 rounded-xl border border-red-100 bg-white py-3.5 active:bg-red-50"
-        onPress={onLogout}
-      >
-        <Ionicons name="log-out-outline" size={19} color="#dc2626" />
-        <Text className="text-sm font-bold text-red-600">{t('tabs.logout')}</Text>
-      </Pressable>
     </ScrollView>
+  );
+}
+
+function AdminStatusRow({ label, value }: { label: string; value: number }) {
+  return (
+    <View className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
+      <Text className="text-sm font-semibold text-slate-700">{label}</Text>
+      <Text className="text-sm font-bold text-slate-900">{value}</Text>
+    </View>
+  );
+}
+
+function FilterDropdownButton({
+  label,
+  value,
+  active,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      className={`flex-1 rounded-xl border px-2.5 py-2.5 ${active ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-slate-50'}`}
+      onPress={onPress}
+    >
+      <Text className="text-[10px] font-bold uppercase text-slate-400" numberOfLines={1}>{label}</Text>
+      <View className="mt-1 flex-row items-center justify-between gap-1">
+        <Text className={`min-w-0 flex-1 text-xs font-bold ${active ? 'text-blue-700' : 'text-slate-700'}`} numberOfLines={1}>
+          {value}
+        </Text>
+        <Ionicons name={active ? 'chevron-up' : 'chevron-down'} size={14} color={active ? PRIMARY : '#64748b'} />
+      </View>
+    </Pressable>
+  );
+}
+
+function DropdownOption({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      className={`flex-row items-center justify-between px-3 py-3 ${active ? 'bg-blue-50' : 'bg-white'}`}
+      onPress={onPress}
+    >
+      <Text className={`min-w-0 flex-1 text-sm font-semibold ${active ? 'text-blue-700' : 'text-slate-700'}`} numberOfLines={1}>
+        {label}
+      </Text>
+      {active ? <Ionicons name="checkmark" size={17} color={PRIMARY} /> : null}
+    </Pressable>
+  );
+}
+
+function AdminActionButton({
+  label,
+  variant,
+  onPress,
+}: {
+  label: string;
+  variant: 'primary' | 'success' | 'warning' | 'neutral';
+  onPress: () => void;
+}) {
+  const className =
+    variant === 'success'
+      ? 'bg-emerald-600'
+      : variant === 'warning'
+        ? 'bg-amber-600'
+        : variant === 'primary'
+          ? 'bg-blue-600'
+          : 'bg-slate-700';
+  return (
+    <Pressable className={`flex-1 rounded-xl py-3 ${className}`} onPress={onPress}>
+      <Text className="text-center text-xs font-bold text-white">{label}</Text>
+    </Pressable>
   );
 }

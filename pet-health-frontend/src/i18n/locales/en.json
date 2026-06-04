@@ -85,6 +85,7 @@
     "healthInfo": "Care information",
     "vaccineUnknown": "Vaccine information not provided",
     "paperwork": "Documents",
+    "hasVideo": "Has video",
     "contact": "Contact",
     "favoriteFailed": "Save failed",
     "reportSuccess": "Thanks. This listing has been sent for admin review.",
@@ -99,12 +100,43 @@
   "account": {
     "title": "Account",
     "subtitle": "Manage your role, saved posts, and app session.",
+    "adminSubtitle": "Manage requests, breeders, listings, and community safety.",
     "myRole": "Roles in Pet Health Care",
     "pets": "Pets",
     "savedPosts": "Saved",
     "myPosts": "My posts",
+    "adminMetrics": {
+      "requests": "Requests",
+      "breeders": "Breeders",
+      "myPosts": "My posts"
+    },
+    "adminSections": {
+      "requests": {
+        "title": "Requests",
+        "body": "Breeder verification requests and listing review items grouped by review result.",
+        "pendingBreeders": "Pending breeder requests",
+        "pendingPosts": "Pending listing reviews",
+        "approved": "Approved",
+        "rejected": "Rejected / archived"
+      },
+      "breeders": {
+        "title": "Breeders",
+        "body": "Breeder profiles by operating status so admin can monitor trust and activity.",
+        "active": "Active breeders",
+        "inactive": "Inactive / suspended",
+        "waiting": "Waiting review"
+      },
+      "posts": {
+        "title": "My posts",
+        "body": "Listings created by the admin account plus review status across the feed.",
+        "mine": "My admin posts",
+        "published": "Published listings",
+        "waiting": "Waiting review"
+      }
+    },
     "communitySafety": "Community posts should stay transparent and respectful. Pet Health Care does not handle payments or replace direct breeder/veterinary verification.",
     "openBreederProfile": "Breeder profile & posts",
+    "createPost": "Create post",
     "openAdminReview": "Admin review",
     "requestBreeder": "Request Breeder verification",
     "senSummary": "Your saved Pet Feed posts and pet care records stay here. You can create a pet profile whenever you are ready.",
@@ -138,6 +170,58 @@
       }
     }
   },
+  "adminRequests": {
+    "filters": "Request filters",
+    "filterType": "Type",
+    "filterStatus": "Status",
+    "filterDate": "Date",
+    "empty": "No matching requests.",
+    "untitledBreeder": "Unnamed breeder",
+    "untitledPost": "Untitled listing",
+    "report": "Post report",
+    "postId": "Post ID",
+    "types": {
+      "all": "All",
+      "breeder": "Breeder",
+      "post": "Listing",
+      "report": "Report"
+    },
+    "statuses": {
+      "all": "All",
+      "waiting": "Waiting",
+      "approved": "Approved",
+      "rejected": "Rejected / archived",
+      "resolved": "Reviewed / dismissed"
+    },
+    "dates": {
+      "newest": "Newest",
+      "oldest": "Oldest",
+      "today": "Today",
+      "week": "7 days"
+    },
+    "reportStatus": {
+      "open": "Open",
+      "reviewed": "Reviewed",
+      "dismissed": "Dismissed"
+    }
+  },
+  "adminBreeders": {
+    "filters": "Breeder filters",
+    "filterStatus": "Status",
+    "filterSpecies": "Species",
+    "filterDate": "Date",
+    "empty": "No matching breeders.",
+    "untitled": "Unnamed breeder",
+    "statuses": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive",
+      "waiting": "Waiting"
+    },
+    "species": {
+      "all": "All"
+    }
+  },
   "breederProfile": {
     "title": "Breeder profile",
     "profileInfo": "Breeder information",
@@ -158,20 +242,87 @@
   "createPetFeedPost": {
     "title": "Create Pet Feed post",
     "reviewNote": "Listings are submitted for review. Be transparent and avoid absolute health claims or misleading content.",
+    "adminReviewNote": "Admin-created listings publish immediately after confirmation. Review photos, video, and listing details before publishing.",
+    "basicInfo": "Basic information",
+    "mediaSection": "Photos & video",
+    "mediaHint": "Each listing needs at least 1 clear photo and 1 short video so viewers have better context before contacting.",
+    "careInfo": "Care & documents",
+    "descriptionAndContact": "Description & contact",
     "postTitle": "Listing title",
-    "species": "Species: cat or dog",
+    "species": "Species",
     "breed": "Breed",
     "gender": "Gender",
     "ageMonths": "Age (months)",
     "location": "Location",
     "priceNote": "Fee/condition note",
-    "personality": "Personality, comma separated",
+    "personality": "Personality",
     "vaccineStatus": "Vaccine status",
     "dewormingStatus": "Deworming status",
-    "paperwork": "Documents, comma separated",
+    "paperwork": "Documents",
     "description": "Pet description and new-home conditions",
+    "pickPhotos": "Pick photos ({{count}}/{{max}})",
+    "pickVideo": "Pick 1 short video",
+    "videoSelected": "Video selected",
+    "removeVideo": "Remove video",
+    "review": "Review",
+    "edit": "Back to edit",
+    "publish": "Publish",
     "submit": "Submit for review",
-    "submitFailed": "Could not submit listing"
+    "submitFailed": "Could not submit listing",
+    "previewUntitled": "Untitled listing",
+    "errors": {
+      "titleRequired": "Please enter a listing title.",
+      "photoRequired": "Please upload at least 1 clear photo.",
+      "videoRequired": "Please upload 1 short video."
+    },
+    "options": {
+      "species": {
+        "cat": "Cat",
+        "dog": "Dog"
+      },
+      "gender": {
+        "unknown": "Unknown",
+        "male": "Male",
+        "female": "Female"
+      },
+      "age": {
+        "two": "2 months",
+        "three": "3 months",
+        "six": "6 months",
+        "twelve": "12 months",
+        "twentyFour": "24 months+"
+      },
+      "location": {
+        "unspecified": "Location not shared",
+        "other": "Other location"
+      },
+      "personality": {
+        "friendly": "Friendly",
+        "calm": "Calm and gentle",
+        "playful": "Playful",
+        "kidFriendly": "Kid-friendly",
+        "petFriendly": "Pet-friendly"
+      },
+      "vaccine": {
+        "unknown": "Unknown",
+        "notYet": "Not vaccinated yet",
+        "firstDose": "First dose completed",
+        "basicDone": "Basic vaccines completed",
+        "needUpdate": "Vaccine update needed"
+      },
+      "deworming": {
+        "unknown": "Unknown",
+        "notYet": "Not dewormed yet",
+        "recent": "Recently dewormed",
+        "due": "Deworming due soon"
+      },
+      "paperwork": {
+        "vaccineBook": "Vaccine book",
+        "origin": "Origin document",
+        "microchip": "Microchip",
+        "contract": "Contract/agreement"
+      }
+    }
   },
   "adminReview": {
     "title": "Admin review",

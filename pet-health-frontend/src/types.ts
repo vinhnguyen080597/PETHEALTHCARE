@@ -138,6 +138,7 @@ export type PetFeedPost = {
   deworming_status: string;
   paperwork: string[];
   media_urls: string[];
+  video_url: string | null;
   contact: BreederContact & Record<string, unknown>;
   status: PetFeedPostStatus;
   metadata: Record<string, unknown>;
@@ -182,8 +183,14 @@ export type CreatePetFeedPostPayload = {
   dewormingStatus?: string;
   paperwork?: string[];
   mediaUrls?: string[];
+  videoUrl?: string | null;
   contact?: BreederContact;
   status?: PetFeedPostStatus;
+};
+
+export type CreatePetFeedPostMedia = {
+  photoUris: string[];
+  videoUri: string;
 };
 
 export type AdminCreateAccountPayload = {

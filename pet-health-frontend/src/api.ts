@@ -16,6 +16,7 @@ import type {
   CoreCareSummary,
   CreatePetPayload,
   CreateCoreCareRecordPayload,
+  CreatePetFeedPostMedia,
   CreatePetFeedPostPayload,
   BreederProfile,
   Pet,
@@ -306,7 +307,20 @@ export async function upsertMyBreederProfile(token: string, payload: UpsertBreed
   });
 }
 
-export async function createPetFeedPost(token: string, payload: CreatePetFeedPostPayload) {
+export async function createPetFeedPost(token: string, payload: CreatePetFeedPostPayload, media?: CreatePetFeedPostMedia) {
+  if (media) {
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify(payload));
+    for (let i = 0; i < media.photoUris.length; i++) {
+      await appendImageFileToFormData(formData, 'photos', media.photoUris[i], `pet-feed-photo-${i}-${Date.now()}`, 'image/jpeg');
+    }
+    await appendVideoFileToFormData(formData, 'video', media.videoUri, `pet-feed-video-${Date.now()}`, 'video/mp4');
+    return requestJson<{ data: PetFeedPost }>('/pet-feed/posts', {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    });
+  }
   return requestJson<{ data: PetFeedPost }>('/pet-feed/posts', {
     method: 'POST',
     headers: {
