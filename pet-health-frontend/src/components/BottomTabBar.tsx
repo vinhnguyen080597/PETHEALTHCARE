@@ -8,10 +8,13 @@ type BottomTabBarProps = {
   onPetFeed: () => void;
   onHome: () => void;
   onAccount: () => void;
+  accountTabMode?: 'account' | 'logout';
 };
 
-export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount }: BottomTabBarProps) {
+export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount, accountTabMode = 'account' }: BottomTabBarProps) {
   const { t } = useTranslation();
+  const isLogoutTab = accountTabMode === 'logout';
+  const accountTabActive = !isLogoutTab && activeScreen === 'account';
   return (
     <View className="flex-row border-t border-slate-200 bg-white px-2 py-2">
       <Pressable
@@ -41,13 +44,13 @@ export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount }: Bot
       <Pressable
         testID="bottom-tab-account-button"
         accessibilityRole="button"
-        accessibilityLabel="Open account tab"
-        className={`flex-1 items-center rounded-xl py-2 ${activeScreen === 'account' ? 'bg-blue-50' : ''}`}
+        accessibilityLabel={isLogoutTab ? 'Log out' : 'Open account tab'}
+        className={`flex-1 items-center rounded-xl py-2 ${accountTabActive ? 'bg-blue-50' : ''}`}
         onPress={onAccount}
       >
-        <Ionicons name="person-circle-outline" size={22} color={activeScreen === 'account' ? '#2563eb' : '#64748b'} />
-        <Text className={`text-xs font-medium ${activeScreen === 'account' ? 'text-blue-600' : 'text-slate-600'}`}>
-          {t('tabs.account')}
+        <Ionicons name={isLogoutTab ? 'log-out-outline' : 'person-circle-outline'} size={22} color={accountTabActive ? '#2563eb' : '#64748b'} />
+        <Text className={`text-xs font-medium ${accountTabActive ? 'text-blue-600' : 'text-slate-600'}`}>
+          {t(isLogoutTab ? 'tabs.logout' : 'tabs.account')}
         </Text>
       </Pressable>
     </View>
