@@ -1,6 +1,7 @@
 export type AppScreen =
   | 'login'
   | 'pet-feed'
+  | 'breeder-detail'
   | 'home'
   | 'account'
   | 'breeder-profile'

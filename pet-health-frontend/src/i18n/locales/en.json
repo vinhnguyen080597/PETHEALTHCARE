@@ -91,8 +91,12 @@
       "verified": "Verified",
       "posts": "Listings",
       "species": "Main species",
+      "scale": "Scale",
+      "type": "Type",
+      "trustScore": "Trust score",
       "notUpdated": "Not updated",
       "viewPosts": "View listings",
+      "viewProfile": "View breeder profile",
       "emptyTitle": "No top breeders yet",
       "emptyBody": "After approved listings are available, active breeders will be summarized here."
     },
@@ -125,6 +129,37 @@
       "pending_review": "Pending review",
       "published": "Published",
       "archived": "Archived"
+    }
+  },
+  "breederDetail": {
+    "title": "Breeder profile",
+    "overview": "Basic information",
+    "breedingPets": "Breeding pets",
+    "mainBreeds": "Main breeds",
+    "contact": "Contact",
+    "contactAvailable": "Contact details provided",
+    "contactMissing": "Contact details missing",
+    "trustTitle": "Trust level",
+    "trustBody": "This score is an in-app reference based on profile transparency and listing activity.",
+    "profileInfo": "About the breeder",
+    "registration": "Verification details",
+    "careChecklist": "Care and health",
+    "commitments": "Transparency commitments",
+    "listings": "Breeder listings",
+    "emptyListings": "No listings match the current filters.",
+    "gender": {
+      "all": "All genders",
+      "male": "Male",
+      "female": "Female",
+      "unknown": "Unknown"
+    },
+    "trustSignals": {
+      "verified": "Profile verified by admin",
+      "careChecklist": "Care and health details provided",
+      "commitments": "Transparency commitments accepted",
+      "contact": "Contact details provided",
+      "careEnvironment": "Care environment described",
+      "activeListings": "Active listings available"
     }
   },
   "account": {

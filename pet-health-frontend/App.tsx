@@ -14,6 +14,7 @@ import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
 import { BreederProfileScreen } from './src/screens/BreederProfileScreen';
 import { BreedRecognitionProgressScreen } from './src/screens/BreedRecognitionProgressScreen';
 import { BreedRecognitionResultScreen } from './src/screens/BreedRecognitionResultScreen';
+import { BreederDetailScreen } from './src/screens/BreederDetailScreen';
 import { CoreCareScreen } from './src/screens/CoreCareScreen';
 import { CreatePetFeedPostScreen } from './src/screens/CreatePetFeedPostScreen';
 import { PetBreedRecognitionScreen } from './src/screens/PetBreedRecognitionScreen';
@@ -40,6 +41,7 @@ export default function App() {
     app.screen === 'core-care' ||
     app.screen === 'vet-summary' ||
     app.screen === 'breeder-profile' ||
+    app.screen === 'breeder-detail' ||
     app.screen === 'create-pet-feed-post' ||
     app.screen === 'admin-review' ||
     app.screen === 'health-check' ||
@@ -131,8 +133,19 @@ export default function App() {
                 onRefresh={app.refreshPetFeed}
                 onToggleFavorite={app.togglePetFeedFavorite}
                 onReportPost={app.submitPetFeedReport}
+                onOpenBreederDetail={app.openBreederDetail}
               />
             )}
+
+            {app.screen === 'breeder-detail' && app.selectedBreederProfile ? (
+              <BreederDetailScreen
+                profile={app.selectedBreederProfile}
+                posts={app.selectedBreederPosts}
+                onBack={app.closeBreederDetail}
+                onToggleFavorite={app.togglePetFeedFavorite}
+                onReportPost={app.submitPetFeedReport}
+              />
+            ) : null}
 
             {app.screen === 'account' && !isAdmin ? accountDashboard : null}
 

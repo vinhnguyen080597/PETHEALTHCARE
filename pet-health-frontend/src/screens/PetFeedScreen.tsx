@@ -4,6 +4,7 @@ import { Modal, Pressable, RefreshControl, ScrollView, Text, TextInput, View } f
 import { useTranslation } from 'react-i18next';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { BreederProfile, PetFeedPost } from '../types';
+import { computeBreederTrust, metadataString } from '../utils/breederTrust';
 
 const PRIMARY = '#1E6FE8';
 
@@ -24,6 +25,7 @@ type PetFeedScreenProps = {
   onRefresh: () => void;
   onToggleFavorite: (post: PetFeedPost) => void;
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
+  onOpenBreederDetail: (profileId: string) => void;
 };
 
 function normalizeSearchText(value: string) {
@@ -83,9 +85,10 @@ type TopBreeder = {
   postCount: number;
   latestPostAt: number;
   species: string[];
+  posts: PetFeedPost[];
 };
 
-export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, onReportPost }: PetFeedScreenProps) {
+export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, onReportPost, onOpenBreederDetail }: PetFeedScreenProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<FeedTab>('feed');
   const [query, setQuery] = useState('');
@@ -125,6 +128,14 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
     setSortDirection(field === 'date' ? 'desc' : 'asc');
   }
 
+  function translatedOption(namespace: string, value: string) {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return '';
+    const key = `${namespace}.${normalized}`;
+    const translated = t(key);
+    return translated === key ? value : translated;
+  }
+
   const filteredPosts = useMemo(() => {
     const bySpecies = speciesFilter === 'all'
       ? searchMatchedPosts
@@ -150,12 +161,14 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
           postCount: 1,
           latestPostAt: createdTime(post),
           species,
+          posts: [post],
         });
         return;
       }
       current.postCount += 1;
       current.latestPostAt = Math.max(current.latestPostAt, createdTime(post));
       current.species = Array.from(new Set([...current.species, ...species]));
+      current.posts = [...current.posts, post];
     });
     return Array.from(byBreeder.values()).sort((a, b) => {
       if (b.postCount !== a.postCount) return b.postCount - a.postCount;
@@ -316,6 +329,12 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
             const profile = item.profile;
             const species = profile.primary_species.length ? profile.primary_species : item.species;
             const breeds = profile.main_breeds.join(', ');
+            const scaleRange = metadataString(profile.metadata, 'scaleRange');
+            const breederType = metadataString(profile.metadata, 'breederType');
+            const trust = computeBreederTrust(profile, item.posts);
+            const speciesLabel = species.map((value) => translatedOption('breederProfile.speciesOptions', value)).filter(Boolean).join(', ');
+            const scaleLabel = scaleRange ? t(`breederProfile.scaleOptions.${scaleRange}`) : t('petFeed.topBreeders.notUpdated');
+            const breederTypeLabel = breederType ? t(`breederProfile.breederTypes.${breederType}`) : '';
             return (
               <View key={profile.id || profile.user_id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                 <View className="flex-row items-start gap-3">
@@ -332,7 +351,7 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
                       </Text>
                     </View>
                     <Text className="mt-1 text-sm text-slate-500" numberOfLines={2}>
-                      {[profile.location, species.join(', ')].filter(Boolean).join(' - ') || t('petFeed.locationUnknown')}
+                      {[profile.location, speciesLabel].filter(Boolean).join(' - ') || t('petFeed.locationUnknown')}
                     </Text>
                   </View>
                 </View>
@@ -343,27 +362,33 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
                 ) : null}
                 <View className="mt-4 flex-row gap-2">
                   <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+                    <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.trustScore')}</Text>
+                    <Text className="mt-1 text-base font-bold text-slate-900">{trust.score}/100</Text>
+                  </View>
+                  <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+                    <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.scale')}</Text>
+                    <Text className="mt-1 text-sm font-bold text-slate-900" numberOfLines={1}>{scaleLabel}</Text>
+                  </View>
+                </View>
+                <View className="mt-2 flex-row gap-2">
+                  <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
                     <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.posts')}</Text>
                     <Text className="mt-1 text-base font-bold text-slate-900">{item.postCount}</Text>
                   </View>
                   <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
-                    <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.species')}</Text>
+                    <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.type')}</Text>
                     <Text className="mt-1 text-sm font-bold text-slate-900" numberOfLines={1}>
-                      {species.join(', ') || t('petFeed.topBreeders.notUpdated')}
+                      {breederTypeLabel || t('petFeed.topBreeders.notUpdated')}
                     </Text>
                   </View>
                 </View>
                 <Pressable
                   accessibilityRole="button"
                   className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
-                  onPress={() => {
-                    setQuery(profile.display_name);
-                    setSpeciesFilter('all');
-                    setActiveTab('feed');
-                  }}
+                  onPress={() => onOpenBreederDetail(profile.id || profile.user_id)}
                 >
-                  <Ionicons name="newspaper-outline" size={17} color={PRIMARY} />
-                  <Text className="text-sm font-bold text-blue-700">{t('petFeed.topBreeders.viewPosts')}</Text>
+                  <Ionicons name="storefront-outline" size={17} color={PRIMARY} />
+                  <Text className="text-sm font-bold text-blue-700">{t('petFeed.topBreeders.viewProfile')}</Text>
                 </Pressable>
               </View>
             );

@@ -91,8 +91,12 @@
       "verified": "Đã xác minh",
       "posts": "Bài đăng",
       "species": "Loài chính",
+      "scale": "Quy mô",
+      "type": "Loại hình",
+      "trustScore": "Điểm tin cậy",
       "notUpdated": "Chưa cập nhật",
       "viewPosts": "Xem bài đăng",
+      "viewProfile": "Xem hồ sơ trại",
       "emptyTitle": "Chưa có breeder nổi bật",
       "emptyBody": "Khi có bài đăng đã duyệt, những breeder hoạt động tốt sẽ được tổng hợp ở đây."
     },
@@ -125,6 +129,37 @@
       "pending_review": "Chờ admin duyệt",
       "published": "Đã duyệt",
       "archived": "Đã lưu trữ"
+    }
+  },
+  "breederDetail": {
+    "title": "Hồ sơ trại",
+    "overview": "Thông tin cơ bản",
+    "breedingPets": "Số bé sinh sản",
+    "mainBreeds": "Giống chính",
+    "contact": "Liên hệ",
+    "contactAvailable": "Đã bổ sung thông tin liên hệ",
+    "contactMissing": "Chưa bổ sung liên hệ",
+    "trustTitle": "Độ tin cậy",
+    "trustBody": "Điểm này là tín hiệu tham khảo trong Pet Health Care, dựa trên mức độ minh bạch hồ sơ và bài đăng.",
+    "profileInfo": "Về trại",
+    "registration": "Thông tin xác thực",
+    "careChecklist": "Chăm sóc & sức khỏe",
+    "commitments": "Cam kết minh bạch",
+    "listings": "Bài đăng của trại",
+    "emptyListings": "Không có bài đăng phù hợp với bộ lọc hiện tại.",
+    "gender": {
+      "all": "Tất cả giới tính",
+      "male": "Đực",
+      "female": "Cái",
+      "unknown": "Chưa rõ"
+    },
+    "trustSignals": {
+      "verified": "Hồ sơ đã được admin xác minh",
+      "careChecklist": "Có thông tin chăm sóc/sức khỏe",
+      "commitments": "Đã chấp nhận cam kết minh bạch",
+      "contact": "Có thông tin liên hệ",
+      "careEnvironment": "Có mô tả môi trường chăm sóc",
+      "activeListings": "Có bài đăng đang hoạt động"
     }
   },
   "account": {

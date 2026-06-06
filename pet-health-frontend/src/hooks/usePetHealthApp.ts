@@ -78,6 +78,7 @@ import type { AppScreen } from '../screens/types';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
 import { formatHealthCheckVaccineTypeForApi } from '../utils/formatHealthCheckVaccineType';
+import { postsForBreeder } from '../utils/breederTrust';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
@@ -153,6 +154,7 @@ export function usePetHealthApp() {
   const [petFeedPosts, setPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [myPetFeedPosts, setMyPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
+  const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
   const [adminAccounts, setAdminAccounts] = useState<AccountProfile[]>([]);
   const [adminBreederProfiles, setAdminBreederProfiles] = useState<BreederProfile[]>([]);
   const [adminFeedPosts, setAdminFeedPosts] = useState<PetFeedPost[]>([]);
@@ -183,6 +185,11 @@ export function usePetHealthApp() {
   const [googleAuthRequest, , promptGoogleAsync] = useGoogleIdTokenAuth();
 
   const selectedPet = useMemo(() => pets.find((pet) => pet.id === selectedPetId) ?? null, [pets, selectedPetId]);
+  const selectedBreederPosts = useMemo(
+    () => selectedBreederProfileId ? postsForBreeder(petFeedPosts, selectedBreederProfileId) : [],
+    [petFeedPosts, selectedBreederProfileId],
+  );
+  const selectedBreederProfile = selectedBreederPosts[0]?.breeder_profile ?? null;
 
   const petFormMode = editingPetId ? 'edit' : 'create';
 
@@ -835,6 +842,7 @@ export function usePetHealthApp() {
 
   async function openPetFeed() {
     if (!token) return;
+    setSelectedBreederProfileId(null);
     setScreen('pet-feed');
     try {
       const response = await listPetFeedPosts(token);
@@ -843,6 +851,15 @@ export function usePetHealthApp() {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('petFeed.title'), message);
     }
+  }
+
+  function openBreederDetail(profileId: string) {
+    setSelectedBreederProfileId(profileId);
+    setScreen('breeder-detail');
+  }
+
+  function closeBreederDetail() {
+    setScreen('pet-feed');
   }
 
   async function loadAccountDashboard(accessToken: string, role: UserRole | undefined = accountProfile?.primary_role) {
@@ -1375,6 +1392,7 @@ export function usePetHealthApp() {
     setPetFeedPosts([]);
     setMyPetFeedPosts([]);
     setBreederProfile(null);
+    setSelectedBreederProfileId(null);
     setAdminAccounts([]);
     setAdminBreederProfiles([]);
     setAdminFeedPosts([]);
@@ -1647,6 +1665,10 @@ export function usePetHealthApp() {
     openAccount,
     refreshPetFeed,
     petFeedPosts,
+    selectedBreederProfile,
+    selectedBreederPosts,
+    openBreederDetail,
+    closeBreederDetail,
     togglePetFeedFavorite,
     myPetFeedPosts,
     breederProfile,
