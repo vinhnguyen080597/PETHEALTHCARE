@@ -157,6 +157,28 @@
     "openAdminReview": "Admin review",
     "requestBreeder": "Đăng ký xác minh Breeder",
     "senSummary": "Các bài Pet Feed đã lưu và hồ sơ chăm sóc của Sen sẽ nằm ở đây. Khi đã sẵn sàng, Sen có thể tạo hồ sơ thú cưng bất cứ lúc nào.",
+    "senIntro": {
+      "title": "Mai nhắn Sen",
+      "body": "Sen ơi, nếu bạn muốn tìm thêm những bé thú cưng thì có thể xem ở Pet Feed. Còn nếu bạn muốn tìm nhà mới cho các bé, hãy đăng ký nâng cấp tài khoản thành Breeder rồi chờ admin phê duyệt nhé.",
+      "petFeedCta": "Xem Pet Feed",
+      "breederCta": "Đăng ký"
+    },
+    "senStatus": {
+      "title": "Trạng thái Breeder",
+      "helper": {
+        "unverified": "Bạn có thể gửi thông tin xác thực khi muốn đăng bài tìm nhà mới cho thú cưng.",
+        "pending_review": "Mai sẽ báo khi admin duyệt xong. Bạn vẫn có thể cập nhật thêm thông tin nếu cần.",
+        "verified": "Tài khoản đã đủ điều kiện dùng các tính năng Breeder.",
+        "rejected": "Hãy bổ sung thông tin đáng tin cậy hơn rồi gửi lại để admin xem xét.",
+        "suspended": "Quyền Breeder đang tạm khóa. Vui lòng liên hệ admin nếu cần hỗ trợ."
+      }
+    },
+    "senQuickActions": {
+      "title": "Hoạt động của Sen",
+      "savedPosts": "Bài Pet Feed đã lưu",
+      "petProfiles": "Hồ sơ thú cưng",
+      "carePassport": "Care Passport"
+    },
     "vetSummary": "Vai trò bác sĩ thú y sẽ dành cho nội dung giáo dục và xem hồ sơ chăm sóc, không phải chẩn đoán trong app.",
     "roleRequiredTitle": "Cần đúng vai trò",
     "breederOnly": "Tính năng này dành cho tài khoản Breeder.",

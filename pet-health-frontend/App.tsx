@@ -74,6 +74,7 @@ export default function App() {
       activeBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'verified').length}
       inactiveBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'rejected' || profile.verification_status === 'suspended').length}
       onOpenBreederProfile={app.openBreederProfile}
+      onOpenPetFeed={app.openPetFeed}
       onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
       onOpenAdminReview={app.openAdminReview}
       onUpdateBreederStatus={app.updateAdminBreederStatus}

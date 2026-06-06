@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { MAI_GUIDING } from '../assets/maiAssets';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 
 const PRIMARY = '#1E6FE8';
@@ -90,6 +91,7 @@ type AccountScreenProps = {
   activeBreederCount: number;
   inactiveBreederCount: number;
   onOpenBreederProfile: () => void;
+  onOpenPetFeed: () => void;
   onOpenCreatePetFeedPost: () => void;
   onOpenAdminReview: () => void;
   onUpdateBreederStatus: (userId: string, verificationStatus: string) => Promise<void>;
@@ -148,6 +150,7 @@ export function AccountScreen({
   activeBreederCount,
   inactiveBreederCount,
   onOpenBreederProfile,
+  onOpenPetFeed,
   onOpenCreatePetFeedPost,
   onOpenAdminReview,
   onUpdateBreederStatus,
@@ -169,6 +172,7 @@ export function AccountScreen({
   const role = account?.primary_role ?? 'sen';
   const breederStatus = breederProfile?.verification_status ?? 'unverified';
   const isAdmin = role === 'admin';
+  const isSen = role === 'sen';
   const pendingReportCount = adminFeedReports.filter((report) => report.status === 'open').length;
   const pendingRequestCount = adminPendingBreederRequestCount + adminPendingPostCount + pendingReportCount;
   const adminRequestItems = useMemo<AdminRequestItem[]>(() => {
@@ -296,9 +300,11 @@ export function AccountScreen({
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className="text-2xl font-bold text-slate-900">{t(`account.roles.${role}.title`)}</Text>
-          <Text className="mt-1 text-sm leading-5 text-slate-600">
-            {isAdmin ? t('account.adminSubtitle') : t('account.subtitle')}
-          </Text>
+          {!isSen ? (
+            <Text className="mt-1 text-sm leading-5 text-slate-600">
+              {isAdmin ? t('account.adminSubtitle') : t('account.subtitle')}
+            </Text>
+          ) : null}
         </View>
         {showHeaderLogout ? <Pressable
           testID="account-logout-button"
@@ -312,7 +318,43 @@ export function AccountScreen({
         </Pressable> : null}
       </View>
 
-      {!isAdmin ? <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+      {isSen ? (
+        <View className="mt-5 overflow-hidden rounded-2xl border border-blue-100 bg-white p-4">
+          <View className="flex-row items-start gap-3">
+            <View className="h-32 w-24 overflow-hidden rounded-2xl">
+              <Image source={MAI_GUIDING} resizeMode="cover" style={{ height: 128, width: 96 }} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-base font-bold text-slate-900">{t('account.senIntro.title')}</Text>
+              <Text className="mt-1 text-sm leading-5 text-slate-600">{t('account.senIntro.body')}</Text>
+            </View>
+          </View>
+          <View className="mt-4 flex-row gap-3">
+            <Pressable
+              testID="account-open-pet-feed-button"
+              accessibilityRole="button"
+              accessibilityLabel="Open Pet Feed"
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
+              onPress={onOpenPetFeed}
+            >
+              <Ionicons name="newspaper-outline" size={18} color={PRIMARY} />
+              <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('account.senIntro.petFeedCta')}</Text>
+            </Pressable>
+            <Pressable
+              testID="account-request-breeder-button"
+              accessibilityRole="button"
+              accessibilityLabel="Request breeder verification"
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+              onPress={onOpenBreederProfile}
+            >
+              <Ionicons name="ribbon-outline" size={18} color="#fff" />
+              <Text className="text-sm font-bold text-white">{t('account.senIntro.breederCta')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {!isAdmin && !isSen ? <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
         <Text className="text-base font-bold text-slate-900">{t('account.myRole')}</Text>
         <View className="mt-3 flex-row items-center gap-3 rounded-xl bg-slate-50 p-3">
           <View className="h-10 w-10 items-center justify-center rounded-full bg-blue-50">
@@ -614,30 +656,33 @@ export function AccountScreen({
         )
       ) : null}
 
-      {!isAdmin ? <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+      {!isAdmin && !isSen ? <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <Text className="text-sm leading-5 text-amber-900">{t('account.communitySafety')}</Text>
       </View> : null}
 
       <View className="mt-5 gap-3">
         {role === 'sen' ? (
-          <View className="rounded-2xl border border-gray-200 bg-white p-4">
-            <Text className="text-sm leading-5 text-slate-600">{t('account.senSummary')}</Text>
-            {breederStatus !== 'unverified' ? (
-              <Text className="mt-3 text-sm font-semibold text-slate-700">
-                {t(`account.breederRequestStatus.${breederStatus}`)}
-              </Text>
-            ) : null}
-            <Pressable
-              testID="account-request-breeder-button"
-              accessibilityRole="button"
-              accessibilityLabel="Request breeder verification"
-              className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 active:opacity-90"
-              onPress={onOpenBreederProfile}
-            >
-              <Ionicons name="ribbon-outline" size={19} color="#fff" />
-              <Text className="text-sm font-bold text-white">{t('account.requestBreeder')}</Text>
-            </Pressable>
-          </View>
+          <>
+            <View className="rounded-2xl border border-gray-200 bg-white p-4">
+              <Text className="text-base font-bold text-slate-900">{t('account.senStatus.title')}</Text>
+              <View className="mt-3 rounded-xl bg-slate-50 p-3">
+                <Text className="text-sm font-semibold text-slate-700">
+                  {t(`account.breederRequestStatus.${breederStatus}`)}
+                </Text>
+                <Text className="mt-1 text-xs leading-5 text-slate-500">
+                  {t(`account.senStatus.helper.${breederStatus}`)}
+                </Text>
+              </View>
+            </View>
+            <View className="rounded-2xl border border-gray-200 bg-white p-4">
+              <Text className="text-base font-bold text-slate-900">{t('account.senQuickActions.title')}</Text>
+              <View className="mt-3 gap-2">
+                <SenInfoRow icon="heart-outline" label={t('account.senQuickActions.savedPosts')} value={savedPostCount} />
+                <SenInfoRow icon="paw-outline" label={t('account.senQuickActions.petProfiles')} value={petCount} />
+                <SenInfoRow icon="calendar-outline" label={t('account.senQuickActions.carePassport')} value={petCount} />
+              </View>
+            </View>
+          </>
         ) : null}
         {role === 'vet' ? (
           <Text className="rounded-2xl border border-gray-200 bg-white p-4 text-sm leading-5 text-slate-600">
@@ -666,6 +711,18 @@ function AdminStatusRow({ label, value }: { label: string; value: number }) {
     <View className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
       <Text className="text-sm font-semibold text-slate-700">{label}</Text>
       <Text className="text-sm font-bold text-slate-900">{value}</Text>
+    </View>
+  );
+}
+
+function SenInfoRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: number }) {
+  return (
+    <View className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
+      <View className="min-w-0 flex-1 flex-row items-center gap-2">
+        <Ionicons name={icon} size={18} color={PRIMARY} />
+        <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-700" numberOfLines={1}>{label}</Text>
+      </View>
+      <Text className="ml-3 text-sm font-bold text-slate-900">{value}</Text>
     </View>
   );
 }

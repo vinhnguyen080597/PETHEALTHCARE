@@ -157,6 +157,28 @@
     "openAdminReview": "Admin review",
     "requestBreeder": "Request Breeder verification",
     "senSummary": "Your saved Pet Feed posts and pet care records stay here. You can create a pet profile whenever you are ready.",
+    "senIntro": {
+      "title": "Mai's note",
+      "body": "Pet parent, if you want to find more pets, Pet Feed is the best place to browse. If you want to help your pets find a new home, register to upgrade your account to Breeder and wait for admin approval.",
+      "petFeedCta": "View Pet Feed",
+      "breederCta": "Register"
+    },
+    "senStatus": {
+      "title": "Breeder status",
+      "helper": {
+        "unverified": "You can submit verification details when you want to create posts for pets looking for a new home.",
+        "pending_review": "Mai will let you know after admin review. You can still update your details if needed.",
+        "verified": "This account is eligible for Breeder features.",
+        "rejected": "Add more trustworthy details and submit again for admin review.",
+        "suspended": "Breeder access is suspended. Please contact admin if you need support."
+      }
+    },
+    "senQuickActions": {
+      "title": "Your activity",
+      "savedPosts": "Saved Pet Feed posts",
+      "petProfiles": "Pet profiles",
+      "carePassport": "Care Passport"
+    },
     "vetSummary": "Veterinarian features are planned for educational content and care-record review, not in-app diagnosis.",
     "roleRequiredTitle": "Role required",
     "breederOnly": "This action is available for Breeder accounts.",
