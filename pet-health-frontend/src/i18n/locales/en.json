@@ -83,6 +83,19 @@
     "detailTitle": "Listing details",
     "breederFallback": "Breeder",
     "locationUnknown": "Location not shared",
+    "tabs": {
+      "feed": "Pet feed",
+      "breeders": "Top breeder"
+    },
+    "topBreeders": {
+      "verified": "Verified",
+      "posts": "Listings",
+      "species": "Main species",
+      "notUpdated": "Not updated",
+      "viewPosts": "View listings",
+      "emptyTitle": "No top breeders yet",
+      "emptyBody": "After approved listings are available, active breeders will be summarized here."
+    },
     "searchPlaceholder": "Search breed, breeder, age, location...",
     "filtersTitle": "Quick filters",
     "filters": {

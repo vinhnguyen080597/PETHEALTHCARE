@@ -83,6 +83,19 @@
     "detailTitle": "Chi tiết bài đăng",
     "breederFallback": "Breeder",
     "locationUnknown": "Chưa chia sẻ khu vực",
+    "tabs": {
+      "feed": "Pet feed",
+      "breeders": "Top breeder"
+    },
+    "topBreeders": {
+      "verified": "Đã xác minh",
+      "posts": "Bài đăng",
+      "species": "Loài chính",
+      "notUpdated": "Chưa cập nhật",
+      "viewPosts": "Xem bài đăng",
+      "emptyTitle": "Chưa có breeder nổi bật",
+      "emptyBody": "Khi có bài đăng đã duyệt, những breeder hoạt động tốt sẽ được tổng hợp ở đây."
+    },
     "searchPlaceholder": "Tìm giống, breeder, tuổi, vị trí...",
     "filtersTitle": "Lọc nhanh",
     "filters": {

@@ -3,13 +3,14 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
-import type { PetFeedPost } from '../types';
+import type { BreederProfile, PetFeedPost } from '../types';
 
 const PRIMARY = '#1E6FE8';
 
 type SpeciesFilter = 'all' | 'dog' | 'cat';
 type SortField = 'date' | 'age' | 'price';
 type SortDirection = 'asc' | 'desc';
+type FeedTab = 'feed' | 'breeders';
 type ChipItem<T extends string> = {
   key: T;
   label: string;
@@ -77,8 +78,16 @@ function compareMaybeNumber(a: number | null, b: number | null, direction: 'asc'
   return direction === 'asc' ? a - b : b - a;
 }
 
+type TopBreeder = {
+  profile: BreederProfile;
+  postCount: number;
+  latestPostAt: number;
+  species: string[];
+};
+
 export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, onReportPost }: PetFeedScreenProps) {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<FeedTab>('feed');
   const [query, setQuery] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState<SpeciesFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
@@ -127,15 +136,68 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
     });
   }, [searchMatchedPosts, sortDirection, sortField, speciesFilter]);
   const selectedPost = selectedPostId ? posts.find((post) => post.id === selectedPostId) ?? null : null;
+  const topBreeders = useMemo<TopBreeder[]>(() => {
+    const byBreeder = new Map<string, TopBreeder>();
+    posts.forEach((post) => {
+      const profile = post.breeder_profile;
+      if (!profile || profile.verification_status !== 'verified') return;
+      const key = profile.id || profile.user_id;
+      const current = byBreeder.get(key);
+      const species = post.species ? [post.species] : [];
+      if (!current) {
+        byBreeder.set(key, {
+          profile,
+          postCount: 1,
+          latestPostAt: createdTime(post),
+          species,
+        });
+        return;
+      }
+      current.postCount += 1;
+      current.latestPostAt = Math.max(current.latestPostAt, createdTime(post));
+      current.species = Array.from(new Set([...current.species, ...species]));
+    });
+    return Array.from(byBreeder.values()).sort((a, b) => {
+      if (b.postCount !== a.postCount) return b.postCount - a.postCount;
+      return b.latestPostAt - a.latestPostAt;
+    });
+  }, [posts]);
 
   return (
     <>
     <ScrollView
       testID="pet-feed-screen"
-      className="flex-1 bg-[#F2F4F8] px-5 pb-6 pt-5"
+      className="flex-1 bg-[#F2F4F8] pb-6"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />}
       showsVerticalScrollIndicator={false}
     >
+      <View className="mb-4 border-b border-gray-200 bg-white px-3 py-3">
+        <View className="flex-row rounded-2xl border border-blue-100 bg-blue-50/40 p-1">
+          {([
+            { key: 'feed' as const, label: t('petFeed.tabs.feed'), count: posts.length, icon: 'newspaper-outline' as const },
+            { key: 'breeders' as const, label: t('petFeed.tabs.breeders'), count: topBreeders.length, icon: 'ribbon-outline' as const },
+          ]).map((item) => {
+            const active = activeTab === item.key;
+            return (
+              <Pressable
+                key={item.key}
+                accessibilityRole="button"
+                className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl px-3 py-3 ${
+                  active ? 'bg-blue-600' : 'bg-transparent'
+                }`}
+                onPress={() => setActiveTab(item.key)}
+              >
+                <Ionicons name={item.icon} size={17} color={active ? '#fff' : PRIMARY} />
+                <Text className={`text-sm font-bold ${active ? 'text-white' : 'text-blue-700'}`}>{item.label}</Text>
+                <Text className={`text-xs font-bold ${active ? 'text-blue-100' : 'text-slate-400'}`}>{item.count}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {activeTab === 'feed' ? (
+        <View className="px-5">
       <View className="mb-3 flex-row items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3">
         <Ionicons name="search-outline" size={20} color="#64748b" />
         <TextInput
@@ -238,6 +300,74 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
               onPress={(item) => setSelectedPostId(item.id)}
             />
           ))}
+        </View>
+      )}
+        </View>
+      ) : (
+        <View className="gap-3 px-5">
+          {topBreeders.length === 0 ? (
+            <View className="items-center rounded-2xl border border-gray-200 bg-white px-5 py-12">
+              <Ionicons name="ribbon-outline" size={42} color={PRIMARY} />
+              <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.topBreeders.emptyTitle')}</Text>
+              <Text className="mt-2 text-center text-sm leading-5 text-slate-500">{t('petFeed.topBreeders.emptyBody')}</Text>
+            </View>
+          ) : null}
+          {topBreeders.map((item, index) => {
+            const profile = item.profile;
+            const species = profile.primary_species.length ? profile.primary_species : item.species;
+            const breeds = profile.main_breeds.join(', ');
+            return (
+              <View key={profile.id || profile.user_id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <View className="flex-row items-start gap-3">
+                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-blue-50">
+                    <Text className="text-base font-black text-blue-700">#{index + 1}</Text>
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <View className="flex-row flex-wrap items-center gap-2">
+                      <Text className="text-base font-bold text-slate-900" numberOfLines={2}>
+                        {profile.display_name || t('petFeed.breederFallback')}
+                      </Text>
+                      <Text className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                        {t('petFeed.topBreeders.verified')}
+                      </Text>
+                    </View>
+                    <Text className="mt-1 text-sm text-slate-500" numberOfLines={2}>
+                      {[profile.location, species.join(', ')].filter(Boolean).join(' - ') || t('petFeed.locationUnknown')}
+                    </Text>
+                  </View>
+                </View>
+                {profile.bio || profile.care_environment || breeds ? (
+                  <Text className="mt-3 text-sm leading-5 text-slate-700" numberOfLines={3}>
+                    {profile.bio || profile.care_environment || breeds}
+                  </Text>
+                ) : null}
+                <View className="mt-4 flex-row gap-2">
+                  <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+                    <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.posts')}</Text>
+                    <Text className="mt-1 text-base font-bold text-slate-900">{item.postCount}</Text>
+                  </View>
+                  <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+                    <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.species')}</Text>
+                    <Text className="mt-1 text-sm font-bold text-slate-900" numberOfLines={1}>
+                      {species.join(', ') || t('petFeed.topBreeders.notUpdated')}
+                    </Text>
+                  </View>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
+                  onPress={() => {
+                    setQuery(profile.display_name);
+                    setSpeciesFilter('all');
+                    setActiveTab('feed');
+                  }}
+                >
+                  <Ionicons name="newspaper-outline" size={17} color={PRIMARY} />
+                  <Text className="text-sm font-bold text-blue-700">{t('petFeed.topBreeders.viewPosts')}</Text>
+                </Pressable>
+              </View>
+            );
+          })}
         </View>
       )}
     </ScrollView>
