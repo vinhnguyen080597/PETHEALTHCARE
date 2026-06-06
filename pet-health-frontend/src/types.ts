@@ -167,6 +167,7 @@ export type UpsertBreederProfilePayload = {
   primarySpecies?: string[];
   mainBreeds?: string[];
   careEnvironment?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type CreatePetFeedPostPayload = {

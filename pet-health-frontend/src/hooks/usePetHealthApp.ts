@@ -908,7 +908,6 @@ export function usePetHealthApp() {
       const postsRes = await listMyPetFeedPosts(token);
       setMyPetFeedPosts(postsRes.data);
     }
-    await fetchAccountProfile(token);
   }
 
   function openCreatePetFeedPost() {

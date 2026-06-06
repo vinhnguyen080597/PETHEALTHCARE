@@ -219,6 +219,7 @@
     "untitledPost": "Untitled listing",
     "report": "Post report",
     "postId": "Post ID",
+    "breederChecklistCount": "{{count}} care items",
     "types": {
       "all": "All",
       "breeder": "Breeder",
@@ -262,21 +263,67 @@
     }
   },
   "breederProfile": {
-    "title": "Breeder profile",
-    "profileInfo": "Breeder information",
-    "displayName": "Display name",
+    "title": "Breeder registration",
+    "profileInfo": "Application information",
+    "maiTitle": "Mai's note for pet parents",
+    "maiBody": "Pet parent, please provide accurate and complete information to build trust when applying for Breeder access. This verification only applies inside Pet Health Care and helps admins review before allowing Pet Feed posts. Review usually takes about 1 day. If details are unclear, admin may request updates or reject the application.",
+    "displayName": "Kennel / caregiver name",
     "location": "Location",
-    "bio": "Short intro about care style and home environment",
-    "primarySpecies": "Primary species, comma separated: cat, dog",
+    "bio": "Short intro about care style",
+    "applicationType": "Application type",
+    "registeredAt": "Registered kennel at",
+    "registeredKennelName": "Registered kennel name",
+    "scaleAndSpecies": "Scale and species",
+    "primarySpecies": "Primary species",
     "mainBreeds": "Main breeds, comma separated",
+    "scaleRange": "Current care scale",
+    "breedingPetRange": "Breeding pets",
+    "careAndTrust": "Care and health",
     "careEnvironment": "Care environment and verification details",
+    "commitmentsTitle": "Transparency commitments",
     "phone": "Phone number",
     "save": "Submit breeder request",
+    "submitSuccessTitle": "Request submitted",
     "saved": "Breeder information submitted for admin review.",
     "saveFailed": "Could not submit breeder request",
-    "myPosts": "My listings",
-    "createPost": "Create post",
-    "noPosts": "No listings yet."
+    "checkAndEdit": "Check",
+    "retry": "Try again",
+    "commitmentsRequired": "Please accept all transparency commitments before submitting your verification request.",
+    "breederTypes": {
+      "registered_kennel": "Officially registered kennel",
+      "home_breeder": "Small home breeder",
+      "rescue_foster": "Rescue / foster",
+      "rehoming": "Individual rehoming a pet",
+      "other": "Other"
+    },
+    "speciesOptions": {
+      "dog": "Dog",
+      "cat": "Cat",
+      "other": "Other"
+    },
+    "scaleOptions": {
+      "1_3": "1-3 pets",
+      "4_10": "4-10 pets",
+      "11_20": "11-20 pets",
+      "20_plus": "Over 20 pets"
+    },
+    "breedingPetOptions": {
+      "none": "None",
+      "1_3": "1-3 pets",
+      "4_10": "4-10 pets",
+      "10_plus": "Over 10 pets"
+    },
+    "careChecklist": {
+      "vaccination_schedule": "Clear vaccination schedule",
+      "deworming_schedule": "Regular deworming schedule",
+      "vet_records": "Vet records or care documents available",
+      "environment_media": "Can provide photos/videos of the living environment",
+      "in_person_meet": "Allows in-person meeting before adoption"
+    },
+    "commitments": {
+      "accurate_information": "I confirm the provided information is accurate.",
+      "app_only_verification": "I understand Breeder verification only applies inside Pet Health Care."
+    }
   },
   "createPetFeedPost": {
     "title": "Create Pet Feed post",

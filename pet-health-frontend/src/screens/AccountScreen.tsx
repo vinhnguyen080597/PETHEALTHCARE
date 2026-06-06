@@ -175,6 +175,19 @@ export function AccountScreen({
   const isSen = role === 'sen';
   const pendingReportCount = adminFeedReports.filter((report) => report.status === 'open').length;
   const pendingRequestCount = adminPendingBreederRequestCount + adminPendingPostCount + pendingReportCount;
+  const breederApplicationSummary = (profile: BreederProfile) => {
+    const metadata = profile.metadata ?? {};
+    const breederType = typeof metadata.breederType === 'string' ? metadata.breederType : '';
+    const scaleRange = typeof metadata.scaleRange === 'string' ? metadata.scaleRange : '';
+    const registeredKennelName = typeof metadata.registeredKennelName === 'string' ? metadata.registeredKennelName : '';
+    const checklistCount = Array.isArray(metadata.careChecklist) ? metadata.careChecklist.length : 0;
+    return [
+      breederType ? t(`breederProfile.breederTypes.${breederType}`) : '',
+      scaleRange ? t(`breederProfile.scaleOptions.${scaleRange}`) : '',
+      registeredKennelName,
+      checklistCount ? t('adminRequests.breederChecklistCount', { count: checklistCount }) : '',
+    ].filter(Boolean).join(' - ');
+  };
   const adminRequestItems = useMemo<AdminRequestItem[]>(() => {
     const breederItems: AdminRequestItem[] = adminBreederProfiles.map((profile) => ({
       id: `breeder-${profile.id}`,
@@ -183,7 +196,7 @@ export function AccountScreen({
       createdAt: profile.created_at,
       title: profile.display_name || t('adminRequests.untitledBreeder'),
       subtitle: [profile.location, profile.primary_species.join(', ')].filter(Boolean).join(' - '),
-      body: profile.care_environment || profile.bio || profile.main_breeds.join(', '),
+      body: breederApplicationSummary(profile) || profile.care_environment || profile.bio || profile.main_breeds.join(', '),
       profile,
     }));
     const postItems: AdminRequestItem[] = adminFeedPosts.map((post) => ({
@@ -663,13 +676,13 @@ export function AccountScreen({
       <View className="mt-5 gap-3">
         {role === 'sen' ? (
           <>
-            <View className="rounded-2xl border border-gray-200 bg-white p-4">
-              <Text className="text-base font-bold text-slate-900">{t('account.senStatus.title')}</Text>
-              <View className="mt-3 rounded-xl bg-slate-50 p-3">
-                <Text className="text-sm font-semibold text-slate-700">
+            <View className="rounded-2xl border border-amber-200 bg-white p-4">
+              <Text className="text-base font-bold text-amber-950">{t('account.senStatus.title')}</Text>
+              <View className="mt-3 rounded-xl bg-amber-50 p-3">
+                <Text className="text-sm font-semibold text-amber-950">
                   {t(`account.breederRequestStatus.${breederStatus}`)}
                 </Text>
-                <Text className="mt-1 text-xs leading-5 text-slate-500">
+                <Text className="mt-1 text-xs leading-5 text-amber-900">
                   {t(`account.senStatus.helper.${breederStatus}`)}
                 </Text>
               </View>

@@ -219,6 +219,7 @@
     "untitledPost": "Bài đăng chưa có tiêu đề",
     "report": "Report bài đăng",
     "postId": "Post ID",
+    "breederChecklistCount": "{{count}} mục chăm sóc",
     "types": {
       "all": "Tất cả",
       "breeder": "Breeder",
@@ -262,21 +263,67 @@
     }
   },
   "breederProfile": {
-    "title": "Hồ sơ breeder",
-    "profileInfo": "Thông tin breeder",
-    "displayName": "Tên hiển thị",
+    "title": "Đăng ký Breeder",
+    "profileInfo": "Thông tin đăng ký",
+    "maiTitle": "Mai nhắn Sen",
+    "maiBody": "Sen ơi, hãy điền thông tin trung thực và đầy đủ để tăng độ uy tín khi đăng ký Breeder. Việc xác minh này chỉ áp dụng trong Pet Health Care, giúp admin đánh giá trước khi cho phép tạo bài Pet Feed. Thời gian duyệt thường trong khoảng 1 ngày. Nếu thông tin chưa rõ ràng, admin có thể yêu cầu bổ sung hoặc từ chối.",
+    "displayName": "Tên trại / tên người chăm sóc",
     "location": "Khu vực",
-    "bio": "Giới thiệu ngắn về cách chăm sóc, môi trường nuôi",
-    "primarySpecies": "Loài chính, cách nhau bằng dấu phẩy: cat, dog",
+    "bio": "Giới thiệu ngắn về cách chăm sóc",
+    "applicationType": "Loại hình đăng ký",
+    "registeredAt": "Đã đăng ký trại tại",
+    "registeredKennelName": "Tên trại đã đăng ký",
+    "scaleAndSpecies": "Quy mô và loài chăm sóc",
+    "primarySpecies": "Loài chính",
     "mainBreeds": "Giống chính, cách nhau bằng dấu phẩy",
+    "scaleRange": "Quy mô đang chăm sóc",
+    "breedingPetRange": "Số bé sinh sản",
+    "careAndTrust": "Chăm sóc và sức khỏe",
     "careEnvironment": "Môi trường chăm sóc và thông tin xác thực",
+    "commitmentsTitle": "Cam kết minh bạch",
     "phone": "Số điện thoại",
     "save": "Gửi yêu cầu xác minh",
+    "submitSuccessTitle": "Đã gửi yêu cầu",
     "saved": "Đã gửi thông tin Breeder để admin xem xét.",
     "saveFailed": "Không thể gửi yêu cầu Breeder",
-    "myPosts": "Bài đăng của tôi",
-    "createPost": "Tạo bài",
-    "noPosts": "Chưa có bài đăng nào."
+    "checkAndEdit": "Kiểm tra",
+    "retry": "Thử lại",
+    "commitmentsRequired": "Vui lòng tick đầy đủ cam kết minh bạch để gửi yêu cầu xác minh.",
+    "breederTypes": {
+      "registered_kennel": "Trại đăng ký chính thức",
+      "home_breeder": "Hộ gia đình nuôi sinh sản nhỏ",
+      "rescue_foster": "Cứu hộ / foster",
+      "rehoming": "Cá nhân tìm nhà mới cho bé",
+      "other": "Khác"
+    },
+    "speciesOptions": {
+      "dog": "Chó",
+      "cat": "Mèo",
+      "other": "Khác"
+    },
+    "scaleOptions": {
+      "1_3": "1-3 bé",
+      "4_10": "4-10 bé",
+      "11_20": "11-20 bé",
+      "20_plus": "Trên 20 bé"
+    },
+    "breedingPetOptions": {
+      "none": "Không có",
+      "1_3": "1-3 bé",
+      "4_10": "4-10 bé",
+      "10_plus": "Trên 10 bé"
+    },
+    "careChecklist": {
+      "vaccination_schedule": "Có lịch vaccine rõ ràng",
+      "deworming_schedule": "Có tẩy giun định kỳ",
+      "vet_records": "Có sổ khám hoặc hồ sơ thú y",
+      "environment_media": "Có thể cung cấp ảnh/video môi trường sống",
+      "in_person_meet": "Cho phép Sen gặp trực tiếp trước khi nhận bé"
+    },
+    "commitments": {
+      "accurate_information": "Tôi cam kết thông tin cung cấp là đúng sự thật.",
+      "app_only_verification": "Tôi hiểu xác minh Breeder chỉ áp dụng trong Pet Health Care."
+    }
   },
   "createPetFeedPost": {
     "title": "Tạo bài Pet Feed",

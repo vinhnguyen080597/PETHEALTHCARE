@@ -139,11 +139,8 @@ export default function App() {
             {app.screen === 'breeder-profile' && (
               <BreederProfileScreen
                 profile={app.breederProfile}
-                posts={app.myPetFeedPosts}
-                canCreatePost={app.accountProfile?.primary_role === 'breeder' && app.breederProfile?.verification_status === 'verified'}
                 onBack={app.closeBreederProfile}
                 onSaveProfile={app.saveBreederProfile}
-                onCreatePost={app.openCreatePetFeedPost}
               />
             )}
 
