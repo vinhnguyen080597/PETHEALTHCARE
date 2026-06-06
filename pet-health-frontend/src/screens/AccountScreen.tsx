@@ -173,6 +173,9 @@ export function AccountScreen({
   const breederStatus = breederProfile?.verification_status ?? 'unverified';
   const isAdmin = role === 'admin';
   const isSen = role === 'sen';
+  const isBreeder = role === 'breeder';
+  const publishedMyPostCount = myPosts.filter((post) => post.status === 'published').length;
+  const pendingMyPostCount = myPosts.filter((post) => post.status === 'pending_review').length;
   const pendingReportCount = adminFeedReports.filter((report) => report.status === 'open').length;
   const pendingRequestCount = adminPendingBreederRequestCount + adminPendingPostCount + pendingReportCount;
   const breederApplicationSummary = (profile: BreederProfile) => {
@@ -283,10 +286,15 @@ export function AccountScreen({
         { key: 'breeders' as const, label: t('account.adminMetrics.breeders'), value: activeBreederCount },
         { key: 'posts' as const, label: t('account.adminMetrics.myPosts'), value: myPostCount },
       ]
+    : isBreeder
+      ? [
+          { key: 'posts', label: t('account.breederMetrics.total'), value: myPostCount },
+          { key: 'published', label: t('account.breederMetrics.published'), value: publishedMyPostCount },
+          { key: 'pending', label: t('account.breederMetrics.pending'), value: pendingMyPostCount },
+        ]
     : [
         { key: 'pets', label: t('account.pets'), value: petCount },
         { key: 'saved', label: t('account.savedPosts'), value: savedPostCount },
-        ...(role === 'breeder' ? [{ key: 'posts', label: t('account.myPosts'), value: myPostCount }] : []),
       ];
   async function runAdminAction(action: () => Promise<void>) {
     try {
@@ -315,7 +323,7 @@ export function AccountScreen({
           <Text className="text-2xl font-bold text-slate-900">{t(`account.roles.${role}.title`)}</Text>
           {!isSen ? (
             <Text className="mt-1 text-sm leading-5 text-slate-600">
-              {isAdmin ? t('account.adminSubtitle') : t('account.subtitle')}
+              {isAdmin ? t('account.adminSubtitle') : isBreeder ? t('account.breederSubtitle') : t('account.subtitle')}
             </Text>
           ) : null}
         </View>
@@ -367,7 +375,31 @@ export function AccountScreen({
         </View>
       ) : null}
 
-      {!isAdmin && !isSen ? <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+      {isBreeder ? (
+        <View className="mt-5 rounded-2xl border border-blue-100 bg-white p-4">
+          <View className="flex-row items-start gap-3">
+            <View className="h-11 w-11 items-center justify-center rounded-full bg-blue-50">
+              <Ionicons name="shield-checkmark-outline" size={21} color={PRIMARY} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <View className="flex-row flex-wrap items-center gap-2">
+                <Text className="text-base font-bold text-slate-900">
+                  {breederProfile?.display_name || account?.display_name || t('account.breederTrust.untitled')}
+                </Text>
+                <Text className={`rounded-full px-2.5 py-1 text-xs font-bold ${breederStatus === 'verified' ? 'bg-emerald-50 text-emerald-700' : breederStatus === 'suspended' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
+                  {t(`account.breederRequestStatus.${breederStatus}`)}
+                </Text>
+              </View>
+              <Text className="mt-1 text-sm leading-5 text-slate-600">
+                {[breederProfile?.location, breederProfile?.primary_species?.join(', ')].filter(Boolean).join(' - ') || t('account.breederTrust.missingInfo')}
+              </Text>
+              <Text className="mt-2 text-xs leading-5 text-slate-500">{t('account.breederTrust.note')}</Text>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {!isAdmin && !isSen && !isBreeder ? <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
         <Text className="text-base font-bold text-slate-900">{t('account.myRole')}</Text>
         <View className="mt-3 flex-row items-center gap-3 rounded-xl bg-slate-50 p-3">
           <View className="h-10 w-10 items-center justify-center rounded-full bg-blue-50">
@@ -669,7 +701,49 @@ export function AccountScreen({
         )
       ) : null}
 
-      {!isAdmin && !isSen ? <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+      {isBreeder ? (
+        <View className="mt-5 gap-3">
+          {breederStatus === 'verified' ? (
+            <Pressable
+              testID="account-create-post-button"
+              accessibilityRole="button"
+              accessibilityLabel="Create post"
+              className="flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 active:opacity-90"
+              onPress={onOpenCreatePetFeedPost}
+            >
+              <Ionicons name="add-circle-outline" size={19} color="#fff" />
+              <Text className="text-sm font-bold text-white">{t('account.createPost')}</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              testID="account-breeder-profile-button"
+              accessibilityRole="button"
+              accessibilityLabel="Update breeder verification profile"
+              className="flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 active:opacity-90"
+              onPress={onOpenBreederProfile}
+            >
+              <Ionicons name="ribbon-outline" size={19} color="#fff" />
+              <Text className="text-sm font-bold text-white">{t('account.breederTrust.updateProfile')}</Text>
+            </Pressable>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            className="flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
+            onPress={onOpenBreederProfile}
+          >
+            <Ionicons name="create-outline" size={18} color={PRIMARY} />
+            <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('account.breederTrust.editProfile')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {isBreeder ? (
+        <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <Text className="text-sm leading-5 text-amber-900">{t('account.breederSafety')}</Text>
+        </View>
+      ) : null}
+
+      {!isAdmin && !isSen && !isBreeder ? <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <Text className="text-sm leading-5 text-amber-900">{t('account.communitySafety')}</Text>
       </View> : null}
 
@@ -702,17 +776,33 @@ export function AccountScreen({
             {t('account.vetSummary')}
           </Text>
         ) : null}
-        {role === 'breeder' ? (
-        <Pressable
-          testID="account-breeder-profile-button"
-          accessibilityRole="button"
-          accessibilityLabel="Open breeder profile"
-          className="flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 active:opacity-90"
-          onPress={onOpenBreederProfile}
-        >
-          <Ionicons name="ribbon-outline" size={19} color="#fff" />
-          <Text className="text-sm font-bold text-white">{t('account.openBreederProfile')}</Text>
-        </Pressable>
+        {isBreeder ? (
+          <View className="rounded-2xl border border-gray-200 bg-white p-4">
+            <Text className="text-base font-bold text-slate-900">{t('account.breederPosts.title')}</Text>
+            <View className="mt-3 gap-3">
+              {myPosts.length === 0 ? (
+                <Text className="rounded-xl bg-slate-50 p-3 text-sm leading-5 text-slate-500">
+                  {t('account.breederPosts.empty')}
+                </Text>
+              ) : null}
+              {myPosts.map((post) => (
+                <View key={post.id} className="rounded-xl bg-slate-50 p-3">
+                  <View className="flex-row items-start justify-between gap-3">
+                    <View className="min-w-0 flex-1">
+                      <Text className="font-bold text-slate-900" numberOfLines={2}>{post.title}</Text>
+                      <Text className="mt-1 text-xs font-semibold uppercase text-slate-500">{t(`petFeed.status.${post.status}`)}</Text>
+                    </View>
+                    <Text className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600">
+                      {post.species || 'pet'}
+                    </Text>
+                  </View>
+                  <Text className="mt-2 text-sm leading-5 text-slate-600" numberOfLines={2}>
+                    {[post.breed, post.location].filter(Boolean).join(' - ') || post.description}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
         ) : null}
       </View>
     </ScrollView>

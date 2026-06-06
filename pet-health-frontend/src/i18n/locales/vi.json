@@ -118,10 +118,16 @@
     "title": "Tài khoản",
     "subtitle": "Quản lý vai trò, bài đã lưu và phiên đăng nhập.",
     "adminSubtitle": "Quản lý request, breeder, bài đăng và an toàn cộng đồng.",
+    "breederSubtitle": "Quản lý hồ sơ uy tín, bài đăng Pet Feed và trạng thái duyệt.",
     "myRole": "Vai trò trong Pet Health Care",
     "pets": "Thú cưng",
     "savedPosts": "Đã lưu",
     "myPosts": "Bài của tôi",
+    "breederMetrics": {
+      "total": "Tổng bài",
+      "published": "Đã duyệt",
+      "pending": "Chờ duyệt"
+    },
     "adminMetrics": {
       "requests": "Requests",
       "breeders": "Breeders",
@@ -152,6 +158,7 @@
       }
     },
     "communitySafety": "Bài đăng cộng đồng cần minh bạch và tôn trọng. Pet Health Care không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
+    "breederSafety": "Bài đăng cần có ảnh rõ, video ngắn, thông tin vaccine/tẩy giun và điều kiện nhận bé minh bạch. Không cam kết sức khỏe tuyệt đối nếu chưa có xác nhận thú y.",
     "openBreederProfile": "Hồ sơ breeder & bài đăng",
     "createPost": "Tạo bài đăng",
     "openAdminReview": "Admin review",
@@ -178,6 +185,17 @@
       "savedPosts": "Bài Pet Feed đã lưu",
       "petProfiles": "Hồ sơ thú cưng",
       "carePassport": "Care Passport"
+    },
+    "breederTrust": {
+      "untitled": "Breeder chưa có tên",
+      "missingInfo": "Chưa bổ sung khu vực hoặc loài chính",
+      "note": "Thông tin minh bạch giúp bài đăng được duyệt nhanh hơn.",
+      "updateProfile": "Cập nhật hồ sơ xác minh",
+      "editProfile": "Chỉnh sửa hồ sơ Breeder"
+    },
+    "breederPosts": {
+      "title": "Bài đăng của tôi",
+      "empty": "Chưa có bài đăng nào. Hãy tạo bài đầu tiên sau khi hồ sơ được xác minh."
     },
     "vetSummary": "Vai trò bác sĩ thú y sẽ dành cho nội dung giáo dục và xem hồ sơ chăm sóc, không phải chẩn đoán trong app.",
     "roleRequiredTitle": "Cần đúng vai trò",

@@ -118,10 +118,16 @@
     "title": "Account",
     "subtitle": "Manage your role, saved posts, and app session.",
     "adminSubtitle": "Manage requests, breeders, listings, and community safety.",
+    "breederSubtitle": "Manage your trusted profile, Pet Feed posts, and review status.",
     "myRole": "Roles in Pet Health Care",
     "pets": "Pets",
     "savedPosts": "Saved",
     "myPosts": "My posts",
+    "breederMetrics": {
+      "total": "Total posts",
+      "published": "Published",
+      "pending": "Pending"
+    },
     "adminMetrics": {
       "requests": "Requests",
       "breeders": "Breeders",
@@ -152,6 +158,7 @@
       }
     },
     "communitySafety": "Community posts should stay transparent and respectful. Pet Health Care does not handle payments or replace direct breeder/veterinary verification.",
+    "breederSafety": "Posts should include clear photos, a short video, vaccine/deworming details, and transparent adoption conditions. Avoid absolute health claims without veterinary confirmation.",
     "openBreederProfile": "Breeder profile & posts",
     "createPost": "Create post",
     "openAdminReview": "Admin review",
@@ -178,6 +185,17 @@
       "savedPosts": "Saved Pet Feed posts",
       "petProfiles": "Pet profiles",
       "carePassport": "Care Passport"
+    },
+    "breederTrust": {
+      "untitled": "Unnamed breeder",
+      "missingInfo": "Location or main species is missing",
+      "note": "Transparent details help listings get reviewed faster.",
+      "updateProfile": "Update verification profile",
+      "editProfile": "Edit Breeder profile"
+    },
+    "breederPosts": {
+      "title": "My listings",
+      "empty": "No listings yet. Create your first listing after your profile is verified."
     },
     "vetSummary": "Veterinarian features are planned for educational content and care-record review, not in-app diagnosis.",
     "roleRequiredTitle": "Role required",
