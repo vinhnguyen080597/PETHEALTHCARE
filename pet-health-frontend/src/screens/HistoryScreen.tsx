@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
 import type { Analysis, Severity } from '../types';
+import { analysisPossibleFinding, analysisSeverity } from '../utils/analysisDisplay';
 
 type HistoryScreenProps = {
   history: Analysis[];
@@ -35,24 +36,27 @@ export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
         {history.length === 0 ? (
           <Text className="py-8 text-center text-gray-600">{t('history.empty')}</Text>
         ) : (
-          history.map((item) => (
+          history.map((item) => {
+            const title = analysisPossibleFinding(item, t('results.safeFallbackFinding'));
+            const severity = analysisSeverity(item);
+            return (
             <Pressable
               testID={`history-entry-${item.id}`}
               accessibilityRole="button"
-              accessibilityLabel={`Open health check ${item.diagnosis}`}
+              accessibilityLabel={`Open health check ${title}`}
               key={item.id}
               className="mb-3 flex-row gap-3 rounded-xl border border-gray-200 bg-white p-4 active:bg-gray-50"
               onPress={() => onSelectEntry(item)}
             >
-              <View className={`self-start rounded-full px-2 py-1 ${severityBadgeClass(item.severity)}`}>
+              <View className={`self-start rounded-full px-2 py-1 ${severityBadgeClass(severity)}`}>
                 <View className="flex-row items-center gap-1">
-                  <Ionicons name={severityIconName(item.severity)} size={14} />
-                  <Text className="text-xs font-semibold capitalize">{t(`severity.${item.severity}`)}</Text>
+                  <Ionicons name={severityIconName(severity)} size={14} />
+                  <Text className="text-xs font-semibold capitalize">{t(`severity.${severity}`)}</Text>
                 </View>
               </View>
               <View className="min-w-0 flex-1">
                 <Text className="font-semibold text-slate-900" numberOfLines={2}>
-                  {item.diagnosis}
+                  {title}
                 </Text>
                 <Text className="mt-1 text-xs text-gray-500">
                   {t('common.confidence', { pct: (item.confidence * 100).toFixed(0) })} ·{' '}
@@ -61,7 +65,8 @@ export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
               </View>
               <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
             </Pressable>
-          ))
+            );
+          })
         )}
       </ScrollView>
     </View>

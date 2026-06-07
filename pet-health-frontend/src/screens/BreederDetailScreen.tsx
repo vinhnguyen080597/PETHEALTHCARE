@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { BreederProfile, PetFeedPost } from '../types';
@@ -14,11 +14,14 @@ type BreederDetailScreenProps = {
   onBack: () => void;
   onToggleFavorite: (post: PetFeedPost) => void;
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
+  onReportBreeder: (profile: BreederProfile, reason: string, note?: string) => void;
+  onHideBreeder: (profile: BreederProfile) => void;
 };
 
 type GenderFilter = 'all' | 'male' | 'female' | 'unknown';
 type SortField = 'date' | 'age' | 'price';
 type SortDirection = 'asc' | 'desc';
+const REPORT_REASONS = ['scam', 'misleading_health_claims', 'abusive_content', 'fake_contact', 'unsafe_transaction'] as const;
 
 function normalizeSearchText(value: string) {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -55,12 +58,23 @@ function genderGroup(post: PetFeedPost): GenderFilter {
   return 'unknown';
 }
 
-export function BreederDetailScreen({ profile, posts, onBack, onToggleFavorite, onReportPost }: BreederDetailScreenProps) {
+export function BreederDetailScreen({
+  profile,
+  posts,
+  onBack,
+  onToggleFavorite,
+  onReportPost,
+  onReportBreeder,
+  onHideBreeder,
+}: BreederDetailScreenProps) {
   const { t } = useTranslation();
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportReason, setReportReason] = useState<(typeof REPORT_REASONS)[number]>('scam');
+  const [reportNote, setReportNote] = useState('');
   const trust = useMemo(() => computeBreederTrust(profile, posts), [profile, posts]);
   const selectedPost = selectedPostId ? posts.find((post) => post.id === selectedPostId) ?? null : null;
   const scaleRange = metadataString(profile.metadata, 'scaleRange');
@@ -88,6 +102,19 @@ export function BreederDetailScreen({ profile, posts, onBack, onToggleFavorite, 
     }
     setSortField(field);
     setSortDirection(field === 'date' ? 'desc' : 'asc');
+  }
+
+  function confirmHideBreeder() {
+    Alert.alert(t('breederDetail.blockTitle'), t('breederDetail.blockBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('breederDetail.blockConfirm'), style: 'destructive', onPress: () => onHideBreeder(profile) },
+    ]);
+  }
+
+  function submitProfileReport() {
+    onReportBreeder(profile, reportReason, reportNote);
+    setReportVisible(false);
+    setReportNote('');
   }
 
   return (
@@ -121,6 +148,25 @@ export function BreederDetailScreen({ profile, posts, onBack, onToggleFavorite, 
             <MetricCard label={t('petFeed.topBreeders.trustScore')} value={`${trust.score}/100`} light />
             <MetricCard label={t('petFeed.topBreeders.posts')} value={String(posts.length)} light />
           </View>
+        </View>
+
+        <View className="mt-3 flex-row gap-3">
+          <Pressable
+            accessibilityRole="button"
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50"
+            onPress={() => setReportVisible(true)}
+          >
+            <Ionicons name="flag-outline" size={17} color="#64748b" />
+            <Text className="text-sm font-bold text-slate-700">{t('breederDetail.reportProfile')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 py-3 active:bg-red-100"
+            onPress={confirmHideBreeder}
+          >
+            <Ionicons name="eye-off-outline" size={17} color="#dc2626" />
+            <Text className="text-sm font-bold text-red-600">{t('breederDetail.hideBreeder')}</Text>
+          </Pressable>
         </View>
 
         <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
@@ -202,7 +248,7 @@ export function BreederDetailScreen({ profile, posts, onBack, onToggleFavorite, 
               key={post.id}
               post={post}
               variant="compact"
-              autoPlayVideo
+              autoPlayVideo={false}
               showFavorite={false}
               showContact={false}
               showReport={false}
@@ -226,11 +272,55 @@ export function BreederDetailScreen({ profile, posts, onBack, onToggleFavorite, 
                 post={selectedPost}
                 onToggleFavorite={onToggleFavorite}
                 onReportPost={onReportPost}
+                onHideBreeder={onHideBreeder}
+                showHideBreeder
                 autoPlayVideo={false}
                 testID={`breeder-detail-post-${selectedPost.id}`}
               />
             ) : null}
           </ScrollView>
+        </View>
+      </Modal>
+      <Modal visible={reportVisible} transparent animationType="fade" onRequestClose={() => setReportVisible(false)}>
+        <View className="flex-1 justify-center bg-black/40 px-5">
+          <View className="rounded-3xl bg-white p-5">
+            <Text className="text-lg font-bold text-slate-900">{t('breederDetail.reportProfile')}</Text>
+            <Text className="mt-1 text-sm leading-5 text-slate-500">{t('breederDetail.reportBody')}</Text>
+            <View className="mt-4 gap-2">
+              {REPORT_REASONS.map((reason) => (
+                <Pressable
+                  key={reason}
+                  accessibilityRole="button"
+                  className={`flex-row items-center justify-between rounded-xl border px-3 py-3 ${
+                    reportReason === reason ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
+                  }`}
+                  onPress={() => setReportReason(reason)}
+                >
+                  <Text className={`text-sm font-semibold ${reportReason === reason ? 'text-blue-700' : 'text-slate-700'}`}>
+                    {t(`breederDetail.reportReasons.${reason}`)}
+                  </Text>
+                  {reportReason === reason ? <Ionicons name="checkmark" size={18} color={PRIMARY} /> : null}
+                </Pressable>
+              ))}
+            </View>
+            <TextInput
+              className="mt-4 min-h-[84px] rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-sm text-slate-900"
+              placeholder={t('breederDetail.reportNotePlaceholder')}
+              placeholderTextColor="#94a3b8"
+              multiline
+              textAlignVertical="top"
+              value={reportNote}
+              onChangeText={setReportNote}
+            />
+            <View className="mt-4 flex-row gap-3">
+              <Pressable className="flex-1 rounded-xl border border-gray-200 py-3" onPress={() => setReportVisible(false)}>
+                <Text className="text-center text-sm font-bold text-slate-700">{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable className="flex-1 rounded-xl bg-blue-600 py-3" onPress={submitProfileReport}>
+                <Text className="text-center text-sm font-bold text-white">{t('breederDetail.submitReport')}</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
       </Modal>
     </View>

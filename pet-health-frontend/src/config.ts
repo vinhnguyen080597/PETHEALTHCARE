@@ -11,7 +11,38 @@ const configuredApiOrigin = process.env.EXPO_PUBLIC_API_ORIGIN?.trim();
 const configuredApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
 const configuredApiHealthUrl = process.env.EXPO_PUBLIC_API_HEALTH_URL?.trim();
 
-const apiOrigin = trimTrailingSlash(configuredApiOrigin || LOCAL_API_ORIGIN);
+const DEV_APP_LINKS = {
+  privacyPolicy: 'https://pethealthcare.app/privacy-policy',
+  termsOfService: 'https://pethealthcare.app/terms-of-service',
+  support: 'mailto:support@pethealthcare.app',
+};
+
+function resolveApiOrigin(): string {
+  if (configuredApiOrigin) return trimTrailingSlash(configuredApiOrigin);
+  if (__DEV__) return trimTrailingSlash(LOCAL_API_ORIGIN);
+  throw new Error('EXPO_PUBLIC_API_ORIGIN is required for production builds.');
+}
+
+const apiOrigin = resolveApiOrigin();
+
+function validatePublicLink(value: string, envName: string, allowedProtocols: string[]): string {
+  try {
+    const parsed = new URL(value);
+    if (!allowedProtocols.includes(parsed.protocol)) {
+      throw new Error(`${envName} must use one of: ${allowedProtocols.join(', ')}`);
+    }
+    return value.replace(/\/+$/, '');
+  } catch {
+    throw new Error(`${envName} must be a valid public URL.`);
+  }
+}
+
+function resolveAppLink(envName: string, devFallback: string, allowedProtocols: string[]): string {
+  const configured = process.env[envName]?.trim();
+  if (configured) return validatePublicLink(configured, envName, allowedProtocols);
+  if (__DEV__) return devFallback;
+  throw new Error(`${envName} is required for production builds.`);
+}
 
 export const API_BASE_URL = trimTrailingSlash(configuredApiBaseUrl || `${apiOrigin}/api/v1`);
 
@@ -24,11 +55,11 @@ export const GOOGLE_OAUTH = {
   androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '',
 };
 
-/**
- * Build-time admin secret for internal/debug flows.
- * Keep this only in temporary build/dev environments.
- */
-export const ADMIN_INTERNAL_API_KEY = process.env.EXPO_PUBLIC_ADMIN_INTERNAL_API_KEY ?? '';
+export const APP_LINKS = {
+  privacyPolicy: resolveAppLink('EXPO_PUBLIC_PRIVACY_POLICY_URL', DEV_APP_LINKS.privacyPolicy, ['https:']),
+  termsOfService: resolveAppLink('EXPO_PUBLIC_TERMS_OF_SERVICE_URL', DEV_APP_LINKS.termsOfService, ['https:']),
+  support: resolveAppLink('EXPO_PUBLIC_SUPPORT_URL', DEV_APP_LINKS.support, ['https:', 'mailto:']),
+};
 
 export function isGoogleOAuthConfigured(): boolean {
   return Boolean(

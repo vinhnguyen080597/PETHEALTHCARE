@@ -83,6 +83,7 @@ export default function App() {
       onUpdatePostStatus={app.updateAdminPostStatus}
       onUpdateReportStatus={app.updateAdminReportStatus}
       onLogout={app.logout}
+      onDeleteAccount={app.requestDeleteAccount}
       showHeaderLogout={!isAdmin}
     />
   );
@@ -134,6 +135,7 @@ export default function App() {
                 onRefresh={app.refreshPetFeed}
                 onToggleFavorite={app.togglePetFeedFavorite}
                 onReportPost={app.submitPetFeedReport}
+                onHideBreeder={app.hideBreederProfile}
                 onOpenBreederDetail={app.openBreederDetail}
               />
             )}
@@ -145,6 +147,8 @@ export default function App() {
                 onBack={app.closeBreederDetail}
                 onToggleFavorite={app.togglePetFeedFavorite}
                 onReportPost={app.submitPetFeedReport}
+                onReportBreeder={app.submitBreederProfileReport}
+                onHideBreeder={app.hideBreederProfile}
               />
             ) : null}
 

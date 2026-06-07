@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { MAI_GUIDING } from '../assets/maiAssets';
+import { APP_LINKS } from '../config';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 
 const PRIMARY = '#1E6FE8';
@@ -98,6 +99,7 @@ type AccountScreenProps = {
   onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
   onLogout: () => void;
+  onDeleteAccount: () => void;
   showHeaderLogout?: boolean;
 };
 
@@ -157,6 +159,7 @@ export function AccountScreen({
   onUpdatePostStatus,
   onUpdateReportStatus,
   onLogout,
+  onDeleteAccount,
   showHeaderLogout = true,
 }: AccountScreenProps) {
   const { t } = useTranslation();
@@ -219,8 +222,10 @@ export function AccountScreen({
       status: report.status,
       createdAt: report.created_at,
       title: report.reason || t('adminRequests.report'),
-      subtitle: `${t('adminRequests.postId')}: ${report.post_id}`,
-      body: report.note,
+      subtitle: report.target_type === 'breeder_profile'
+        ? `${t('adminRequests.types.breeder')}: ${report.breeder_profile?.display_name ?? report.breeder_profile_id ?? ''}`
+        : `${t('adminRequests.postId')}: ${report.post_id ?? ''}`,
+      body: report.note || (report.target_type === 'breeder_profile' ? report.breeder_profile?.bio ?? '' : ''),
       report,
     }));
     return [...breederItems, ...postItems, ...reportItems];
@@ -628,9 +633,45 @@ export function AccountScreen({
                   </View>
                 ) : null}
                 {item.type === 'report' ? (
-                  <View className="mt-4 flex-row gap-2">
-                    <AdminActionButton label={t('adminReview.markReviewed')} variant="primary" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'reviewed'))} />
-                    <AdminActionButton label={t('adminReview.dismiss')} variant="neutral" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'dismissed'))} />
+                  <View className="mt-4 gap-2">
+                    {item.report.post_id ? (
+                      <View className="flex-row gap-2">
+                        <AdminActionButton
+                          label={t('adminReview.archive')}
+                          variant="warning"
+                          onPress={() => void runAdminAction(() => onUpdatePostStatus(item.report.post_id!, 'archived'))}
+                        />
+                        <AdminActionButton
+                          label={t('adminReview.markReviewed')}
+                          variant="primary"
+                          onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'reviewed'))}
+                        />
+                      </View>
+                    ) : null}
+                    {item.report.breeder_profile?.user_id ? (
+                      <View className="flex-row gap-2">
+                        <AdminActionButton
+                          label={t('adminReview.suspend')}
+                          variant="warning"
+                          onPress={() => void runAdminAction(() => onUpdateBreederStatus(item.report.breeder_profile!.user_id, 'suspended'))}
+                        />
+                        <AdminActionButton
+                          label={t('adminReview.markReviewed')}
+                          variant="primary"
+                          onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'reviewed'))}
+                        />
+                      </View>
+                    ) : null}
+                    {!item.report.post_id && !item.report.breeder_profile?.user_id ? (
+                      <View className="flex-row gap-2">
+                        <AdminActionButton label={t('adminReview.markReviewed')} variant="primary" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'reviewed'))} />
+                        <AdminActionButton label={t('adminReview.dismiss')} variant="neutral" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'dismissed'))} />
+                      </View>
+                    ) : (
+                      <View className="flex-row gap-2">
+                        <AdminActionButton label={t('adminReview.dismiss')} variant="neutral" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'dismissed'))} />
+                      </View>
+                    )}
                   </View>
                 ) : null}
               </View>
@@ -811,8 +852,42 @@ export function AccountScreen({
             </View>
           </View>
         ) : null}
+        <View className="rounded-2xl border border-gray-200 bg-white p-4">
+          <Text className="text-base font-bold text-slate-900">{t('legal.title')}</Text>
+          <Text className="mt-1 text-sm leading-5 text-slate-500">{t('legal.body')}</Text>
+          <View className="mt-3 gap-2">
+            <LegalLinkButton label={t('legal.privacy')} url={APP_LINKS.privacyPolicy} />
+            <LegalLinkButton label={t('legal.terms')} url={APP_LINKS.termsOfService} />
+            <LegalLinkButton label={t('legal.support')} url={APP_LINKS.support} />
+          </View>
+        </View>
+        <View className="rounded-2xl border border-red-100 bg-red-50 p-4">
+          <Text className="text-base font-bold text-red-900">{t('account.deleteAccount.cardTitle')}</Text>
+          <Text className="mt-1 text-sm leading-5 text-red-800">{t('account.deleteAccount.cardBody')}</Text>
+          <Pressable
+            accessibilityRole="button"
+            className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-red-600 py-3 active:bg-red-700"
+            onPress={onDeleteAccount}
+          >
+            <Ionicons name="trash-outline" size={17} color="#fff" />
+            <Text className="text-sm font-bold text-white">{t('account.deleteAccount.cta')}</Text>
+          </Pressable>
+        </View>
       </View>
     </ScrollView>
+  );
+}
+
+function LegalLinkButton({ label, url }: { label: string; url: string }) {
+  return (
+    <Pressable
+      accessibilityRole="link"
+      className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-3 active:bg-slate-100"
+      onPress={() => void Linking.openURL(url)}
+    >
+      <Text className="text-sm font-semibold text-slate-700">{label}</Text>
+      <Ionicons name="open-outline" size={17} color="#64748b" />
+    </Pressable>
   );
 }
 

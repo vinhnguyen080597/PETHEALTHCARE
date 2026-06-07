@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguageToggle } from '../components/LanguageToggle';
+import { APP_LINKS } from '../config';
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
 
@@ -212,7 +213,20 @@ export function LoginScreen({
           <Text className={`px-2 text-center text-xs ${healthLooksBad ? 'text-red-200' : 'text-blue-100'}`}>
             {healthText}
           </Text>
-          <Text className="mt-3 px-4 pb-4 text-center text-xs text-blue-100">{t('login.termsFooter')}</Text>
+          <Text className="mt-3 px-4 pb-4 text-center text-xs leading-5 text-blue-100">
+            {t('login.termsPrefix')}{' '}
+            <Text className="font-bold underline" onPress={() => void Linking.openURL(APP_LINKS.termsOfService)}>
+              {t('legal.terms')}
+            </Text>
+            {' '}{t('login.termsAnd')}{' '}
+            <Text className="font-bold underline" onPress={() => void Linking.openURL(APP_LINKS.privacyPolicy)}>
+              {t('legal.privacy')}
+            </Text>
+            {'. '}
+            <Text className="font-bold underline" onPress={() => void Linking.openURL(APP_LINKS.support)}>
+              {t('legal.support')}
+            </Text>
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

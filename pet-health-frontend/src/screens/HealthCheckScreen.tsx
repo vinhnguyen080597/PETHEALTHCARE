@@ -218,6 +218,15 @@ export function HealthCheckScreen({
             {t('healthCheck.infoBanner')}
           </Text>
         </View>
+        <View className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+          <View className="flex-row items-start gap-3">
+            <Ionicons name="warning-outline" size={20} color="#b91c1c" style={{ marginTop: 2 }} />
+            <View className="min-w-0 flex-1">
+              <Text className="text-sm font-bold text-red-900">{t('healthCheck.urgentWarningTitle')}</Text>
+              <Text className="mt-1 text-sm leading-5 text-red-800">{t('healthCheck.urgentWarningBody')}</Text>
+            </View>
+          </View>
+        </View>
         {aiCredits ? (
           <View className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
             <View className="flex-row items-center gap-2">
@@ -234,13 +243,6 @@ export function HealthCheckScreen({
             {hasInsufficientCredits ? (
               <View>
                 <Text className="mt-2 text-sm font-semibold text-amber-900">{t('aiCredits.outOfCredits')}</Text>
-                <View className="mt-3 flex-row flex-wrap gap-2">
-                  {['rewardedAd', 'topUp', 'subscription'].map((key) => (
-                    <Text key={key} className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
-                      {t(`aiCredits.prompts.${key}`)}
-                    </Text>
-                  ))}
-                </View>
               </View>
             ) : null}
           </View>

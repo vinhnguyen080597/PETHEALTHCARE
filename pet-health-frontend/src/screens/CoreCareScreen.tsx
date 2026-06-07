@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInp
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
 import { buildCarePassportStats, metadataNumber, metadataText } from '../utils/carePassport';
+import { analysisPossibleFinding } from '../utils/analysisDisplay';
 import type {
   AiCreditAccount,
   Analysis,
@@ -59,7 +60,6 @@ export function CoreCareScreen({
   onRefresh,
   onCreateRecord,
   onMarkReminderDone,
-  onClaimRewardedAd,
 }: CoreCareScreenProps) {
   const { t, i18n } = useTranslation();
   const [selectedType, setSelectedType] = useState<CoreCareRecordType>('diary');
@@ -352,15 +352,6 @@ export function CoreCareScreen({
               ? t('coreCare.creditsBody', { credits: aiCredits.creditBalance })
               : t('coreCare.creditsUnavailable')}
           </Text>
-          <Pressable
-            testID="core-care-claim-ad-credit-button"
-            accessibilityRole="button"
-            accessibilityLabel="Earn one AI credit with rewarded ad"
-            className="mt-3 rounded-xl bg-white px-4 py-3 active:bg-amber-100"
-            onPress={onClaimRewardedAd}
-          >
-            <Text className="text-center text-sm font-bold text-amber-900">{t('coreCare.claimAdCredit')}</Text>
-          </Pressable>
           {creditLedger.length > 0 ? (
             <Text className="mt-3 text-xs text-amber-900">
               {t('coreCare.lastCreditEvent', { reason: String(creditLedger[0]?.reason ?? '-') })}
@@ -401,12 +392,13 @@ export function CoreCareScreen({
           <View className="gap-3">
             {filteredTimeline.slice(0, 20).map((entry) => {
               if (entry.kind === 'analysis') {
+                const title = analysisPossibleFinding(entry.analysis, t('results.safeFallbackFinding'));
                 return (
                   <View key={`analysis-${entry.analysis.id}`} className="rounded-xl border border-gray-200 bg-white p-4">
                     <View className="flex-row items-start gap-3">
                       <Ionicons name="pulse-outline" size={20} color={PRIMARY} />
                       <View className="min-w-0 flex-1">
-                        <Text className="font-semibold text-slate-900" numberOfLines={2}>{entry.analysis.diagnosis}</Text>
+                        <Text className="font-semibold text-slate-900" numberOfLines={2}>{title}</Text>
                         <Text className="mt-1 text-xs text-slate-500">
                           {t('coreCare.filters.analysis')} · {formatLocaleDateTime(entry.analysis.created_at, i18n.language)}
                         </Text>

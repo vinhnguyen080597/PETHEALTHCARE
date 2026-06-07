@@ -26,6 +26,7 @@ type PetFeedScreenProps = {
   onRefresh: () => void;
   onToggleFavorite: (post: PetFeedPost) => void;
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
+  onHideBreeder: (profile: BreederProfile) => void;
   onOpenBreederDetail: (profileId: string) => void;
 };
 
@@ -89,7 +90,7 @@ type TopBreeder = {
   posts: PetFeedPost[];
 };
 
-export function PetFeedScreen({ posts, breederProfiles, refreshing, onRefresh, onToggleFavorite, onReportPost, onOpenBreederDetail }: PetFeedScreenProps) {
+export function PetFeedScreen({ posts, breederProfiles, refreshing, onRefresh, onToggleFavorite, onReportPost, onHideBreeder, onOpenBreederDetail }: PetFeedScreenProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<FeedTab>('feed');
   const [query, setQuery] = useState('');
@@ -319,7 +320,7 @@ export function PetFeedScreen({ posts, breederProfiles, refreshing, onRefresh, o
               key={post.id}
               post={post}
               variant="compact"
-              autoPlayVideo
+              autoPlayVideo={false}
               showFavorite={false}
               showContact={false}
               showReport={false}
@@ -424,6 +425,8 @@ export function PetFeedScreen({ posts, breederProfiles, refreshing, onRefresh, o
               post={selectedPost}
               onToggleFavorite={onToggleFavorite}
               onReportPost={onReportPost}
+              onHideBreeder={onHideBreeder}
+              showHideBreeder
               autoPlayVideo={false}
               testID={`pet-feed-detail-post-${selectedPost.id}`}
             />

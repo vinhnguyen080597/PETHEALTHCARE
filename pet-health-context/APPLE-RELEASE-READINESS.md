@@ -6,7 +6,7 @@ This file tracks the frontend and product requirements to address before submitt
 
 ## Current Conclusion
 
-Do not submit to Apple yet. The app has good foundations, but several App Review blockers remain around account deletion, UGC safety, privacy links, iOS build configuration, and health/AI wording.
+Do not submit to Apple yet. The app has good foundations, and the first pass of App Review blockers now has code support for account deletion, UGC profile reporting/blocking, privacy/support links, and iOS build configuration. Remaining release work still includes live policy URLs, production EAS environment values, final assets, health/AI wording audit, and real-device QA.
 
 ## Priority 0 - Likely App Review Blockers
 
@@ -16,14 +16,14 @@ Apple requires apps that allow account creation to also let users initiate accou
 
 Current state:
 - App supports signup/login.
-- Account page currently supports logout.
-- No visible delete account flow was found in the frontend.
+- Account page supports logout.
+- Account page now includes an in-app delete account flow.
 
 Required work:
-- Add "Delete account" in Account/Profile settings.
-- Explain what data will be deleted and expected timeline.
-- Add confirmation flow.
-- Add backend API for account/data deletion if not already available.
+- [x] Add "Delete account" in Account/Profile settings.
+- [x] Explain what data will be deleted.
+- [x] Add confirmation flow.
+- [x] Add backend API for account/data deletion.
 - If Sign in with Apple is enabled in production, revoke Apple tokens when deleting account.
 
 ### 2. Privacy Policy, Terms, and Support Links
@@ -32,14 +32,14 @@ Apple requires a privacy policy in App Store Connect metadata and easily accessi
 
 Current state:
 - Login footer says users agree to Terms and Privacy Policy.
-- The text is not clickable.
-- No visible support/contact policy page was found in the app.
+- Terms, Privacy Policy, and Support links are clickable from Login.
+- Terms, Privacy Policy, and Support links are visible from Account.
 
 Required work:
-- Add clickable Privacy Policy link.
-- Add clickable Terms of Service link.
-- Add Support/Contact link, ideally visible from Login and Account.
-- Prepare public web URLs for these documents.
+- [x] Add clickable Privacy Policy link.
+- [x] Add clickable Terms of Service link.
+- [x] Add Support/Contact link, ideally visible from Login and Account.
+- Prepare public web URLs for these documents and configure production env values.
 
 ### 3. UGC Safety - Block User/Breeder
 
@@ -56,24 +56,24 @@ Current state:
 - Pet Feed posts can be reported.
 - Breeder posts go through pending/admin review.
 - Admin can review reports.
-- No user-facing block breeder/user flow was found.
+- Users can hide/block breeder profiles from Breeder Detail.
 
 Required work:
-- Add "Block breeder" or "Hide breeder" on breeder profile/detail and listing detail.
-- Persist blocked breeders/users.
-- Filter blocked breeders/posts out of Pet Feed and Top Breeder.
+- [x] Add "Block breeder" or "Hide breeder" on breeder profile/detail.
+- [x] Persist blocked breeders.
+- [x] Filter blocked breeders/posts out of Pet Feed and Top Breeder.
 - Add unblock management in Account.
 
 ### 4. UGC Safety - Report Breeder Profile
 
 Current state:
 - Listings can be reported.
-- Breeder profile/detail content cannot be reported directly.
+- Breeder profile/detail content can now be reported directly.
 
 Required work:
-- Add "Report breeder profile" on Breeder Detail page.
-- Let users choose reasons such as scam, misleading health claims, abusive content, fake contact, unsafe transaction.
-- Send profile reports to admin moderation.
+- [x] Add "Report breeder profile" on Breeder Detail page.
+- [x] Let users choose reasons such as scam, misleading health claims, abusive content, fake contact, unsafe transaction.
+- [x] Send profile reports to admin moderation.
 - Admin should be able to review the profile and suspend/reject breeder if needed.
 
 ### 5. iOS Permission Purpose Strings
@@ -85,29 +85,29 @@ The app uses image/video picker flows for:
 - Pet Feed post photos/videos.
 
 Current state:
-- `app.json` does not define custom iOS `infoPlist` purpose strings.
+- `app.json` defines custom iOS photo/camera/microphone purpose strings.
 
 Required work:
-- Add `NSPhotoLibraryUsageDescription`.
-- Consider `NSCameraUsageDescription` and `NSMicrophoneUsageDescription` if camera/video capture is enabled now or later.
+- [x] Add `NSPhotoLibraryUsageDescription`.
+- [x] Add `NSCameraUsageDescription` and `NSMicrophoneUsageDescription`.
 - Make the text specific: photos/videos are used for pet profiles, wellness screening, breed recognition, and Pet Feed listings.
 - Rebuild native iOS binary after changing these strings.
 
 ### 6. iOS Bundle and Build Configuration
 
 Current state:
-- `app.json` lacks a stable `ios.bundleIdentifier`.
-- `app.json` lacks `ios.buildNumber`.
-- No `eas.json` was found.
-- `src/config.ts` falls back to local HTTP LAN backend.
+- `app.json` has a stable `ios.bundleIdentifier`.
+- `app.json` has `ios.buildNumber`.
+- `eas.json` exists.
+- `src/config.ts` only falls back to local HTTP LAN backend in dev builds.
 
 Required work:
-- Add production bundle identifier, for example `com.pethealthcare.app` or another final identifier.
-- Add `ios.buildNumber`.
-- Add EAS build/submit profiles.
+- [x] Add production bundle identifier, currently `com.pethealthcare.app`.
+- [x] Add `ios.buildNumber`.
+- [x] Add EAS build/submit profiles.
 - Ensure production builds use HTTPS backend via `EXPO_PUBLIC_API_ORIGIN`.
-- Prevent release builds from falling back to `http://192.168.1.4:3000`.
-- Ensure no internal admin secret is bundled into production.
+- [x] Prevent release builds from falling back to `http://192.168.1.4:3000`.
+- [x] Ensure no internal admin secret is bundled into production frontend config.
 
 ## Priority 1 - High Risk Before Submission
 
@@ -124,88 +124,90 @@ Required work:
 ### 8. iPad Support Decision
 
 Current state:
-- `ios.supportsTablet` is `true`.
+- `ios.supportsTablet` is now `false` for the first release.
 
 Risk:
 - Apple may review on iPad.
 - Layout has not had a full responsive audit yet.
 
 Required work:
-- Either test and support iPad properly, or consider setting tablet support based on release strategy.
+- [x] Either test and support iPad properly, or consider setting tablet support based on release strategy.
 - If keeping iPad support, test Login, Home, Pet Feed, Account, Breeder Detail, Health Check, Results, and forms on iPad sizes.
 
 ### 9. Health/AI Wording - Legacy Diagnosis Fields
 
 Current state:
-- Some saved check surfaces may still display legacy fields named `diagnosis` or `treatment`.
-- Main Result screen uses safer labels like "Possible finding" and "Care guidance", but falls back to legacy fields.
+- Saved check surfaces now use safe display helpers and labels like "Possible finding", "Observed signs", and "Care guidance".
+- Legacy `diagnosis`/`treatment` fields remain in the API/data model for compatibility, but are not shown as UI labels.
 
 Risk:
 - Apple may interpret the app as providing diagnosis/treatment.
 
 Required work:
-- Avoid showing `diagnosis` and `treatment` labels anywhere in the UI.
-- Rename display labels to "Possible finding", "Observed signs", "Care guidance", or equivalent Vietnamese wording.
-- Audit History, Pet Profile, Core Care, Vet Summary, and Results.
+- [x] Avoid showing `diagnosis` and `treatment` labels anywhere in the UI.
+- [x] Rename display labels to "Possible finding", "Observed signs", "Care guidance", or equivalent Vietnamese wording.
+- [x] Audit History, Pet Profile, Core Care, Vet Summary, and Results.
 
 ### 10. Health/AI Disclaimer Placement
 
 Current state:
-- Results screen includes disclaimer, but it appears after AI output.
+- Results screen now duplicates the disclaimer before AI output.
+- Health Check intake now warns users not to wait for AI in urgent situations.
 
 Required work:
-- Move or duplicate disclaimer near the top of Results before the main finding.
-- Add a clear warning on Health Check intake: do not wait for AI if symptoms are urgent.
-- Keep emergency copy strong and visible.
+- [x] Move or duplicate disclaimer near the top of Results before the main finding.
+- [x] Add a clear warning on Health Check intake: do not wait for AI if symptoms are urgent.
+- [x] Keep emergency copy strong and visible.
 
 ### 11. AI Output Guardrails
 
 Current state:
-- Frontend trusts `care_guidance` / legacy `treatment` text from backend.
-- Types include safety flags, but UI does not visibly suppress unsafe output.
+- Frontend now suppresses unsafe health output when safety flags indicate definitive diagnosis, medication dosage, or policy fallback.
+- Unsafe output is replaced with a veterinarian-contact fallback.
 
 Required work:
-- If backend returns definitive diagnosis, medication dosage, or unsafe medical instruction, show a safe fallback message.
-- Add frontend guardrails for fields such as `is_definitive_diagnosis` and `contains_medication_dosage` if present.
-- Prefer "contact a veterinarian" guidance for high-risk or unsafe outputs.
+- [x] If backend returns definitive diagnosis, medication dosage, or unsafe medical instruction, show a safe fallback message.
+- [x] Add frontend guardrails for fields such as `is_definitive_diagnosis` and `contains_medication_dosage` if present.
+- [x] Prefer "contact a veterinarian" guidance for high-risk or unsafe outputs.
 
 ### 12. Report UX and Moderation Actions
 
 Current state:
-- Report action exists but uses a fixed reason and is mostly available from detail view.
-- Admin report items can be marked reviewed/dismissed, but report cards do not directly expose archive/suspend actions.
+- Listing report action now uses a reason picker and optional note from the listing detail card.
+- Admin report items can be marked reviewed/dismissed and now expose quick actions to archive reported listings or suspend reported breeder profiles.
 
 Required work:
-- Add report reason picker and optional note.
+- [x] Add report reason picker and optional note.
 - Make report action easy to find.
 - In admin report queue, show enough content context to moderate.
-- Add quick actions: archive listing, suspend breeder, mark reviewed, dismiss.
+- [x] Add quick actions: archive listing, suspend breeder, mark reviewed, dismiss.
 
 ### 13. User-Controlled External Contact Links
 
 Current state:
-- Breeder/listing contact fields can open Facebook, Zalo, or phone links.
+- Breeder/listing contact fields can open Facebook, Zalo, or phone links after a safety confirmation.
+- Contact URLs are constrained to supported Facebook/Zalo hosts or valid phone links before opening.
 
 Risk:
 - UGC contact links can be misleading or unsafe.
 
 Required work:
-- Validate URL formats where possible.
-- Consider a safety confirmation before opening external contact links.
-- Add copy that Pet Health Care does not handle payments and users should verify breeder identity.
+- [x] Validate URL formats where possible.
+- [x] Consider a safety confirmation before opening external contact links.
+- [x] Add copy that Pet Health Care does not handle payments and users should verify breeder identity.
 
 ### 14. Credits, Top-Up, Subscription, Rewarded Ads Copy
 
 Current state:
-- UI copy references buying credits, Premium quota, and watching ads.
+- Release UI no longer prompts users to buy credits, use Premium quota, or watch rewarded ads.
 
 Risk:
 - If digital credits/subscriptions are sold, Apple requires In-App Purchase.
 - If not implemented, this copy can confuse review.
 
 Required work:
-- Hide or reword monetization prompts for initial release unless IAP/rewarded ads are fully implemented.
-- Avoid "Mua credits" / "Premium" release copy if no IAP exists.
+- [x] Hide or reword monetization prompts for initial release unless IAP/rewarded ads are fully implemented.
+- [x] Avoid "Mua credits" / "Premium" release copy if no IAP exists.
 
 ## Priority 2 - Polish and Operational Readiness
 

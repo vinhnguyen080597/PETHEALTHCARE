@@ -7,6 +7,7 @@ const memoryProfiles = [];
 const memoryPosts = [];
 const memoryFavorites = [];
 const memoryReports = [];
+const memoryBlockedBreeders = [];
 
 function getFeedSupabase(accessToken) {
   const withJwt = createSupabaseWithUserAccessToken(accessToken);
@@ -146,7 +147,10 @@ function toReport(row) {
   return {
     id: row.id,
     user_id: row.user_id,
-    post_id: row.post_id,
+    target_type: row.target_type ?? (row.breeder_profile_id ? 'breeder_profile' : 'post'),
+    post_id: row.post_id ?? null,
+    breeder_profile_id: row.breeder_profile_id ?? null,
+    breeder_profile: row.breeder_profile ?? null,
     reason: row.reason,
     note: row.note ?? '',
     status: row.status ?? 'open',
@@ -169,42 +173,52 @@ async function favoriteIdsForUser(supabase, userId) {
   return new Set((data ?? []).map((row) => row.post_id));
 }
 
+async function blockedBreederIdsForUser(supabase, userId) {
+  const { data, error } = await supabase.from('pet_feed_blocked_breeders').select('breeder_profile_id').eq('user_id', userId);
+  if (error) throw error;
+  return new Set((data ?? []).map((row) => row.breeder_profile_id));
+}
+
 export async function listPublishedPetFeedPosts(userId, accessToken) {
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) {
     const favoriteIds = new Set(memoryFavorites.filter((row) => row.user_id === userId).map((row) => row.post_id));
+    const blockedBreederIds = new Set(memoryBlockedBreeders.filter((row) => row.user_id === userId).map((row) => row.breeder_profile_id));
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     return memoryPosts
-      .filter((post) => post.status === 'published')
+      .filter((post) => post.status === 'published' && !blockedBreederIds.has(post.breeder_profile_id))
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
       .map((post) => toPost(post, favoriteIds, profilesById));
   }
 
   const favoriteIds = await favoriteIdsForUser(supabase, userId);
+  const blockedBreederIds = await blockedBreederIdsForUser(supabase, userId);
   const { data, error } = await supabase
     .from('pet_feed_posts')
     .select('*, breeder_profile:breeder_profiles(*)')
     .eq('status', 'published')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((row) => toPost(row, favoriteIds));
+  return (data ?? []).filter((row) => !blockedBreederIds.has(row.breeder_profile_id)).map((row) => toPost(row, favoriteIds));
 }
 
-export async function listVerifiedBreederProfiles() {
+export async function listVerifiedBreederProfiles(userId, accessToken) {
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
+    const blockedBreederIds = new Set(memoryBlockedBreeders.filter((row) => row.user_id === userId).map((row) => row.breeder_profile_id));
     return memoryProfiles
-      .filter((profile) => profile.verification_status === 'verified')
+      .filter((profile) => profile.verification_status === 'verified' && !blockedBreederIds.has(profile.id))
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
       .map(toProfile);
   }
+  const blockedBreederIds = userId ? await blockedBreederIdsForUser(supabase, userId) : new Set();
   const { data, error } = await supabase
     .from('breeder_profiles')
     .select('*')
     .eq('verification_status', 'verified')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map(toProfile);
+  return (data ?? []).filter((profile) => !blockedBreederIds.has(profile.id)).map(toProfile);
 }
 
 export async function getPetFeedPost(userId, postId, accessToken) {
@@ -351,7 +365,9 @@ export async function reportPetFeedPost(userId, postId, payload, accessToken) {
   const row = {
     id: randomUUID(),
     user_id: userId,
+    target_type: 'post',
     post_id: postId,
+    breeder_profile_id: null,
     reason: trimText(payload.reason, 120) || 'other',
     note: trimText(payload.note, 1200),
     status: 'open',
@@ -366,6 +382,70 @@ export async function reportPetFeedPost(userId, postId, payload, accessToken) {
   const { data, error } = await supabase.from('pet_feed_reports').insert(row).select('*').single();
   if (error) throw error;
   return toReport(data);
+}
+
+export async function reportBreederProfile(userId, profileId, payload, accessToken) {
+  const row = {
+    id: randomUUID(),
+    user_id: userId,
+    target_type: 'breeder_profile',
+    post_id: null,
+    breeder_profile_id: profileId,
+    reason: trimText(payload.reason, 120) || 'other',
+    note: trimText(payload.note, 1200),
+    status: 'open',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    const profile = memoryProfiles.find((item) => item.id === profileId) ?? null;
+    memoryReports.push(row);
+    return toReport({ ...row, breeder_profile: toProfile(profile) });
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_reports')
+    .insert(row)
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .single();
+  if (error) throw error;
+  return toReport(data);
+}
+
+export async function blockBreederProfile(userId, profileId, accessToken) {
+  const row = {
+    user_id: userId,
+    breeder_profile_id: profileId,
+    created_at: new Date().toISOString(),
+  };
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    const exists = memoryBlockedBreeders.some((item) => item.user_id === userId && item.breeder_profile_id === profileId);
+    if (!exists) memoryBlockedBreeders.push(row);
+    return row;
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_blocked_breeders')
+    .upsert(row, { onConflict: 'user_id,breeder_profile_id' })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function unblockBreederProfile(userId, profileId, accessToken) {
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    const idx = memoryBlockedBreeders.findIndex((item) => item.user_id === userId && item.breeder_profile_id === profileId);
+    if (idx >= 0) memoryBlockedBreeders.splice(idx, 1);
+    return;
+  }
+  const { error } = await supabase
+    .from('pet_feed_blocked_breeders')
+    .delete()
+    .eq('user_id', userId)
+    .eq('breeder_profile_id', profileId);
+  if (error) throw error;
 }
 
 export async function listAdminPetFeedPosts(status = 'pending_review') {
@@ -412,9 +492,12 @@ export async function adminUpdatePetFeedPostStatus(postId, status) {
 export async function listAdminPetFeedReports(status = 'open') {
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
-    return memoryReports.filter((report) => !status || report.status === status).map(toReport);
+    const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
+    return memoryReports
+      .filter((report) => !status || report.status === status)
+      .map((report) => toReport({ ...report, breeder_profile: profilesById.get(report.breeder_profile_id) ?? null }));
   }
-  let query = supabase.from('pet_feed_reports').select('*').order('created_at', { ascending: false });
+  let query = supabase.from('pet_feed_reports').select('*, breeder_profile:breeder_profiles(*)').order('created_at', { ascending: false });
   if (status) query = query.eq('status', status);
   const { data, error } = await query;
   if (error) throw error;

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { Analysis, Severity } from '../types';
+import { analysisCareGuidance, analysisConfidence, analysisObservedSigns, analysisPossibleFinding, analysisSeverity, hasUnsafeAiOutput } from '../utils/analysisDisplay';
 import { severityCardClass } from '../utils/severityStyles';
 
 type ResultsScreenProps = {
@@ -31,11 +32,12 @@ export function ResultsScreen({
 }: ResultsScreenProps) {
   const { t } = useTranslation();
   const assessment = result.assessment;
-  const severity = assessment?.severity ?? result.severity;
-  const confidence = assessment?.confidence ?? result.confidence;
-  const possibleFinding = assessment?.possible_finding ?? result.diagnosis;
-  const observedSigns = assessment?.observed_signs ?? result.symptoms;
-  const careGuidance = assessment?.care_guidance ?? result.treatment;
+  const severity = analysisSeverity(result);
+  const confidence = analysisConfidence(result);
+  const unsafeOutput = hasUnsafeAiOutput(result);
+  const possibleFinding = analysisPossibleFinding(result, t('results.safeFallbackFinding'));
+  const observedSigns = analysisObservedSigns(result);
+  const careGuidance = analysisCareGuidance(result, t('results.safeFallbackGuidance'));
   const disclaimer = assessment?.safety?.disclaimer ?? result.disclaimer;
   const fixedDisclaimer = t('results.fixedDisclaimer');
   const confPct = Math.round(confidence * 100);
@@ -45,9 +47,9 @@ export function ResultsScreen({
   const status = assessment?.status ?? result.status ?? 'ok';
   const evidence = assessment?.visual_evidence?.filter(Boolean) ?? result.evidence?.filter(Boolean) ?? [];
   const missingData = assessment?.missing_data?.filter(Boolean) ?? result.missing_data?.filter(Boolean) ?? [];
-  const nextActionSummary = assessment?.next_action?.summary?.trim() ?? result.next_action?.summary?.trim() ?? '';
+  const nextActionSummary = unsafeOutput ? '' : assessment?.next_action?.summary?.trim() ?? result.next_action?.summary?.trim() ?? '';
   const nextActionAdd =
-    assessment?.next_action?.ask_user_to_add?.filter(Boolean) ?? result.next_action?.ask_user_to_add?.filter(Boolean) ?? [];
+    unsafeOutput ? [] : assessment?.next_action?.ask_user_to_add?.filter(Boolean) ?? result.next_action?.ask_user_to_add?.filter(Boolean) ?? [];
 
   return (
     <View testID="results-screen" className="flex-1 bg-gray-50">
@@ -85,6 +87,17 @@ export function ResultsScreen({
             <Image source={{ uri: imageUri }} className="h-48 w-full" resizeMode="cover" />
           </View>
         ) : null}
+
+        <View className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <View className="flex-row items-start gap-3">
+            <Ionicons name="warning-outline" size={20} color="#d97706" style={{ marginTop: 2 }} />
+            <View className="flex-1">
+              <Text className="mb-1 text-sm font-semibold text-amber-900">{t('results.importantDisclaimer')}</Text>
+              <Text className="text-xs leading-relaxed text-amber-800">{fixedDisclaimer}</Text>
+              {unsafeOutput ? <Text className="mt-2 text-xs leading-relaxed text-amber-800">{t('results.safeFallbackNotice')}</Text> : null}
+            </View>
+          </View>
+        </View>
 
         <View className={`mb-6 rounded-xl border-2 p-4 ${severityCardClass(severity)}`}>
           <View className="mb-2 flex-row items-center gap-3">
@@ -180,18 +193,17 @@ export function ResultsScreen({
           <Text className="text-sm leading-relaxed text-gray-700">{careGuidance}</Text>
         </View>
 
+        {disclaimer && disclaimer !== fixedDisclaimer && !unsafeOutput ? (
         <View className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <View className="flex-row items-start gap-3">
             <Ionicons name="warning-outline" size={20} color="#d97706" style={{ marginTop: 2 }} />
             <View className="flex-1">
               <Text className="mb-1 text-sm font-semibold text-amber-900">{t('results.importantDisclaimer')}</Text>
-              <Text className="text-xs leading-relaxed text-amber-800">{fixedDisclaimer}</Text>
-              {disclaimer && disclaimer !== fixedDisclaimer ? (
-                <Text className="mt-2 text-xs leading-relaxed text-amber-800">{disclaimer}</Text>
-              ) : null}
+              <Text className="text-xs leading-relaxed text-amber-800">{disclaimer}</Text>
             </View>
           </View>
         </View>
+        ) : null}
 
         {warnings.map((warning) => (
           <View key={warning} className="mb-2 flex-row gap-2 rounded-lg border border-amber-200 bg-amber-50/80 p-3">

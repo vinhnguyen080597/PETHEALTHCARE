@@ -6,18 +6,20 @@ Tài liệu này tổng hợp các lưu ý quan trọng cần xử lý trước 
 
 - [ ] **Không commit secret thật** vào git (`.env`, API keys, SMTP app password, Supabase service role key).
 - [ ] Kiểm tra lại `pet-health-backend/.env.example` và `pet-health-frontend/.env.example` chỉ chứa placeholder.
+- [ ] Xóa `EXPO_PUBLIC_ADMIN_INTERNAL_API_KEY` khỏi `pet-health-frontend/.env` local trước mọi build public.
+- [ ] Set EAS production env/secrets cho `EXPO_PUBLIC_API_ORIGIN`, `EXPO_PUBLIC_PRIVACY_POLICY_URL`, `EXPO_PUBLIC_TERMS_OF_SERVICE_URL`, `EXPO_PUBLIC_SUPPORT_URL`.
 - [ ] **Rotate key ngay** nếu từng lộ key trong logs/chat/screenshot.
 - [ ] Đảm bảo `.gitignore` đã bỏ qua toàn bộ file env local.
 - [ ] Tắt các endpoint/debug flow nội bộ trước release public.
 
 ## 2) Tạm thời chỉ dành cho build/dev (Bắt buộc gỡ trước release)
 
-- [ ] Gỡ cơ chế gửi `x-admin-secret` từ frontend cho mọi request.
-  - Hiện tại frontend đang đọc `EXPO_PUBLIC_ADMIN_INTERNAL_API_KEY` và tự động add header.
-  - Với app public, secret này có thể bị lộ trong bundle.
-- [ ] Gỡ hoặc khóa chặt endpoint `POST /api/v1/admin/test-alert-email`.
-  - Nếu vẫn giữ, bắt buộc giới hạn bằng allowlist IP/VPN và secret mạnh.
-- [ ] Xóa `EXPO_PUBLIC_ADMIN_INTERNAL_API_KEY` khỏi môi trường build production.
+- [x] Gỡ cơ chế gửi/đọc `x-admin-secret` từ frontend public.
+  - Frontend không còn đọc `EXPO_PUBLIC_ADMIN_INTERNAL_API_KEY`.
+  - Admin endpoints dùng user role admin hoặc backend-only internal secret.
+- [x] Gỡ hoặc khóa chặt endpoint `POST /api/v1/admin/test-alert-email`.
+  - Endpoint hiện chỉ hoạt động khi `ALLOW_ADMIN_TEST_ALERT_EMAIL=true`; mặc định tắt.
+- [x] Xóa `EXPO_PUBLIC_ADMIN_INTERNAL_API_KEY` khỏi frontend env example và không dùng trong production build.
 
 ## 3) Error Handling & User Experience
 
@@ -79,7 +81,7 @@ Tài liệu này tổng hợp các lưu ý quan trọng cần xử lý trước 
 
 Chỉ release khi tất cả điều kiện sau đạt:
 
-- [ ] Không còn debug secret trong frontend build.
+- [x] Không còn debug secret trong frontend build config.
 - [ ] Không lộ secret trong repo/artifact.
 - [ ] Error mapping + i18n đầy đủ và đã test.
 - [ ] SMTP alert hoạt động + không spam.

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { getBreedRecognitionSlotOrder } from '../constants/petBreedRecognitionSlots';
 import type { BreedRecognitionResult, Pet } from '../types';
 
@@ -26,6 +26,15 @@ function levelIcon(level?: 'low' | 'medium' | 'high') {
   if (level === 'low') return 'leaf-outline';
   if (level === 'high') return 'flash-outline';
   return 'pulse-outline';
+}
+
+function safeExternalSourceUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' ? parsed.toString() : '';
+  } catch {
+    return '';
+  }
 }
 
 export function BreedRecognitionResultScreen({
@@ -242,19 +251,29 @@ export function BreedRecognitionResultScreen({
             <View className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
               <Text className="text-base font-bold text-slate-900">{t('breedRecognitionResult.sources')}</Text>
               <View className="mt-3 gap-2">
-                {result.sources.map((source, index) => (
-                  <Pressable
-                    key={`${source.url}-${index}`}
-                    accessibilityRole="link"
-                    className="flex-row items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-3 active:bg-slate-100"
-                    onPress={() => {
-                      void Linking.openURL(source.url);
-                    }}
-                  >
-                    <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-700">{source.title}</Text>
-                    <Ionicons name="open-outline" size={16} color="#64748b" />
-                  </Pressable>
-                ))}
+                {result.sources.map((source, index) => {
+                  const url = safeExternalSourceUrl(source.url);
+                  return (
+                    <Pressable
+                      key={`${source.url}-${index}`}
+                      accessibilityRole="link"
+                      disabled={!url}
+                      className={`flex-row items-center justify-between gap-3 rounded-xl px-3 py-3 ${
+                        url ? 'bg-slate-50 active:bg-slate-100' : 'bg-slate-100 opacity-60'
+                      }`}
+                      onPress={() => {
+                        if (!url) return;
+                        Alert.alert(t('breedRecognitionResult.openSourceTitle'), t('breedRecognitionResult.openSourceBody'), [
+                          { text: t('common.cancel'), style: 'cancel' },
+                          { text: t('breedRecognitionResult.openSource'), onPress: () => void Linking.openURL(url) },
+                        ]);
+                      }}
+                    >
+                      <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-700">{source.title}</Text>
+                      <Ionicons name="open-outline" size={16} color="#64748b" />
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
           ) : null}

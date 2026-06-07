@@ -44,7 +44,16 @@
     "apple": "Apple",
     "toggleToSignIn": "Already have an account? Sign in",
     "toggleToSignUp": "Don't have an account? Sign up",
-    "termsFooter": "By continuing, you agree to our Terms of Service and Privacy Policy"
+    "termsFooter": "By continuing, you agree to our Terms of Service and Privacy Policy",
+    "termsPrefix": "By continuing, you agree to our",
+    "termsAnd": "and"
+  },
+  "legal": {
+    "title": "Support and policies",
+    "body": "Read how Pet Health Care handles privacy, community terms, and support requests.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "support": "Contact Support"
   },
   "tabs": {
     "petFeed": "Pet Feed",
@@ -121,9 +130,25 @@
     "paperwork": "Documents",
     "hasVideo": "Has video",
     "contact": "Contact",
+    "contactConfirmTitle": "Open breeder contact?",
+    "contactConfirmBody": "Pet Health Care does not handle payments or verify external conversations. Please verify breeder identity, documents, vaccine records, and meet safely before making decisions.",
+    "contactConfirmOpen": "Open contact",
     "favoriteFailed": "Save failed",
     "reportSuccess": "Thanks. This listing has been sent for admin review.",
     "reportFailed": "Could not report listing",
+    "reportListing": "Report listing",
+    "reportBody": "Tell admin what looks unsafe, misleading, or abusive about this listing.",
+    "reportNotePlaceholder": "Optional note for admin",
+    "submitReport": "Submit report",
+    "reportReasons": {
+      "scam": "Scam or suspicious activity",
+      "misleading_health_claims": "Misleading health claims",
+      "abusive_content": "Abusive or objectionable content",
+      "fake_contact": "Fake or unreachable contact",
+      "unsafe_transaction": "Unsafe transaction request"
+    },
+    "blockBreederSuccess": "This breeder is hidden from your Pet Feed.",
+    "blockBreederFailed": "Could not hide breeder",
     "status": {
       "draft": "Draft",
       "pending_review": "Pending review",
@@ -147,6 +172,21 @@
     "commitments": "Transparency commitments",
     "listings": "Breeder listings",
     "emptyListings": "No listings match the current filters.",
+    "reportProfile": "Report profile",
+    "hideBreeder": "Hide breeder",
+    "reportBody": "Tell admin what looks unsafe, misleading, or abusive about this breeder profile.",
+    "reportNotePlaceholder": "Optional note for admin",
+    "submitReport": "Submit report",
+    "blockTitle": "Hide this breeder?",
+    "blockBody": "You will no longer see this breeder's profile or listings in Pet Feed on this account.",
+    "blockConfirm": "Hide breeder",
+    "reportReasons": {
+      "scam": "Scam or suspicious activity",
+      "misleading_health_claims": "Misleading health claims",
+      "abusive_content": "Abusive or objectionable content",
+      "fake_contact": "Fake or unreachable contact",
+      "unsafe_transaction": "Unsafe transaction request"
+    },
     "gender": {
       "all": "All genders",
       "male": "Male",
@@ -167,6 +207,15 @@
     "subtitle": "Manage your role, saved posts, and app session.",
     "adminSubtitle": "Manage requests, breeders, listings, and community safety.",
     "breederSubtitle": "Manage your trusted profile, Pet Feed posts, and review status.",
+    "deleteAccount": {
+      "cardTitle": "Delete account",
+      "cardBody": "Request permanent deletion of your account and app data. This action cannot be restored from the app.",
+      "cta": "Delete account",
+      "title": "Delete your account?",
+      "message": "Pet Health Care will delete your account profile, pets, health history, Pet Feed activity, and saved listings. This cannot be undone.",
+      "confirm": "Delete account",
+      "failedTitle": "Could not delete account"
+    },
     "myRole": "Roles in Pet Health Care",
     "pets": "Pets",
     "savedPosts": "Saved",
@@ -246,7 +295,7 @@
       "title": "My listings",
       "empty": "No listings yet. Create your first listing after your profile is verified."
     },
-    "vetSummary": "Veterinarian features are planned for educational content and care-record review, not in-app diagnosis.",
+    "vetSummary": "Veterinarian features are planned for educational content and care-record review, not medical decisions inside the app.",
     "roleRequiredTitle": "Role required",
     "breederOnly": "This action is available for Breeder accounts.",
     "adminOnly": "This action is available for Admin accounts.",
@@ -272,7 +321,7 @@
       },
       "vet": {
         "title": "Veterinarian",
-        "body": "Future role for educational content and record review, not in-app diagnosis."
+        "body": "Future role for educational content and record review, not medical decisions inside the app."
       }
     }
   },
@@ -553,6 +602,8 @@
     "title": "Wellness Screening for {{name}}",
     "petFallback": "Pet",
     "infoBanner": "Upload clear photos so Pet Health Care can support an early wellness screening: face, ears, eyes, body... Results are for guidance only.",
+    "urgentWarningTitle": "Do not wait for AI in urgent situations",
+    "urgentWarningBody": "If your pet has trouble breathing, collapse, seizure, severe bleeding, repeated vomiting, suspected poisoning, cannot urinate, or is rapidly getting worse, contact a veterinarian or emergency clinic now.",
     "photos": "Photos",
     "required": "*",
     "uploadPhotos": "Upload Photos",
@@ -709,6 +760,9 @@
     "observedFrom": "Observed from {{slot}}",
     "profileAndCare": "Origin, traits & care",
     "sources": "References",
+    "openSourceTitle": "Open external source?",
+    "openSourceBody": "This will open a website outside Pet Health Care. Review it carefully before sharing any information.",
+    "openSource": "Open",
     "levels": {
       "low": "Low",
       "medium": "Medium",
@@ -744,7 +798,10 @@
     "emergencyTitle": "Emergency warning",
     "emergencyBody": "Potential high-risk signs are present. Please take your pet to the nearest veterinary clinic immediately.",
     "importantDisclaimer": "Important Disclaimer",
-    "fixedDisclaimer": "This information is for reference only and does not replace diagnosis or treatment from a licensed veterinarian.",
+    "fixedDisclaimer": "This information is for reference only and does not replace an in-person exam or care plan from a licensed veterinarian.",
+    "safeFallbackFinding": "Needs veterinary review",
+    "safeFallbackGuidance": "This result may contain medical guidance that is too specific for the app to show safely. Please contact a licensed veterinarian and share your pet's photos, symptoms, and timeline.",
+    "safeFallbackNotice": "Some AI wording was hidden because it may sound too definitive or include unsafe medical instructions.",
     "finish": "Finish"
   },
   "severity": {
@@ -795,7 +852,7 @@
     "emptyVisits": "No vet visit or document records yet.",
     "recentAiChecks": "Recent AI wellness checks",
     "emptyAiChecks": "No AI checks yet.",
-    "disclaimer": "This summary is organized owner-entered information and AI check history. It does not replace veterinary records, diagnosis, or treatment."
+    "disclaimer": "This summary is organized owner-entered information and AI check history. It does not replace official veterinary records or an in-person care plan."
   },
   "coreCare": {
     "title": "Care records",
@@ -827,7 +884,7 @@
     "creditsTitle": "AI credits",
     "creditsBody": "{{credits}} AI credits available. Use free care tools anytime; spend credits only when AI is really needed.",
     "creditsUnavailable": "Credit status is unavailable, but free care tools still work.",
-    "claimAdCredit": "Earn 1 credit with rewarded ad",
+    "claimAdCredit": "Request beta credit",
     "claimAdSuccess": "Added {{credits}} AI credit.",
     "lastCreditEvent": "Last credit event: {{reason}}",
     "timelineTitle": "Care timeline",
@@ -891,11 +948,11 @@
     "remaining": "{{remaining}} / {{allowance}} credits left this month.",
     "healthCheckCost": "Wellness check costs {{cost}} credit.",
     "breedCost": "Breed recognition costs {{cost}} credit.",
-    "outOfCredits": "You are out of AI credits. Watch an ad, buy a credit pack, or wait for the monthly reset.",
+    "outOfCredits": "You are out of AI credits for this beta. Free care tools still work; please wait for the monthly reset or contact support if this blocks testing.",
     "prompts": {
-      "rewardedAd": "Watch ad",
-      "topUp": "Buy credits",
-      "subscription": "Premium quota"
+      "rewardedAd": "Beta credit",
+      "topUp": "Top-up unavailable",
+      "subscription": "Premium unavailable"
     }
   },
   "alerts": {
@@ -1061,7 +1118,7 @@
     },
     "aiCreditsExhausted": {
       "title": "Out of AI credits",
-      "message": "You have used this month's free AI credits. You can earn credits with rewarded ads, buy a small pack, or wait for the monthly reset."
+      "message": "You have used this month's beta AI credits. Free care tools still work; please wait for the monthly reset or contact support if this blocks testing."
     },
     "aiBudgetExhausted": {
       "title": "Free AI capacity used",

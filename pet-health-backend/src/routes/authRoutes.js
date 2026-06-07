@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supabase.js';
-import { ensureAccountProfile } from '../repositories/accountRepository.js';
+import { deleteAccountData, ensureAccountProfile } from '../repositories/accountRepository.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../services/authIdentifierService.js';
 import { requireUser } from '../middleware/auth.js';
 
@@ -193,6 +193,26 @@ router.post('/oauth/apple', async (req, res, next) => {
 
 router.get('/me', requireUser, async (req, res) => {
   return res.json({ data: req.account });
+});
+
+router.delete('/me', requireUser, async (req, res, next) => {
+  try {
+    const admin = getSupabaseServiceClient();
+    if (!admin) {
+      return res.status(503).json({
+        error: 'Account deletion requires the Supabase service role client.',
+        code: 'ACCOUNT_DELETION_NOT_CONFIGURED',
+      });
+    }
+
+    await deleteAccountData(req.user.id);
+    const { error } = await admin.auth.admin.deleteUser(req.user.id);
+    if (error) throw error;
+
+    return res.status(204).send();
+  } catch (err) {
+    return next(err);
+  }
 });
 
 export default router;

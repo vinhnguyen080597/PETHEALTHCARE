@@ -44,7 +44,16 @@
     "apple": "Apple",
     "toggleToSignIn": "Đã có tài khoản? Đăng nhập",
     "toggleToSignUp": "Chưa có tài khoản? Đăng ký",
-    "termsFooter": "Tiếp tục nghĩa là bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật"
+    "termsFooter": "Tiếp tục nghĩa là bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật",
+    "termsPrefix": "Tiếp tục nghĩa là bạn đồng ý với",
+    "termsAnd": "và"
+  },
+  "legal": {
+    "title": "Hỗ trợ và chính sách",
+    "body": "Xem cách Pet Health Care xử lý quyền riêng tư, điều khoản cộng đồng và yêu cầu hỗ trợ.",
+    "privacy": "Chính sách bảo mật",
+    "terms": "Điều khoản dịch vụ",
+    "support": "Liên hệ hỗ trợ"
   },
   "tabs": {
     "petFeed": "Pet Feed",
@@ -121,9 +130,25 @@
     "paperwork": "Giấy tờ",
     "hasVideo": "Có video",
     "contact": "Liên hệ",
+    "contactConfirmTitle": "Mở liên hệ breeder?",
+    "contactConfirmBody": "Pet Health Care không xử lý thanh toán và không xác minh cuộc trò chuyện bên ngoài. Sen nên tự kiểm tra danh tính breeder, giấy tờ, vaccine và gặp an toàn trước khi quyết định.",
+    "contactConfirmOpen": "Mở liên hệ",
     "favoriteFailed": "Không thể lưu",
     "reportSuccess": "Cảm ơn Sen. Bài đăng đã được gửi để admin xem xét.",
     "reportFailed": "Không thể báo cáo bài đăng",
+    "reportListing": "Báo cáo bài đăng",
+    "reportBody": "Cho admin biết điểm nào trong bài đăng này có vẻ không an toàn, gây hiểu nhầm hoặc không phù hợp.",
+    "reportNotePlaceholder": "Ghi chú thêm cho admin nếu cần",
+    "submitReport": "Gửi báo cáo",
+    "reportReasons": {
+      "scam": "Nghi lừa đảo hoặc hoạt động đáng ngờ",
+      "misleading_health_claims": "Cam kết sức khỏe gây hiểu nhầm",
+      "abusive_content": "Nội dung không phù hợp hoặc xúc phạm",
+      "fake_contact": "Liên hệ giả hoặc không liên lạc được",
+      "unsafe_transaction": "Yêu cầu giao dịch không an toàn"
+    },
+    "blockBreederSuccess": "Đã ẩn breeder này khỏi Pet Feed của Sen.",
+    "blockBreederFailed": "Không thể ẩn breeder",
     "status": {
       "draft": "Bản nháp",
       "pending_review": "Chờ admin duyệt",
@@ -147,6 +172,21 @@
     "commitments": "Cam kết minh bạch",
     "listings": "Bài đăng của trại",
     "emptyListings": "Không có bài đăng phù hợp với bộ lọc hiện tại.",
+    "reportProfile": "Báo cáo hồ sơ",
+    "hideBreeder": "Ẩn breeder",
+    "reportBody": "Cho admin biết điểm nào trong hồ sơ breeder này có vẻ không an toàn, gây hiểu nhầm hoặc không phù hợp.",
+    "reportNotePlaceholder": "Ghi chú thêm cho admin nếu cần",
+    "submitReport": "Gửi báo cáo",
+    "blockTitle": "Ẩn breeder này?",
+    "blockBody": "Sen sẽ không còn thấy hồ sơ hoặc bài đăng của breeder này trong Pet Feed trên tài khoản này.",
+    "blockConfirm": "Ẩn breeder",
+    "reportReasons": {
+      "scam": "Nghi lừa đảo hoặc hoạt động đáng ngờ",
+      "misleading_health_claims": "Cam kết sức khỏe gây hiểu nhầm",
+      "abusive_content": "Nội dung không phù hợp hoặc xúc phạm",
+      "fake_contact": "Liên hệ giả hoặc không liên lạc được",
+      "unsafe_transaction": "Yêu cầu giao dịch không an toàn"
+    },
     "gender": {
       "all": "Tất cả giới tính",
       "male": "Đực",
@@ -167,6 +207,15 @@
     "subtitle": "Quản lý vai trò, bài đã lưu và phiên đăng nhập.",
     "adminSubtitle": "Quản lý request, breeder, bài đăng và an toàn cộng đồng.",
     "breederSubtitle": "Quản lý hồ sơ uy tín, bài đăng Pet Feed và trạng thái duyệt.",
+    "deleteAccount": {
+      "cardTitle": "Xóa tài khoản",
+      "cardBody": "Yêu cầu xóa vĩnh viễn tài khoản và dữ liệu trong app. Thao tác này không thể khôi phục trong ứng dụng.",
+      "cta": "Xóa tài khoản",
+      "title": "Xóa tài khoản của Sen?",
+      "message": "Pet Health Care sẽ xóa hồ sơ tài khoản, thú cưng, lịch sử sức khỏe, hoạt động Pet Feed và bài đã lưu. Thao tác này không thể hoàn tác.",
+      "confirm": "Xóa tài khoản",
+      "failedTitle": "Không thể xóa tài khoản"
+    },
     "myRole": "Vai trò trong Pet Health Care",
     "pets": "Thú cưng",
     "savedPosts": "Đã lưu",
@@ -246,7 +295,7 @@
       "title": "Bài đăng của tôi",
       "empty": "Chưa có bài đăng nào. Hãy tạo bài đầu tiên sau khi hồ sơ được xác minh."
     },
-    "vetSummary": "Vai trò bác sĩ thú y sẽ dành cho nội dung giáo dục và xem hồ sơ chăm sóc, không phải chẩn đoán trong app.",
+    "vetSummary": "Vai trò bác sĩ thú y sẽ dành cho nội dung giáo dục và xem hồ sơ chăm sóc, không đưa ra quyết định y tế trong app.",
     "roleRequiredTitle": "Cần đúng vai trò",
     "breederOnly": "Tính năng này dành cho tài khoản Breeder.",
     "adminOnly": "Tính năng này dành cho tài khoản Admin.",
@@ -272,7 +321,7 @@
       },
       "vet": {
         "title": "Bác sĩ thú y",
-        "body": "Vai trò tương lai cho nội dung giáo dục và xem hồ sơ, không phải chẩn đoán trong app."
+        "body": "Vai trò tương lai cho nội dung giáo dục và xem hồ sơ, không đưa ra quyết định y tế trong app."
       }
     }
   },
@@ -553,6 +602,8 @@
     "title": "Sàng lọc sức khỏe — {{name}}",
     "petFallback": "Thú cưng",
     "infoBanner": "Hãy tải ảnh rõ nét để Pet Health Care hỗ trợ sàng lọc sức khỏe ban đầu: mặt, tai, mắt, thân... Kết quả chỉ mang tính tham khảo.",
+    "urgentWarningTitle": "Đừng chờ AI nếu bé có dấu hiệu khẩn cấp",
+    "urgentWarningBody": "Nếu bé khó thở, ngã quỵ, co giật, chảy máu nhiều, nôn liên tục, nghi ngộ độc, không tiểu được hoặc xấu đi nhanh, Sen hãy liên hệ bác sĩ thú y/phòng khám cấp cứu ngay.",
     "photos": "Ảnh",
     "required": "*",
     "uploadPhotos": "Tải ảnh lên",
@@ -709,6 +760,9 @@
     "observedFrom": "Quan sát từ {{slot}}",
     "profileAndCare": "Nguồn gốc, đặc tính & chăm sóc",
     "sources": "Nguồn tham khảo",
+    "openSourceTitle": "Mở nguồn bên ngoài?",
+    "openSourceBody": "Liên kết này sẽ mở website ngoài Pet Health Care. Sen hãy kiểm tra kỹ trước khi chia sẻ thông tin.",
+    "openSource": "Mở",
     "levels": {
       "low": "Thấp",
       "medium": "Trung bình",
@@ -744,7 +798,10 @@
     "emergencyTitle": "Cảnh báo khẩn cấp",
     "emergencyBody": "Có dấu hiệu nguy cơ cao. Vui lòng đưa thú cưng đến cơ sở thú y gần nhất ngay lập tức.",
     "importantDisclaimer": "Lưu ý quan trọng",
-    "fixedDisclaimer": "Thông tin này chỉ để tham khảo, không thay thế chẩn đoán hoặc điều trị của bác sĩ thú y.",
+    "fixedDisclaimer": "Thông tin này chỉ để tham khảo, không thay thế thăm khám trực tiếp hoặc kế hoạch chăm sóc từ bác sĩ thú y.",
+    "safeFallbackFinding": "Cần bác sĩ thú y xem xét",
+    "safeFallbackGuidance": "Kết quả này có thể chứa hướng dẫn y tế quá cụ thể để hiển thị an toàn trong app. Sen nên liên hệ bác sĩ thú y và gửi kèm ảnh, dấu hiệu, mốc thời gian của bé.",
+    "safeFallbackNotice": "Một số nội dung AI đã được ẩn vì có thể quá khẳng định hoặc chứa hướng dẫn y tế không an toàn.",
     "finish": "Hoàn tất"
   },
   "severity": {
@@ -795,7 +852,7 @@
     "emptyVisits": "Chưa có lần khám hoặc tài liệu.",
     "recentAiChecks": "AI wellness check gần đây",
     "emptyAiChecks": "Chưa có lần AI check.",
-    "disclaimer": "Bản tóm tắt này là thông tin do chủ nuôi nhập và lịch sử AI check. Không thay thế hồ sơ, chẩn đoán hoặc điều trị của bác sĩ thú y."
+    "disclaimer": "Bản tóm tắt này là thông tin do chủ nuôi nhập và lịch sử AI check. Không thay thế hồ sơ thú y chính thức hoặc kế hoạch chăm sóc trực tiếp."
   },
   "coreCare": {
     "title": "Hồ sơ chăm sóc",
@@ -827,7 +884,7 @@
     "creditsTitle": "AI credits",
     "creditsBody": "Bạn còn {{credits}} AI credits. Công cụ chăm sóc miễn phí dùng bất cứ lúc nào; chỉ dùng credit khi thật sự cần AI.",
     "creditsUnavailable": "Chưa tải được trạng thái credit, nhưng công cụ chăm sóc miễn phí vẫn dùng được.",
-    "claimAdCredit": "Nhận 1 credit qua quảng cáo thưởng",
+    "claimAdCredit": "Yêu cầu beta credit",
     "claimAdSuccess": "Đã cộng {{credits}} AI credit.",
     "lastCreditEvent": "Sự kiện credit gần nhất: {{reason}}",
     "timelineTitle": "Dòng thời gian chăm sóc",
@@ -891,11 +948,11 @@
     "remaining": "Còn {{remaining}} / {{allowance}} credits trong tháng này.",
     "healthCheckCost": "Kiểm tra sức khỏe tốn {{cost}} credit.",
     "breedCost": "Nhận diện giống tốn {{cost}} credit.",
-    "outOfCredits": "Bạn đã hết AI credits. Hãy xem quảng cáo, mua gói credit nhỏ, hoặc chờ lần reset hằng tháng.",
+    "outOfCredits": "Bạn đã hết AI credits trong giai đoạn beta. Các công cụ chăm sóc miễn phí vẫn dùng được; vui lòng chờ reset hằng tháng hoặc liên hệ hỗ trợ nếu cần test tiếp.",
     "prompts": {
-      "rewardedAd": "Xem quảng cáo",
-      "topUp": "Mua credits",
-      "subscription": "Gói Premium"
+      "rewardedAd": "Beta credit",
+      "topUp": "Chưa mở top-up",
+      "subscription": "Chưa mở Premium"
     }
   },
   "alerts": {
@@ -1061,7 +1118,7 @@
     },
     "aiCreditsExhausted": {
       "title": "Hết AI credits",
-      "message": "Bạn đã dùng hết AI credits miễn phí trong tháng này. Bạn có thể nhận credit qua quảng cáo thưởng, mua gói nhỏ, hoặc chờ reset hằng tháng."
+      "message": "Bạn đã dùng hết AI credits beta trong tháng này. Các công cụ chăm sóc miễn phí vẫn dùng được; vui lòng chờ reset hằng tháng hoặc liên hệ hỗ trợ nếu cần test tiếp."
     },
     "aiBudgetExhausted": {
       "title": "Hết ngân sách AI miễn phí",

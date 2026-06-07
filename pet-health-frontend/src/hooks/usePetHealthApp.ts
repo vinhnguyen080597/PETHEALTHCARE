@@ -9,11 +9,13 @@ import {
   AnalyzeRequestError,
   ApiRequestError,
   analyzePetHealthCheck,
+  blockBreederProfile,
   claimRewardedAdCredit,
   createAdminAccount,
   createCoreCareRecord,
   createPetFeedPost,
   createPet,
+  deleteMyAccount,
   deletePet,
   favoritePetFeedPost,
   getMe,
@@ -32,6 +34,7 @@ import {
   listPetFeedPosts,
   listPets,
   listVerifiedBreederProfiles,
+  reportBreederProfile,
   reportPetFeedPost,
   requestBreedRecognition,
   translateAnalysesDisplay,
@@ -52,8 +55,9 @@ import {
 import { isGoogleOAuthConfigured } from '../config';
 import { preloadMaiOnboardingImages } from '../assets/maiOnboardingAssets';
 import { preloadServicesOnboardingImages } from '../assets/servicesOnboardingAssets';
-import { PENDING_INITIAL_ONBOARDING_KEY, TOKEN_STORAGE_KEY } from '../constants/auth';
+import { PENDING_INITIAL_ONBOARDING_KEY } from '../constants/auth';
 import { isBreedRecognitionSpecies, type BreedRecognitionSlot } from '../constants/petBreedRecognitionSlots';
+import { getStoredAuthToken, removeStoredAuthToken, setStoredAuthToken } from '../utils/authTokenStorage';
 import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
 import type {
   AiCreditAccount,
@@ -352,7 +356,7 @@ export function usePetHealthApp() {
       setBackendHealth('offline');
     }
 
-    const savedToken = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
+    const savedToken = await getStoredAuthToken();
     if (savedToken) {
       setToken(savedToken);
       try {
@@ -375,7 +379,7 @@ export function usePetHealthApp() {
           setScreen('home');
         }
       } catch {
-        await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+        await removeStoredAuthToken();
         await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
         setToken(null);
         setInitialOnboarding(false);
@@ -390,7 +394,7 @@ export function usePetHealthApp() {
 
   const applySession = useCallback(
     async (accessToken: string, options?: { startInitialOnboarding?: boolean }) => {
-      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+      await setStoredAuthToken(accessToken);
       setToken(accessToken);
       const petsList = await fetchPets(accessToken);
       await refreshAiCredits(accessToken);
@@ -979,6 +983,33 @@ export function usePetHealthApp() {
     }
   }
 
+  async function submitBreederProfileReport(profile: BreederProfile, reason: string, note?: string) {
+    if (!token) return;
+    try {
+      await reportBreederProfile(token, profile.id, { reason, note });
+      Alert.alert(i18n.t('common.ok'), i18n.t('petFeed.reportSuccess'));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.reportFailed'), message);
+    }
+  }
+
+  async function hideBreederProfile(profile: BreederProfile) {
+    if (!token) return;
+    try {
+      await blockBreederProfile(token, profile.id);
+      setPetFeedPosts((posts) => posts.filter((post) => post.breeder_profile_id !== profile.id));
+      setTopBreederProfiles((profiles) => profiles.filter((item) => item.id !== profile.id));
+      setSelectedBreederProfileId(null);
+      setScreen('pet-feed');
+      Alert.alert(i18n.t('common.ok'), i18n.t('petFeed.blockBreederSuccess'));
+      await refreshPetFeed();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.blockBreederFailed'), message);
+    }
+  }
+
   async function openAdminReview() {
     if (!hasAccountRole('admin')) {
       Alert.alert(i18n.t('account.roleRequiredTitle'), i18n.t('account.adminOnly'));
@@ -1395,7 +1426,7 @@ export function usePetHealthApp() {
   }
 
   async function logout() {
-    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+    await removeStoredAuthToken();
     await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
     setInitialOnboarding(false);
     setToken(null);
@@ -1559,6 +1590,26 @@ export function usePetHealthApp() {
     }
   }
 
+  function requestDeleteAccount() {
+    if (!token) return;
+    Alert.alert(i18n.t('account.deleteAccount.title'), i18n.t('account.deleteAccount.message'), [
+      { text: i18n.t('common.cancel'), style: 'cancel' },
+      {
+        text: i18n.t('account.deleteAccount.confirm'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteMyAccount(token);
+            await logout();
+          } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+            Alert.alert(i18n.t('account.deleteAccount.failedTitle'), message);
+          }
+        },
+      },
+    ]);
+  }
+
   function goToCameraForPet(petId: string, opts?: { returnToProfile?: boolean }) {
     setHealthCheckReturnToProfile(Boolean(opts?.returnToProfile));
     setSelectedPetId(petId);
@@ -1681,6 +1732,7 @@ export function usePetHealthApp() {
     goHomeAndRefresh,
     openPetFeed,
     openAccount,
+    requestDeleteAccount,
     refreshPetFeed,
     petFeedPosts,
     topBreederProfiles,
@@ -1689,6 +1741,8 @@ export function usePetHealthApp() {
     openBreederDetail,
     closeBreederDetail,
     togglePetFeedFavorite,
+    submitBreederProfileReport,
+    hideBreederProfile,
     myPetFeedPosts,
     breederProfile,
     openBreederProfile,

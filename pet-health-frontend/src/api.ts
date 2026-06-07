@@ -215,6 +215,13 @@ export async function getMe(token: string) {
   });
 }
 
+export async function deleteMyAccount(token: string) {
+  await requestJson<null>('/auth/me', {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
 export async function oauthGoogle(idToken: string) {
   return requestJson<{ data: AuthResponse }>('/auth/oauth/google', {
     method: 'POST',
@@ -359,6 +366,31 @@ export async function reportPetFeedPost(token: string, postId: string, payload: 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
+  });
+}
+
+export async function reportBreederProfile(token: string, profileId: string, payload: { reason: string; note?: string }) {
+  return requestJson<{ data: PetFeedReport }>(`/pet-feed/breeders/${encodeURIComponent(profileId)}/report`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function blockBreederProfile(token: string, profileId: string) {
+  await requestJson<null>(`/pet-feed/breeders/${encodeURIComponent(profileId)}/block`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+}
+
+export async function unblockBreederProfile(token: string, profileId: string) {
+  await requestJson<null>(`/pet-feed/breeders/${encodeURIComponent(profileId)}/block`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
   });
 }
 
@@ -697,44 +729,51 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
     }, 900);
   }
 
-  const response = await fetch(`${API_BASE_URL}/analysis`, {
-    method: 'POST',
-    headers: mergeHeaders(authHeaders(token)),
-    body: formData,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/analysis`, {
+      method: 'POST',
+      headers: mergeHeaders(authHeaders(token)),
+      body: formData,
+    });
 
-  const contentType = response.headers.get('content-type') || '';
-  const body = contentType.includes('application/json') ? await response.json() : null;
+    const contentType = response.headers.get('content-type') || '';
+    const body = contentType.includes('application/json') ? await response.json() : null;
 
-  if (!response.ok) {
-    if (timer) clearInterval(timer);
-    onProgressStage?.({ stage: 'failed', message: body?.error });
-    const message = body?.error || `Analyze failed (${response.status})`;
-    const err = new AnalyzeRequestError(message);
-    err.status = response.status;
-    if (body && typeof body === 'object') {
-      if (typeof (body as { code?: unknown }).code === 'string') {
-        err.code = (body as { code: string }).code;
+    if (!response.ok) {
+      onProgressStage?.({ stage: 'failed', message: body?.error });
+      const message = body?.error || `Analyze failed (${response.status})`;
+      const err = new AnalyzeRequestError(message);
+      err.status = response.status;
+      if (body && typeof body === 'object') {
+        if (typeof (body as { code?: unknown }).code === 'string') {
+          err.code = (body as { code: string }).code;
+        }
+        if (typeof (body as { retryAfterSeconds?: unknown }).retryAfterSeconds === 'number') {
+          err.retryAfterSeconds = (body as { retryAfterSeconds: number }).retryAfterSeconds;
+        }
+        if (typeof (body as { creditBalance?: unknown }).creditBalance === 'number') {
+          err.creditBalance = (body as { creditBalance: number }).creditBalance;
+        }
+        if (typeof (body as { creditCost?: unknown }).creditCost === 'number') {
+          err.creditCost = (body as { creditCost: number }).creditCost;
+        }
+        if (typeof (body as { monthlyResetAt?: unknown }).monthlyResetAt === 'string') {
+          err.monthlyResetAt = (body as { monthlyResetAt: string }).monthlyResetAt;
+        }
       }
-      if (typeof (body as { retryAfterSeconds?: unknown }).retryAfterSeconds === 'number') {
-        err.retryAfterSeconds = (body as { retryAfterSeconds: number }).retryAfterSeconds;
-      }
-      if (typeof (body as { creditBalance?: unknown }).creditBalance === 'number') {
-        err.creditBalance = (body as { creditBalance: number }).creditBalance;
-      }
-      if (typeof (body as { creditCost?: unknown }).creditCost === 'number') {
-        err.creditCost = (body as { creditCost: number }).creditCost;
-      }
-      if (typeof (body as { monthlyResetAt?: unknown }).monthlyResetAt === 'string') {
-        err.monthlyResetAt = (body as { monthlyResetAt: string }).monthlyResetAt;
-      }
+      throw err;
     }
-    throw err;
-  }
-  if (timer) clearInterval(timer);
-  onProgressStage?.({ stage: 'done' });
 
-  return body as AnalyzeResponse;
+    onProgressStage?.({ stage: 'done' });
+    return body as AnalyzeResponse;
+  } catch (error) {
+    if (!(error instanceof AnalyzeRequestError)) {
+      onProgressStage?.({ stage: 'failed' });
+    }
+    throw error;
+  } finally {
+    if (timer) clearInterval(timer);
+  }
 }
 
 /** Single-image analysis (backwards compatible with older clients). */

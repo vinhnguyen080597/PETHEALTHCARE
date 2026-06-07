@@ -324,7 +324,9 @@ create table if not exists public.pet_feed_favorites (
 create table if not exists public.pet_feed_reports (
   id uuid primary key default gen_random_uuid(),
   user_id text not null,
-  post_id uuid not null references public.pet_feed_posts(id) on delete cascade,
+  target_type text not null default 'post' check (target_type in ('post', 'breeder_profile')),
+  post_id uuid references public.pet_feed_posts(id) on delete cascade,
+  breeder_profile_id uuid references public.breeder_profiles(id) on delete cascade,
   reason text not null,
   note text not null default '',
   status text not null default 'open' check (status in ('open', 'reviewed', 'dismissed')),
@@ -332,16 +334,41 @@ create table if not exists public.pet_feed_reports (
   updated_at timestamptz not null default now()
 );
 
+alter table public.pet_feed_reports add column if not exists target_type text not null default 'post';
+alter table public.pet_feed_reports add column if not exists breeder_profile_id uuid references public.breeder_profiles(id) on delete cascade;
+alter table public.pet_feed_reports alter column post_id drop not null;
+alter table public.pet_feed_reports drop constraint if exists pet_feed_reports_target_type_check;
+alter table public.pet_feed_reports
+  add constraint pet_feed_reports_target_type_check
+  check (target_type in ('post', 'breeder_profile'));
+alter table public.pet_feed_reports drop constraint if exists pet_feed_reports_target_required_check;
+alter table public.pet_feed_reports
+  add constraint pet_feed_reports_target_required_check
+  check (
+    (target_type = 'post' and post_id is not null)
+    or (target_type = 'breeder_profile' and breeder_profile_id is not null)
+  );
+
+create table if not exists public.pet_feed_blocked_breeders (
+  user_id text not null,
+  breeder_profile_id uuid not null references public.breeder_profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, breeder_profile_id)
+);
+
 create index if not exists idx_breeder_profiles_user on public.breeder_profiles(user_id);
 create index if not exists idx_pet_feed_posts_status_created on public.pet_feed_posts(status, created_at desc);
 create index if not exists idx_pet_feed_posts_user_created on public.pet_feed_posts(user_id, created_at desc);
 create index if not exists idx_pet_feed_favorites_user on public.pet_feed_favorites(user_id, created_at desc);
 create index if not exists idx_pet_feed_reports_status_created on public.pet_feed_reports(status, created_at desc);
+create index if not exists idx_pet_feed_reports_breeder_profile on public.pet_feed_reports(breeder_profile_id);
+create index if not exists idx_pet_feed_blocked_breeders_user on public.pet_feed_blocked_breeders(user_id, created_at desc);
 
 alter table public.breeder_profiles enable row level security;
 alter table public.pet_feed_posts enable row level security;
 alter table public.pet_feed_favorites enable row level security;
 alter table public.pet_feed_reports enable row level security;
+alter table public.pet_feed_blocked_breeders enable row level security;
 
 drop policy if exists "breeder_profiles_select_visible" on public.breeder_profiles;
 drop policy if exists "breeder_profiles_insert_own" on public.breeder_profiles;
@@ -354,6 +381,9 @@ drop policy if exists "pet_feed_favorites_insert_own" on public.pet_feed_favorit
 drop policy if exists "pet_feed_favorites_delete_own" on public.pet_feed_favorites;
 drop policy if exists "pet_feed_reports_select_own" on public.pet_feed_reports;
 drop policy if exists "pet_feed_reports_insert_own" on public.pet_feed_reports;
+drop policy if exists "pet_feed_blocked_breeders_select_own" on public.pet_feed_blocked_breeders;
+drop policy if exists "pet_feed_blocked_breeders_insert_own" on public.pet_feed_blocked_breeders;
+drop policy if exists "pet_feed_blocked_breeders_delete_own" on public.pet_feed_blocked_breeders;
 
 create policy "breeder_profiles_select_visible"
 on public.breeder_profiles for select
@@ -410,3 +440,18 @@ create policy "pet_feed_reports_insert_own"
 on public.pet_feed_reports for insert
 to authenticated
 with check (auth.uid()::text = user_id);
+
+create policy "pet_feed_blocked_breeders_select_own"
+on public.pet_feed_blocked_breeders for select
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "pet_feed_blocked_breeders_insert_own"
+on public.pet_feed_blocked_breeders for insert
+to authenticated
+with check (auth.uid()::text = user_id);
+
+create policy "pet_feed_blocked_breeders_delete_own"
+on public.pet_feed_blocked_breeders for delete
+to authenticated
+using (auth.uid()::text = user_id);

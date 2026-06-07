@@ -14,8 +14,15 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "usesAppleSignIn": true
+      "supportsTablet": false,
+      "usesAppleSignIn": true,
+      "bundleIdentifier": "com.pethealthcare.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Pet Health Care uses your photos and videos for pet profiles, wellness screening, breed recognition, and Pet Feed listings.",
+        "NSCameraUsageDescription": "Pet Health Care uses the camera so you can capture pet photos or videos for wellness screening, breed recognition, and Pet Feed listings.",
+        "NSMicrophoneUsageDescription": "Pet Health Care uses the microphone only when you capture videos with sound for pet wellness screening or Pet Feed listings."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +41,8 @@
       "expo-apple-authentication",
       "expo-localization",
       "expo-asset",
-      "expo-video"
+      "expo-video",
+      "expo-secure-store"
     ]
   }
 }

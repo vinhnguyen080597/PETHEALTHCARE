@@ -28,6 +28,12 @@ function isAlreadyRegistered(error) {
 
 router.post('/test-alert-email', async (req, res, next) => {
   try {
+    if (process.env.ALLOW_ADMIN_TEST_ALERT_EMAIL !== 'true') {
+      return res.status(404).json({
+        error: 'Not found',
+        code: 'ADMIN_TEST_ALERT_DISABLED',
+      });
+    }
     if (!hasValidAdminSecret(req)) {
       return res.status(401).json({
         error: 'Unauthorized',

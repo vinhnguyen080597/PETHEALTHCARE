@@ -4,6 +4,7 @@ import { ScrollView, Text, View, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
 import { buildCarePassportStats, metadataNumber, metadataText } from '../utils/carePassport';
+import { analysisPossibleFinding } from '../utils/analysisDisplay';
 import type { Analysis, CoreCareRecord, Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
@@ -110,7 +111,7 @@ export function VetSummaryScreen({ pet, records, history, onBack }: VetSummarySc
           {history.length === 0 ? <EmptyLine text={t('vetSummary.emptyAiChecks')} /> : null}
           {history.slice(0, 5).map((item) => (
             <Text key={item.id} className="text-sm leading-5 text-slate-700">
-              {item.diagnosis} · {formatLocaleDateTime(item.created_at, i18n.language)}
+              {analysisPossibleFinding(item, t('results.safeFallbackFinding'))} · {formatLocaleDateTime(item.created_at, i18n.language)}
             </Text>
           ))}
         </Section>

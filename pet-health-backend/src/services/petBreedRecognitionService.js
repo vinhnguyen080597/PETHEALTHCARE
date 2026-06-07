@@ -122,7 +122,7 @@ function normalizeSources(raw) {
       title: cleanString(x.title),
       url: cleanString(x.url),
     }))
-    .filter((x) => x.title && /^https?:\/\//i.test(x.url))
+    .filter((x) => x.title && /^https:\/\//i.test(x.url))
     .slice(0, 4);
 }
 

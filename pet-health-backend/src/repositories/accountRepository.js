@@ -110,3 +110,31 @@ export async function adminUpdateAccountProfile(userId, payload) {
   if (error) throw error;
   return toAccount(data);
 }
+
+export async function deleteAccountData(userId) {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const idx = memoryAccounts.findIndex((account) => account.user_id === userId);
+    if (idx >= 0) memoryAccounts.splice(idx, 1);
+    return;
+  }
+
+  const deleteFrom = async (table, column = 'user_id') => {
+    const { error } = await supabase.from(table).delete().eq(column, userId);
+    if (error) throw error;
+  };
+
+  await deleteFrom('pet_feed_blocked_breeders');
+  await deleteFrom('pet_feed_reports');
+  await deleteFrom('pet_feed_favorites');
+  await deleteFrom('pet_feed_posts');
+  await deleteFrom('breeder_profiles');
+  await deleteFrom('pet_care_records');
+  await deleteFrom('analyses');
+  await deleteFrom('pets');
+  await deleteFrom('ai_usage_events');
+  await deleteFrom('ai_credit_ledger');
+  await deleteFrom('ai_credit_accounts');
+  await deleteFrom('app_events');
+  await deleteFrom('app_user_profiles');
+}

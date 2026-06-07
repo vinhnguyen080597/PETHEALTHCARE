@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { requireAnyRole, requireUser } from '../middleware/auth.js';
 import {
+  blockBreederProfile,
   createPetFeedPost,
   favoritePetFeedPost,
   getMyBreederProfile,
@@ -10,7 +11,9 @@ import {
   listMyPetFeedPosts,
   listPublishedPetFeedPosts,
   listVerifiedBreederProfiles,
+  reportBreederProfile,
   reportPetFeedPost,
+  unblockBreederProfile,
   unfavoritePetFeedPost,
   updatePetFeedPost,
   upsertMyBreederProfile,
@@ -98,10 +101,49 @@ router.get('/posts', async (req, res, next) => {
   }
 });
 
-router.get('/breeders', async (_req, res, next) => {
+router.get('/breeders', async (req, res, next) => {
   try {
-    const profiles = await listVerifiedBreederProfiles();
+    const profiles = await listVerifiedBreederProfiles(req.user.id, req.accessToken);
     return res.json({ data: profiles });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/breeders/:profileId/report', async (req, res, next) => {
+  try {
+    const profileId = cleanId(req.params.profileId);
+    if (!profileId) return res.status(400).json({ error: 'profileId is required', code: 'MISSING_PROFILE_ID' });
+    const report = await reportBreederProfile(req.user.id, profileId, req.body ?? {}, req.accessToken);
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'breeder_profile_reported',
+      metadata: { profileId, reason: report.reason },
+    });
+    return res.status(201).json({ data: report });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/breeders/:profileId/block', async (req, res, next) => {
+  try {
+    const profileId = cleanId(req.params.profileId);
+    if (!profileId) return res.status(400).json({ error: 'profileId is required', code: 'MISSING_PROFILE_ID' });
+    await blockBreederProfile(req.user.id, profileId, req.accessToken);
+    void recordProductEvent({ userId: req.user.id, event: 'breeder_profile_blocked', metadata: { profileId } });
+    return res.status(204).send();
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.delete('/breeders/:profileId/block', async (req, res, next) => {
+  try {
+    const profileId = cleanId(req.params.profileId);
+    if (!profileId) return res.status(400).json({ error: 'profileId is required', code: 'MISSING_PROFILE_ID' });
+    await unblockBreederProfile(req.user.id, profileId, req.accessToken);
+    return res.status(204).send();
   } catch (err) {
     return next(err);
   }

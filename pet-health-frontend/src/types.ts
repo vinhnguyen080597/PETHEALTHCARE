@@ -151,7 +151,10 @@ export type PetFeedPost = {
 export type PetFeedReport = {
   id: string;
   user_id: string;
-  post_id: string;
+  target_type: 'post' | 'breeder_profile';
+  post_id: string | null;
+  breeder_profile_id: string | null;
+  breeder_profile?: BreederProfile | null;
   reason: string;
   note: string;
   status: 'open' | 'reviewed' | 'dismissed';
