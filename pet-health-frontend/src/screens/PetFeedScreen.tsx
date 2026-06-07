@@ -21,6 +21,7 @@ type ChipItem<T extends string> = {
 
 type PetFeedScreenProps = {
   posts: PetFeedPost[];
+  breederProfiles: BreederProfile[];
   refreshing: boolean;
   onRefresh: () => void;
   onToggleFavorite: (post: PetFeedPost) => void;
@@ -88,7 +89,7 @@ type TopBreeder = {
   posts: PetFeedPost[];
 };
 
-export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, onReportPost, onOpenBreederDetail }: PetFeedScreenProps) {
+export function PetFeedScreen({ posts, breederProfiles, refreshing, onRefresh, onToggleFavorite, onReportPost, onOpenBreederDetail }: PetFeedScreenProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<FeedTab>('feed');
   const [query, setQuery] = useState('');
@@ -149,6 +150,18 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
   const selectedPost = selectedPostId ? posts.find((post) => post.id === selectedPostId) ?? null : null;
   const topBreeders = useMemo<TopBreeder[]>(() => {
     const byBreeder = new Map<string, TopBreeder>();
+    breederProfiles
+      .filter((profile) => profile.verification_status === 'verified')
+      .forEach((profile) => {
+        const key = profile.id || profile.user_id;
+        byBreeder.set(key, {
+          profile,
+          postCount: 0,
+          latestPostAt: new Date(profile.updated_at ?? profile.created_at).getTime() || 0,
+          species: profile.primary_species,
+          posts: [],
+        });
+      });
     posts.forEach((post) => {
       const profile = post.breeder_profile;
       if (!profile || profile.verification_status !== 'verified') return;
@@ -174,7 +187,7 @@ export function PetFeedScreen({ posts, refreshing, onRefresh, onToggleFavorite, 
       if (b.postCount !== a.postCount) return b.postCount - a.postCount;
       return b.latestPostAt - a.latestPostAt;
     });
-  }, [posts]);
+  }, [breederProfiles, posts]);
 
   return (
     <>

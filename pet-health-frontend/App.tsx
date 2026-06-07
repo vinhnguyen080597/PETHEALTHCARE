@@ -129,6 +129,7 @@ export default function App() {
             {app.screen === 'pet-feed' && (
               <PetFeedScreen
                 posts={app.petFeedPosts}
+                breederProfiles={app.topBreederProfiles}
                 refreshing={app.refreshing}
                 onRefresh={app.refreshPetFeed}
                 onToggleFavorite={app.togglePetFeedFavorite}

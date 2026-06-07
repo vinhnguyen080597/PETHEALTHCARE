@@ -130,10 +130,11 @@ For most posts:
 1. Hook: one short emotional or practical opening.
 2. Context: describe a familiar pet-owner situation.
 3. Value: 3-5 useful points or one clear lesson.
-4. Pet Health Care bridge: softly connect to the app vision.
-5. Safety line: mention vet care if relevant.
-6. CTA: ask Sen to follow/comment/share/save.
-7. Hashtags.
+4. Home-care guidance: what Sen can safely do at home when signs are still mild, focused on comfort, observation, hydration, hygiene, and note-taking.
+5. Pet Health Care bridge: softly connect to the app vision.
+6. Safety line: mention vet care if relevant.
+7. CTA: ask Sen to follow/comment/share/save.
+8. Hashtags.
 
 ## Caption Styling Rules
 
@@ -167,6 +168,11 @@ Short emotional intro.
 - Point 1
 - Point 2
 - Point 3
+
+🏠 SEN CÓ THỂ LÀM GÌ TẠI NHÀ KHI DẤU HIỆU CÒN NHẸ?
+- Safe care/comfort step 1
+- Observation/note-taking step 2
+- What not to self-medicate or force
 
 Mai nhắc nhẹ Sen nè: gentle reminder.
 

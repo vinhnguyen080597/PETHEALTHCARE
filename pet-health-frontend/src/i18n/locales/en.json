@@ -216,7 +216,8 @@
       "title": "Mai's note",
       "body": "Pet parent, if you want to find more pets, Pet Feed is the best place to browse. If you want to help your pets find a new home, register to upgrade your account to Breeder and wait for admin approval.",
       "petFeedCta": "View Pet Feed",
-      "breederCta": "Register"
+      "breederCta": "Register",
+      "pendingCta": "Pending review"
     },
     "senStatus": {
       "title": "Breeder status",

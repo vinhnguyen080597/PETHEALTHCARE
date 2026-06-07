@@ -174,6 +174,7 @@ export function AccountScreen({
   const isAdmin = role === 'admin';
   const isSen = role === 'sen';
   const isBreeder = role === 'breeder';
+  const breederRequestPending = breederStatus === 'pending_review';
   const publishedMyPostCount = myPosts.filter((post) => post.status === 'published').length;
   const pendingMyPostCount = myPosts.filter((post) => post.status === 'pending_review').length;
   const pendingReportCount = adminFeedReports.filter((report) => report.status === 'open').length;
@@ -365,11 +366,17 @@ export function AccountScreen({
               testID="account-request-breeder-button"
               accessibilityRole="button"
               accessibilityLabel="Request breeder verification"
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+              accessibilityState={{ disabled: breederRequestPending }}
+              className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 ${
+                breederRequestPending ? 'bg-slate-200' : 'bg-blue-600 active:opacity-90'
+              }`}
               onPress={onOpenBreederProfile}
+              disabled={breederRequestPending}
             >
-              <Ionicons name="ribbon-outline" size={18} color="#fff" />
-              <Text className="text-sm font-bold text-white">{t('account.senIntro.breederCta')}</Text>
+              <Ionicons name={breederRequestPending ? 'time-outline' : 'ribbon-outline'} size={18} color={breederRequestPending ? '#64748b' : '#fff'} />
+              <Text className={`text-sm font-bold ${breederRequestPending ? 'text-slate-600' : 'text-white'}`}>
+                {t(breederRequestPending ? 'account.senIntro.pendingCta' : 'account.senIntro.breederCta')}
+              </Text>
             </Pressable>
           </View>
         </View>

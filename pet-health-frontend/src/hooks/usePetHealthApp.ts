@@ -31,6 +31,7 @@ import {
   listMyPetFeedPosts,
   listPetFeedPosts,
   listPets,
+  listVerifiedBreederProfiles,
   reportPetFeedPost,
   requestBreedRecognition,
   translateAnalysesDisplay,
@@ -152,6 +153,7 @@ export function usePetHealthApp() {
   const [coreCareRecords, setCoreCareRecords] = useState<CoreCareRecord[]>([]);
   const [coreCareSummary, setCoreCareSummary] = useState<CoreCareSummary | null>(null);
   const [petFeedPosts, setPetFeedPosts] = useState<PetFeedPost[]>([]);
+  const [topBreederProfiles, setTopBreederProfiles] = useState<BreederProfile[]>([]);
   const [myPetFeedPosts, setMyPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
@@ -189,7 +191,9 @@ export function usePetHealthApp() {
     () => selectedBreederProfileId ? postsForBreeder(petFeedPosts, selectedBreederProfileId) : [],
     [petFeedPosts, selectedBreederProfileId],
   );
-  const selectedBreederProfile = selectedBreederPosts[0]?.breeder_profile ?? null;
+  const selectedBreederProfile = selectedBreederPosts[0]?.breeder_profile
+    ?? topBreederProfiles.find((profile) => profile.id === selectedBreederProfileId || profile.user_id === selectedBreederProfileId)
+    ?? null;
 
   const petFormMode = editingPetId ? 'edit' : 'create';
 
@@ -273,8 +277,12 @@ export function usePetHealthApp() {
     if (!token) return;
     setRefreshing(true);
     try {
-      const response = await listPetFeedPosts(token);
-      setPetFeedPosts(response.data);
+      const [postsResponse, breedersResponse] = await Promise.all([
+        listPetFeedPosts(token),
+        listVerifiedBreederProfiles(token),
+      ]);
+      setPetFeedPosts(postsResponse.data);
+      setTopBreederProfiles(breedersResponse.data);
     } finally {
       setRefreshing(false);
     }
@@ -845,8 +853,12 @@ export function usePetHealthApp() {
     setSelectedBreederProfileId(null);
     setScreen('pet-feed');
     try {
-      const response = await listPetFeedPosts(token);
-      setPetFeedPosts(response.data);
+      const [postsResponse, breedersResponse] = await Promise.all([
+        listPetFeedPosts(token),
+        listVerifiedBreederProfiles(token),
+      ]);
+      setPetFeedPosts(postsResponse.data);
+      setTopBreederProfiles(breedersResponse.data);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('petFeed.title'), message);
@@ -869,22 +881,27 @@ export function usePetHealthApp() {
     } catch {
       setBreederProfile(null);
     }
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'breeder') {
       try {
-        await loadAdminReview(accessToken);
         const postsRes = await listMyPetFeedPosts(accessToken);
         setMyPetFeedPosts(postsRes.data);
+        if (role === 'admin') {
+          await loadAdminReview(accessToken);
+        }
       } catch {
-        // Admin dashboard can still render with the data already in memory.
+        // Account dashboard can still render with the data already in memory.
       }
     }
   }
 
   async function openAccount() {
+    let nextRole = accountProfile?.primary_role;
     if (token) {
-      await loadAccountDashboard(token);
+      const freshAccount = await fetchAccountProfile(token);
+      nextRole = freshAccount.primary_role;
+      await loadAccountDashboard(token, nextRole);
     }
-    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'account');
+    setScreen(nextRole === 'admin' ? 'home' : 'account');
   }
 
   function hasAccountRole(...roles: UserRole[]) {
@@ -1390,6 +1407,7 @@ export function usePetHealthApp() {
     setCoreCareRecords([]);
     setCoreCareSummary(null);
     setPetFeedPosts([]);
+    setTopBreederProfiles([]);
     setMyPetFeedPosts([]);
     setBreederProfile(null);
     setSelectedBreederProfileId(null);
@@ -1665,6 +1683,7 @@ export function usePetHealthApp() {
     openAccount,
     refreshPetFeed,
     petFeedPosts,
+    topBreederProfiles,
     selectedBreederProfile,
     selectedBreederPosts,
     openBreederDetail,

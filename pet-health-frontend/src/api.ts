@@ -284,6 +284,12 @@ export async function listPetFeedPosts(token: string) {
   });
 }
 
+export async function listVerifiedBreederProfiles(token: string) {
+  return requestJson<{ data: BreederProfile[] }>('/pet-feed/breeders', {
+    headers: authHeaders(token),
+  });
+}
+
 export async function listMyPetFeedPosts(token: string) {
   return requestJson<{ data: PetFeedPost[] }>('/pet-feed/my-posts', {
     headers: authHeaders(token),

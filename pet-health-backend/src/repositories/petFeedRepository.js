@@ -190,6 +190,23 @@ export async function listPublishedPetFeedPosts(userId, accessToken) {
   return (data ?? []).map((row) => toPost(row, favoriteIds));
 }
 
+export async function listVerifiedBreederProfiles() {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    return memoryProfiles
+      .filter((profile) => profile.verification_status === 'verified')
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .map(toProfile);
+  }
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .select('*')
+    .eq('verification_status', 'verified')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(toProfile);
+}
+
 export async function getPetFeedPost(userId, postId, accessToken) {
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) {

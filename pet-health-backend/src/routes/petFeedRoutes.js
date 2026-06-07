@@ -9,6 +9,7 @@ import {
   listFavoritePetFeedPosts,
   listMyPetFeedPosts,
   listPublishedPetFeedPosts,
+  listVerifiedBreederProfiles,
   reportPetFeedPost,
   unfavoritePetFeedPost,
   updatePetFeedPost,
@@ -92,6 +93,15 @@ router.get('/posts', async (req, res, next) => {
   try {
     const posts = await listPublishedPetFeedPosts(req.user.id, req.accessToken);
     return res.json({ data: posts });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/breeders', async (_req, res, next) => {
+  try {
+    const profiles = await listVerifiedBreederProfiles();
+    return res.json({ data: profiles });
   } catch (err) {
     return next(err);
   }

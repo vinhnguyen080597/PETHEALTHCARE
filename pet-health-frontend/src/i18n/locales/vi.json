@@ -216,7 +216,8 @@
       "title": "Mai nhắn Sen",
       "body": "Sen ơi, nếu bạn muốn tìm thêm những bé thú cưng thì có thể xem ở Pet Feed. Còn nếu bạn muốn tìm nhà mới cho các bé, hãy đăng ký nâng cấp tài khoản thành Breeder rồi chờ admin phê duyệt nhé.",
       "petFeedCta": "Xem Pet Feed",
-      "breederCta": "Đăng ký"
+      "breederCta": "Đăng ký",
+      "pendingCta": "Đang chờ duyệt"
     },
     "senStatus": {
       "title": "Trạng thái Breeder",
