@@ -11,10 +11,12 @@ const configuredApiOrigin = process.env.EXPO_PUBLIC_API_ORIGIN?.trim();
 const configuredApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
 const configuredApiHealthUrl = process.env.EXPO_PUBLIC_API_HEALTH_URL?.trim();
 
+const PUBLIC_SITE_ORIGIN = 'https://vinhnguyen080597.github.io/PETHEALTHCARE';
+
 const DEV_APP_LINKS = {
-  privacyPolicy: 'https://pethealthcare.app/privacy-policy',
-  termsOfService: 'https://pethealthcare.app/terms-of-service',
-  support: 'mailto:support@pethealthcare.app',
+  privacyPolicy: `${PUBLIC_SITE_ORIGIN}/privacy-policy/`,
+  termsOfService: `${PUBLIC_SITE_ORIGIN}/terms-of-service/`,
+  support: `${PUBLIC_SITE_ORIGIN}/support/`,
 };
 
 function resolveApiOrigin(): string {

@@ -854,6 +854,7 @@ export function usePetHealthApp() {
 
   async function openPetFeed() {
     if (!token) return;
+    if (screen === 'pet-feed') return;
     setSelectedBreederProfileId(null);
     setScreen('pet-feed');
     try {
@@ -899,6 +900,7 @@ export function usePetHealthApp() {
   }
 
   async function openAccount() {
+    if (screen === 'account') return;
     let nextRole = accountProfile?.primary_role;
     if (token) {
       const freshAccount = await fetchAccountProfile(token);

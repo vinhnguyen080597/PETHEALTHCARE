@@ -8,6 +8,10 @@ Tài liệu này tổng hợp các lưu ý quan trọng cần xử lý trước 
 - [ ] Kiểm tra lại `pet-health-backend/.env.example` và `pet-health-frontend/.env.example` chỉ chứa placeholder.
 - [ ] Xóa `EXPO_PUBLIC_ADMIN_INTERNAL_API_KEY` khỏi `pet-health-frontend/.env` local trước mọi build public.
 - [ ] Set EAS production env/secrets cho `EXPO_PUBLIC_API_ORIGIN`, `EXPO_PUBLIC_PRIVACY_POLICY_URL`, `EXPO_PUBLIC_TERMS_OF_SERVICE_URL`, `EXPO_PUBLIC_SUPPORT_URL`.
+- [ ] Bật GitHub Pages từ branch `main`, folder `/docs`, rồi kiểm tra các URL public:
+  - `https://vinhnguyen080597.github.io/PETHEALTHCARE/privacy-policy/`
+  - `https://vinhnguyen080597.github.io/PETHEALTHCARE/terms-of-service/`
+  - `https://vinhnguyen080597.github.io/PETHEALTHCARE/support/`
 - [ ] **Rotate key ngay** nếu từng lộ key trong logs/chat/screenshot.
 - [ ] Đảm bảo `.gitignore` đã bỏ qua toàn bộ file env local.
 - [ ] Tắt các endpoint/debug flow nội bộ trước release public.
