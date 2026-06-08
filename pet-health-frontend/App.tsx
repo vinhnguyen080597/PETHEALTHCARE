@@ -35,26 +35,6 @@ export default function App() {
   const isAdmin = app.accountProfile?.primary_role === 'admin';
 
   const showBottomTab = app.screen === 'pet-feed' || app.screen === 'home' || app.screen === 'account';
-  const hideAppHeader =
-    app.screen === 'add-pet' ||
-    app.screen === 'edit-pet' ||
-    app.screen === 'core-care' ||
-    app.screen === 'vet-summary' ||
-    app.screen === 'breeder-profile' ||
-    app.screen === 'breeder-detail' ||
-    app.screen === 'create-pet-feed-post' ||
-    app.screen === 'admin-review' ||
-    app.screen === 'health-check' ||
-    app.screen === 'analysis-progress' ||
-    app.screen === 'onboarding-intro' ||
-    app.screen === 'onboarding-add-pet' ||
-    app.screen === 'onboarding-health-prompt' ||
-    app.screen === 'onboarding-health-check' ||
-    app.screen === 'onboarding-results' ||
-    app.screen === 'pet-profile' ||
-    app.screen === 'breed-recognition-progress' ||
-    app.screen === 'breed-recognition-result' ||
-    app.screen === 'breed-recognition';
   const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;
   const breedCreditCost = app.aiEconomicsConfig?.features.breed_recognition?.creditCost ?? 1;
   const accountDashboard = (
@@ -111,7 +91,7 @@ export default function App() {
       ) : (
         <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right']}>
           <ResponsiveFrame>
-            {!hideAppHeader ? <AppHeader /> : null}
+            {showBottomTab ? <AppHeader /> : null}
 
             {app.screen === 'home' && isAdmin ? accountDashboard : null}
 

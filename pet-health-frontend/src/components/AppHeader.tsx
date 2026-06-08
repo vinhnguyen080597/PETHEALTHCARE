@@ -4,18 +4,18 @@ import { useTranslation } from 'react-i18next';
 
 const HEADER_BLUE = '#1E6FE8';
 
-/** Hero bar — matches `figma/UI/Home.PNG` (brand + subtitle on vibrant blue). */
 export function AppHeader() {
   const { t } = useTranslation();
   return (
-    <View className="px-6 pb-8 pt-3" style={{ backgroundColor: HEADER_BLUE }}>
-      <View className="mb-2 flex-row items-center gap-3">
-        <Ionicons name="medkit" size={34} color="#ffffff" />
-        <Text className="flex-1 text-2xl font-bold text-white" numberOfLines={2}>
-          {t('header.appName')}
+    <View className="px-5 py-3" style={{ backgroundColor: HEADER_BLUE }}>
+      <View className="flex-row items-center gap-2.5">
+        <View className="h-8 w-8 items-center justify-center rounded-xl bg-white/15">
+          <Ionicons name="medkit" size={18} color="#ffffff" />
+        </View>
+        <Text className="min-w-0 flex-1 text-lg font-bold text-white" numberOfLines={1}>
+          {t('login.appName')}
         </Text>
       </View>
-      <Text className="mb-3 text-[15px] leading-5 text-white/90">{t('header.tagline')}</Text>
     </View>
   );
 }
