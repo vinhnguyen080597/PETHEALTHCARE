@@ -75,7 +75,7 @@ function ContactButton({ post }: { post: PetFeedPost }) {
       testID={`pet-feed-contact-button-${post.id}`}
       accessibilityRole="button"
       accessibilityLabel={`Contact breeder for ${post.title}`}
-      className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 ${url ? 'bg-blue-600 active:opacity-90' : 'bg-slate-200'}`}
+      className={`min-w-[160px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 ${url ? 'bg-blue-600 active:opacity-90' : 'bg-slate-200'}`}
       disabled={!url}
       onPress={() => {
         if (!url) return;
@@ -253,7 +253,7 @@ export function PetFeedPostCard({
         </View>
         {post.description ? <Text className="mt-3 text-sm leading-5 text-slate-700">{post.description}</Text> : null}
         {showActions ? (
-          <View className="mt-4 flex-row gap-3">
+          <View className="mt-4 flex-row flex-wrap gap-3">
             {showContact ? <ContactButton post={post} /> : null}
             {showHideBreeder ? <HideBreederButton profile={breeder} onHideBreeder={onHideBreeder} /> : null}
             {showReport ? (

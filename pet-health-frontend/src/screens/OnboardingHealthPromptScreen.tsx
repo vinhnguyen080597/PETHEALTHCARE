@@ -126,9 +126,10 @@ export function OnboardingHealthPromptScreen({
   const [activeIndex, setActiveIndex] = useState(0);
 
   const horizontalPadding = 20;
-  const cardWidth = Math.round(windowWidth * 0.54);
+  const contentWidth = Math.min(windowWidth, 760);
+  const cardWidth = Math.round(contentWidth * 0.54);
   const snapInterval = cardWidth + CARD_GAP;
-  const heroHeight = Math.min(250, Math.round(windowWidth * 0.62), Math.round(windowHeight * 0.32));
+  const heroHeight = Math.min(250, Math.round(contentWidth * 0.62), Math.round(windowHeight * 0.32));
 
   const cardActions = useMemo(
     () =>
@@ -177,7 +178,7 @@ export function OnboardingHealthPromptScreen({
         <View className="w-full items-center px-2" style={{ backgroundColor: 'transparent' }}>
           <Image
             source={SERVICES_HERO_MAI}
-            style={{ width: windowWidth - 24, height: heroHeight }}
+            style={{ width: contentWidth - 24, height: heroHeight }}
             contentFit="contain"
             cachePolicy="memory-disk"
             accessibilityLabel="Mai with pets"

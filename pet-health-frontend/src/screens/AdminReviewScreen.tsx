@@ -183,14 +183,14 @@ export function AdminReviewScreen({
               <Text className="font-bold text-slate-900">{profile.display_name}</Text>
               <Text className="mt-1 text-xs text-slate-500">{[profile.location, t(`account.breederRequestStatus.${profile.verification_status}`)].filter(Boolean).join(' • ')}</Text>
               <Text className="mt-2 text-sm leading-5 text-slate-700">{profile.bio}</Text>
-              <View className="mt-3 flex-row gap-2">
-                <Pressable className="flex-1 rounded-xl bg-emerald-600 py-3" onPress={() => updateBreederStatus(profile.user_id, 'verified')}>
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                <Pressable className="min-w-[96px] flex-1 rounded-xl bg-emerald-600 py-3" onPress={() => updateBreederStatus(profile.user_id, 'verified')}>
                   <Text className="text-center text-xs font-bold text-white">{t('adminReview.verify')}</Text>
                 </Pressable>
-                <Pressable className="flex-1 rounded-xl bg-amber-600 py-3" onPress={() => updateBreederStatus(profile.user_id, 'rejected')}>
+                <Pressable className="min-w-[96px] flex-1 rounded-xl bg-amber-600 py-3" onPress={() => updateBreederStatus(profile.user_id, 'rejected')}>
                   <Text className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
                 </Pressable>
-                <Pressable className="flex-1 rounded-xl bg-slate-700 py-3" onPress={() => updateBreederStatus(profile.user_id, 'suspended')}>
+                <Pressable className="min-w-[96px] flex-1 rounded-xl bg-slate-700 py-3" onPress={() => updateBreederStatus(profile.user_id, 'suspended')}>
                   <Text className="text-center text-xs font-bold text-white">{t('adminReview.suspend')}</Text>
                 </Pressable>
               </View>
@@ -208,11 +208,11 @@ export function AdminReviewScreen({
               <Text className="text-base font-bold text-slate-900">{post.title}</Text>
               <Text className="mt-1 text-sm text-slate-600">{[post.species, post.breed, post.location].filter(Boolean).join(' • ')}</Text>
               <Text className="mt-2 text-sm leading-5 text-slate-700">{post.description}</Text>
-              <View className="mt-3 flex-row gap-2">
-                <Pressable className="flex-1 rounded-xl bg-emerald-600 py-3" onPress={() => updatePostStatus(post.id, 'published')}>
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                <Pressable className="min-w-[120px] flex-1 rounded-xl bg-emerald-600 py-3" onPress={() => updatePostStatus(post.id, 'published')}>
                   <Text className="text-center text-xs font-bold text-white">{t('adminReview.approve')}</Text>
                 </Pressable>
-                <Pressable className="flex-1 rounded-xl bg-slate-700 py-3" onPress={() => updatePostStatus(post.id, 'archived')}>
+                <Pressable className="min-w-[120px] flex-1 rounded-xl bg-slate-700 py-3" onPress={() => updatePostStatus(post.id, 'archived')}>
                   <Text className="text-center text-xs font-bold text-white">{t('adminReview.archive')}</Text>
                 </Pressable>
               </View>
@@ -228,11 +228,11 @@ export function AdminReviewScreen({
               <Text className="text-sm font-bold text-slate-900">{report.reason}</Text>
               <Text className="mt-1 text-xs text-slate-500">{report.post_id}</Text>
               {report.note ? <Text className="mt-2 text-sm leading-5 text-slate-700">{report.note}</Text> : null}
-              <View className="mt-3 flex-row gap-2">
-                <Pressable className="flex-1 rounded-xl bg-blue-600 py-3" onPress={() => updateReportStatus(report.id, 'reviewed')}>
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                <Pressable className="min-w-[120px] flex-1 rounded-xl bg-blue-600 py-3" onPress={() => updateReportStatus(report.id, 'reviewed')}>
                   <Text className="text-center text-xs font-bold text-white">{t('adminReview.markReviewed')}</Text>
                 </Pressable>
-                <Pressable className="flex-1 rounded-xl bg-slate-700 py-3" onPress={() => updateReportStatus(report.id, 'dismissed')}>
+                <Pressable className="min-w-[120px] flex-1 rounded-xl bg-slate-700 py-3" onPress={() => updateReportStatus(report.id, 'dismissed')}>
                   <Text className="text-center text-xs font-bold text-white">{t('adminReview.dismiss')}</Text>
                 </Pressable>
               </View>

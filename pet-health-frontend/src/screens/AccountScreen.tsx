@@ -356,12 +356,12 @@ export function AccountScreen({
               <Text className="mt-1 text-sm leading-5 text-slate-600">{t('account.senIntro.body')}</Text>
             </View>
           </View>
-          <View className="mt-4 flex-row gap-3">
+          <View className="mt-4 flex-row flex-wrap gap-3">
             <Pressable
               testID="account-open-pet-feed-button"
               accessibilityRole="button"
               accessibilityLabel="Open Pet Feed"
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
+              className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
               onPress={onOpenPetFeed}
             >
               <Ionicons name="newspaper-outline" size={18} color={PRIMARY} />
@@ -372,7 +372,7 @@ export function AccountScreen({
               accessibilityRole="button"
               accessibilityLabel="Request breeder verification"
               accessibilityState={{ disabled: breederRequestPending }}
-              className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 ${
+              className={`min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 ${
                 breederRequestPending ? 'bg-slate-200' : 'bg-blue-600 active:opacity-90'
               }`}
               onPress={onOpenBreederProfile}
@@ -425,13 +425,13 @@ export function AccountScreen({
         </View>
       </View> : null}
 
-      <View className="mt-5 flex-row gap-3">
+      <View className="mt-5 flex-row flex-wrap gap-3">
         {metricItems.map((item) => (
           <Pressable
             key={item.key}
             accessibilityRole={isAdmin ? 'button' : undefined}
             testID={isAdmin ? `account-admin-section-${item.key}-button` : undefined}
-            className={`flex-1 rounded-2xl border p-4 ${isAdmin && adminSection === item.key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
+            className={`min-w-[140px] flex-1 rounded-2xl border p-4 ${isAdmin && adminSection === item.key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
             onPress={isAdmin ? () => setAdminSection(item.key as 'requests' | 'breeders' | 'posts') : undefined}
           >
             <Text className="text-xs font-bold uppercase text-slate-500">{item.label}</Text>
@@ -456,7 +456,7 @@ export function AccountScreen({
       {isAdmin && adminSection === 'requests' ? (
         <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-sm font-bold text-slate-900">{t('adminRequests.filters')}</Text>
-          <View className="mt-3 flex-row gap-2">
+          <View className="mt-3 flex-row flex-wrap gap-2">
             <FilterDropdownButton
               label={t('adminRequests.filterType')}
               value={requestTypeFilterLabel}
@@ -527,7 +527,7 @@ export function AccountScreen({
       {isAdmin && adminSection === 'breeders' ? (
         <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-sm font-bold text-slate-900">{t('adminBreeders.filters')}</Text>
-          <View className="mt-3 flex-row gap-2">
+          <View className="mt-3 flex-row flex-wrap gap-2">
             <FilterDropdownButton
               label={t('adminBreeders.filterStatus')}
               value={breederStatusFilterLabel}
@@ -621,14 +621,14 @@ export function AccountScreen({
                 {item.body ? <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>{item.body}</Text> : null}
                 {item.type === 'post' ? <AdminPostMediaPreview post={item.post} /> : null}
                 {item.type === 'breeder' ? (
-                  <View className="mt-4 flex-row gap-2">
+                  <View className="mt-4 flex-row flex-wrap gap-2">
                     <AdminActionButton label={t('adminReview.verify')} variant="success" onPress={() => void runAdminAction(() => onUpdateBreederStatus(item.profile.user_id, 'verified'))} />
                     <AdminActionButton label={t('adminReview.reject')} variant="warning" onPress={() => void runAdminAction(() => onUpdateBreederStatus(item.profile.user_id, 'rejected'))} />
                     <AdminActionButton label={t('adminReview.suspend')} variant="neutral" onPress={() => void runAdminAction(() => onUpdateBreederStatus(item.profile.user_id, 'suspended'))} />
                   </View>
                 ) : null}
                 {item.type === 'post' ? (
-                  <View className="mt-4 flex-row gap-2">
+                  <View className="mt-4 flex-row flex-wrap gap-2">
                     <AdminActionButton label={t('adminReview.approve')} variant="success" onPress={() => void runAdminAction(() => onUpdatePostStatus(item.post.id, 'published'))} />
                     <AdminActionButton label={t('adminReview.archive')} variant="neutral" onPress={() => void runAdminAction(() => onUpdatePostStatus(item.post.id, 'archived'))} />
                   </View>
@@ -636,7 +636,7 @@ export function AccountScreen({
                 {item.type === 'report' ? (
                   <View className="mt-4 gap-2">
                     {item.report.post_id ? (
-                      <View className="flex-row gap-2">
+                      <View className="flex-row flex-wrap gap-2">
                         <AdminActionButton
                           label={t('adminReview.archive')}
                           variant="warning"
@@ -650,7 +650,7 @@ export function AccountScreen({
                       </View>
                     ) : null}
                     {item.report.breeder_profile?.user_id ? (
-                      <View className="flex-row gap-2">
+                      <View className="flex-row flex-wrap gap-2">
                         <AdminActionButton
                           label={t('adminReview.suspend')}
                           variant="warning"
@@ -664,12 +664,12 @@ export function AccountScreen({
                       </View>
                     ) : null}
                     {!item.report.post_id && !item.report.breeder_profile?.user_id ? (
-                      <View className="flex-row gap-2">
+                      <View className="flex-row flex-wrap gap-2">
                         <AdminActionButton label={t('adminReview.markReviewed')} variant="primary" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'reviewed'))} />
                         <AdminActionButton label={t('adminReview.dismiss')} variant="neutral" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'dismissed'))} />
                       </View>
                     ) : (
-                      <View className="flex-row gap-2">
+                      <View className="flex-row flex-wrap gap-2">
                         <AdminActionButton label={t('adminReview.dismiss')} variant="neutral" onPress={() => void runAdminAction(() => onUpdateReportStatus(item.report.id, 'dismissed'))} />
                       </View>
                     )}
@@ -733,7 +733,7 @@ export function AccountScreen({
                       {profile.care_environment || profile.bio}
                     </Text>
                   ) : null}
-                  <View className="mt-4 flex-row gap-2">
+                  <View className="mt-4 flex-row flex-wrap gap-2">
                     {profile.verification_status !== 'verified' ? (
                       <AdminActionButton label={t('adminReview.verify')} variant="success" onPress={() => void runAdminAction(() => onUpdateBreederStatus(profile.user_id, 'verified'))} />
                     ) : null}
@@ -928,7 +928,7 @@ function FilterDropdownButton({
   return (
     <Pressable
       accessibilityRole="button"
-      className={`flex-1 rounded-xl border px-2.5 py-2.5 ${active ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-slate-50'}`}
+      className={`min-w-[110px] flex-1 rounded-xl border px-2.5 py-2.5 ${active ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-slate-50'}`}
       onPress={onPress}
     >
       <Text className="text-[10px] font-bold uppercase text-slate-400" numberOfLines={1}>{label}</Text>
@@ -1004,7 +1004,7 @@ function AdminActionButton({
           ? 'bg-blue-600'
           : 'bg-slate-700';
   return (
-    <Pressable className={`flex-1 rounded-xl py-3 ${className}`} onPress={onPress}>
+    <Pressable className={`min-w-[96px] flex-1 rounded-xl py-3 ${className}`} onPress={onPress}>
       <Text className="text-center text-xs font-bold text-white">{label}</Text>
     </Pressable>
   );

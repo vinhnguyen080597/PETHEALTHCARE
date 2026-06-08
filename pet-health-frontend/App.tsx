@@ -1,11 +1,11 @@
 import './global.css';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from './src/components/AppHeader';
 import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
+import { ResponsiveFrame } from './src/components/ResponsiveFrame';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
 import { AccountScreen } from './src/screens/AccountScreen';
 import { AdminReviewScreen } from './src/screens/AdminReviewScreen';
@@ -109,8 +109,8 @@ export default function App() {
           googleSignInReady={app.googleSignInReady}
         />
       ) : (
-        <SafeAreaView className="flex-1 bg-slate-50" edges={['top', 'left', 'right']}>
-          <View className="flex-1">
+        <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right']}>
+          <ResponsiveFrame>
             {!hideAppHeader ? <AppHeader /> : null}
 
             {app.screen === 'home' && isAdmin ? accountDashboard : null}
@@ -442,7 +442,7 @@ export default function App() {
                 accountTabMode={isAdmin ? 'logout' : 'account'}
               />
             ) : null}
-          </View>
+          </ResponsiveFrame>
         </SafeAreaView>
       )}
       <LoadingOverlay visible={app.loading} />

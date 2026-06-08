@@ -110,12 +110,12 @@ export function HomeScreen({
                 </View>
               </View>
 
-              <View className="mt-4 flex-row gap-3">
+              <View className="mt-4 flex-row flex-wrap gap-3">
                 <Pressable
                   testID={`home-scan-health-button-${pet.id}`}
                   accessibilityRole="button"
                   accessibilityLabel={`Start health check for ${pet.name}`}
-                  className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
+                  className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
                   style={{ backgroundColor: PRIMARY_BLUE }}
                   onPress={() => onStartScan(pet.id)}
                 >
@@ -126,7 +126,7 @@ export function HomeScreen({
                   testID={`home-view-profile-button-${pet.id}`}
                   accessibilityRole="button"
                   accessibilityLabel={`View profile for ${pet.name}`}
-                  className="flex-1 items-center justify-center rounded-xl border border-gray-300 bg-white py-3.5 active:bg-slate-50"
+                  className="min-w-[150px] flex-1 items-center justify-center rounded-xl border border-gray-300 bg-white py-3.5 active:bg-slate-50"
                   onPress={() => onViewProfile(pet.id)}
                 >
                   <Text className="text-sm font-semibold text-slate-800">{t('home.viewProfile')}</Text>
