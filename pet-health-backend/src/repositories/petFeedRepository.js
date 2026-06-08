@@ -32,7 +32,8 @@ function normalizeVerificationStatus(value) {
 
 function normalizeUserEditablePostStatus(value, existingStatus = 'draft') {
   const status = normalizeStatus(value, existingStatus);
-  return status === 'pending_review' || status === 'draft' ? status : existingStatus;
+  if (status === 'pending_review' || status === 'draft') return status;
+  return existingStatus === 'published' || existingStatus === 'archived' ? 'pending_review' : existingStatus;
 }
 
 function normalizeJsonObject(value) {
@@ -45,7 +46,7 @@ function normalizeStringArray(value, limit = 8) {
 
 function normalizeProfilePayload(userId, payload, existingId) {
   const existingStatus = normalizeVerificationStatus(payload.existingVerificationStatus);
-  const nextStatus = existingStatus === 'verified' || existingStatus === 'suspended' ? existingStatus : 'pending_review';
+  const nextStatus = existingStatus === 'suspended' ? 'suspended' : 'pending_review';
   return {
     id: existingId ?? payload.id ?? randomUUID(),
     user_id: userId,
@@ -65,6 +66,8 @@ function normalizeProfilePayload(userId, payload, existingId) {
 
 function normalizePostPayload(userId, payload, existing = {}) {
   const metadata = normalizeJsonObject(payload.metadata);
+  const hasMediaUrls = payload.mediaUrls !== undefined || payload.media_urls !== undefined;
+  const hasVideoUrl = payload.videoUrl !== undefined || payload.video_url !== undefined;
   return {
     id: existing.id ?? payload.id ?? randomUUID(),
     user_id: userId,
@@ -83,8 +86,8 @@ function normalizePostPayload(userId, payload, existing = {}) {
     vaccine_status: trimText(payload.vaccineStatus ?? payload.vaccine_status, 300),
     deworming_status: trimText(payload.dewormingStatus ?? payload.deworming_status, 300),
     paperwork: normalizeStringArray(payload.paperwork, 10),
-    media_urls: normalizeStringArray(payload.mediaUrls ?? payload.media_urls, 10),
-    video_url: trimText(payload.videoUrl ?? payload.video_url, 1000) || null,
+    media_urls: hasMediaUrls ? normalizeStringArray(payload.mediaUrls ?? payload.media_urls, 10) : existing.media_urls ?? [],
+    video_url: hasVideoUrl ? trimText(payload.videoUrl ?? payload.video_url, 1000) || null : existing.video_url ?? null,
     contact: normalizeJsonObject(payload.contact),
     status: normalizeStatus(payload.status, existing.status ?? 'draft'),
     metadata,
@@ -290,7 +293,11 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
     if (idx < 0) return null;
     const profile = await getMyBreederProfile(userId, accessToken);
     assertVerifiedBreederProfile(profile);
-    memoryPosts[idx] = { ...memoryPosts[idx], ...normalizePostPayload(userId, payload, memoryPosts[idx]) };
+    memoryPosts[idx] = {
+      ...memoryPosts[idx],
+      ...normalizePostPayload(userId, payload, memoryPosts[idx]),
+      status: normalizeUserEditablePostStatus(payload.status, memoryPosts[idx].status),
+    };
     return toPost(memoryPosts[idx]);
   }
   const existing = await getPetFeedPost(userId, postId, accessToken);

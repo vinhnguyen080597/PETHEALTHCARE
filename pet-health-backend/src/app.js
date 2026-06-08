@@ -22,7 +22,12 @@ function configuredCorsOrigins() {
 function corsOrigin() {
   const allowed = configuredCorsOrigins();
   if (allowed.length === 0) {
-    return true;
+    if (process.env.NODE_ENV !== 'production' || process.env.ALLOW_OPEN_CORS === 'true') {
+      return true;
+    }
+    return (origin, callback) => {
+      callback(null, !origin);
+    };
   }
 
   return (origin, callback) => {

@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { getSupabaseServiceClient, parseSupabaseKeyRole } from '../config/supabase.js';
+import {
+  getPrivateMediaBucketName,
+  getPublicMediaBucketName,
+  getSupabaseServiceClient,
+  parseSupabaseKeyRole,
+} from '../config/supabase.js';
 
 const router = Router();
 
@@ -13,18 +18,19 @@ const REQUIRED_ENV = [
 
 function envStatus() {
   const missing = REQUIRED_ENV.filter((key) => !String(process.env[key] || '').trim());
+  const invalid = [];
   const warnings = [];
 
   if (process.env.NODE_ENV === 'production' && !String(process.env.CORS_ORIGINS || '').trim()) {
-    warnings.push('CORS_ORIGINS is not set; browser API access is not restricted by origin.');
+    warnings.push('CORS_ORIGINS is not set; production browser API access is blocked unless ALLOW_OPEN_CORS=true.');
   }
 
   const serviceRole = parseSupabaseKeyRole(process.env.SUPABASE_SERVICE_ROLE_KEY);
   if (process.env.SUPABASE_SERVICE_ROLE_KEY && serviceRole !== 'service_role') {
-    warnings.push('SUPABASE_SERVICE_ROLE_KEY does not look like a service_role JWT.');
+    invalid.push('SUPABASE_SERVICE_ROLE_KEY');
   }
 
-  return { missing, warnings };
+  return { missing, invalid, warnings };
 }
 
 router.get('/', (_req, res) => {
@@ -36,21 +42,32 @@ router.get('/', (_req, res) => {
 });
 
 router.get('/ready', async (req, res) => {
-  const { missing, warnings } = envStatus();
+  const { missing, invalid, warnings } = envStatus();
   const checks = {
-    env: missing.length === 0 ? 'ok' : 'missing_required_values',
+    env: missing.length > 0 ? 'missing_required_values' : invalid.length > 0 ? 'invalid_required_values' : 'ok',
     supabase: 'skipped',
+    storagePrivate: 'skipped',
+    storagePublic: 'skipped',
   };
+  const shouldDeepCheck = req.query.deep === '1' || process.env.NODE_ENV === 'production';
 
-  if (missing.length === 0 && req.query.deep === '1') {
+  if (missing.length === 0 && invalid.length === 0 && shouldDeepCheck) {
     try {
       const supabase = getSupabaseServiceClient();
       if (!supabase) {
         checks.supabase = 'client_unavailable';
       } else {
-        const { error } = await supabase.from('pets').select('id').limit(1);
-        checks.supabase = error ? 'query_failed' : 'ok';
-        if (error) warnings.push(`Supabase readiness query failed: ${error.message}`);
+        const { error: petsError } = await supabase.from('pets').select('id').limit(1);
+        const { error: analysesError } = await supabase.from('analyses').select('id').limit(1);
+        const queryError = petsError || analysesError;
+        checks.supabase = queryError ? 'query_failed' : 'ok';
+        if (queryError) warnings.push(`Supabase readiness query failed: ${queryError.message}`);
+        const { error: privateBucketError } = await supabase.storage.getBucket(getPrivateMediaBucketName());
+        checks.storagePrivate = privateBucketError ? 'bucket_unavailable' : 'ok';
+        if (privateBucketError) warnings.push(`Private storage bucket check failed: ${privateBucketError.message}`);
+        const { error: publicBucketError } = await supabase.storage.getBucket(getPublicMediaBucketName());
+        checks.storagePublic = publicBucketError ? 'bucket_unavailable' : 'ok';
+        if (publicBucketError) warnings.push(`Public storage bucket check failed: ${publicBucketError.message}`);
       }
     } catch (error) {
       checks.supabase = 'query_failed';
@@ -58,12 +75,18 @@ router.get('/ready', async (req, res) => {
     }
   }
 
-  const ok = missing.length === 0 && !Object.values(checks).includes('client_unavailable') && !Object.values(checks).includes('query_failed');
+  const ok =
+    missing.length === 0 &&
+    invalid.length === 0 &&
+    !Object.values(checks).includes('client_unavailable') &&
+    !Object.values(checks).includes('query_failed') &&
+    !Object.values(checks).includes('bucket_unavailable');
   res.status(ok ? 200 : 503).json({
     status: ok ? 'ready' : 'not_ready',
     service: 'pet-health-backend',
     checks,
     missing,
+    invalid,
     warnings,
     timestamp: new Date().toISOString(),
   });

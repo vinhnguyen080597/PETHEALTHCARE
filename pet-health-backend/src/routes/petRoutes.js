@@ -8,7 +8,7 @@ import {
   listPetsByUser,
   updatePetForUser,
 } from '../repositories/petRepository.js';
-import { storePetAvatar } from '../services/imageStorageService.js';
+import { resolvePrivateMediaUrl, storePetAvatar } from '../services/imageStorageService.js';
 import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 const router = Router();
@@ -25,8 +25,9 @@ router.post('/upload-avatar', avatarUpload.single('image'), async (req, res, nex
     if (!req.file) {
       return res.status(400).json({ error: 'image file is required (field name: image)' });
     }
-    const avatarUrl = await storePetAvatar({ userId: req.user.id, file: req.file, accessToken: req.accessToken });
-    return res.json({ data: { avatarUrl } });
+    const avatarStorageUrl = await storePetAvatar({ userId: req.user.id, file: req.file, accessToken: req.accessToken });
+    const avatarUrl = await resolvePrivateMediaUrl(avatarStorageUrl);
+    return res.json({ data: { avatarUrl, avatarStorageUrl } });
   } catch (err) {
     return next(err);
   }

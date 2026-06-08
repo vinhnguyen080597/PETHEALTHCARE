@@ -619,6 +619,7 @@ export function AccountScreen({
                 <Text className="mt-3 text-base font-bold text-slate-900" numberOfLines={2}>{item.title}</Text>
                 {item.subtitle ? <Text className="mt-1 text-sm text-slate-500" numberOfLines={2}>{item.subtitle}</Text> : null}
                 {item.body ? <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>{item.body}</Text> : null}
+                {item.type === 'post' ? <AdminPostMediaPreview post={item.post} /> : null}
                 {item.type === 'breeder' ? (
                   <View className="mt-4 flex-row gap-2">
                     <AdminActionButton label={t('adminReview.verify')} variant="success" onPress={() => void runAdminAction(() => onUpdateBreederStatus(item.profile.user_id, 'verified'))} />
@@ -693,6 +694,7 @@ export function AccountScreen({
                 <Text className="mt-2 text-sm leading-5 text-slate-600" numberOfLines={3}>
                   {post.description || [post.breed, post.location].filter(Boolean).join(' - ')}
                 </Text>
+                <AdminPostMediaPreview post={post} />
               </View>
             ))}
           </View>
@@ -952,6 +954,35 @@ function DropdownOption({ label, active, onPress }: { label: string; active: boo
       </Text>
       {active ? <Ionicons name="checkmark" size={17} color={PRIMARY} /> : null}
     </Pressable>
+  );
+}
+
+function AdminPostMediaPreview({ post }: { post: PetFeedPost }) {
+  const imageUrl = post.media_urls[0];
+  if (!imageUrl && !post.video_url) return null;
+  return (
+    <View className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+      <View className="h-40 w-full">
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} className="h-full w-full" resizeMode="cover" />
+        ) : (
+          <View className="h-full w-full items-center justify-center">
+            <Ionicons name="videocam-outline" size={32} color="#64748b" />
+          </View>
+        )}
+      </View>
+      <View className="flex-row items-center justify-between px-3 py-2">
+        <Text className="text-xs font-bold uppercase text-slate-500">Media review</Text>
+        <View className="flex-row gap-2">
+          <Text className="rounded-full bg-white px-2 py-1 text-xs font-bold text-slate-600">
+            {post.media_urls.length} photo{post.media_urls.length === 1 ? '' : 's'}
+          </Text>
+          {post.video_url ? (
+            <Text className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">Video</Text>
+          ) : null}
+        </View>
+      </View>
+    </View>
   );
 }
 

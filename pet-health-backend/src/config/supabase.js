@@ -30,6 +30,10 @@ export function getSupabaseServiceClient() {
     return null;
   }
 
+  if (parseSupabaseKeyRole(supabaseServiceRoleKey) !== 'service_role') {
+    return null;
+  }
+
   cachedServiceClient = createClient(supabaseUrl, supabaseServiceRoleKey);
   return cachedServiceClient;
 }
@@ -70,5 +74,13 @@ export function createSupabaseWithUserAccessToken(accessToken) {
 }
 
 export function getImageBucketName() {
-  return process.env.SUPABASE_IMAGE_BUCKET || 'pet-diagnosis-images';
+  return getPrivateMediaBucketName();
+}
+
+export function getPrivateMediaBucketName() {
+  return process.env.SUPABASE_PRIVATE_MEDIA_BUCKET || process.env.SUPABASE_IMAGE_BUCKET || 'pet-health-private-media';
+}
+
+export function getPublicMediaBucketName() {
+  return process.env.SUPABASE_PUBLIC_MEDIA_BUCKET || 'pet-feed-public-media';
 }

@@ -1,10 +1,10 @@
 # Backend Deployment Checklist
 
-Use this checklist for the first free backend deployment before preparing App Store builds.
+Use this checklist for staging and release backend deployment before preparing App Store builds.
 
 ## Target
 
-- Hosting: Render Free web service.
+- Hosting: Render web service. Free is acceptable for staging; use a non-sleeping plan before App Review/public release.
 - Backend root directory: `pet-health-backend`.
 - Health URL: `https://<render-service>.onrender.com/health`.
 - Readiness URL: `https://<render-service>.onrender.com/health/ready`.
@@ -14,14 +14,15 @@ Use this checklist for the first free backend deployment before preparing App St
 
 1. Create or choose the Supabase project used for staging/release testing.
 2. Run `pet-health-backend/context/supabase-schema.sql` in Supabase SQL Editor.
-3. Create the storage bucket:
-   - Bucket id: `pet-diagnosis-images`
-   - Current app behavior expects public URLs for images/videos.
+3. Verify storage buckets exist:
+   - Private bucket id: `pet-health-private-media` (not public) for health-check media and pet avatars.
+   - Public bucket id: `pet-feed-public-media` (public) for reviewed Pet Feed listing media.
 4. Verify Auth providers:
    - Email/password enabled.
    - Google/Apple only if the frontend login UI enables them.
 5. Verify RLS policies exist for:
    - `pets`
+   - `analyses`
    - `pet_care_records`
    - `ai_credit_accounts`
    - `ai_usage_events`
@@ -39,8 +40,8 @@ Recommended quick path:
    - Root directory: `pet-health-backend`
    - Build command: `npm install`
    - Start command: `npm start`
-   - Health check path: `/health`
-   - Plan: Free
+   - Health check path: `/health/ready`
+   - Plan: non-sleeping for App Review/public release; Free only for staging/internal testing.
 4. Add required environment variables.
 
 Required secrets:
@@ -53,7 +54,8 @@ Required secrets:
 
 Required non-secret config:
 
-- `SUPABASE_IMAGE_BUCKET=pet-diagnosis-images`
+- `SUPABASE_PRIVATE_MEDIA_BUCKET=pet-health-private-media`
+- `SUPABASE_PUBLIC_MEDIA_BUCKET=pet-feed-public-media`
 - `GEMINI_MODEL_CANDIDATES=gemini-2.5-flash,gemini-2.0-flash`
 - `AI_DEBUG_LOG_ENABLED=false`
 - `AI_DEBUG_LOG_INCLUDE_MEDIA_BASE64=false`
@@ -61,7 +63,8 @@ Required non-secret config:
 - `LOG_REQUEST_BODY=false`
 - `LOG_RESPONSE_BODY=false`
 - `AUTH_FREE_TEXT_DOMAIN=pethealth.local`
-- `CORS_ORIGINS=https://<allowed-web-origin>` if testing from web. Leave empty temporarily for native-only beta testing if needed.
+- `CORS_ORIGINS=https://<allowed-web-origin>` if testing from web. In production, browser origins are rejected when this is empty; native mobile requests usually have no `Origin` header and are still accepted.
+- `ALLOW_OPEN_CORS=false`
 
 Recommended beta credit settings:
 
@@ -94,8 +97,8 @@ Use `EXPO_PUBLIC_API_BASE_URL` and `EXPO_PUBLIC_API_HEALTH_URL` only if the back
 ## 4. Smoke Test After Deploy
 
 1. Open `/health`.
-2. Open `/health/ready`.
-3. Open `/health/ready?deep=1` after Supabase schema is applied.
+2. Open `/health/ready`; it must return `ready`.
+3. Open `/health/ready?deep=1` after Supabase schema is applied; it must return `ready`, `checks.supabase=ok`, `checks.storagePrivate=ok`, and `checks.storagePublic=ok`.
 4. Sign up with a clean account.
 5. Create a dog profile and a cat profile.
 6. Upload avatar.
@@ -110,8 +113,8 @@ Use `EXPO_PUBLIC_API_BASE_URL` and `EXPO_PUBLIC_API_HEALTH_URL` only if the back
 ## 5. Free Hosting Notes
 
 - Render Free can sleep. The first request after sleep may be slow.
-- Before demo/TestFlight/App Review testing, open `/health` once to wake the service.
-- If AI calls timeout or reviewers see backend offline, upgrade the backend plan before public release.
+- Before demo/TestFlight testing on a free plan, open `/health/ready` once to wake the service.
+- Do not use a sleeping backend for App Review/public release. Upgrade the backend plan before submission.
 
 ## 6. Do Not Do For Production Builds
 

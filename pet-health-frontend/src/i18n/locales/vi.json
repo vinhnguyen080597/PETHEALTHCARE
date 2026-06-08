@@ -19,7 +19,7 @@
   "health": {
     "checking": "Đang kiểm tra máy chủ...",
     "online": "Đã kết nối máy chủ",
-    "offline": "Không kết nối được máy chủ — kiểm tra LOCAL_IP trong src/config.ts"
+    "offline": "Dịch vụ hiện tạm thời chưa sẵn sàng. Vui lòng thử lại sau."
   },
   "login": {
     "appName": "Pet Health Care",

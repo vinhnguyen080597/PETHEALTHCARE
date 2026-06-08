@@ -88,21 +88,6 @@ import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealth
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
 
-/** `blob:` URLs only exist in that browser tab — the API cannot store them. */
-function avatarUrlForApi(uri: string): string | undefined {
-  const s = uri.trim();
-  if (!s) return undefined;
-  if (s.toLowerCase().startsWith('blob:')) return undefined;
-  return s;
-}
-
-function avatarUrlForUpdate(uri: string): string | null {
-  const s = uri.trim();
-  if (!s) return null;
-  if (s.toLowerCase().startsWith('blob:')) return null;
-  return s;
-}
-
 export function usePetHealthApp() {
   const [screen, setScreen] = useState<AppScreen>('login');
   const [loading, setLoading] = useState(false);
@@ -128,6 +113,7 @@ export function usePetHealthApp() {
   const [petAge, setPetAge] = useState('');
   const [petGender, setPetGender] = useState('male');
   const [petAvatarUrl, setPetAvatarUrl] = useState('');
+  const [petAvatarStorageUrl, setPetAvatarStorageUrl] = useState('');
 
   /** Health check intake (Figma) — only first photo is sent to the analysis API today. */
   const [healthCheckPhotos, setHealthCheckPhotos] = useState<string[]>([]);
@@ -208,6 +194,7 @@ export function usePetHealthApp() {
     setPetAge('');
     setPetGender('male');
     setPetAvatarUrl('');
+    setPetAvatarStorageUrl('');
     setEditingPetId(null);
   }
 
@@ -604,14 +591,13 @@ export function usePetHealthApp() {
 
     setLoading(true);
     try {
-      const avatarForApi = avatarUrlForApi(petAvatarUrl);
       const { data: created } = await createPet(token, {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || undefined,
         age: petAge ? petAgeMonthsForApi(petAge) : undefined,
         gender: petGender,
-        ...(avatarForApi !== undefined ? { avatarUrl: avatarForApi } : {}),
+        ...(petAvatarStorageUrl ? { avatarUrl: petAvatarStorageUrl } : {}),
       });
       clearPetForm();
       await fetchPets(token);
@@ -695,13 +681,14 @@ export function usePetHealthApp() {
 
     setLoading(true);
     try {
+      const avatarPatch = petAvatarStorageUrl ? { avatarUrl: petAvatarStorageUrl } : petAvatarUrl.trim() ? {} : { avatarUrl: null };
       await updatePet(token, editingPetId, {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || null,
         age: petAge ? petAgeMonthsForApi(petAge) : null,
         gender: petGender,
-        avatarUrl: avatarUrlForUpdate(petAvatarUrl),
+        ...avatarPatch,
       });
       const returnToProfile = petFormReturnToProfile;
       const updatedPetId = editingPetId;
@@ -746,6 +733,7 @@ export function usePetHealthApp() {
       setPetAge(data.age !== null && data.age !== undefined ? String(data.age) : '');
       setPetGender(data.gender === 'female' || data.gender === 'male' ? data.gender : 'male');
       setPetAvatarUrl(data.avatar_url ?? '');
+      setPetAvatarStorageUrl('');
       setScreen('edit-pet');
     } catch (error: unknown) {
       setPetFormReturnToProfile(false);
@@ -1182,6 +1170,7 @@ export function usePetHealthApp() {
       );
       const { data } = await uploadPetAvatar(token, resized.uri);
       setPetAvatarUrl(data.avatarUrl);
+      setPetAvatarStorageUrl(data.avatarStorageUrl);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('alerts.avatarUploadFailed.title'), i18n.t('alerts.avatarUploadFailed.message', { message }));

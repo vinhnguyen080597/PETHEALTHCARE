@@ -15,6 +15,11 @@ Tài liệu này tổng hợp các lưu ý quan trọng cần xử lý trước 
 - [ ] **Rotate key ngay** nếu từng lộ key trong logs/chat/screenshot.
 - [ ] Đảm bảo `.gitignore` đã bỏ qua toàn bộ file env local.
 - [ ] Tắt các endpoint/debug flow nội bộ trước release public.
+- [ ] Verify `/health/ready?deep=1` trả `ready`, service-role key hợp lệ, Supabase query OK.
+- [ ] Verify Supabase storage buckets: `pet-health-private-media` private, `pet-feed-public-media` public.
+- [ ] Dùng backend hosting không sleep cho App Review/public release; không dùng Render Free/ngrok.
+- [ ] Set `CORS_ORIGINS` cho web origins cần thiết, giữ `ALLOW_OPEN_CORS=false`.
+- [ ] Xác nhận account deletion xóa cả DB/Auth user và media trong Supabase Storage bucket theo prefix user.
 
 ## 2) Tạm thời chỉ dành cho build/dev (Bắt buộc gỡ trước release)
 
@@ -91,4 +96,5 @@ Chỉ release khi tất cả điều kiện sau đạt:
 - [ ] SMTP alert hoạt động + không spam.
 - [ ] Cost guardrails hoạt động đúng, có monitoring cơ bản.
 - [ ] QA pass cho luồng chính trên thiết bị thật.
+- [ ] App icon/splash/adaptive icon đã thay placeholder Expo bằng asset chính thức.
 

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
+import { resolvePrivateMediaUrl } from '../services/imageStorageService.js';
 
 const memoryPets = [];
 
@@ -9,10 +10,18 @@ function getPetsSupabase(accessToken) {
   return getSupabaseServiceClient();
 }
 
+async function withSignedPetMedia(pet) {
+  if (!pet) return pet;
+  return {
+    ...pet,
+    avatar_url: pet.avatar_url ? await resolvePrivateMediaUrl(pet.avatar_url) : pet.avatar_url,
+  };
+}
+
 export async function listPetsByUser(userId, accessToken) {
   const supabase = getPetsSupabase(accessToken);
   if (!supabase) {
-    return memoryPets.filter((pet) => pet.user_id === userId);
+    return Promise.all(memoryPets.filter((pet) => pet.user_id === userId).map(withSignedPetMedia));
   }
 
   const { data, error } = await supabase
@@ -22,13 +31,13 @@ export async function listPetsByUser(userId, accessToken) {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+  return Promise.all((data ?? []).map(withSignedPetMedia));
 }
 
 export async function getPetByIdForUser(userId, petId, accessToken) {
   const supabase = getPetsSupabase(accessToken);
   if (!supabase) {
-    return memoryPets.find((pet) => pet.user_id === userId && pet.id === petId) ?? null;
+    return withSignedPetMedia(memoryPets.find((pet) => pet.user_id === userId && pet.id === petId) ?? null);
   }
 
   const { data, error } = await supabase
@@ -39,7 +48,7 @@ export async function getPetByIdForUser(userId, petId, accessToken) {
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return withSignedPetMedia(data);
 }
 
 function normalizeGender(value) {
@@ -48,13 +57,12 @@ function normalizeGender(value) {
   return g === 'male' || g === 'female' ? g : null;
 }
 
-/** Browser blob: URLs are tab-local and must not be stored as avatar_url. */
 function sanitizeAvatarUrl(url) {
   if (url === undefined || url === null) return null;
   const t = String(url).trim();
   if (!t) return null;
-  if (t.toLowerCase().startsWith('blob:')) return null;
-  return t;
+  if (t.startsWith('storage://') || t.startsWith('memory://')) return t;
+  return null;
 }
 
 function normalizeAgeMonths(value) {
@@ -91,7 +99,7 @@ export async function createPetForUser(userId, payload, accessToken) {
   const supabase = getPetsSupabase(accessToken);
   if (!supabase) {
     memoryPets.push(normalized);
-    return normalized;
+    return withSignedPetMedia(normalized);
   }
 
   let { data, error } = await supabase.from('pets').insert(normalized).select('*').single();
@@ -102,7 +110,7 @@ export async function createPetForUser(userId, payload, accessToken) {
   }
 
   if (error) throw error;
-  return data;
+  return withSignedPetMedia(data);
 }
 
 export async function updatePetForUser(userId, petId, payload, accessToken) {
@@ -121,7 +129,7 @@ export async function updatePetForUser(userId, petId, payload, accessToken) {
     const index = memoryPets.findIndex((pet) => pet.user_id === userId && pet.id === petId);
     if (index < 0) return null;
     memoryPets[index] = { ...memoryPets[index], ...updates };
-    return memoryPets[index];
+    return withSignedPetMedia(memoryPets[index]);
   }
 
   let { data, error } = await supabase
@@ -144,7 +152,7 @@ export async function updatePetForUser(userId, petId, payload, accessToken) {
   }
 
   if (error) throw error;
-  return data;
+  return withSignedPetMedia(data);
 }
 
 export async function deletePetForUser(userId, petId, accessToken) {

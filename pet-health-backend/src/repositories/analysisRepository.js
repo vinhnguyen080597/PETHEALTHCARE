@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseServiceClient } from '../config/supabase.js';
 import { legacyFieldsFromAssessment, normalizeAnalysisRow } from '../services/healthAssessmentContract.js';
+import { resolvePrivateMediaUrl, resolvePrivateMediaUrls } from '../services/imageStorageService.js';
 
 const memoryAnalyses = [];
 
@@ -82,6 +83,28 @@ function overlayAssessmentFromLegacy(row) {
   return { ...row, assessment };
 }
 
+async function withSignedAnalysisMedia(row) {
+  if (!row) return row;
+  const normalized = normalizeAnalysisRow(row);
+  const extraImageUrls = await resolvePrivateMediaUrls(normalized.extra_image_urls ?? []);
+  const imageUrl = normalized.image_url ? await resolvePrivateMediaUrl(normalized.image_url) : normalized.image_url;
+  const videoUrl = normalized.video_url ? await resolvePrivateMediaUrl(normalized.video_url) : normalized.video_url;
+  return {
+    ...normalized,
+    image_url: imageUrl,
+    extra_image_urls: extraImageUrls,
+    video_url: videoUrl,
+    media: normalized.media
+      ? {
+          ...normalized.media,
+          image_url: imageUrl,
+          extra_image_urls: extraImageUrls,
+          video_url: videoUrl,
+        }
+      : normalized.media,
+  };
+}
+
 /** When reading analyses with UI locale `vi`, merge cached Vietnamese strings from display_translations. */
 export function mergeDisplayLocaleRow(row, displayLocale) {
   if (!row || displayLocale !== 'vi') return row;
@@ -127,7 +150,7 @@ export async function createAnalysisRecord(payload) {
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
     memoryAnalyses.push(row);
-    return normalizeAnalysisRow(row);
+    return withSignedAnalysisMedia(row);
   }
 
   const variants = [
@@ -140,7 +163,7 @@ export async function createAnalysisRecord(payload) {
   let lastError = null;
   for (const attempt of variants) {
     const { data, error } = await supabase.from('analyses').insert(attempt).select('*').single();
-    if (!error) return normalizeAnalysisRow(data);
+    if (!error) return withSignedAnalysisMedia(data);
     lastError = error;
     if (!isMissingOptionalColumnError(error)) {
       throw error;
@@ -170,14 +193,14 @@ export async function listAnalysesByPet(userId, petId, displayLocale = null) {
     ? 'vi'
     : null;
   const merged = loc ? rows.map((r) => mergeDisplayLocaleRow(r, loc)) : rows;
-  return merged.map((r) => normalizeAnalysisRow(r));
+  return Promise.all(merged.map((r) => withSignedAnalysisMedia(r)));
 }
 
 export async function getAnalysisByIdForUser(userId, analysisId) {
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
     const row = memoryAnalyses.find((x) => x.id === analysisId && x.user_id === userId) ?? null;
-    return row ? normalizeAnalysisRow(row) : null;
+    return row ? withSignedAnalysisMedia(row) : null;
   }
   const { data, error } = await supabase
     .from('analyses')
@@ -186,7 +209,7 @@ export async function getAnalysisByIdForUser(userId, analysisId) {
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
-  return data ? normalizeAnalysisRow(data) : data;
+  return data ? withSignedAnalysisMedia(data) : data;
 }
 
 /** Merge `{ vi: {...} }` into display_translations and persist. Returns updated row when possible. */
@@ -202,7 +225,7 @@ export async function mergeAnalysisDisplayTranslation(userId, analysisId, locale
       ...memoryAnalyses[idx],
       display_translations: { ...prev, [localeKey]: partial },
     };
-    return normalizeAnalysisRow(memoryAnalyses[idx]);
+    return withSignedAnalysisMedia(memoryAnalyses[idx]);
   }
 
   const current = await getAnalysisByIdForUser(userId, analysisId);
@@ -221,8 +244,8 @@ export async function mergeAnalysisDisplayTranslation(userId, analysisId, locale
 
   if (error && isLikelyTranslationColumnMissing(error)) {
     console.warn('[analyses] display_translations column missing; translation not persisted for', analysisId);
-    return current ? normalizeAnalysisRow(current) : current;
+    return current ? withSignedAnalysisMedia(current) : current;
   }
   if (error) throw error;
-  return data ? normalizeAnalysisRow(data) : data;
+  return data ? withSignedAnalysisMedia(data) : data;
 }

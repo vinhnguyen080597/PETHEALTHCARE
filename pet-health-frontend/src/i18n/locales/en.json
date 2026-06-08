@@ -19,7 +19,7 @@
   "health": {
     "checking": "Checking backend...",
     "online": "Backend online",
-    "offline": "Backend unreachable — check LOCAL_IP in src/config.ts"
+    "offline": "Service temporarily unavailable. Please try again."
   },
   "login": {
     "appName": "Pet Health Care",

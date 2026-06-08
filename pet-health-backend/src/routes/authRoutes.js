@@ -3,6 +3,7 @@ import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supab
 import { deleteAccountData, ensureAccountProfile } from '../repositories/accountRepository.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../services/authIdentifierService.js';
 import { requireUser } from '../middleware/auth.js';
+import { deleteUserImageStorage } from '../services/imageStorageService.js';
 
 const router = Router();
 
@@ -205,6 +206,7 @@ router.delete('/me', requireUser, async (req, res, next) => {
       });
     }
 
+    await deleteUserImageStorage(req.user.id);
     await deleteAccountData(req.user.id);
     const { error } = await admin.auth.admin.deleteUser(req.user.id);
     if (error) throw error;

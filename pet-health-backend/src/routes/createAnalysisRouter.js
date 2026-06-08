@@ -506,9 +506,9 @@ export function createAnalysisRouter(deps) {
           missing_data: aiResult.missing_data,
           next_action: aiResult.next_action,
           media: {
-            image_url: imageUrl,
-            extra_image_urls: extraImageUrls,
-            video_url: videoUrl,
+            image_url: stored.image_url,
+            extra_image_urls: stored.extra_image_urls ?? [],
+            video_url: stored.video_url ?? null,
           },
           input_context: inputContext,
         };

@@ -53,15 +53,18 @@ function badMedia(message, code) {
 }
 
 function validatePetFeedMedia({ payload, photos, video }) {
-  const existingPhotos = Array.isArray(payload.mediaUrls ?? payload.media_urls)
+  const clientMediaUrls = Array.isArray(payload.mediaUrls ?? payload.media_urls)
     ? (payload.mediaUrls ?? payload.media_urls).filter(Boolean)
     : [];
-  const existingVideo = typeof (payload.videoUrl ?? payload.video_url) === 'string' && (payload.videoUrl ?? payload.video_url).trim();
+  const clientVideoUrl = typeof (payload.videoUrl ?? payload.video_url) === 'string' && (payload.videoUrl ?? payload.video_url).trim();
+  if (clientMediaUrls.length > 0 || clientVideoUrl) {
+    throw badMedia('Pet Feed media must be uploaded as files for review.', 'PET_FEED_MEDIA_UPLOAD_REQUIRED');
+  }
 
-  if (existingPhotos.length === 0 && photos.length === 0) {
+  if (photos.length === 0) {
     throw badMedia('Please upload at least one clear photo for the Pet Feed post.', 'PET_FEED_PHOTO_REQUIRED');
   }
-  if (!existingVideo && !video) {
+  if (!video) {
     throw badMedia('Please upload one short video for the Pet Feed post.', 'PET_FEED_VIDEO_REQUIRED');
   }
   for (const photo of photos) {
@@ -90,6 +93,15 @@ function validatePetFeedMedia({ payload, photos, video }) {
 
 function cleanId(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function hasClientProvidedMediaReferences(payload) {
+  const mediaUrls = payload?.mediaUrls ?? payload?.media_urls;
+  const videoUrl = payload?.videoUrl ?? payload?.video_url;
+  return (
+    (Array.isArray(mediaUrls) && mediaUrls.some(Boolean)) ||
+    (typeof videoUrl === 'string' && videoUrl.trim().length > 0)
+  );
 }
 
 router.get('/posts', async (req, res, next) => {
@@ -178,13 +190,10 @@ router.post('/posts', requireAnyRole('breeder', 'admin'), petFeedUpload.fields([
     const uploadedVideoUrl = video
       ? await storePetFeedVideo({ userId: req.user.id, file: video, accessToken: req.accessToken })
       : '';
-    const existingMediaUrls = Array.isArray(payload.mediaUrls ?? payload.media_urls)
-      ? (payload.mediaUrls ?? payload.media_urls).filter(Boolean)
-      : [];
     const postPayload = {
       ...payload,
-      mediaUrls: [...uploadedPhotoUrls, ...existingMediaUrls],
-      videoUrl: uploadedVideoUrl || payload.videoUrl || payload.video_url || null,
+      mediaUrls: uploadedPhotoUrls,
+      videoUrl: uploadedVideoUrl || null,
     };
 
     const post = await createPetFeedPost(req.user.id, postPayload, req.accessToken, {
@@ -214,6 +223,12 @@ router.put('/posts/:postId', requireAnyRole('breeder', 'admin'), async (req, res
   try {
     const postId = cleanId(req.params.postId);
     if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    if (hasClientProvidedMediaReferences(req.body ?? {})) {
+      return res.status(400).json({
+        error: 'Pet Feed media changes must be uploaded as files for review.',
+        code: 'PET_FEED_MEDIA_UPLOAD_REQUIRED',
+      });
+    }
     const post = await updatePetFeedPost(req.user.id, postId, req.body ?? {}, req.accessToken);
     if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
     return res.json({ data: post });

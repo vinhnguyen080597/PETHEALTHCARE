@@ -55,6 +55,34 @@ alter table public.analyses add column if not exists display_translations jsonb 
 -- Legacy columns above are retained for compatibility and are derived from this assessment contract.
 alter table public.analyses add column if not exists assessment jsonb not null default '{}'::jsonb;
 
+-- Health analysis RLS: rows contain pet health data and must only be visible to the owner.
+alter table public.analyses enable row level security;
+
+drop policy if exists "analyses_select_own" on public.analyses;
+drop policy if exists "analyses_insert_own" on public.analyses;
+drop policy if exists "analyses_update_own" on public.analyses;
+drop policy if exists "analyses_delete_own" on public.analyses;
+
+create policy "analyses_select_own"
+on public.analyses for select
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "analyses_insert_own"
+on public.analyses for insert
+to authenticated
+with check (auth.uid()::text = user_id);
+
+create policy "analyses_update_own"
+on public.analyses for update
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "analyses_delete_own"
+on public.analyses for delete
+to authenticated
+using (auth.uid()::text = user_id);
+
 -- --- Pet RLS: required when the API uses the anon key + user JWT (not service role).
 -- Run this block in the SQL Editor if POST /api/v1/pets fails with row-level security errors.
 alter table public.pets enable row level security;
@@ -69,25 +97,51 @@ create policy "pets_insert_own" on public.pets for insert with check (auth.uid()
 create policy "pets_update_own" on public.pets for update using (auth.uid()::text = user_id);
 create policy "pets_delete_own" on public.pets for delete using (auth.uid()::text = user_id);
 
--- --- Storage (image bucket): required when uploads use anon + user JWT (wrong/missing service_role key).
--- Paths from the API are `userId/...` (avatars) or `userId/petId/...` (diagnosis) — first segment must match auth.uid().
--- Replace `pet-diagnosis-images` if your bucket id differs (see SUPABASE_IMAGE_BUCKET / Dashboard → Storage).
+-- --- Storage buckets.
+-- Private health/profile media uses signed URLs; Pet Feed listing media is public after moderation.
+-- Paths from the API are `userId/...` — first segment must match auth.uid() when using user-scoped uploads.
 
 drop policy if exists "pet_images_storage_insert_own" on storage.objects;
 drop policy if exists "pet_images_storage_select_public" on storage.objects;
+drop policy if exists "private_media_storage_insert_own" on storage.objects;
+drop policy if exists "private_media_storage_select_own" on storage.objects;
+drop policy if exists "public_pet_feed_storage_insert_own" on storage.objects;
+drop policy if exists "public_pet_feed_storage_select_public" on storage.objects;
 
-create policy "pet_images_storage_insert_own"
+insert into storage.buckets (id, name, public)
+values
+  ('pet-health-private-media', 'pet-health-private-media', false),
+  ('pet-feed-public-media', 'pet-feed-public-media', true)
+on conflict (id) do nothing;
+
+create policy "private_media_storage_insert_own"
 on storage.objects for insert
 to authenticated
 with check (
-  bucket_id = 'pet-diagnosis-images'
+  bucket_id = 'pet-health-private-media'
   and split_part(name, '/', 1) = (select auth.uid()::text)
 );
 
-create policy "pet_images_storage_select_public"
+create policy "private_media_storage_select_own"
+on storage.objects for select
+to authenticated
+using (
+  bucket_id = 'pet-health-private-media'
+  and split_part(name, '/', 1) = (select auth.uid()::text)
+);
+
+create policy "public_pet_feed_storage_insert_own"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'pet-feed-public-media'
+  and split_part(name, '/', 1) = (select auth.uid()::text)
+);
+
+create policy "public_pet_feed_storage_select_public"
 on storage.objects for select
 to public
-using (bucket_id = 'pet-diagnosis-images');
+using (bucket_id = 'pet-feed-public-media');
 
 -- --- AI unit economics: durable credits, usage logs, and audit ledger.
 -- Run before public scaling so every paid Gemini call has a server-side cost gate.

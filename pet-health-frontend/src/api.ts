@@ -323,7 +323,8 @@ export async function upsertMyBreederProfile(token: string, payload: UpsertBreed
 export async function createPetFeedPost(token: string, payload: CreatePetFeedPostPayload, media?: CreatePetFeedPostMedia) {
   if (media) {
     const formData = new FormData();
-    formData.append('payload', JSON.stringify(payload));
+    const { mediaUrls: _mediaUrls, videoUrl: _videoUrl, ...reviewPayload } = payload;
+    formData.append('payload', JSON.stringify(reviewPayload));
     for (let i = 0; i < media.photoUris.length; i++) {
       await appendImageFileToFormData(formData, 'photos', media.photoUris[i], `pet-feed-photo-${i}-${Date.now()}`, 'image/jpeg');
     }
@@ -529,7 +530,7 @@ export async function updateCoreCareRecord(token: string, recordId: string, payl
   });
 }
 
-/** Multipart upload → Supabase Storage; returns public `avatarUrl` for `createPet` / `updatePet`. */
+/** Multipart upload -> private storage; returns signed preview URL plus storage URI for pet create/update. */
 export async function uploadPetAvatar(token: string, imageUri: string, mimeHint: string = 'image/jpeg') {
   const formData = new FormData();
   await appendImageFileToFormData(formData, 'image', imageUri, `avatar-${Date.now()}`, mimeHint);
@@ -550,7 +551,7 @@ export async function uploadPetAvatar(token: string, imageUri: string, mimeHint:
     throw new Error(message);
   }
 
-  return body as { data: { avatarUrl: string } };
+  return body as { data: { avatarUrl: string; avatarStorageUrl: string } };
 }
 
 export async function requestBreedRecognition(
