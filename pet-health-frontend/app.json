@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.pethealthcare.app",
       "buildNumber": "1",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "Pet Health Care lets you choose photos and videos from your library for pet profiles, wellness screening, breed recognition, and Pet Feed listings."
       }
     },
@@ -39,6 +40,12 @@
       "expo-asset",
       "expo-video",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "657583fb-c196-40dc-884d-9db95f5be282"
+      }
+    },
+    "owner": "cattieshouse"
   }
 }
