@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Animated, ScrollView, Text, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getBreedRecognitionSlotOrder } from '../constants/petBreedRecognitionSlots';
 import type { Pet } from '../types';
 
@@ -91,7 +91,13 @@ export function BreedRecognitionProgressScreen({
         <View className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/40 bg-slate-900 shadow-lg">
           <View className="relative h-72">
             {hero ? (
-              <Image source={{ uri: hero.uri }} className="h-full w-full" contentFit="cover" transition={180} />
+              <Image
+                source={{ uri: hero.uri }}
+                style={styles.heroImage}
+                contentFit="cover"
+                transition={180}
+                recyclingKey={hero.uri}
+              />
             ) : (
               <View className="h-full w-full items-center justify-center bg-slate-800">
                 <Text className="text-sm text-slate-300">{t('breedRecognitionProgress.noPreview')}</Text>
@@ -146,7 +152,13 @@ export function BreedRecognitionProgressScreen({
                 index === activeScanIndex && isScanning ? 'border-cyan-200' : 'border-cyan-200/40'
               }`}
             >
-              <Image source={{ uri: item.uri }} className="h-full w-full" contentFit="cover" transition={120} />
+              <Image
+                source={{ uri: item.uri }}
+                style={styles.thumbnailImage}
+                contentFit="cover"
+                transition={120}
+                recyclingKey={item.uri}
+              />
             </View>
           ))}
         </View>
@@ -161,3 +173,14 @@ export function BreedRecognitionProgressScreen({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+});

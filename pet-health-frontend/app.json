@@ -35,11 +35,11 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-web-browser",
       "expo-localization",
       "expo-asset",
-      "expo-video",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font",
+      "expo-video"
     ],
     "extra": {
       "eas": {

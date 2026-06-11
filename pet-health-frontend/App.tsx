@@ -1,6 +1,8 @@
 import './global.css';
+import { Component, type ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from './src/components/AppHeader';
 import { BottomTabBar } from './src/components/BottomTabBar';
@@ -29,7 +31,52 @@ import { PetFeedScreen } from './src/screens/PetFeedScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { VetSummaryScreen } from './src/screens/VetSummaryScreen';
 
+type StartupErrorBoundaryProps = {
+  children: ReactNode;
+};
+
+type StartupErrorBoundaryState = {
+  error: Error | null;
+};
+
+class StartupErrorBoundary extends Component<StartupErrorBoundaryProps, StartupErrorBoundaryState> {
+  state: StartupErrorBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error): StartupErrorBoundaryState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Pet Health Care startup error', error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <SafeAreaProvider>
+          <SafeAreaView style={styles.errorContainer}>
+            <Text style={styles.errorTitle}>App could not start</Text>
+            <Text style={styles.errorMessage} selectable>
+              {this.state.error.message}
+            </Text>
+          </SafeAreaView>
+        </SafeAreaProvider>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function App() {
+  return (
+    <StartupErrorBoundary>
+      <AppContent />
+    </StartupErrorBoundary>
+  );
+}
+
+function AppContent() {
   const { t } = useTranslation();
   const app = usePetHealthApp();
   const isAdmin = app.accountProfile?.primary_role === 'admin';
@@ -83,10 +130,6 @@ export default function App() {
           onChangeConfirmPassword={app.setConfirmPassword}
           onToggleSignUp={app.toggleLoginSignUpMode}
           onSubmit={app.submitAuth}
-          onGoogleSignIn={app.submitGoogleAuth}
-          onAppleSignIn={app.submitAppleAuth}
-          appleSignInAvailable={app.appleSignInAvailable}
-          googleSignInReady={app.googleSignInReady}
         />
       ) : (
         <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right']}>
@@ -429,3 +472,23 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: '#F8FAFC',
+  },
+  errorTitle: {
+    marginBottom: 12,
+    color: '#0F172A',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  errorMessage: {
+    color: '#475569',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+});

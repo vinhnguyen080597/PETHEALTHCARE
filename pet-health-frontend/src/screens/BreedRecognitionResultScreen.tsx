@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getBreedRecognitionSlotOrder } from '../constants/petBreedRecognitionSlots';
 import type { BreedRecognitionResult, Pet } from '../types';
 
@@ -107,7 +107,13 @@ export function BreedRecognitionResultScreen({
         <View className="bg-slate-950 px-5 pb-6 pt-5">
           <View className="overflow-hidden rounded-3xl border border-cyan-300/30 bg-slate-900">
             {heroPhoto ? (
-              <Image source={{ uri: heroPhoto.uri }} className="h-60 w-full" contentFit="cover" transition={180} />
+              <Image
+                source={{ uri: heroPhoto.uri }}
+                style={styles.heroImage}
+                contentFit="cover"
+                transition={180}
+                recyclingKey={heroPhoto.uri}
+              />
             ) : (
               <View className="h-60 w-full items-center justify-center bg-slate-800">
                 <Ionicons name="paw-outline" size={42} color="#bae6fd" />
@@ -307,3 +313,10 @@ export function BreedRecognitionResultScreen({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  heroImage: {
+    width: '100%',
+    height: 240,
+  },
+});

@@ -1,12 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+  type TextStyle,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, metadataString } from '../utils/breederTrust';
 
 const PRIMARY = '#1E6FE8';
+const WEB_SEARCH_INPUT_STYLE =
+  Platform.OS === 'web' ? ({ outlineStyle: 'none', boxShadow: 'none' } as unknown as TextStyle) : undefined;
 
 type SpeciesFilter = 'all' | 'dog' | 'cat';
 type GenderFilter = 'all' | 'male' | 'female';
@@ -250,6 +263,7 @@ export function PetFeedScreen({ posts, breederProfiles, refreshing, onRefresh, o
             <TextInput
               testID="pet-feed-search-input"
               className="min-w-0 flex-1 text-base text-slate-900"
+              style={WEB_SEARCH_INPUT_STYLE}
               placeholder={t('petFeed.searchPlaceholder')}
               placeholderTextColor="#94a3b8"
               value={query}

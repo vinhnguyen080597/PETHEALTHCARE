@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   getBreedRecognitionRequiredSlots,
   getBreedRecognitionSlotOrder,
@@ -183,7 +183,12 @@ export function PetBreedRecognitionScreen({
                     className="overflow-hidden rounded-xl border border-gray-200 active:opacity-90"
                     onPress={() => onPickSlot(slot)}
                   >
-                    <Image source={{ uri }} className="h-28 w-full" contentFit="cover" />
+                    <Image
+                      source={{ uri }}
+                      style={styles.slotPreviewImage}
+                      contentFit="cover"
+                      recyclingKey={uri}
+                    />
                     <View className="bg-white px-3 py-2">
                       <Text className="text-center text-sm font-semibold" style={{ color: PRIMARY }}>
                         {t('breedRecognition.changePhoto')}
@@ -245,3 +250,10 @@ export function PetBreedRecognitionScreen({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  slotPreviewImage: {
+    width: '100%',
+    height: 112,
+  },
+});

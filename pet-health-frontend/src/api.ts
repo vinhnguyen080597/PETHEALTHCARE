@@ -222,22 +222,6 @@ export async function deleteMyAccount(token: string) {
   });
 }
 
-export async function oauthGoogle(idToken: string) {
-  return requestJson<{ data: AuthResponse }>('/auth/oauth/google', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idToken }),
-  });
-}
-
-export async function oauthApple(idToken: string, nonce: string) {
-  return requestJson<{ data: AuthResponse }>('/auth/oauth/apple', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idToken, nonce }),
-  });
-}
-
 function authHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,

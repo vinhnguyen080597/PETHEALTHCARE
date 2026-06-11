@@ -1,6 +1,8 @@
-# App Store Submission Packet
+# App Store / TestFlight Packet
 
 Last updated: 2026-06-10
+
+Current scope: v1 internal TestFlight testing only. Do not submit for public App Review until the TestFlight QA runsheet passes and the backend is confirmed non-sleeping.
 
 ## App Identity
 
@@ -31,7 +33,7 @@ If your pet has urgent symptoms or may be in danger, contact a veterinarian or e
 
 pet health, pet care, dog, cat, wellness, pet profile, reminder, breeder, pet feed, breed recognition
 
-## Review Notes Draft
+## Future App Review Notes Draft
 
 Pet Health Care provides informational pet wellness support only. The app does not diagnose, treat, prescribe medication, or replace care from a licensed veterinarian.
 
@@ -101,11 +103,11 @@ Required iPhone screenshots should highlight:
 
 Tablet screenshots are not required for the first release because `ios.supportsTablet=false`.
 
-## Final Go / No-Go Items
+## Internal TestFlight Go / No-Go Items
 
 - EAS production env uses stable HTTPS backend, not ngrok.
-- Render backend is on a non-sleeping plan before App Review.
 - `/health/ready?deep=1` returns ready.
 - TestFlight build passes real-device smoke test.
-- Reviewer credentials are created and verified.
-- Screenshots are captured from the final build.
+- Owner/tester credentials are created and verified.
+- Render backend is upgraded to a non-sleeping plan before any later public App Review submission.
+- Reviewer credentials and screenshots can be finalized later before public submission.

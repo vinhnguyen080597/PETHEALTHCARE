@@ -39,9 +39,6 @@
     "signUp": "Đăng ký",
     "signIn": "Đăng nhập",
     "continue": "Tiếp tục",
-    "orContinueWith": "Hoặc tiếp tục với",
-    "google": "Google",
-    "apple": "Apple",
     "toggleToSignIn": "Đã có tài khoản? Đăng nhập",
     "toggleToSignUp": "Chưa có tài khoản? Đăng ký",
     "termsFooter": "Tiếp tục nghĩa là bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật",
@@ -974,50 +971,6 @@
     },
     "authFailed": {
       "title": "Xác thực thất bại",
-      "message": "{{message}}"
-    },
-    "googleNotConfigured": {
-      "title": "Đăng nhập Google",
-      "message": "Thêm EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (và client ID iOS/Android cho bản build) vào file .env, khởi động lại Expo, bật Google trong Supabase Auth → Providers, rồi thử lại."
-    },
-    "googleLoading": {
-      "title": "Vui lòng đợi",
-      "message": "Đăng nhập Google vẫn đang tải."
-    },
-    "googleSignInIncomplete": {
-      "title": "Đăng nhập Google",
-      "message": "Đăng nhập chưa hoàn tất."
-    },
-    "googleNoIdToken": {
-      "title": "Đăng nhập Google",
-      "message": "Không nhận được ID token. Kiểm tra cấu hình OAuth Google."
-    },
-    "googleNoAccessToken": {
-      "title": "Đăng nhập Google",
-      "message": "Không nhận được mã truy cập."
-    },
-    "googleNonce": {
-      "title": "Đăng nhập Google (Supabase)",
-      "message": "Bật \"Skip nonce checks\" cho nhà cung cấp Google trong Supabase (Authentication → Providers → Google), rồi thử lại. Luồng Google của Expo và kiểm tra nonce của Supabase không khớp nếu không bật."
-    },
-    "googleSignInFailed": {
-      "title": "Đăng nhập Google thất bại",
-      "message": "{{message}}"
-    },
-    "appleUnavailable": {
-      "title": "Đăng nhập Apple",
-      "message": "Đăng nhập Apple chỉ khả dụng trên thiết bị iOS được hỗ trợ."
-    },
-    "appleNoIdentityToken": {
-      "title": "Đăng nhập Apple",
-      "message": "Không nhận được identity token."
-    },
-    "appleNoAccessToken": {
-      "title": "Đăng nhập Apple",
-      "message": "Không nhận được mã truy cập."
-    },
-    "appleSignInFailed": {
-      "title": "Đăng nhập Apple thất bại",
       "message": "{{message}}"
     },
     "missingPetInfo": {

@@ -1,6 +1,7 @@
 # App Store QA Runsheet
 
-Use this runsheet for the release candidate installed from TestFlight or an EAS iOS build using production env.
+Use this runsheet for the v1 internal testing build installed from TestFlight or an EAS iOS build using production env.
+This pass is for the owner/team to test the app, not for public App Store release.
 
 ## Environment
 
@@ -108,10 +109,10 @@ Record the accounts used for App Review:
 - [ ] Large iPhone layout smoke test.
 - [ ] Tablet support remains disabled in config.
 
-## Go / No-Go
+## Internal TestFlight Go / No-Go
 
 - [ ] All P0 flows pass.
 - [ ] Backend remains ready after idle period.
 - [ ] No ngrok/local URLs in release build.
-- [ ] Reviewer credentials are verified.
-- [ ] Screenshots captured from final build.
+- [ ] Owner/tester accounts are verified.
+- [ ] Blocking issues are logged before any later public App Review submission.

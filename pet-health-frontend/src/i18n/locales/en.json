@@ -39,9 +39,6 @@
     "signUp": "Sign Up",
     "signIn": "Sign In",
     "continue": "Continue",
-    "orContinueWith": "Or continue with",
-    "google": "Google",
-    "apple": "Apple",
     "toggleToSignIn": "Already have an account? Sign in",
     "toggleToSignUp": "Don't have an account? Sign up",
     "termsFooter": "By continuing, you agree to our Terms of Service and Privacy Policy",
@@ -974,50 +971,6 @@
     },
     "authFailed": {
       "title": "Auth failed",
-      "message": "{{message}}"
-    },
-    "googleNotConfigured": {
-      "title": "Google sign-in",
-      "message": "Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (and iOS/Android client IDs for native builds) to a .env file, restart Expo, enable Google in Supabase Auth → Providers, then try again."
-    },
-    "googleLoading": {
-      "title": "Please wait",
-      "message": "Google sign-in is still loading."
-    },
-    "googleSignInIncomplete": {
-      "title": "Google sign-in",
-      "message": "Sign-in was not completed."
-    },
-    "googleNoIdToken": {
-      "title": "Google sign-in",
-      "message": "No ID token returned. Check your Google OAuth client configuration."
-    },
-    "googleNoAccessToken": {
-      "title": "Google sign-in",
-      "message": "No access token returned."
-    },
-    "googleNonce": {
-      "title": "Google sign-in (Supabase)",
-      "message": "Turn ON \"Skip nonce checks\" for the Google provider in Supabase (Authentication → Providers → Google), then try again. Expo's Google flow and Supabase's nonce check do not line up without that setting."
-    },
-    "googleSignInFailed": {
-      "title": "Google sign-in failed",
-      "message": "{{message}}"
-    },
-    "appleUnavailable": {
-      "title": "Apple sign-in",
-      "message": "Sign in with Apple is only available on supported iOS devices."
-    },
-    "appleNoIdentityToken": {
-      "title": "Apple sign-in",
-      "message": "No identity token returned."
-    },
-    "appleNoAccessToken": {
-      "title": "Apple sign-in",
-      "message": "No access token returned."
-    },
-    "appleSignInFailed": {
-      "title": "Apple sign-in failed",
       "message": "{{message}}"
     },
     "missingPetInfo": {

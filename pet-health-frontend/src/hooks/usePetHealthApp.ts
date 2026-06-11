@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
@@ -39,8 +38,6 @@ import {
   requestBreedRecognition,
   translateAnalysesDisplay,
   login,
-  oauthApple,
-  oauthGoogle,
   signUp,
   updateCoreCareRecord,
   updateAdminAccount,
@@ -52,13 +49,11 @@ import {
   upsertMyBreederProfile,
   uploadPetAvatar,
 } from '../api';
-import { isGoogleOAuthConfigured } from '../config';
 import { preloadMaiOnboardingImages } from '../assets/maiOnboardingAssets';
 import { preloadServicesOnboardingImages } from '../assets/servicesOnboardingAssets';
 import { PENDING_INITIAL_ONBOARDING_KEY } from '../constants/auth';
 import { isBreedRecognitionSpecies, type BreedRecognitionSlot } from '../constants/petBreedRecognitionSlots';
 import { getStoredAuthToken, removeStoredAuthToken, setStoredAuthToken } from '../utils/authTokenStorage';
-import { useGoogleIdTokenAuth } from './useGoogleIdTokenAuth';
 import type {
   AiCreditAccount,
   AiEconomicsConfig,
@@ -165,17 +160,12 @@ export function usePetHealthApp() {
   const [analysisCooldownUntilMs, setAnalysisCooldownUntilMs] = useState(0);
   const [analysisCooldownSeconds, setAnalysisCooldownSeconds] = useState(0);
   const [analysisSubmitting, setAnalysisSubmitting] = useState(false);
-  const [appleSignInAvailable, setAppleSignInAvailable] = useState(false);
-
   const [breedRecognitionSlotUris, setBreedRecognitionSlotUris] = useState<Record<string, string>>({});
   const [breedRecognitionResult, setBreedRecognitionResult] = useState<BreedRecognitionResult | null>(null);
   const [breedRecognitionLoading, setBreedRecognitionLoading] = useState(false);
   const [breedRecognitionReturnScreen, setBreedRecognitionReturnScreen] = useState<
     'health-check' | 'onboarding-health-check' | 'onboarding-health-prompt' | 'pet-profile' | null
   >(null);
-
-  const [googleAuthRequest, , promptGoogleAsync] = useGoogleIdTokenAuth();
-
   const selectedPet = useMemo(() => pets.find((pet) => pet.id === selectedPetId) ?? null, [pets, selectedPetId]);
   const selectedBreederPosts = useMemo(
     () => selectedBreederProfileId ? postsForBreeder(petFeedPosts, selectedBreederProfileId) : [],
@@ -315,10 +305,6 @@ export function usePetHealthApp() {
 
   useEffect(() => {
     void initializeApp();
-  }, []);
-
-  useEffect(() => {
-    void AppleAuthentication.isAvailableAsync().then(setAppleSignInAvailable);
   }, []);
 
   useEffect(() => {
@@ -470,103 +456,6 @@ export function usePetHealthApp() {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('alerts.authFailed.title'), i18n.t('alerts.authFailed.message', { message }));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function submitGoogleAuth() {
-    if (!isGoogleOAuthConfigured()) {
-      Alert.alert(
-        i18n.t('alerts.googleNotConfigured.title'),
-        i18n.t('alerts.googleNotConfigured.message'),
-      );
-      return;
-    }
-    if (!googleAuthRequest) {
-      Alert.alert(i18n.t('alerts.googleLoading.title'), i18n.t('alerts.googleLoading.message'));
-      return;
-    }
-    if (__DEV__) {
-      // If Google returns "redirect_uri_mismatch", add this EXACT string to the matching OAuth client in Google Cloud Console.
-      console.log('[Google OAuth] redirectUri (must be in Authorized redirect URIs):', googleAuthRequest.redirectUri);
-    }
-    setLoading(true);
-    try {
-      const result = await promptGoogleAsync();
-      if (result.type === 'cancel' || result.type === 'dismiss') {
-        return;
-      }
-      if (result.type !== 'success') {
-        const errMsg =
-          result.type === 'error'
-            ? (result.error instanceof Error ? result.error.message : result.errorCode) ??
-              i18n.t('common.somethingWentWrong')
-            : i18n.t('alerts.googleSignInIncomplete.message');
-        Alert.alert(i18n.t('alerts.googleSignInIncomplete.title'), errMsg);
-        return;
-      }
-      const idToken = result.params.id_token;
-      if (!idToken) {
-        Alert.alert(i18n.t('alerts.googleNoIdToken.title'), i18n.t('alerts.googleNoIdToken.message'));
-        return;
-      }
-      const response = await oauthGoogle(idToken);
-      const accessToken = response.data.session?.access_token;
-      if (!accessToken) {
-        Alert.alert(i18n.t('alerts.googleNoAccessToken.title'), i18n.t('alerts.googleNoAccessToken.message'));
-        return;
-      }
-      await applySession(accessToken);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      if (/nonce/i.test(message)) {
-        Alert.alert(i18n.t('alerts.googleNonce.title'), i18n.t('alerts.googleNonce.message'));
-        return;
-      }
-      Alert.alert(i18n.t('alerts.googleSignInFailed.title'), i18n.t('alerts.googleSignInFailed.message', { message }));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function submitAppleAuth() {
-    if (!(await AppleAuthentication.isAvailableAsync())) {
-      Alert.alert(i18n.t('alerts.appleUnavailable.title'), i18n.t('alerts.appleUnavailable.message'));
-      return;
-    }
-    setLoading(true);
-    try {
-      const rawNonce = Crypto.randomUUID();
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-        nonce: rawNonce,
-      });
-      if (!credential.identityToken) {
-        Alert.alert(i18n.t('alerts.appleNoIdentityToken.title'), i18n.t('alerts.appleNoIdentityToken.message'));
-        return;
-      }
-      const response = await oauthApple(credential.identityToken, rawNonce);
-      const accessToken = response.data.session?.access_token;
-      if (!accessToken) {
-        Alert.alert(i18n.t('alerts.appleNoAccessToken.title'), i18n.t('alerts.appleNoAccessToken.message'));
-        return;
-      }
-      await applySession(accessToken);
-    } catch (error: unknown) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code: string }).code === 'ERR_REQUEST_CANCELED'
-      ) {
-        return;
-      }
-      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      Alert.alert(i18n.t('alerts.appleSignInFailed.title'), i18n.t('alerts.appleSignInFailed.message', { message }));
     } finally {
       setLoading(false);
     }
@@ -887,15 +776,22 @@ export function usePetHealthApp() {
     }
   }
 
-  async function openAccount() {
+  function openAccount() {
     if (screen === 'account') return;
-    let nextRole = accountProfile?.primary_role;
-    if (token) {
-      const freshAccount = await fetchAccountProfile(token);
-      nextRole = freshAccount.primary_role;
-      await loadAccountDashboard(token, nextRole);
-    }
-    setScreen(nextRole === 'admin' ? 'home' : 'account');
+    setScreen('account');
+    if (!token) return;
+
+    void (async () => {
+      try {
+        const freshAccount = await fetchAccountProfile(token);
+        if (freshAccount.primary_role === 'admin') {
+          setScreen('home');
+        }
+        await loadAccountDashboard(token, freshAccount.primary_role);
+      } catch {
+        // Keep the account tab responsive even if the dashboard refresh is slow/offline.
+      }
+    })();
   }
 
   function hasAccountRole(...roles: UserRole[]) {
@@ -1692,10 +1588,6 @@ export function usePetHealthApp() {
     aiEconomicsConfig,
     refreshAiCredits: token ? () => refreshAiCredits(token) : undefined,
     submitAuth,
-    submitGoogleAuth,
-    submitAppleAuth,
-    appleSignInAvailable,
-    googleSignInReady: Boolean(googleAuthRequest),
     handleAddPet,
     handleUpdatePet,
     openCreatePet,
