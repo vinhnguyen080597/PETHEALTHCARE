@@ -88,10 +88,10 @@ export function PetBreedRecognitionScreen({
       </View>
 
       <ScrollView
-        className="flex-1 px-5"
+        className="flex-1"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 14, paddingBottom: 150 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 150 }}
       >
         <View className="mb-4 flex-row items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
           <Image

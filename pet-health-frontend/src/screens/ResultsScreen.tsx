@@ -78,9 +78,9 @@ export function ResultsScreen({
       </View>
 
       <ScrollView
-        className="flex-1 px-6 py-6"
+        className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={onboarding ? { paddingBottom: 100 } : undefined}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: onboarding ? 100 : 24 }}
       >
         {imageUri ? (
           <View className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -214,7 +214,7 @@ export function ResultsScreen({
       </ScrollView>
 
       {onboarding && onFinish ? (
-        <View className="border-t border-gray-200 bg-white px-6 py-4">
+        <View className="border-t border-gray-200 bg-white px-5 py-4">
           <Pressable
             testID="results-finish-button"
             className="rounded-xl bg-blue-600 py-4 active:bg-blue-700"

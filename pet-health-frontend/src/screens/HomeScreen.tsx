@@ -44,7 +44,8 @@ export function HomeScreen({
   return (
     <ScrollView
       testID="home-screen"
-      className="flex-1 bg-[#F2F4F8] px-5 pb-6 pt-5"
+      className="flex-1 bg-[#F2F4F8]"
+      contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, paddingTop: 20 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY_BLUE} />}
       showsVerticalScrollIndicator={false}
     >

@@ -32,7 +32,11 @@ export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
         <Text className="text-sm text-gray-600">{t('history.subtitle')}</Text>
       </View>
 
-      <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}
+        showsVerticalScrollIndicator={false}
+      >
         {history.length === 0 ? (
           <Text className="py-8 text-center text-gray-600">{t('history.empty')}</Text>
         ) : (

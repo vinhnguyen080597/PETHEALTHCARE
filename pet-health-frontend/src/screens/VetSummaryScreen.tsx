@@ -55,7 +55,7 @@ export function VetSummaryScreen({ pet, records, history, onBack }: VetSummarySc
         <View className="w-14" />
       </View>
 
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}>
         <View className="rounded-2xl bg-blue-600 p-5">
           <Text className="text-xs font-bold uppercase tracking-wide text-blue-100">{t('vetSummary.eyebrow')}</Text>
           <Text className="mt-2 text-2xl font-bold text-white">{pet.name}</Text>

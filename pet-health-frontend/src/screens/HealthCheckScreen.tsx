@@ -208,10 +208,10 @@ export function HealthCheckScreen({
       </View>
 
       <ScrollView
-        className="flex-1 px-5"
+        className="flex-1"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
       >
         <View className="mb-5 rounded-xl px-4 py-3" style={{ backgroundColor: INFO_BG }}>
           <Text className="text-sm leading-5" style={{ color: INFO_TEXT }}>

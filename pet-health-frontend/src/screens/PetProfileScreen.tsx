@@ -103,7 +103,8 @@ export function PetProfileScreen({
       </View>
 
       <ScrollView
-        className="flex-1 px-5 pb-8 pt-4"
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, paddingTop: 16 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY_BLUE} />

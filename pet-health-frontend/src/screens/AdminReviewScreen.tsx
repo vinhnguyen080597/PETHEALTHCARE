@@ -129,7 +129,7 @@ export function AdminReviewScreen({
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('adminReview.title')}</Text>
         <View className="w-14" />
       </View>
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}>
         <View className="rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-sm leading-5 text-slate-600">{t('adminReview.roleNote')}</Text>
           <Pressable testID="admin-review-load-button" className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90" onPress={load} disabled={loading}>

@@ -323,7 +323,11 @@ export function AccountScreen({
   const breederDateFilterLabel = t(REQUEST_DATE_FILTERS.find((filter) => filter.key === breederDateFilter)?.labelKey ?? 'adminRequests.dates.newest');
 
   return (
-    <ScrollView testID="account-screen" className="flex-1 bg-[#F2F4F8] px-5 pb-6 pt-5">
+    <ScrollView
+      testID="account-screen"
+      className="flex-1 bg-[#F2F4F8]"
+      contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, paddingTop: 20 }}
+    >
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className="text-2xl font-bold text-slate-900">{t(`account.roles.${role}.title`)}</Text>

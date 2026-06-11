@@ -141,7 +141,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('breederProfile.title')}</Text>
         <View className="w-14" />
       </View>
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}>
         <View className="rounded-2xl p-4" style={{ backgroundColor: PRIMARY }}>
           <View className="flex-row gap-3">
             <View className="h-11 w-11 items-center justify-center rounded-full bg-white/15">

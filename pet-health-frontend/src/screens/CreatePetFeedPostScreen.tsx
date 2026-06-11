@@ -309,7 +309,11 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('createPetFeedPost.title')}</Text>
         <View className="w-14" />
       </View>
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <Text className="text-sm leading-5 text-amber-900">
             {isAdmin ? t('createPetFeedPost.adminReviewNote') : t('createPetFeedPost.reviewNote')}
@@ -418,7 +422,7 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
             <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('createPetFeedPost.review')}</Text>
             <View className="w-14" />
           </View>
-          <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingTop: 16, paddingBottom: 120 }}>
+          <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120 }}>
             <PetFeedPostCard post={previewPost} showFavorite={false} showContact={false} showReport={false} testID="create-pet-feed-post-preview-card" />
           </ScrollView>
           <View className="border-t border-gray-200 bg-white p-4">

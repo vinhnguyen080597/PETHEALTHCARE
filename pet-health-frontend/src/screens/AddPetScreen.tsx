@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
@@ -12,6 +12,14 @@ export const PET_SPECIES_VALUES = ['dog', 'cat'] as const;
 export const PET_GENDER_VALUES = ['male', 'female'] as const;
 
 type SelectOption = { value: string; label: string };
+
+function RequiredLabel({ children }: { children: string }) {
+  return (
+    <Text className="mb-2 text-sm font-semibold text-slate-900">
+      {children} <Text className="text-red-500">*</Text>
+    </Text>
+  );
+}
 
 type AddPetScreenProps = {
   variant: PetFormVariant;
@@ -46,6 +54,7 @@ function FormSelect({
   onChange,
   placeholder,
   testID,
+  required,
 }: {
   label: string;
   value: string;
@@ -53,6 +62,7 @@ function FormSelect({
   onChange: (value: string) => void;
   placeholder: string;
   testID?: string;
+  required?: boolean;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -60,7 +70,7 @@ function FormSelect({
 
   return (
     <View className="mb-5">
-      <Text className="mb-2 text-sm font-semibold text-slate-900">{label}</Text>
+      {required ? <RequiredLabel>{label}</RequiredLabel> : <Text className="mb-2 text-sm font-semibold text-slate-900">{label}</Text>}
       <Pressable
         testID={testID}
         className="flex-row items-center justify-between rounded-xl border border-gray-300 bg-white px-4 py-3 active:bg-gray-50"
@@ -149,7 +159,32 @@ export function AddPetScreen({
     return base;
   }, [petGender, t]);
 
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const hasAvatarUri = Boolean(petAvatarUrl?.trim());
+  const showAvatarImage = hasAvatarUri && !avatarLoadFailed;
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [petAvatarUrl]);
+
+  function submitWithRequiredFields() {
+    const missingFields = [
+      !petName.trim() ? t('addPet.petName') : null,
+      !petSpecies.trim() ? t('addPet.petType') : null,
+      !petGender.trim() ? t('addPet.gender') : null,
+      !petAge.trim() ? t('addPet.ageYears') : null,
+      !petAvatarUrl.trim() ? t('addPet.avatar') : null,
+    ].filter((field): field is string => Boolean(field));
+
+    if (missingFields.length > 0) {
+      Alert.alert(
+        t('alerts.missingPetInfo.title'),
+        t('alerts.missingPetInfo.fieldsMessage', { fields: missingFields.join(', ') }),
+      );
+      return;
+    }
+    onSubmit();
+  }
 
   return (
     <View className="flex-1 bg-gray-100">
@@ -170,12 +205,17 @@ export function AddPetScreen({
       </View>
       {helperMessage ? (
         <View className="flex-row items-center gap-3 border-b border-gray-200 bg-[#F8FAFF] px-4 py-3">
-          <Image source={MAI_GREETING} className="h-16 w-16 shrink-0 rounded-2xl" contentFit="cover" cachePolicy="memory-disk" accessibilityLabel="Mai" />
+          <ExpoImage source={MAI_GREETING} className="h-16 w-16 shrink-0 rounded-2xl" contentFit="cover" cachePolicy="memory-disk" accessibilityLabel="Mai" />
           <Text className="flex-1 text-sm font-medium leading-5 text-slate-700">{helperMessage}</Text>
         </View>
       ) : null}
 
-      <ScrollView className="flex-1 px-6 py-6" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View className="mb-6 items-center">
           <Pressable
             testID="add-pet-avatar-button"
@@ -185,8 +225,13 @@ export function AddPetScreen({
             accessibilityLabel="Pick pet avatar from library"
           >
             <View className="h-28 w-28 overflow-hidden rounded-full bg-blue-600 shadow-md">
-              {hasAvatarUri ? (
-                <Image source={{ uri: petAvatarUrl.trim() }} className="h-full w-full" contentFit="cover" />
+              {showAvatarImage ? (
+                <Image
+                  source={{ uri: petAvatarUrl.trim() }}
+                  className="h-full w-full"
+                  resizeMode="cover"
+                  onError={() => setAvatarLoadFailed(true)}
+                />
               ) : (
                 <View className="h-full w-full items-center justify-center">
                   <Ionicons name="paw" size={52} color="#ffffff" />
@@ -198,7 +243,7 @@ export function AddPetScreen({
         </View>
 
         <View className="mb-5">
-          <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.petName')}</Text>
+          <RequiredLabel>{t('addPet.petName')}</RequiredLabel>
           <TextInput
             testID="add-pet-name-input"
             accessibilityLabel="Pet name"
@@ -217,6 +262,7 @@ export function AddPetScreen({
           onChange={onChangeSpecies}
           placeholder={t('addPet.selectPetType')}
           testID="add-pet-species-select"
+          required
         />
 
         <FormSelect
@@ -226,10 +272,11 @@ export function AddPetScreen({
           onChange={onChangeGender}
           placeholder={t('addPet.selectGender')}
           testID="add-pet-gender-select"
+          required
         />
 
         <View className="mb-5">
-          <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.ageYears')}</Text>
+          <RequiredLabel>{t('addPet.ageYears')}</RequiredLabel>
           <TextInput
             testID="add-pet-age-input"
             accessibilityLabel="Pet age"
@@ -260,7 +307,7 @@ export function AddPetScreen({
           accessibilityRole="button"
           accessibilityLabel={submitLabel}
           className="mt-2 rounded-xl bg-blue-600 py-3.5 active:bg-blue-700"
-          onPress={onSubmit}
+          onPress={submitWithRequiredFields}
         >
           <Text className="text-center text-base font-semibold text-white">{submitLabel}</Text>
         </Pressable>

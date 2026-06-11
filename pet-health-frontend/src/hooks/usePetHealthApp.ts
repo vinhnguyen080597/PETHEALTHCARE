@@ -473,7 +473,7 @@ export function usePetHealthApp() {
 
   async function handleAddPet() {
     if (!token) return;
-    if (!petName.trim() || !petSpecies.trim()) {
+    if (!petName.trim() || !petSpecies.trim() || !petAge.trim() || !petAvatarStorageUrl.trim()) {
       Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
       return;
     }
@@ -488,7 +488,6 @@ export function usePetHealthApp() {
         gender: petGender,
         ...(petAvatarStorageUrl ? { avatarUrl: petAvatarStorageUrl } : {}),
       });
-      clearPetForm();
       await fetchPets(token);
       await showServicesPromptForNewPet(created.id);
     } catch (error: unknown) {
@@ -563,7 +562,7 @@ export function usePetHealthApp() {
 
   async function handleUpdatePet() {
     if (!token || !editingPetId) return;
-    if (!petName.trim() || !petSpecies.trim()) {
+    if (!petName.trim() || !petSpecies.trim() || !petAge.trim() || (!petAvatarStorageUrl.trim() && !petAvatarUrl.trim())) {
       Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
       return;
     }
@@ -1065,7 +1064,7 @@ export function usePetHealthApp() {
         { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
       );
       const { data } = await uploadPetAvatar(token, resized.uri);
-      setPetAvatarUrl(data.avatarUrl);
+      setPetAvatarUrl(resized.uri);
       setPetAvatarStorageUrl(data.avatarStorageUrl);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');

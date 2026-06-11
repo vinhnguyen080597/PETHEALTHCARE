@@ -37,6 +37,13 @@ type ServiceCardConfig = {
 
 const SERVICE_CARDS: ServiceCardConfig[] = [
   {
+    id: 'vaccine',
+    icon: SERVICES_ICON_VACCINE,
+    titleKey: 'onboarding.serviceVaccineTitle',
+    descriptionKey: 'onboarding.serviceVaccineDesc',
+    ctaKey: 'onboarding.serviceVaccineCta',
+  },
+  {
     id: 'breed',
     icon: SERVICES_ICON_BREED,
     titleKey: 'onboarding.serviceBreedTitle',
@@ -49,13 +56,6 @@ const SERVICE_CARDS: ServiceCardConfig[] = [
     titleKey: 'onboarding.serviceHealthTitle',
     descriptionKey: 'onboarding.serviceHealthDesc',
     ctaKey: 'onboarding.serviceHealthCta',
-  },
-  {
-    id: 'vaccine',
-    icon: SERVICES_ICON_VACCINE,
-    titleKey: 'onboarding.serviceVaccineTitle',
-    descriptionKey: 'onboarding.serviceVaccineDesc',
-    ctaKey: 'onboarding.serviceVaccineCta',
   },
 ];
 

@@ -536,7 +536,7 @@ export function PetFeedScreen({ posts, breederProfiles, refreshing, onRefresh, o
           <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('petFeed.detailTitle')}</Text>
           <View className="w-14" />
         </View>
-        <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}>
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}>
           {selectedPost ? (
             <PetFeedPostCard
               post={selectedPost}
