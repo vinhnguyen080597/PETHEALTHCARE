@@ -888,9 +888,10 @@
     "selectVaccine": "Chọn vaccine",
     "administeredDate": "Ngày tiêm",
     "petBirthDate": "Ngày sinh chính xác của bé",
-    "generateVaccineSchedule": "Tạo lịch tiêm",
+    "generateVaccineSchedule": "Tạo lịch tiêm & tẩy giun",
     "vaccineDoseNumber": "Mũi {{count}}",
     "saveVaccines": "Lưu mũi tiêm",
+    "createVaccineSchedule": "Tạo lịch tiêm",
     "dueDate": "Ngày nhắc",
     "nextDoseDate": "Ngày nhắc mũi tiếp theo",
     "unsupportedVaccineSpecies": "Hiện chỉ có danh sách vaccine mẫu cho chó và mèo.",
@@ -898,8 +899,53 @@
     "pastDateRequired": "Ngày tiêm phải từ quá khứ đến hôm nay.",
     "vaccineTitleRequired": "Vui lòng nhập tên vaccine.",
     "reminderTitleRequired": "Vui lòng nhập nội dung nhắc lịch.",
-    "scheduleComingSoonTitle": "Sắp có",
-    "scheduleComingSoonBody": "Mình sẽ tạo lịch tiêm tự động sau khi có công thức vaccine bạn cung cấp.",
+    "generatedScheduleIntro": "Dựa trên ngày sinh, Pet Health Care có thể tạo lịch nhắc vaccine và tẩy giun cho chó/mèo theo guideline thú y.",
+    "generatedScheduleDisclaimer": "Đây là lịch nhắc chăm sóc, không phải chẩn đoán hoặc đơn thuốc. Hãy xác nhận loại vaccine, luật tiêm dại, thuốc và liều với bác sĩ thú y.",
+    "generatedScheduleNote": "Mốc guideline: {{targetDate}}. Tham khảo: {{source}}. Hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
+    "generatedNextVaccineScheduleNote": "Mũi cuối: {{administeredAt}}. Mốc guideline: {{targetDate}}. Tham khảo: {{source}}. App tạo lịch nhắc trong {{months}} tháng tới; hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
+    "nextVaccineReminderTitle": "{{vaccine}} mũi {{dose}}",
+    "manualNextVaccineReminderTitle": "Mũi tiếp theo: {{vaccine}}",
+    "manualNextVaccineReminderNote": "Lịch nhắc mũi kế tiếp thủ công vào {{targetDate}}. Hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
+    "targetScheduleLine": "Mốc guideline: {{date}}",
+    "catchUpScheduleLine": "Lịch catch-up: đến hạn ngay vì đã qua mốc tuổi guideline.",
+    "moreGeneratedRecommendations": "+{{count}} lịch nhắc nữa sẽ được tạo",
+    "noGeneratedScheduleTitle": "Chưa tạo được lịch",
+    "noGeneratedScheduleBody": "Hiện lịch tự động chỉ hỗ trợ chó và mèo với ngày sinh hợp lệ.",
+    "scheduleAlreadyGeneratedTitle": "Đã tạo rồi",
+    "scheduleAlreadyGeneratedBody": "Tất cả lịch nhắc gợi ý cho ngày sinh này đã có sẵn.",
+    "scheduleGeneratedTitle": "Đã tạo lịch",
+    "scheduleGeneratedBody": "Đã tạo {{count}} lịch nhắc vaccine và tẩy giun.",
+    "vaccineScheduleGeneratedBody": "Đã tạo {{count}} lịch nhắc mũi tiêm kế tiếp trong 12 tháng tới.",
+    "generatedKinds": {
+      "vaccine": "Vaccine",
+      "deworming": "Tẩy giun"
+    },
+    "generatedRules": {
+      "dogDhpp": {
+        "title": "Vaccine core DHPP/DAPP cho chó mũi {{dose}}"
+      },
+      "dogRabies": {
+        "title": "Vaccine dại cho chó"
+      },
+      "dogLepto": {
+        "title": "Vaccine Leptospirosis cho chó mũi {{dose}}"
+      },
+      "dogDeworming": {
+        "title": "Tẩy giun cho chó lần {{dose}}"
+      },
+      "catFvrcp": {
+        "title": "Vaccine core FVRCP cho mèo mũi {{dose}}"
+      },
+      "catRabies": {
+        "title": "Vaccine dại cho mèo"
+      },
+      "catFelv": {
+        "title": "Vaccine FeLV cho mèo mũi {{dose}}"
+      },
+      "catDeworming": {
+        "title": "Tẩy giun cho mèo lần {{dose}}"
+      }
+    },
     "saveRecord": "Lưu",
     "saveVaccine": "Lưu mũi tiêm",
     "saveReminder": "Lưu nhắc lịch",
@@ -920,6 +966,30 @@
     "timelineHint": "Mới nhất trước",
     "recentRecords": "Ghi chú gần đây",
     "emptyRecords": "Chưa có mũi tiêm hoặc nhắc lịch nào.",
+    "guidelinesTitle": "Nguồn guideline tham khảo",
+    "guidelinesBody": "Các nguồn này được dùng để xây công thức nhắc lịch vaccine và tẩy giun. Sen dùng để tham khảo và nên xác nhận lộ trình cuối cùng với bác sĩ thú y.",
+    "guidelines": {
+      "wsava2024": {
+        "title": "WSAVA 2024 - guideline vaccine chó/mèo",
+        "body": "Hướng dẫn toàn cầu cho vaccine core của chó và mèo, gồm lịch puppy/kitten."
+      },
+      "aahaCanine2022": {
+        "title": "AAHA 2022 - guideline vaccine chó",
+        "body": "Lịch vaccine chó cho DHPP/DAPP, dại, Leptospirosis và catch-up."
+      },
+      "aahaAafpFeline2020": {
+        "title": "AAHA/AAFP 2020 - guideline vaccine mèo",
+        "body": "Hướng dẫn FVRCP, dại, FeLV, lịch kitten và booster cho mèo."
+      },
+      "troccap": {
+        "title": "TroCCAP - guideline ký sinh trùng vùng nhiệt đới",
+        "body": "Hướng dẫn kiểm soát ký sinh trùng cho vùng nhiệt đới/cận nhiệt đới."
+      },
+      "capc": {
+        "title": "CAPC - guideline ký sinh trùng thú cưng",
+        "body": "Khuyến nghị phòng ký sinh trùng và tẩy giun cho chó mèo."
+      }
+    },
     "stats": {
       "diary": "Nhật ký",
       "reminders": "Nhắc lịch",

@@ -888,9 +888,10 @@
     "selectVaccine": "Select vaccine",
     "administeredDate": "Date given",
     "petBirthDate": "Pet's exact birth date",
-    "generateVaccineSchedule": "Create vaccine schedule",
+    "generateVaccineSchedule": "Create vaccine & deworming schedule",
     "vaccineDoseNumber": "Dose {{count}}",
     "saveVaccines": "Save vaccines",
+    "createVaccineSchedule": "Create vaccine schedule",
     "dueDate": "Reminder date",
     "nextDoseDate": "Next dose reminder date",
     "unsupportedVaccineSpecies": "Sample vaccine options are currently available for dogs and cats only.",
@@ -898,8 +899,53 @@
     "pastDateRequired": "Vaccination date must be between the past and today.",
     "vaccineTitleRequired": "Please enter the vaccine name.",
     "reminderTitleRequired": "Please enter the reminder title.",
-    "scheduleComingSoonTitle": "Coming soon",
-    "scheduleComingSoonBody": "Automatic vaccine schedules will be generated after you provide the vaccine formula.",
+    "generatedScheduleIntro": "Based on the birth date, Pet Health Care can create guideline-based vaccine and deworming reminders for dogs and cats.",
+    "generatedScheduleDisclaimer": "This is a care reminder, not a diagnosis or prescription. Confirm vaccine products, rabies law, medicine choice, and dose with a veterinarian.",
+    "generatedScheduleNote": "Guideline target: {{targetDate}}. Reference: {{source}}. Please confirm the product, dose, and local legal requirements with a veterinarian.",
+    "generatedNextVaccineScheduleNote": "Last dose: {{administeredAt}}. Guideline target: {{targetDate}}. Reference: {{source}}. This app creates reminders within the next {{months}} months; confirm product, dose, and local legal requirements with a veterinarian.",
+    "nextVaccineReminderTitle": "{{vaccine}} dose {{dose}}",
+    "manualNextVaccineReminderTitle": "Next {{vaccine}} dose",
+    "manualNextVaccineReminderNote": "Manual next-dose reminder for {{targetDate}}. Please confirm the product, dose, and local legal requirements with a veterinarian.",
+    "targetScheduleLine": "Guideline target: {{date}}",
+    "catchUpScheduleLine": "Catch-up reminder: due now because the guideline target age has passed.",
+    "moreGeneratedRecommendations": "+{{count}} more reminders will be created",
+    "noGeneratedScheduleTitle": "Schedule unavailable",
+    "noGeneratedScheduleBody": "Automatic schedules are currently available for dogs and cats with a valid birth date.",
+    "scheduleAlreadyGeneratedTitle": "Already generated",
+    "scheduleAlreadyGeneratedBody": "All suggested reminders for this birth date already exist.",
+    "scheduleGeneratedTitle": "Schedule created",
+    "scheduleGeneratedBody": "Created {{count}} vaccine and deworming reminders.",
+    "vaccineScheduleGeneratedBody": "Created {{count}} next-dose vaccine reminders for the next 12 months.",
+    "generatedKinds": {
+      "vaccine": "Vaccine",
+      "deworming": "Deworming"
+    },
+    "generatedRules": {
+      "dogDhpp": {
+        "title": "Dog core vaccine DHPP/DAPP dose {{dose}}"
+      },
+      "dogRabies": {
+        "title": "Dog rabies vaccine"
+      },
+      "dogLepto": {
+        "title": "Dog leptospirosis vaccine dose {{dose}}"
+      },
+      "dogDeworming": {
+        "title": "Dog deworming dose {{dose}}"
+      },
+      "catFvrcp": {
+        "title": "Cat core vaccine FVRCP dose {{dose}}"
+      },
+      "catRabies": {
+        "title": "Cat rabies vaccine"
+      },
+      "catFelv": {
+        "title": "Cat FeLV vaccine dose {{dose}}"
+      },
+      "catDeworming": {
+        "title": "Cat deworming dose {{dose}}"
+      }
+    },
     "saveRecord": "Save",
     "saveVaccine": "Save vaccine",
     "saveReminder": "Save reminder",
@@ -920,6 +966,30 @@
     "timelineHint": "Newest first",
     "recentRecords": "Recent records",
     "emptyRecords": "No vaccines or reminders yet.",
+    "guidelinesTitle": "Guideline references",
+    "guidelinesBody": "These sources inform the vaccine and deworming reminder formulas. Use them as references and confirm the final plan with a veterinarian.",
+    "guidelines": {
+      "wsava2024": {
+        "title": "WSAVA 2024 vaccination guidelines",
+        "body": "Global guidance for core vaccines in dogs and cats, including puppy/kitten series timing."
+      },
+      "aahaCanine2022": {
+        "title": "AAHA 2022 canine vaccination guidelines",
+        "body": "Canine vaccine schedules for DHPP/DAPP, rabies, leptospirosis, and catch-up cases."
+      },
+      "aahaAafpFeline2020": {
+        "title": "AAHA/AAFP 2020 feline vaccination guidelines",
+        "body": "Feline vaccine guidance for FVRCP, rabies, FeLV, kitten series, and booster timing."
+      },
+      "troccap": {
+        "title": "TroCCAP tropical parasite guidelines",
+        "body": "Parasite control guidance for tropical and subtropical regions."
+      },
+      "capc": {
+        "title": "CAPC parasite guidelines",
+        "body": "Companion animal parasite prevention and deworming recommendations."
+      }
+    },
     "stats": {
       "diary": "Diary",
       "reminders": "Reminders",

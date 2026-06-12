@@ -1,11 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import { formatLocaleDateTime } from '../i18n/localeDate';
 import { metadataText } from '../utils/carePassport';
+import {
+  type AdministeredVaccineDoseInput,
+  calculateCoreCareSchedule,
+  calculateNextVaccinationSchedule,
+  type CoreCareNextVaccineRecommendation,
+  type CoreCareScheduleRecommendation,
+} from '../utils/coreCareSchedule';
 import type {
   AiCreditAccount,
   Analysis,
@@ -17,6 +24,29 @@ import type {
 } from '../types';
 
 const PRIMARY = '#1E6FE8';
+
+const GUIDELINE_REFERENCES = [
+  {
+    id: 'wsava2024',
+    url: 'https://wsava.org/wp-content/uploads/2024/05/2024-Guidelines-for-the-Vaccination-of-Dogs-and-Cats.pdf',
+  },
+  {
+    id: 'aahaCanine2022',
+    url: 'https://www.aaha.org/resources/2022-aaha-canine-vaccination-guidelines/recommendations-for-core-and-noncore-canine-vaccines/',
+  },
+  {
+    id: 'aahaAafpFeline2020',
+    url: 'https://journals.sagepub.com/doi/full/10.1177/1098612X20941784',
+  },
+  {
+    id: 'troccap',
+    url: 'https://www.troccap.com/canine-guidelines/general-considerations-canine/',
+  },
+  {
+    id: 'capc',
+    url: 'https://www.petsandparasites.org/resources/capc-guidelines',
+  },
+] as const;
 
 type VaccinatedAnswer = 'yes' | 'no';
 type ManualEntryType = 'vaccine' | 'reminder';
@@ -47,11 +77,58 @@ function typeIcon(type: CoreCareRecordType) {
   return 'document-text-outline' as const;
 }
 
+function generatedCareKind(record: CoreCareRecord): 'vaccine' | 'deworming' | null {
+  const kind = record.metadata?.generatedCoreCareKind;
+  if (kind === 'vaccine' || kind === 'deworming') return kind;
+  return null;
+}
+
+function recordIcon(record: CoreCareRecord) {
+  const generatedKind = generatedCareKind(record);
+  if (generatedKind === 'vaccine') return 'shield-checkmark-outline' as const;
+  if (generatedKind === 'deworming') return 'medkit-outline' as const;
+  return typeIcon(record.type);
+}
+
 function scheduleTimestamp(record: CoreCareRecord): number {
   const due = record.due_at ? new Date(record.due_at).getTime() : NaN;
   if (Number.isFinite(due)) return due;
   const occurred = new Date(record.occurred_at || record.created_at).getTime();
   return Number.isFinite(occurred) ? occurred : 0;
+}
+
+function occurredTimestamp(record: CoreCareRecord): number {
+  const occurred = new Date(record.occurred_at || record.created_at).getTime();
+  return Number.isFinite(occurred) ? occurred : 0;
+}
+
+function isPendingScheduleRecord(record: CoreCareRecord): boolean {
+  if (!record.due_at || record.status === 'done') return false;
+  if (record.type === 'vaccine') return false;
+  return true;
+}
+
+function recommendationRecordExists(records: CoreCareRecord[], recommendation: CoreCareScheduleRecommendation): boolean {
+  return records.some((record) => {
+    const generatedId = record.metadata?.generatedCoreCareScheduleId;
+    if (generatedId === recommendation.id) return true;
+
+    const family = record.metadata?.generatedCoreCareFamily;
+    const doseNumber = record.metadata?.generatedCoreCareDoseNumber;
+    const dueDate = record.due_at?.slice(0, 10);
+    return family === recommendation.family && doseNumber === recommendation.doseNumber && dueDate === recommendation.dueDate;
+  });
+}
+
+function nextVaccineRecommendationRecordExists(records: CoreCareRecord[], recommendation: CoreCareNextVaccineRecommendation): boolean {
+  return records.some((record) => {
+    const generatedId = record.metadata?.generatedCoreCareVaccineScheduleId;
+    if (generatedId === recommendation.id) return true;
+
+    const vaccineId = record.metadata?.vaccineId;
+    const dueDate = record.due_at?.slice(0, 10);
+    return vaccineId === recommendation.vaccineId && dueDate === recommendation.dueDate;
+  });
 }
 
 function startOfDay(date: Date): Date {
@@ -63,6 +140,14 @@ function formatDateValue(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+function formatDateOnly(value: string, language: string): string {
+  return new Intl.DateTimeFormat(language === 'vi' ? 'vi-VN' : 'en-US', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(value));
 }
 
 function makeDoseDraft(): VaccineDoseDraft {
@@ -214,7 +299,9 @@ export function CoreCareScreen({
   const [reminderNote, setReminderNote] = useState('');
   const [submittingVaccine, setSubmittingVaccine] = useState(false);
   const [submittingVaccines, setSubmittingVaccines] = useState(false);
+  const [submittingGeneratedSchedule, setSubmittingGeneratedSchedule] = useState(false);
   const [submittingReminder, setSubmittingReminder] = useState(false);
+  const [scheduleSetupDismissed, setScheduleSetupDismissed] = useState(false);
 
   const vaccineOptions = useMemo(
     () =>
@@ -230,31 +317,19 @@ export function CoreCareScreen({
     [records],
   );
 
-  const latestVaccine = useMemo(
-    () =>
-      careRecords
-        .filter((record) => record.type === 'vaccine')
-        .sort((a, b) => scheduleTimestamp(b) - scheduleTimestamp(a))[0],
-    [careRecords],
-  );
-
   const upcomingRecords = useMemo(
     () =>
       careRecords
-        .filter((record) => {
-          if (!record.due_at || record.status === 'done') return false;
-          return scheduleTimestamp(record) >= Date.now() - 24 * 60 * 60 * 1000;
-        })
+        .filter(isPendingScheduleRecord)
         .sort((a, b) => scheduleTimestamp(a) - scheduleTimestamp(b))
         .slice(0, 5),
     [careRecords],
   );
-
   const historyRecords = useMemo(
     () =>
       careRecords
         .filter((record) => !upcomingRecords.some((upcoming) => upcoming.id === record.id))
-        .sort((a, b) => scheduleTimestamp(b) - scheduleTimestamp(a))
+        .sort((a, b) => occurredTimestamp(b) - occurredTimestamp(a))
         .slice(0, 10),
     [careRecords, upcomingRecords],
   );
@@ -262,6 +337,55 @@ export function CoreCareScreen({
   const nextRecord = upcomingRecords[0];
   const selectedDoseIds = doseDrafts.map((draft) => draft.vaccineId).filter(Boolean);
   const canAddDose = doseDrafts.length < vaccineOptions.length;
+  const generatedRecommendations = useMemo(
+    () => calculateCoreCareSchedule({ species: pet.species, birthDate, today }),
+    [birthDate, pet.species, today],
+  );
+  const pendingGeneratedRecommendations = useMemo(
+    () => generatedRecommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation)),
+    [careRecords, generatedRecommendations],
+  );
+  const administeredVaccineDoses = useMemo(
+    () =>
+      careRecords
+        .filter((record) => record.type === 'vaccine')
+        .map((record): AdministeredVaccineDoseInput | null => {
+          const vaccineId = metadataText(record, 'vaccineId');
+          if (!vaccineId) return null;
+          const administeredAtValue = metadataText(record, 'administeredAt') || record.occurred_at || record.created_at;
+          const administeredAt = new Date(administeredAtValue);
+          if (!Number.isFinite(administeredAt.getTime())) return null;
+          return { vaccineId, administeredAt };
+        })
+        .filter((dose): dose is AdministeredVaccineDoseInput => Boolean(dose)),
+    [careRecords],
+  );
+  const nextVaccineRecommendations = useMemo(
+    () =>
+      calculateNextVaccinationSchedule({
+        species: pet.species,
+        petAgeMonths: pet.age,
+        today,
+        administeredDoses: [
+          ...administeredVaccineDoses,
+          ...doseDrafts
+            .filter((draft) => draft.vaccineId)
+            .map((draft) => ({
+              vaccineId: draft.vaccineId,
+              administeredAt: draft.administeredAt,
+            })),
+        ],
+      }),
+    [administeredVaccineDoses, doseDrafts, pet.age, pet.species, today],
+  );
+  const pendingNextVaccineRecommendations = useMemo(
+    () => nextVaccineRecommendations.filter((recommendation) => !nextVaccineRecommendationRecordExists(careRecords, recommendation)),
+    [careRecords, nextVaccineRecommendations],
+  );
+  const hasGeneratedSchedule = careRecords.some((record) =>
+    Boolean(record.metadata?.generatedCoreCareScheduleId || record.metadata?.generatedCoreCareVaccineScheduleId),
+  );
+  const showScheduleSetup = !scheduleSetupDismissed && !hasGeneratedSchedule;
 
   function optionsForDose(draft: VaccineDoseDraft) {
     return vaccineOptions.filter((option) => option.id === draft.vaccineId || !selectedDoseIds.includes(option.id));
@@ -271,7 +395,21 @@ export function CoreCareScreen({
     setDoseDrafts((current) => current.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft)));
   }
 
-  async function saveVaccines() {
+  function nextVaccineRecommendationTitle(recommendation: CoreCareNextVaccineRecommendation): string {
+    const label = vaccineOptions.find((option) => option.id === recommendation.vaccineId)?.label ?? recommendation.vaccineId;
+    return t('coreCare.nextVaccineReminderTitle', { vaccine: label, dose: recommendation.doseNumber });
+  }
+
+  function nextVaccineRecommendationNote(recommendation: CoreCareNextVaccineRecommendation): string {
+    return t('coreCare.generatedNextVaccineScheduleNote', {
+      administeredAt: formatLocaleDateTime(recommendation.administeredAt, i18n.language),
+      targetDate: formatLocaleDateTime(recommendation.targetDate, i18n.language),
+      source: recommendation.sourceLabel,
+      months: recommendation.horizonMonths,
+    });
+  }
+
+  async function createScheduleFromVaccines() {
     const missing = doseDrafts.some((draft) => !draft.vaccineId);
     if (missing) {
       Alert.alert(t('alerts.missingData.title'), t('coreCare.vaccineRequired'));
@@ -280,6 +418,10 @@ export function CoreCareScreen({
     const hasFutureDate = doseDrafts.some((draft) => startOfDay(draft.administeredAt).getTime() > today.getTime());
     if (hasFutureDate) {
       Alert.alert(t('alerts.missingData.title'), t('coreCare.pastDateRequired'));
+      return;
+    }
+    if (pendingNextVaccineRecommendations.length === 0) {
+      Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
       return;
     }
 
@@ -303,7 +445,33 @@ export function CoreCareScreen({
           },
         });
       }
+      for (const recommendation of pendingNextVaccineRecommendations) {
+        await onCreateRecord({
+          type: 'reminder',
+          title: nextVaccineRecommendationTitle(recommendation),
+          note: nextVaccineRecommendationNote(recommendation),
+          dueAt: recommendation.dueDate,
+          status: 'pending',
+          metadata: {
+            generatedCoreCareVaccineScheduleId: recommendation.id,
+            generatedCoreCareKind: 'vaccine',
+            vaccineId: recommendation.vaccineId,
+            generatedCoreCareDoseNumber: recommendation.doseNumber,
+            administeredAt: recommendation.administeredAt,
+            targetDate: recommendation.targetDate,
+            sourceLabel: recommendation.sourceLabel,
+            sourceUrl: recommendation.sourceUrl,
+            isCatchUp: recommendation.isCatchUp,
+            horizonMonths: recommendation.horizonMonths,
+          },
+        });
+      }
       setDoseDrafts([makeDoseDraft()]);
+      setScheduleSetupDismissed(true);
+      Alert.alert(
+        t('coreCare.scheduleGeneratedTitle'),
+        t('coreCare.vaccineScheduleGeneratedBody', { count: pendingNextVaccineRecommendations.length }),
+      );
     } finally {
       setSubmittingVaccines(false);
     }
@@ -319,15 +487,33 @@ export function CoreCareScreen({
     setSubmittingVaccine(true);
     try {
       const nextDueAt = formatDateValue(vaccineNextDueDate);
+      const occurredAt = formatDateValue(today);
       await onCreateRecord({
         type: 'vaccine',
         title: cleanTitle,
         note: vaccineNote.trim(),
-        dueAt: nextDueAt,
+        occurredAt,
+        dueAt: null,
         status: 'active',
         metadata: {
           vaccineName: cleanTitle,
+          administeredAt: occurredAt,
           nextDueAt,
+          ...(vaccineClinic.trim() ? { clinic: vaccineClinic.trim() } : {}),
+        },
+      });
+      await onCreateRecord({
+        type: 'reminder',
+        title: t('coreCare.manualNextVaccineReminderTitle', { vaccine: cleanTitle }),
+        note: t('coreCare.manualNextVaccineReminderNote', {
+          targetDate: formatLocaleDateTime(nextDueAt, i18n.language),
+        }),
+        dueAt: nextDueAt,
+        status: 'pending',
+        metadata: {
+          generatedCoreCareKind: 'vaccine',
+          vaccineName: cleanTitle,
+          targetDate: nextDueAt,
           ...(vaccineClinic.trim() ? { clinic: vaccineClinic.trim() } : {}),
         },
       });
@@ -340,8 +526,56 @@ export function CoreCareScreen({
     }
   }
 
-  function createGeneratedSchedulePlaceholder() {
-    Alert.alert(t('coreCare.scheduleComingSoonTitle'), t('coreCare.scheduleComingSoonBody'));
+  function recommendationTitle(recommendation: CoreCareScheduleRecommendation): string {
+    return t(`coreCare.generatedRules.${recommendation.family}.title`, { dose: recommendation.doseNumber });
+  }
+
+  function recommendationNote(recommendation: CoreCareScheduleRecommendation): string {
+    return t('coreCare.generatedScheduleNote', {
+      targetDate: formatLocaleDateTime(recommendation.targetDate, i18n.language),
+      source: recommendation.sourceLabel,
+    });
+  }
+
+  async function createGeneratedSchedule() {
+    if (generatedRecommendations.length === 0) {
+      Alert.alert(t('coreCare.noGeneratedScheduleTitle'), t('coreCare.noGeneratedScheduleBody'));
+      return;
+    }
+    if (pendingGeneratedRecommendations.length === 0) {
+      Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
+      return;
+    }
+
+    setSubmittingGeneratedSchedule(true);
+    try {
+      for (const recommendation of pendingGeneratedRecommendations) {
+        await onCreateRecord({
+          type: 'reminder',
+          title: recommendationTitle(recommendation),
+          note: recommendationNote(recommendation),
+          dueAt: recommendation.dueDate,
+          status: 'pending',
+          metadata: {
+            generatedCoreCareScheduleId: recommendation.id,
+            generatedCoreCareFamily: recommendation.family,
+            generatedCoreCareKind: recommendation.kind,
+            generatedCoreCareDoseNumber: recommendation.doseNumber,
+            targetDate: recommendation.targetDate,
+            sourceLabel: recommendation.sourceLabel,
+            sourceUrl: recommendation.sourceUrl,
+            isCatchUp: recommendation.isCatchUp,
+          },
+        });
+      }
+      Alert.alert(
+        t('coreCare.scheduleGeneratedTitle'),
+        t('coreCare.scheduleGeneratedBody', { count: pendingGeneratedRecommendations.length }),
+      );
+      setScheduleSetupDismissed(true);
+    } finally {
+      setSubmittingGeneratedSchedule(false);
+    }
   }
 
   async function saveReminder() {
@@ -372,26 +606,40 @@ export function CoreCareScreen({
     const clinicName = metadataText(record, 'clinic');
     const vaccineId = metadataText(record, 'vaccineId');
     const vaccineLabel = vaccineId ? t(`healthCheck.vaccines.${vaccineId}.label`) : '';
-    const dueLabel = record.due_at ? formatLocaleDateTime(record.due_at, i18n.language) : null;
+    const dueLabel = record.due_at ? formatDateOnly(record.due_at, i18n.language) : null;
     const createdLabel = formatLocaleDateTime(record.occurred_at || record.created_at, i18n.language);
+    const generatedKind = generatedCareKind(record);
+    const typeLabel = generatedKind ? t(`coreCare.generatedKinds.${generatedKind}`) : t(`coreCare.types.${record.type}`);
+    const shouldShowNote = Boolean(record.note) && !(options?.showDoneAction && generatedKind === 'vaccine');
+    const isUpcoming = Boolean(options?.showDoneAction && dueLabel);
 
     return (
       <View key={record.id} testID={`core-care-record-${record.id}`} className="rounded-2xl border border-gray-200 bg-white p-4">
         <View className="flex-row items-start gap-3">
           <View className="h-10 w-10 items-center justify-center rounded-full bg-blue-50">
-            <Ionicons name={typeIcon(record.type)} size={20} color={PRIMARY} />
+            <Ionicons name={recordIcon(record)} size={20} color={PRIMARY} />
           </View>
           <View className="min-w-0 flex-1">
-            <Text className="text-base font-bold text-slate-900" numberOfLines={2}>
-              {vaccineLabel || record.title}
-            </Text>
-            <Text className="mt-1 text-xs font-semibold uppercase text-slate-500">
-              {t(`coreCare.types.${record.type}`)}
-            </Text>
-            {dueLabel ? <Text className="mt-2 text-sm font-semibold text-blue-700">{t('coreCare.dueLine', { date: dueLabel })}</Text> : null}
-            {!dueLabel ? <Text className="mt-2 text-sm text-slate-500">{createdLabel}</Text> : null}
+            {isUpcoming ? (
+              <>
+                <Text className="text-lg font-extrabold text-blue-700">{dueLabel}</Text>
+                <Text className="mt-2 text-sm font-semibold uppercase text-slate-500">{typeLabel}</Text>
+                <Text className="mt-1 text-base font-bold text-slate-900" numberOfLines={2}>
+                  {vaccineLabel || record.title}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text className="text-base font-bold text-slate-900" numberOfLines={2}>
+                  {vaccineLabel || record.title}
+                </Text>
+                <Text className="mt-1 text-xs font-semibold uppercase text-slate-500">{typeLabel}</Text>
+                {dueLabel ? <Text className="mt-2 text-sm font-semibold text-blue-700">{t('coreCare.dueLine', { date: dueLabel })}</Text> : null}
+                {!dueLabel ? <Text className="mt-2 text-sm text-slate-500">{createdLabel}</Text> : null}
+              </>
+            )}
             {clinicName ? <Text className="mt-1 text-sm text-slate-600">{t('coreCare.clinicLine', { clinic: clinicName })}</Text> : null}
-            {record.note ? <Text className="mt-2 text-sm leading-5 text-slate-700">{record.note}</Text> : null}
+            {shouldShowNote ? <Text className="mt-2 text-sm leading-5 text-slate-700">{record.note}</Text> : null}
             {options?.showDoneAction && record.type === 'reminder' ? (
               <Pressable
                 testID={`core-care-mark-reminder-done-${record.id}`}
@@ -403,6 +651,29 @@ export function CoreCareScreen({
                 <Text className="text-xs font-bold text-emerald-700">{t('coreCare.markDone')}</Text>
               </Pressable>
             ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  function renderRecommendationPreview(recommendation: CoreCareScheduleRecommendation) {
+    return (
+      <View key={recommendation.id} className="rounded-xl border border-blue-100 bg-white p-3">
+        <View className="flex-row items-start gap-2">
+          <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+            <Ionicons name={recommendation.kind === 'vaccine' ? 'shield-checkmark-outline' : 'medkit-outline'} size={16} color={PRIMARY} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-sm font-bold text-slate-900">{recommendationTitle(recommendation)}</Text>
+            <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
+              {t(`coreCare.generatedKinds.${recommendation.kind}`)} · {formatLocaleDateTime(recommendation.dueDate, i18n.language)}
+            </Text>
+            <Text className="mt-1 text-xs leading-4 text-slate-500">
+              {recommendation.isCatchUp ? t('coreCare.catchUpScheduleLine') : t('coreCare.targetScheduleLine', {
+                date: formatLocaleDateTime(recommendation.targetDate, i18n.language),
+              })}
+            </Text>
           </View>
         </View>
       </View>
@@ -436,122 +707,133 @@ export function CoreCareScreen({
       >
         <View className="rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-base font-bold text-slate-900">{t('coreCare.nextScheduleForPet', { name: pet.name })}</Text>
-          <Text className="mt-2 text-sm leading-5 text-slate-600">
-            {nextRecord?.due_at
-              ? t('coreCare.nextReminderLine', {
-                  title: nextRecord.title,
-                  date: formatLocaleDateTime(nextRecord.due_at, i18n.language),
-                })
-              : t('coreCare.noNextSchedule')}
-          </Text>
-          <View className="mt-3 rounded-xl bg-blue-50 p-3">
-            <Text className="text-xs font-semibold text-blue-700">{t('coreCare.latestVaccine')}</Text>
-            <Text className="mt-1 text-sm font-bold text-slate-900" numberOfLines={1}>
-              {latestVaccine?.title ?? t('coreCare.notLogged')}
-            </Text>
-          </View>
-
-          <Text className="mt-5 text-sm font-bold text-slate-900">{t('coreCare.hasPetVaccinated', { name: pet.name })}</Text>
-          <View className="mt-3 flex-row gap-3">
-            {(['yes', 'no'] as VaccinatedAnswer[]).map((answer) => {
-              const active = vaccinatedAnswer === answer;
-              return (
-                <Pressable
-                  key={answer}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  className={`flex-1 rounded-xl border px-4 py-3 active:bg-blue-50 ${
-                    active ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'
-                  }`}
-                  onPress={() => setVaccinatedAnswer(answer)}
-                >
-                  <Text className={`text-center text-sm font-bold ${active ? 'text-blue-700' : 'text-slate-700'}`}>
-                    {t(`common.${answer}`)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {vaccinatedAnswer === 'yes' ? (
-            <View className="mt-4">
-              {vaccineOptions.length === 0 ? (
-                <Text className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{t('coreCare.unsupportedVaccineSpecies')}</Text>
-              ) : null}
-              <View className="gap-4">
-                {doseDrafts.map((draft, index) => (
-                  <View key={draft.id} className="rounded-2xl border border-gray-100 bg-slate-50 p-3">
-                    <View className="mb-3 flex-row items-center justify-between">
-                      <Text className="text-sm font-bold text-slate-900">{t('coreCare.vaccineDoseNumber', { count: index + 1 })}</Text>
-                      {doseDrafts.length > 1 ? (
-                        <Pressable
-                          accessibilityRole="button"
-                          className="rounded-full bg-white p-1.5"
-                          onPress={() => setDoseDrafts((current) => current.filter((item) => item.id !== draft.id))}
-                        >
-                          <Ionicons name="trash-outline" size={16} color="#dc2626" />
-                        </Pressable>
-                      ) : null}
-                    </View>
-                    <View className="flex-row gap-3">
-                      <VaccineSelect
-                        label={t('coreCare.vaccineType')}
-                        value={draft.vaccineId}
-                        options={optionsForDose(draft)}
-                        onChange={(vaccineId) => updateDose(draft.id, { vaccineId })}
-                      />
-                      <DateField
-                        label={t('coreCare.administeredDate')}
-                        value={draft.administeredAt}
-                        maximumDate={today}
-                        onChange={(administeredAt) => updateDose(draft.id, { administeredAt })}
-                      />
-                    </View>
-                  </View>
-                ))}
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                disabled={!canAddDose}
-                className={`mt-3 h-11 items-center justify-center rounded-xl border border-dashed ${
-                  canAddDose ? 'border-blue-300 bg-blue-50 active:bg-blue-100' : 'border-gray-200 bg-gray-50 opacity-50'
-                }`}
-                onPress={() => canAddDose && setDoseDrafts((current) => [...current, makeDoseDraft()])}
-              >
-                <Ionicons name="add" size={22} color={canAddDose ? PRIMARY : '#94a3b8'} />
-              </Pressable>
-              <Pressable
-                testID="core-care-save-vaccines-button"
-                accessibilityRole="button"
-                className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
-                  submittingVaccines ? 'opacity-60' : ''
-                }`}
-                onPress={() => void saveVaccines()}
-                disabled={submittingVaccines || vaccineOptions.length === 0}
-              >
-                {submittingVaccines ? <ActivityIndicator color="#fff" /> : <Ionicons name="shield-checkmark-outline" size={18} color="#fff" />}
-                <Text className="text-sm font-bold text-white">{t('coreCare.saveVaccines')}</Text>
-              </Pressable>
+          {nextRecord?.due_at ? (
+            <View className="mt-3 gap-3">
+              {upcomingRecords.map((record) => renderRecordCard(record, { showDoneAction: true }))}
             </View>
           ) : (
-            <View className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-3">
-              <DateField
-                label={t('coreCare.petBirthDate')}
-                value={birthDate}
-                maximumDate={today}
-                onChange={setBirthDate}
-              />
-              <Pressable
-                testID="core-care-generate-vaccine-schedule-button"
-                accessibilityRole="button"
-                className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
-                onPress={createGeneratedSchedulePlaceholder}
-              >
-                <Ionicons name="calendar-outline" size={18} color="#fff" />
-                <Text className="text-sm font-bold text-white">{t('coreCare.generateVaccineSchedule')}</Text>
-              </Pressable>
-            </View>
+            <Text className="mt-2 text-sm leading-5 text-slate-600">{t('coreCare.noNextSchedule')}</Text>
           )}
+          {showScheduleSetup ? (
+            <>
+              <Text className="mt-5 text-sm font-bold text-slate-900">{t('coreCare.hasPetVaccinated', { name: pet.name })}</Text>
+              <View className="mt-3 flex-row gap-3">
+                {(['yes', 'no'] as VaccinatedAnswer[]).map((answer) => {
+                  const active = vaccinatedAnswer === answer;
+                  return (
+                    <Pressable
+                      key={answer}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      className={`flex-1 rounded-xl border px-4 py-3 active:bg-blue-50 ${
+                        active ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'
+                      }`}
+                      onPress={() => setVaccinatedAnswer(answer)}
+                    >
+                      <Text className={`text-center text-sm font-bold ${active ? 'text-blue-700' : 'text-slate-700'}`}>
+                        {t(`common.${answer}`)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {vaccinatedAnswer === 'yes' ? (
+                <View className="mt-4">
+                  {vaccineOptions.length === 0 ? (
+                    <Text className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{t('coreCare.unsupportedVaccineSpecies')}</Text>
+                  ) : null}
+                  <View className="gap-4">
+                    {doseDrafts.map((draft, index) => (
+                      <View key={draft.id} className="rounded-2xl border border-gray-100 bg-slate-50 p-3">
+                        <View className="mb-3 flex-row items-center justify-between">
+                          <Text className="text-sm font-bold text-slate-900">{t('coreCare.vaccineDoseNumber', { count: index + 1 })}</Text>
+                          {doseDrafts.length > 1 ? (
+                            <Pressable
+                              accessibilityRole="button"
+                              className="rounded-full bg-white p-1.5"
+                              onPress={() => setDoseDrafts((current) => current.filter((item) => item.id !== draft.id))}
+                            >
+                              <Ionicons name="trash-outline" size={16} color="#dc2626" />
+                            </Pressable>
+                          ) : null}
+                        </View>
+                        <View className="flex-row gap-3">
+                          <VaccineSelect
+                            label={t('coreCare.vaccineType')}
+                            value={draft.vaccineId}
+                            options={optionsForDose(draft)}
+                            onChange={(vaccineId) => updateDose(draft.id, { vaccineId })}
+                          />
+                          <DateField
+                            label={t('coreCare.administeredDate')}
+                            value={draft.administeredAt}
+                            maximumDate={today}
+                            onChange={(administeredAt) => updateDose(draft.id, { administeredAt })}
+                          />
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={!canAddDose}
+                    className={`mt-3 h-11 items-center justify-center rounded-xl border border-dashed ${
+                      canAddDose ? 'border-blue-300 bg-blue-50 active:bg-blue-100' : 'border-gray-200 bg-gray-50 opacity-50'
+                    }`}
+                    onPress={() => canAddDose && setDoseDrafts((current) => [...current, makeDoseDraft()])}
+                  >
+                    <Ionicons name="add" size={22} color={canAddDose ? PRIMARY : '#94a3b8'} />
+                  </Pressable>
+                  <Pressable
+                    testID="core-care-save-vaccines-button"
+                    accessibilityRole="button"
+                    className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
+                      submittingVaccines ? 'opacity-60' : ''
+                    }`}
+                    onPress={() => void createScheduleFromVaccines()}
+                    disabled={submittingVaccines || vaccineOptions.length === 0}
+                  >
+                    {submittingVaccines ? <ActivityIndicator color="#fff" /> : <Ionicons name="calendar-outline" size={18} color="#fff" />}
+                    <Text className="text-sm font-bold text-white">{t('coreCare.createVaccineSchedule')}</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-3">
+                  <DateField
+                    label={t('coreCare.petBirthDate')}
+                    value={birthDate}
+                    maximumDate={today}
+                    onChange={setBirthDate}
+                  />
+                  <Text className="mt-3 text-sm leading-5 text-slate-700">{t('coreCare.generatedScheduleIntro')}</Text>
+                  {pendingGeneratedRecommendations.length > 0 ? (
+                    <View className="mt-3 gap-2">
+                      {pendingGeneratedRecommendations.slice(0, 5).map(renderRecommendationPreview)}
+                      {pendingGeneratedRecommendations.length > 5 ? (
+                        <Text className="text-center text-xs font-semibold text-blue-700">
+                          {t('coreCare.moreGeneratedRecommendations', { count: pendingGeneratedRecommendations.length - 5 })}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                  <Text className="mt-3 text-xs leading-4 text-slate-500">{t('coreCare.generatedScheduleDisclaimer')}</Text>
+                  <Pressable
+                    testID="core-care-generate-vaccine-schedule-button"
+                    accessibilityRole="button"
+                    className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
+                      submittingGeneratedSchedule ? 'opacity-60' : ''
+                    }`}
+                    onPress={() => void createGeneratedSchedule()}
+                    disabled={submittingGeneratedSchedule}
+                  >
+                    {submittingGeneratedSchedule ? <ActivityIndicator color="#fff" /> : <Ionicons name="calendar-outline" size={18} color="#fff" />}
+                    <Text className="text-sm font-bold text-white">{t('coreCare.generateVaccineSchedule')}</Text>
+                  </Pressable>
+                </View>
+              )}
+            </>
+          ) : null}
         </View>
 
         <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
@@ -669,17 +951,6 @@ export function CoreCareScreen({
           )}
         </View>
 
-        <Text className="mb-3 mt-6 text-base font-bold text-slate-900">{t('coreCare.upcomingReminders')}</Text>
-        {upcomingRecords.length === 0 ? (
-          <View className="rounded-xl border border-gray-200 bg-white p-4">
-            <Text className="text-sm text-slate-500">{t('coreCare.noReminders')}</Text>
-          </View>
-        ) : (
-          <View className="gap-3">
-            {upcomingRecords.map((record) => renderRecordCard(record, { showDoneAction: true }))}
-          </View>
-        )}
-
         <Text className="mb-3 mt-6 text-base font-bold text-slate-900">{t('coreCare.timelineTitle')}</Text>
         {historyRecords.length === 0 ? (
           <View className="rounded-xl border border-gray-200 bg-white p-5">
@@ -688,6 +959,27 @@ export function CoreCareScreen({
         ) : (
           <View className="gap-3">{historyRecords.map((record) => renderRecordCard(record))}</View>
         )}
+
+        <View className="mt-6 rounded-2xl border border-gray-200 bg-white p-4">
+          <Text className="text-base font-bold text-slate-900">{t('coreCare.guidelinesTitle')}</Text>
+          <Text className="mt-2 text-sm leading-5 text-slate-600">{t('coreCare.guidelinesBody')}</Text>
+          <View className="mt-3 gap-2">
+            {GUIDELINE_REFERENCES.map((reference) => (
+              <Pressable
+                key={reference.id}
+                accessibilityRole="link"
+                className="flex-row items-start gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 active:bg-blue-50"
+                onPress={() => void Linking.openURL(reference.url)}
+              >
+                <Ionicons name="open-outline" size={16} color={PRIMARY} />
+                <View className="min-w-0 flex-1">
+                  <Text className="text-sm font-bold text-slate-900">{t(`coreCare.guidelines.${reference.id}.title`)}</Text>
+                  <Text className="mt-1 text-xs leading-4 text-slate-500">{t(`coreCare.guidelines.${reference.id}.body`)}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
