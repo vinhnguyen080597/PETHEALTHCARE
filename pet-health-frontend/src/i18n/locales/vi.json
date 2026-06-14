@@ -147,6 +147,28 @@
     },
     "blockBreederSuccess": "Đã ẩn breeder này khỏi Pet Feed của Sen.",
     "blockBreederFailed": "Không thể ẩn breeder",
+    "loadFailedTitle": "Không thể tải Pet Feed",
+    "retry": "Thử lại",
+    "loadingMore": "Đang tải thêm bài đăng...",
+    "endOfFeed": "Sen đã xem hết Pet Feed.",
+    "resetFilters": "Đặt lại",
+    "accessibility": {
+      "search": "Tìm kiếm bài đăng Pet Feed",
+      "clearSearch": "Xóa tìm kiếm Pet Feed",
+      "openFilters": "Mở bộ lọc Pet Feed",
+      "closeFilters": "Đóng bộ lọc Pet Feed",
+      "closeDetail": "Đóng chi tiết bài đăng",
+      "openListing": "Mở bài đăng {{title}}",
+      "listingMedia": "Media của bài đăng {{title}}",
+      "openListingPhoto": "Xem ảnh {{index}} của bài đăng",
+      "openListingVideo": "Xem video của bài đăng",
+      "saveListing": "Lưu bài đăng thú cưng",
+      "unsaveListing": "Bỏ lưu bài đăng thú cưng",
+      "reportListing": "Báo cáo bài đăng {{title}}",
+      "contactBreeder": "Liên hệ breeder cho {{title}}",
+      "hideBreeder": "Ẩn breeder {{name}}",
+      "openBreederProfile": "Mở hồ sơ breeder {{name}}"
+    },
     "status": {
       "draft": "Bản nháp",
       "pending_review": "Chờ admin duyệt",
@@ -454,7 +476,8 @@
     "gender": "Giới tính",
     "ageMonths": "Tuổi (tháng)",
     "location": "Khu vực",
-    "priceNote": "Ghi chú chi phí/điều kiện",
+    "priceNote": "Giá ({{unit}})",
+    "pricePlaceholder": "Nhập số tiền bằng {{unit}}, hoặc ghi chú",
     "personality": "Tính cách",
     "vaccineStatus": "Tình trạng vaccine",
     "dewormingStatus": "Tình trạng tẩy giun",
@@ -831,7 +854,25 @@
     "passportTitle": "Sổ chăm sóc",
     "overdueCare": "{{count}} quá hạn",
     "onTrack": "Ổn định",
-    "dashGender": "—"
+    "dashGender": "—",
+    "quickActions": "Hành động nhanh",
+    "quickActionsHint": "Chọn việc cần làm tiếp theo mà không phải tìm nhiều màn hình.",
+    "scanHealthHint": "Thêm ảnh và sàng lọc dấu hiệu nhìn thấy.",
+    "openCoreCareHint": "Theo dõi vaccine, cân nặng và lịch nhắc.",
+    "breedRecognitionHint": "Gợi ý giống theo hình ảnh.",
+    "openVetSummaryHint": "Gom thông tin để đưa bác sĩ xem.",
+    "careOverview": "Tổng quan chăm sóc",
+    "careOverviewHint": "Tóm tắt hồ sơ và lịch sắp tới của {{name}}.",
+    "dangerZone": "Vùng cần cẩn trọng",
+    "deleteHint": "Chỉ xóa {{name}} khi Sen không còn cần hồ sơ này hoặc dữ liệu đã lưu trong app.",
+    "backA11y": "Quay lại",
+    "editA11y": "Sửa hồ sơ {{name}}",
+    "scanHealthA11y": "Bắt đầu kiểm tra sức khỏe cho {{name}}",
+    "openCoreCareA11y": "Mở hồ sơ chăm sóc của {{name}}",
+    "openBreedRecognitionA11y": "Mở nhận diện giống cho {{name}}",
+    "openVetSummaryA11y": "Mở tóm tắt gửi bác sĩ cho {{name}}",
+    "openHealthCheckA11y": "Mở lần kiểm tra sức khỏe {{title}}",
+    "deleteA11y": "Xóa {{name}}"
   },
   "vetSummary": {
     "title": "Tóm tắt cho bác sĩ",
@@ -855,6 +896,9 @@
   },
   "coreCare": {
     "title": "Sổ tiêm & Lịch nhắc",
+    "openInfo": "Thông tin thêm",
+    "introGuideTitle": "Sen ơi nhớ nhé!",
+    "introGuideDismiss": "Sen hiểu rồi",
     "heroTitle": "Sổ tiêm & lịch nhắc của {{name}}",
     "heroBody": "Theo dõi mũi tiêm và việc cần nhắc để Sen biết ngay hôm nay cần làm gì cho bé.",
     "todayTitle": "Hôm nay",
@@ -885,7 +929,10 @@
     "manualVaccineHint": "Nếu bé đã tiêm, Sen có thể ghi lại từng mũi thủ công ở mục bên dưới.",
     "manualEntryTitle": "Thêm thủ công",
     "vaccineType": "Loại vaccine đã tiêm",
+    "desiredVaccineType": "Loại vaccine bạn muốn",
+    "desiredVaccineHint": "Nên chọn loại vaccine chính Sen muốn tạo lịch trước; app vẫn tạo thêm lịch tiêm dại và xổ giun nếu phù hợp.",
     "selectVaccine": "Chọn vaccine",
+    "selectDate": "Chọn ngày",
     "administeredDate": "Ngày tiêm",
     "petBirthDate": "Ngày sinh chính xác của bé",
     "generateVaccineSchedule": "Tạo lịch tiêm & tẩy giun",
@@ -896,16 +943,25 @@
     "nextDoseDate": "Ngày nhắc mũi tiếp theo",
     "unsupportedVaccineSpecies": "Hiện chỉ có danh sách vaccine mẫu cho chó và mèo.",
     "vaccineRequired": "Vui lòng chọn loại vaccine cho từng dòng.",
+    "vaccineFieldRequired": "Vui lòng chọn loại vaccine.",
+    "administeredDateRequired": "Vui lòng chọn ngày tiêm cho từng dòng.",
+    "administeredDateFieldRequired": "Vui lòng chọn ngày tiêm.",
+    "birthDateRequired": "Vui lòng chọn ngày sinh của bé.",
+    "desiredVaccineRequired": "Vui lòng chọn loại vaccine muốn tạo lịch.",
     "pastDateRequired": "Ngày tiêm phải từ quá khứ đến hôm nay.",
     "vaccineTitleRequired": "Vui lòng nhập tên vaccine.",
     "reminderTitleRequired": "Vui lòng nhập nội dung nhắc lịch.",
     "generatedScheduleIntro": "Dựa trên ngày sinh, Pet Health Care có thể tạo lịch nhắc vaccine và tẩy giun cho chó/mèo theo guideline thú y.",
     "generatedScheduleDisclaimer": "Đây là lịch nhắc chăm sóc, không phải chẩn đoán hoặc đơn thuốc. Hãy xác nhận loại vaccine, luật tiêm dại, thuốc và liều với bác sĩ thú y.",
-    "generatedScheduleNote": "Mốc guideline: {{targetDate}}. Tham khảo: {{source}}. Hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
-    "generatedNextVaccineScheduleNote": "Mũi cuối: {{administeredAt}}. Mốc guideline: {{targetDate}}. Tham khảo: {{source}}. App tạo lịch nhắc trong {{months}} tháng tới; hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
+    "generatedScheduleRequired": "Vui lòng chọn ngày sinh và loại vaccine muốn tạo lịch.",
+    "generatedScheduleNote": "Mốc guideline: {{targetDate}}. Tham khảo: {{source}}. Dựa trên guideline tham khảo, không thay thế tư vấn bác sĩ thú y. Hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
+    "generatedNextVaccineScheduleNote": "Mũi cuối: {{administeredAt}}. Mốc guideline: {{targetDate}}. Tham khảo: {{source}}. App tạo lịch nhắc trong {{months}} tháng tới. Dựa trên guideline tham khảo, không thay thế tư vấn bác sĩ thú y. Hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
     "nextVaccineReminderTitle": "{{vaccine}} mũi {{dose}}",
     "manualNextVaccineReminderTitle": "Mũi tiếp theo: {{vaccine}}",
-    "manualNextVaccineReminderNote": "Lịch nhắc mũi kế tiếp thủ công vào {{targetDate}}. Hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
+    "manualNextVaccineReminderNote": "Lịch nhắc mũi kế tiếp thủ công vào {{targetDate}}. Dựa trên guideline tham khảo, không thay thế tư vấn bác sĩ thú y. Hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
+    "felvRiskNote": "Với FeLV: lịch nên quyết định theo nguy cơ, nên xét nghiệm/trao đổi bác sĩ trước.",
+    "lapsedPrimarySeriesWarning": "Cảnh báo: chuỗi tiêm primary đã trễ quá lâu so với mũi trước, có thể cần tiêm lại từ mũi 1. Sen nên hỏi bác sĩ thú y trước khi tiếp tục.",
+    "preVaccineDewormingNote": "Thực hành thường gặp là tẩy giun trước vaccine khoảng 5-7 ngày nếu bé chưa tẩy gần đây hoặc có nguy cơ nhiễm giun. Nếu bé đang yếu, nôn, tiêu chảy hoặc nghi nhiễm ký sinh trùng nặng, nên hỏi bác sĩ thú y trước.",
     "targetScheduleLine": "Mốc guideline: {{date}}",
     "catchUpScheduleLine": "Lịch catch-up: đến hạn ngay vì đã qua mốc tuổi guideline.",
     "moreGeneratedRecommendations": "+{{count}} lịch nhắc nữa sẽ được tạo",
@@ -933,6 +989,9 @@
       "dogDeworming": {
         "title": "Tẩy giun cho chó lần {{dose}}"
       },
+      "dogPreVaccineDeworming": {
+        "title": "Tẩy giun cho chó trước tiêm vaccine"
+      },
       "catFvrcp": {
         "title": "Vaccine core FVRCP cho mèo mũi {{dose}}"
       },
@@ -944,6 +1003,9 @@
       },
       "catDeworming": {
         "title": "Tẩy giun cho mèo lần {{dose}}"
+      },
+      "catPreVaccineDeworming": {
+        "title": "Tẩy giun cho mèo trước tiêm vaccine"
       }
     },
     "saveRecord": "Lưu",
@@ -1039,6 +1101,136 @@
       "grooming": {
         "title": "Checklist vệ sinh",
         "body": "Lên lịch chải lông, cắt móng, vệ sinh tai, tắm và kiểm tra da theo độ tuổi và bộ lông của bé."
+      }
+    }
+  },
+  "coreCareInfo": {
+    "title": "Thông tin thêm",
+    "heroTitle": "Lịch vaccine và xổ giun cho mèo",
+    "heroBody": "Lịch tiêm phòng và xổ giun không cố định cho mọi bé. Sen nên xem theo loại vaccine, độ tuổi bắt đầu tiêm, lịch sử đã tiêm, tình trạng sức khỏe và lối sống của mèo, rồi xác nhận kế hoạch cuối cùng với bác sĩ thú y.",
+    "sections": {
+      "popularVaccines": {
+        "title": "Vaccine mèo phổ biến tại Việt Nam",
+        "items": [
+          "Vaccine core đa giá 3 bệnh hoặc 4 bệnh: thường phòng giảm bạch cầu mèo (FPV), viêm mũi - khí quản truyền nhiễm do herpesvirus (FHV-1), calicivirus/cúm mèo (FCV). Loại 4 bệnh có thể thêm Chlamydia felis/psittaci.",
+          "Tên thương mại thường gặp tại phòng khám: Felocell 4 (Zoetis), Purevax RCP/RCPCh (Boehringer Ingelheim). Sen nên lưu tên thương mại như ghi chú vì mỗi phòng khám có nguồn vaccine khác nhau.",
+          "Vaccine dại (Rabies): phòng bệnh dại, là bệnh lây sang người. Tên thương mại có thể gặp: Rabisin, Defensor 3.",
+          "Vaccine FeLV (bạch cầu mèo) là nhóm non-core, thường cân nhắc cho mèo có nguy cơ tiếp xúc cao, hay ra ngoài, sống cùng nhiều mèo hoặc môi trường có mèo nhiễm FeLV."
+        ]
+      },
+      "kittenSchedule": {
+        "title": "Lịch tiêm từ mèo con",
+        "items": [
+          "Mèo con thường bắt đầu vaccine khi kháng thể mẹ giảm, khoảng 6 - 8 tuần tuổi. Tiêm quá sớm có thể làm kháng thể mẹ trung hòa vaccine.",
+          "Mũi 1 khoảng 6 - 8 tuần tuổi: vaccine đa giá 3-in-1 hoặc 4-in-1.",
+          "Mũi 2 khoảng 10 - 12 tuần tuổi: vaccine đa giá, thường cách mũi đầu 3 - 4 tuần. Vaccine dại có thể bắt đầu quanh 12 tuần/3 tháng tùy sản phẩm và bác sĩ.",
+          "Mũi 3 khoảng 14 - 16 tuần tuổi: vaccine đa giá để hoàn tất primary series và tăng cơ hội tạo miễn dịch đầy đủ.",
+          "FeLV nên quyết định theo nguy cơ. Với mèo có nguy cơ, nhiều guideline khuyến nghị xét nghiệm FeLV trước và dùng lịch 2 mũi ban đầu cách nhau 3 - 4 tuần."
+        ]
+      },
+      "adultBoosters": {
+        "title": "Giai đoạn trưởng thành và mũi nhắc",
+        "items": [
+          "Mũi nhắc đầu tiên thường tiêm khoảng 1 năm sau mũi cuối của loạt vaccine mèo con, tức khoảng 14 - 15 tháng tuổi nếu bé hoàn tất mũi cuối lúc 14 - 16 tuần.",
+          "Vaccine dại cần tuân thủ quy định địa phương và hướng dẫn thú y. Tại Việt Nam, bệnh dại thuộc nhóm bệnh phải phòng bắt buộc cho động vật nuôi.",
+          "Vaccine đa giá có thể nhắc lại theo nguy cơ: mèo nuôi trong nhà hoàn toàn có thể được bác sĩ chỉ định chu kỳ dài hơn, còn mèo hay ra ngoài hoặc nhà nhiều mèo thường cần theo dõi sát hơn.",
+          "Khoảng cách nhắc lại phụ thuộc sản phẩm vaccine, nguy cơ phơi nhiễm và đánh giá của bác sĩ, nên app chỉ nên tạo lịch tham khảo và cho phép Sen chỉnh lại."
+        ]
+      },
+      "deworming": {
+        "title": "Lịch xổ giun tham khảo",
+        "items": [
+          "Mèo con dưới 6 tháng dễ nhiễm giun từ mẹ hoặc môi trường. Lịch tham khảo thường bắt đầu từ 3 tuần tuổi, rồi lặp lại ở 5, 7, 9 tuần tuổi.",
+          "Sau giai đoạn đầu, có thể duy trì mỗi tháng 1 lần cho đến khi mèo đủ 6 tháng tuổi nếu bác sĩ thấy phù hợp.",
+          "Mèo trưởng thành trên 6 tháng: thường xổ giun mỗi 2 - 3 tháng nếu hay ra ngoài, săn mồi, ăn thịt sống hoặc sống trong môi trường nguy cơ cao.",
+          "Mèo nuôi hoàn toàn trong nhà và chỉ ăn thức ăn nấu chín/hạt/pate có thể được bác sĩ đề xuất chu kỳ thưa hơn, ví dụ mỗi 6 tháng."
+        ]
+      },
+      "dataModel": {
+        "title": "Cách app nên hiểu lịch chăm sóc",
+        "items": [
+          "Không nên chỉ lưu tên vaccine cuối cùng. App nên hiểu vaccine theo series và thành phần phòng bệnh như FVRCP, Rabies, FeLV, Deworming.",
+          "Lịch tiếp theo cần dựa trên toàn bộ lịch sử đã tiêm/xổ giun, tuổi hiện tại, ngày mũi gần nhất, số mũi trong primary series và nguy cơ sống của bé.",
+          "Tên thương mại, hãng vaccine, phòng khám và ghi chú nên là thông tin bổ sung để bác sĩ và Sen đối chiếu sau này."
+        ]
+      }
+    },
+    "faqTitle": "Câu hỏi thường gặp",
+    "faq": {
+      "catFirstYearVaccines": {
+        "question": "Một bé mèo trong năm đầu tiên cần tiêm những gì?",
+        "answerItems": [
+          "Vaccine core đa giá FVRCP/3-in-1 hoặc 4-in-1: thường bắt đầu khoảng 6 - 8 tuần tuổi, nhắc mỗi 3 - 4 tuần cho đến ít nhất 16 tuần tuổi.",
+          "Vaccine dại: thường tiêm từ khoảng 12 tuần tuổi hoặc theo nhãn vaccine/bác sĩ; tại Việt Nam nên xem là mũi rất quan trọng vì liên quan phòng bệnh dại.",
+          "FeLV: chỉ nên cân nhắc theo nguy cơ như mèo hay ra ngoài, sống cùng nhiều mèo hoặc có nguy cơ tiếp xúc mèo lạ; nên xét nghiệm/trao đổi bác sĩ trước.",
+          "Tẩy giun/ký sinh trùng: mèo con cần tẩy giun sớm và lặp lại theo tuổi; nếu chuẩn bị tiêm vaccine mà bé chưa tẩy giun gần đây, thực hành phổ biến là tẩy trước 5 - 7 ngày.",
+          "Lịch cuối cùng nên xác nhận với bác sĩ thú y theo sức khỏe, môi trường sống và loại vaccine phòng khám dùng."
+        ]
+      },
+      "dewormBeforeVaccination": {
+        "question": "Có nên tẩy giun trước khi tiêm vaccine không?",
+        "answerItems": [
+          "Có, đây là thực hành khá phổ biến nếu bé chưa tẩy giun gần đây hoặc có nguy cơ nhiễm giun.",
+          "Mốc thường dùng là tẩy giun trước vaccine khoảng 5 - 7 ngày để cơ thể ổn định hơn trước khi tiêm.",
+          "Nếu bé đang yếu, sốt, nôn, tiêu chảy hoặc nghi nhiễm ký sinh trùng nặng, Sen nên hỏi bác sĩ thú y trước khi tẩy giun hoặc tiêm vaccine.",
+          "Nếu bé đã tẩy giun đúng lịch gần đây, bác sĩ có thể không yêu cầu tẩy lại trước mỗi mũi."
+        ]
+      },
+      "missedVaccineSchedule": {
+        "question": "Nếu bé bị trễ lịch tiêm thì nên làm gì?",
+        "answerItems": [
+          "Không nên tự tiêm bù nhiều mũi cùng lúc. Sen nên liên hệ phòng khám để bác sĩ kiểm tra tuổi, lịch sử tiêm và loại vaccine đã dùng.",
+          "Nhiều trường hợp có thể tiếp tục lịch catch-up thay vì bắt đầu lại từ đầu, nhưng quyết định phụ thuộc vào khoảng trễ và vaccine cụ thể.",
+          "Trong app, các lịch đã quá mốc guideline sẽ được đưa về dạng đến hạn/catch-up để Sen dễ thấy và hỏi bác sĩ."
+        ]
+      },
+      "indoorCatVaccines": {
+        "question": "Mèo nuôi trong nhà hoàn toàn có cần tiêm vaccine không?",
+        "answerItems": [
+          "Có, mèo nuôi trong nhà vẫn nên có vaccine core như FVRCP vì nguy cơ có thể đến từ người mang mầm bệnh về nhà, đi khám, grooming, boarding hoặc tiếp xúc bất ngờ.",
+          "Vaccine dại nên theo quy định địa phương và hướng dẫn bác sĩ thú y.",
+          "Các vaccine theo nguy cơ như FeLV có thể không cần cho mọi mèo trong nhà, nhưng nên quyết định sau khi trao đổi với bác sĩ."
+        ]
+      },
+      "felvWhenNeeded": {
+        "question": "Khi nào nên tiêm FeLV cho mèo?",
+        "answerItems": [
+          "FeLV là vaccine theo nguy cơ, thường cân nhắc cho mèo hay ra ngoài, sống cùng nhiều mèo, tiếp xúc mèo lạ hoặc sống trong môi trường có mèo nhiễm FeLV.",
+          "Nhiều guideline khuyến nghị xét nghiệm FeLV trước khi quyết định tiêm.",
+          "Nếu tiêm, lịch ban đầu thường gồm 2 mũi cách nhau khoảng 3 - 4 tuần, sau đó nhắc lại theo nguy cơ và hướng dẫn bác sĩ."
+        ]
+      },
+      "rabiesBoosters": {
+        "question": "Vaccine dại và mũi nhắc lại nên theo lịch nào?",
+        "answerItems": [
+          "Mèo thường có thể tiêm dại từ khoảng 12 tuần tuổi hoặc theo nhãn vaccine và chỉ định bác sĩ.",
+          "Mũi nhắc dại cần tuân thủ quy định địa phương, loại vaccine và giấy chứng nhận của phòng khám.",
+          "Tại Việt Nam, bệnh dại là nhóm bệnh cần phòng nghiêm túc vì có nguy cơ lây sang người, nên Sen nên hỏi bác sĩ về lịch nhắc phù hợp."
+        ]
+      }
+    },
+    "referencesTitle": "Nguồn tham khảo đáng tin cậy",
+    "referencesBody": "Các nguồn dưới đây được dùng để đối chiếu công thức nhắc lịch. Nội dung trong app chỉ để tham khảo, không thay thế chẩn đoán hoặc phác đồ từ bác sĩ thú y.",
+    "references": {
+      "wsava2024": {
+        "title": "WSAVA 2024 - guideline vaccine chó/mèo",
+        "body": "Hướng dẫn toàn cầu về vaccine core/non-core, lịch puppy/kitten và nguyên tắc nhắc lại."
+      },
+      "aahaAafpFeline2020": {
+        "title": "AAHA/AAFP 2020 - guideline vaccine mèo",
+        "body": "Tài liệu chuyên sâu cho mèo, phân loại vaccine core/non-core, FVRCP, FeLV, dại và lịch theo lối sống."
+      },
+      "vietnamRabies": {
+        "title": "Thông tư 07/2016/TT-BNNPTNT",
+        "body": "Quy định phòng, chống dịch bệnh động vật trên cạn tại Việt Nam, bao gồm bệnh dại ở động vật nuôi."
+      },
+      "troccapFeline": {
+        "title": "TroCCAP - hướng dẫn ký sinh trùng cho mèo",
+        "body": "Khuyến nghị kiểm soát ký sinh trùng ở vùng nhiệt đới/cận nhiệt đới, phù hợp bối cảnh Đông Nam Á."
+      },
+      "esccapWorms": {
+        "title": "ESCCAP - guideline giun sán chó mèo",
+        "body": "Hướng dẫn kiểm soát giun sán cho chó mèo, hỗ trợ đối chiếu lịch xổ giun theo nguy cơ."
       }
     }
   },

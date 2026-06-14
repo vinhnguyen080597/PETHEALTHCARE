@@ -9,7 +9,7 @@ import {
   getPetFeedPost,
   listFavoritePetFeedPosts,
   listMyPetFeedPosts,
-  listPublishedPetFeedPosts,
+  listPublishedPetFeedPostPage,
   listVerifiedBreederProfiles,
   reportBreederProfile,
   reportPetFeedPost,
@@ -95,6 +95,11 @@ function cleanId(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function firstQueryValue(value) {
+  if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : undefined;
+  return typeof value === 'string' ? value : undefined;
+}
+
 function hasClientProvidedMediaReferences(payload) {
   const mediaUrls = payload?.mediaUrls ?? payload?.media_urls;
   const videoUrl = payload?.videoUrl ?? payload?.video_url;
@@ -106,8 +111,11 @@ function hasClientProvidedMediaReferences(payload) {
 
 router.get('/posts', async (req, res, next) => {
   try {
-    const posts = await listPublishedPetFeedPosts(req.user.id, req.accessToken);
-    return res.json({ data: posts });
+    const page = await listPublishedPetFeedPostPage(req.user.id, req.accessToken, {
+      limit: firstQueryValue(req.query.limit),
+      cursor: firstQueryValue(req.query.cursor),
+    });
+    return res.json(page);
   } catch (err) {
     return next(err);
   }

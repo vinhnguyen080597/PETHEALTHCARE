@@ -8,6 +8,7 @@ import { buildCarePassportStats, metadataNumber } from '../utils/carePassport';
 import type { Analysis, CoreCareRecord, CoreCareSummary, Pet, Severity } from '../types';
 
 const PRIMARY_BLUE = '#1E6FE8';
+const HERO_BLUE = '#1557C0';
 
 type PetProfileScreenProps = {
   pet: Pet;
@@ -16,6 +17,7 @@ type PetProfileScreenProps = {
   onRefresh: () => void;
   onBack: () => void;
   onEdit: () => void;
+  onDelete?: () => void;
   onScanHealth: () => void;
   onSelectEntry: (entry: Analysis) => void;
   onOpenBreedRecognition?: () => void;
@@ -31,6 +33,12 @@ function severityBadgeClass(severity: Severity) {
   return 'bg-emerald-50 text-emerald-800';
 }
 
+function severityColor(severity: Severity) {
+  if (severity === 'high') return '#dc2626';
+  if (severity === 'medium') return '#d97706';
+  return '#059669';
+}
+
 function severityIconName(severity: Severity) {
   if (severity === 'high') return 'warning-outline' as const;
   if (severity === 'medium') return 'alert-circle-outline' as const;
@@ -43,6 +51,97 @@ function formatSpecies(pet: Pet, petFallback: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
+function ProfileChip({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View className="flex-row items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
+      <Ionicons name={icon} size={13} color="#dbeafe" />
+      <Text className="text-xs font-semibold text-blue-50">
+        {label}: {value}
+      </Text>
+    </View>
+  );
+}
+
+function QuickActionCard({
+  icon,
+  title,
+  subtitle,
+  tone = 'default',
+  testID,
+  accessibilityLabel,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle: string;
+  tone?: 'primary' | 'default' | 'green' | 'purple';
+  testID: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  const isPrimary = tone === 'primary';
+  const accent = tone === 'green' ? '#047857' : tone === 'purple' ? '#7c3aed' : PRIMARY_BLUE;
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      className={`w-[47%] flex-grow rounded-2xl border p-3 active:opacity-90 ${
+        isPrimary ? 'border-blue-600 bg-blue-600' : 'border-gray-200 bg-white active:bg-slate-50'
+      }`}
+      onPress={onPress}
+    >
+      <View
+        className={`h-9 w-9 items-center justify-center rounded-full ${isPrimary ? 'bg-white/20' : 'bg-slate-50'}`}
+      >
+        <Ionicons name={icon} size={18} color={isPrimary ? '#ffffff' : accent} />
+      </View>
+      <Text className={`mt-3 text-sm font-bold ${isPrimary ? 'text-white' : 'text-slate-900'}`} numberOfLines={1}>
+        {title}
+      </Text>
+      <Text className={`mt-1 text-xs leading-4 ${isPrimary ? 'text-blue-100' : 'text-slate-500'}`} numberOfLines={2}>
+        {subtitle}
+      </Text>
+    </Pressable>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <View className="flex-1 rounded-2xl bg-slate-50 px-3 py-3">
+      <Text className="text-xs font-semibold text-slate-500" numberOfLines={1}>
+        {label}
+      </Text>
+      <Text className="mt-1 text-base font-extrabold text-slate-900" numberOfLines={1}>
+        {String(value)}
+      </Text>
+    </View>
+  );
+}
+
+function SectionHeader({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <View className="mb-3">
+      <Text className="text-base font-extrabold text-slate-900">{title}</Text>
+      {hint ? <Text className="mt-1 text-sm leading-5 text-slate-500">{hint}</Text> : null}
+    </View>
+  );
+}
+
 export function PetProfileScreen({
   pet,
   history,
@@ -50,6 +149,7 @@ export function PetProfileScreen({
   onRefresh,
   onBack,
   onEdit,
+  onDelete,
   onScanHealth,
   onSelectEntry,
   onOpenBreedRecognition,
@@ -71,6 +171,17 @@ export function PetProfileScreen({
       ? t(`gender.${pet.gender}`)
       : t('profile.dashGender');
   const passport = buildCarePassportStats(coreCareRecords, history);
+  const speciesLabel = formatSpecies(pet, t('home.petFallback'));
+  const careSummary = coreCareSummary ?? {
+    diary: 0,
+    vet_visit: 0,
+    document: 0,
+    reminder: 0,
+    vaccine: 0,
+    weight: 0,
+    pendingReminders: 0,
+    overdueReminders: 0,
+  };
 
   return (
     <View testID="pet-profile-screen" className="flex-1 bg-[#F2F4F8]">
@@ -79,7 +190,7 @@ export function PetProfileScreen({
           <Pressable
             testID="pet-profile-back-button"
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel={t('profile.backA11y')}
             className="rounded-lg p-2 active:bg-gray-100"
             onPress={onBack}
           >
@@ -91,7 +202,7 @@ export function PetProfileScreen({
           <Pressable
             testID="pet-profile-edit-button"
             accessibilityRole="button"
-            accessibilityLabel="Edit pet"
+            accessibilityLabel={t('profile.editA11y', { name: pet.name })}
             className="rounded-lg px-2 py-2 active:bg-gray-100"
             onPress={onEdit}
           >
@@ -110,191 +221,220 @@ export function PetProfileScreen({
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY_BLUE} />
         }
       >
-        <View className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <View className="items-center">
-            <View
-              className="mb-4 h-24 w-24 items-center justify-center overflow-hidden rounded-full"
-              style={{ backgroundColor: PRIMARY_BLUE }}
-            >
-              {pet.avatar_url ? (
-                <Image source={{ uri: pet.avatar_url }} className="h-full w-full" resizeMode="cover" />
-              ) : (
-                <Ionicons name="person" size={44} color="#ffffff" />
-              )}
-            </View>
-            <Text className="text-xl font-bold text-slate-900">{pet.name}</Text>
-            <Text className="mt-1 text-sm text-slate-500">{breed || formatSpecies(pet, t('home.petFallback'))}</Text>
-          </View>
-
-          <View className="mt-6 gap-3 border-t border-gray-100 pt-5">
-            <View className="flex-row justify-between">
-              <Text className="text-sm text-slate-500">{t('profile.species')}</Text>
-              <Text className="text-sm font-medium text-slate-900">{formatSpecies(pet, t('home.petFallback'))}</Text>
-            </View>
-            {breed ? (
-              <View className="flex-row justify-between">
-                <Text className="text-sm text-slate-500">{t('profile.breed')}</Text>
-                <Text className="text-sm font-medium text-slate-900">{breed}</Text>
+        <View className="overflow-hidden rounded-3xl shadow-sm" style={{ backgroundColor: HERO_BLUE }}>
+          <View className="p-5">
+            <View className="flex-row items-start gap-4">
+              <View className="h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-3xl border-2 border-white/30 bg-white/15">
+                {pet.avatar_url ? (
+                  <Image source={{ uri: pet.avatar_url }} className="h-full w-full" resizeMode="cover" />
+                ) : (
+                  <Ionicons name="paw" size={34} color="#ffffff" />
+                )}
               </View>
-            ) : null}
-            <View className="flex-row justify-between">
-              <Text className="text-sm text-slate-500">{t('profile.age')}</Text>
-              <Text className="text-sm font-medium text-slate-900">{ageLabel}</Text>
+              <View className="min-w-0 flex-1">
+                <View className="flex-row items-center gap-2">
+                  <Text className="min-w-0 flex-1 text-2xl font-extrabold text-white" numberOfLines={1}>
+                    {pet.name}
+                  </Text>
+                  {passport.overdueReminders.length > 0 ? (
+                    <Text className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+                      {t('profile.overdueCare', { count: passport.overdueReminders.length })}
+                    </Text>
+                  ) : (
+                    <Text className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                      {t('profile.onTrack')}
+                    </Text>
+                  )}
+                </View>
+                <Text className="mt-1 text-sm font-medium text-blue-100" numberOfLines={1}>
+                  {breed || speciesLabel}
+                </Text>
+              </View>
             </View>
-            <View className="flex-row justify-between">
-              <Text className="text-sm text-slate-500">{t('profile.gender')}</Text>
-              <Text className="text-sm font-medium text-slate-900">{genderLabel}</Text>
+
+            <View className="mt-4 flex-row flex-wrap gap-2">
+              <ProfileChip icon="paw-outline" label={t('profile.species')} value={speciesLabel} />
+              {breed ? <ProfileChip icon="ribbon-outline" label={t('profile.breed')} value={breed} /> : null}
+              <ProfileChip icon="calendar-outline" label={t('profile.age')} value={ageLabel} />
+              <ProfileChip icon="male-female-outline" label={t('profile.gender')} value={genderLabel} />
             </View>
           </View>
-
-          <Pressable
-            testID="pet-profile-scan-health-button"
-            accessibilityRole="button"
-            accessibilityLabel={`Start health check for ${pet.name}`}
-            className="mt-6 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
-            style={{ backgroundColor: PRIMARY_BLUE }}
-            onPress={onScanHealth}
-          >
-            <Ionicons name="camera" size={18} color="#ffffff" />
-            <Text className="text-sm font-semibold text-white">{t('profile.scanHealth')}</Text>
-          </Pressable>
-          {isBreedRecognitionSpecies(pet.species) && onOpenBreedRecognition ? (
-            <Pressable
-              testID="pet-profile-breed-recognition-button"
-              accessibilityRole="button"
-              accessibilityLabel={`Open breed recognition for ${pet.name}`}
-              className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-3 active:bg-slate-50"
-              onPress={onOpenBreedRecognition}
-            >
-              <Ionicons name="sparkles-outline" size={18} color={PRIMARY_BLUE} />
-              <Text className="text-sm font-semibold text-slate-800">{t('breedRecognition.profileLink')}</Text>
-            </Pressable>
-          ) : null}
-          {onOpenCoreCare ? (
-            <Pressable
-              testID="pet-profile-core-care-button"
-              accessibilityRole="button"
-              accessibilityLabel={`Open care records for ${pet.name}`}
-              className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"
-              onPress={onOpenCoreCare}
-            >
-              <Ionicons name="calendar-outline" size={18} color={PRIMARY_BLUE} />
-              <Text className="text-sm font-semibold" style={{ color: PRIMARY_BLUE }}>
-                {t('profile.openCoreCare')}
-              </Text>
-            </Pressable>
-          ) : null}
-          {onOpenVetSummary ? (
-            <Pressable
-              testID="pet-profile-vet-summary-button"
-              accessibilityRole="button"
-              accessibilityLabel={`Open vet summary for ${pet.name}`}
-              className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 active:bg-emerald-100"
-              onPress={onOpenVetSummary}
-            >
-              <Ionicons name="share-outline" size={18} color="#047857" />
-              <Text className="text-sm font-semibold text-emerald-700">{t('profile.openVetSummary')}</Text>
-            </Pressable>
-          ) : null}
         </View>
 
-        {coreCareSummary ? (
-          <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-base font-bold text-slate-900">{t('profile.passportTitle')}</Text>
-              {passport.overdueReminders.length > 0 ? (
-                <Text className="rounded-full bg-red-50 px-2 py-1 text-xs font-bold text-red-700">
-                  {t('profile.overdueCare', { count: passport.overdueReminders.length })}
-                </Text>
-              ) : (
-                <Text className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
-                  {t('profile.onTrack')}
-                </Text>
-              )}
-            </View>
-            <View className="mt-3 flex-row gap-2">
-              <View className="flex-1 rounded-xl bg-slate-50 p-3">
-                <Text className="text-xs font-semibold text-slate-500">{t('coreCare.latestWeight')}</Text>
-                <Text className="mt-1 text-sm font-bold text-slate-900">
-                  {passport.latestWeight
-                    ? t('coreCare.weightKgValue', { value: metadataNumber(passport.latestWeight, 'weightKg') ?? '-' })
-                    : t('coreCare.notLogged')}
-                </Text>
-              </View>
-              <View className="flex-1 rounded-xl bg-slate-50 p-3">
-                <Text className="text-xs font-semibold text-slate-500">{t('coreCare.latestVaccine')}</Text>
-                <Text className="mt-1 text-sm font-bold text-slate-900" numberOfLines={1}>
-                  {passport.latestVaccine?.title ?? t('coreCare.notLogged')}
-                </Text>
-              </View>
-            </View>
-            {passport.nextReminder?.due_at ? (
-              <Text className="mt-3 text-sm leading-5 text-slate-600">
-                {t('coreCare.nextReminderLine', {
-                  title: passport.nextReminder.title,
-                  date: formatLocaleDateTime(passport.nextReminder.due_at, i18n.language),
-                })}
-              </Text>
+        <View className="mt-5">
+          <SectionHeader title={t('profile.quickActions')} hint={t('profile.quickActionsHint')} />
+          <View className="flex-row flex-wrap gap-3">
+            <QuickActionCard
+              testID="pet-profile-scan-health-button"
+              icon="camera"
+              title={t('profile.scanHealth')}
+              subtitle={t('profile.scanHealthHint')}
+              tone="primary"
+              accessibilityLabel={t('profile.scanHealthA11y', { name: pet.name })}
+              onPress={onScanHealth}
+            />
+            {onOpenCoreCare ? (
+              <QuickActionCard
+                testID="pet-profile-core-care-button"
+                icon="calendar-outline"
+                title={t('profile.openCoreCare')}
+                subtitle={t('profile.openCoreCareHint')}
+                accessibilityLabel={t('profile.openCoreCareA11y', { name: pet.name })}
+                onPress={onOpenCoreCare}
+              />
             ) : null}
-            <View className="mt-4 flex-row gap-2">
+            {isBreedRecognitionSpecies(pet.species) && onOpenBreedRecognition ? (
+              <QuickActionCard
+                testID="pet-profile-breed-recognition-button"
+                icon="sparkles-outline"
+                title={t('breedRecognition.profileLink')}
+                subtitle={t('profile.breedRecognitionHint')}
+                tone="purple"
+                accessibilityLabel={t('profile.openBreedRecognitionA11y', { name: pet.name })}
+                onPress={onOpenBreedRecognition}
+              />
+            ) : null}
+            {onOpenVetSummary ? (
+              <QuickActionCard
+                testID="pet-profile-vet-summary-button"
+                icon="share-outline"
+                title={t('profile.openVetSummary')}
+                subtitle={t('profile.openVetSummaryHint')}
+                tone="green"
+                accessibilityLabel={t('profile.openVetSummaryA11y', { name: pet.name })}
+                onPress={onOpenVetSummary}
+              />
+            ) : null}
+          </View>
+        </View>
+
+        <View className="mt-5 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+          <SectionHeader title={t('profile.careOverview')} hint={t('profile.careOverviewHint', { name: pet.name })} />
+          <View className="rounded-2xl bg-blue-50 p-4">
+            <View className="flex-row items-start gap-3">
+              <View className="h-10 w-10 items-center justify-center rounded-full bg-white">
+                <Ionicons name="alarm-outline" size={20} color={PRIMARY_BLUE} />
+              </View>
+              <View className="min-w-0 flex-1">
+                <Text className="text-xs font-bold uppercase text-blue-700">{t('coreCare.nextSchedule')}</Text>
+                {passport.nextReminder?.due_at ? (
+                  <Text className="mt-1 text-sm font-semibold leading-5 text-slate-900">
+                    {t('coreCare.nextReminderLine', {
+                      title: passport.nextReminder.title,
+                      date: formatLocaleDateTime(passport.nextReminder.due_at, i18n.language),
+                    })}
+                  </Text>
+                ) : (
+                  <Text className="mt-1 text-sm leading-5 text-slate-600">{t('coreCare.noNextReminder')}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          <View className="mt-3 flex-row gap-3">
+            <MiniStat
+              label={t('coreCare.latestWeight')}
+              value={
+                passport.latestWeight
+                  ? t('coreCare.weightKgValue', { value: metadataNumber(passport.latestWeight, 'weightKg') ?? '-' })
+                  : t('coreCare.notLogged')
+              }
+            />
+            <MiniStat label={t('coreCare.latestVaccine')} value={passport.latestVaccine?.title ?? t('coreCare.notLogged')} />
+          </View>
+
+          <View className="mt-3 flex-row flex-wrap gap-2">
             {[
-              ['diary', coreCareSummary.diary],
-              ['reminders', coreCareSummary.pendingReminders],
-              ['vaccines', coreCareSummary.vaccine ?? 0],
-              ['documents', coreCareSummary.document],
+              ['diary', careSummary.diary],
+              ['reminders', careSummary.pendingReminders],
+              ['vaccines', careSummary.vaccine ?? 0],
+              ['documents', careSummary.document],
             ].map(([key, value]) => (
-              <View key={String(key)} className="flex-1 rounded-xl border border-gray-200 bg-white p-3">
-                <Text className="text-xs font-semibold uppercase text-slate-500">{t(`coreCare.stats.${key}`)}</Text>
-                <Text className="mt-1 text-xl font-bold text-slate-900">{String(value)}</Text>
+              <View key={String(key)} className="rounded-full border border-gray-200 bg-white px-3 py-2">
+                <Text className="text-xs font-bold text-slate-700">
+                  {t(`coreCare.stats.${key}`)} · {String(value)}
+                </Text>
               </View>
             ))}
+          </View>
+        </View>
+
+        <View className="mt-6">
+          <SectionHeader title={t('profile.healthSection')} hint={t('profile.healthHint', { name: pet.name })} />
+
+          {history.length === 0 ? (
+            <View className="items-center rounded-3xl border border-gray-200 bg-white px-5 py-9">
+              <View className="mb-3 h-14 w-14 items-center justify-center rounded-full bg-blue-50">
+                <Ionicons name="pulse-outline" size={26} color={PRIMARY_BLUE} />
+              </View>
+              <Text className="text-center text-base font-bold text-slate-800">{t('profile.noHealthScans')}</Text>
+              <Text className="mt-1 text-center text-sm leading-5 text-slate-500">{t('profile.noHealthScansHint')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('profile.scanHealthA11y', { name: pet.name })}
+                className="mt-4 rounded-full bg-blue-50 px-4 py-2 active:bg-blue-100"
+                onPress={onScanHealth}
+              >
+                <Text className="text-sm font-bold text-blue-700">{t('profile.scanHealth')}</Text>
+              </Pressable>
             </View>
+          ) : (
+            <View className="gap-3">
+              {history.map((item) => {
+                const title = analysisPossibleFinding(item, t('results.safeFallbackFinding'));
+                const severity = analysisSeverity(item);
+                return (
+                  <Pressable
+                    testID={`pet-profile-history-entry-${item.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('profile.openHealthCheckA11y', { title })}
+                    key={item.id}
+                    className="flex-row gap-3 rounded-2xl border border-gray-200 bg-white p-4 active:bg-gray-50"
+                    onPress={() => onSelectEntry(item)}
+                  >
+                    <View className="h-11 w-11 items-center justify-center rounded-full bg-slate-50">
+                      <Ionicons name={severityIconName(severity)} size={21} color={severityColor(severity)} />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <View className="flex-row items-center gap-2">
+                        <Text className={`self-start rounded-full px-2 py-1 text-xs font-bold capitalize ${severityBadgeClass(severity)}`}>
+                          {t(`severity.${severity}`)}
+                        </Text>
+                        <Text className="text-xs text-slate-400">
+                          {formatLocaleDateTime(item.created_at, i18n.language)}
+                        </Text>
+                      </View>
+                      <Text className="mt-2 font-bold leading-5 text-slate-900" numberOfLines={2}>
+                        {title}
+                      </Text>
+                      <Text className="mt-1 text-xs text-gray-500">
+                        {t('common.confidence', { pct: (item.confidence * 100).toFixed(0) })}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        {onDelete ? (
+          <View className="mt-6 rounded-3xl border border-red-100 bg-white p-4">
+            <Text className="text-base font-extrabold text-slate-900">{t('profile.dangerZone')}</Text>
+            <Text className="mt-1 text-sm leading-5 text-slate-500">{t('profile.deleteHint', { name: pet.name })}</Text>
+            <Pressable
+              testID="pet-profile-delete-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('profile.deleteA11y', { name: pet.name })}
+              className="mt-3 self-start flex-row items-center gap-2 rounded-full bg-red-50 px-4 py-2 active:bg-red-100"
+              onPress={onDelete}
+            >
+              <Ionicons name="trash-outline" size={16} color="#dc2626" />
+              <Text className="text-sm font-bold text-red-600">{t('addPet.removePet')}</Text>
+            </Pressable>
           </View>
         ) : null}
-
-        <Text className="mb-3 mt-8 text-base font-bold text-slate-900">{t('profile.healthSection')}</Text>
-        <Text className="mb-3 text-sm text-slate-500">{t('profile.healthHint', { name: pet.name })}</Text>
-
-        {history.length === 0 ? (
-          <View className="rounded-2xl border border-gray-200 bg-white py-10">
-            <Text className="text-center text-slate-600">{t('profile.noHealthScans')}</Text>
-            <Text className="mt-1 px-6 text-center text-sm text-slate-400">{t('profile.noHealthScansHint')}</Text>
-          </View>
-        ) : (
-          <View className="gap-3">
-            {history.map((item) => {
-              const title = analysisPossibleFinding(item, t('results.safeFallbackFinding'));
-              const severity = analysisSeverity(item);
-              return (
-              <Pressable
-                testID={`pet-profile-history-entry-${item.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Open health check ${title}`}
-                key={item.id}
-                className="flex-row gap-3 rounded-xl border border-gray-200 bg-white p-4 active:bg-gray-50"
-                onPress={() => onSelectEntry(item)}
-              >
-                <View className={`self-start rounded-full px-2 py-1 ${severityBadgeClass(severity)}`}>
-                  <View className="flex-row items-center gap-1">
-                    <Ionicons name={severityIconName(severity)} size={14} />
-                    <Text className="text-xs font-semibold capitalize">{t(`severity.${severity}`)}</Text>
-                  </View>
-                </View>
-                <View className="min-w-0 flex-1">
-                  <Text className="font-semibold text-slate-900" numberOfLines={2}>
-                    {title}
-                  </Text>
-                  <Text className="mt-1 text-xs text-gray-500">
-                    {t('common.confidence', { pct: (item.confidence * 100).toFixed(0) })} ·{' '}
-                    {formatLocaleDateTime(item.created_at, i18n.language)}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-              </Pressable>
-              );
-            })}
-          </View>
-        )}
       </ScrollView>
     </View>
   );

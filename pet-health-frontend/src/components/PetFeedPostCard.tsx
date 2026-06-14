@@ -1,12 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useEffect, useState } from 'react';
-import { Alert, Image, Linking, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { BreederProfile, PetFeedPost } from '../types';
+import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 
 const PRIMARY = '#1E6FE8';
 const REPORT_REASONS = ['scam', 'misleading_health_claims', 'abusive_content', 'fake_contact', 'unsafe_transaction'] as const;
+
+type PetFeedMediaItem =
+  | { type: 'image'; uri: string }
+  | { type: 'video'; uri: string };
 
 type PetFeedPostCardProps = {
   post: PetFeedPost;
@@ -74,7 +80,8 @@ function ContactButton({ post }: { post: PetFeedPost }) {
     <Pressable
       testID={`pet-feed-contact-button-${post.id}`}
       accessibilityRole="button"
-      accessibilityLabel={`Contact breeder for ${post.title}`}
+      accessibilityLabel={t('petFeed.accessibility.contactBreeder', { title: post.title })}
+      accessibilityState={{ disabled: !url }}
       className={`min-w-[160px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 ${url ? 'bg-blue-600 active:opacity-90' : 'bg-slate-200'}`}
       disabled={!url}
       onPress={() => {
@@ -97,7 +104,7 @@ function HideBreederButton({ profile, onHideBreeder }: { profile?: BreederProfil
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Hide breeder ${profile.display_name}`}
+      accessibilityLabel={t('petFeed.accessibility.hideBreeder', { name: profile.display_name || t('petFeed.breederFallback') })}
       className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 active:bg-red-100"
       onPress={() => {
         Alert.alert(t('breederDetail.blockTitle'), t('breederDetail.blockBody'), [
@@ -119,6 +126,11 @@ function DetailLine({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text
       <Text className="text-xs font-medium text-slate-600">{text}</Text>
     </View>
   );
+}
+
+function mediaItemsForPost(post: PetFeedPost): PetFeedMediaItem[] {
+  const imageItems = post.media_urls.filter(Boolean).map((uri) => ({ type: 'image' as const, uri }));
+  return post.video_url ? [...imageItems, { type: 'video' as const, uri: post.video_url }] : imageItems;
 }
 
 function AutoPlayVideo({ uri, autoPlay }: { uri: string; autoPlay: boolean }) {
@@ -144,13 +156,31 @@ function AutoPlayVideo({ uri, autoPlay }: { uri: string; autoPlay: boolean }) {
   );
 }
 
-function PetFeedMedia({ post, autoPlayVideo }: { post: PetFeedPost; autoPlayVideo: boolean }) {
-  const imageUrl = post.media_urls[0];
-  if (post.video_url) {
-    return <AutoPlayVideo uri={post.video_url} autoPlay={autoPlayVideo} />;
+function PetFeedMedia({
+  media,
+  autoPlayVideo,
+  mediaLabel,
+}: {
+  media: PetFeedMediaItem | null;
+  autoPlayVideo: boolean;
+  mediaLabel: string;
+}) {
+  if (media?.type === 'video') {
+    return <AutoPlayVideo uri={media.uri} autoPlay={autoPlayVideo} />;
   }
-  if (imageUrl) {
-    return <Image source={{ uri: imageUrl }} className="h-full w-full" resizeMode="cover" />;
+  if (media?.type === 'image') {
+    return (
+      <View className="h-full w-full">
+        <Image
+          source={{ uri: media.uri }}
+          style={{ height: '100%', width: '100%' }}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={160}
+          accessibilityLabel={mediaLabel}
+        />
+      </View>
+    );
   }
   return (
     <View className="h-full w-full items-center justify-center">
@@ -173,13 +203,20 @@ export function PetFeedPostCard({
   onPress,
   testID,
 }: PetFeedPostCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const breeder = post.breeder_profile;
   const showActions = showContact || showReport || showHideBreeder;
   const isCompact = variant === 'compact';
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState<(typeof REPORT_REASONS)[number]>('scam');
   const [reportNote, setReportNote] = useState('');
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+  const mediaItems = mediaItemsForPost(post);
+  const selectedMedia = mediaItems[Math.min(selectedMediaIndex, Math.max(mediaItems.length - 1, 0))] ?? null;
+
+  useEffect(() => {
+    setSelectedMediaIndex(0);
+  }, [post.id]);
 
   function submitReport() {
     onReportPost?.(post, reportReason, reportNote);
@@ -187,28 +224,122 @@ export function PetFeedPostCard({
     setReportNote('');
   }
 
+  const speciesKey = `breederProfile.speciesOptions.${post.species.trim().toLowerCase()}`;
+  const speciesLabel = post.species ? t(speciesKey) : '';
+  const petIdentity = [post.breed, speciesLabel === speciesKey ? post.species : speciesLabel].filter(Boolean).join(' · ');
+  const ageLabel = post.age_months != null ? t('petFeed.ageMonths', { count: post.age_months }) : '';
+  const locationLabel = post.location || t('petFeed.locationUnknown');
+  const healthLabel = post.vaccine_status || t('petFeed.vaccineUnknown');
+  const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
+
   const content = (
     <>
       <View className="h-48 bg-blue-50">
-        <PetFeedMedia post={post} autoPlayVideo={autoPlayVideo} />
+        <PetFeedMedia
+          media={selectedMedia}
+          autoPlayVideo={autoPlayVideo}
+          mediaLabel={t('petFeed.accessibility.listingMedia', { title: post.title })}
+        />
       </View>
+      {mediaItems.length > 1 ? (
+        <View className="border-b border-gray-100 bg-white py-2">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 12 }}
+          >
+            {mediaItems.map((item, index) => {
+              const active = index === selectedMediaIndex;
+              const posterUri = item.type === 'image' ? item.uri : post.media_urls[0];
+              return (
+                <Pressable
+                  key={`${item.type}-${item.uri}-${index}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.type === 'video'
+                    ? t('petFeed.accessibility.openListingVideo', { index: index + 1 })
+                    : t('petFeed.accessibility.openListingPhoto', { index: index + 1 })}
+                  accessibilityState={{ selected: active }}
+                  className={`h-12 w-16 overflow-hidden rounded-xl border ${
+                    active ? 'border-blue-600' : 'border-gray-200'
+                  }`}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    setSelectedMediaIndex(index);
+                  }}
+                >
+                  {posterUri ? (
+                    <Image
+                      source={{ uri: posterUri }}
+                      style={{ height: '100%', width: '100%' }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <View className="h-full w-full items-center justify-center bg-blue-50">
+                      <Ionicons name="paw-outline" size={18} color={PRIMARY} />
+                    </View>
+                  )}
+                  {item.type === 'video' ? (
+                    <View className="absolute inset-0 items-center justify-center bg-black/35">
+                      <View className="h-7 w-7 items-center justify-center rounded-full bg-black/65">
+                        <Ionicons name="play" size={14} color="#fff" />
+                      </View>
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
       {isCompact ? (
         <View className="p-4">
-          <View className="flex-row items-start justify-between gap-3">
-            <Text className="min-w-0 flex-1 text-lg font-bold text-slate-900" numberOfLines={2}>{post.title}</Text>
-            {post.price_note ? (
-              <Text className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-sm font-bold text-blue-700" numberOfLines={1}>
-                {post.price_note}
+          <Text className="text-lg font-bold text-slate-900" numberOfLines={2}>{post.title}</Text>
+          <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
+            <Text className="text-sm font-medium text-slate-500" numberOfLines={1}>
+              {breeder?.display_name ?? t('petFeed.breederFallback')}
+            </Text>
+            {breeder?.verification_status === 'verified' ? (
+              <>
+                <Text className="text-sm text-slate-300">·</Text>
+                <View className="flex-row items-center gap-1">
+                  <Ionicons name="shield-checkmark-outline" size={13} color="#047857" />
+                  <Text className="text-xs font-bold text-emerald-700">{t('petFeed.topBreeders.verified')}</Text>
+                </View>
+              </>
+            ) : null}
+          </View>
+          <View className="mt-2 flex-row flex-wrap items-center gap-2">
+            <Text className="text-sm font-semibold text-slate-800" numberOfLines={1}>
+              {petIdentity}
+            </Text>
+            {priceLabel ? (
+              <Text className="rounded-full bg-blue-50 px-2.5 py-1 text-sm font-bold text-blue-700" numberOfLines={1}>
+                {priceLabel}
               </Text>
             ) : null}
           </View>
-          <Text className="mt-1 text-sm text-slate-500" numberOfLines={1}>
-            {breeder?.display_name ?? t('petFeed.breederFallback')}
-          </Text>
-          <View className="mt-3 flex-row flex-wrap gap-2">
-            <DetailLine icon="male-female-outline" text={post.gender} />
-            <DetailLine icon="calendar-outline" text={post.age_months != null ? t('petFeed.ageMonths', { count: post.age_months }) : ''} />
-            <DetailLine icon="location-outline" text={post.location || t('petFeed.locationUnknown')} />
+          <View className="mt-2 flex-row items-center gap-1.5">
+            <Ionicons name="calendar-outline" size={14} color="#64748b" />
+            <Text className="min-w-0 flex-1 text-sm text-slate-600" numberOfLines={1}>
+              {[ageLabel, locationLabel].filter(Boolean).join(' · ')}
+            </Text>
+          </View>
+          <View className="mt-3 gap-2 rounded-2xl bg-slate-50 px-3 py-2.5">
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="medical-outline" size={15} color={PRIMARY} />
+              <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-800" numberOfLines={1}>
+                {healthLabel}
+              </Text>
+            </View>
+            {post.gender ? (
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="male-female-outline" size={15} color="#64748b" />
+                <Text className="min-w-0 flex-1 text-xs font-medium text-slate-500" numberOfLines={1}>
+                  {post.gender}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
       ) : (
@@ -224,7 +355,8 @@ export function PetFeedPostCard({
             <Pressable
               testID={`pet-feed-favorite-button-${post.id}`}
               accessibilityRole="button"
-              accessibilityLabel={post.is_favorited ? 'Remove saved pet listing' : 'Save pet listing'}
+              accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
+              accessibilityState={{ selected: post.is_favorited }}
               className="rounded-full bg-slate-50 p-2"
               onPress={() => onToggleFavorite?.(post)}
             >
@@ -236,7 +368,7 @@ export function PetFeedPostCard({
           <DetailLine icon="paw-outline" text={[post.species, post.breed].filter(Boolean).join(' · ')} />
           <DetailLine icon="calendar-outline" text={post.age_months != null ? t('petFeed.ageMonths', { count: post.age_months }) : ''} />
           <DetailLine icon="male-female-outline" text={post.gender} />
-          <DetailLine icon="cash-outline" text={post.price_note} />
+          <DetailLine icon="cash-outline" text={priceLabel} />
         </View>
         {post.personality.length > 0 ? (
           <Text className="mt-3 text-sm leading-5 text-slate-700">{t('petFeed.personality')}: {post.personality.join(', ')}</Text>
@@ -260,7 +392,7 @@ export function PetFeedPostCard({
               <Pressable
                 testID={`pet-feed-report-button-${post.id}`}
                 accessibilityRole="button"
-                accessibilityLabel={`Report listing ${post.title}`}
+                accessibilityLabel={t('petFeed.accessibility.reportListing', { title: post.title })}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-3 active:bg-slate-50"
                 onPress={() => setReportVisible(true)}
               >
@@ -279,7 +411,7 @@ export function PetFeedPostCard({
       <Pressable
         testID={testID ?? `pet-feed-post-${post.id}`}
         accessibilityRole="button"
-        accessibilityLabel={`Open listing ${post.title}`}
+        accessibilityLabel={t('petFeed.accessibility.openListing', { title: post.title })}
         className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm active:opacity-95"
         onPress={() => onPress(post)}
       >
@@ -335,6 +467,8 @@ function ReportModal({
               <Pressable
                 key={item}
                 accessibilityRole="button"
+                accessibilityLabel={t(`petFeed.reportReasons.${item}`)}
+                accessibilityState={{ selected: reason === item }}
                 className={`flex-row items-center justify-between rounded-xl border px-3 py-3 ${
                   reason === item ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
                 }`}
@@ -349,6 +483,7 @@ function ReportModal({
           </View>
           <TextInput
             className="mt-4 min-h-[84px] rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-sm text-slate-900"
+            accessibilityLabel={t('petFeed.reportNotePlaceholder')}
             placeholder={t('petFeed.reportNotePlaceholder')}
             placeholderTextColor="#94a3b8"
             multiline
@@ -357,10 +492,10 @@ function ReportModal({
             onChangeText={onChangeNote}
           />
           <View className="mt-4 flex-row gap-3">
-            <Pressable className="flex-1 rounded-xl border border-gray-200 py-3" onPress={onCancel}>
+            <Pressable accessibilityRole="button" className="flex-1 rounded-xl border border-gray-200 py-3" onPress={onCancel}>
               <Text className="text-center text-sm font-bold text-slate-700">{t('common.cancel')}</Text>
             </Pressable>
-            <Pressable className="flex-1 rounded-xl bg-blue-600 py-3" onPress={onSubmit}>
+            <Pressable accessibilityRole="button" className="flex-1 rounded-xl bg-blue-600 py-3" onPress={onSubmit}>
               <Text className="text-center text-sm font-bold text-white">{t('petFeed.submitReport')}</Text>
             </Pressable>
           </View>

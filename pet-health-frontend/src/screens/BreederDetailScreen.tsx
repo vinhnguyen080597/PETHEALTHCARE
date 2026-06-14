@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, hasBreederContact, metadataArray, metadataString } from '../utils/breederTrust';
+import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 
 const PRIMARY = '#1E6FE8';
 
@@ -30,18 +31,6 @@ function normalizeSearchText(value: string) {
 function createdTime(post: PetFeedPost) {
   const time = new Date(post.created_at).getTime();
   return Number.isFinite(time) ? time : 0;
-}
-
-function priceValue(post: PetFeedPost) {
-  const raw = normalizeSearchText(post.price_note);
-  if (!raw) return null;
-  const match = raw.replace(/,/g, '.').match(/\d+(\.\d+)?/);
-  if (!match) return null;
-  const value = Number(match[0]);
-  if (!Number.isFinite(value)) return null;
-  if (/\b(trieu|million|m)\b/.test(raw)) return value * 1_000_000;
-  if (/\b(k|nghin|ngan|thousand)\b/.test(raw)) return value * 1_000;
-  return value;
 }
 
 function compareMaybeNumber(a: number | null, b: number | null, direction: SortDirection) {
@@ -90,7 +79,7 @@ export function BreederDetailScreen({
     const byGender = genderFilter === 'all' ? posts : posts.filter((post) => genderGroup(post) === genderFilter);
     return [...byGender].sort((a, b) => {
       if (sortField === 'age') return compareMaybeNumber(a.age_months, b.age_months, sortDirection);
-      if (sortField === 'price') return compareMaybeNumber(priceValue(a), priceValue(b), sortDirection);
+      if (sortField === 'price') return compareMaybeNumber(parsePetFeedPriceToVnd(a.price_note), parsePetFeedPriceToVnd(b.price_note), sortDirection);
       return sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a);
     });
   }, [genderFilter, posts, sortDirection, sortField]);

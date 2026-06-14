@@ -147,6 +147,28 @@
     },
     "blockBreederSuccess": "This breeder is hidden from your Pet Feed.",
     "blockBreederFailed": "Could not hide breeder",
+    "loadFailedTitle": "Could not load Pet Feed",
+    "retry": "Try again",
+    "loadingMore": "Loading more listings...",
+    "endOfFeed": "You have reached the end of Pet Feed.",
+    "resetFilters": "Reset",
+    "accessibility": {
+      "search": "Search Pet Feed listings",
+      "clearSearch": "Clear Pet Feed search",
+      "openFilters": "Open Pet Feed filters",
+      "closeFilters": "Close Pet Feed filters",
+      "closeDetail": "Close listing details",
+      "openListing": "Open listing {{title}}",
+      "listingMedia": "Media for listing {{title}}",
+      "openListingPhoto": "Show listing photo {{index}}",
+      "openListingVideo": "Show listing video",
+      "saveListing": "Save pet listing",
+      "unsaveListing": "Remove saved pet listing",
+      "reportListing": "Report listing {{title}}",
+      "contactBreeder": "Contact breeder for {{title}}",
+      "hideBreeder": "Hide breeder {{name}}",
+      "openBreederProfile": "Open breeder profile {{name}}"
+    },
     "status": {
       "draft": "Draft",
       "pending_review": "Pending review",
@@ -454,7 +476,8 @@
     "gender": "Gender",
     "ageMonths": "Age (months)",
     "location": "Location",
-    "priceNote": "Fee/condition note",
+    "priceNote": "Price ({{unit}})",
+    "pricePlaceholder": "Enter amount in {{unit}}, or a note",
     "personality": "Personality",
     "vaccineStatus": "Vaccine status",
     "dewormingStatus": "Deworming status",
@@ -831,7 +854,25 @@
     "passportTitle": "Care Passport",
     "overdueCare": "{{count}} overdue",
     "onTrack": "On track",
-    "dashGender": "—"
+    "dashGender": "—",
+    "quickActions": "Quick actions",
+    "quickActionsHint": "Start the next care task without hunting through the app.",
+    "scanHealthHint": "Add photos and screen visible signs.",
+    "openCoreCareHint": "Track vaccines, weight, and reminders.",
+    "breedRecognitionHint": "Get a visual breed suggestion.",
+    "openVetSummaryHint": "Organize notes for a clinic visit.",
+    "careOverview": "Care overview",
+    "careOverviewHint": "A compact view of {{name}}'s records and upcoming care.",
+    "dangerZone": "Danger zone",
+    "deleteHint": "Remove {{name}} only if you no longer need this profile or its app records.",
+    "backA11y": "Go back",
+    "editA11y": "Edit {{name}}",
+    "scanHealthA11y": "Start health check for {{name}}",
+    "openCoreCareA11y": "Open care records for {{name}}",
+    "openBreedRecognitionA11y": "Open breed recognition for {{name}}",
+    "openVetSummaryA11y": "Open vet summary for {{name}}",
+    "openHealthCheckA11y": "Open health check {{title}}",
+    "deleteA11y": "Delete {{name}}"
   },
   "vetSummary": {
     "title": "Vet summary",
@@ -855,6 +896,9 @@
   },
   "coreCare": {
     "title": "Vaccines & Reminders",
+    "openInfo": "Additional information",
+    "introGuideTitle": "A quick note for you!",
+    "introGuideDismiss": "I understand",
     "heroTitle": "{{name}}'s vaccines & reminders",
     "heroBody": "Track shots and reminders so you know what needs attention next.",
     "todayTitle": "Today",
@@ -885,7 +929,10 @@
     "manualVaccineHint": "If your pet has been vaccinated, you can manually log each shot below.",
     "manualEntryTitle": "Add manually",
     "vaccineType": "Vaccine type",
+    "desiredVaccineType": "Desired vaccine type",
+    "desiredVaccineHint": "Choose the main vaccine series you want to schedule first; the app will still add rabies and deworming reminders when appropriate.",
     "selectVaccine": "Select vaccine",
+    "selectDate": "Select date",
     "administeredDate": "Date given",
     "petBirthDate": "Pet's exact birth date",
     "generateVaccineSchedule": "Create vaccine & deworming schedule",
@@ -896,16 +943,25 @@
     "nextDoseDate": "Next dose reminder date",
     "unsupportedVaccineSpecies": "Sample vaccine options are currently available for dogs and cats only.",
     "vaccineRequired": "Please select a vaccine type for each row.",
+    "vaccineFieldRequired": "Please select a vaccine type.",
+    "administeredDateRequired": "Please select the vaccination date for each row.",
+    "administeredDateFieldRequired": "Please select the vaccination date.",
+    "birthDateRequired": "Please select your pet's birth date.",
+    "desiredVaccineRequired": "Please select the vaccine type to schedule.",
     "pastDateRequired": "Vaccination date must be between the past and today.",
     "vaccineTitleRequired": "Please enter the vaccine name.",
     "reminderTitleRequired": "Please enter the reminder title.",
     "generatedScheduleIntro": "Based on the birth date, Pet Health Care can create guideline-based vaccine and deworming reminders for dogs and cats.",
     "generatedScheduleDisclaimer": "This is a care reminder, not a diagnosis or prescription. Confirm vaccine products, rabies law, medicine choice, and dose with a veterinarian.",
-    "generatedScheduleNote": "Guideline target: {{targetDate}}. Reference: {{source}}. Please confirm the product, dose, and local legal requirements with a veterinarian.",
-    "generatedNextVaccineScheduleNote": "Last dose: {{administeredAt}}. Guideline target: {{targetDate}}. Reference: {{source}}. This app creates reminders within the next {{months}} months; confirm product, dose, and local legal requirements with a veterinarian.",
+    "generatedScheduleRequired": "Please select the birth date and desired vaccine type.",
+    "generatedScheduleNote": "Guideline target: {{targetDate}}. Reference: {{source}}. Based on reference guidelines; this does not replace veterinary advice. Please confirm the product, dose, and local legal requirements with a veterinarian.",
+    "generatedNextVaccineScheduleNote": "Last dose: {{administeredAt}}. Guideline target: {{targetDate}}. Reference: {{source}}. This app creates reminders within the next {{months}} months. Based on reference guidelines; this does not replace veterinary advice. Please confirm product, dose, and local legal requirements with a veterinarian.",
     "nextVaccineReminderTitle": "{{vaccine}} dose {{dose}}",
     "manualNextVaccineReminderTitle": "Next {{vaccine}} dose",
-    "manualNextVaccineReminderNote": "Manual next-dose reminder for {{targetDate}}. Please confirm the product, dose, and local legal requirements with a veterinarian.",
+    "manualNextVaccineReminderNote": "Manual next-dose reminder for {{targetDate}}. Based on reference guidelines; this does not replace veterinary advice. Please confirm the product, dose, and local legal requirements with a veterinarian.",
+    "felvRiskNote": "For FeLV: schedule by risk profile, and consider testing / discussing with a veterinarian first.",
+    "lapsedPrimarySeriesWarning": "Warning: the primary series is overdue for too long after the previous dose and may need to restart from dose 1. Please ask a veterinarian before continuing.",
+    "preVaccineDewormingNote": "A common practice is deworming about 5-7 days before vaccination if the pet has not been dewormed recently or has worm exposure risk. If the pet is weak, vomiting, has diarrhea, or may have a heavy parasite burden, ask a veterinarian first.",
     "targetScheduleLine": "Guideline target: {{date}}",
     "catchUpScheduleLine": "Catch-up reminder: due now because the guideline target age has passed.",
     "moreGeneratedRecommendations": "+{{count}} more reminders will be created",
@@ -933,6 +989,9 @@
       "dogDeworming": {
         "title": "Dog deworming dose {{dose}}"
       },
+      "dogPreVaccineDeworming": {
+        "title": "Dog deworming before vaccination"
+      },
       "catFvrcp": {
         "title": "Cat core vaccine FVRCP dose {{dose}}"
       },
@@ -944,6 +1003,9 @@
       },
       "catDeworming": {
         "title": "Cat deworming dose {{dose}}"
+      },
+      "catPreVaccineDeworming": {
+        "title": "Cat deworming before vaccination"
       }
     },
     "saveRecord": "Save",
@@ -1039,6 +1101,136 @@
       "grooming": {
         "title": "Grooming checklist",
         "body": "Schedule brushing, nail trim, ear cleaning, baths, and skin checks based on your pet's coat and age."
+      }
+    }
+  },
+  "coreCareInfo": {
+    "title": "Additional information",
+    "heroTitle": "Cat vaccine and deworming schedules",
+    "heroBody": "Vaccination and deworming schedules are not identical for every cat. Review the vaccine type, starting age, prior doses, health status, and lifestyle, then confirm the final plan with a veterinarian.",
+    "sections": {
+      "popularVaccines": {
+        "title": "Common cat vaccines in Vietnam",
+        "items": [
+          "Core multivalent 3-way or 4-way vaccines usually cover feline panleukopenia (FPV), feline herpesvirus/rhinotracheitis (FHV-1), and feline calicivirus (FCV). Some 4-way products may also include Chlamydia felis/psittaci.",
+          "Common trade names at clinics include Felocell 4 (Zoetis) and Purevax RCP/RCPCh (Boehringer Ingelheim). Store trade names as notes because clinics may use different products.",
+          "Rabies vaccines protect against rabies, a zoonotic disease. Common examples include Rabisin and Defensor 3.",
+          "FeLV is generally treated as non-core and is considered for cats with higher exposure risk, outdoor access, multi-cat environments, or known FeLV exposure."
+        ]
+      },
+      "kittenSchedule": {
+        "title": "Kitten primary schedule",
+        "items": [
+          "Kittens usually begin vaccination when maternal antibodies decline, around 6 - 8 weeks of age. Vaccinating too early can reduce effectiveness because maternal antibodies may neutralize the vaccine.",
+          "Dose 1 around 6 - 8 weeks: 3-way or 4-way multivalent vaccine.",
+          "Dose 2 around 10 - 12 weeks: multivalent vaccine, usually 3 - 4 weeks after the first dose. Rabies may start around 12 weeks/3 months depending on product label and veterinary guidance.",
+          "Dose 3 around 14 - 16 weeks: multivalent vaccine to complete the primary series and improve the chance of a full immune response.",
+          "FeLV should be risk-based. For at-risk cats, many guidelines recommend FeLV testing first and a 2-dose initial series 3 - 4 weeks apart."
+        ]
+      },
+      "adultBoosters": {
+        "title": "Adult boosters",
+        "items": [
+          "The first booster is usually given about 1 year after the final kitten-series dose, often around 14 - 15 months of age if the kitten finished the final dose at 14 - 16 weeks.",
+          "Rabies vaccination should follow local regulations and veterinary guidance. In Vietnam, rabies is part of mandatory disease prevention for companion animals.",
+          "Multivalent vaccine boosters can be risk-based: indoor-only cats may be assigned longer intervals, while outdoor cats or cats in multi-cat homes often need closer follow-up.",
+          "Booster timing depends on vaccine product, exposure risk, and veterinary assessment, so the app should create reference reminders and let the owner adjust them."
+        ]
+      },
+      "deworming": {
+        "title": "Reference deworming schedule",
+        "items": [
+          "Kittens under 6 months are more vulnerable to worms from the mother or environment. A reference schedule often starts at 3 weeks, then repeats at 5, 7, and 9 weeks.",
+          "After the early schedule, monthly deworming may continue until 6 months of age when appropriate for the kitten.",
+          "Adult cats over 6 months are often dewormed every 2 - 3 months if they go outdoors, hunt, eat raw meat, or live in a higher-risk environment.",
+          "Strictly indoor cats eating cooked/commercial food may be placed on a less frequent schedule, such as every 6 months, based on veterinary guidance."
+        ]
+      },
+      "dataModel": {
+        "title": "How the app should model care schedules",
+        "items": [
+          "The app should not rely only on the most recent vaccine name. It should understand vaccine series and protected components such as FVRCP, Rabies, FeLV, and Deworming.",
+          "The next schedule should use the full vaccine/deworming history, current age, most recent date, number of primary-series doses, and the cat's lifestyle risk.",
+          "Trade name, manufacturer, clinic, and notes should remain supporting details for owner and veterinarian review."
+        ]
+      }
+    },
+    "faqTitle": "Frequently asked questions",
+    "faq": {
+      "catFirstYearVaccines": {
+        "question": "What does a kitten usually need in the first year?",
+        "answerItems": [
+          "Core multivalent FVRCP / 3-way or 4-way vaccine: usually starts around 6 - 8 weeks of age, then repeats every 3 - 4 weeks until at least 16 weeks.",
+          "Rabies vaccine: usually given from around 12 weeks of age or according to product label and veterinary guidance; in Vietnam this is especially important for rabies prevention.",
+          "FeLV: consider by risk profile, such as outdoor access, multi-cat homes, or possible contact with unfamiliar cats; testing / veterinary discussion is recommended first.",
+          "Deworming / parasite control: kittens need early repeated deworming by age; if vaccination is coming and the kitten has not been dewormed recently, a common practice is deworming 5 - 7 days before vaccination.",
+          "The final schedule should be confirmed with a veterinarian based on health status, lifestyle, and the vaccine product used by the clinic."
+        ]
+      },
+      "dewormBeforeVaccination": {
+        "question": "Should pets be dewormed before vaccination?",
+        "answerItems": [
+          "Yes, this is a common practice when the pet has not been dewormed recently or has worm exposure risk.",
+          "A common timing is deworming about 5 - 7 days before vaccination so the pet is more stable before the shot.",
+          "If the pet is weak, feverish, vomiting, has diarrhea, or may have a heavy parasite burden, ask a veterinarian before deworming or vaccinating.",
+          "If the pet was dewormed properly and recently, the veterinarian may not require another deworming before every vaccine dose."
+        ]
+      },
+      "missedVaccineSchedule": {
+        "question": "What should I do if my pet misses a vaccine date?",
+        "answerItems": [
+          "Do not try to catch up with several shots at once on your own. Contact a clinic so the veterinarian can review age, prior doses, and vaccine product.",
+          "Many cases can continue with a catch-up schedule instead of restarting from zero, but this depends on the delay and the vaccine.",
+          "In the app, reminders past the guideline target are shown as due/catch-up so the owner can discuss them with a veterinarian."
+        ]
+      },
+      "indoorCatVaccines": {
+        "question": "Does an indoor-only cat still need vaccines?",
+        "answerItems": [
+          "Yes, indoor cats should still have core vaccines such as FVRCP because exposure can happen through clinic visits, grooming, boarding, visitors, or unexpected contact.",
+          "Rabies vaccination should follow local rules and veterinary guidance.",
+          "Risk-based vaccines such as FeLV may not be needed for every indoor cat, but the decision should be made with a veterinarian."
+        ]
+      },
+      "felvWhenNeeded": {
+        "question": "When should a cat receive FeLV vaccine?",
+        "answerItems": [
+          "FeLV is risk-based and is often considered for cats with outdoor access, multi-cat homes, contact with unfamiliar cats, or known FeLV exposure.",
+          "Many guidelines recommend FeLV testing before deciding to vaccinate.",
+          "When used, the initial schedule often has 2 doses about 3 - 4 weeks apart, then boosters based on risk and veterinary guidance."
+        ]
+      },
+      "rabiesBoosters": {
+        "question": "What schedule should rabies vaccine and boosters follow?",
+        "answerItems": [
+          "Cats can often receive rabies vaccine from around 12 weeks of age, depending on the vaccine label and veterinarian guidance.",
+          "Rabies boosters should follow local rules, vaccine product label, and clinic certificate requirements.",
+          "In Vietnam, rabies prevention is especially important because rabies can spread to humans, so owners should confirm the booster plan with a veterinarian."
+        ]
+      }
+    },
+    "referencesTitle": "Reliable references",
+    "referencesBody": "These sources are used to cross-check reminder formulas. App guidance is for reference only and does not replace diagnosis or a care plan from a veterinarian.",
+    "references": {
+      "wsava2024": {
+        "title": "WSAVA 2024 vaccination guidelines",
+        "body": "Global guidance on core/non-core vaccines, puppy/kitten timing, and booster principles."
+      },
+      "aahaAafpFeline2020": {
+        "title": "AAHA/AAFP 2020 feline vaccination guidelines",
+        "body": "Feline-specific guidance covering core/non-core categories, FVRCP, FeLV, rabies, and lifestyle-based schedules."
+      },
+      "vietnamRabies": {
+        "title": "Vietnam Circular 07/2016/TT-BNNPTNT",
+        "body": "Vietnamese regulation on terrestrial animal disease prevention and control, including rabies prevention for companion animals."
+      },
+      "troccapFeline": {
+        "title": "TroCCAP feline parasite guidelines",
+        "body": "Parasite control guidance for tropical and subtropical regions, relevant to Southeast Asia."
+      },
+      "esccapWorms": {
+        "title": "ESCCAP worm control guidelines",
+        "body": "Guidance for controlling worms in dogs and cats, useful for risk-based deworming intervals."
       }
     }
   },

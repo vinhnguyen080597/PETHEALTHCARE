@@ -148,6 +148,11 @@ export type PetFeedPost = {
   updated_at?: string;
 };
 
+export type PetFeedPostsPage = {
+  data: PetFeedPost[];
+  nextCursor: string | null;
+};
+
 export type PetFeedReport = {
   id: string;
   user_id: string;

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { MAI_GUIDING } from '../assets/maiAssets';
 import { APP_LINKS } from '../config';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
+import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 
 const PRIMARY = '#1E6FE8';
 
@@ -162,7 +163,7 @@ export function AccountScreen({
   onDeleteAccount,
   showHeaderLogout = true,
 }: AccountScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [adminSection, setAdminSection] = useState<'requests' | 'breeders' | 'posts'>('requests');
   const [requestTypeFilter, setRequestTypeFilter] = useState<AdminRequestTypeFilter>('all');
   const [requestStatusFilter, setRequestStatusFilter] = useState<AdminRequestStatusFilter>('all');
@@ -213,7 +214,7 @@ export function AccountScreen({
       createdAt: post.created_at,
       title: post.title || t('adminRequests.untitledPost'),
       subtitle: [post.species, post.breed, post.location].filter(Boolean).join(' - '),
-      body: post.description || post.vaccine_status || post.price_note,
+      body: post.description || post.vaccine_status || formatPetFeedPrice(post.price_note, i18n.language),
       post,
     }));
     const reportItems: AdminRequestItem[] = adminFeedReports.map((report) => ({
@@ -229,7 +230,7 @@ export function AccountScreen({
       report,
     }));
     return [...breederItems, ...postItems, ...reportItems];
-  }, [adminBreederProfiles, adminFeedPosts, adminFeedReports, t]);
+  }, [adminBreederProfiles, adminFeedPosts, adminFeedReports, i18n.language, t]);
   const filteredAdminRequestItems = useMemo(() => {
     const now = Date.now();
     const startOfToday = new Date();

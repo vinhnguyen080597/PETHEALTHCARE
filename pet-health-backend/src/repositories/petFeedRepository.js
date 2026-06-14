@@ -8,11 +8,71 @@ const memoryPosts = [];
 const memoryFavorites = [];
 const memoryReports = [];
 const memoryBlockedBreeders = [];
+const DEFAULT_FEED_PAGE_LIMIT = 12;
+const MAX_FEED_PAGE_LIMIT = 30;
 
 function getFeedSupabase(accessToken) {
   const withJwt = createSupabaseWithUserAccessToken(accessToken);
   if (withJwt) return withJwt;
   return getSupabaseServiceClient();
+}
+
+function normalizePetFeedPageLimit(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULT_FEED_PAGE_LIMIT;
+  return Math.min(Math.max(Math.round(parsed), 1), MAX_FEED_PAGE_LIMIT);
+}
+
+function badCursorError() {
+  const err = new Error('Invalid Pet Feed cursor.');
+  err.status = 400;
+  err.code = 'INVALID_PET_FEED_CURSOR';
+  return err;
+}
+
+function decodePetFeedCursor(value) {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(String(value), 'base64url').toString('utf8'));
+    if (!parsed || typeof parsed.createdAt !== 'string' || typeof parsed.id !== 'string') {
+      throw badCursorError();
+    }
+    const createdAtMs = new Date(parsed.createdAt).getTime();
+    if (!Number.isFinite(createdAtMs) || !parsed.id.trim()) throw badCursorError();
+    return { createdAt: parsed.createdAt, id: parsed.id };
+  } catch (err) {
+    if (err?.code === 'INVALID_PET_FEED_CURSOR') throw err;
+    throw badCursorError();
+  }
+}
+
+function encodePetFeedCursor(row) {
+  if (!row?.created_at || !row?.id) return null;
+  return Buffer.from(JSON.stringify({ createdAt: row.created_at, id: row.id }), 'utf8').toString('base64url');
+}
+
+function compareFeedRowsDesc(a, b) {
+  if (a.created_at !== b.created_at) return a.created_at < b.created_at ? 1 : -1;
+  if (a.id === b.id) return 0;
+  return a.id < b.id ? 1 : -1;
+}
+
+function isBeforeFeedCursor(row, cursor) {
+  if (!cursor) return true;
+  if (row.created_at < cursor.createdAt) return true;
+  return row.created_at === cursor.createdAt && row.id < cursor.id;
+}
+
+function paginateFeedRows(rows, limit, cursor) {
+  const window = rows
+    .filter((row) => isBeforeFeedCursor(row, cursor))
+    .sort(compareFeedRowsDesc)
+    .slice(0, limit + 1);
+  const pageRows = window.slice(0, limit);
+  return {
+    rows: pageRows,
+    nextCursor: window.length > limit ? encodePetFeedCursor(pageRows[pageRows.length - 1]) : null,
+  };
 }
 
 function trimText(value, max = 2000) {
@@ -203,6 +263,52 @@ export async function listPublishedPetFeedPosts(userId, accessToken) {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).filter((row) => !blockedBreederIds.has(row.breeder_profile_id)).map((row) => toPost(row, favoriteIds));
+}
+
+export async function listPublishedPetFeedPostPage(userId, accessToken, options = {}) {
+  const limit = normalizePetFeedPageLimit(options.limit);
+  const cursor = decodePetFeedCursor(options.cursor);
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    const favoriteIds = new Set(memoryFavorites.filter((row) => row.user_id === userId).map((row) => row.post_id));
+    const blockedBreederIds = new Set(memoryBlockedBreeders.filter((row) => row.user_id === userId).map((row) => row.breeder_profile_id));
+    const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
+    const { rows, nextCursor } = paginateFeedRows(
+      memoryPosts.filter((post) => post.status === 'published' && !blockedBreederIds.has(post.breeder_profile_id)),
+      limit,
+      cursor,
+    );
+    return {
+      data: rows.map((post) => toPost(post, favoriteIds, profilesById)),
+      nextCursor,
+    };
+  }
+
+  const favoriteIds = await favoriteIdsForUser(supabase, userId);
+  const blockedBreederIds = await blockedBreederIdsForUser(supabase, userId);
+  let query = supabase
+    .from('pet_feed_posts')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(limit + 1);
+
+  if (blockedBreederIds.size > 0) {
+    query = query.not('breeder_profile_id', 'in', `(${Array.from(blockedBreederIds).join(',')})`);
+  }
+  if (cursor) {
+    query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  const rows = data ?? [];
+  const pageRows = rows.slice(0, limit);
+  return {
+    data: pageRows.map((row) => toPost(row, favoriteIds)),
+    nextCursor: rows.length > limit ? encodePetFeedCursor(pageRows[pageRows.length - 1]) : null,
+  };
 }
 
 export async function listVerifiedBreederProfiles(userId, accessToken) {

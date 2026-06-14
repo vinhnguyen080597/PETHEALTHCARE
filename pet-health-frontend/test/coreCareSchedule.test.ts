@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateCoreCareSchedule, calculateNextVaccinationSchedule } from '../src/utils/coreCareSchedule.ts';
+import { calculateCoreCareSchedule, calculateNextVaccinationSchedule, normalizeManualVaccineId } from '../src/utils/coreCareSchedule.ts';
 
-test('dog puppy schedule starts core vaccine at six weeks and includes deworming', () => {
+function firstFvrcpDueDate(recommendations: ReturnType<typeof calculateCoreCareSchedule>): string | undefined {
+  return recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 1)?.dueDate;
+}
+
+test('dog puppy schedule starts core vaccine at eight weeks and includes deworming', () => {
   const recommendations = calculateCoreCareSchedule({
     species: 'dog',
     birthDate: new Date('2026-01-01T00:00:00'),
@@ -14,11 +18,11 @@ test('dog puppy schedule starts core vaccine at six weeks and includes deworming
   const rabies = recommendations.find((item) => item.family === 'dogRabies');
 
   assert.equal(firstDeworming?.dueDate, '2026-01-15');
-  assert.equal(firstDhpp?.dueDate, '2026-02-12');
+  assert.equal(firstDhpp?.dueDate, '2026-02-26');
   assert.equal(rabies?.dueDate, '2026-03-26');
 });
 
-test('cat kitten schedule includes FVRCP, FeLV, rabies, and tropical deworming', () => {
+test('cat kitten schedule includes up to three FVRCP doses, FeLV, rabies, and tropical deworming', () => {
   const recommendations = calculateCoreCareSchedule({
     species: 'cat',
     birthDate: new Date('2026-01-01T00:00:00'),
@@ -26,14 +30,92 @@ test('cat kitten schedule includes FVRCP, FeLV, rabies, and tropical deworming',
   });
 
   const firstFvrcp = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 1);
+  const fourthFvrcp = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 4);
   const firstFelv = recommendations.find((item) => item.family === 'catFelv' && item.doseNumber === 1);
   const firstDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 1);
   const rabies = recommendations.find((item) => item.family === 'catRabies');
 
   assert.equal(firstDeworming?.dueDate, '2026-01-15');
-  assert.equal(firstFvrcp?.dueDate, '2026-02-12');
+  assert.equal(firstFvrcp?.dueDate, '2026-02-26');
+  assert.equal(fourthFvrcp, undefined);
   assert.equal(firstFelv?.dueDate, '2026-02-26');
   assert.equal(rabies?.dueDate, '2026-03-26');
+});
+
+test('selected cat FVRCP schedule keeps rabies and deworming but excludes FeLV', () => {
+  const recommendations = calculateCoreCareSchedule({
+    species: 'cat',
+    birthDate: new Date('2026-01-01T00:00:00'),
+    today: new Date('2026-01-01T00:00:00'),
+    selectedVaccineId: 'cat_3in1_fvrcp',
+  });
+
+  assert.ok(recommendations.some((item) => item.family === 'catFvrcp'));
+  assert.ok(recommendations.some((item) => item.family === 'catRabies'));
+  assert.ok(recommendations.some((item) => item.family === 'catDeworming'));
+  assert.equal(recommendations.find((item) => item.family === 'catPreVaccineDeworming')?.dueDate, '2026-02-19');
+  assert.equal(recommendations.some((item) => item.family === 'catDeworming' && item.dueDate === firstFvrcpDueDate(recommendations)), false);
+  assert.equal(recommendations.some((item) => item.family === 'catFelv'), false);
+});
+
+test('selected adult cat vaccine schedule creates pre-vaccine deworming due today when seven-day target passed', () => {
+  const recommendations = calculateCoreCareSchedule({
+    species: 'cat',
+    birthDate: new Date('2025-01-01T00:00:00'),
+    today: new Date('2026-01-01T00:00:00'),
+    selectedVaccineId: 'cat_3in1_fvrcp',
+  });
+
+  const preVaccineDeworming = recommendations.find((item) => item.family === 'catPreVaccineDeworming');
+  assert.equal(preVaccineDeworming?.targetDate, '2025-12-25');
+  assert.equal(preVaccineDeworming?.dueDate, '2026-01-01');
+  assert.equal(preVaccineDeworming?.isCatchUp, true);
+});
+
+test('late kitten catch-up schedule staggers deworming, FVRCP, rabies, and next dose', () => {
+  const recommendations = calculateCoreCareSchedule({
+    species: 'cat',
+    birthDate: new Date('2026-01-14T00:00:00'),
+    today: new Date('2026-06-14T00:00:00'),
+    selectedVaccineId: 'cat_3in1_fvrcp',
+  });
+
+  const preVaccineDeworming = recommendations.find((item) => item.family === 'catPreVaccineDeworming');
+  const fvrcpDoseOne = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 1);
+  const fvrcpDoseTwo = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 2);
+  const rabies = recommendations.find((item) => item.family === 'catRabies');
+  const routineDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 1);
+
+  assert.equal(preVaccineDeworming?.dueDate, '2026-06-14');
+  assert.equal(preVaccineDeworming?.isCatchUp, true);
+  assert.equal(fvrcpDoseOne?.dueDate, '2026-06-21');
+  assert.equal(routineDeworming?.dueDate, '2026-07-12');
+  assert.equal(fvrcpDoseTwo?.dueDate, '2026-07-19');
+  assert.equal(rabies?.dueDate, '2026-07-19');
+});
+
+test('manual vaccine text is normalized into stable vaccine ids', () => {
+  assert.equal(normalizeManualVaccineId('Đã tiêm vaccine 4 trong 1 Felocell', 'cat'), 'cat_4in1');
+  assert.equal(normalizeManualVaccineId('Vaccine 4-trong-1', 'cat'), 'cat_4in1');
+  assert.equal(normalizeManualVaccineId('Mũi dại Rabisin', 'cat'), 'cat_rabies');
+  assert.equal(normalizeManualVaccineId('Vaccine 7 trong 1 có lepto', 'dog'), 'dog_7in1');
+});
+
+test('young pet primary series warns when the next dose is overdue for more than six weeks', () => {
+  const recommendations = calculateNextVaccinationSchedule({
+    species: 'cat',
+    petAgeMonths: 4,
+    today: new Date('2026-06-12T00:00:00'),
+    administeredDoses: [
+      {
+        vaccineId: 'cat_4in1',
+        administeredAt: new Date('2026-04-15T00:00:00'),
+      },
+    ],
+  });
+
+  assert.equal(recommendations[0]?.doseNumber, 2);
+  assert.equal(recommendations[0]?.isRestartRequired, true);
 });
 
 test('adult dog with unknown history gets catch-up reminders due today', () => {

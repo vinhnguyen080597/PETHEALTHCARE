@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Text, Te
 import { useTranslation } from 'react-i18next';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { CreatePetFeedPostMedia, CreatePetFeedPostPayload, PetFeedPost, UserRole } from '../types';
+import { normalizePetFeedPriceInput, petFeedPriceInputUnit } from '../utils/petFeedCurrency';
 
 const PRIMARY = '#1E6FE8';
 const MAX_PHOTOS = 6;
@@ -113,7 +114,7 @@ function FieldLabel({ children }: { children: string }) {
 }
 
 export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: CreatePetFeedPostScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [title, setTitle] = useState('');
   const [species, setSpecies] = useState('cat');
   const [breed, setBreed] = useState('');
@@ -191,6 +192,8 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
   const selectedVaccineLabel = vaccineStatus === 'unknown' ? '' : vaccineStatus;
   const selectedDewormingLabel = dewormingStatus === 'unknown' ? '' : dewormingStatus;
   const ageValue = ageMonths ? Number(ageMonths) : null;
+  const priceUnit = petFeedPriceInputUnit(i18n.language);
+  const canonicalPriceNote = normalizePetFeedPriceInput(priceNote, i18n.language);
 
   const previewPost: PetFeedPost = {
     id: 'preview',
@@ -202,7 +205,7 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
     gender: selectedGenderLabel,
     age_months: ageValue != null && Number.isFinite(ageValue) ? ageValue : null,
     location,
-    price_note: priceNote,
+    price_note: canonicalPriceNote,
     description,
     personality,
     vaccine_status: selectedVaccineLabel,
@@ -283,7 +286,7 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
         gender: selectedGenderLabel,
         ageMonths: ageValue != null && Number.isFinite(ageValue) ? ageValue : null,
         location,
-        priceNote,
+        priceNote: canonicalPriceNote,
         description,
         personality,
         vaccineStatus: selectedVaccineLabel,
@@ -340,12 +343,13 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
           <SelectField label={t('createPetFeedPost.gender')} value={gender} options={genderOptions} onChange={setGender} />
           <SelectField label={t('createPetFeedPost.ageMonths')} value={ageMonths} options={ageOptions} onChange={setAgeMonths} />
           <SelectField label={t('createPetFeedPost.location')} value={location} options={locationOptions} onChange={setLocation} />
-          <FieldLabel>{t('createPetFeedPost.priceNote')}</FieldLabel>
+          <FieldLabel>{t('createPetFeedPost.priceNote', { unit: priceUnit })}</FieldLabel>
           <TextInput
             className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900"
-            placeholder={t('createPetFeedPost.priceNote')}
+            placeholder={t('createPetFeedPost.pricePlaceholder', { unit: priceUnit })}
             value={priceNote}
             onChangeText={setPriceNote}
+            keyboardType="decimal-pad"
           />
         </View>
 

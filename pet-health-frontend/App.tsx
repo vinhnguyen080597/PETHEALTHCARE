@@ -17,6 +17,7 @@ import { BreederProfileScreen } from './src/screens/BreederProfileScreen';
 import { BreedRecognitionProgressScreen } from './src/screens/BreedRecognitionProgressScreen';
 import { BreedRecognitionResultScreen } from './src/screens/BreedRecognitionResultScreen';
 import { BreederDetailScreen } from './src/screens/BreederDetailScreen';
+import { CoreCareInfoScreen } from './src/screens/CoreCareInfoScreen';
 import { CoreCareScreen } from './src/screens/CoreCareScreen';
 import { CreatePetFeedPostScreen } from './src/screens/CreatePetFeedPostScreen';
 import { PetBreedRecognitionScreen } from './src/screens/PetBreedRecognitionScreen';
@@ -154,8 +155,14 @@ function AppContent() {
               <PetFeedScreen
                 posts={app.petFeedPosts}
                 breederProfiles={app.topBreederProfiles}
+                initialLoading={app.petFeedInitialLoading}
+                initialError={app.petFeedInitialError}
                 refreshing={app.refreshing}
+                loadingMore={app.petFeedLoadingMore}
+                hasMore={app.petFeedHasMore}
+                loadMoreError={app.petFeedLoadMoreError}
                 onRefresh={app.refreshPetFeed}
+                onLoadMore={app.loadMorePetFeed}
                 onToggleFavorite={app.togglePetFeedFavorite}
                 onReportPost={app.submitPetFeedReport}
                 onHideBreeder={app.hideBreederProfile}
@@ -217,6 +224,7 @@ function AppContent() {
                 onRefresh={app.refreshPetProfile}
                 onBack={app.closePetProfile}
                 onEdit={() => app.openEditPet(app.selectedPet!.id, { returnToProfile: true })}
+                onDelete={() => app.handleDeletePet(app.selectedPet!)}
                 onScanHealth={() => app.goToCameraForPet(app.selectedPet!.id, { returnToProfile: true })}
                 onSelectEntry={(entry) => app.openHistoryDetail(entry, 'pet-profile')}
                 onOpenBreedRecognition={() => app.openBreedRecognition('pet-profile')}
@@ -301,12 +309,15 @@ function AppContent() {
                 aiCredits={app.aiCredits}
                 creditLedger={app.creditLedger}
                 onBack={app.closeCoreCare}
+                onOpenInfo={app.openCoreCareInfo}
                 onRefresh={() => app.openCoreCare(app.selectedPet!.id)}
                 onCreateRecord={app.createCoreCareEntry}
                 onMarkReminderDone={app.markReminderDone}
                 onClaimRewardedAd={app.claimAdCredit}
               />
             ) : null}
+
+            {app.screen === 'core-care-info' ? <CoreCareInfoScreen onBack={app.closeCoreCareInfo} /> : null}
 
             {app.screen === 'vet-summary' && app.selectedPet ? (
               <VetSummaryScreen

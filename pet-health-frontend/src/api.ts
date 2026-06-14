@@ -21,6 +21,7 @@ import type {
   BreederProfile,
   Pet,
   PetFeedPost,
+  PetFeedPostsPage,
   PetFeedReport,
   UpdatePetPayload,
   UpsertBreederProfilePayload,
@@ -269,8 +270,12 @@ export async function deletePet(token: string, petId: string) {
   });
 }
 
-export async function listPetFeedPosts(token: string) {
-  return requestJson<{ data: PetFeedPost[] }>('/pet-feed/posts', {
+export async function listPetFeedPosts(token: string, options: { limit?: number; cursor?: string | null } = {}) {
+  const params = new URLSearchParams();
+  if (options.limit) params.set('limit', String(options.limit));
+  if (options.cursor) params.set('cursor', options.cursor);
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return requestJson<PetFeedPostsPage>(`/pet-feed/posts${qs}`, {
     headers: authHeaders(token),
   });
 }

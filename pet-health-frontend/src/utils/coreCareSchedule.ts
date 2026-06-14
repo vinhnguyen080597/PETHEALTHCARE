@@ -6,10 +6,12 @@ export type CoreCareScheduleFamily =
   | 'dogRabies'
   | 'dogLepto'
   | 'dogDeworming'
+  | 'dogPreVaccineDeworming'
   | 'catFvrcp'
   | 'catRabies'
   | 'catFelv'
-  | 'catDeworming';
+  | 'catDeworming'
+  | 'catPreVaccineDeworming';
 
 export type CoreCareScheduleRecommendation = {
   id: string;
@@ -39,12 +41,14 @@ export type CoreCareNextVaccineRecommendation = {
   sourceUrl: string;
   isCatchUp: boolean;
   horizonMonths: number;
+  isRestartRequired?: boolean;
 };
 
 type CalculateCoreCareScheduleInput = {
   species: string;
   birthDate: Date;
   today?: Date;
+  selectedVaccineId?: string | null;
 };
 
 type CalculateNextVaccinationScheduleInput = {
@@ -65,6 +69,7 @@ type SeriesInput = {
   birthDate: Date;
   sourceLabel: string;
   sourceUrl: string;
+  maxPrimaryDoseCount?: number;
   boosterAgeDays?: number;
 };
 
@@ -86,6 +91,8 @@ const AAHA_CANINE_2022_URL = 'https://www.aaha.org/resources/2022-aaha-canine-va
 const AAFP_FELINE_2020_URL = 'https://journals.sagepub.com/doi/full/10.1177/1098612X20941784';
 const TROCCAP_URL = 'https://www.troccap.com/canine-guidelines/general-considerations-canine/';
 const ONE_YEAR_DAYS = 365;
+const LAPSED_PRIMARY_SERIES_DAYS = 42;
+const PRE_VACCINE_DEWORMING_DAYS = 7;
 
 export function normalizeCoreCareScheduleSpecies(species: string): CoreCareScheduleSpecies | null {
   const normalized = species.trim().toLowerCase();
@@ -102,10 +109,35 @@ export function formatCoreCareScheduleDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+export function normalizeManualVaccineId(text: string, species: string): string | null {
+  const normalizedSpecies = normalizeCoreCareScheduleSpecies(species);
+  if (!normalizedSpecies) return null;
+
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return null;
+
+  if (normalizedSpecies === 'cat') {
+    if (/3\s*[- ]?\s*(in|trong)\s*[- ]?\s*1|3\s*[- ]?\s*1|fvrcp|rcp\b|purevax|giảm bạch cầu|giam bach cau|calici|herpes|cúm mèo|cum meo/.test(normalized)) {
+      return 'cat_3in1_fvrcp';
+    }
+    if (/4\s*[- ]?\s*(in|trong)\s*[- ]?\s*1|4\s*[- ]?\s*1|felocell|rcpch|chlamydia/.test(normalized)) return 'cat_4in1';
+    if (/dại|dai|rabies|rabisin|defensor/.test(normalized)) return 'cat_rabies';
+    if (/felv|bạch cầu|bach cau|leukemia/.test(normalized)) return 'cat_felv';
+    return null;
+  }
+
+  if (/5\s*[- ]?\s*(in|trong)\s*[- ]?\s*1|5\s*[- ]?\s*1|dhpp|dapp|dhppl|care|parvo|adenovirus|distemper/.test(normalized)) return 'dog_5in1_dhppl';
+  if (/7\s*[- ]?\s*(in|trong)\s*[- ]?\s*1|7\s*[- ]?\s*1|lepto|leptospira/.test(normalized)) return 'dog_7in1';
+  if (/dại|dai|rabies|rabisin|defensor/.test(normalized)) return 'dog_rabies';
+  if (/bordetella|kennel cough|ho cũi|ho cui/.test(normalized)) return 'dog_bordetella';
+  return null;
+}
+
 export function calculateCoreCareSchedule({
   species,
   birthDate,
   today = new Date(),
+  selectedVaccineId = null,
 }: CalculateCoreCareScheduleInput): CoreCareScheduleRecommendation[] {
   const normalizedSpecies = normalizeCoreCareScheduleSpecies(species);
   if (!normalizedSpecies) return [];
@@ -116,8 +148,8 @@ export function calculateCoreCareSchedule({
 
   const recommendations =
     normalizedSpecies === 'dog'
-      ? calculateDogSchedule(normalizedBirthDate, normalizedToday)
-      : calculateCatSchedule(normalizedBirthDate, normalizedToday);
+      ? calculateDogSchedule(normalizedBirthDate, normalizedToday, selectedVaccineId)
+      : calculateCatSchedule(normalizedBirthDate, normalizedToday, selectedVaccineId);
 
   return recommendations
     .sort((a, b) => {
@@ -168,6 +200,11 @@ export function calculateNextVaccinationSchedule({
       let lastDate = latestDose.administeredAt;
 
       if (sortedDoses.length < series.primaryDoseCount) {
+        const isRestartRequired =
+          typeof petAgeMonths === 'number' &&
+          petAgeMonths < 6 &&
+          daysBetween(latestDose.administeredAt, normalizedToday) > LAPSED_PRIMARY_SERIES_DAYS;
+
         for (let doseNumber = sortedDoses.length + 1; doseNumber <= series.primaryDoseCount; doseNumber += 1) {
           const targetDate = addDays(lastDate, series.primaryIntervalDays);
           const dueDate = maxDate(normalizedToday, targetDate);
@@ -184,6 +221,7 @@ export function calculateNextVaccinationSchedule({
             sourceUrl: series.sourceUrl,
             isCatchUp: dueDate.getTime() > targetDate.getTime(),
             horizonMonths,
+            isRestartRequired,
           });
           lastDate = dueDate;
         }
@@ -217,18 +255,18 @@ export function calculateNextVaccinationSchedule({
     });
 }
 
-function calculateDogSchedule(birthDate: Date, today: Date): CoreCareScheduleRecommendation[] {
+function calculateDogSchedule(birthDate: Date, today: Date, selectedVaccineId: string | null): CoreCareScheduleRecommendation[] {
   const ageDays = daysBetween(birthDate, today);
-  if (ageDays > weeks(26)) return adultDogCatchUp(today);
+  if (ageDays > weeks(26)) return filterInitialScheduleBySelection('dog', adultDogCatchUp(today), selectedVaccineId, today);
 
-  return [
+  const recommendations = [
     ...buildPrimarySeries({
       family: 'dogDhpp',
       kind: 'vaccine',
-      startAgeDays: weeks(6),
+      startAgeDays: weeks(8),
       finalMinAgeDays: weeks(16),
       intervalDays: weeks(4),
-      boosterAgeDays: weeks(26),
+      maxPrimaryDoseCount: 3,
       birthDate,
       today,
       sourceLabel: 'WSAVA 2024 / AAHA 2022',
@@ -258,20 +296,21 @@ function calculateDogSchedule(birthDate: Date, today: Date): CoreCareScheduleRec
       earlyWeeks: [2, 4, 6, 8],
     }),
   ];
+  return filterInitialScheduleBySelection('dog', recommendations, selectedVaccineId, today);
 }
 
-function calculateCatSchedule(birthDate: Date, today: Date): CoreCareScheduleRecommendation[] {
+function calculateCatSchedule(birthDate: Date, today: Date, selectedVaccineId: string | null): CoreCareScheduleRecommendation[] {
   const ageDays = daysBetween(birthDate, today);
-  if (ageDays > weeks(26)) return adultCatCatchUp(today);
+  if (ageDays > weeks(26)) return filterInitialScheduleBySelection('cat', adultCatCatchUp(today), selectedVaccineId, today);
 
-  return [
+  const recommendations = [
     ...buildPrimarySeries({
       family: 'catFvrcp',
       kind: 'vaccine',
-      startAgeDays: weeks(6),
-      finalMinAgeDays: weeks(20),
+      startAgeDays: weeks(8),
+      finalMinAgeDays: weeks(16),
       intervalDays: weeks(4),
-      boosterAgeDays: weeks(26),
+      maxPrimaryDoseCount: 3,
       birthDate,
       today,
       sourceLabel: 'WSAVA 2024 / AAHA-AAFP 2020',
@@ -301,6 +340,7 @@ function calculateCatSchedule(birthDate: Date, today: Date): CoreCareScheduleRec
       earlyWeeks: [2, 4, 6, 8, 10],
     }),
   ];
+  return filterInitialScheduleBySelection('cat', recommendations, selectedVaccineId, today);
 }
 
 function adultDogCatchUp(today: Date): CoreCareScheduleRecommendation[] {
@@ -381,24 +421,191 @@ function adultCatCatchUp(today: Date): CoreCareScheduleRecommendation[] {
   ];
 }
 
+function filterInitialScheduleBySelection(
+  species: CoreCareScheduleSpecies,
+  recommendations: CoreCareScheduleRecommendation[],
+  selectedVaccineId: string | null,
+  today: Date,
+): CoreCareScheduleRecommendation[] {
+  if (!selectedVaccineId) return recommendations;
+
+  const selectedFamilies = selectedInitialVaccineFamilies(species, selectedVaccineId);
+  const filtered = recommendations.filter((recommendation) => {
+    if (recommendation.kind === 'deworming') return true;
+    if (species === 'dog' && recommendation.family === 'dogRabies') return true;
+    if (species === 'cat' && recommendation.family === 'catRabies') return true;
+    return selectedFamilies.has(recommendation.family);
+  });
+
+  return spaceInitialSchedule(species, filtered, selectedFamilies, today);
+}
+
+function spaceInitialSchedule(
+  species: CoreCareScheduleSpecies,
+  recommendations: CoreCareScheduleRecommendation[],
+  selectedFamilies: Set<CoreCareScheduleFamily>,
+  today: Date,
+): CoreCareScheduleRecommendation[] {
+  const firstSelectedVaccine = recommendations
+    .filter((recommendation) => recommendation.kind === 'vaccine' && selectedFamilies.has(recommendation.family))
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+
+  if (!firstSelectedVaccine) return recommendations;
+
+  const firstSelectedDueTime = new Date(`${firstSelectedVaccine.dueDate}T00:00:00`).getTime();
+  const firstSelectedTargetTime = new Date(`${firstSelectedVaccine.targetDate}T00:00:00`).getTime();
+  const todayTime = today.getTime();
+
+  if (firstSelectedDueTime === todayTime && firstSelectedTargetTime < todayTime) {
+    return staggerInitialCatchUpSchedule(species, recommendations, selectedFamilies, firstSelectedVaccine, today);
+  }
+
+  const preVaccineDeworming = buildPreVaccineDeworming(species, today, new Date(`${firstSelectedVaccine.dueDate}T00:00:00`));
+  const preVaccineTime = new Date(`${preVaccineDeworming.dueDate}T00:00:00`).getTime();
+  const firstVaccineTime = new Date(`${firstSelectedVaccine.dueDate}T00:00:00`).getTime();
+  const filteredWithoutConflictingDeworming = recommendations.filter((recommendation) => {
+    if (recommendation.family !== 'dogDeworming' && recommendation.family !== 'catDeworming') return true;
+
+    const dueTime = new Date(`${recommendation.dueDate}T00:00:00`).getTime();
+    return dueTime < preVaccineTime || dueTime > firstVaccineTime;
+  });
+
+  return [preVaccineDeworming, ...filteredWithoutConflictingDeworming];
+}
+
+function staggerInitialCatchUpSchedule(
+  species: CoreCareScheduleSpecies,
+  recommendations: CoreCareScheduleRecommendation[],
+  selectedFamilies: Set<CoreCareScheduleFamily>,
+  firstSelectedVaccine: CoreCareScheduleRecommendation,
+  today: Date,
+): CoreCareScheduleRecommendation[] {
+  const baselineVaccineDate = addDays(today, PRE_VACCINE_DEWORMING_DAYS);
+  const secondSelectedVaccineDate = addDays(baselineVaccineDate, weeks(4));
+  const rabiesFamily: CoreCareScheduleFamily = species === 'dog' ? 'dogRabies' : 'catRabies';
+  const routineDewormingFamily: CoreCareScheduleFamily = species === 'dog' ? 'dogDeworming' : 'catDeworming';
+  const selectedVaccineFamily = firstSelectedVaccine.family;
+  const selectedVaccineHasSecondDose = recommendations.some(
+    (recommendation) => recommendation.family === selectedVaccineFamily && recommendation.kind === 'vaccine' && recommendation.doseNumber > 1,
+  );
+
+  const preVaccineDeworming = {
+    ...buildPreVaccineDeworming(species, today, baselineVaccineDate),
+    isCatchUp: true,
+  };
+
+  const adjustedRecommendations = recommendations.flatMap((recommendation) => {
+    if (recommendation.family === selectedVaccineFamily && recommendation.kind === 'vaccine') {
+      const dueDate = addDays(baselineVaccineDate, weeks(4) * (recommendation.doseNumber - 1));
+      return [
+        {
+          ...recommendation,
+          dueDate: formatCoreCareScheduleDate(dueDate),
+          isCatchUp: true,
+        },
+      ];
+    }
+
+    if (
+      recommendation.family === rabiesFamily &&
+      recommendation.kind === 'vaccine' &&
+      !selectedFamilies.has(rabiesFamily) &&
+      new Date(`${recommendation.dueDate}T00:00:00`).getTime() <= baselineVaccineDate.getTime()
+    ) {
+      return [
+        {
+          ...recommendation,
+          dueDate: formatCoreCareScheduleDate(secondSelectedVaccineDate),
+          isCatchUp: true,
+        },
+      ];
+    }
+
+    if (recommendation.family === routineDewormingFamily) {
+      const dueTime = new Date(`${recommendation.dueDate}T00:00:00`).getTime();
+      if (dueTime >= today.getTime() && dueTime <= secondSelectedVaccineDate.getTime()) return [];
+    }
+
+    return [recommendation];
+  });
+
+  const optimizedRoutineDeworming =
+    selectedVaccineHasSecondDose
+      ? [
+          buildSingleRecommendation({
+            family: routineDewormingFamily,
+            kind: 'deworming',
+            doseNumber: 1,
+            today,
+            targetDate: addDays(secondSelectedVaccineDate, -PRE_VACCINE_DEWORMING_DAYS),
+            sourceLabel: 'TroCCAP / CAPC parasite guidance',
+            sourceUrl: TROCCAP_URL,
+          }),
+        ]
+      : [];
+
+  return [preVaccineDeworming, ...adjustedRecommendations, ...optimizedRoutineDeworming];
+}
+
+function selectedInitialVaccineFamilies(species: CoreCareScheduleSpecies, selectedVaccineId: string): Set<CoreCareScheduleFamily> {
+  if (species === 'dog') {
+    if (selectedVaccineId === 'dog_5in1_dhppl' || selectedVaccineId === 'dog_7in1') {
+      return new Set(['dogDhpp', 'dogLepto']);
+    }
+    if (selectedVaccineId === 'dog_rabies') return new Set(['dogRabies']);
+    return new Set();
+  }
+
+  if (selectedVaccineId === 'cat_3in1_fvrcp' || selectedVaccineId === 'cat_4in1') {
+    return new Set(['catFvrcp']);
+  }
+  if (selectedVaccineId === 'cat_felv') return new Set(['catFelv']);
+  if (selectedVaccineId === 'cat_rabies') return new Set(['catRabies']);
+  return new Set();
+}
+
+function buildPreVaccineDeworming(
+  species: CoreCareScheduleSpecies,
+  today: Date,
+  firstVaccineDate: Date,
+): CoreCareScheduleRecommendation {
+  return buildSingleRecommendation({
+    family: species === 'dog' ? 'dogPreVaccineDeworming' : 'catPreVaccineDeworming',
+    kind: 'deworming',
+    doseNumber: 1,
+    today,
+    targetDate: addDays(firstVaccineDate, -7),
+    sourceLabel: 'Veterinary preventive care practice / parasite guidance',
+    sourceUrl: TROCCAP_URL,
+  });
+}
+
 function buildPrimarySeries(input: SeriesInput): CoreCareScheduleRecommendation[] {
-  const firstDueDate = maxDate(input.today, addDays(input.birthDate, input.startAgeDays));
+  let targetDate = addDays(input.birthDate, input.startAgeDays);
+  let dueDate = maxDate(input.today, targetDate);
   const finalMinDate = addDays(input.birthDate, input.finalMinAgeDays);
   const recommendations: CoreCareScheduleRecommendation[] = [];
-  let dueDate = firstDueDate;
   let doseNumber = 1;
+  const maxPrimaryDoseCount = input.maxPrimaryDoseCount ?? Number.POSITIVE_INFINITY;
+  const hasMaxPrimaryDoseCount = Number.isFinite(maxPrimaryDoseCount);
 
-  recommendations.push(buildDatedRecommendation(input, doseNumber, input.today, dueDate));
-  while (dueDate.getTime() < finalMinDate.getTime()) {
+  recommendations.push(buildDatedRecommendation(input, doseNumber, input.today, targetDate));
+  while (hasMaxPrimaryDoseCount ? doseNumber < maxPrimaryDoseCount : dueDate.getTime() < finalMinDate.getTime()) {
     doseNumber += 1;
-    dueDate = addDays(dueDate, input.intervalDays);
-    recommendations.push(buildDatedRecommendation(input, doseNumber, input.today, dueDate));
+    targetDate = addDays(dueDate, input.intervalDays);
+    dueDate = maxDate(input.today, targetDate);
+    recommendations.push(buildDatedRecommendation(input, doseNumber, input.today, targetDate));
   }
 
   if (input.boosterAgeDays) {
     const boosterDate = addDays(input.birthDate, input.boosterAgeDays);
     const lastDueDate = recommendations[recommendations.length - 1]?.dueDate;
-    if (boosterDate.getTime() >= input.today.getTime() && formatCoreCareScheduleDate(boosterDate) !== lastDueDate) {
+    const minimumBoosterDate = lastDueDate ? addDays(new Date(`${lastDueDate}T00:00:00`), input.intervalDays) : null;
+    if (
+      boosterDate.getTime() >= input.today.getTime() &&
+      formatCoreCareScheduleDate(boosterDate) !== lastDueDate &&
+      (!minimumBoosterDate || boosterDate.getTime() >= minimumBoosterDate.getTime())
+    ) {
       recommendations.push(buildDatedRecommendation(input, doseNumber + 1, input.today, boosterDate));
     }
   }

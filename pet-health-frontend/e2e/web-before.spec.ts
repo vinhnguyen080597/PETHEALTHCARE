@@ -224,6 +224,11 @@ test.describe('Web feature smoke coverage', () => {
       await page.getByTestId('bottom-tab-pet-feed-button').click();
       await verify(page, expect(page.getByTestId('pet-feed-screen')).toBeVisible());
       await verify(page, expect(page.getByText('British Shorthair kitten looking for a caring home')).toBeVisible());
+      await page.getByTestId('pet-feed-search-input').fill('British Shorthair');
+      await verify(page, expect(page.getByText('British Shorthair kitten looking for a caring home')).toBeVisible());
+      await page.getByText('British Shorthair kitten looking for a caring home').click();
+      await verify(page, expect(page.getByText('Listing details')).toBeVisible());
+      await page.getByLabel('Close listing details').click();
       await page.getByTestId('bottom-tab-home-button').click();
       await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
       await page.getByTestId('bottom-tab-account-button').click();

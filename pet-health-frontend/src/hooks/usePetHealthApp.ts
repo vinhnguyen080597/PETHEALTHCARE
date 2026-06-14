@@ -82,6 +82,22 @@ import { postsForBreeder } from '../utils/breederTrust';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
+const PET_FEED_PAGE_SIZE = 12;
+
+function mergePetFeedPosts(current: PetFeedPost[], incoming: PetFeedPost[]) {
+  const byId = new Map(current.map((post) => [post.id, post]));
+  const merged = [...current];
+  incoming.forEach((post) => {
+    const index = merged.findIndex((item) => item.id === post.id);
+    if (index >= 0) {
+      const existing = byId.get(post.id);
+      merged[index] = existing ? { ...existing, ...post } : post;
+      return;
+    }
+    merged.push(post);
+  });
+  return merged;
+}
 
 export function usePetHealthApp() {
   const [screen, setScreen] = useState<AppScreen>('login');
@@ -139,6 +155,11 @@ export function usePetHealthApp() {
   const [coreCareSummary, setCoreCareSummary] = useState<CoreCareSummary | null>(null);
   const [petFeedPosts, setPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [topBreederProfiles, setTopBreederProfiles] = useState<BreederProfile[]>([]);
+  const [petFeedInitialLoading, setPetFeedInitialLoading] = useState(false);
+  const [petFeedInitialError, setPetFeedInitialError] = useState('');
+  const [petFeedLoadingMore, setPetFeedLoadingMore] = useState(false);
+  const [petFeedNextCursor, setPetFeedNextCursor] = useState<string | null>(null);
+  const [petFeedLoadMoreError, setPetFeedLoadMoreError] = useState('');
   const [myPetFeedPosts, setMyPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
@@ -254,20 +275,53 @@ export function usePetHealthApp() {
     }
   }, [token, fetchPets]);
 
+  const loadPetFeedFirstPage = useCallback(async (accessToken: string, options: { showInitialLoading?: boolean } = {}) => {
+    if (options.showInitialLoading) setPetFeedInitialLoading(true);
+    setPetFeedInitialError('');
+    setPetFeedLoadMoreError('');
+    try {
+      const [postsResponse, breedersResponse] = await Promise.all([
+        listPetFeedPosts(accessToken, { limit: PET_FEED_PAGE_SIZE }),
+        listVerifiedBreederProfiles(accessToken),
+      ]);
+      setPetFeedPosts(postsResponse.data);
+      setPetFeedNextCursor(postsResponse.nextCursor ?? null);
+      setTopBreederProfiles(breedersResponse.data);
+      return true;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      setPetFeedInitialError(message);
+      return false;
+    } finally {
+      if (options.showInitialLoading) setPetFeedInitialLoading(false);
+    }
+  }, []);
+
   const refreshPetFeed = useCallback(async () => {
     if (!token) return;
     setRefreshing(true);
     try {
-      const [postsResponse, breedersResponse] = await Promise.all([
-        listPetFeedPosts(token),
-        listVerifiedBreederProfiles(token),
-      ]);
-      setPetFeedPosts(postsResponse.data);
-      setTopBreederProfiles(breedersResponse.data);
+      await loadPetFeedFirstPage(token);
     } finally {
       setRefreshing(false);
     }
-  }, [token]);
+  }, [loadPetFeedFirstPage, token]);
+
+  const loadMorePetFeed = useCallback(async () => {
+    if (!token || petFeedLoadingMore || !petFeedNextCursor) return;
+    setPetFeedLoadingMore(true);
+    setPetFeedLoadMoreError('');
+    try {
+      const response = await listPetFeedPosts(token, { limit: PET_FEED_PAGE_SIZE, cursor: petFeedNextCursor });
+      setPetFeedPosts((current) => mergePetFeedPosts(current, response.data));
+      setPetFeedNextCursor(response.nextCursor ?? null);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      setPetFeedLoadMoreError(message);
+    } finally {
+      setPetFeedLoadingMore(false);
+    }
+  }, [petFeedLoadingMore, petFeedNextCursor, token]);
 
   /** History rows merged for current UI language; English-only archives get one-time Gemini translation via API. */
   const fetchPetHistoryMerged = useCallback(
@@ -692,6 +746,14 @@ export function usePetHealthApp() {
     setScreen('pet-profile');
   }
 
+  function openCoreCareInfo() {
+    setScreen('core-care-info');
+  }
+
+  function closeCoreCareInfo() {
+    setScreen('core-care');
+  }
+
   async function openVetSummary(petId: string = selectedPetId ?? '') {
     if (!token || !petId) {
       Alert.alert(i18n.t('alerts.selectPet.title'), i18n.t('alerts.selectPet.message'));
@@ -733,17 +795,7 @@ export function usePetHealthApp() {
     if (screen === 'pet-feed') return;
     setSelectedBreederProfileId(null);
     setScreen('pet-feed');
-    try {
-      const [postsResponse, breedersResponse] = await Promise.all([
-        listPetFeedPosts(token),
-        listVerifiedBreederProfiles(token),
-      ]);
-      setPetFeedPosts(postsResponse.data);
-      setTopBreederProfiles(breedersResponse.data);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      Alert.alert(i18n.t('petFeed.title'), message);
-    }
+    await loadPetFeedFirstPage(token, { showInitialLoading: petFeedPosts.length === 0 });
   }
 
   function openBreederDetail(profileId: string) {
@@ -1024,6 +1076,10 @@ export function usePetHealthApp() {
       await deletePet(token, petId);
       if (selectedPetId === petId) {
         setSelectedPetId(null);
+        setHistory([]);
+        setCoreCareRecords([]);
+        setCoreCareSummary(null);
+        setScreen('home');
       }
       if (editingPetId === petId) {
         clearPetForm();
@@ -1601,6 +1657,8 @@ export function usePetHealthApp() {
     refreshPetProfile,
     openCoreCare,
     closeCoreCare,
+    openCoreCareInfo,
+    closeCoreCareInfo,
     openVetSummary,
     closeVetSummary,
     coreCareRecords,
@@ -1616,8 +1674,14 @@ export function usePetHealthApp() {
     openAccount,
     requestDeleteAccount,
     refreshPetFeed,
+    loadMorePetFeed,
     petFeedPosts,
     topBreederProfiles,
+    petFeedInitialLoading,
+    petFeedInitialError,
+    petFeedLoadingMore,
+    petFeedHasMore: Boolean(petFeedNextCursor),
+    petFeedLoadMoreError,
     selectedBreederProfile,
     selectedBreederPosts,
     openBreederDetail,
