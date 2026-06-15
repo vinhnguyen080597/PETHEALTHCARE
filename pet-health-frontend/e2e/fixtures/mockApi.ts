@@ -271,11 +271,37 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
               location: 'Ho Chi Minh City',
               avatar_url: null,
               contact: { facebook: 'https://facebook.com/example' },
+              primary_species: ['cat'],
+              main_breeds: ['British Shorthair'],
+              care_environment: 'Raised indoors with daily handling and routine vet care.',
               verification_status: 'verified',
               metadata: {},
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ],
+      });
+    }
+
+    if (method === 'GET' && path === '/pet-feed/breeders') {
+      return json(route, {
+        data: [
+          {
+            id: 'breeder-1',
+            user_id: 'breeder-user-1',
+            display_name: 'Mai Cattery',
+            bio: 'Small home breeder focused on transparent care records.',
+            location: 'Ho Chi Minh City',
+            avatar_url: null,
+            contact: { facebook: 'https://facebook.com/example' },
+            primary_species: ['cat'],
+            main_breeds: ['British Shorthair'],
+            care_environment: 'Raised indoors with daily handling and routine vet care.',
+            verification_status: 'verified',
+            metadata: {},
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -301,7 +327,7 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
         breed: payload.breed ? String(payload.breed) : null,
         age: Number.isFinite(Number(payload.age)) ? Number(payload.age) : null,
         gender: payload.gender ? String(payload.gender) : 'male',
-        avatar_url: null,
+        avatar_url: payload.avatarUrl ? String(payload.avatarUrl) : null,
         created_at: new Date().toISOString(),
       };
       state.pets.unshift(pet);
@@ -340,7 +366,12 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     }
 
     if (method === 'POST' && path === '/pets/upload-avatar') {
-      return json(route, { data: { avatarUrl: 'https://example.test/avatar.jpg' } });
+      return json(route, {
+        data: {
+          avatarUrl: 'https://example.test/avatar.jpg',
+          avatarStorageUrl: 'storage://e2e/avatar.jpg',
+        },
+      });
     }
 
     if (method === 'GET' && path.startsWith('/analysis/progress/')) {

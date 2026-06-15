@@ -515,7 +515,7 @@ export function usePetHealthApp() {
     }
   }
 
-  async function showServicesPromptForNewPet(petId: string) {
+  async function openCareServices(petId: string) {
     setSelectedPetId(petId);
     try {
       await preloadServicesOnboardingImages();
@@ -523,6 +523,10 @@ export function usePetHealthApp() {
       /* show screen even if preload fails */
     }
     setScreen('onboarding-health-prompt');
+  }
+
+  async function showServicesPromptForNewPet(petId: string) {
+    await openCareServices(petId);
   }
 
   async function handleAddPet() {
@@ -1653,6 +1657,7 @@ export function usePetHealthApp() {
     openHistoryDetail,
     dismissResults,
     openPetProfile,
+    openCareServices,
     closePetProfile,
     refreshPetProfile,
     openCoreCare,

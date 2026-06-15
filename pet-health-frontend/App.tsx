@@ -1,8 +1,16 @@
 import './global.css';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from '@expo-google-fonts/inter';
 import { Component, type ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from './src/components/AppHeader';
 import { BottomTabBar } from './src/components/BottomTabBar';
@@ -31,6 +39,29 @@ import { PetProfileScreen } from './src/screens/PetProfileScreen';
 import { PetFeedScreen } from './src/screens/PetFeedScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { VetSummaryScreen } from './src/screens/VetSummaryScreen';
+
+const DEFAULT_TEXT_STYLE = { fontFamily: 'Inter_400Regular', fontWeight: '400' as const };
+let defaultTypographyApplied = false;
+
+function mergeDefaultStyle(existing: unknown) {
+  if (!existing) return DEFAULT_TEXT_STYLE;
+  return Array.isArray(existing) ? [DEFAULT_TEXT_STYLE, ...existing] : [DEFAULT_TEXT_STYLE, existing];
+}
+
+function applyDefaultTypography() {
+  if (defaultTypographyApplied) return;
+  const textComponent = Text as unknown as { defaultProps?: { style?: unknown } };
+  const inputComponent = TextInput as unknown as { defaultProps?: { style?: unknown } };
+  textComponent.defaultProps = {
+    ...(textComponent.defaultProps ?? {}),
+    style: mergeDefaultStyle(textComponent.defaultProps?.style),
+  };
+  inputComponent.defaultProps = {
+    ...(inputComponent.defaultProps ?? {}),
+    style: mergeDefaultStyle(inputComponent.defaultProps?.style),
+  };
+  defaultTypographyApplied = true;
+}
 
 type StartupErrorBoundaryProps = {
   children: ReactNode;
@@ -78,9 +109,19 @@ export default function App() {
 }
 
 function AppContent() {
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+  });
   const { t } = useTranslation();
   const app = usePetHealthApp();
   const isAdmin = app.accountProfile?.primary_role === 'admin';
+
+  if (!fontsLoaded && !fontError) return null;
+  if (fontsLoaded) applyDefaultTypography();
 
   const showBottomTab = app.screen === 'pet-feed' || app.screen === 'home' || app.screen === 'account';
   const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;
@@ -145,9 +186,8 @@ function AppContent() {
                 refreshing={app.refreshing}
                 onRefresh={app.refreshPets}
                 onAddPet={app.openCreatePet}
-                onStartScan={app.goToCameraForPet}
                 onViewProfile={app.openPetProfile}
-                onOpenCoreCare={app.openCoreCare}
+                onOpenCareServices={app.openCareServices}
               />
             )}
 

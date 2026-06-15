@@ -828,10 +828,7 @@ export function CoreCareScreen({
       <Modal visible={showIntroGuide} transparent animationType="fade" onRequestClose={dismissIntroGuide}>
         <View className="flex-1 justify-center bg-black/40 px-6">
           <View className="rounded-3xl bg-white p-5">
-            <View className="mb-4 self-start rounded-full bg-blue-50 p-2">
-              <Ionicons name="sparkles-outline" size={20} color={PRIMARY} />
-            </View>
-            <Text className="text-lg font-bold text-slate-900">{t('coreCare.introGuideTitle')}</Text>
+            <Text className="mb-4 text-center text-lg font-bold text-slate-900">{t('coreCare.introGuideTitle')}</Text>
             <Text className="mt-3 text-sm leading-6 text-slate-600">{t('coreCareInfo.heroBody')}</Text>
             <Pressable
               testID="core-care-intro-info-link"

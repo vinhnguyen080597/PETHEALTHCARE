@@ -74,6 +74,7 @@
     "scanHealth": "Health Check",
     "viewProfile": "View Profile",
     "openCoreCare": "Vaccines & Reminders",
+    "openCareServices": "Care services",
     "petFallback": "Pet",
     "yearOld": "{{count}} month old",
     "yearsOld": "{{count}} months old",

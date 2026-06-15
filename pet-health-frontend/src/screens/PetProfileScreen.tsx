@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
-import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
 import { analysisPossibleFinding, analysisSeverity } from '../utils/analysisDisplay';
 import { buildCarePassportStats, metadataNumber } from '../utils/carePassport';
 import type { Analysis, CoreCareRecord, CoreCareSummary, Pet, Severity } from '../types';
@@ -61,56 +60,12 @@ function ProfileChip({
   value: string;
 }) {
   return (
-    <View className="flex-row items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
-      <Ionicons name={icon} size={13} color="#dbeafe" />
-      <Text className="text-xs font-semibold text-blue-50">
+    <View className="flex-row items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5">
+      <Ionicons name={icon} size={13} color={PRIMARY_BLUE} />
+      <Text className="text-xs font-semibold text-slate-700">
         {label}: {value}
       </Text>
     </View>
-  );
-}
-
-function QuickActionCard({
-  icon,
-  title,
-  subtitle,
-  tone = 'default',
-  testID,
-  accessibilityLabel,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
-  tone?: 'primary' | 'default' | 'green' | 'purple';
-  testID: string;
-  accessibilityLabel: string;
-  onPress: () => void;
-}) {
-  const isPrimary = tone === 'primary';
-  const accent = tone === 'green' ? '#047857' : tone === 'purple' ? '#7c3aed' : PRIMARY_BLUE;
-  return (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      className={`w-[47%] flex-grow rounded-2xl border p-3 active:opacity-90 ${
-        isPrimary ? 'border-blue-600 bg-blue-600' : 'border-gray-200 bg-white active:bg-slate-50'
-      }`}
-      onPress={onPress}
-    >
-      <View
-        className={`h-9 w-9 items-center justify-center rounded-full ${isPrimary ? 'bg-white/20' : 'bg-slate-50'}`}
-      >
-        <Ionicons name={icon} size={18} color={isPrimary ? '#ffffff' : accent} />
-      </View>
-      <Text className={`mt-3 text-sm font-bold ${isPrimary ? 'text-white' : 'text-slate-900'}`} numberOfLines={1}>
-        {title}
-      </Text>
-      <Text className={`mt-1 text-xs leading-4 ${isPrimary ? 'text-blue-100' : 'text-slate-500'}`} numberOfLines={2}>
-        {subtitle}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -152,9 +107,6 @@ export function PetProfileScreen({
   onDelete,
   onScanHealth,
   onSelectEntry,
-  onOpenBreedRecognition,
-  onOpenCoreCare,
-  onOpenVetSummary,
   coreCareSummary,
   coreCareRecords = [],
 }: PetProfileScreenProps) {
@@ -221,90 +173,29 @@ export function PetProfileScreen({
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY_BLUE} />
         }
       >
-        <View className="overflow-hidden rounded-3xl shadow-sm" style={{ backgroundColor: HERO_BLUE }}>
+        <View className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+          <View className="h-64" style={{ backgroundColor: HERO_BLUE }}>
+            {pet.avatar_url ? (
+              <Image source={{ uri: pet.avatar_url }} className="h-full w-full" resizeMode="cover" />
+            ) : (
+              <View className="h-full w-full items-center justify-center bg-blue-600">
+                <Ionicons name="paw" size={56} color="#ffffff" />
+              </View>
+            )}
+          </View>
           <View className="p-5">
-            <View className="flex-row items-start gap-4">
-              <View className="h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-3xl border-2 border-white/30 bg-white/15">
-                {pet.avatar_url ? (
-                  <Image source={{ uri: pet.avatar_url }} className="h-full w-full" resizeMode="cover" />
-                ) : (
-                  <Ionicons name="paw" size={34} color="#ffffff" />
-                )}
-              </View>
-              <View className="min-w-0 flex-1">
-                <View className="flex-row items-center gap-2">
-                  <Text className="min-w-0 flex-1 text-2xl font-extrabold text-white" numberOfLines={1}>
-                    {pet.name}
-                  </Text>
-                  {passport.overdueReminders.length > 0 ? (
-                    <Text className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
-                      {t('profile.overdueCare', { count: passport.overdueReminders.length })}
-                    </Text>
-                  ) : (
-                    <Text className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                      {t('profile.onTrack')}
-                    </Text>
-                  )}
-                </View>
-                <Text className="mt-1 text-sm font-medium text-blue-100" numberOfLines={1}>
-                  {breed || speciesLabel}
-                </Text>
-              </View>
-            </View>
-
+            <Text className="text-3xl font-extrabold text-slate-950" numberOfLines={1}>
+              {pet.name}
+            </Text>
+            <Text className="mt-1 text-sm font-medium text-slate-500" numberOfLines={1}>
+              {breed || speciesLabel}
+            </Text>
             <View className="mt-4 flex-row flex-wrap gap-2">
               <ProfileChip icon="paw-outline" label={t('profile.species')} value={speciesLabel} />
               {breed ? <ProfileChip icon="ribbon-outline" label={t('profile.breed')} value={breed} /> : null}
               <ProfileChip icon="calendar-outline" label={t('profile.age')} value={ageLabel} />
               <ProfileChip icon="male-female-outline" label={t('profile.gender')} value={genderLabel} />
             </View>
-          </View>
-        </View>
-
-        <View className="mt-5">
-          <SectionHeader title={t('profile.quickActions')} hint={t('profile.quickActionsHint')} />
-          <View className="flex-row flex-wrap gap-3">
-            <QuickActionCard
-              testID="pet-profile-scan-health-button"
-              icon="camera"
-              title={t('profile.scanHealth')}
-              subtitle={t('profile.scanHealthHint')}
-              tone="primary"
-              accessibilityLabel={t('profile.scanHealthA11y', { name: pet.name })}
-              onPress={onScanHealth}
-            />
-            {onOpenCoreCare ? (
-              <QuickActionCard
-                testID="pet-profile-core-care-button"
-                icon="calendar-outline"
-                title={t('profile.openCoreCare')}
-                subtitle={t('profile.openCoreCareHint')}
-                accessibilityLabel={t('profile.openCoreCareA11y', { name: pet.name })}
-                onPress={onOpenCoreCare}
-              />
-            ) : null}
-            {isBreedRecognitionSpecies(pet.species) && onOpenBreedRecognition ? (
-              <QuickActionCard
-                testID="pet-profile-breed-recognition-button"
-                icon="sparkles-outline"
-                title={t('breedRecognition.profileLink')}
-                subtitle={t('profile.breedRecognitionHint')}
-                tone="purple"
-                accessibilityLabel={t('profile.openBreedRecognitionA11y', { name: pet.name })}
-                onPress={onOpenBreedRecognition}
-              />
-            ) : null}
-            {onOpenVetSummary ? (
-              <QuickActionCard
-                testID="pet-profile-vet-summary-button"
-                icon="share-outline"
-                title={t('profile.openVetSummary')}
-                subtitle={t('profile.openVetSummaryHint')}
-                tone="green"
-                accessibilityLabel={t('profile.openVetSummaryA11y', { name: pet.name })}
-                onPress={onOpenVetSummary}
-              />
-            ) : null}
           </View>
         </View>
 
@@ -360,7 +251,23 @@ export function PetProfileScreen({
         </View>
 
         <View className="mt-6">
-          <SectionHeader title={t('profile.healthSection')} hint={t('profile.healthHint', { name: pet.name })} />
+          <View className="mb-3">
+            <View className="flex-row items-center justify-between gap-3">
+              <Text className="min-w-0 flex-1 text-base font-extrabold text-slate-900">
+                {t('profile.healthSection')}
+              </Text>
+              {passport.overdueReminders.length > 0 ? (
+                <Text className="shrink-0 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+                  {t('profile.overdueCare', { count: passport.overdueReminders.length })}
+                </Text>
+              ) : (
+                <Text className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                  {t('profile.onTrack')}
+                </Text>
+              )}
+            </View>
+            <Text className="mt-1 text-sm leading-5 text-slate-500">{t('profile.healthHint', { name: pet.name })}</Text>
+          </View>
 
           {history.length === 0 ? (
             <View className="items-center rounded-3xl border border-gray-200 bg-white px-5 py-9">

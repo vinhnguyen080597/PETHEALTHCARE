@@ -109,6 +109,7 @@ test.describe('Web feature smoke coverage', () => {
       await verify(page, expect(page.getByTestId('home-add-first-pet-button')).toBeVisible());
       await page.getByTestId('home-add-first-pet-button').click();
       await verify(page, expect(page.getByTestId('add-pet-name-input')).toBeVisible());
+      await chooseImage(page, 'add-pet-avatar-button');
       await page.getByTestId('add-pet-name-input').fill('Luna');
       await page.getByTestId('add-pet-species-select').click();
       await page.getByTestId('add-pet-species-select-option-cat').click();
@@ -122,25 +123,15 @@ test.describe('Web feature smoke coverage', () => {
       await verify(page, expect(page.getByText('Luna')).toBeVisible());
     });
 
-    await test.step('add core care records and claim ad credit', async () => {
+    await test.step('add a core care vaccine record', async () => {
       await page.getByTestId('home-core-care-button-pet-1').click();
       await verify(page, expect(page.getByTestId('core-care-screen')).toBeVisible());
-      await verify(page, expect(page.getByText('4 AI credits available.')).toBeVisible());
+      await page.getByTestId('core-care-intro-dismiss-button').click();
 
-      await page.getByTestId('core-care-title-input').fill('Ate breakfast');
-      await page.getByTestId('core-care-note-input').fill('Finished the full bowl and drank water.');
-      await page.getByTestId('core-care-save-record-button').click();
-      await verify(page, expect(page.getByText('Ate breakfast')).toBeVisible());
-
-      await page.getByTestId('core-care-type-reminder-button').click();
-      await page.getByTestId('core-care-title-input').fill('Flea medicine');
-      await page.getByTestId('core-care-note-input').fill('Monthly prevention dose.');
-      await page.getByTestId('core-care-due-date-input').fill('2026-06-01T09:00:00Z');
-      await page.getByTestId('core-care-save-record-button').click();
-      await verify(page, expect(page.getByTestId('core-care-record-record-2').getByText('Flea medicine')).toBeVisible());
-
-      await page.getByTestId('core-care-claim-ad-credit-button').click();
-      await verify(page, expect(page.getByText('5 AI credits available.')).toBeVisible());
+      await page.getByTestId('core-care-vaccine-title-input').fill('Flea medicine');
+      await page.getByTestId('core-care-vaccine-note-input').fill('Monthly prevention dose.');
+      await page.getByTestId('core-care-save-vaccine-button').click();
+      await verify(page, expect(page.getByText('Flea medicine').first()).toBeVisible());
       await page.getByTestId('core-care-back-button').click();
       await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
     });
@@ -194,7 +185,7 @@ test.describe('Web feature smoke coverage', () => {
         expect(page.getByTestId('analysis-progress-screen').or(page.getByTestId('results-screen')).first()).toBeVisible(),
       );
       await verify(page, expect(page.getByTestId('results-screen')).toBeVisible());
-      await verify(page, expect(page.getByText('Healthy pet baseline')).toBeVisible());
+      await verify(page, expect(page.getByText('Routine wellness baseline')).toBeVisible());
       await page.getByTestId('results-back-button').click();
       await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
 
@@ -212,7 +203,7 @@ test.describe('Web feature smoke coverage', () => {
         ).toBeVisible(),
       );
       await verify(page, expect(page.getByTestId('breed-recognition-result-screen')).toBeVisible());
-      await verify(page, expect(page.getByText('British Shorthair mix')).toBeVisible());
+      await verify(page, expect(page.getByText('British Shorthair mix', { exact: true })).toBeVisible());
       await page.getByTestId('breed-recognition-apply-profile-button').click();
       await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
       await verify(page, expect(page.getByTestId('pet-profile-screen').getByText('British Shorthair mix').first()).toBeVisible());

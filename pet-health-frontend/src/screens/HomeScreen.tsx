@@ -10,9 +10,8 @@ type HomeScreenProps = {
   refreshing: boolean;
   onRefresh: () => void;
   onAddPet: () => void;
-  onStartScan: (petId: string) => void;
   onViewProfile: (petId: string) => void;
-  onOpenCoreCare?: (petId: string) => void;
+  onOpenCareServices: (petId: string) => void;
 };
 
 function formatPetSubtitle(pet: Pet, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -36,9 +35,8 @@ export function HomeScreen({
   refreshing,
   onRefresh,
   onAddPet,
-  onStartScan,
   onViewProfile,
-  onOpenCoreCare,
+  onOpenCareServices,
 }: HomeScreenProps) {
   const { t } = useTranslation();
   return (
@@ -90,63 +88,49 @@ export function HomeScreen({
             <View
               testID={`home-pet-card-${pet.id}`}
               key={pet.id}
-              className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm"
             >
-              <View className="flex-row items-center gap-4">
+              <View className="flex-row items-center gap-3.5">
                 <View
-                  className="h-[72px] w-[72px] flex-shrink-0 items-center justify-center overflow-hidden rounded-full"
+                  className="h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full"
                   style={{ backgroundColor: PRIMARY_BLUE }}
                 >
                   {pet.avatar_url ? (
                     <Image source={{ uri: pet.avatar_url }} className="h-full w-full" resizeMode="cover" />
                   ) : (
-                    <Ionicons name="person" size={36} color="#ffffff" />
+                    <Ionicons name="person" size={32} color="#ffffff" />
                   )}
                 </View>
                 <View className="min-w-0 flex-1">
-                  <Text className="text-lg font-bold text-slate-900">{pet.name}</Text>
-                  <Text className="mt-0.5 text-sm text-slate-500" numberOfLines={2}>
+                  <Text className="text-[17px] font-bold text-slate-900">{pet.name}</Text>
+                  <Text className="mt-0.5 text-[13px] text-slate-500" numberOfLines={2}>
                     {formatPetSubtitle(pet, t)}
                   </Text>
                 </View>
               </View>
 
-              <View className="mt-4 flex-row flex-wrap gap-3">
-                <Pressable
-                  testID={`home-scan-health-button-${pet.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Start health check for ${pet.name}`}
-                  className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
-                  style={{ backgroundColor: PRIMARY_BLUE }}
-                  onPress={() => onStartScan(pet.id)}
-                >
-                  <Ionicons name="camera" size={18} color="#ffffff" />
-                  <Text className="text-sm font-semibold text-white">{t('home.scanHealth')}</Text>
-                </Pressable>
+              <View className="mt-3.5 flex-row gap-2.5">
                 <Pressable
                   testID={`home-view-profile-button-${pet.id}`}
                   accessibilityRole="button"
                   accessibilityLabel={`View profile for ${pet.name}`}
-                  className="min-w-[150px] flex-1 items-center justify-center rounded-xl border border-gray-300 bg-white py-3.5 active:bg-slate-50"
+                  className="min-w-0 flex-1 items-center justify-center rounded-xl border border-gray-300 bg-white py-3 active:bg-slate-50"
                   onPress={() => onViewProfile(pet.id)}
                 >
-                  <Text className="text-sm font-semibold text-slate-800">{t('home.viewProfile')}</Text>
+                  <Text className="text-[13px] font-semibold text-slate-800">{t('home.viewProfile')}</Text>
+                </Pressable>
+                <Pressable
+                  testID={`home-care-services-button-${pet.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open care services for ${pet.name}`}
+                  className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl py-3 active:opacity-90"
+                  style={{ backgroundColor: PRIMARY_BLUE }}
+                  onPress={() => onOpenCareServices(pet.id)}
+                >
+                  <Ionicons name="sparkles-outline" size={16} color="#ffffff" />
+                  <Text className="text-[13px] font-semibold text-white" numberOfLines={1}>{t('home.openCareServices')}</Text>
                 </Pressable>
               </View>
-              {onOpenCoreCare ? (
-                <Pressable
-                  testID={`home-core-care-button-${pet.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open care records for ${pet.name}`}
-                  className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
-                  onPress={() => onOpenCoreCare(pet.id)}
-                >
-                  <Ionicons name="calendar-outline" size={18} color={PRIMARY_BLUE} />
-                  <Text className="text-sm font-semibold" style={{ color: PRIMARY_BLUE }}>
-                    {t('home.openCoreCare')}
-                  </Text>
-                </Pressable>
-              ) : null}
             </View>
           ))}
         </View>
