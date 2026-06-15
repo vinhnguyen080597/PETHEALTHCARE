@@ -101,6 +101,7 @@ function ServiceCard({
       <Text className="mt-3 text-center text-base font-bold text-slate-900">{t(item.titleKey)}</Text>
       <Text className="mt-2 min-h-[52px] text-center text-sm leading-5 text-slate-600">{t(item.descriptionKey)}</Text>
       <Pressable
+        testID={`onboarding-service-${item.id}-button`}
         className="mt-4 rounded-xl py-3 active:opacity-90"
         style={{ backgroundColor: TEAL }}
         onPress={onPress}

@@ -124,7 +124,9 @@ test.describe('Web feature smoke coverage', () => {
     });
 
     await test.step('add a core care vaccine record', async () => {
-      await page.getByTestId('home-core-care-button-pet-1').click();
+      await page.getByTestId('home-care-services-button-pet-1').click();
+      await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
+      await page.getByTestId('onboarding-service-vaccine-button').click();
       await verify(page, expect(page.getByTestId('core-care-screen')).toBeVisible());
       await page.getByTestId('core-care-intro-dismiss-button').click();
 
@@ -159,7 +161,11 @@ test.describe('Web feature smoke coverage', () => {
     });
 
     await test.step('fill health check and verify breed navigation', async () => {
-      await page.getByTestId('pet-profile-scan-health-button').click();
+      await page.getByTestId('pet-profile-back-button').click();
+      await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
+      await page.getByTestId('home-care-services-button-pet-1').click();
+      await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
+      await page.getByTestId('onboarding-service-health-button').click();
       await verify(page, expect(page.getByTestId('health-check-screen')).toBeVisible());
       await page.getByTestId('health-check-weight-input').fill('4.2');
       await page.getByTestId('health-check-vaccinated-yes').click();
@@ -187,9 +193,10 @@ test.describe('Web feature smoke coverage', () => {
       await verify(page, expect(page.getByTestId('results-screen')).toBeVisible());
       await verify(page, expect(page.getByText('Routine wellness baseline')).toBeVisible());
       await page.getByTestId('results-back-button').click();
-      await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
-
-      await page.getByTestId('pet-profile-breed-recognition-button').click();
+      await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
+      await page.getByTestId('home-care-services-button-pet-1').click();
+      await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
+      await page.getByTestId('onboarding-service-breed-button').click();
       await verify(page, expect(page.getByTestId('breed-recognition-screen')).toBeVisible());
       await chooseImage(page, 'breed-recognition-pick-photo-face');
       await chooseImage(page, 'breed-recognition-pick-photo-fullBodySide');
@@ -205,6 +212,10 @@ test.describe('Web feature smoke coverage', () => {
       await verify(page, expect(page.getByTestId('breed-recognition-result-screen')).toBeVisible());
       await verify(page, expect(page.getByText('British Shorthair mix', { exact: true })).toBeVisible());
       await page.getByTestId('breed-recognition-apply-profile-button').click();
+      await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
+      await page.getByTestId('onboarding-health-prompt-skip-button').click();
+      await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
+      await page.getByTestId('home-view-profile-button-pet-1').click();
       await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
       await verify(page, expect(page.getByTestId('pet-profile-screen').getByText('British Shorthair mix').first()).toBeVisible());
     });
