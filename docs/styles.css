@@ -140,6 +140,31 @@ li {
   padding: 16px;
 }
 
+.contact-card {
+  background: #eaf2ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  margin-top: 20px;
+  padding: 18px 20px;
+}
+
+.contact-card h2 {
+  color: var(--ink);
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+.contact-card p {
+  margin: 0;
+}
+
+.contact-email {
+  color: var(--primary-dark);
+  font-size: 18px;
+  font-weight: 800;
+  word-break: break-word;
+}
+
 .footer {
   color: #64748b;
   font-size: 14px;

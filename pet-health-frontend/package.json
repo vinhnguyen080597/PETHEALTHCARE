@@ -13,7 +13,14 @@
     "test:e2e:headed": "playwright test --project=chromium --headed --workers=1",
     "test:e2e:slow": "cross-env E2E_SLOW_MO_MS=1000 E2E_EXPECT_DELAY_MS=1000 E2E_API_DELAY_MS=3000 playwright test --project=chromium --headed --workers=1",
     "test:e2e:debug": "cross-env E2E_SLOW_MO_MS=1000 E2E_EXPECT_DELAY_MS=1000 E2E_API_DELAY_MS=3000 playwright test --project=chromium --debug",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "typecheck": "tsc --noEmit",
+    "release:verify:public-links": "node scripts/verify-public-links.mjs",
+    "release:verify:backend": "node scripts/verify-production-backend.mjs",
+    "release:smoke:native": "node scripts/release-native-smoke.mjs",
+    "release:check": "yarn typecheck && yarn test && npx expo-doctor && yarn release:verify:public-links && yarn release:verify:backend",
+    "build:ios:production": "eas build --platform ios --profile production",
+    "build:android:production": "eas build --platform android --profile production"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
