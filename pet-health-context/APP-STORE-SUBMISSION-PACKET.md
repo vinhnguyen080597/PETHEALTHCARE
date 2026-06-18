@@ -1,8 +1,10 @@
 # App Store / TestFlight Packet
 
-Last updated: 2026-06-10
+Last updated: 2026-06-17
 
-Current scope: v1 internal TestFlight testing only. Do not submit for public App Review until the TestFlight QA runsheet passes and the backend is confirmed non-sleeping.
+**v1.0.0 (build 18) submitted for App Review on Jun 17, 2026 — Waiting for Review.**
+
+Actual Connect selections: [APP-STORE-CONNECT-SUBMISSION-RECORD.md](./APP-STORE-CONNECT-SUBMISSION-RECORD.md)
 
 ## App Identity
 

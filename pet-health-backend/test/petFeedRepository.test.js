@@ -6,7 +6,7 @@ delete process.env.SUPABASE_ANON_KEY;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const {
-  createPetFeedPost,
+  createAnnouncementPost,
   listPublishedPetFeedPostPage,
 } = await import('../src/repositories/petFeedRepository.js');
 
@@ -15,19 +15,18 @@ test('listPublishedPetFeedPostPage returns cursor pages without duplicates', asy
   const created = [];
 
   for (let i = 0; i < 4; i += 1) {
-    created.push(await createPetFeedPost(userId, {
-      id: `pagination-post-${Date.now()}-${i}`,
-      title: `Pagination listing ${i}`,
-      species: 'cat',
-      status: 'published',
-    }, null, { isAdmin: true }));
+    created.push(await createAnnouncementPost(userId, {
+      title: `Announcement ${i}`,
+      description: `Body ${i}`,
+      category: 'general',
+    }, null));
   }
 
-  const firstPage = await listPublishedPetFeedPostPage(userId, null, { limit: 2 });
+  const firstPage = await listPublishedPetFeedPostPage(userId, null, { limit: 2, kind: 'announcement' });
   assert.equal(firstPage.data.length, 2);
   assert.equal(typeof firstPage.nextCursor, 'string');
 
-  const secondPage = await listPublishedPetFeedPostPage(userId, null, { limit: 2, cursor: firstPage.nextCursor });
+  const secondPage = await listPublishedPetFeedPostPage(userId, null, { limit: 2, cursor: firstPage.nextCursor, kind: 'announcement' });
   assert.equal(secondPage.data.length, 2);
 
   const seenIds = new Set([...firstPage.data, ...secondPage.data].map((post) => post.id));

@@ -17,8 +17,12 @@ import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { ResponsiveFrame } from './src/components/ResponsiveFrame';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
-import { AccountScreen } from './src/screens/AccountScreen';
 import { AdminReviewScreen } from './src/screens/AdminReviewScreen';
+import { ManagedUserBanner } from './src/components/ManagedUserBanner';
+import { AdminHubScreen } from './src/screens/AdminHubScreen';
+import { AdminUserDetailScreen } from './src/screens/AdminUserDetailScreen';
+import { CreateAdminPostScreen } from './src/screens/CreateAdminPostScreen';
+import { AccountScreen } from './src/screens/AccountScreen';
 import { AddPetScreen } from './src/screens/AddPetScreen';
 import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
 import { BreederProfileScreen } from './src/screens/BreederProfileScreen';
@@ -146,8 +150,8 @@ function AppContent() {
       inactiveBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'rejected' || profile.verification_status === 'suspended').length}
       onOpenBreederProfile={app.openBreederProfile}
       onOpenPetFeed={app.openPetFeed}
-      onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
-      onOpenAdminReview={app.openAdminReview}
+      onOpenCreatePetFeedPost={app.openCreateAdminPost}
+      onOpenAdminHub={app.openAdminHub}
       onUpdateBreederStatus={app.updateAdminBreederStatus}
       onUpdatePostStatus={app.updateAdminPostStatus}
       onUpdateReportStatus={app.updateAdminReportStatus}
@@ -178,9 +182,11 @@ function AppContent() {
           <ResponsiveFrame>
             {showBottomTab ? <AppHeader /> : null}
 
-            {app.screen === 'home' && isAdmin ? accountDashboard : null}
+            {app.managedUser ? <ManagedUserBanner managedUser={app.managedUser} onExit={app.exitManagedUser} /> : null}
 
-            {app.screen === 'home' && !isAdmin && (
+            {app.screen === 'home' && isAdmin && !app.managedUser ? accountDashboard : null}
+
+            {app.screen === 'home' && (!isAdmin || app.managedUser) && (
               <HomeScreen
                 pets={app.pets}
                 refreshing={app.refreshing}
@@ -194,15 +200,22 @@ function AppContent() {
             {app.screen === 'pet-feed' && (
               <PetFeedScreen
                 posts={app.petFeedPosts}
+                announcementPosts={app.announcementPosts}
                 breederProfiles={app.topBreederProfiles}
                 initialLoading={app.petFeedInitialLoading}
                 initialError={app.petFeedInitialError}
+                announcementInitialLoading={app.announcementInitialLoading}
+                announcementInitialError={app.announcementInitialError}
                 refreshing={app.refreshing}
                 loadingMore={app.petFeedLoadingMore}
+                announcementLoadingMore={app.announcementLoadingMore}
                 hasMore={app.petFeedHasMore}
+                announcementHasMore={app.announcementHasMore}
                 loadMoreError={app.petFeedLoadMoreError}
+                announcementLoadMoreError={app.announcementLoadMoreError}
                 onRefresh={app.refreshPetFeed}
                 onLoadMore={app.loadMorePetFeed}
+                onLoadMoreAnnouncements={app.loadMoreAnnouncements}
                 onToggleFavorite={app.togglePetFeedFavorite}
                 onReportPost={app.submitPetFeedReport}
                 onHideBreeder={app.hideBreederProfile}
@@ -239,6 +252,43 @@ function AppContent() {
                 onSubmit={app.submitPetFeedPost}
               />
             )}
+
+            {app.screen === 'create-admin-post' && (
+              <CreateAdminPostScreen
+                onBack={app.closeCreateAdminPost}
+                onSubmit={app.submitAnnouncementPost}
+              />
+            )}
+
+            {app.screen === 'admin-hub' && (
+              <AdminHubScreen
+                accounts={app.adminAccounts}
+                breederProfiles={app.adminBreederProfiles}
+                posts={app.adminFeedPosts}
+                reports={app.adminFeedReports}
+                loading={app.loading}
+                onBack={app.closeAdminHub}
+                onRefresh={app.loadAdminReview}
+                onCreateAccount={app.createAdminManagedAccount}
+                onOpenUser={app.openAdminUserDetail}
+                onUpdateBreederStatus={app.updateAdminBreederStatus}
+                onUpdatePostStatus={app.updateAdminPostStatus}
+                onUpdateReportStatus={app.updateAdminReportStatus}
+              />
+            )}
+
+            {app.screen === 'admin-user-detail' && app.adminSelectedAccount ? (
+              <AdminUserDetailScreen
+                account={app.adminSelectedAccount}
+                pets={app.adminUserPets}
+                loading={app.adminUserPetsLoading}
+                onBack={app.closeAdminUserDetail}
+                onRefresh={() => app.loadAdminUserPets(app.adminSelectedAccount!.user_id)}
+                onUpdateRole={(role) => app.updateAdminManagedAccount(app.adminSelectedAccount!.user_id, { primaryRole: role })}
+                onAddPet={app.openAdminAddPetForUser}
+                onActAsUser={() => app.enterManagedUser(app.adminSelectedAccount!)}
+              />
+            ) : null}
 
             {app.screen === 'admin-review' && (
               <AdminReviewScreen
@@ -292,6 +342,10 @@ function AppContent() {
                 onPickAvatar={app.pickPetAvatar}
                 onSubmit={app.petFormMode === 'edit' ? app.handleUpdatePet : app.handleAddPet}
                 onCancel={app.cancelPetForm}
+                headerTitle={app.adminAddPetForUserId && app.adminSelectedAccount
+                  ? t('adminHub.addPetFor', { name: app.adminSelectedAccount.display_name || app.adminSelectedAccount.login_identifier })
+                  : undefined}
+                helperMessage={app.adminAddPetForUserId ? t('adminHub.addPetHelper') : undefined}
                 onDeletePet={
                   app.petFormMode === 'edit' && app.editingPetId
                     ? () => {

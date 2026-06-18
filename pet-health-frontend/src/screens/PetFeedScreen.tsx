@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
+import { AdminPostCard } from '../components/AdminPostCard';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, metadataString } from '../utils/breederTrust';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
@@ -28,7 +29,7 @@ type SpeciesFilter = 'all' | 'dog' | 'cat';
 type GenderFilter = 'all' | 'male' | 'female';
 type SortField = 'date' | 'age' | 'price';
 type SortDirection = 'asc' | 'desc';
-type FeedTab = 'feed' | 'breeders';
+type FeedTab = 'feed' | 'news' | 'breeders';
 type ChipItem<T extends string> = {
   key: T;
   label: string;
@@ -38,15 +39,22 @@ type ChipItem<T extends string> = {
 
 type PetFeedScreenProps = {
   posts: PetFeedPost[];
+  announcementPosts: PetFeedPost[];
   breederProfiles: BreederProfile[];
   initialLoading: boolean;
   initialError: string;
+  announcementInitialLoading: boolean;
+  announcementInitialError: string;
   refreshing: boolean;
   loadingMore: boolean;
+  announcementLoadingMore: boolean;
   hasMore: boolean;
+  announcementHasMore: boolean;
   loadMoreError: string;
+  announcementLoadMoreError: string;
   onRefresh: () => void;
   onLoadMore: () => void;
+  onLoadMoreAnnouncements: () => void;
   onToggleFavorite: (post: PetFeedPost) => void;
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
   onHideBreeder: (profile: BreederProfile) => void;
@@ -78,6 +86,16 @@ function searchableText(post: PetFeedPost) {
     post.breeder_profile?.location,
     ...post.personality,
     ...post.paperwork,
+  ].filter(Boolean).join(' '));
+}
+
+function searchableAnnouncementText(post: PetFeedPost) {
+  return normalizeSearchText([
+    post.title,
+    post.description,
+    String(post.metadata?.category ?? ''),
+    String(post.metadata?.ctaLabel ?? ''),
+    'pet health care',
   ].filter(Boolean).join(' '));
 }
 
@@ -138,15 +156,22 @@ function PetFeedSkeleton() {
 
 export function PetFeedScreen({
   posts,
+  announcementPosts,
   breederProfiles,
   initialLoading,
   initialError,
+  announcementInitialLoading,
+  announcementInitialError,
   refreshing,
   loadingMore,
+  announcementLoadingMore,
   hasMore,
+  announcementHasMore,
   loadMoreError,
+  announcementLoadMoreError,
   onRefresh,
   onLoadMore,
+  onLoadMoreAnnouncements,
   onToggleFavorite,
   onReportPost,
   onHideBreeder,
@@ -162,12 +187,18 @@ export function PetFeedScreen({
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filterVisible, setFilterVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query]);
   const searchMatchedPosts = useMemo(() => {
     if (!normalizedQuery) return posts;
     return posts.filter((post) => searchableText(post).includes(normalizedQuery));
   }, [normalizedQuery, posts]);
+
+  const searchMatchedAnnouncements = useMemo(() => {
+    if (!normalizedQuery) return announcementPosts;
+    return announcementPosts.filter((post) => searchableAnnouncementText(post).includes(normalizedQuery));
+  }, [announcementPosts, normalizedQuery]);
 
   const speciesFilterItems = useMemo<ChipItem<SpeciesFilter>[]>(() => {
     const dogCount = searchMatchedPosts.filter((post) => post.species.toLowerCase() === 'dog').length;
@@ -226,7 +257,15 @@ export function PetFeedScreen({
       return sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a);
     });
   }, [genderFilter, sortDirection, sortField, speciesMatchedPosts]);
+
+  const filteredAnnouncements = useMemo(() => {
+    return [...searchMatchedAnnouncements].sort((a, b) => (
+      sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a)
+    ));
+  }, [searchMatchedAnnouncements, sortDirection]);
+
   const selectedPost = selectedPostId ? posts.find((post) => post.id === selectedPostId) ?? null : null;
+  const selectedAnnouncement = selectedAnnouncementId ? announcementPosts.find((post) => post.id === selectedAnnouncementId) ?? null : null;
   const topBreeders = useMemo<TopBreeder[]>(() => {
     const byBreeder = new Map<string, TopBreeder>();
     breederProfiles
@@ -293,14 +332,19 @@ export function PetFeedScreen({
     if (activeTab === 'feed') {
       return filteredPosts.map((post) => ({ type: 'post', id: post.id, post }));
     }
+    if (activeTab === 'news') {
+      return filteredAnnouncements.map((post) => ({ type: 'post', id: post.id, post }));
+    }
     return filteredTopBreeders.map((item, index) => ({
       type: 'breeder',
       id: item.profile.id || item.profile.user_id,
       item,
       rank: index + 1,
     }));
-  }, [activeTab, filteredPosts, filteredTopBreeders]);
-  const shouldLoadMore = activeTab === 'feed' && hasMore && !loadingMore && !loadMoreError && filteredPosts.length > 0;
+  }, [activeTab, filteredAnnouncements, filteredPosts, filteredTopBreeders]);
+  const shouldLoadMore = activeTab === 'feed'
+    ? hasMore && !loadingMore && !loadMoreError && filteredPosts.length > 0
+    : activeTab === 'news' && announcementHasMore && !announcementLoadingMore && !announcementLoadMoreError && filteredAnnouncements.length > 0;
 
   const resetFilters = useCallback(() => {
     setSpeciesFilter('all');
@@ -311,6 +355,13 @@ export function PetFeedScreen({
 
   const renderListItem = useCallback(({ item }: { item: FeedListItem }) => {
     if (item.type === 'post') {
+      if (activeTab === 'news') {
+        return (
+          <View className="px-5">
+            <AdminPostCard post={item.post} onPress={(post) => setSelectedAnnouncementId(post.id)} />
+          </View>
+        );
+      }
       return (
         <View className="px-5">
           <PetFeedPostCard
@@ -396,9 +447,43 @@ export function PetFeedScreen({
         </View>
       </View>
     );
-  }, [onOpenBreederDetail, t, translatedOption]);
+  }, [activeTab, onOpenBreederDetail, t, translatedOption]);
 
   const renderEmptyState = useCallback(() => {
+    if (activeTab === 'news') {
+      if (announcementInitialLoading) return <PetFeedSkeleton />;
+      if (announcementInitialError) {
+        return (
+          <View className="px-5">
+            <View className="items-center rounded-2xl border border-red-100 bg-white px-5 py-10">
+              <Text className="text-center text-sm text-slate-500">{announcementInitialError}</Text>
+              <Pressable className="mt-5 rounded-xl bg-blue-600 px-5 py-3" onPress={onRefresh}>
+                <Text className="text-sm font-bold text-white">{t('petFeed.retry')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        );
+      }
+      if (announcementPosts.length === 0) {
+        return (
+          <View className="px-5">
+            <View className="items-center rounded-2xl border border-gray-200 bg-white px-5 py-12">
+              <Ionicons name="megaphone-outline" size={42} color={PRIMARY} />
+              <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.newsEmpty')}</Text>
+            </View>
+          </View>
+        );
+      }
+      return (
+        <View className="px-5">
+          <View className="items-center rounded-2xl border border-gray-200 bg-white px-5 py-10">
+            <Ionicons name="search-outline" size={38} color={PRIMARY} />
+            <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.emptyFilteredTitle')}</Text>
+            <Text className="mt-2 text-center text-sm leading-5 text-slate-500">{t('petFeed.emptyFilteredBody')}</Text>
+          </View>
+        </View>
+      );
+    }
     if (initialLoading) return <PetFeedSkeleton />;
     if (initialError) {
       return (
@@ -456,11 +541,19 @@ export function PetFeedScreen({
         </View>
       </View>
     );
-  }, [activeTab, initialError, initialLoading, onRefresh, posts.length, t, topBreeders.length]);
+  }, [activeTab, announcementInitialError, announcementInitialLoading, announcementPosts.length, initialError, initialLoading, onRefresh, posts.length, t, topBreeders.length]);
 
   const renderFooter = useCallback(() => {
-    if (activeTab !== 'feed' || initialLoading || initialError || filteredPosts.length === 0) return <View className="h-6" />;
-    if (loadingMore) {
+    const isFeedTab = activeTab === 'feed';
+    const isNewsTab = activeTab === 'news';
+    if (!isFeedTab && !isNewsTab) return <View className="h-6" />;
+    if (isFeedTab && (initialLoading || initialError || filteredPosts.length === 0)) return <View className="h-6" />;
+    if (isNewsTab && (announcementInitialLoading || announcementInitialError || filteredAnnouncements.length === 0)) return <View className="h-6" />;
+    const loading = isFeedTab ? loadingMore : announcementLoadingMore;
+    const moreError = isFeedTab ? loadMoreError : announcementLoadMoreError;
+    const moreAvailable = isFeedTab ? hasMore : announcementHasMore;
+    const loadMore = isFeedTab ? onLoadMore : onLoadMoreAnnouncements;
+    if (loading) {
       return (
         <View className="items-center gap-2 px-5 py-6">
           <ActivityIndicator color={PRIMARY} />
@@ -468,19 +561,19 @@ export function PetFeedScreen({
         </View>
       );
     }
-    if (loadMoreError) {
+    if (moreError) {
       return (
         <View className="px-5 py-5">
           <View className="items-center rounded-2xl border border-red-100 bg-white px-4 py-4">
-            <Text className="text-center text-sm font-semibold text-slate-600">{loadMoreError}</Text>
-            <Pressable accessibilityRole="button" className="mt-3 rounded-xl bg-blue-600 px-5 py-2.5" onPress={onLoadMore}>
+            <Text className="text-center text-sm font-semibold text-slate-600">{moreError}</Text>
+            <Pressable accessibilityRole="button" className="mt-3 rounded-xl bg-blue-600 px-5 py-2.5" onPress={loadMore}>
               <Text className="text-sm font-bold text-white">{t('petFeed.retry')}</Text>
             </Pressable>
           </View>
         </View>
       );
     }
-    if (!hasMore) {
+    if (!moreAvailable) {
       return (
         <View className="items-center px-5 py-6">
           <Text className="text-sm font-semibold text-slate-400">{t('petFeed.endOfFeed')}</Text>
@@ -488,7 +581,7 @@ export function PetFeedScreen({
       );
     }
     return <View className="h-8" />;
-  }, [activeTab, filteredPosts.length, hasMore, initialError, initialLoading, loadMoreError, loadingMore, onLoadMore, t]);
+  }, [activeTab, announcementInitialError, announcementInitialLoading, announcementLoadMoreError, announcementLoadingMore, announcementHasMore, filteredAnnouncements.length, filteredPosts.length, hasMore, initialError, initialLoading, loadMoreError, loadingMore, onLoadMore, onLoadMoreAnnouncements, t]);
 
   return (
     <>
@@ -508,7 +601,9 @@ export function PetFeedScreen({
       windowSize={7}
       removeClippedSubviews={Platform.OS !== 'web'}
       onEndReached={() => {
-        if (shouldLoadMore) onLoadMore();
+        if (!shouldLoadMore) return;
+        if (activeTab === 'news') onLoadMoreAnnouncements();
+        else if (activeTab === 'feed') onLoadMore();
       }}
       onEndReachedThreshold={0.45}
       contentContainerStyle={{ paddingBottom: 24 }}
@@ -552,27 +647,40 @@ export function PetFeedScreen({
             </Pressable>
           </View>
 
-          <View className="mb-4 border-b border-gray-200 bg-white px-3 pb-3">
-            <View className="flex-row rounded-2xl border border-blue-100 bg-blue-50/40 p-1">
+          <View className="mb-3 border-b border-gray-200 bg-white px-2 pb-2">
+            <View className="flex-row rounded-xl border border-blue-100 bg-blue-50/40 p-0.5">
               {([
+                { key: 'news' as const, label: t('petFeed.tabs.news'), count: announcementPosts.length, icon: 'megaphone-outline' as const },
                 { key: 'feed' as const, label: t('petFeed.tabs.feed'), count: posts.length, icon: 'newspaper-outline' as const },
                 { key: 'breeders' as const, label: t('petFeed.tabs.breeders'), count: topBreeders.length, icon: 'ribbon-outline' as const },
               ]).map((item) => {
                 const active = activeTab === item.key;
+                const compactTabs = windowWidth < 390;
                 return (
                   <Pressable
                     key={item.key}
                     accessibilityRole="tab"
                     accessibilityLabel={item.label}
                     accessibilityState={{ selected: active }}
-                    className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl px-3 py-3 ${
-                      active ? 'bg-blue-600' : 'bg-transparent'
-                    }`}
+                    className={`min-w-0 flex-1 items-center justify-center rounded-lg ${
+                      compactTabs ? 'px-1 py-2' : 'px-2 py-2.5'
+                    } ${active ? 'bg-blue-600' : 'bg-transparent'}`}
                     onPress={() => setActiveTab(item.key)}
                   >
-                    <Ionicons name={item.icon} size={17} color={active ? '#fff' : PRIMARY} />
-                    <Text className={`text-sm font-bold ${active ? 'text-white' : 'text-blue-700'}`}>{item.label}</Text>
-                    <Text className={`text-xs font-bold ${active ? 'text-blue-100' : 'text-slate-400'}`}>{item.count}</Text>
+                    <View className={`max-w-full flex-row items-center justify-center ${compactTabs ? 'gap-0.5' : 'gap-1.5'}`}>
+                      <Ionicons name={item.icon} size={compactTabs ? 14 : 15} color={active ? '#fff' : PRIMARY} />
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                        className={`shrink font-bold ${compactTabs ? 'text-[10px]' : 'text-xs'} ${active ? 'text-white' : 'text-blue-700'}`}
+                      >
+                        {item.label}
+                      </Text>
+                      <Text className={`font-bold ${compactTabs ? 'text-[9px]' : 'text-[10px]'} ${active ? 'text-blue-100' : 'text-slate-400'}`}>
+                        {item.count}
+                      </Text>
+                    </View>
                   </Pressable>
                 );
               })}
@@ -709,6 +817,23 @@ export function PetFeedScreen({
               autoPlayVideo={false}
               testID={`pet-feed-detail-post-${selectedPost.id}`}
             />
+          ) : null}
+        </ScrollView>
+      </View>
+    </Modal>
+    <Modal visible={Boolean(selectedAnnouncement)} animationType="slide" onRequestClose={() => setSelectedAnnouncementId(null)}>
+      <View className="flex-1 bg-[#F2F4F8]">
+        <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
+          <Pressable className="w-14 rounded-lg p-2" onPress={() => setSelectedAnnouncementId(null)}>
+            <Ionicons name="close" size={24} color="#1e293b" />
+          </Pressable>
+          <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('petFeed.tabs.news')}</Text>
+          <View className="w-14" />
+        </View>
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}>
+          {selectedAnnouncement ? <AdminPostCard post={selectedAnnouncement} /> : null}
+          {selectedAnnouncement ? (
+            <Text className="mt-4 text-sm leading-6 text-slate-700">{selectedAnnouncement.description}</Text>
           ) : null}
         </ScrollView>
       </View>

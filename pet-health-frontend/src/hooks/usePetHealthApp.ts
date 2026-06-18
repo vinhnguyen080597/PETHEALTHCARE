@@ -11,9 +11,13 @@ import {
   blockBreederProfile,
   claimRewardedAdCredit,
   createAdminAccount,
+  createAdminUserPet,
+  createAnnouncementPost,
   createCoreCareRecord,
+  createAdminUserCoreCareRecord,
   createPetFeedPost,
   createPet,
+  deleteAdminUserCoreCareRecord,
   deleteMyAccount,
   deletePet,
   favoritePetFeedPost,
@@ -26,9 +30,14 @@ import {
   listAdminPetFeedReports,
   listAdminAccounts,
   listAdminBreederProfiles,
+  listAdminUserAnalyses,
+  listAdminUserCoreCareRecords,
+  listAdminUserPets,
+  listAnnouncementPosts,
   listHistoryByPet,
   listAiCreditLedger,
   listCoreCareRecords,
+  listMyAnnouncementPosts,
   listMyPetFeedPosts,
   listPetFeedPosts,
   listPets,
@@ -39,6 +48,8 @@ import {
   translateAnalysesDisplay,
   login,
   signUp,
+  updateAdminUserCoreCareRecord,
+  updateAdminUserPet,
   updateCoreCareRecord,
   updateAdminAccount,
   updateAdminBreederProfileStatus,
@@ -64,10 +75,13 @@ import type {
   BreedRecognitionResult,
   CoreCareRecord,
   CoreCareSummary,
+  CreateAnnouncementPostMedia,
+  CreateAnnouncementPostPayload,
   CreateCoreCareRecordPayload,
   CreatePetFeedPostMedia,
   CreatePetFeedPostPayload,
   BreederProfile,
+  ManagedUser,
   Pet,
   PetFeedPost,
   PetFeedReport,
@@ -160,7 +174,18 @@ export function usePetHealthApp() {
   const [petFeedLoadingMore, setPetFeedLoadingMore] = useState(false);
   const [petFeedNextCursor, setPetFeedNextCursor] = useState<string | null>(null);
   const [petFeedLoadMoreError, setPetFeedLoadMoreError] = useState('');
+  const [announcementPosts, setAnnouncementPosts] = useState<PetFeedPost[]>([]);
+  const [announcementInitialLoading, setAnnouncementInitialLoading] = useState(false);
+  const [announcementInitialError, setAnnouncementInitialError] = useState('');
+  const [announcementLoadingMore, setAnnouncementLoadingMore] = useState(false);
+  const [announcementNextCursor, setAnnouncementNextCursor] = useState<string | null>(null);
+  const [announcementLoadMoreError, setAnnouncementLoadMoreError] = useState('');
   const [myPetFeedPosts, setMyPetFeedPosts] = useState<PetFeedPost[]>([]);
+  const [managedUser, setManagedUser] = useState<ManagedUser | null>(null);
+  const [adminSelectedAccount, setAdminSelectedAccount] = useState<AccountProfile | null>(null);
+  const [adminUserPets, setAdminUserPets] = useState<Pet[]>([]);
+  const [adminUserPetsLoading, setAdminUserPetsLoading] = useState(false);
+  const [adminAddPetForUserId, setAdminAddPetForUserId] = useState<string | null>(null);
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
   const [adminAccounts, setAdminAccounts] = useState<AccountProfile[]>([]);
@@ -226,8 +251,11 @@ export function usePetHealthApp() {
     setHealthCheckSymptoms('');
   }
 
-  const fetchPets = useCallback(async (accessToken: string): Promise<Pet[]> => {
-    const response = await listPets(accessToken);
+  const fetchPets = useCallback(async (accessToken: string, targetUserId?: string | null): Promise<Pet[]> => {
+    const effectiveUserId = targetUserId ?? managedUser?.userId ?? null;
+    const response = effectiveUserId
+      ? await listAdminUserPets(accessToken, effectiveUserId)
+      : await listPets(accessToken);
     setPets(response.data);
     if (response.data.length > 0) {
       setSelectedPetId((previous) => previous ?? response.data[0].id);
@@ -235,7 +263,7 @@ export function usePetHealthApp() {
       setSelectedPetId(null);
     }
     return response.data;
-  }, []);
+  }, [managedUser?.userId]);
 
   const refreshAiCredits = useCallback(async (accessToken: string) => {
     try {
@@ -258,11 +286,13 @@ export function usePetHealthApp() {
   const refreshCoreCare = useCallback(
     async (petId: string = selectedPetId ?? '') => {
       if (!token || !petId) return;
-      const response = await listCoreCareRecords(token, petId);
+      const response = managedUser
+        ? await listAdminUserCoreCareRecords(token, managedUser.userId, petId)
+        : await listCoreCareRecords(token, petId);
       setCoreCareRecords(response.data);
       setCoreCareSummary(response.summary);
     },
-    [token, selectedPetId],
+    [managedUser, selectedPetId, token],
   );
 
   const refreshPets = useCallback(async () => {
@@ -280,12 +310,16 @@ export function usePetHealthApp() {
     setPetFeedInitialError('');
     setPetFeedLoadMoreError('');
     try {
-      const [postsResponse, breedersResponse] = await Promise.all([
-        listPetFeedPosts(accessToken, { limit: PET_FEED_PAGE_SIZE }),
+      const [postsResponse, announcementsResponse, breedersResponse] = await Promise.all([
+        listPetFeedPosts(accessToken, { limit: PET_FEED_PAGE_SIZE, kind: 'listing' }),
+        listAnnouncementPosts(accessToken, { limit: PET_FEED_PAGE_SIZE }),
         listVerifiedBreederProfiles(accessToken),
       ]);
       setPetFeedPosts(postsResponse.data);
       setPetFeedNextCursor(postsResponse.nextCursor ?? null);
+      setAnnouncementPosts(announcementsResponse.data);
+      setAnnouncementNextCursor(announcementsResponse.nextCursor ?? null);
+      setAnnouncementInitialError('');
       setTopBreederProfiles(breedersResponse.data);
       return true;
     } catch (error: unknown) {
@@ -323,12 +357,30 @@ export function usePetHealthApp() {
     }
   }, [petFeedLoadingMore, petFeedNextCursor, token]);
 
+  const loadMoreAnnouncements = useCallback(async () => {
+    if (!token || announcementLoadingMore || !announcementNextCursor) return;
+    setAnnouncementLoadingMore(true);
+    setAnnouncementLoadMoreError('');
+    try {
+      const response = await listAnnouncementPosts(token, { limit: PET_FEED_PAGE_SIZE, cursor: announcementNextCursor });
+      setAnnouncementPosts((current) => mergePetFeedPosts(current, response.data));
+      setAnnouncementNextCursor(response.nextCursor ?? null);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      setAnnouncementLoadMoreError(message);
+    } finally {
+      setAnnouncementLoadingMore(false);
+    }
+  }, [announcementLoadingMore, announcementNextCursor, token]);
+
   /** History rows merged for current UI language; English-only archives get one-time Gemini translation via API. */
   const fetchPetHistoryMerged = useCallback(
     async (petId: string): Promise<Analysis[]> => {
       if (!token) return [];
       const wantVi = Boolean(i18n.language?.startsWith('vi'));
-      const res = await listHistoryByPet(token, petId, wantVi ? { displayLocale: 'vi' } : undefined);
+      const res = managedUser
+        ? await listAdminUserAnalyses(token, managedUser.userId, petId, wantVi ? 'vi' : undefined)
+        : await listHistoryByPet(token, petId, wantVi ? { displayLocale: 'vi' } : undefined);
       let rows = res.data;
       if (!wantVi) return rows;
 
@@ -354,7 +406,7 @@ export function usePetHealthApp() {
       }
       return rows;
     },
-    [token, i18n.language, refreshAiCredits],
+    [managedUser, token, i18n.language, refreshAiCredits],
   );
 
   useEffect(() => {
@@ -538,6 +590,21 @@ export function usePetHealthApp() {
 
     setLoading(true);
     try {
+      if (adminAddPetForUserId && token) {
+        await createAdminUserPet(token, adminAddPetForUserId, {
+          name: petName.trim(),
+          species: petSpecies.trim().toLowerCase(),
+          breed: petBreed.trim() || undefined,
+          age: petAge ? petAgeMonthsForApi(petAge) : undefined,
+          gender: petGender,
+          ...(petAvatarStorageUrl ? { avatarUrl: petAvatarStorageUrl } : {}),
+        });
+        await loadAdminUserPets(adminAddPetForUserId);
+        setAdminAddPetForUserId(null);
+        clearPetForm();
+        setScreen('admin-user-detail');
+        return;
+      }
       const { data: created } = await createPet(token, {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
@@ -628,14 +695,19 @@ export function usePetHealthApp() {
     setLoading(true);
     try {
       const avatarPatch = petAvatarStorageUrl ? { avatarUrl: petAvatarStorageUrl } : petAvatarUrl.trim() ? {} : { avatarUrl: null };
-      await updatePet(token, editingPetId, {
+      const payload = {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || null,
         age: petAge ? petAgeMonthsForApi(petAge) : null,
         gender: petGender,
         ...avatarPatch,
-      });
+      };
+      if (managedUser) {
+        await updateAdminUserPet(token, managedUser.userId, editingPetId, payload);
+      } else {
+        await updatePet(token, editingPetId, payload);
+      }
       const returnToProfile = petFormReturnToProfile;
       const updatedPetId = editingPetId;
       clearPetForm();
@@ -784,13 +856,21 @@ export function usePetHealthApp() {
 
   async function createCoreCareEntry(payload: CreateCoreCareRecordPayload) {
     if (!token || !selectedPetId) return;
-    await createCoreCareRecord(token, selectedPetId, payload);
+    if (managedUser) {
+      await createAdminUserCoreCareRecord(token, managedUser.userId, selectedPetId, payload);
+    } else {
+      await createCoreCareRecord(token, selectedPetId, payload);
+    }
     await refreshCoreCare(selectedPetId);
   }
 
   async function markReminderDone(record: CoreCareRecord) {
     if (!token) return;
-    await updateCoreCareRecord(token, record.id, { status: 'done' });
+    if (managedUser) {
+      await updateAdminUserCoreCareRecord(token, managedUser.userId, record.id, { status: 'done' });
+    } else {
+      await updateCoreCareRecord(token, record.id, { status: 'done' });
+    }
     await refreshCoreCare(record.pet_id);
   }
 
@@ -820,10 +900,13 @@ export function usePetHealthApp() {
     }
     if (role === 'admin' || role === 'breeder') {
       try {
-        const postsRes = await listMyPetFeedPosts(accessToken);
-        setMyPetFeedPosts(postsRes.data);
         if (role === 'admin') {
+          const postsRes = await listMyAnnouncementPosts(accessToken);
+          setMyPetFeedPosts(postsRes.data);
           await loadAdminReview(accessToken);
+        } else {
+          const postsRes = await listMyPetFeedPosts(accessToken);
+          setMyPetFeedPosts(postsRes.data);
         }
       } catch {
         // Account dashboard can still render with the data already in memory.
@@ -891,7 +974,7 @@ export function usePetHealthApp() {
 
   function openCreatePetFeedPost() {
     if (hasAccountRole('admin')) {
-      setScreen('create-pet-feed-post');
+      openCreateAdminPost();
       return;
     }
     if (!hasAccountRole('breeder') || breederProfile?.verification_status !== 'verified') {
@@ -899,6 +982,24 @@ export function usePetHealthApp() {
       return;
     }
     setScreen('create-pet-feed-post');
+  }
+
+  function openCreateAdminPost() {
+    if (!hasAccountRole('admin')) return;
+    setScreen('create-admin-post');
+  }
+
+  function closeCreateAdminPost() {
+    setScreen('home');
+  }
+
+  async function submitAnnouncementPost(payload: CreateAnnouncementPostPayload, media: CreateAnnouncementPostMedia) {
+    if (!token) return;
+    await createAnnouncementPost(token, payload, media);
+    const postsRes = await listMyAnnouncementPosts(token);
+    setMyPetFeedPosts(postsRes.data);
+    await loadPetFeedFirstPage(token);
+    setScreen('home');
   }
 
   function closeCreatePetFeedPost() {
@@ -951,6 +1052,75 @@ export function usePetHealthApp() {
     }
   }
 
+  async function openAdminHub() {
+    if (!hasAccountRole('admin') || !token) return;
+    setLoading(true);
+    try {
+      await loadAdminReview(token);
+      setScreen('admin-hub');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closeAdminHub() {
+    setScreen('home');
+  }
+
+  async function loadAdminUserPets(userId: string) {
+    if (!token) return;
+    setAdminUserPetsLoading(true);
+    try {
+      const response = await listAdminUserPets(token, userId);
+      setAdminUserPets(response.data);
+    } finally {
+      setAdminUserPetsLoading(false);
+    }
+  }
+
+  function openAdminUserDetail(account: AccountProfile) {
+    setAdminSelectedAccount(account);
+    setScreen('admin-user-detail');
+    void loadAdminUserPets(account.user_id);
+  }
+
+  function closeAdminUserDetail() {
+    setAdminSelectedAccount(null);
+    setAdminUserPets([]);
+    setScreen('admin-hub');
+  }
+
+  function openAdminAddPetForUser() {
+    if (!adminSelectedAccount) return;
+    clearPetForm();
+    setAdminAddPetForUserId(adminSelectedAccount.user_id);
+    setScreen('add-pet');
+  }
+
+  async function enterManagedUser(account: AccountProfile) {
+    setManagedUser({
+      userId: account.user_id,
+      displayName: account.display_name || account.login_identifier,
+      role: account.primary_role,
+    });
+    if (!token) return;
+    setLoading(true);
+    try {
+      await fetchPets(token, account.user_id);
+      setScreen('home');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function exitManagedUser() {
+    setManagedUser(null);
+    if (token) {
+      void fetchPets(token);
+    }
+    setScreen('admin-user-detail');
+  }
+
   async function openAdminReview() {
     if (!hasAccountRole('admin')) {
       Alert.alert(i18n.t('account.roleRequiredTitle'), i18n.t('account.adminOnly'));
@@ -989,8 +1159,15 @@ export function usePetHealthApp() {
 
   async function createAdminManagedAccount(payload: AdminCreateAccountPayload) {
     if (!token) return;
-    await createAdminAccount(token, payload);
-    await loadAdminReview();
+    try {
+      await createAdminAccount(token, payload);
+      await loadAdminReview();
+      Alert.alert(i18n.t('common.ok'), i18n.t('adminHub.createAccountSuccess'));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('adminHub.createAccountFailed'), message);
+      throw error;
+    }
   }
 
   async function updateAdminManagedAccount(userId: string, payload: AdminUpdateAccountPayload) {
@@ -1052,8 +1229,14 @@ export function usePetHealthApp() {
 
   function cancelPetForm() {
     const backToProfile = petFormReturnToProfile;
+    const adminTargetUserId = adminAddPetForUserId;
     clearPetForm();
     setPetFormReturnToProfile(false);
+    setAdminAddPetForUserId(null);
+    if (adminTargetUserId) {
+      setScreen('admin-user-detail');
+      return;
+    }
     setScreen(backToProfile ? 'pet-profile' : 'home');
   }
 
@@ -1384,8 +1567,13 @@ export function usePetHealthApp() {
     setCoreCareRecords([]);
     setCoreCareSummary(null);
     setPetFeedPosts([]);
+    setAnnouncementPosts([]);
     setTopBreederProfiles([]);
     setMyPetFeedPosts([]);
+    setManagedUser(null);
+    setAdminSelectedAccount(null);
+    setAdminUserPets([]);
+    setAdminAddPetForUserId(null);
     setBreederProfile(null);
     setSelectedBreederProfileId(null);
     setAdminAccounts([]);
@@ -1566,7 +1754,7 @@ export function usePetHealthApp() {
 
   function goHomeAndRefresh() {
     setScreen('home');
-    if (token && accountProfile?.primary_role === 'admin') {
+    if (token && accountProfile?.primary_role === 'admin' && !managedUser) {
       void loadAccountDashboard(token, accountProfile.primary_role);
       return;
     }
@@ -1680,13 +1868,21 @@ export function usePetHealthApp() {
     requestDeleteAccount,
     refreshPetFeed,
     loadMorePetFeed,
+    loadMoreAnnouncements,
     petFeedPosts,
+    announcementPosts,
     topBreederProfiles,
     petFeedInitialLoading,
     petFeedInitialError,
+    announcementInitialLoading,
+    announcementInitialError,
     petFeedLoadingMore,
+    announcementLoadingMore,
     petFeedHasMore: Boolean(petFeedNextCursor),
+    announcementHasMore: Boolean(announcementNextCursor),
     petFeedLoadMoreError,
+    announcementLoadMoreError,
+    managedUser,
     selectedBreederProfile,
     selectedBreederPosts,
     openBreederDetail,
@@ -1700,6 +1896,9 @@ export function usePetHealthApp() {
     closeBreederProfile,
     saveBreederProfile,
     openCreatePetFeedPost,
+    openCreateAdminPost,
+    closeCreateAdminPost,
+    submitAnnouncementPost,
     closeCreatePetFeedPost,
     submitPetFeedPost,
     submitPetFeedReport,
@@ -1707,6 +1906,18 @@ export function usePetHealthApp() {
     adminFeedReports,
     adminAccounts,
     adminBreederProfiles,
+    openAdminHub,
+    closeAdminHub,
+    openAdminUserDetail,
+    closeAdminUserDetail,
+    adminSelectedAccount,
+    adminUserPets,
+    adminUserPetsLoading,
+    openAdminAddPetForUser,
+    enterManagedUser,
+    exitManagedUser,
+    loadAdminUserPets,
+    adminAddPetForUserId,
     openAdminReview,
     closeAdminReview,
     loadAdminReview,

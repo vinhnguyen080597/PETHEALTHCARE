@@ -96,6 +96,8 @@ export type CreateCoreCareRecordPayload = {
 };
 
 export type PetFeedPostStatus = 'draft' | 'pending_review' | 'published' | 'archived';
+export type PostKind = 'listing' | 'announcement';
+export type AnnouncementCategory = 'app_update' | 'health_tip' | 'community' | 'general';
 export type BreederVerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected' | 'suspended';
 
 export type BreederContact = {
@@ -141,6 +143,7 @@ export type PetFeedPost = {
   video_url: string | null;
   contact: BreederContact & Record<string, unknown>;
   status: PetFeedPostStatus;
+  post_kind?: PostKind;
   metadata: Record<string, unknown>;
   breeder_profile: BreederProfile | null;
   is_favorited: boolean;
@@ -200,6 +203,25 @@ export type CreatePetFeedPostPayload = {
 export type CreatePetFeedPostMedia = {
   photoUris: string[];
   videoUri: string;
+};
+
+export type CreateAnnouncementPostPayload = {
+  title: string;
+  description: string;
+  category: AnnouncementCategory;
+  ctaLabel?: string;
+  ctaUrl?: string;
+};
+
+export type CreateAnnouncementPostMedia = {
+  photoUris: string[];
+  videoUri?: string;
+};
+
+export type ManagedUser = {
+  userId: string;
+  displayName: string;
+  role: UserRole;
 };
 
 export type AdminCreateAccountPayload = {

@@ -93,8 +93,10 @@
     "locationUnknown": "Chưa chia sẻ khu vực",
     "tabs": {
       "feed": "Pet feed",
-      "breeders": "Top breeder"
+      "news": "Tin tức",
+      "breeders": "Breeder"
     },
+    "newsEmpty": "Chưa có tin từ Pet Health Care",
     "topBreeders": {
       "verified": "Đã xác minh",
       "posts": "Bài đăng",
@@ -547,6 +549,56 @@
         "contract": "Hợp đồng/thoả thuận"
       }
     }
+  },
+  "adminPost": {
+    "createTitle": "Đăng tin Pet Health Care",
+    "publishNote": "Tin này hiện ở tab Tin tức, không xuất hiện trong mục mua bán.",
+    "categoryLabel": "Loại nội dung",
+    "titleLabel": "Tiêu đề",
+    "bodyLabel": "Nội dung",
+    "mediaLabel": "Ảnh & video",
+    "videoOptional": "Thêm video (tùy chọn)",
+    "videoSelected": "Đã chọn video",
+    "ctaLabel": "Nút hành động (tùy chọn)",
+    "ctaButtonPlaceholder": "Nhãn nút",
+    "ctaUrlPlaceholder": "Liên kết URL",
+    "preview": "Xem trước",
+    "publish": "Đăng ngay",
+    "previewUntitled": "Bài chưa có tiêu đề",
+    "previewEmptyBody": "Thêm nội dung cho bài đăng.",
+    "submitFailed": "Không thể đăng bài",
+    "errors": {
+      "titleRequired": "Vui lòng nhập tiêu đề.",
+      "descriptionRequired": "Vui lòng nhập nội dung."
+    },
+    "category": {
+      "app_update": "Cập nhật app",
+      "health_tip": "Mẹo sức khỏe",
+      "community": "Cộng đồng",
+      "general": "Tin chung"
+    }
+  },
+  "adminHub": {
+    "title": "Quản lý hệ thống",
+    "openHub": "Quản lý người dùng",
+    "tabs": {
+      "users": "Người dùng",
+      "moderation": "Kiểm duyệt"
+    },
+    "createAccount": "Tạo tài khoản",
+    "createAccountSuccess": "Đã tạo tài khoản thành công.",
+    "createAccountFailed": "Không thể tạo tài khoản",
+    "searchUsers": "Tìm người dùng",
+    "petsTitle": "Thú cưng ({{count}})",
+    "addPet": "Thêm thú cưng",
+    "noPets": "Chưa có thú cưng.",
+    "actAsUser": "Quản lý thay user",
+    "addPetFor": "Thêm thú cưng cho {{name}}",
+    "addPetHelper": "Hồ sơ thú cưng này được tạo cho người dùng đã chọn."
+  },
+  "managedUser": {
+    "banner": "Đang quản lý: {{name}}",
+    "exit": "Thoát"
   },
   "adminReview": {
     "title": "Admin review",

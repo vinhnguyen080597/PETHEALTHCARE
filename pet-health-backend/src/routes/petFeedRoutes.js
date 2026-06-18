@@ -3,11 +3,13 @@ import multer from 'multer';
 import { requireAnyRole, requireUser } from '../middleware/auth.js';
 import {
   blockBreederProfile,
+  createAnnouncementPost,
   createPetFeedPost,
   favoritePetFeedPost,
   getMyBreederProfile,
   getPetFeedPost,
   listFavoritePetFeedPosts,
+  listMyAnnouncementPosts,
   listMyPetFeedPosts,
   listPublishedPetFeedPostPage,
   listVerifiedBreederProfiles,
@@ -109,11 +111,41 @@ function hasClientProvidedMediaReferences(payload) {
   );
 }
 
+function validateAnnouncementMedia({ photos, video }) {
+  if (photos.length > 6) {
+    throw badMedia('You can upload up to 6 photos.', 'ANNOUNCEMENT_TOO_MANY_PHOTOS');
+  }
+  for (const photo of photos) {
+    if (!SUPPORTED_IMAGE_MIMES.has(photo.mimetype)) {
+      throw badMedia('Unsupported photo type. Use JPEG, PNG, or WebP.', 'PET_FEED_UNSUPPORTED_PHOTO');
+    }
+    if (!Buffer.isBuffer(photo.buffer) || photo.buffer.length < 1024) {
+      throw badMedia('Photo is too small or empty. Please upload a clear image.', 'PET_FEED_PHOTO_TOO_SMALL');
+    }
+    if (photo.size > 8 * 1024 * 1024) {
+      throw badMedia('Photo is too large. Please use photos under 8MB.', 'PET_FEED_PHOTO_TOO_LARGE');
+    }
+  }
+  if (video) {
+    if (!SUPPORTED_VIDEO_MIMES.has(video.mimetype)) {
+      throw badMedia('Unsupported video type. Use MP4, MOV, WebM, or 3GP.', 'PET_FEED_UNSUPPORTED_VIDEO');
+    }
+    if (!Buffer.isBuffer(video.buffer) || video.buffer.length < 1024) {
+      throw badMedia('Video is too small or empty. Please upload a real clip.', 'PET_FEED_VIDEO_TOO_SMALL');
+    }
+    if (video.size > 20 * 1024 * 1024) {
+      throw badMedia('Video is too large. Please use a short clip under 20MB.', 'PET_FEED_VIDEO_TOO_LARGE');
+    }
+  }
+}
+
 router.get('/posts', async (req, res, next) => {
   try {
+    const kind = firstQueryValue(req.query.kind);
     const page = await listPublishedPetFeedPostPage(req.user.id, req.accessToken, {
       limit: firstQueryValue(req.query.limit),
       cursor: firstQueryValue(req.query.cursor),
+      kind: kind === 'announcement' ? 'announcement' : 'listing',
     });
     return res.json(page);
   } catch (err) {
@@ -181,7 +213,7 @@ router.get('/posts/:postId', async (req, res, next) => {
   }
 });
 
-router.post('/posts', requireAnyRole('breeder', 'admin'), petFeedUpload.fields([
+router.post('/posts', requireAnyRole('breeder'), petFeedUpload.fields([
   { name: 'photos', maxCount: 6 },
   { name: 'video', maxCount: 1 },
 ]), async (req, res, next) => {
@@ -204,9 +236,7 @@ router.post('/posts', requireAnyRole('breeder', 'admin'), petFeedUpload.fields([
       videoUrl: uploadedVideoUrl || null,
     };
 
-    const post = await createPetFeedPost(req.user.id, postPayload, req.accessToken, {
-      isAdmin: req.account?.primary_role === 'admin',
-    });
+    const post = await createPetFeedPost(req.user.id, postPayload, req.accessToken);
     void recordProductEvent({
       userId: req.user.id,
       event: 'pet_feed_post_created',
@@ -218,7 +248,49 @@ router.post('/posts', requireAnyRole('breeder', 'admin'), petFeedUpload.fields([
   }
 });
 
-router.get('/my-posts', requireAnyRole('breeder', 'admin'), async (req, res, next) => {
+router.post('/announcements', requireAnyRole('admin'), petFeedUpload.fields([
+  { name: 'photos', maxCount: 6 },
+  { name: 'video', maxCount: 1 },
+]), async (req, res, next) => {
+  try {
+    const payload = parsePostPayload(req.body);
+    const photos = Array.isArray(req.files?.photos) ? req.files.photos : [];
+    const video = Array.isArray(req.files?.video) ? req.files.video[0] : null;
+    validateAnnouncementMedia({ photos, video });
+
+    const uploadedPhotoUrls = [];
+    for (const photo of photos) {
+      uploadedPhotoUrls.push(await storePetFeedImage({ userId: req.user.id, file: photo, accessToken: req.accessToken }));
+    }
+    const uploadedVideoUrl = video
+      ? await storePetFeedVideo({ userId: req.user.id, file: video, accessToken: req.accessToken })
+      : '';
+    const post = await createAnnouncementPost(req.user.id, {
+      ...payload,
+      mediaUrls: uploadedPhotoUrls,
+      videoUrl: uploadedVideoUrl || null,
+    }, req.accessToken);
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'announcement_post_created',
+      metadata: { category: post.metadata?.category },
+    });
+    return res.status(201).json({ data: post });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/my-announcements', requireAnyRole('admin'), async (req, res, next) => {
+  try {
+    const posts = await listMyAnnouncementPosts(req.user.id, req.accessToken);
+    return res.json({ data: posts });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/my-posts', requireAnyRole('breeder'), async (req, res, next) => {
   try {
     const posts = await listMyPetFeedPosts(req.user.id, req.accessToken);
     return res.json({ data: posts });
@@ -227,7 +299,7 @@ router.get('/my-posts', requireAnyRole('breeder', 'admin'), async (req, res, nex
   }
 });
 
-router.put('/posts/:postId', requireAnyRole('breeder', 'admin'), async (req, res, next) => {
+router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) => {
   try {
     const postId = cleanId(req.params.postId);
     if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });

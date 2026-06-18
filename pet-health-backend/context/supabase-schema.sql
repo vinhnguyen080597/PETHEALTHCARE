@@ -367,6 +367,14 @@ create table if not exists public.pet_feed_posts (
 );
 
 alter table public.pet_feed_posts add column if not exists video_url text;
+alter table public.pet_feed_posts add column if not exists post_kind text not null default 'listing';
+alter table public.pet_feed_posts drop constraint if exists pet_feed_posts_post_kind_check;
+alter table public.pet_feed_posts
+  add constraint pet_feed_posts_post_kind_check
+  check (post_kind in ('listing', 'announcement'));
+
+create index if not exists idx_pet_feed_posts_kind_status
+  on public.pet_feed_posts(post_kind, status, created_at desc);
 
 create table if not exists public.pet_feed_favorites (
   user_id text not null,

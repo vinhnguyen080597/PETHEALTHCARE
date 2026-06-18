@@ -1,7 +1,16 @@
 import { Router } from 'express';
-import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supabase.js';
-import { adminUpdateAccountProfile, ensureAccountProfile, listAdminAccounts, normalizeUserRole } from '../repositories/accountRepository.js';
+import { getSupabaseServiceClient } from '../config/supabase.js';
+import { adminUpdateAccountProfile, ensureAccountProfile, getAccountProfile, listAdminAccounts, normalizeUserRole } from '../repositories/accountRepository.js';
+import { listAnalysesByPet } from '../repositories/analysisRepository.js';
 import {
+  createCoreCareRecord,
+  deleteCoreCareRecord,
+  listCoreCareRecords,
+  summarizeCoreCareRecords,
+  updateCoreCareRecord,
+} from '../repositories/coreCareRepository.js';
+import {
+  adminUpdateAnnouncementPost,
   adminUpdateBreederProfileStatus,
   adminUpdatePetFeedPostStatus,
   adminUpdatePetFeedReportStatus,
@@ -9,10 +18,12 @@ import {
   listAdminPetFeedPosts,
   listAdminPetFeedReports,
 } from '../repositories/petFeedRepository.js';
+import { createPetForUser, getPetByIdForUser, listPetsByUser, updatePetForUser } from '../repositories/petRepository.js';
 import { sendTestAlertEmail } from '../services/errorNotifierService.js';
 import { getAiOpsSummary } from '../services/aiEconomicsService.js';
 import { getProductAnalyticsSummary } from '../services/productAnalyticsService.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../services/authIdentifierService.js';
+import { resolveAdminCreatedAuthUser, validateAdminAccountPassword } from '../services/adminAuthUserService.js';
 import { hasValidAdminSecret, requireAdminOrSecret } from '../middleware/auth.js';
 
 const router = Router();
@@ -21,9 +32,22 @@ function cleanId(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function isAlreadyRegistered(error) {
-  const text = [error?.message, String(error?.code ?? ''), String(error?.status ?? '')].filter(Boolean).join(' ');
-  return /already|registered|exists/i.test(text);
+async function requireManagedAccount(userId, res) {
+  const account = await getAccountProfile(userId);
+  if (!account) {
+    res.status(404).json({ error: 'Account not found', code: 'ACCOUNT_NOT_FOUND' });
+    return null;
+  }
+  return account;
+}
+
+async function requireManagedPet(userId, petId, res) {
+  const pet = await getPetByIdForUser(userId, petId, null);
+  if (!pet) {
+    res.status(404).json({ error: 'Pet not found', code: 'PET_NOT_FOUND' });
+    return null;
+  }
+  return pet;
 }
 
 router.post('/test-alert-email', async (req, res, next) => {
@@ -93,6 +117,7 @@ router.post('/accounts', requireAdminOrSecret, async (req, res, next) => {
   try {
     const { email, password, displayName, primaryRole } = req.body ?? {};
     if (!email || !password) return res.status(400).json({ error: 'email and password are required', code: 'MISSING_ACCOUNT_FIELDS' });
+    validateAdminAccountPassword(password);
     const admin = getSupabaseServiceClient();
     if (!admin) return res.status(503).json({ error: 'Supabase service role is required', code: 'SERVICE_ROLE_REQUIRED' });
     const authEmail = authEmailFromIdentifier(email);
@@ -105,21 +130,8 @@ router.post('/accounts', requireAdminOrSecret, async (req, res, next) => {
       primary_role: role,
       created_by_admin: true,
     };
-    const created = await admin.auth.admin.createUser({
-      email: authEmail,
-      password,
-      email_confirm: true,
-      user_metadata: metadata,
-    });
-    if (created.error && !isAlreadyRegistered(created.error)) throw created.error;
-    let user = created.data?.user ?? null;
-    if (!user && created.error) {
-      const anon = getSupabaseAnonClient();
-      const signedIn = anon ? await anon.auth.signInWithPassword({ email: authEmail, password }) : null;
-      if (signedIn?.error) throw signedIn.error;
-      user = signedIn?.data?.user ?? null;
-    }
-    if (!user?.id) return res.status(409).json({ error: 'Account exists but could not be loaded', code: 'ACCOUNT_LOAD_FAILED' });
+    const { user, created } = await resolveAdminCreatedAuthUser(admin, { authEmail, password, metadata });
+    if (!user?.id) return res.status(409).json({ error: 'Account could not be created', code: 'ACCOUNT_LOAD_FAILED' });
     const account = await ensureAccountProfile({
       userId: user.id,
       email: user.email,
@@ -127,8 +139,9 @@ router.post('/accounts', requireAdminOrSecret, async (req, res, next) => {
       displayName: name,
       primaryRole: role,
       metadata: { auth_mode: metadata.auth_mode, created_by_admin: true },
+      allowPrivilegedRole: true,
     });
-    return res.status(created.error ? 200 : 201).json({ data: account });
+    return res.status(created ? 201 : 200).json({ data: account });
   } catch (err) {
     return next(err);
   }
@@ -213,6 +226,140 @@ router.put('/pet-feed/reports/:reportId/status', requireAdminOrSecret, async (re
     const report = await adminUpdatePetFeedReportStatus(reportId, req.body?.status);
     if (!report) return res.status(404).json({ error: 'Report not found', code: 'PET_FEED_REPORT_NOT_FOUND' });
     return res.json({ data: report });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/announcements/:postId', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const post = await adminUpdateAnnouncementPost(postId, req.body ?? {});
+    if (!post) return res.status(404).json({ error: 'Announcement not found', code: 'ANNOUNCEMENT_NOT_FOUND' });
+    return res.json({ data: post });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/users/:userId/pets', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const userId = cleanId(req.params.userId);
+    if (!userId) return res.status(400).json({ error: 'userId is required', code: 'MISSING_USER_ID' });
+    const account = await requireManagedAccount(userId, res);
+    if (!account) return;
+    const pets = await listPetsByUser(userId, null);
+    return res.json({ data: pets });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/users/:userId/pets', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const userId = cleanId(req.params.userId);
+    if (!userId) return res.status(400).json({ error: 'userId is required', code: 'MISSING_USER_ID' });
+    const account = await requireManagedAccount(userId, res);
+    if (!account) return;
+    const created = await createPetForUser(userId, req.body ?? {}, null);
+    return res.status(201).json({ data: created });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/users/:userId/pets/:petId', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const userId = cleanId(req.params.userId);
+    const petId = cleanId(req.params.petId);
+    if (!userId || !petId) return res.status(400).json({ error: 'userId and petId are required', code: 'MISSING_PET_FIELDS' });
+    const account = await requireManagedAccount(userId, res);
+    if (!account) return;
+    const pet = await requireManagedPet(userId, petId, res);
+    if (!pet) return;
+    const updated = await updatePetForUser(userId, petId, req.body ?? {}, null);
+    return res.json({ data: updated });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/users/:userId/pets/:petId/care-records', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const userId = cleanId(req.params.userId);
+    const petId = cleanId(req.params.petId);
+    if (!userId || !petId) return res.status(400).json({ error: 'userId and petId are required', code: 'MISSING_PET_FIELDS' });
+    const account = await requireManagedAccount(userId, res);
+    if (!account) return;
+    const pet = await requireManagedPet(userId, petId, res);
+    if (!pet) return;
+    const type = typeof req.query.type === 'string' ? req.query.type : null;
+    const records = await listCoreCareRecords(userId, petId, null, { type });
+    return res.json({ data: records, summary: summarizeCoreCareRecords(records) });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/users/:userId/pets/:petId/care-records', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const userId = cleanId(req.params.userId);
+    const petId = cleanId(req.params.petId);
+    if (!userId || !petId) return res.status(400).json({ error: 'userId and petId are required', code: 'MISSING_PET_FIELDS' });
+    const account = await requireManagedAccount(userId, res);
+    if (!account) return;
+    const pet = await requireManagedPet(userId, petId, res);
+    if (!pet) return;
+    const record = await createCoreCareRecord(userId, petId, req.body ?? {}, null);
+    return res.status(201).json({ data: record });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/users/:userId/care-records/:recordId', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const userId = cleanId(req.params.userId);
+    const recordId = cleanId(req.params.recordId);
+    if (!userId || !recordId) return res.status(400).json({ error: 'userId and recordId are required', code: 'MISSING_RECORD_FIELDS' });
+    const account = await requireManagedAccount(userId, res);
+    if (!account) return;
+    const record = await updateCoreCareRecord(userId, recordId, req.body ?? {}, null);
+    if (!record) return res.status(404).json({ error: 'Record not found', code: 'CORE_CARE_RECORD_NOT_FOUND' });
+    return res.json({ data: record });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.delete('/users/:userId/care-records/:recordId', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const userId = cleanId(req.params.userId);
+    const recordId = cleanId(req.params.recordId);
+    if (!userId || !recordId) return res.status(400).json({ error: 'userId and recordId are required', code: 'MISSING_RECORD_FIELDS' });
+    const account = await requireManagedAccount(userId, res);
+    if (!account) return;
+    const ok = await deleteCoreCareRecord(userId, recordId, null);
+    if (!ok) return res.status(404).json({ error: 'Record not found', code: 'CORE_CARE_RECORD_NOT_FOUND' });
+    return res.status(204).send();
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/users/:userId/pets/:petId/analyses', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const userId = cleanId(req.params.userId);
+    const petId = cleanId(req.params.petId);
+    if (!userId || !petId) return res.status(400).json({ error: 'userId and petId are required', code: 'MISSING_PET_FIELDS' });
+    const account = await requireManagedAccount(userId, res);
+    if (!account) return;
+    const pet = await requireManagedPet(userId, petId, res);
+    if (!pet) return;
+    const displayLocale = typeof req.query.displayLocale === 'string' ? req.query.displayLocale : null;
+    const analyses = await listAnalysesByPet(userId, petId, displayLocale);
+    return res.json({ data: analyses });
   } catch (err) {
     return next(err);
   }

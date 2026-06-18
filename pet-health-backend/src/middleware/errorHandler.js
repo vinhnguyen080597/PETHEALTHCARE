@@ -44,6 +44,13 @@ export function errorHandler(err, req, res, _next) {
     return res.status(500).json({ error: 'A system error occurred. Please try again shortly.', code: 'INTERNAL_ERROR' });
   }
 
+  if (err?.name === 'AuthApiError' || err?.code === 'invalid_credentials' || err?.code === 'weak_password') {
+    const message = err.code === 'weak_password'
+      ? 'Password must be at least 6 characters.'
+      : (err.message || 'Authentication failed.');
+    return res.status(400).json({ error: message, code: err.code || 'AUTH_ERROR' });
+  }
+
   if (err?.message && typeof err.message === 'string' && /row-level security/i.test(err.message)) {
     void notifySystemError({ req, err, code: 'SUPABASE_RLS_ERROR', status: 500 });
     return res.status(500).json({ error: 'A system error occurred. Please try again shortly.', code: 'INTERNAL_ERROR' });

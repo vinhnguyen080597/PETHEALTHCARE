@@ -5,6 +5,7 @@ Checklist cho team tick trực tiếp trên GitHub. Dùng cho **iOS App Store** 
 **Liên quan:**
 - QA chi tiết: [APP-STORE-QA-RUNSHEET.md](./APP-STORE-QA-RUNSHEET.md)
 - Metadata / copy draft: [APP-STORE-SUBMISSION-PACKET.md](./APP-STORE-SUBMISSION-PACKET.md)
+- **Connect selections (submitted):** [APP-STORE-CONNECT-SUBMISSION-RECORD.md](./APP-STORE-CONNECT-SUBMISSION-RECORD.md)
 - Readiness notes: [APPLE-RELEASE-READINESS.md](./APPLE-RELEASE-READINESS.md)
 - Backend ops: [PRE-RELEASE-CHECKLIST.md](./PRE-RELEASE-CHECKLIST.md)
 
@@ -222,17 +223,18 @@ Tick theo [APP-STORE-QA-RUNSHEET.md](./APP-STORE-QA-RUNSHEET.md). Tóm tắt P0:
 
 ## 10. Submit for Review
 
-- [ ] Chọn đúng TestFlight / production build trên App Store Connect
-- [ ] Metadata + privacy labels + screenshots đầy đủ
-- [ ] Submit:
+- [x] Chọn đúng TestFlight / production build trên App Store Connect (build **18**)
+- [x] Metadata + privacy labels + screenshots đầy đủ
+- [x] Submit:
   ```bash
   cd pet-health-frontend
   eas submit --platform ios --profile production
   ```
-  hoặc submit thủ công trên App Store Connect
-- [ ] Trạng thái: **Waiting for Review** / **In Review**
+- [x] Trạng thái: **Waiting for Review** (submitted Jun 17, 2026)
 - [ ] UptimeRobot vẫn chạy trong suốt thời gian review
 - [ ] Không đổi backend URL / env giữa chừng khi đang review
+
+Chi tiết lựa chọn Connect: [APP-STORE-CONNECT-SUBMISSION-RECORD.md](./APP-STORE-CONNECT-SUBMISSION-RECORD.md)
 
 ---
 

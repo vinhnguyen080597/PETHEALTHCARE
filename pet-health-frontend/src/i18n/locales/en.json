@@ -93,8 +93,10 @@
     "locationUnknown": "Location not shared",
     "tabs": {
       "feed": "Pet feed",
+      "news": "News",
       "breeders": "Top breeder"
     },
+    "newsEmpty": "No news from Pet Health Care yet",
     "topBreeders": {
       "verified": "Verified",
       "posts": "Listings",
@@ -547,6 +549,56 @@
         "contract": "Contract/agreement"
       }
     }
+  },
+  "adminPost": {
+    "createTitle": "Post Pet Health Care news",
+    "publishNote": "This post appears in the News tab, not in sale listings.",
+    "categoryLabel": "Content type",
+    "titleLabel": "Title",
+    "bodyLabel": "Content",
+    "mediaLabel": "Photos & video",
+    "videoOptional": "Add video (optional)",
+    "videoSelected": "Video selected",
+    "ctaLabel": "Call to action (optional)",
+    "ctaButtonPlaceholder": "Button label",
+    "ctaUrlPlaceholder": "Link URL",
+    "preview": "Preview",
+    "publish": "Publish now",
+    "previewUntitled": "Untitled post",
+    "previewEmptyBody": "Add content for your post.",
+    "submitFailed": "Could not publish post",
+    "errors": {
+      "titleRequired": "Title is required.",
+      "descriptionRequired": "Content is required."
+    },
+    "category": {
+      "app_update": "App update",
+      "health_tip": "Health tip",
+      "community": "Community",
+      "general": "General"
+    }
+  },
+  "adminHub": {
+    "title": "System management",
+    "openHub": "Manage users",
+    "tabs": {
+      "users": "Users",
+      "moderation": "Moderation"
+    },
+    "createAccount": "Create account",
+    "createAccountSuccess": "Account created successfully.",
+    "createAccountFailed": "Could not create account",
+    "searchUsers": "Search users",
+    "petsTitle": "Pets ({{count}})",
+    "addPet": "Add pet",
+    "noPets": "No pets yet.",
+    "actAsUser": "Manage as user",
+    "addPetFor": "Add pet for {{name}}",
+    "addPetHelper": "This pet profile is created for the selected user."
+  },
+  "managedUser": {
+    "banner": "Managing: {{name}}",
+    "exit": "Exit"
   },
   "adminReview": {
     "title": "Admin review",

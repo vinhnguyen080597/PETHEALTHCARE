@@ -15,13 +15,17 @@ import type {
   CoreCareRecord,
   CoreCareSummary,
   CreatePetPayload,
+  CreateAnnouncementPostMedia,
+  CreateAnnouncementPostPayload,
   CreateCoreCareRecordPayload,
   CreatePetFeedPostMedia,
   CreatePetFeedPostPayload,
   BreederProfile,
   Pet,
   PetFeedPost,
+  PetFeedPostStatus,
   PetFeedPostsPage,
+  PostKind,
   PetFeedReport,
   UpdatePetPayload,
   UpsertBreederProfilePayload,
@@ -270,13 +274,51 @@ export async function deletePet(token: string, petId: string) {
   });
 }
 
-export async function listPetFeedPosts(token: string, options: { limit?: number; cursor?: string | null } = {}) {
+export async function listPetFeedPosts(token: string, options: { limit?: number; cursor?: string | null; kind?: PostKind } = {}) {
   const params = new URLSearchParams();
   if (options.limit) params.set('limit', String(options.limit));
   if (options.cursor) params.set('cursor', options.cursor);
+  if (options.kind) params.set('kind', options.kind);
   const qs = params.toString() ? `?${params.toString()}` : '';
   return requestJson<PetFeedPostsPage>(`/pet-feed/posts${qs}`, {
     headers: authHeaders(token),
+  });
+}
+
+export async function listAnnouncementPosts(token: string, options: { limit?: number; cursor?: string | null } = {}) {
+  return listPetFeedPosts(token, { ...options, kind: 'announcement' });
+}
+
+export async function createAnnouncementPost(token: string, payload: CreateAnnouncementPostPayload, media?: CreateAnnouncementPostMedia) {
+  const formData = new FormData();
+  formData.append('payload', JSON.stringify(payload));
+  for (let i = 0; i < (media?.photoUris?.length ?? 0); i++) {
+    await appendImageFileToFormData(formData, 'photos', media!.photoUris[i], `announcement-photo-${i}-${Date.now()}`, 'image/jpeg');
+  }
+  if (media?.videoUri) {
+    await appendVideoFileToFormData(formData, 'video', media.videoUri, `announcement-video-${Date.now()}`, 'video/mp4');
+  }
+  return requestJson<{ data: PetFeedPost }>('/pet-feed/announcements', {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: formData,
+  });
+}
+
+export async function listMyAnnouncementPosts(token: string) {
+  return requestJson<{ data: PetFeedPost[] }>('/pet-feed/my-announcements', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function updateAdminAnnouncementPost(token: string, postId: string, payload: Partial<CreateAnnouncementPostPayload> & { status?: PetFeedPostStatus }) {
+  return requestJson<{ data: PetFeedPost }>(`/admin/announcements/${encodeURIComponent(postId)}`, {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
   });
 }
 
@@ -463,6 +505,82 @@ export async function updateAdminPetFeedReportStatus(token: string, reportId: st
     },
     body: JSON.stringify({ status }),
   });
+}
+
+export async function listAdminUserPets(token: string, userId: string) {
+  return requestJson<{ data: Pet[] }>(`/admin/users/${encodeURIComponent(userId)}/pets`, {
+    headers: authHeaders(token),
+  });
+}
+
+export async function createAdminUserPet(token: string, userId: string, payload: CreatePetPayload) {
+  return requestJson<{ data: Pet }>(`/admin/users/${encodeURIComponent(userId)}/pets`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminUserPet(token: string, userId: string, petId: string, payload: UpdatePetPayload) {
+  return requestJson<{ data: Pet }>(`/admin/users/${encodeURIComponent(userId)}/pets/${encodeURIComponent(petId)}`, {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listAdminUserCoreCareRecords(token: string, userId: string, petId: string, type?: string) {
+  const qs = type ? `?type=${encodeURIComponent(type)}` : '';
+  return requestJson<{ data: CoreCareRecord[]; summary: CoreCareSummary }>(
+    `/admin/users/${encodeURIComponent(userId)}/pets/${encodeURIComponent(petId)}/care-records${qs}`,
+    { headers: authHeaders(token) },
+  );
+}
+
+export async function createAdminUserCoreCareRecord(token: string, userId: string, petId: string, payload: CreateCoreCareRecordPayload) {
+  return requestJson<{ data: CoreCareRecord }>(
+    `/admin/users/${encodeURIComponent(userId)}/pets/${encodeURIComponent(petId)}/care-records`,
+    {
+      method: 'POST',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function updateAdminUserCoreCareRecord(token: string, userId: string, recordId: string, payload: Partial<CreateCoreCareRecordPayload>) {
+  return requestJson<{ data: CoreCareRecord }>(`/admin/users/${encodeURIComponent(userId)}/care-records/${encodeURIComponent(recordId)}`, {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAdminUserCoreCareRecord(token: string, userId: string, recordId: string) {
+  await requestJson<null>(`/admin/users/${encodeURIComponent(userId)}/care-records/${encodeURIComponent(recordId)}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
+export async function listAdminUserAnalyses(token: string, userId: string, petId: string, displayLocale?: string) {
+  const qs = displayLocale ? `?displayLocale=${encodeURIComponent(displayLocale)}` : '';
+  return requestJson<{ data: Analysis[] }>(
+    `/admin/users/${encodeURIComponent(userId)}/pets/${encodeURIComponent(petId)}/analyses${qs}`,
+    { headers: authHeaders(token) },
+  );
 }
 
 export async function getAiCreditSummary(token: string) {

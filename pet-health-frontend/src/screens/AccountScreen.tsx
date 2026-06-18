@@ -95,7 +95,7 @@ type AccountScreenProps = {
   onOpenBreederProfile: () => void;
   onOpenPetFeed: () => void;
   onOpenCreatePetFeedPost: () => void;
-  onOpenAdminReview: () => void;
+  onOpenAdminHub: () => void;
   onUpdateBreederStatus: (userId: string, verificationStatus: string) => Promise<void>;
   onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
@@ -155,7 +155,7 @@ export function AccountScreen({
   onOpenBreederProfile,
   onOpenPetFeed,
   onOpenCreatePetFeedPost,
-  onOpenAdminReview,
+  onOpenAdminHub,
   onUpdateBreederStatus,
   onUpdatePostStatus,
   onUpdateReportStatus,
@@ -454,7 +454,18 @@ export function AccountScreen({
           onPress={onOpenCreatePetFeedPost}
         >
           <Ionicons name="add-circle-outline" size={19} color="#fff" />
-          <Text className="text-sm font-bold text-white">{t('account.createPost')}</Text>
+          <Text className="text-sm font-bold text-white">{isAdmin ? t('adminPost.createTitle') : t('account.createPost')}</Text>
+        </Pressable>
+      ) : null}
+
+      {isAdmin ? (
+        <Pressable
+          testID="account-open-admin-hub-button"
+          className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-3.5 active:bg-blue-50"
+          onPress={onOpenAdminHub}
+        >
+          <Ionicons name="people-outline" size={19} color={PRIMARY} />
+          <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('adminHub.openHub')}</Text>
         </Pressable>
       ) : null}
 

@@ -56,15 +56,25 @@ export async function getAccountProfile(userId) {
   return toAccount(data);
 }
 
-export async function ensureAccountProfile({ userId, email, loginIdentifier, displayName, primaryRole = 'sen', metadata = {} }) {
+export async function ensureAccountProfile({
+  userId,
+  email,
+  loginIdentifier,
+  displayName,
+  primaryRole = 'sen',
+  metadata = {},
+  allowPrivilegedRole = false,
+}) {
   const existing = await getAccountProfile(userId);
   const now = new Date().toISOString();
+  const createdByAdmin = allowPrivilegedRole || metadata?.created_by_admin === true;
+  const initialRole = createdByAdmin ? normalizeUserRole(primaryRole, 'sen') : normalizeSignupRole(primaryRole);
   const row = {
     user_id: userId,
     email: trimText(email, 320) || null,
     login_identifier: trimText(loginIdentifier, 160),
     display_name: trimText(displayName, 160) || trimText(loginIdentifier, 160) || 'Pet Health user',
-    primary_role: existing?.primary_role ?? normalizeSignupRole(primaryRole),
+    primary_role: existing?.primary_role ?? initialRole,
     account_status: existing?.account_status ?? 'active',
     metadata: { ...(existing?.metadata ?? {}), ...(metadata && typeof metadata === 'object' ? metadata : {}) },
     updated_at: now,

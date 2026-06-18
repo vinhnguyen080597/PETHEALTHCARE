@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
 
 const POST_STATUSES = new Set(['draft', 'pending_review', 'published', 'archived']);
+const POST_KINDS = new Set(['listing', 'announcement']);
+const ANNOUNCEMENT_CATEGORIES = new Set(['app_update', 'health_tip', 'community', 'general']);
 const VERIFICATION_STATUSES = new Set(['unverified', 'pending_review', 'verified', 'rejected', 'suspended']);
 const memoryProfiles = [];
 const memoryPosts = [];
@@ -85,6 +87,16 @@ function normalizeStatus(value, fallback = 'draft') {
   return POST_STATUSES.has(status) ? status : fallback;
 }
 
+function normalizePostKind(value, fallback = 'listing') {
+  const kind = trimText(value, 32).toLowerCase();
+  return POST_KINDS.has(kind) ? kind : fallback;
+}
+
+function normalizeAnnouncementCategory(value) {
+  const category = trimText(value, 32).toLowerCase();
+  return ANNOUNCEMENT_CATEGORIES.has(category) ? category : 'general';
+}
+
 function normalizeVerificationStatus(value) {
   const status = trimText(value, 32).toLowerCase();
   return VERIFICATION_STATUSES.has(status) ? status : 'unverified';
@@ -150,6 +162,7 @@ function normalizePostPayload(userId, payload, existing = {}) {
     video_url: hasVideoUrl ? trimText(payload.videoUrl ?? payload.video_url, 1000) || null : existing.video_url ?? null,
     contact: normalizeJsonObject(payload.contact),
     status: normalizeStatus(payload.status, existing.status ?? 'draft'),
+    post_kind: normalizePostKind(payload.postKind ?? payload.post_kind ?? existing.post_kind, existing.post_kind ?? 'listing'),
     metadata,
     updated_at: new Date().toISOString(),
   };
@@ -197,6 +210,7 @@ function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
     video_url: row.video_url ?? null,
     contact: row.contact ?? {},
     status: row.status,
+    post_kind: normalizePostKind(row.post_kind, 'listing'),
     metadata: row.metadata ?? {},
     breeder_profile: profilesById.get(row.breeder_profile_id) ?? row.breeder_profile ?? null,
     is_favorited: favoriteIds.has(row.id),
@@ -242,39 +256,47 @@ async function blockedBreederIdsForUser(supabase, userId) {
   return new Set((data ?? []).map((row) => row.breeder_profile_id));
 }
 
-export async function listPublishedPetFeedPosts(userId, accessToken) {
+export async function listPublishedPetFeedPosts(userId, accessToken, options = {}) {
+  const kind = options.kind ? normalizePostKind(options.kind, 'listing') : 'listing';
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) {
     const favoriteIds = new Set(memoryFavorites.filter((row) => row.user_id === userId).map((row) => row.post_id));
     const blockedBreederIds = new Set(memoryBlockedBreeders.filter((row) => row.user_id === userId).map((row) => row.breeder_profile_id));
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     return memoryPosts
-      .filter((post) => post.status === 'published' && !blockedBreederIds.has(post.breeder_profile_id))
+      .filter((post) => post.status === 'published'
+        && normalizePostKind(post.post_kind, 'listing') === kind
+        && (kind === 'announcement' || !blockedBreederIds.has(post.breeder_profile_id)))
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
       .map((post) => toPost(post, favoriteIds, profilesById));
   }
 
   const favoriteIds = await favoriteIdsForUser(supabase, userId);
-  const blockedBreederIds = await blockedBreederIdsForUser(supabase, userId);
-  const { data, error } = await supabase
+  const blockedBreederIds = kind === 'announcement' ? new Set() : await blockedBreederIdsForUser(supabase, userId);
+  let query = supabase
     .from('pet_feed_posts')
     .select('*, breeder_profile:breeder_profiles(*)')
     .eq('status', 'published')
+    .eq('post_kind', kind)
     .order('created_at', { ascending: false });
+  const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).filter((row) => !blockedBreederIds.has(row.breeder_profile_id)).map((row) => toPost(row, favoriteIds));
+  return (data ?? []).filter((row) => kind === 'announcement' || !blockedBreederIds.has(row.breeder_profile_id)).map((row) => toPost(row, favoriteIds));
 }
 
 export async function listPublishedPetFeedPostPage(userId, accessToken, options = {}) {
   const limit = normalizePetFeedPageLimit(options.limit);
   const cursor = decodePetFeedCursor(options.cursor);
+  const kind = options.kind ? normalizePostKind(options.kind, 'listing') : 'listing';
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) {
     const favoriteIds = new Set(memoryFavorites.filter((row) => row.user_id === userId).map((row) => row.post_id));
     const blockedBreederIds = new Set(memoryBlockedBreeders.filter((row) => row.user_id === userId).map((row) => row.breeder_profile_id));
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     const { rows, nextCursor } = paginateFeedRows(
-      memoryPosts.filter((post) => post.status === 'published' && !blockedBreederIds.has(post.breeder_profile_id)),
+      memoryPosts.filter((post) => post.status === 'published'
+        && normalizePostKind(post.post_kind, 'listing') === kind
+        && (kind === 'announcement' || !blockedBreederIds.has(post.breeder_profile_id))),
       limit,
       cursor,
     );
@@ -285,11 +307,12 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
   }
 
   const favoriteIds = await favoriteIdsForUser(supabase, userId);
-  const blockedBreederIds = await blockedBreederIdsForUser(supabase, userId);
+  const blockedBreederIds = kind === 'announcement' ? new Set() : await blockedBreederIdsForUser(supabase, userId);
   let query = supabase
     .from('pet_feed_posts')
     .select('*, breeder_profile:breeder_profiles(*)')
     .eq('status', 'published')
+    .eq('post_kind', kind)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(limit + 1);
@@ -372,17 +395,16 @@ export async function upsertMyBreederProfile(userId, payload, accessToken) {
   return toProfile(data);
 }
 
-export async function createPetFeedPost(userId, payload, accessToken, options = {}) {
+export async function createPetFeedPost(userId, payload, accessToken, _options = {}) {
   const profile = await getMyBreederProfile(userId, accessToken);
-  if (!options.isAdmin) {
-    assertVerifiedBreederProfile(profile);
-  }
+  assertVerifiedBreederProfile(profile);
   const row = {
-    ...normalizePostPayload(userId, { ...payload, breederProfileId: profile?.id }),
-    status: options.isAdmin ? normalizeStatus(payload.status, 'published') : normalizeUserEditablePostStatus(payload.status, 'draft'),
+    ...normalizePostPayload(userId, { ...payload, breederProfileId: profile?.id, postKind: 'listing' }),
+    post_kind: 'listing',
+    status: normalizeUserEditablePostStatus(payload.status, 'draft'),
     created_at: new Date().toISOString(),
   };
-  const supabase = options.isAdmin ? (getSupabaseServiceClient() ?? getFeedSupabase(accessToken)) : getFeedSupabase(accessToken);
+  const supabase = getFeedSupabase(accessToken);
   if (!supabase) {
     memoryPosts.push(row);
     return toPost(row, new Set(), new Map(profile ? [[profile.id, profile]] : []));
@@ -390,6 +412,132 @@ export async function createPetFeedPost(userId, payload, accessToken, options = 
   const { data, error } = await supabase.from('pet_feed_posts').insert(row).select('*, breeder_profile:breeder_profiles(*)').single();
   if (error) throw error;
   return toPost(data);
+}
+
+export async function createAnnouncementPost(userId, payload, accessToken) {
+  const title = trimText(payload.title, 120);
+  const description = trimText(payload.description, 2000);
+  if (!title) {
+    const err = new Error('Announcement title is required.');
+    err.status = 400;
+    err.code = 'ANNOUNCEMENT_TITLE_REQUIRED';
+    throw err;
+  }
+  if (!description) {
+    const err = new Error('Announcement description is required.');
+    err.status = 400;
+    err.code = 'ANNOUNCEMENT_DESCRIPTION_REQUIRED';
+    throw err;
+  }
+  const category = normalizeAnnouncementCategory(payload.category);
+  const row = {
+    id: randomUUID(),
+    user_id: userId,
+    breeder_profile_id: null,
+    post_kind: 'announcement',
+    title,
+    species: 'general',
+    breed: '',
+    gender: '',
+    age_months: null,
+    location: '',
+    price_note: '',
+    description,
+    personality: [],
+    vaccine_status: '',
+    deworming_status: '',
+    paperwork: [],
+    media_urls: normalizeStringArray(payload.mediaUrls ?? payload.media_urls, 6),
+    video_url: trimText(payload.videoUrl ?? payload.video_url, 1000) || null,
+    contact: {},
+    status: 'published',
+    metadata: {
+      category,
+      ctaLabel: trimText(payload.ctaLabel ?? payload.cta_label, 80),
+      ctaUrl: trimText(payload.ctaUrl ?? payload.cta_url, 500),
+      authorLabel: 'Pet Health Care',
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    memoryPosts.push(row);
+    return toPost(row);
+  }
+  const { data, error } = await supabase.from('pet_feed_posts').insert(row).select('*').single();
+  if (error) throw error;
+  return toPost(data);
+}
+
+export async function adminUpdateAnnouncementPost(postId, payload) {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const idx = memoryPosts.findIndex((post) => post.id === postId && post.post_kind === 'announcement');
+    if (idx < 0) return null;
+    const existing = memoryPosts[idx];
+    const metadata = { ...(existing.metadata ?? {}) };
+    if (payload.category !== undefined) metadata.category = normalizeAnnouncementCategory(payload.category);
+    if (payload.ctaLabel !== undefined || payload.cta_label !== undefined) {
+      metadata.ctaLabel = trimText(payload.ctaLabel ?? payload.cta_label, 80);
+    }
+    if (payload.ctaUrl !== undefined || payload.cta_url !== undefined) {
+      metadata.ctaUrl = trimText(payload.ctaUrl ?? payload.cta_url, 500);
+    }
+    memoryPosts[idx] = {
+      ...existing,
+      title: payload.title !== undefined ? trimText(payload.title, 120) || existing.title : existing.title,
+      description: payload.description !== undefined ? trimText(payload.description, 2000) || existing.description : existing.description,
+      status: payload.status !== undefined ? normalizeStatus(payload.status, existing.status) : existing.status,
+      metadata,
+      updated_at: new Date().toISOString(),
+    };
+    return toPost(memoryPosts[idx]);
+  }
+  const { data: existing, error: loadError } = await supabase
+    .from('pet_feed_posts')
+    .select('*')
+    .eq('id', postId)
+    .eq('post_kind', 'announcement')
+    .maybeSingle();
+  if (loadError) throw loadError;
+  if (!existing) return null;
+  const metadata = { ...(existing.metadata ?? {}) };
+  if (payload.category !== undefined) metadata.category = normalizeAnnouncementCategory(payload.category);
+  if (payload.ctaLabel !== undefined || payload.cta_label !== undefined) {
+    metadata.ctaLabel = trimText(payload.ctaLabel ?? payload.cta_label, 80);
+  }
+  if (payload.ctaUrl !== undefined || payload.cta_url !== undefined) {
+    metadata.ctaUrl = trimText(payload.ctaUrl ?? payload.cta_url, 500);
+  }
+  const patch = {
+    title: payload.title !== undefined ? trimText(payload.title, 120) || existing.title : existing.title,
+    description: payload.description !== undefined ? trimText(payload.description, 2000) || existing.description : existing.description,
+    status: payload.status !== undefined ? normalizeStatus(payload.status, existing.status) : existing.status,
+    metadata,
+    updated_at: new Date().toISOString(),
+  };
+  const { data, error } = await supabase.from('pet_feed_posts').update(patch).eq('id', postId).select('*').maybeSingle();
+  if (error) throw error;
+  return toPost(data);
+}
+
+export async function listMyAnnouncementPosts(userId, accessToken) {
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    return memoryPosts
+      .filter((post) => post.user_id === userId && normalizePostKind(post.post_kind, 'listing') === 'announcement')
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .map((post) => toPost(post));
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('post_kind', 'announcement')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => toPost(row));
 }
 
 export async function updatePetFeedPost(userId, postId, payload, accessToken) {
@@ -566,11 +714,11 @@ export async function listAdminPetFeedPosts(status = 'pending_review') {
   if (!supabase) {
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     return memoryPosts
-      .filter((post) => !status || post.status === status)
+      .filter((post) => normalizePostKind(post.post_kind, 'listing') === 'listing' && (!status || post.status === status))
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
       .map((post) => toPost(post, new Set(), profilesById));
   }
-  let query = supabase.from('pet_feed_posts').select('*, breeder_profile:breeder_profiles(*)').order('created_at', { ascending: false });
+  let query = supabase.from('pet_feed_posts').select('*, breeder_profile:breeder_profiles(*)').eq('post_kind', 'listing').order('created_at', { ascending: false });
   if (status) query = query.eq('status', status);
   const { data, error } = await query;
   if (error) throw error;
