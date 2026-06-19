@@ -7,15 +7,18 @@ create table if not exists public.pets (
   species text not null,
   breed text,
   age integer,
+  birth_date date,
   gender text,
   avatar_url text,
   created_at timestamptz not null default now()
 );
 
-comment on column public.pets.age is 'Pet age stored as whole months.';
-
--- Existing projects: run once if `pets` was created before `gender` existed.
+-- Existing projects: add columns before comments (create table if not exists skips existing tables).
 alter table public.pets add column if not exists gender text;
+alter table public.pets add column if not exists birth_date date;
+
+comment on column public.pets.age is 'Pet age stored as whole months.';
+comment on column public.pets.birth_date is 'Pet date of birth (YYYY-MM-DD).';
 
 create index if not exists idx_pets_user_id on public.pets(user_id);
 create index if not exists idx_pets_created_at on public.pets(created_at desc);

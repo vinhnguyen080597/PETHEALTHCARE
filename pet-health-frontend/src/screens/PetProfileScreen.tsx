@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
 import { analysisPossibleFinding, analysisSeverity } from '../utils/analysisDisplay';
 import { buildCarePassportStats, metadataNumber } from '../utils/carePassport';
+import { formatPetAgeForDisplay } from '../utils/petAge';
 import type { Analysis, CoreCareRecord, CoreCareSummary, Pet, Severity } from '../types';
 
 const PRIMARY_BLUE = '#1E6FE8';
@@ -44,10 +45,25 @@ function severityIconName(severity: Severity) {
   return 'checkmark-circle-outline' as const;
 }
 
-function formatSpecies(pet: Pet, petFallback: string): string {
-  if (!pet.species?.trim()) return petFallback;
-  const s = pet.species.trim();
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+function formatTranslatedSpecies(
+  species: string | undefined,
+  t: (key: string) => string,
+  fallback: string,
+): string {
+  if (!species?.trim()) return fallback;
+  const speciesKey = `breederProfile.speciesOptions.${species.trim().toLowerCase()}`;
+  const translated = t(speciesKey);
+  return translated === speciesKey ? species.trim() : translated;
+}
+
+function formatBreedSpeciesLine(
+  pet: Pet,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
+  const breed = pet.breed?.trim();
+  const species = formatTranslatedSpecies(pet.species, t, t('home.petFallback'));
+  const breedPart = breed || t('profile.breedNotSet');
+  return `${breedPart} · ${species}`;
 }
 
 function ProfileChip({
@@ -69,31 +85,83 @@ function ProfileChip({
   );
 }
 
-function MiniStat({
+function CareMetricCard({
+  icon,
   label,
   value,
+  iconBgClass,
 }: {
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  value: string | number;
+  value: string;
+  iconBgClass: string;
 }) {
   return (
-    <View className="flex-1 rounded-2xl bg-slate-50 px-3 py-3">
-      <Text className="text-xs font-semibold text-slate-500" numberOfLines={1}>
+    <View className="min-w-0 flex-1 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3">
+      <View className={`mb-2 h-9 w-9 items-center justify-center rounded-xl ${iconBgClass}`}>
+        <Ionicons name={icon} size={18} color={PRIMARY_BLUE} />
+      </View>
+      <Text className="text-[11px] font-semibold uppercase tracking-wide text-slate-500" numberOfLines={1}>
         {label}
       </Text>
-      <Text className="mt-1 text-base font-extrabold text-slate-900" numberOfLines={1}>
-        {String(value)}
+      <Text className="mt-1 text-sm font-bold leading-5 text-slate-900" numberOfLines={2}>
+        {value}
       </Text>
     </View>
   );
 }
 
-function SectionHeader({ title, hint }: { title: string; hint?: string }) {
+function CareCountTile({
+  icon,
+  label,
+  count,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  count: number;
+}) {
   return (
-    <View className="mb-3">
-      <Text className="text-base font-extrabold text-slate-900">{title}</Text>
-      {hint ? <Text className="mt-1 text-sm leading-5 text-slate-500">{hint}</Text> : null}
+    <View className="min-w-[47%] flex-1 flex-row items-center gap-2.5 rounded-2xl border border-slate-100 bg-white px-3 py-2.5">
+      <View className="h-8 w-8 items-center justify-center rounded-full bg-slate-100">
+        <Ionicons name={icon} size={15} color="#475569" />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[11px] font-semibold text-slate-500" numberOfLines={1}>
+          {label}
+        </Text>
+        <Text className="text-base font-extrabold text-slate-900">{count}</Text>
+      </View>
     </View>
+  );
+}
+
+function CareStatusBadge({
+  overdueCount,
+  pendingCount,
+  t,
+}: {
+  overdueCount: number;
+  pendingCount: number;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  if (overdueCount > 0) {
+    return (
+      <Text className="shrink-0 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+        {t('profile.overdueCare', { count: overdueCount })}
+      </Text>
+    );
+  }
+  if (pendingCount > 0) {
+    return (
+      <Text className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
+        {t('vetSummary.pendingReminders', { count: pendingCount })}
+      </Text>
+    );
+  }
+  return (
+    <Text className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
+      {t('profile.onTrack')}
+    </Text>
   );
 }
 
@@ -107,23 +175,18 @@ export function PetProfileScreen({
   onDelete,
   onScanHealth,
   onSelectEntry,
+  onOpenCoreCare,
   coreCareSummary,
   coreCareRecords = [],
 }: PetProfileScreenProps) {
   const { t, i18n } = useTranslation();
-  const breed = pet.breed?.trim();
-  const ageLabel =
-    pet.age != null
-      ? pet.age === 1
-        ? t('home.yearOld', { count: pet.age })
-        : t('home.yearsOld', { count: pet.age })
-      : t('profile.ageNotSet');
+  const ageLabel = formatPetAgeForDisplay(pet, t);
   const genderLabel =
     pet.gender === 'female' || pet.gender === 'male'
       ? t(`gender.${pet.gender}`)
       : t('profile.dashGender');
   const passport = buildCarePassportStats(coreCareRecords, history);
-  const speciesLabel = formatSpecies(pet, t('home.petFallback'));
+  const breedSpeciesLine = formatBreedSpeciesLine(pet, t);
   const careSummary = coreCareSummary ?? {
     diary: 0,
     vet_visit: 0,
@@ -187,66 +250,102 @@ export function PetProfileScreen({
             <Text className="text-3xl font-extrabold text-slate-950" numberOfLines={1}>
               {pet.name}
             </Text>
-            <Text className="mt-1 text-sm font-medium text-slate-500" numberOfLines={1}>
-              {breed || speciesLabel}
+            <Text className="mt-1 text-sm font-medium text-slate-500" numberOfLines={2}>
+              {breedSpeciesLine}
             </Text>
             <View className="mt-4 flex-row flex-wrap gap-2">
-              <ProfileChip icon="paw-outline" label={t('profile.species')} value={speciesLabel} />
-              {breed ? <ProfileChip icon="ribbon-outline" label={t('profile.breed')} value={breed} /> : null}
               <ProfileChip icon="calendar-outline" label={t('profile.age')} value={ageLabel} />
               <ProfileChip icon="male-female-outline" label={t('profile.gender')} value={genderLabel} />
             </View>
           </View>
         </View>
 
-        <View className="mt-5 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
-          <SectionHeader title={t('profile.careOverview')} hint={t('profile.careOverviewHint', { name: pet.name })} />
-          <View className="rounded-2xl bg-blue-50 p-4">
-            <View className="flex-row items-start gap-3">
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-white">
-                <Ionicons name="alarm-outline" size={20} color={PRIMARY_BLUE} />
-              </View>
-              <View className="min-w-0 flex-1">
-                <Text className="text-xs font-bold uppercase text-blue-700">{t('coreCare.nextSchedule')}</Text>
-                {passport.nextReminder?.due_at ? (
-                  <Text className="mt-1 text-sm font-semibold leading-5 text-slate-900">
-                    {t('coreCare.nextReminderLine', {
-                      title: passport.nextReminder.title,
-                      date: formatLocaleDateTime(passport.nextReminder.due_at, i18n.language),
-                    })}
+        <View className="mt-6">
+          <View className="mb-3">
+            <View className="flex-row items-center justify-between gap-3">
+              <Text className="min-w-0 flex-1 text-base font-extrabold text-slate-900">{t('profile.careOverview')}</Text>
+              <CareStatusBadge
+                overdueCount={passport.overdueReminders.length}
+                pendingCount={careSummary.pendingReminders}
+                t={t}
+              />
+            </View>
+            <Text className="mt-1 text-sm leading-5 text-slate-500">
+              {t('profile.careOverviewHint', { name: pet.name })}
+            </Text>
+          </View>
+
+          <View className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+            <View className="border-b border-blue-100 bg-blue-50/80 px-4 py-4">
+              <View className="flex-row items-start gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
+                  <Ionicons name="alarm-outline" size={22} color={PRIMARY_BLUE} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="text-[11px] font-bold uppercase tracking-wide text-blue-700">
+                    {t('coreCare.nextSchedule')}
                   </Text>
-                ) : (
-                  <Text className="mt-1 text-sm leading-5 text-slate-600">{t('coreCare.noNextReminder')}</Text>
-                )}
+                  {passport.nextReminder?.due_at ? (
+                    <>
+                      <Text className="mt-1 text-sm font-bold leading-5 text-slate-900" numberOfLines={2}>
+                        {passport.nextReminder.title}
+                      </Text>
+                      <Text className="mt-1 text-xs font-medium text-slate-600">
+                        {formatLocaleDateTime(passport.nextReminder.due_at, i18n.language)}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text className="mt-1 text-sm leading-5 text-slate-600">{t('coreCare.noNextReminder')}</Text>
+                  )}
+                </View>
               </View>
             </View>
-          </View>
 
-          <View className="mt-3 flex-row gap-3">
-            <MiniStat
-              label={t('coreCare.latestWeight')}
-              value={
-                passport.latestWeight
-                  ? t('coreCare.weightKgValue', { value: metadataNumber(passport.latestWeight, 'weightKg') ?? '-' })
-                  : t('coreCare.notLogged')
-              }
-            />
-            <MiniStat label={t('coreCare.latestVaccine')} value={passport.latestVaccine?.title ?? t('coreCare.notLogged')} />
-          </View>
-
-          <View className="mt-3 flex-row flex-wrap gap-2">
-            {[
-              ['diary', careSummary.diary],
-              ['reminders', careSummary.pendingReminders],
-              ['vaccines', careSummary.vaccine ?? 0],
-              ['documents', careSummary.document],
-            ].map(([key, value]) => (
-              <View key={String(key)} className="rounded-full border border-gray-200 bg-white px-3 py-2">
-                <Text className="text-xs font-bold text-slate-700">
-                  {t(`coreCare.stats.${key}`)} · {String(value)}
-                </Text>
+            <View className="gap-3 p-4">
+              <View className="flex-row gap-3">
+                <CareMetricCard
+                  icon="scale-outline"
+                  label={t('coreCare.latestWeight')}
+                  value={
+                    passport.latestWeight
+                      ? t('coreCare.weightKgValue', {
+                          value: metadataNumber(passport.latestWeight, 'weightKg') ?? '-',
+                        })
+                      : t('coreCare.notLogged')
+                  }
+                  iconBgClass="bg-emerald-50"
+                />
+                <CareMetricCard
+                  icon="shield-checkmark-outline"
+                  label={t('coreCare.latestVaccine')}
+                  value={passport.latestVaccine?.title ?? t('coreCare.notLogged')}
+                  iconBgClass="bg-violet-50"
+                />
               </View>
-            ))}
+
+              <View className="flex-row flex-wrap gap-2">
+                <CareCountTile icon="journal-outline" label={t('coreCare.stats.diary')} count={careSummary.diary} />
+                <CareCountTile
+                  icon="notifications-outline"
+                  label={t('coreCare.stats.reminders')}
+                  count={careSummary.pendingReminders}
+                />
+                <CareCountTile icon="medkit-outline" label={t('coreCare.stats.vaccines')} count={careSummary.vaccine ?? 0} />
+                <CareCountTile icon="document-text-outline" label={t('coreCare.stats.documents')} count={careSummary.document} />
+              </View>
+
+              {onOpenCoreCare ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('profile.openCoreCareA11y', { name: pet.name })}
+                  className="mt-1 flex-row items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
+                  onPress={onOpenCoreCare}
+                >
+                  <Ionicons name="calendar-outline" size={18} color={PRIMARY_BLUE} />
+                  <Text className="text-sm font-bold text-blue-700">{t('profile.openCoreCare')}</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
         </View>
 

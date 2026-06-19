@@ -4,6 +4,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
+import { birthDateToAgeMonths, petBirthDateForForm } from '../utils/petAge';
 import {
   AnalyzeRequestError,
   ApiRequestError,
@@ -135,7 +136,7 @@ export function usePetHealthApp() {
   const [petName, setPetName] = useState('');
   const [petSpecies, setPetSpecies] = useState('dog');
   const [petBreed, setPetBreed] = useState('');
-  const [petAge, setPetAge] = useState('');
+  const [petBirthDate, setPetBirthDate] = useState('');
   const [petGender, setPetGender] = useState('male');
   const [petAvatarUrl, setPetAvatarUrl] = useState('');
   const [petAvatarStorageUrl, setPetAvatarStorageUrl] = useState('');
@@ -227,16 +228,20 @@ export function usePetHealthApp() {
     setPetName('');
     setPetSpecies('dog');
     setPetBreed('');
-    setPetAge('');
+    setPetBirthDate('');
     setPetGender('male');
     setPetAvatarUrl('');
     setPetAvatarStorageUrl('');
     setEditingPetId(null);
   }
 
-  function petAgeMonthsForApi(value: string) {
-    const months = Number(value);
-    return Number.isFinite(months) ? Math.max(0, Math.round(months)) : undefined;
+  function petPayloadFromBirthDate(birthDate: string) {
+    const trimmed = birthDate.trim();
+    if (!trimmed) return {};
+    return {
+      birthDate: trimmed,
+      age: birthDateToAgeMonths(trimmed),
+    };
   }
 
   function clearHealthCheckForm() {
@@ -583,7 +588,7 @@ export function usePetHealthApp() {
 
   async function handleAddPet() {
     if (!token) return;
-    if (!petName.trim() || !petSpecies.trim() || !petAge.trim() || !petAvatarStorageUrl.trim()) {
+    if (!petName.trim() || !petSpecies.trim() || !petBirthDate.trim() || !petAvatarStorageUrl.trim()) {
       Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
       return;
     }
@@ -595,7 +600,7 @@ export function usePetHealthApp() {
           name: petName.trim(),
           species: petSpecies.trim().toLowerCase(),
           breed: petBreed.trim() || undefined,
-          age: petAge ? petAgeMonthsForApi(petAge) : undefined,
+          ...petPayloadFromBirthDate(petBirthDate),
           gender: petGender,
           ...(petAvatarStorageUrl ? { avatarUrl: petAvatarStorageUrl } : {}),
         });
@@ -609,7 +614,7 @@ export function usePetHealthApp() {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || undefined,
-        age: petAge ? petAgeMonthsForApi(petAge) : undefined,
+        ...petPayloadFromBirthDate(petBirthDate),
         gender: petGender,
         ...(petAvatarStorageUrl ? { avatarUrl: petAvatarStorageUrl } : {}),
       });
@@ -687,7 +692,7 @@ export function usePetHealthApp() {
 
   async function handleUpdatePet() {
     if (!token || !editingPetId) return;
-    if (!petName.trim() || !petSpecies.trim() || !petAge.trim() || (!petAvatarStorageUrl.trim() && !petAvatarUrl.trim())) {
+    if (!petName.trim() || !petSpecies.trim() || !petBirthDate.trim() || (!petAvatarStorageUrl.trim() && !petAvatarUrl.trim())) {
       Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
       return;
     }
@@ -699,7 +704,7 @@ export function usePetHealthApp() {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || null,
-        age: petAge ? petAgeMonthsForApi(petAge) : null,
+        ...petPayloadFromBirthDate(petBirthDate),
         gender: petGender,
         ...avatarPatch,
       };
@@ -748,7 +753,7 @@ export function usePetHealthApp() {
       setPetName(data.name);
       setPetSpecies(data.species);
       setPetBreed(data.breed ?? '');
-      setPetAge(data.age !== null && data.age !== undefined ? String(data.age) : '');
+      setPetBirthDate(petBirthDateForForm(data));
       setPetGender(data.gender === 'female' || data.gender === 'male' ? data.gender : 'male');
       setPetAvatarUrl(data.avatar_url ?? '');
       setPetAvatarStorageUrl('');
@@ -1790,8 +1795,8 @@ export function usePetHealthApp() {
     setPetSpecies,
     petBreed,
     setPetBreed,
-    petAge,
-    setPetAge,
+    petBirthDate,
+    setPetBirthDate,
     petGender,
     setPetGender,
     petAvatarUrl,

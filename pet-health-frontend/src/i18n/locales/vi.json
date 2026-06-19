@@ -634,6 +634,11 @@
     "male": "Đực",
     "female": "Cái"
   },
+  "petAge": {
+    "years": "{{count}} năm",
+    "months": "{{count}} tháng",
+    "days": "{{count}} ngày"
+  },
   "addPet": {
     "addNewPet": "Thêm thú cưng",
     "editPet": "Sửa thú cưng",
@@ -647,6 +652,8 @@
     "selectPetType": "Chọn loài",
     "breed": "Giống",
     "enterBreed": "Nhập giống",
+    "birthDate": "Ngày sinh",
+    "birthDatePlaceholder": "Chọn ngày sinh",
     "ageYears": "Tuổi (tháng)",
     "agePlaceholder": "vd: 6",
     "gender": "Giới tính",
@@ -894,6 +901,7 @@
     "edit": "Sửa",
     "species": "Loài",
     "breed": "Giống",
+    "breedNotSet": "Chưa nhập giống",
     "age": "Tuổi",
     "gender": "Giới tính",
     "ageNotSet": "Chưa nhập tuổi",
@@ -1000,6 +1008,8 @@
     "administeredDateRequired": "Vui lòng chọn ngày tiêm cho từng dòng.",
     "administeredDateFieldRequired": "Vui lòng chọn ngày tiêm.",
     "birthDateRequired": "Vui lòng chọn ngày sinh của bé.",
+    "birthDateEditPetHint": "Chưa có ngày sinh. Vào Hồ sơ thú cưng → Sửa để cập nhật.",
+    "birthDateLockedHint": "Ngày sinh lấy từ hồ sơ thú cưng. Chỉnh sửa tại trang Sửa hồ sơ.",
     "desiredVaccineRequired": "Vui lòng chọn loại vaccine muốn tạo lịch.",
     "pastDateRequired": "Ngày tiêm phải từ quá khứ đến hôm nay.",
     "vaccineTitleRequired": "Vui lòng nhập tên vaccine.",

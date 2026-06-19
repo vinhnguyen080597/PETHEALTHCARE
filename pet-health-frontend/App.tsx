@@ -331,13 +331,13 @@ function AppContent() {
                 petName={app.petName}
                 petSpecies={app.petSpecies}
                 petBreed={app.petBreed}
-                petAge={app.petAge}
+                petBirthDate={app.petBirthDate}
                 petGender={app.petGender}
                 petAvatarUrl={app.petAvatarUrl}
                 onChangeName={app.setPetName}
                 onChangeSpecies={app.setPetSpecies}
                 onChangeBreed={app.setPetBreed}
-                onChangeAge={app.setPetAge}
+                onChangeBirthDate={app.setPetBirthDate}
                 onChangeGender={app.setPetGender}
                 onPickAvatar={app.pickPetAvatar}
                 onSubmit={app.petFormMode === 'edit' ? app.handleUpdatePet : app.handleAddPet}
@@ -366,13 +366,13 @@ function AppContent() {
                 petName={app.petName}
                 petSpecies={app.petSpecies}
                 petBreed={app.petBreed}
-                petAge={app.petAge}
+                petBirthDate={app.petBirthDate}
                 petGender={app.petGender}
                 petAvatarUrl={app.petAvatarUrl}
                 onChangeName={app.setPetName}
                 onChangeSpecies={app.setPetSpecies}
                 onChangeBreed={app.setPetBreed}
-                onChangeAge={app.setPetAge}
+                onChangeBirthDate={app.setPetBirthDate}
                 onChangeGender={app.setPetGender}
                 onPickAvatar={app.pickPetAvatar}
                 onSubmit={app.handleOnboardingAddPet}

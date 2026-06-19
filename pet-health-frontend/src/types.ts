@@ -244,6 +244,7 @@ export type Pet = {
   species: string;
   breed: string | null;
   age: number | null;
+  birth_date?: string | null;
   gender?: string | null;
   avatar_url: string | null;
   created_at: string;
@@ -254,6 +255,7 @@ export type CreatePetPayload = {
   species: string;
   breed?: string;
   age?: number;
+  birthDate?: string;
   gender?: string;
   avatarUrl?: string;
 };
@@ -264,6 +266,7 @@ export type UpdatePetPayload = {
   species?: string;
   breed?: string | null;
   age?: number | null;
+  birthDate?: string | null;
   gender?: string | null;
   avatarUrl?: string | null;
 };

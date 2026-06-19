@@ -5,6 +5,7 @@ import { Alert, Image, Modal, Pressable, ScrollView, Text, TextInput, View } fro
 import { useTranslation } from 'react-i18next';
 
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
+import { FormDateField } from '../components/FormDateField';
 
 type PetFormVariant = 'create' | 'edit';
 
@@ -26,13 +27,13 @@ type AddPetScreenProps = {
   petName: string;
   petSpecies: string;
   petBreed: string;
-  petAge: string;
+  petBirthDate: string;
   petGender: string;
   petAvatarUrl: string;
   onChangeName: (value: string) => void;
   onChangeSpecies: (value: string) => void;
   onChangeBreed: (value: string) => void;
-  onChangeAge: (value: string) => void;
+  onChangeBirthDate: (value: string) => void;
   onChangeGender: (value: string) => void;
   onPickAvatar: () => void;
   onSubmit: () => void;
@@ -117,13 +118,13 @@ export function AddPetScreen({
   petName,
   petSpecies,
   petBreed,
-  petAge,
+  petBirthDate,
   petGender,
   petAvatarUrl,
   onChangeName,
   onChangeSpecies,
   onChangeBreed,
-  onChangeAge,
+  onChangeBirthDate,
   onChangeGender,
   onPickAvatar,
   onSubmit,
@@ -172,7 +173,7 @@ export function AddPetScreen({
       !petName.trim() ? t('addPet.petName') : null,
       !petSpecies.trim() ? t('addPet.petType') : null,
       !petGender.trim() ? t('addPet.gender') : null,
-      !petAge.trim() ? t('addPet.ageYears') : null,
+      !petBirthDate.trim() ? t('addPet.birthDate') : null,
       !petAvatarUrl.trim() ? t('addPet.avatar') : null,
     ].filter((field): field is string => Boolean(field));
 
@@ -275,19 +276,15 @@ export function AddPetScreen({
           required
         />
 
-        <View className="mb-5">
-          <RequiredLabel>{t('addPet.ageYears')}</RequiredLabel>
-          <TextInput
-            testID="add-pet-age-input"
-            accessibilityLabel="Pet age"
-            className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder={t('addPet.agePlaceholder')}
-            placeholderTextColor="#9ca3af"
-            keyboardType="numeric"
-            value={petAge}
-            onChangeText={(value) => onChangeAge(value.replace(/[^0-9]/g, ''))}
-          />
-        </View>
+        <FormDateField
+          label={t('addPet.birthDate')}
+          value={petBirthDate}
+          placeholder={t('addPet.birthDatePlaceholder')}
+          maximumDate={new Date()}
+          testID="add-pet-birth-date-field"
+          required
+          onChange={onChangeBirthDate}
+        />
 
         <View className="mb-5">
           <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.breed')}</Text>

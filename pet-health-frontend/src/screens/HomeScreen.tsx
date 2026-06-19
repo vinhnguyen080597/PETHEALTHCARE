@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { Pet } from '../types';
+import { formatPetAgeForDisplay } from '../utils/petAge';
 
 const PRIMARY_BLUE = '#1E6FE8';
 
@@ -20,12 +21,7 @@ function formatPetSubtitle(pet: Pet, t: (key: string, opts?: Record<string, unkn
     ? pet.species.charAt(0).toUpperCase() + pet.species.slice(1).toLowerCase()
     : t('home.petFallback');
   const breedPart = breed || speciesLabel;
-  const agePart =
-    pet.age != null
-      ? pet.age === 1
-        ? t('home.yearOld', { count: pet.age })
-        : t('home.yearsOld', { count: pet.age })
-      : t('home.ageUnknown');
+  const agePart = formatPetAgeForDisplay(pet, t);
   return `${breedPart} • ${agePart}`;
 }
 

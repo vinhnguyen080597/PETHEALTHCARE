@@ -69,6 +69,17 @@ async function openFreshApp(page: Page) {
   await page.goto('/');
 }
 
+async function chooseBirthDate(page: Page, testID: string, isoDate: string) {
+  await page.getByTestId(testID).click();
+  const picker = page.getByTestId(`${testID}-picker`);
+  if (await picker.count()) {
+    await picker.fill(isoDate);
+    return;
+  }
+  const dateInput = page.locator('input[type="date"]').last();
+  await dateInput.fill(isoDate);
+}
+
 async function chooseImage(page: Page, testID: string) {
   const chooserPromise = page.waitForEvent('filechooser');
   await page.getByTestId(testID).click();
@@ -114,7 +125,7 @@ test.describe('Web feature smoke coverage', () => {
       await page.getByTestId('add-pet-species-select').click();
       await page.getByTestId('add-pet-species-select-option-cat').click();
       await page.getByTestId('add-pet-breed-input').fill('Domestic Shorthair');
-      await page.getByTestId('add-pet-age-input').fill('2');
+      await chooseBirthDate(page, 'add-pet-birth-date-field', '2024-01-15');
       await page.getByTestId('add-pet-submit-button').click();
 
       await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());

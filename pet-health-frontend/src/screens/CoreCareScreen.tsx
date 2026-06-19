@@ -15,6 +15,7 @@ import {
   type CoreCareScheduleRecommendation,
   normalizeManualVaccineId,
 } from '../utils/coreCareSchedule';
+import { resolvePetAgeMonths, parseBirthDateIso } from '../utils/petAge';
 import type {
   AiCreditAccount,
   Analysis,
@@ -160,6 +161,7 @@ function DateField({
   placeholder,
   error,
   maximumDate,
+  readOnly = false,
   onChange,
 }: {
   label: string;
@@ -167,11 +169,19 @@ function DateField({
   placeholder?: string;
   error?: string;
   maximumDate?: Date;
+  readOnly?: boolean;
   onChange: (value: Date) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const pickerValue = value ?? maximumDate ?? new Date();
+  const displayValue = value
+    ? new Intl.DateTimeFormat(i18n.language === 'vi' ? 'vi-VN' : 'en-US', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(value)
+    : null;
 
   function handleChange(event: DateTimePickerEvent, selectedDate?: Date) {
     if (event.type === 'dismissed') {
@@ -187,43 +197,49 @@ function DateField({
       <Text className="mb-2 text-xs font-bold uppercase text-slate-500">{label}</Text>
       <Pressable
         accessibilityRole="button"
-        className={`min-h-[48px] flex-row items-center justify-between rounded-xl border bg-slate-50 px-3 py-3 active:bg-slate-100 ${
-          error ? 'border-red-300' : 'border-gray-200'
-        }`}
-        onPress={() => setOpen(true)}
+        accessibilityState={{ disabled: readOnly }}
+        disabled={readOnly}
+        className={`min-h-[48px] flex-row items-center justify-between rounded-xl border px-3 py-3 ${
+          readOnly ? 'border-gray-200 bg-gray-100' : 'border-gray-200 bg-slate-50 active:bg-slate-100'
+        } ${error ? 'border-red-300' : ''}`}
+        onPress={() => {
+          if (!readOnly) setOpen(true);
+        }}
       >
-        <Text className={`text-sm font-semibold ${value ? 'text-slate-900' : 'text-slate-400'}`}>
-          {value ? formatDateValue(value) : placeholder ?? t('coreCare.selectDate')}
+        <Text className={`text-sm font-semibold ${displayValue ? 'text-slate-900' : 'text-slate-400'}`}>
+          {displayValue ?? placeholder ?? t('coreCare.selectDate')}
         </Text>
-        <Ionicons name="calendar-outline" size={18} color="#64748b" />
+        <Ionicons name={readOnly ? 'lock-closed-outline' : 'calendar-outline'} size={18} color="#64748b" />
       </Pressable>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View className="flex-1 justify-end">
-          <Pressable className="absolute inset-0 bg-black/40" onPress={() => setOpen(false)} />
-          <View className="rounded-t-3xl bg-white px-4 pb-8 pt-3">
-            <View className="mb-3 self-center rounded-full bg-gray-200 px-10 py-1" />
-            <Text className="mb-2 text-center text-base font-bold text-slate-900">{label}</Text>
-            <DateTimePicker
-              value={pickerValue}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              maximumDate={maximumDate}
-              onChange={handleChange}
-            />
-            {Platform.OS === 'ios' ? (
-              <Pressable
-                className="mt-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
-                onPress={() => {
-                  if (!value) onChange(pickerValue);
-                  setOpen(false);
-                }}
-              >
-                <Text className="text-center text-sm font-bold text-white">{t('common.done')}</Text>
-              </Pressable>
-            ) : null}
+      {!readOnly ? (
+        <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+          <View className="flex-1 justify-end">
+            <Pressable className="absolute inset-0 bg-black/40" onPress={() => setOpen(false)} />
+            <View className="rounded-t-3xl bg-white px-4 pb-8 pt-3">
+              <View className="mb-3 self-center rounded-full bg-gray-200 px-10 py-1" />
+              <Text className="mb-2 text-center text-base font-bold text-slate-900">{label}</Text>
+              <DateTimePicker
+                value={pickerValue}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                maximumDate={maximumDate}
+                onChange={handleChange}
+              />
+              {Platform.OS === 'ios' ? (
+                <Pressable
+                  className="mt-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+                  onPress={() => {
+                    if (!value) onChange(pickerValue);
+                    setOpen(false);
+                  }}
+                >
+                  <Text className="text-center text-sm font-bold text-white">{t('common.done')}</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      ) : null}
       {error ? <Text className="mt-1.5 text-xs font-semibold text-red-600">{error}</Text> : null}
     </View>
   );
@@ -307,7 +323,6 @@ export function CoreCareScreen({
   const [vaccinatedAnswer, setVaccinatedAnswer] = useState<VaccinatedAnswer>('yes');
   const [manualEntryType, setManualEntryType] = useState<ManualEntryType>('vaccine');
   const [doseDrafts, setDoseDrafts] = useState<VaccineDoseDraft[]>(() => [makeDoseDraft()]);
-  const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [desiredVaccineId, setDesiredVaccineId] = useState('');
   const [vaccineTitle, setVaccineTitle] = useState('');
   const [vaccineClinic, setVaccineClinic] = useState('');
@@ -352,6 +367,11 @@ export function CoreCareScreen({
     [pet.species, t],
   );
 
+  const petBirthDate = useMemo(() => {
+    if (!pet.birth_date) return null;
+    return parseBirthDateIso(pet.birth_date.slice(0, 10));
+  }, [pet.birth_date]);
+
   const careRecords = useMemo(
     () => records.filter((record) => record.type === 'vaccine' || record.type === 'reminder'),
     [records],
@@ -379,10 +399,10 @@ export function CoreCareScreen({
   const canAddDose = doseDrafts.length < vaccineOptions.length;
   const generatedRecommendations = useMemo(
     () =>
-      birthDate && desiredVaccineId
-        ? calculateCoreCareSchedule({ species: pet.species, birthDate, today, selectedVaccineId: desiredVaccineId })
+      petBirthDate && desiredVaccineId
+        ? calculateCoreCareSchedule({ species: pet.species, birthDate: petBirthDate, today, selectedVaccineId: desiredVaccineId })
         : [],
-    [birthDate, desiredVaccineId, pet.species, today],
+    [petBirthDate, desiredVaccineId, pet.species, today],
   );
   const pendingGeneratedRecommendations = useMemo(
     () => generatedRecommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation)),
@@ -408,7 +428,7 @@ export function CoreCareScreen({
     () =>
       calculateNextVaccinationSchedule({
         species: pet.species,
-        petAgeMonths: pet.age,
+        petAgeMonths: resolvePetAgeMonths(pet),
         today,
         administeredDoses: [
           ...administeredVaccineDoses,
@@ -420,7 +440,7 @@ export function CoreCareScreen({
             })),
         ],
       }),
-    [administeredVaccineDoses, doseDrafts, pet.age, pet.species, today],
+    [administeredVaccineDoses, doseDrafts, pet.age, pet.birth_date, pet.species, today],
   );
   const pendingNextVaccineRecommendations = useMemo(
     () => nextVaccineRecommendations.filter((recommendation) => !nextVaccineRecommendationRecordExists(careRecords, recommendation)),
@@ -453,11 +473,6 @@ export function CoreCareScreen({
       }
       return next;
     });
-  }
-
-  function selectBirthDate(value: Date) {
-    setBirthDate(value);
-    setGeneratedScheduleErrors((current) => ({ ...current, birthDate: undefined }));
   }
 
   function selectDesiredVaccine(vaccineId: string) {
@@ -642,7 +657,7 @@ export function CoreCareScreen({
 
   async function createGeneratedSchedule() {
     const nextErrors: GeneratedScheduleErrors = {
-      birthDate: birthDate ? undefined : t('coreCare.birthDateRequired'),
+      birthDate: petBirthDate ? undefined : t('coreCare.birthDateEditPetHint'),
       desiredVaccineId: desiredVaccineId ? undefined : t('coreCare.desiredVaccineRequired'),
     };
     setGeneratedScheduleErrors(nextErrors);
@@ -1004,12 +1019,18 @@ export function CoreCareScreen({
                   <View className="gap-3">
                     <DateField
                       label={t('coreCare.petBirthDate')}
-                      value={birthDate}
+                      value={petBirthDate}
                       placeholder={t('coreCare.selectDate')}
                       error={generatedScheduleErrors.birthDate}
                       maximumDate={today}
-                      onChange={selectBirthDate}
+                      readOnly
+                      onChange={() => {}}
                     />
+                    {!petBirthDate ? (
+                      <Text className="text-xs leading-4 text-amber-800">{t('coreCare.birthDateEditPetHint')}</Text>
+                    ) : (
+                      <Text className="text-xs leading-4 text-slate-500">{t('coreCare.birthDateLockedHint')}</Text>
+                    )}
                     <VaccineSelect
                       label={t('coreCare.desiredVaccineType')}
                       value={desiredVaccineId}

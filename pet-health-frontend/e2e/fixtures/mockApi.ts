@@ -7,10 +7,21 @@ type Pet = {
   species: string;
   breed: string | null;
   age: number | null;
+  birth_date?: string | null;
   gender: string | null;
   avatar_url: string | null;
   created_at: string;
 };
+
+function ageMonthsFromBirthDate(birthDate: string): number {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
+  if (!match) return 0;
+  const birth = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const now = new Date();
+  let months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  if (now.getDate() < birth.getDate()) months -= 1;
+  return Math.max(0, months);
+}
 
 type CareRecord = {
   id: string;
@@ -319,13 +330,15 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
 
     if (method === 'POST' && path === '/pets') {
       const payload = await bodyJson(route);
+      const birthDate = payload.birthDate ? String(payload.birthDate).slice(0, 10) : null;
       const pet: Pet = {
         id: `pet-${state.pets.length + 1}`,
         user_id: 'e2e-user',
         name: String(payload.name ?? 'Buddy'),
         species: String(payload.species ?? 'dog'),
         breed: payload.breed ? String(payload.breed) : null,
-        age: Number.isFinite(Number(payload.age)) ? Number(payload.age) : null,
+        birth_date: birthDate,
+        age: birthDate ? ageMonthsFromBirthDate(birthDate) : Number.isFinite(Number(payload.age)) ? Number(payload.age) : null,
         gender: payload.gender ? String(payload.gender) : 'male',
         avatar_url: payload.avatarUrl ? String(payload.avatarUrl) : null,
         created_at: new Date().toISOString(),
@@ -345,12 +358,22 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
       const idx = state.pets.findIndex((p) => p.id === petId);
       if (idx < 0) return json(route, { error: 'Pet not found' }, 404);
       const payload = await bodyJson(route);
+      const birthDate = payload.birthDate !== undefined
+        ? (payload.birthDate === null ? null : String(payload.birthDate).slice(0, 10))
+        : state.pets[idx].birth_date ?? null;
       state.pets[idx] = {
         ...state.pets[idx],
         name: payload.name !== undefined ? String(payload.name) : state.pets[idx].name,
         species: payload.species !== undefined ? String(payload.species) : state.pets[idx].species,
         breed: payload.breed !== undefined ? (payload.breed === null ? null : String(payload.breed)) : state.pets[idx].breed,
-        age: payload.age !== undefined && payload.age !== null ? Number(payload.age) : payload.age === null ? null : state.pets[idx].age,
+        birth_date: birthDate,
+        age: birthDate
+          ? ageMonthsFromBirthDate(birthDate)
+          : payload.age !== undefined && payload.age !== null
+            ? Number(payload.age)
+            : payload.age === null
+              ? null
+              : state.pets[idx].age,
         gender: payload.gender !== undefined ? String(payload.gender) : state.pets[idx].gender,
         avatar_url: payload.avatarUrl !== undefined ? (payload.avatarUrl === null ? null : String(payload.avatarUrl)) : state.pets[idx].avatar_url,
       };

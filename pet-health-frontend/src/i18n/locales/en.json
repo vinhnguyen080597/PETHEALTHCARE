@@ -634,6 +634,14 @@
     "male": "Male",
     "female": "Female"
   },
+  "petAge": {
+    "years_one": "{{count}} year",
+    "years_other": "{{count}} years",
+    "months_one": "{{count}} month",
+    "months_other": "{{count}} months",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
+  },
   "addPet": {
     "addNewPet": "Add New Pet",
     "editPet": "Edit Pet",
@@ -647,6 +655,8 @@
     "selectPetType": "Select pet type",
     "breed": "Breed",
     "enterBreed": "Enter breed",
+    "birthDate": "Date of birth",
+    "birthDatePlaceholder": "Select date of birth",
     "ageYears": "Age (months)",
     "agePlaceholder": "e.g. 6",
     "gender": "Gender",
@@ -894,6 +904,7 @@
     "edit": "Edit",
     "species": "Species",
     "breed": "Breed",
+    "breedNotSet": "Breed not set",
     "age": "Age",
     "gender": "Gender",
     "ageNotSet": "Age not set",
@@ -1000,6 +1011,8 @@
     "administeredDateRequired": "Please select the vaccination date for each row.",
     "administeredDateFieldRequired": "Please select the vaccination date.",
     "birthDateRequired": "Please select your pet's birth date.",
+    "birthDateEditPetHint": "No birth date yet. Open Pet profile → Edit to update it.",
+    "birthDateLockedHint": "Birth date comes from the pet profile. Edit it on the pet edit screen.",
     "desiredVaccineRequired": "Please select the vaccine type to schedule.",
     "pastDateRequired": "Vaccination date must be between the past and today.",
     "vaccineTitleRequired": "Please enter the vaccine name.",
