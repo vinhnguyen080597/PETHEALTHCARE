@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Text, Te
 import { useTranslation } from 'react-i18next';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { CreatePetFeedPostMedia, CreatePetFeedPostPayload, PetFeedPost, UserRole } from '../types';
+import { ACTIVE_PET_FEED_SPECIES } from '../constants/petSpecies';
 import { normalizePetFeedPriceInput, petFeedPriceInputUnit } from '../utils/petFeedCurrency';
 
 const PRIMARY = '#1E6FE8';
@@ -137,10 +138,14 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
   const [submitting, setSubmitting] = useState(false);
   const isAdmin = role === 'admin';
 
-  const speciesOptions = useMemo<Option[]>(() => [
-    { value: 'cat', label: t('createPetFeedPost.options.species.cat') },
-    { value: 'dog', label: t('createPetFeedPost.options.species.dog') },
-  ], [t]);
+  const speciesOptions = useMemo<Option[]>(
+    () =>
+      ACTIVE_PET_FEED_SPECIES.map((value) => ({
+        value,
+        label: t(`createPetFeedPost.options.species.${value}`),
+      })),
+    [t],
+  );
   const genderOptions = useMemo<Option[]>(() => [
     { value: 'unknown', label: t('createPetFeedPost.options.gender.unknown') },
     { value: 'male', label: t('createPetFeedPost.options.gender.male') },
@@ -332,7 +337,9 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
             value={title}
             onChangeText={setTitle}
           />
-          <SelectField label={t('createPetFeedPost.species')} value={species} options={speciesOptions} onChange={setSpecies} />
+          {speciesOptions.length > 1 ? (
+            <SelectField label={t('createPetFeedPost.species')} value={species} options={speciesOptions} onChange={setSpecies} />
+          ) : null}
           <FieldLabel>{t('createPetFeedPost.breed')}</FieldLabel>
           <TextInput
             className="mb-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900"

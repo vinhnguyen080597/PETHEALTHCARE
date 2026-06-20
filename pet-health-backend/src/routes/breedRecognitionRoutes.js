@@ -26,7 +26,7 @@ const SLOT_ORDER = [
   'parentPedigree',
 ];
 const REQUIRED_SLOTS = ['face', 'fullBodySide', 'coat'];
-const SUPPORTED_SPECIES = new Set(['cat', 'dog']);
+const SUPPORTED_SPECIES = new Set(['cat']);
 const BREED_IN_FLIGHT_TTL_MS = intFromEnv('BREED_RECOGNITION_IN_FLIGHT_TTL_SECONDS', 5 * 60) * 1000;
 const BREED_COOLDOWN_MS = intFromEnv('BREED_RECOGNITION_COOLDOWN_SECONDS', 120) * 1000;
 const BREED_HOURLY_LIMIT = intFromEnv('BREED_RECOGNITION_RATE_LIMIT_HOURLY', 8);
@@ -122,7 +122,7 @@ router.post(
         .trim();
       if (!SUPPORTED_SPECIES.has(speciesNorm)) {
         return res.status(400).json({
-          error: 'Breed recognition is only available for cats and dogs',
+          error: 'Breed recognition is only available for cats',
           code: 'SPECIES_NOT_SUPPORTED',
         });
       }

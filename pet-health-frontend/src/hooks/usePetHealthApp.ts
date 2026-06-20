@@ -4,6 +4,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
+import { DEFAULT_PET_SPECIES } from '../constants/petSpecies';
 import { birthDateToAgeMonths, petBirthDateForForm } from '../utils/petAge';
 import {
   AnalyzeRequestError,
@@ -134,7 +135,7 @@ export function usePetHealthApp() {
   const [editingPetId, setEditingPetId] = useState<string | null>(null);
 
   const [petName, setPetName] = useState('');
-  const [petSpecies, setPetSpecies] = useState('dog');
+  const [petSpecies, setPetSpecies] = useState<string>(DEFAULT_PET_SPECIES);
   const [petBreed, setPetBreed] = useState('');
   const [petBirthDate, setPetBirthDate] = useState('');
   const [petGender, setPetGender] = useState('male');
@@ -226,7 +227,7 @@ export function usePetHealthApp() {
 
   function clearPetForm() {
     setPetName('');
-    setPetSpecies('dog');
+    setPetSpecies(DEFAULT_PET_SPECIES);
     setPetBreed('');
     setPetBirthDate('');
     setPetGender('male');

@@ -335,7 +335,7 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
         id: `pet-${state.pets.length + 1}`,
         user_id: 'e2e-user',
         name: String(payload.name ?? 'Buddy'),
-        species: String(payload.species ?? 'dog'),
+        species: String(payload.species ?? 'cat'),
         breed: payload.breed ? String(payload.breed) : null,
         birth_date: birthDate,
         age: birthDate ? ageMonthsFromBirthDate(birthDate) : Number.isFinite(Number(payload.age)) ? Number(payload.age) : null,

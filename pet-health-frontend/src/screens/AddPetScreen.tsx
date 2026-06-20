@@ -9,7 +9,9 @@ import { FormDateField } from '../components/FormDateField';
 
 type PetFormVariant = 'create' | 'edit';
 
-export const PET_SPECIES_VALUES = ['dog', 'cat'] as const;
+import { ACTIVE_PET_SPECIES } from '../constants/petSpecies';
+
+export const PET_SPECIES_VALUES = ACTIVE_PET_SPECIES;
 export const PET_GENDER_VALUES = ['male', 'female'] as const;
 
 type SelectOption = { value: string; label: string };
@@ -256,14 +258,14 @@ export function AddPetScreen({
           />
         </View>
 
-        <FormSelect
-          label={t('addPet.petType')}
-          value={petSpecies}
-          options={speciesOptions}
-          onChange={onChangeSpecies}
-          placeholder={t('addPet.selectPetType')}
-          testID="add-pet-species-select"
+        <FormDateField
+          label={t('addPet.birthDate')}
+          value={petBirthDate}
+          placeholder={t('addPet.birthDatePlaceholder')}
+          maximumDate={new Date()}
+          testID="add-pet-birth-date-field"
           required
+          onChange={onChangeBirthDate}
         />
 
         <FormSelect
@@ -276,15 +278,24 @@ export function AddPetScreen({
           required
         />
 
-        <FormDateField
-          label={t('addPet.birthDate')}
-          value={petBirthDate}
-          placeholder={t('addPet.birthDatePlaceholder')}
-          maximumDate={new Date()}
-          testID="add-pet-birth-date-field"
-          required
-          onChange={onChangeBirthDate}
-        />
+        {speciesOptions.length > 1 ? (
+          <FormSelect
+            label={t('addPet.petType')}
+            value={petSpecies}
+            options={speciesOptions}
+            onChange={onChangeSpecies}
+            placeholder={t('addPet.selectPetType')}
+            testID="add-pet-species-select"
+            required
+          />
+        ) : (
+          <View className="mb-5">
+            <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.petType')}</Text>
+            <View className="rounded-xl border border-gray-200 bg-slate-50 px-4 py-3">
+              <Text className="text-base font-medium text-slate-900">{speciesOptions[0]?.label ?? t('petTypes.cat')}</Text>
+            </View>
+          </View>
+        )}
 
         <View className="mb-5">
           <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.breed')}</Text>

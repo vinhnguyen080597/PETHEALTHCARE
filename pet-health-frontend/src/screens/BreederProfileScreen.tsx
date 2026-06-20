@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ACTIVE_BREEDER_SPECIES_OPTIONS } from '../constants/petSpecies';
 import type { BreederProfile, UpsertBreederProfilePayload } from '../types';
 
 const PRIMARY = '#1E6FE8';
@@ -11,7 +12,7 @@ type ScaleRange = '1_3' | '4_10' | '11_20' | '20_plus';
 type BreedingPetRange = 'none' | '1_3' | '4_10' | '10_plus';
 
 const BREEDER_TYPES: BreederType[] = ['registered_kennel', 'home_breeder', 'rescue_foster', 'rehoming', 'other'];
-const SPECIES_OPTIONS = ['dog', 'cat', 'other'];
+const SPECIES_OPTIONS = [...ACTIVE_BREEDER_SPECIES_OPTIONS];
 const SCALE_OPTIONS: ScaleRange[] = ['1_3', '4_10', '11_20', '20_plus'];
 const BREEDING_PET_OPTIONS: BreedingPetRange[] = ['none', '1_3', '4_10', '10_plus'];
 const CARE_CHECKLIST_OPTIONS = [
@@ -56,7 +57,9 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
   const [location, setLocation] = useState(profile?.location ?? '');
-  const [primarySpecies, setPrimarySpecies] = useState<string[]>(profile?.primary_species ?? []);
+  const [primarySpecies, setPrimarySpecies] = useState<string[]>(
+    profile?.primary_species?.length ? profile.primary_species : [...ACTIVE_BREEDER_SPECIES_OPTIONS],
+  );
   const [mainBreeds, setMainBreeds] = useState((profile?.main_breeds ?? []).join(', '));
   const [careEnvironment, setCareEnvironment] = useState(profile?.care_environment ?? '');
   const [facebook, setFacebook] = useState(String(profile?.contact?.facebook ?? ''));
@@ -78,7 +81,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
     setDisplayName(profile?.display_name ?? '');
     setBio(profile?.bio ?? '');
     setLocation(profile?.location ?? '');
-    setPrimarySpecies(profile?.primary_species ?? []);
+    setPrimarySpecies(profile?.primary_species?.length ? profile.primary_species : [...ACTIVE_BREEDER_SPECIES_OPTIONS]);
     setMainBreeds((profile?.main_breeds ?? []).join(', '));
     setCareEnvironment(profile?.care_environment ?? '');
     setFacebook(String(profile?.contact?.facebook ?? ''));
@@ -101,7 +104,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
         bio: bio.trim(),
         location: location.trim(),
         contact: { facebook: facebook.trim(), zalo: zalo.trim(), phone: phone.trim() },
-        primarySpecies,
+        primarySpecies: primarySpecies.length ? primarySpecies : [...ACTIVE_BREEDER_SPECIES_OPTIONS],
         mainBreeds: splitList(mainBreeds),
         careEnvironment: careEnvironment.trim(),
         metadata: {
@@ -184,11 +187,17 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
         <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-base font-bold text-slate-900">{t('breederProfile.scaleAndSpecies')}</Text>
           <Text className="mt-3 text-xs font-bold uppercase text-slate-500">{t('breederProfile.primarySpecies')}</Text>
-          <View className="mt-2 flex-row flex-wrap gap-2">
-            {SPECIES_OPTIONS.map((item) => (
-              <OptionChip key={item} label={t(`breederProfile.speciesOptions.${item}`)} active={primarySpecies.includes(item)} onPress={() => setPrimarySpecies((current) => toggleArrayValue(current, item))} />
-            ))}
-          </View>
+          {SPECIES_OPTIONS.length > 1 ? (
+            <View className="mt-2 flex-row flex-wrap gap-2">
+              {SPECIES_OPTIONS.map((item) => (
+                <OptionChip key={item} label={t(`breederProfile.speciesOptions.${item}`)} active={primarySpecies.includes(item)} onPress={() => setPrimarySpecies((current) => toggleArrayValue(current, item))} />
+              ))}
+            </View>
+          ) : (
+            <View className="mt-2 self-start rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5">
+              <Text className="text-sm font-semibold text-slate-800">{t('breederProfile.speciesOptions.cat')}</Text>
+            </View>
+          )}
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder={t('breederProfile.mainBreeds')} value={mainBreeds} onChangeText={setMainBreeds} />
           <Text className="mt-3 text-xs font-bold uppercase text-slate-500">{t('breederProfile.scaleRange')}</Text>
           <View className="mt-2 flex-row flex-wrap gap-2">

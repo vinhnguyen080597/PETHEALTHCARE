@@ -44,7 +44,7 @@ export const BREED_RECOGNITION_SLOT_ORDER = BREED_RECOGNITION_ALL_SLOTS;
 
 export const BREED_RECOGNITION_REQUIRED_SLOTS = COMMON_REQUIRED_SLOTS;
 
-export const BREED_RECOGNITION_SUPPORTED_SPECIES = ['cat', 'dog'] as const;
+export const BREED_RECOGNITION_SUPPORTED_SPECIES = ['cat'] as const;
 
 export function normalizeBreedRecognitionSpecies(species: string | undefined | null): BreedRecognitionSpecies | null {
   const s = String(species ?? '')

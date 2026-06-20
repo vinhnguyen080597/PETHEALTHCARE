@@ -19,13 +19,14 @@ import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { AdminPostCard } from '../components/AdminPostCard';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, metadataString } from '../utils/breederTrust';
+import { ACTIVE_PET_FEED_SPECIES, type ActivePetFeedSpecies } from '../constants/petSpecies';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 
 const PRIMARY = '#1E6FE8';
 const WEB_SEARCH_INPUT_STYLE =
   Platform.OS === 'web' ? ({ outlineStyle: 'none', boxShadow: 'none' } as unknown as TextStyle) : undefined;
 
-type SpeciesFilter = 'all' | 'dog' | 'cat';
+type SpeciesFilter = 'all' | ActivePetFeedSpecies;
 type GenderFilter = 'all' | 'male' | 'female';
 type SortField = 'date' | 'age' | 'price';
 type SortDirection = 'asc' | 'desc';
@@ -201,12 +202,12 @@ export function PetFeedScreen({
   }, [announcementPosts, normalizedQuery]);
 
   const speciesFilterItems = useMemo<ChipItem<SpeciesFilter>[]>(() => {
-    const dogCount = searchMatchedPosts.filter((post) => post.species.toLowerCase() === 'dog').length;
-    const catCount = searchMatchedPosts.filter((post) => post.species.toLowerCase() === 'cat').length;
-    return [
-      { key: 'dog', label: t('petFeed.filters.dog'), count: dogCount, icon: 'paw-outline' },
-      { key: 'cat', label: t('petFeed.filters.cat'), count: catCount, icon: 'paw-outline' },
-    ];
+    return ACTIVE_PET_FEED_SPECIES.map((species) => ({
+      key: species,
+      label: t(`petFeed.filters.${species}`),
+      count: searchMatchedPosts.filter((post) => post.species.toLowerCase() === species).length,
+      icon: 'paw-outline' as const,
+    }));
   }, [searchMatchedPosts, t]);
 
   const sortItems = useMemo<ChipItem<SortField>[]>(() => [
