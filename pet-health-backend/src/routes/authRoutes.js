@@ -7,11 +7,6 @@ import { deleteUserImageStorage } from '../services/imageStorageService.js';
 
 const router = Router();
 
-function isAlreadyRegistered(error) {
-  const text = [error?.message, String(error?.code ?? ''), String(error?.status ?? '')].filter(Boolean).join(' ');
-  return /already|registered|exists/i.test(text);
-}
-
 router.post('/signup', async (req, res, next) => {
   try {
     const { email, password, displayName } = req.body ?? {};
@@ -36,48 +31,94 @@ router.post('/signup', async (req, res, next) => {
       primary_role: 'sen',
     };
 
-    const admin = getSupabaseServiceClient();
-    if (admin) {
-      const created = await admin.auth.admin.createUser({
-        email: authEmail,
-        password,
-        email_confirm: true,
-        user_metadata: metadata,
-      });
-      if (created.error && !isAlreadyRegistered(created.error)) throw created.error;
-
-      const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
-      if (error) throw error;
-      const account = data.user?.id
-        ? await ensureAccountProfile({
-            userId: data.user.id,
-            email: data.user.email,
-            loginIdentifier: metadata.login_identifier,
-            displayName: name,
-            primaryRole: metadata.primary_role,
-            metadata: { auth_mode: metadata.auth_mode },
-          })
-        : null;
-      return res.status(created.error ? 200 : 201).json({ data: { ...data, account } });
-    }
-
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signInWithOtp({
       email: authEmail,
-      password,
-      options: { data: metadata },
+      options: {
+        shouldCreateUser: true,
+        data: metadata,
+      },
     });
     if (error) throw error;
-    const account = data.user?.id
+    return res.status(200).json({
+      data: {
+        otpSent: true,
+        email: authEmail,
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/signup/verify-otp', async (req, res, next) => {
+  try {
+    const { email, otp, password } = req.body ?? {};
+    if (!email || !otp || !password) {
+      return res.status(400).json({ error: 'email, otp and password are required' });
+    }
+
+    const supabase = getSupabaseAnonClient();
+    if (!supabase) {
+      return res.status(503).json({
+        error: 'Supabase auth is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY',
+      });
+    }
+
+    const authEmail = authEmailFromIdentifier(email);
+    const cleanPassword = String(password);
+    if (cleanPassword.length < 6) {
+      return res.status(400).json({ error: 'password must be at least 6 characters', code: 'PASSWORD_TOO_SHORT' });
+    }
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: authEmail,
+      token: String(otp).trim(),
+      type: 'email',
+    });
+    if (error) throw error;
+
+    const admin = getSupabaseServiceClient();
+    if (!admin) {
+      return res.status(503).json({
+        error: 'Supabase service role is required to finalize sign up password',
+        code: 'SERVICE_ROLE_REQUIRED',
+      });
+    }
+    if (data.user?.id) {
+      const { error: updatePasswordError } = await admin.auth.admin.updateUserById(data.user.id, {
+        password: cleanPassword,
+      });
+      if (updatePasswordError) throw updatePasswordError;
+    }
+
+    // Setting password via admin API invalidates the OTP session; sign in again for a fresh JWT.
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+      email: authEmail,
+      password: cleanPassword,
+    });
+    if (loginError) throw loginError;
+
+    const metadata = loginData.user?.user_metadata ?? data.user?.user_metadata ?? {};
+    const loginIdentifier =
+      typeof metadata.login_identifier === 'string' && metadata.login_identifier.trim()
+        ? metadata.login_identifier
+        : compactText(email);
+    const displayName =
+      typeof metadata.full_name === 'string' && metadata.full_name.trim()
+        ? metadata.full_name
+        : compactText(email);
+
+    const account = loginData.user?.id
       ? await ensureAccountProfile({
-          userId: data.user.id,
-          email: data.user.email,
-          loginIdentifier: metadata.login_identifier,
-          displayName: name,
-          primaryRole: metadata.primary_role,
-          metadata: { auth_mode: metadata.auth_mode },
+          userId: loginData.user.id,
+          email: loginData.user.email,
+          loginIdentifier,
+          displayName,
+          primaryRole: 'sen',
+          metadata: { auth_mode: 'email_password_otp' },
         })
       : null;
-    return res.status(201).json({ data: { ...data, account } });
+    return res.json({ data: { ...loginData, account } });
   } catch (err) {
     return next(err);
   }

@@ -9,6 +9,22 @@ export type AuthPayload = {
   password: string;
 };
 
+export type SignUpOtpRequestPayload = {
+  email: string;
+  password: string;
+};
+
+export type VerifySignUpOtpPayload = {
+  email: string;
+  otp: string;
+  password: string;
+};
+
+export type SignUpOtpRequestResponse = {
+  otpSent: boolean;
+  email: string;
+};
+
 export type AccountProfile = {
   user_id: string;
   email: string | null;

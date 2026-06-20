@@ -42,9 +42,33 @@
     "continue": "Continue",
     "toggleToSignIn": "Already have an account? Sign in",
     "toggleToSignUp": "Don't have an account? Sign up",
+    "errors": {
+      "signUpRateLimit": "You recently requested an OTP. Please wait {{seconds}} seconds and try again.",
+      "invalidCredentials": "Incorrect email or password.",
+      "weakPassword": "Password must be at least 6 characters.",
+      "signUpFailed": "Could not send verification code. Please try again.",
+      "signInFailed": "Could not sign in. Please try again."
+    },
     "termsFooter": "By continuing, you agree to our Terms of Service and Privacy Policy",
     "termsPrefix": "By continuing, you agree to our",
     "termsAnd": "and"
+  },
+  "signupOtp": {
+    "title": "Verify OTP",
+    "subtitle": "We sent a one-time code to {{email}}.",
+    "otpLabel": "OTP code",
+    "otpPlaceholder": "Enter 8-digit OTP",
+    "otpRequired": "Please enter the OTP code sent to your email.",
+    "otpInvalidLength": "The OTP must be exactly 8 digits as shown in your email.",
+    "helper": "The code is 8 digits. If you don't see it, check Spam/Junk.",
+    "verifyButton": "Verify OTP",
+    "backButton": "Back to sign up",
+    "errors": {
+      "otpExpired": "This OTP has expired or is invalid. Please check your email again or go back to sign up for a new code.",
+      "otpInvalid": "Incorrect OTP. Please check and try again.",
+      "rateLimit": "Please wait {{seconds}} seconds before requesting another code.",
+      "generic": "Verification failed. Please try again."
+    }
   },
   "legal": {
     "title": "Support and policies",
@@ -1320,6 +1344,14 @@
     "missingEmailPassword": {
       "title": "Missing info",
       "message": "Please enter your login name/email and password."
+    },
+    "signUpOtpSent": {
+      "title": "OTP sent",
+      "message": "Please check your email for the verification code."
+    },
+    "signUpOtpRequired": {
+      "title": "OTP required",
+      "message": "Please enter the OTP sent to your email."
     },
     "signUpPasswordMismatch": {
       "title": "Passwords do not match",

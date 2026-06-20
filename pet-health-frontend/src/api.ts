@@ -11,6 +11,8 @@ import type {
   AnalyzeResponse,
   AuthPayload,
   AuthResponse,
+  SignUpOtpRequestPayload,
+  SignUpOtpRequestResponse,
   BreedRecognitionResult,
   CoreCareRecord,
   CoreCareSummary,
@@ -29,6 +31,7 @@ import type {
   PetFeedReport,
   UpdatePetPayload,
   UpsertBreederProfilePayload,
+  VerifySignUpOtpPayload,
 } from './types';
 
 /**
@@ -198,8 +201,16 @@ export async function healthCheck() {
   return res.json() as Promise<{ status: string; service?: string; timestamp?: string }>;
 }
 
-export async function signUp(payload: AuthPayload) {
-  return requestJson<{ data: AuthResponse }>('/auth/signup', {
+export async function requestSignUpOtp(payload: SignUpOtpRequestPayload) {
+  return requestJson<{ data: SignUpOtpRequestResponse }>('/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function verifySignUpOtp(payload: VerifySignUpOtpPayload) {
+  return requestJson<{ data: AuthResponse }>('/auth/signup/verify-otp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

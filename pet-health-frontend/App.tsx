@@ -37,6 +37,7 @@ import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { SignUpOtpVerificationScreen } from './src/screens/SignUpOtpVerificationScreen';
 import { OnboardingIntroScreen } from './src/screens/OnboardingIntroScreen';
 import { OnboardingHealthPromptScreen } from './src/screens/OnboardingHealthPromptScreen';
 import { PetProfileScreen } from './src/screens/PetProfileScreen';
@@ -163,7 +164,7 @@ function AppContent() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style={app.screen === 'login' ? 'light' : 'dark'} />
+      <StatusBar style={app.screen === 'login' || app.screen === 'signup-otp-verification' ? 'light' : 'dark'} />
       {app.screen === 'login' ? (
         <LoginScreen
           backendHealth={app.backendHealth}
@@ -171,11 +172,23 @@ function AppContent() {
           password={app.password}
           confirmPassword={app.confirmPassword}
           isSignUp={app.isSignUp}
-          onChangeEmail={app.setEmail}
-          onChangePassword={app.setPassword}
-          onChangeConfirmPassword={app.setConfirmPassword}
+          error={app.authError}
+          loading={app.loading}
+          onChangeEmail={app.changeEmail}
+          onChangePassword={app.changePassword}
+          onChangeConfirmPassword={app.changeConfirmPassword}
           onToggleSignUp={app.toggleLoginSignUpMode}
           onSubmit={app.submitAuth}
+        />
+      ) : app.screen === 'signup-otp-verification' ? (
+        <SignUpOtpVerificationScreen
+          email={app.pendingSignUpEmail || app.email}
+          otp={app.signUpOtp}
+          error={app.signUpOtpError}
+          loading={app.loading}
+          onChangeOtp={app.changeSignUpOtp}
+          onBack={app.backToSignUpFromOtpVerification}
+          onSubmit={app.submitSignUpOtpVerification}
         />
       ) : (
         <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right']}>

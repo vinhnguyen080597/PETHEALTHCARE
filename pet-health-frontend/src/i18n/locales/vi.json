@@ -42,9 +42,33 @@
     "continue": "Tiếp tục",
     "toggleToSignIn": "Đã có tài khoản? Đăng nhập",
     "toggleToSignUp": "Chưa có tài khoản? Đăng ký",
+    "errors": {
+      "signUpRateLimit": "Bạn vừa yêu cầu gửi mã OTP. Vui lòng đợi {{seconds}} giây rồi thử lại.",
+      "invalidCredentials": "Email hoặc mật khẩu không đúng.",
+      "weakPassword": "Mật khẩu phải có ít nhất 6 ký tự.",
+      "signUpFailed": "Không thể gửi mã xác thực. Vui lòng thử lại.",
+      "signInFailed": "Không thể đăng nhập. Vui lòng thử lại."
+    },
     "termsFooter": "Tiếp tục nghĩa là bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật",
     "termsPrefix": "Tiếp tục nghĩa là bạn đồng ý với",
     "termsAnd": "và"
+  },
+  "signupOtp": {
+    "title": "Xác thực OTP",
+    "subtitle": "Chúng mình đã gửi mã dùng một lần đến {{email}}.",
+    "otpLabel": "Mã OTP",
+    "otpPlaceholder": "Nhập mã OTP 8 số",
+    "otpRequired": "Vui lòng nhập mã OTP đã gửi về email.",
+    "otpInvalidLength": "Mã OTP phải gồm đúng 8 chữ số như trong email.",
+    "helper": "Mã gồm 8 chữ số. Nếu chưa thấy email, vui lòng kiểm tra mục Spam/Junk.",
+    "verifyButton": "Xác thực OTP",
+    "backButton": "Quay lại đăng ký",
+    "errors": {
+      "otpExpired": "Mã OTP đã hết hạn hoặc không hợp lệ. Vui lòng kiểm tra lại email hoặc quay lại đăng ký để nhận mã mới.",
+      "otpInvalid": "Mã OTP không đúng. Vui lòng kiểm tra lại.",
+      "rateLimit": "Vui lòng đợi {{seconds}} giây trước khi gửi lại mã.",
+      "generic": "Xác thực thất bại. Vui lòng thử lại."
+    }
   },
   "legal": {
     "title": "Hỗ trợ và chính sách",
@@ -1317,6 +1341,14 @@
     "missingEmailPassword": {
       "title": "Thiếu thông tin",
       "message": "Vui lòng nhập tên đăng nhập/email và mật khẩu."
+    },
+    "signUpOtpSent": {
+      "title": "Đã gửi OTP",
+      "message": "Vui lòng kiểm tra email để lấy mã xác thực."
+    },
+    "signUpOtpRequired": {
+      "title": "Thiếu OTP",
+      "message": "Vui lòng nhập mã OTP đã gửi về email."
     },
     "signUpPasswordMismatch": {
       "title": "Mật khẩu không khớp",

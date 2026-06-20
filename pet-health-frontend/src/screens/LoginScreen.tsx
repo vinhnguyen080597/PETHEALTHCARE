@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguageToggle } from '../components/LanguageToggle';
@@ -14,6 +14,8 @@ type LoginScreenProps = {
   password: string;
   confirmPassword: string;
   isSignUp: boolean;
+  error?: string;
+  loading?: boolean;
   onChangeEmail: (value: string) => void;
   onChangePassword: (value: string) => void;
   onChangeConfirmPassword: (value: string) => void;
@@ -28,6 +30,8 @@ export function LoginScreen({
   password,
   confirmPassword,
   isSignUp,
+  error,
+  loading = false,
   onChangeEmail,
   onChangePassword,
   onChangeConfirmPassword,
@@ -76,13 +80,19 @@ export function LoginScreen({
                 {isSignUp ? t('login.createAccount') : t('login.welcomeBack')}
               </Text>
 
+              {error ? (
+                <View testID="login-auth-error" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                  <Text className="text-sm font-medium text-red-700">{error}</Text>
+                </View>
+              ) : null}
+
               <View className="mb-4">
-                <Text className="mb-2 text-sm text-slate-700">{t('login.emailOrLoginName')}</Text>
+                <Text className="mb-2 text-sm text-slate-700">{t('login.email')}</Text>
                 <TextInput
                   testID="login-email-input"
-                  accessibilityLabel={t('login.emailOrLoginName')}
+                  accessibilityLabel={t('login.email')}
                   className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-                  placeholder={t('login.placeholderEmailOrLoginName')}
+                  placeholder={t('login.placeholderEmail')}
                   placeholderTextColor="#9ca3af"
                   autoCapitalize="none"
                   value={email}
@@ -152,12 +162,19 @@ export function LoginScreen({
                 testID={isSignUp ? 'signup-submit-button' : 'login-submit-button'}
                 accessibilityRole="button"
                 accessibilityLabel={isSignUp ? 'Sign up' : 'Sign in'}
-                className="mb-6 w-full rounded-xl bg-blue-600 py-3 active:bg-blue-700"
+                disabled={loading}
+                className={`mb-6 w-full rounded-xl py-3 ${
+                  loading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'
+                }`}
                 onPress={onSubmit}
               >
-                <Text className="text-center text-base font-semibold text-white">
-                  {isSignUp ? t('login.signUp') : t('login.signIn')}
-                </Text>
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text className="text-center text-base font-semibold text-white">
+                    {isSignUp ? t('login.signUp') : t('login.signIn')}
+                  </Text>
+                )}
               </Pressable>
 
               <Pressable

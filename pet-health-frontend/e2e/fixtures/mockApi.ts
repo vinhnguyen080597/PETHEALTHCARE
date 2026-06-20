@@ -226,6 +226,15 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     const method = route.request().method();
 
     if (method === 'POST' && path === '/auth/signup') {
+      return json(route, {
+        data: {
+          otpSent: true,
+          email: 'e2e@example.com',
+        },
+      });
+    }
+
+    if (method === 'POST' && path === '/auth/signup/verify-otp') {
       state.account.primary_role = 'sen';
       return json(route, {
         data: {

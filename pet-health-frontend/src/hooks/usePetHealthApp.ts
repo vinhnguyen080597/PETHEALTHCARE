@@ -47,9 +47,10 @@ import {
   reportBreederProfile,
   reportPetFeedPost,
   requestBreedRecognition,
+  requestSignUpOtp,
   translateAnalysesDisplay,
   login,
-  signUp,
+  verifySignUpOtp,
   updateAdminUserCoreCareRecord,
   updateAdminUserPet,
   updateCoreCareRecord,
@@ -99,6 +100,7 @@ import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealth
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
 const PET_FEED_PAGE_SIZE = 12;
+const SIGNUP_OTP_LENGTH = 8;
 
 function mergePetFeedPosts(current: PetFeedPost[], incoming: PetFeedPost[]) {
   const byId = new Map(current.map((post) => [post.id, post]));
@@ -115,6 +117,44 @@ function mergePetFeedPosts(current: PetFeedPost[], incoming: PetFeedPost[]) {
   return merged;
 }
 
+function parseRetryAfterSeconds(error: ApiRequestError): number {
+  if (typeof error.retryAfterSeconds === 'number') return error.retryAfterSeconds;
+  const fromMessage = /after (\d+) seconds?/i.exec(error.message);
+  return fromMessage ? Number(fromMessage[1]) : 60;
+}
+
+function resolveSignUpOtpErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError) {
+    if (error.code === 'otp_expired') return i18n.t('signupOtp.errors.otpExpired');
+    if (error.code === 'otp_invalid' || error.code === 'invalid_otp') {
+      return i18n.t('signupOtp.errors.otpInvalid');
+    }
+    if (error.code === 'over_email_send_rate_limit') {
+      return i18n.t('signupOtp.errors.rateLimit', { seconds: parseRetryAfterSeconds(error) });
+    }
+    if (error.message) return error.message;
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return i18n.t('signupOtp.errors.generic');
+}
+
+function resolveAuthErrorMessage(error: unknown, isSignUp: boolean): string {
+  if (error instanceof ApiRequestError) {
+    if (error.code === 'over_email_send_rate_limit') {
+      return i18n.t('login.errors.signUpRateLimit', { seconds: parseRetryAfterSeconds(error) });
+    }
+    if (error.code === 'invalid_credentials') {
+      return i18n.t('login.errors.invalidCredentials');
+    }
+    if (error.code === 'weak_password' || error.code === 'PASSWORD_TOO_SHORT') {
+      return i18n.t('login.errors.weakPassword');
+    }
+    if (error.message) return error.message;
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return isSignUp ? i18n.t('login.errors.signUpFailed') : i18n.t('login.errors.signInFailed');
+}
+
 export function usePetHealthApp() {
   const [screen, setScreen] = useState<AppScreen>('login');
   const [loading, setLoading] = useState(false);
@@ -124,7 +164,12 @@ export function usePetHealthApp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [signUpOtp, setSignUpOtp] = useState('');
+  const [signUpOtpError, setSignUpOtpError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [pendingSignUpEmail, setPendingSignUpEmail] = useState('');
+  const [pendingSignUpPassword, setPendingSignUpPassword] = useState('');
   const [token, setToken] = useState<string | null>(null);
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
   /** True during first-run flow until user skips health or taps Finish on results. */
@@ -523,54 +568,119 @@ export function usePetHealthApp() {
     setIsSignUp((prev) => {
       if (prev) {
         setConfirmPassword('');
+        setSignUpOtp('');
+        setSignUpOtpError('');
+        setPendingSignUpEmail('');
+        setPendingSignUpPassword('');
       }
+      setAuthError('');
       return !prev;
     });
   }
 
+  function changeEmail(value: string) {
+    setEmail(value);
+    if (authError) setAuthError('');
+  }
+
+  function changePassword(value: string) {
+    setPassword(value);
+    if (authError) setAuthError('');
+  }
+
+  function changeConfirmPassword(value: string) {
+    setConfirmPassword(value);
+    if (authError) setAuthError('');
+  }
+
+  function changeSignUpOtp(value: string) {
+    const digits = value.replace(/\D/g, '').slice(0, SIGNUP_OTP_LENGTH);
+    setSignUpOtp(digits);
+    if (signUpOtpError) setSignUpOtpError('');
+  }
+
   async function submitAuth() {
     if (!email.trim() || !password) {
-      Alert.alert(
-        i18n.t('alerts.missingEmailPassword.title'),
-        i18n.t('alerts.missingEmailPassword.message'),
-      );
+      setAuthError(i18n.t('alerts.missingEmailPassword.message'));
       return;
     }
-    if (isSignUp) {
-      if (password !== confirmPassword) {
-        Alert.alert(
-          i18n.t('alerts.signUpPasswordMismatch.title'),
-          i18n.t('alerts.signUpPasswordMismatch.message'),
-        );
-        return;
-      }
+    if (isSignUp && password !== confirmPassword) {
+      setAuthError(i18n.t('alerts.signUpPasswordMismatch.message'));
+      return;
     }
     setLoading(true);
+    setAuthError('');
     try {
       if (isSignUp) {
-        const signUpRes = await signUp({ email: email.trim(), password });
-        const signUpToken = signUpRes.data.session?.access_token;
-        if (!signUpToken) {
-          Alert.alert(i18n.t('alerts.verifyEmail.title'), i18n.t('alerts.verifyEmail.message'));
-          return;
-        }
-        await applySession(signUpToken, { startInitialOnboarding: true });
+        const signUpEmail = email.trim();
+        await requestSignUpOtp({ email: signUpEmail, password });
+        setPendingSignUpEmail(signUpEmail);
+        setPendingSignUpPassword(password);
+        setSignUpOtp('');
+        setSignUpOtpError('');
+        setAuthError('');
+        setScreen('signup-otp-verification');
         return;
       }
 
       const response = await login({ email: email.trim(), password });
       const accessToken = response.data.session?.access_token;
       if (!accessToken) {
-        Alert.alert(i18n.t('alerts.loginNoToken.title'), i18n.t('alerts.loginNoToken.message'));
+        setAuthError(i18n.t('alerts.loginNoToken.message'));
         return;
       }
       await applySession(accessToken);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      Alert.alert(i18n.t('alerts.authFailed.title'), i18n.t('alerts.authFailed.message', { message }));
+      setAuthError(resolveAuthErrorMessage(error, isSignUp));
     } finally {
       setLoading(false);
     }
+  }
+
+  async function submitSignUpOtpVerification() {
+    if (!pendingSignUpEmail || !pendingSignUpPassword) {
+      setSignUpOtpError(i18n.t('common.somethingWentWrong'));
+      return;
+    }
+    if (!signUpOtp.trim()) {
+      setSignUpOtpError(i18n.t('signupOtp.otpRequired'));
+      return;
+    }
+    if (signUpOtp.trim().length !== SIGNUP_OTP_LENGTH) {
+      setSignUpOtpError(i18n.t('signupOtp.otpInvalidLength'));
+      return;
+    }
+    setLoading(true);
+    setSignUpOtpError('');
+    try {
+      const signUpRes = await verifySignUpOtp({
+        email: pendingSignUpEmail,
+        otp: signUpOtp.trim(),
+        password: pendingSignUpPassword,
+      });
+      const signUpToken = signUpRes.data.session?.access_token;
+      if (!signUpToken) {
+        setSignUpOtpError(i18n.t('alerts.verifyEmail.message'));
+        return;
+      }
+      setSignUpOtp('');
+      setSignUpOtpError('');
+      setPendingSignUpEmail('');
+      setPendingSignUpPassword('');
+      setConfirmPassword('');
+      await applySession(signUpToken, { startInitialOnboarding: true });
+    } catch (error: unknown) {
+      setSignUpOtpError(resolveSignUpOtpErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function backToSignUpFromOtpVerification() {
+    setSignUpOtp('');
+    setSignUpOtpError('');
+    setAuthError('');
+    setScreen('login');
   }
 
   async function openCareServices(petId: string) {
@@ -1566,6 +1676,13 @@ export function usePetHealthApp() {
     setInitialOnboarding(false);
     setToken(null);
     setAccountProfile(null);
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setSignUpOtp('');
+    setPendingSignUpEmail('');
+    setPendingSignUpPassword('');
+    setIsSignUp(false);
     setPets([]);
     setAiCredits(null);
     setAiEconomicsConfig(null);
@@ -1775,12 +1892,18 @@ export function usePetHealthApp() {
     refreshPets,
     backendHealth,
     email,
-    setEmail,
+    changeEmail,
     password,
-    setPassword,
+    changePassword,
     confirmPassword,
-    setConfirmPassword,
+    changeConfirmPassword,
+    authError,
+    signUpOtp,
+    setSignUpOtp,
+    changeSignUpOtp,
+    signUpOtpError,
     isSignUp,
+    pendingSignUpEmail,
     toggleLoginSignUpMode,
     token,
     accountProfile,
@@ -1841,6 +1964,8 @@ export function usePetHealthApp() {
     aiEconomicsConfig,
     refreshAiCredits: token ? () => refreshAiCredits(token) : undefined,
     submitAuth,
+    submitSignUpOtpVerification,
+    backToSignUpFromOtpVerification,
     handleAddPet,
     handleUpdatePet,
     openCreatePet,
