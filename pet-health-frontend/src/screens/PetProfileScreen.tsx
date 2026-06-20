@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
@@ -155,6 +156,42 @@ function CareStatusBadge({
     return (
       <Text className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
         {t('vetSummary.pendingReminders', { count: pendingCount })}
+      </Text>
+    );
+  }
+  return (
+    <Text className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
+      {t('profile.onTrack')}
+    </Text>
+  );
+}
+
+function HealthStatusBadge({
+  history,
+  t,
+}: {
+  history: Analysis[];
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  const latestSeverity = useMemo(() => {
+    if (history.length === 0) return null;
+    const latest = [...history].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )[0];
+    return analysisSeverity(latest);
+  }, [history]);
+
+  if (latestSeverity === 'high') {
+    return (
+      <Text className="shrink-0 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+        {t('profile.healthNeedsAttention')}
+      </Text>
+    );
+  }
+  if (latestSeverity === 'medium') {
+    return (
+      <Text className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
+        {t('profile.healthMonitor')}
       </Text>
     );
   }
@@ -355,15 +392,7 @@ export function PetProfileScreen({
               <Text className="min-w-0 flex-1 text-base font-extrabold text-slate-900">
                 {t('profile.healthSection')}
               </Text>
-              {passport.overdueReminders.length > 0 ? (
-                <Text className="shrink-0 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
-                  {t('profile.overdueCare', { count: passport.overdueReminders.length })}
-                </Text>
-              ) : (
-                <Text className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                  {t('profile.onTrack')}
-                </Text>
-              )}
+              <HealthStatusBadge history={history} t={t} />
             </View>
             <Text className="mt-1 text-sm leading-5 text-slate-500">{t('profile.healthHint', { name: pet.name })}</Text>
           </View>

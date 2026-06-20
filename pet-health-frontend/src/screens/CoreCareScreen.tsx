@@ -28,6 +28,7 @@ import type {
 
 const PRIMARY = '#1E6FE8';
 const CORE_CARE_INTRO_GUIDE_STORAGE_KEY_PREFIX = 'pet-health-care:core-care-intro-guide-seen:v1';
+const UPCOMING_SCHEDULE_PREVIEW_LIMIT = 5;
 
 type VaccinatedAnswer = 'yes' | 'no';
 type ManualEntryType = 'vaccine' | 'reminder';
@@ -339,6 +340,8 @@ export function CoreCareScreen({
   const [showIntroGuide, setShowIntroGuide] = useState(false);
   const [doseDraftErrors, setDoseDraftErrors] = useState<VaccineDoseDraftErrors>({});
   const [generatedScheduleErrors, setGeneratedScheduleErrors] = useState<GeneratedScheduleErrors>({});
+  const [showAllUpcomingSchedules, setShowAllUpcomingSchedules] = useState(false);
+  const [showAllGeneratedRecommendations, setShowAllGeneratedRecommendations] = useState(false);
   const introGuideStorageKey = useMemo(() => coreCareIntroGuideStorageKey(pet.user_id), [pet.user_id]);
 
   useEffect(() => {
@@ -377,24 +380,31 @@ export function CoreCareScreen({
     [records],
   );
 
-  const upcomingRecords = useMemo(
+  const allUpcomingRecords = useMemo(
     () =>
       careRecords
         .filter(isPendingScheduleRecord)
-        .sort((a, b) => scheduleTimestamp(a) - scheduleTimestamp(b))
-        .slice(0, 5),
+        .sort((a, b) => scheduleTimestamp(a) - scheduleTimestamp(b)),
     [careRecords],
   );
+  const visibleUpcomingRecords = useMemo(
+    () =>
+      showAllUpcomingSchedules
+        ? allUpcomingRecords
+        : allUpcomingRecords.slice(0, UPCOMING_SCHEDULE_PREVIEW_LIMIT),
+    [allUpcomingRecords, showAllUpcomingSchedules],
+  );
+  const hiddenUpcomingCount = Math.max(0, allUpcomingRecords.length - UPCOMING_SCHEDULE_PREVIEW_LIMIT);
   const historyRecords = useMemo(
     () =>
       careRecords
-        .filter((record) => !upcomingRecords.some((upcoming) => upcoming.id === record.id))
+        .filter((record) => !allUpcomingRecords.some((upcoming) => upcoming.id === record.id))
         .sort((a, b) => occurredTimestamp(b) - occurredTimestamp(a))
         .slice(0, 10),
-    [careRecords, upcomingRecords],
+    [careRecords, allUpcomingRecords],
   );
 
-  const nextRecord = upcomingRecords[0];
+  const nextRecord = allUpcomingRecords[0];
   const selectedDoseIds = doseDrafts.map((draft) => draft.vaccineId).filter(Boolean);
   const canAddDose = doseDrafts.length < vaccineOptions.length;
   const generatedRecommendations = useMemo(
@@ -407,6 +417,17 @@ export function CoreCareScreen({
   const pendingGeneratedRecommendations = useMemo(
     () => generatedRecommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation)),
     [careRecords, generatedRecommendations],
+  );
+  const visiblePendingRecommendations = useMemo(
+    () =>
+      showAllGeneratedRecommendations
+        ? pendingGeneratedRecommendations
+        : pendingGeneratedRecommendations.slice(0, UPCOMING_SCHEDULE_PREVIEW_LIMIT),
+    [pendingGeneratedRecommendations, showAllGeneratedRecommendations],
+  );
+  const hiddenPendingRecommendationsCount = Math.max(
+    0,
+    pendingGeneratedRecommendations.length - UPCOMING_SCHEDULE_PREVIEW_LIMIT,
   );
   const administeredVaccineDoses = useMemo(
     () =>
@@ -477,6 +498,7 @@ export function CoreCareScreen({
 
   function selectDesiredVaccine(vaccineId: string) {
     setDesiredVaccineId(vaccineId);
+    setShowAllGeneratedRecommendations(false);
     setGeneratedScheduleErrors((current) => ({ ...current, desiredVaccineId: undefined }));
   }
 
@@ -905,7 +927,21 @@ export function CoreCareScreen({
           <Text className="text-base font-bold text-slate-900">{t('coreCare.nextScheduleForPet', { name: pet.name })}</Text>
           {nextRecord?.due_at ? (
             <View className="mt-3 gap-3">
-              {upcomingRecords.map((record) => renderRecordCard(record, { showDoneAction: true }))}
+              {visibleUpcomingRecords.map((record) => renderRecordCard(record, { showDoneAction: true }))}
+              {hiddenUpcomingCount > 0 ? (
+                <Pressable
+                  testID="core-care-show-more-upcoming-button"
+                  accessibilityRole="button"
+                  className="self-center py-1 active:opacity-70"
+                  onPress={() => setShowAllUpcomingSchedules((current) => !current)}
+                >
+                  <Text className="text-xs font-semibold text-blue-700">
+                    {showAllUpcomingSchedules
+                      ? t('coreCare.showLessSchedules')
+                      : t('coreCare.showMoreSchedules', { count: hiddenUpcomingCount })}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : (
             <Text className="mt-2 text-sm leading-5 text-slate-600">{t('coreCare.noNextSchedule')}</Text>
@@ -1043,11 +1079,20 @@ export function CoreCareScreen({
                   <Text className="mt-3 text-sm leading-5 text-slate-700">{t('coreCare.generatedScheduleIntro')}</Text>
                   {pendingGeneratedRecommendations.length > 0 ? (
                     <View className="mt-3 gap-2">
-                      {pendingGeneratedRecommendations.slice(0, 5).map(renderRecommendationPreview)}
-                      {pendingGeneratedRecommendations.length > 5 ? (
-                        <Text className="text-center text-xs font-semibold text-blue-700">
-                          {t('coreCare.moreGeneratedRecommendations', { count: pendingGeneratedRecommendations.length - 5 })}
-                        </Text>
+                      {visiblePendingRecommendations.map(renderRecommendationPreview)}
+                      {hiddenPendingRecommendationsCount > 0 ? (
+                        <Pressable
+                          testID="core-care-show-more-recommendations-button"
+                          accessibilityRole="button"
+                          className="self-center py-1 active:opacity-70"
+                          onPress={() => setShowAllGeneratedRecommendations((current) => !current)}
+                        >
+                          <Text className="text-xs font-semibold text-blue-700">
+                            {showAllGeneratedRecommendations
+                              ? t('coreCare.showLessSchedules')
+                              : t('coreCare.showMoreSchedules', { count: hiddenPendingRecommendationsCount })}
+                          </Text>
+                        </Pressable>
                       ) : null}
                     </View>
                   ) : null}
