@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Alert, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Image, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { MAI_GUIDING } from '../assets/maiAssets';
 import { APP_LINKS } from '../config';
@@ -96,12 +96,13 @@ type AccountScreenProps = {
   onOpenPetFeed: () => void;
   onOpenCreatePetFeedPost: () => void;
   onOpenAdminHub: () => void;
+  onOpenUpdateAccount: () => void;
   onUpdateBreederStatus: (userId: string, verificationStatus: string) => Promise<void>;
   onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
   onLogout: () => void;
-  onDeleteAccount: () => void;
-  showHeaderLogout?: boolean;
+  onConfirmDeleteAccount: () => Promise<void>;
+  showHeaderMenu?: boolean;
 };
 
 function roleIcon(role: UserRole | undefined) {
@@ -156,14 +157,18 @@ export function AccountScreen({
   onOpenPetFeed,
   onOpenCreatePetFeedPost,
   onOpenAdminHub,
+  onOpenUpdateAccount,
   onUpdateBreederStatus,
   onUpdatePostStatus,
   onUpdateReportStatus,
   onLogout,
-  onDeleteAccount,
-  showHeaderLogout = true,
+  onConfirmDeleteAccount,
+  showHeaderMenu = true,
 }: AccountScreenProps) {
   const { t, i18n } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [adminSection, setAdminSection] = useState<'requests' | 'breeders' | 'posts'>('requests');
   const [requestTypeFilter, setRequestTypeFilter] = useState<AdminRequestTypeFilter>('all');
   const [requestStatusFilter, setRequestStatusFilter] = useState<AdminRequestStatusFilter>('all');
@@ -323,7 +328,21 @@ export function AccountScreen({
   const breederSpeciesFilterLabel = breederSpeciesOptions.find((filter) => filter.key === breederSpeciesFilter)?.label ?? t('adminBreeders.species.all');
   const breederDateFilterLabel = t(REQUEST_DATE_FILTERS.find((filter) => filter.key === breederDateFilter)?.labelKey ?? 'adminRequests.dates.newest');
 
+  async function handleConfirmDeleteAccount() {
+    setDeletingAccount(true);
+    try {
+      await onConfirmDeleteAccount();
+      setDeleteModalOpen(false);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t('common.unknownError');
+      Alert.alert(t('account.deleteAccount.failedTitle'), message);
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
+
   return (
+    <>
     <ScrollView
       testID="account-screen"
       className="flex-1 bg-[#F2F4F8]"
@@ -338,16 +357,17 @@ export function AccountScreen({
             </Text>
           ) : null}
         </View>
-        {showHeaderLogout ? <Pressable
-          testID="account-logout-button"
-          accessibilityRole="button"
-          accessibilityLabel="Log out"
-          className="flex-row items-center gap-1.5 rounded-full border border-red-100 bg-white px-3 py-2 active:bg-red-50"
-          onPress={onLogout}
-        >
-          <Ionicons name="log-out-outline" size={16} color="#dc2626" />
-          <Text className="text-xs font-bold text-red-600">{t('tabs.logout')}</Text>
-        </Pressable> : null}
+        {showHeaderMenu ? (
+          <Pressable
+            testID="account-menu-button"
+            accessibilityRole="button"
+            accessibilityLabel={t('account.menu.open')}
+            className="h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white active:bg-slate-100"
+            onPress={() => setMenuOpen(true)}
+          >
+            <Ionicons name="menu-outline" size={22} color="#334155" />
+          </Pressable>
+        ) : null}
       </View>
 
       {isSen ? (
@@ -879,20 +899,98 @@ export function AccountScreen({
             <LegalLinkButton label={t('legal.support')} url={APP_LINKS.support} />
           </View>
         </View>
-        <View className="rounded-2xl border border-red-100 bg-red-50 p-4">
+      </View>
+    </ScrollView>
+
+    <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+      <Pressable className="flex-1 bg-black/20" onPress={() => setMenuOpen(false)}>
+        <View className="absolute right-5 top-14 w-60 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+          <AccountMenuItem
+            testID="account-menu-update-button"
+            icon="create-outline"
+            label={t('account.menu.updateAccount')}
+            onPress={() => {
+              setMenuOpen(false);
+              onOpenUpdateAccount();
+            }}
+          />
+          <View className="h-px bg-gray-100" />
+          <AccountMenuItem
+            testID="account-menu-logout-button"
+            icon="log-out-outline"
+            label={t('account.menu.logout')}
+            onPress={() => {
+              setMenuOpen(false);
+              onLogout();
+            }}
+          />
+          <View className="h-px bg-gray-100" />
+          <AccountMenuItem
+            testID="account-menu-delete-button"
+            icon="trash-outline"
+            label={t('account.menu.deleteAccount')}
+            destructive
+            onPress={() => {
+              setMenuOpen(false);
+              setDeleteModalOpen(true);
+            }}
+          />
+        </View>
+      </Pressable>
+    </Modal>
+
+    <Modal visible={deleteModalOpen} transparent animationType="fade" onRequestClose={() => setDeleteModalOpen(false)}>
+      <Pressable className="flex-1 items-center justify-center bg-black/40 px-6" onPress={() => setDeleteModalOpen(false)}>
+        <Pressable className="w-full max-w-sm rounded-2xl border border-red-100 bg-red-50 p-4" onPress={(event) => event.stopPropagation()}>
           <Text className="text-base font-bold text-red-900">{t('account.deleteAccount.cardTitle')}</Text>
-          <Text className="mt-1 text-sm leading-5 text-red-800">{t('account.deleteAccount.cardBody')}</Text>
+          <Text className="mt-2 text-sm leading-5 text-red-800">{t('account.deleteAccount.cardBody')}</Text>
           <Pressable
+            testID="account-delete-confirm-button"
             accessibilityRole="button"
-            className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-red-600 py-3 active:bg-red-700"
-            onPress={onDeleteAccount}
+            disabled={deletingAccount}
+            className={`mt-4 flex-row items-center justify-center gap-2 rounded-xl py-3 ${deletingAccount ? 'bg-red-400' : 'bg-red-600 active:bg-red-700'}`}
+            onPress={() => void handleConfirmDeleteAccount()}
           >
             <Ionicons name="trash-outline" size={17} color="#fff" />
             <Text className="text-sm font-bold text-white">{t('account.deleteAccount.cta')}</Text>
           </Pressable>
-        </View>
-      </View>
-    </ScrollView>
+          <Pressable
+            testID="account-delete-cancel-button"
+            className="mt-3 rounded-xl border border-red-100 bg-white py-3 active:bg-red-50"
+            onPress={() => setDeleteModalOpen(false)}
+          >
+            <Text className="text-center text-sm font-semibold text-red-700">{t('common.cancel')}</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+    </>
+  );
+}
+
+function AccountMenuItem({
+  icon,
+  label,
+  onPress,
+  testID,
+  destructive = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  testID: string;
+  destructive?: boolean;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      className="flex-row items-center gap-3 px-4 py-3.5 active:bg-slate-50"
+      onPress={onPress}
+    >
+      <Ionicons name={icon} size={18} color={destructive ? '#dc2626' : '#334155'} />
+      <Text className={`flex-1 text-sm font-semibold ${destructive ? 'text-red-600' : 'text-slate-800'}`}>{label}</Text>
+    </Pressable>
   );
 }
 

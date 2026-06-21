@@ -238,6 +238,43 @@ export async function deleteMyAccount(token: string) {
   });
 }
 
+export async function requestPasswordRecovery(email: string) {
+  return requestJson<{ data: { sent: boolean } }>('/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
+export type AccountUpdateVerifyPayload =
+  | { type: 'update_email'; currentEmail: string; newEmail: string; currentPassword: string }
+  | { type: 'update_password'; currentEmail: string; currentPassword: string; newPassword: string }
+  | { type: 'recover_password' };
+
+export type AccountUpdateApplyPayload =
+  | { type: 'update_email'; currentEmail: string; newEmail: string; otp: string; currentPassword: string }
+  | { type: 'update_password'; currentEmail: string; currentPassword: string; newPassword: string }
+  | { type: 'recover_password'; otp: string; newPassword: string };
+
+export async function verifyAccountUpdateRequest(token: string, payload: AccountUpdateVerifyPayload) {
+  return requestJson<{ data: Record<string, unknown> }>('/auth/account/verify-request', {
+    method: 'POST',
+    headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function applyAccountUpdate(token: string, payload: AccountUpdateApplyPayload) {
+  return requestJson<{ data: { account?: AccountProfile; success?: boolean; accessToken?: string | null } }>(
+    '/auth/account/apply-update',
+    {
+      method: 'POST',
+      headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 function authHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,

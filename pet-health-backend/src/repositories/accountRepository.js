@@ -121,6 +121,128 @@ export async function adminUpdateAccountProfile(userId, payload) {
   return toAccount(data);
 }
 
+export async function updateSelfAccountLogin(userId, { email, loginIdentifier }) {
+  const existing = await getAccountProfile(userId);
+  if (!existing) return null;
+  const patch = {
+    email: trimText(email, 320) || null,
+    login_identifier: trimText(loginIdentifier, 160) || existing.login_identifier,
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return memoryUpsert({ ...existing, ...patch });
+  const { data, error } = await supabase
+    .from('app_user_profiles')
+    .update(patch)
+    .eq('user_id', userId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  return toAccount(data);
+}
+
+export function getPendingEmailChangeTarget(account) {
+  const target = trimText(account?.metadata?.pending_email_change_to, 320).toLocaleLowerCase('en-US');
+  return target || null;
+}
+
+export async function setPendingEmailChange(userId, { newEmail, fromEmail }) {
+  const existing = await getAccountProfile(userId);
+  if (!existing) return null;
+  const patch = {
+    metadata: {
+      ...(existing.metadata ?? {}),
+      pending_email_change_to: trimText(newEmail, 320).toLocaleLowerCase('en-US'),
+      pending_email_change_from: trimText(fromEmail, 320).toLocaleLowerCase('en-US'),
+      pending_email_change_at: new Date().toISOString(),
+    },
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return memoryUpsert({ ...existing, ...patch });
+  const { data, error } = await supabase
+    .from('app_user_profiles')
+    .update(patch)
+    .eq('user_id', userId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  return toAccount(data);
+}
+
+export async function clearPendingEmailChange(userId) {
+  const existing = await getAccountProfile(userId);
+  if (!existing) return null;
+  const metadata = { ...(existing.metadata ?? {}) };
+  delete metadata.pending_email_change_to;
+  delete metadata.pending_email_change_from;
+  delete metadata.pending_email_change_at;
+  const patch = {
+    metadata,
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return memoryUpsert({ ...existing, ...patch });
+  const { data, error } = await supabase
+    .from('app_user_profiles')
+    .update(patch)
+    .eq('user_id', userId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  return toAccount(data);
+}
+
+export function getPendingPasswordRecoveryTarget(account) {
+  const target = trimText(account?.metadata?.pending_password_recovery_email, 320).toLocaleLowerCase('en-US');
+  return target || null;
+}
+
+export async function setPendingPasswordRecovery(userId, { email }) {
+  const existing = await getAccountProfile(userId);
+  if (!existing) return null;
+  const patch = {
+    metadata: {
+      ...(existing.metadata ?? {}),
+      pending_password_recovery_email: trimText(email, 320).toLocaleLowerCase('en-US'),
+      pending_password_recovery_at: new Date().toISOString(),
+    },
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return memoryUpsert({ ...existing, ...patch });
+  const { data, error } = await supabase
+    .from('app_user_profiles')
+    .update(patch)
+    .eq('user_id', userId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  return toAccount(data);
+}
+
+export async function clearPendingPasswordRecovery(userId) {
+  const existing = await getAccountProfile(userId);
+  if (!existing) return null;
+  const metadata = { ...(existing.metadata ?? {}) };
+  delete metadata.pending_password_recovery_email;
+  delete metadata.pending_password_recovery_at;
+  const patch = {
+    metadata,
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return memoryUpsert({ ...existing, ...patch });
+  const { data, error } = await supabase
+    .from('app_user_profiles')
+    .update(patch)
+    .eq('user_id', userId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  return toAccount(data);
+}
+
 export async function deleteAccountData(userId) {
   const supabase = getSupabaseServiceClient();
   if (!supabase) {

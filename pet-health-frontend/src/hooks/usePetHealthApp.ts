@@ -21,6 +21,8 @@ import {
   createPet,
   deleteAdminUserCoreCareRecord,
   deleteMyAccount,
+  verifyAccountUpdateRequest,
+  applyAccountUpdate,
   deletePet,
   favoritePetFeedPost,
   getMe,
@@ -101,6 +103,14 @@ import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealth
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
 const PET_FEED_PAGE_SIZE = 12;
 const SIGNUP_OTP_LENGTH = 8;
+const ACCOUNT_UPDATE_OTP_LENGTH = 8;
+const SYNTHETIC_AUTH_EMAIL_PATTERN = /^login-[a-f0-9]{32}@/i;
+
+export type AuthFieldErrors = {
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+};
 
 function mergePetFeedPosts(current: PetFeedPost[], incoming: PetFeedPost[]) {
   const byId = new Map(current.map((post) => [post.id, post]));
@@ -138,10 +148,60 @@ function resolveSignUpOtpErrorMessage(error: unknown): string {
   return i18n.t('signupOtp.errors.generic');
 }
 
+function resolveAccountUpdateErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError) {
+    if (error.status === 401) {
+      return i18n.t('account.updateAccount.errors.sessionExpired');
+    }
+    if (error.code === 'invalid_credentials') {
+      return i18n.t('account.updateAccount.errors.wrongPassword');
+    }
+    if (error.message?.toLowerCase().includes('auth session missing')) {
+      return i18n.t('common.somethingWentWrong');
+    }
+    if (error.code === 'otp_expired' || error.code === 'otp_invalid' || error.code === 'invalid_otp') {
+      return i18n.t('account.updateAccount.errors.otpInvalidOrExpired');
+    }
+    if (error.code === 'EMAIL_ALREADY_REGISTERED') {
+      return i18n.t('login.errors.emailAlreadyRegistered');
+    }
+    if (error.code === 'INVALID_EMAIL_FORMAT') {
+      return i18n.t('login.errors.invalidEmailFormat');
+    }
+    if (error.code === 'EMAIL_UNCHANGED') {
+      return i18n.t('account.updateAccount.emailUnchanged');
+    }
+    if (error.code === 'UPDATE_EMAIL_FIRST') {
+      return i18n.t('account.updateAccount.updateEmailFirst');
+    }
+    if (error.code === 'PASSWORD_TOO_SHORT' || error.code === 'weak_password') {
+      return i18n.t('login.fieldErrors.passwordTooShort');
+    }
+    if (error.code === 'over_email_send_rate_limit') {
+      return i18n.t('signupOtp.errors.rateLimit', { seconds: parseRetryAfterSeconds(error) });
+    }
+    if (error.message) return error.message;
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return i18n.t('common.unknownError');
+}
+
 function resolveAuthErrorMessage(error: unknown, isSignUp: boolean): string {
   if (error instanceof ApiRequestError) {
+    if (!isSignUp) {
+      if (error.status === 503) {
+        return i18n.t('login.errors.signInFailed');
+      }
+      return i18n.t('login.errors.invalidCredentials');
+    }
     if (error.code === 'over_email_send_rate_limit') {
       return i18n.t('login.errors.signUpRateLimit', { seconds: parseRetryAfterSeconds(error) });
+    }
+    if (error.code === 'EMAIL_ALREADY_REGISTERED') {
+      return i18n.t('login.errors.emailAlreadyRegistered');
+    }
+    if (error.code === 'INVALID_EMAIL_FORMAT') {
+      return i18n.t('login.errors.invalidEmailFormat');
     }
     if (error.code === 'invalid_credentials') {
       return i18n.t('login.errors.invalidCredentials');
@@ -149,10 +209,13 @@ function resolveAuthErrorMessage(error: unknown, isSignUp: boolean): string {
     if (error.code === 'weak_password' || error.code === 'PASSWORD_TOO_SHORT') {
       return i18n.t('login.errors.weakPassword');
     }
+    if (error.code === 'INVALID_AUTH_IDENTIFIER') {
+      return i18n.t('login.errors.invalidEmailFormat');
+    }
     if (error.message) return error.message;
   }
   if (error instanceof Error && error.message) return error.message;
-  return isSignUp ? i18n.t('login.errors.signUpFailed') : i18n.t('login.errors.signInFailed');
+  return isSignUp ? i18n.t('login.errors.signUpFailed') : i18n.t('login.errors.invalidCredentials');
 }
 
 export function usePetHealthApp() {
@@ -165,11 +228,49 @@ export function usePetHealthApp() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [authFieldErrors, setAuthFieldErrors] = useState<AuthFieldErrors>({});
   const [signUpOtp, setSignUpOtp] = useState('');
   const [signUpOtpError, setSignUpOtpError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [pendingSignUpEmail, setPendingSignUpEmail] = useState('');
   const [pendingSignUpPassword, setPendingSignUpPassword] = useState('');
+  const [updateAccountNewLogin, setUpdateAccountNewLogin] = useState('');
+  const [updateAccountChangeLoginError, setUpdateAccountChangeLoginError] = useState('');
+  const [updateAccountChangeLoginFieldErrors, setUpdateAccountChangeLoginFieldErrors] = useState<{
+    newEmail?: string;
+    currentPassword?: string;
+  }>({});
+  const [updateAccountChangeLoginSuccess, setUpdateAccountChangeLoginSuccess] = useState('');
+  const [updateAccountEmailChangePassword, setUpdateAccountEmailChangePassword] = useState('');
+  const [updateAccountEmailOtpOpen, setUpdateAccountEmailOtpOpen] = useState(false);
+  const [updateAccountPendingNewEmail, setUpdateAccountPendingNewEmail] = useState('');
+  const [updateAccountEmailOtp, setUpdateAccountEmailOtp] = useState('');
+  const [updateAccountEmailOtpError, setUpdateAccountEmailOtpError] = useState('');
+  const [updateAccountEmailOtpLoading, setUpdateAccountEmailOtpLoading] = useState(false);
+  const [updateAccountCurrentPassword, setUpdateAccountCurrentPassword] = useState('');
+  const [updateAccountNewPassword, setUpdateAccountNewPassword] = useState('');
+  const [updateAccountConfirmNewPassword, setUpdateAccountConfirmNewPassword] = useState('');
+  const [updateAccountPasswordError, setUpdateAccountPasswordError] = useState('');
+  const [updateAccountPasswordSuccess, setUpdateAccountPasswordSuccess] = useState('');
+  const [updateAccountPasswordFieldErrors, setUpdateAccountPasswordFieldErrors] = useState<{
+    currentPassword?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+  }>({});
+  const [updateAccountRecoverError, setUpdateAccountRecoverError] = useState('');
+  const [updateAccountRecoverSuccess, setUpdateAccountRecoverSuccess] = useState('');
+  const [updateAccountRecoverOtpOpen, setUpdateAccountRecoverOtpOpen] = useState(false);
+  const [updateAccountRecoverPendingEmail, setUpdateAccountRecoverPendingEmail] = useState('');
+  const [updateAccountRecoverOtp, setUpdateAccountRecoverOtp] = useState('');
+  const [updateAccountRecoverNewPassword, setUpdateAccountRecoverNewPassword] = useState('');
+  const [updateAccountRecoverConfirmPassword, setUpdateAccountRecoverConfirmPassword] = useState('');
+  const [updateAccountRecoverOtpError, setUpdateAccountRecoverOtpError] = useState('');
+  const [updateAccountRecoverOtpLoading, setUpdateAccountRecoverOtpLoading] = useState(false);
+  const [updateAccountRecoverFieldErrors, setUpdateAccountRecoverFieldErrors] = useState<{
+    otp?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+  }>({});
   const [token, setToken] = useState<string | null>(null);
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
   /** True during first-run flow until user skips health or taps Finish on results. */
@@ -574,23 +675,37 @@ export function usePetHealthApp() {
         setPendingSignUpPassword('');
       }
       setAuthError('');
+      setAuthFieldErrors({});
       return !prev;
+    });
+  }
+
+  function clearAuthFieldError(field: keyof AuthFieldErrors) {
+    setAuthFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
     });
   }
 
   function changeEmail(value: string) {
     setEmail(value);
     if (authError) setAuthError('');
+    clearAuthFieldError('email');
   }
 
   function changePassword(value: string) {
     setPassword(value);
     if (authError) setAuthError('');
+    clearAuthFieldError('password');
+    clearAuthFieldError('confirmPassword');
   }
 
   function changeConfirmPassword(value: string) {
     setConfirmPassword(value);
     if (authError) setAuthError('');
+    clearAuthFieldError('confirmPassword');
   }
 
   function changeSignUpOtp(value: string) {
@@ -600,12 +715,32 @@ export function usePetHealthApp() {
   }
 
   async function submitAuth() {
-    if (!email.trim() || !password) {
-      setAuthError(i18n.t('alerts.missingEmailPassword.message'));
+    const fieldErrors: AuthFieldErrors = {};
+    if (!email.trim()) {
+      fieldErrors.email = i18n.t('login.fieldErrors.emailRequired');
+    }
+    if (!password) {
+      fieldErrors.password = i18n.t('login.fieldErrors.passwordRequired');
+    }
+    if (isSignUp && !confirmPassword) {
+      fieldErrors.confirmPassword = i18n.t('login.fieldErrors.confirmPasswordRequired');
+    }
+    if (isSignUp && password && password.length < 6) {
+      fieldErrors.password = i18n.t('login.fieldErrors.passwordTooShort');
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      setAuthFieldErrors(fieldErrors);
+      setAuthError('');
       return;
     }
+    setAuthFieldErrors({});
     if (isSignUp && password !== confirmPassword) {
-      setAuthError(i18n.t('alerts.signUpPasswordMismatch.message'));
+      setAuthFieldErrors({ confirmPassword: i18n.t('login.fieldErrors.confirmPasswordMismatch') });
+      setAuthError('');
+      return;
+    }
+    if (isSignUp && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setAuthError(i18n.t('login.errors.invalidEmailFormat'));
       return;
     }
     setLoading(true);
@@ -631,7 +766,16 @@ export function usePetHealthApp() {
       }
       await applySession(accessToken);
     } catch (error: unknown) {
-      setAuthError(resolveAuthErrorMessage(error, isSignUp));
+      if (
+        isSignUp &&
+        error instanceof ApiRequestError &&
+        (error.code === 'PASSWORD_TOO_SHORT' || error.code === 'weak_password')
+      ) {
+        setAuthFieldErrors({ password: i18n.t('login.fieldErrors.passwordTooShort') });
+        setAuthError('');
+      } else {
+        setAuthError(resolveAuthErrorMessage(error, isSignUp));
+      }
     } finally {
       setLoading(false);
     }
@@ -1847,24 +1991,363 @@ export function usePetHealthApp() {
     }
   }
 
-  function requestDeleteAccount() {
+  function resetUpdateAccountEmailChangeForm() {
+    setUpdateAccountNewLogin('');
+    setUpdateAccountEmailChangePassword('');
+    setUpdateAccountChangeLoginError('');
+    setUpdateAccountChangeLoginFieldErrors({});
+    setUpdateAccountChangeLoginSuccess('');
+    setUpdateAccountEmailOtpOpen(false);
+    setUpdateAccountPendingNewEmail('');
+    setUpdateAccountEmailOtp('');
+    setUpdateAccountEmailOtpError('');
+    setUpdateAccountEmailOtpLoading(false);
+  }
+
+  function openUpdateAccount() {
+    resetUpdateAccountEmailChangeForm();
+    resetUpdateAccountPasswordForm();
+    setUpdateAccountRecoverError('');
+    setUpdateAccountRecoverSuccess('');
+    setScreen('update-account');
+  }
+
+  function backFromUpdateAccount() {
+    setScreen('account');
+  }
+
+  function backToUpdateAccount() {
+    resetUpdateAccountPasswordForm();
+    resetUpdateAccountEmailChangeForm();
+    setUpdateAccountRecoverError('');
+    setUpdateAccountRecoverSuccess('');
+    setScreen('update-account');
+  }
+
+  function resetUpdateAccountPasswordForm() {
+    setUpdateAccountCurrentPassword('');
+    setUpdateAccountNewPassword('');
+    setUpdateAccountConfirmNewPassword('');
+    setUpdateAccountPasswordError('');
+    setUpdateAccountPasswordSuccess('');
+    setUpdateAccountPasswordFieldErrors({});
+  }
+
+  function openUpdateAccountChangeLogin() {
+    resetUpdateAccountEmailChangeForm();
+    setScreen('update-account-change-login');
+  }
+
+  function openUpdateAccountChangePassword() {
+    resetUpdateAccountPasswordForm();
+    setScreen('update-account-change-password');
+  }
+
+  function resetUpdateAccountRecoverForm() {
+    setUpdateAccountRecoverError('');
+    setUpdateAccountRecoverSuccess('');
+    setUpdateAccountRecoverOtpOpen(false);
+    setUpdateAccountRecoverPendingEmail('');
+    setUpdateAccountRecoverOtp('');
+    setUpdateAccountRecoverNewPassword('');
+    setUpdateAccountRecoverConfirmPassword('');
+    setUpdateAccountRecoverOtpError('');
+    setUpdateAccountRecoverOtpLoading(false);
+    setUpdateAccountRecoverFieldErrors({});
+  }
+
+  function openUpdateAccountRecoverPassword() {
+    resetUpdateAccountRecoverForm();
+    setScreen('update-account-recover-password');
+  }
+
+  function changeUpdateAccountNewLogin(value: string) {
+    setUpdateAccountNewLogin(value);
+    if (updateAccountChangeLoginError) setUpdateAccountChangeLoginError('');
+    if (updateAccountChangeLoginFieldErrors.newEmail) {
+      setUpdateAccountChangeLoginFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.newEmail;
+        return next;
+      });
+    }
+  }
+
+  function changeUpdateAccountEmailChangePassword(value: string) {
+    setUpdateAccountEmailChangePassword(value);
+    if (updateAccountChangeLoginFieldErrors.currentPassword) {
+      setUpdateAccountChangeLoginFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.currentPassword;
+        return next;
+      });
+    }
+  }
+
+  function changeUpdateAccountEmailOtp(value: string) {
+    const digits = value.replace(/\D/g, '').slice(0, ACCOUNT_UPDATE_OTP_LENGTH);
+    setUpdateAccountEmailOtp(digits);
+    if (updateAccountEmailOtpError) setUpdateAccountEmailOtpError('');
+  }
+
+  function closeUpdateAccountEmailOtpModal() {
+    setUpdateAccountEmailOtpOpen(false);
+    setUpdateAccountEmailOtp('');
+    setUpdateAccountEmailOtpError('');
+    setUpdateAccountEmailOtpLoading(false);
+  }
+
+  function resolveCurrentAccountLogin() {
+    return accountProfile?.email ?? accountProfile?.login_identifier ?? '';
+  }
+
+  function resolveRecoverPasswordEmail() {
+    const profileEmail = accountProfile?.email?.trim().toLocaleLowerCase('en-US') ?? '';
+    const loginId = accountProfile?.login_identifier?.trim().toLocaleLowerCase('en-US') ?? '';
+    const looksLikeEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    if (profileEmail && looksLikeEmail(profileEmail) && !SYNTHETIC_AUTH_EMAIL_PATTERN.test(profileEmail)) {
+      return profileEmail;
+    }
+    if (loginId && looksLikeEmail(loginId) && !SYNTHETIC_AUTH_EMAIL_PATTERN.test(loginId)) {
+      return loginId;
+    }
+    return null;
+  }
+
+  async function persistRefreshedAccessToken(accessToken?: string | null) {
+    if (!accessToken) return;
+    await setStoredAuthToken(accessToken);
+    setToken(accessToken);
+  }
+
+  async function submitUpdateAccountChangeLogin() {
     if (!token) return;
-    Alert.alert(i18n.t('account.deleteAccount.title'), i18n.t('account.deleteAccount.message'), [
-      { text: i18n.t('common.cancel'), style: 'cancel' },
-      {
-        text: i18n.t('account.deleteAccount.confirm'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteMyAccount(token);
-            await logout();
-          } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-            Alert.alert(i18n.t('account.deleteAccount.failedTitle'), message);
-          }
-        },
-      },
-    ]);
+    const currentEmail = resolveCurrentAccountLogin();
+    const nextLogin = updateAccountNewLogin.trim();
+    const fieldErrors: { newEmail?: string; currentPassword?: string } = {};
+    if (!nextLogin) {
+      fieldErrors.newEmail = i18n.t('login.fieldErrors.emailRequired');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextLogin)) {
+      fieldErrors.newEmail = i18n.t('login.errors.invalidEmailFormat');
+    }
+    if (!updateAccountEmailChangePassword) {
+      fieldErrors.currentPassword = i18n.t('login.fieldErrors.passwordRequired');
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      setUpdateAccountChangeLoginFieldErrors(fieldErrors);
+      setUpdateAccountChangeLoginError('');
+      return;
+    }
+
+    setLoading(true);
+    setUpdateAccountChangeLoginFieldErrors({});
+    setUpdateAccountChangeLoginError('');
+    setUpdateAccountChangeLoginSuccess('');
+    try {
+      const { data } = await verifyAccountUpdateRequest(token, {
+        type: 'update_email',
+        currentEmail,
+        newEmail: nextLogin,
+        currentPassword: updateAccountEmailChangePassword,
+      });
+      const pendingEmail = typeof data.email === 'string' ? data.email : nextLogin;
+      setUpdateAccountPendingNewEmail(pendingEmail);
+      setUpdateAccountEmailOtp('');
+      setUpdateAccountEmailOtpError('');
+      setUpdateAccountEmailOtpOpen(true);
+    } catch (error: unknown) {
+      setUpdateAccountChangeLoginError(resolveAccountUpdateErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitUpdateAccountEmailOtp() {
+    if (!token || !updateAccountPendingNewEmail) return;
+    if (updateAccountEmailOtp.trim().length !== ACCOUNT_UPDATE_OTP_LENGTH) {
+      setUpdateAccountEmailOtpError(i18n.t('signupOtp.otpInvalidLength'));
+      return;
+    }
+
+    setUpdateAccountEmailOtpLoading(true);
+    setUpdateAccountEmailOtpError('');
+    try {
+      const { data } = await applyAccountUpdate(token, {
+        type: 'update_email',
+        currentEmail: resolveCurrentAccountLogin(),
+        newEmail: updateAccountPendingNewEmail,
+        otp: updateAccountEmailOtp.trim(),
+        currentPassword: updateAccountEmailChangePassword,
+      });
+      if (data.account) setAccountProfile(data.account);
+      await persistRefreshedAccessToken(data.accessToken);
+      closeUpdateAccountEmailOtpModal();
+      setUpdateAccountNewLogin('');
+      setUpdateAccountEmailChangePassword('');
+      setUpdateAccountChangeLoginSuccess(i18n.t('account.updateAccount.emailUpdateSuccess'));
+    } catch (error: unknown) {
+      setUpdateAccountEmailOtpError(resolveAccountUpdateErrorMessage(error));
+    } finally {
+      setUpdateAccountEmailOtpLoading(false);
+    }
+  }
+
+  async function submitUpdateAccountChangePassword() {
+    if (!token) return;
+    const fieldErrors: {
+      currentPassword?: string;
+      newPassword?: string;
+      confirmPassword?: string;
+    } = {};
+    if (!updateAccountCurrentPassword) {
+      fieldErrors.currentPassword = i18n.t('login.fieldErrors.passwordRequired');
+    }
+    if (!updateAccountNewPassword) {
+      fieldErrors.newPassword = i18n.t('login.fieldErrors.passwordRequired');
+    } else if (updateAccountNewPassword.length < 6) {
+      fieldErrors.newPassword = i18n.t('login.fieldErrors.passwordTooShort');
+    }
+    if (!updateAccountConfirmNewPassword) {
+      fieldErrors.confirmPassword = i18n.t('login.fieldErrors.confirmPasswordRequired');
+    } else if (updateAccountNewPassword !== updateAccountConfirmNewPassword) {
+      fieldErrors.confirmPassword = i18n.t('login.fieldErrors.confirmPasswordMismatch');
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      setUpdateAccountPasswordFieldErrors(fieldErrors);
+      setUpdateAccountPasswordError('');
+      setUpdateAccountPasswordSuccess('');
+      return;
+    }
+
+    setLoading(true);
+    setUpdateAccountPasswordFieldErrors({});
+    setUpdateAccountPasswordError('');
+    setUpdateAccountPasswordSuccess('');
+    try {
+      const currentEmail = resolveCurrentAccountLogin();
+      await verifyAccountUpdateRequest(token, {
+        type: 'update_password',
+        currentEmail,
+        currentPassword: updateAccountCurrentPassword,
+        newPassword: updateAccountNewPassword,
+      });
+      const { data } = await applyAccountUpdate(token, {
+        type: 'update_password',
+        currentEmail,
+        currentPassword: updateAccountCurrentPassword,
+        newPassword: updateAccountNewPassword,
+      });
+      await persistRefreshedAccessToken(data.accessToken);
+      setUpdateAccountCurrentPassword('');
+      setUpdateAccountNewPassword('');
+      setUpdateAccountConfirmNewPassword('');
+      setUpdateAccountPasswordSuccess(i18n.t('account.updateAccount.passwordUpdateSuccess'));
+    } catch (error: unknown) {
+      setUpdateAccountPasswordError(resolveAccountUpdateErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitUpdateAccountRecoverPassword() {
+    if (!token) return;
+    const recoveryEmail = resolveRecoverPasswordEmail();
+    if (!recoveryEmail) {
+      setUpdateAccountRecoverError(i18n.t('account.updateAccount.updateEmailFirst'));
+      return;
+    }
+    setLoading(true);
+    setUpdateAccountRecoverError('');
+    setUpdateAccountRecoverSuccess('');
+    try {
+      const { data } = await verifyAccountUpdateRequest(token, { type: 'recover_password' });
+      const pendingEmail = typeof data.email === 'string' ? data.email : recoveryEmail;
+      setUpdateAccountRecoverPendingEmail(pendingEmail);
+      setUpdateAccountRecoverOtp('');
+      setUpdateAccountRecoverNewPassword('');
+      setUpdateAccountRecoverConfirmPassword('');
+      setUpdateAccountRecoverOtpError('');
+      setUpdateAccountRecoverFieldErrors({});
+      setUpdateAccountRecoverOtpOpen(true);
+    } catch (error: unknown) {
+      setUpdateAccountRecoverError(resolveAccountUpdateErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function changeUpdateAccountRecoverOtp(value: string) {
+    const digits = value.replace(/\D/g, '').slice(0, ACCOUNT_UPDATE_OTP_LENGTH);
+    setUpdateAccountRecoverOtp(digits);
+    if (updateAccountRecoverOtpError) setUpdateAccountRecoverOtpError('');
+    if (updateAccountRecoverFieldErrors.otp) {
+      setUpdateAccountRecoverFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.otp;
+        return next;
+      });
+    }
+  }
+
+  function closeUpdateAccountRecoverOtpModal() {
+    setUpdateAccountRecoverOtpOpen(false);
+    setUpdateAccountRecoverOtp('');
+    setUpdateAccountRecoverNewPassword('');
+    setUpdateAccountRecoverConfirmPassword('');
+    setUpdateAccountRecoverOtpError('');
+    setUpdateAccountRecoverFieldErrors({});
+    setUpdateAccountRecoverOtpLoading(false);
+  }
+
+  async function submitUpdateAccountRecoverPasswordApply() {
+    if (!token) return;
+    const fieldErrors: { otp?: string; newPassword?: string; confirmPassword?: string } = {};
+    if (updateAccountRecoverOtp.trim().length !== ACCOUNT_UPDATE_OTP_LENGTH) {
+      fieldErrors.otp = i18n.t('signupOtp.otpInvalidLength');
+    }
+    if (!updateAccountRecoverNewPassword) {
+      fieldErrors.newPassword = i18n.t('login.fieldErrors.passwordRequired');
+    } else if (updateAccountRecoverNewPassword.length < 6) {
+      fieldErrors.newPassword = i18n.t('login.fieldErrors.passwordTooShort');
+    }
+    if (!updateAccountRecoverConfirmPassword) {
+      fieldErrors.confirmPassword = i18n.t('login.fieldErrors.confirmPasswordRequired');
+    } else if (updateAccountRecoverNewPassword !== updateAccountRecoverConfirmPassword) {
+      fieldErrors.confirmPassword = i18n.t('login.fieldErrors.confirmPasswordMismatch');
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      setUpdateAccountRecoverFieldErrors(fieldErrors);
+      setUpdateAccountRecoverOtpError('');
+      return;
+    }
+
+    setUpdateAccountRecoverOtpLoading(true);
+    setUpdateAccountRecoverFieldErrors({});
+    setUpdateAccountRecoverOtpError('');
+    try {
+      const { data } = await applyAccountUpdate(token, {
+        type: 'recover_password',
+        otp: updateAccountRecoverOtp.trim(),
+        newPassword: updateAccountRecoverNewPassword,
+      });
+      await persistRefreshedAccessToken(data.accessToken);
+      closeUpdateAccountRecoverOtpModal();
+      setUpdateAccountRecoverSuccess(i18n.t('account.updateAccount.recoverPasswordSuccess'));
+    } catch (error: unknown) {
+      setUpdateAccountRecoverOtpError(resolveAccountUpdateErrorMessage(error));
+    } finally {
+      setUpdateAccountRecoverOtpLoading(false);
+    }
+  }
+
+  async function confirmDeleteAccount() {
+    if (!token) return;
+    await deleteMyAccount(token);
+    await logout();
+  }
+
+  function requestDeleteAccount() {
+    void confirmDeleteAccount();
   }
 
   function goToCameraForPet(petId: string, opts?: { returnToProfile?: boolean }) {
@@ -1898,6 +2381,7 @@ export function usePetHealthApp() {
     confirmPassword,
     changeConfirmPassword,
     authError,
+    authFieldErrors,
     signUpOtp,
     setSignUpOtp,
     changeSignUpOtp,
@@ -1996,6 +2480,55 @@ export function usePetHealthApp() {
     goHomeAndRefresh,
     openPetFeed,
     openAccount,
+    openUpdateAccount,
+    backFromUpdateAccount,
+    backToUpdateAccount,
+    openUpdateAccountChangeLogin,
+    openUpdateAccountChangePassword,
+    openUpdateAccountRecoverPassword,
+    submitUpdateAccountChangeLogin,
+    submitUpdateAccountChangePassword,
+    submitUpdateAccountRecoverPassword,
+    submitUpdateAccountEmailOtp,
+    updateAccountNewLogin,
+    changeUpdateAccountNewLogin,
+    updateAccountEmailChangePassword,
+    changeUpdateAccountEmailChangePassword,
+    updateAccountChangeLoginError,
+    updateAccountChangeLoginFieldErrors,
+    updateAccountChangeLoginSuccess,
+    updateAccountEmailOtpOpen,
+    updateAccountPendingNewEmail,
+    updateAccountEmailOtp,
+    updateAccountEmailOtpError,
+    updateAccountEmailOtpLoading,
+    changeUpdateAccountEmailOtp,
+    closeUpdateAccountEmailOtpModal,
+    updateAccountCurrentPassword,
+    setUpdateAccountCurrentPassword,
+    updateAccountNewPassword,
+    setUpdateAccountNewPassword,
+    updateAccountConfirmNewPassword,
+    setUpdateAccountConfirmNewPassword,
+    updateAccountPasswordError,
+    updateAccountPasswordSuccess,
+    updateAccountPasswordFieldErrors,
+    updateAccountRecoverError,
+    updateAccountRecoverSuccess,
+    updateAccountRecoverOtpOpen,
+    updateAccountRecoverPendingEmail,
+    updateAccountRecoverOtp,
+    updateAccountRecoverNewPassword,
+    updateAccountRecoverConfirmPassword,
+    updateAccountRecoverOtpError,
+    updateAccountRecoverFieldErrors,
+    updateAccountRecoverOtpLoading,
+    changeUpdateAccountRecoverOtp,
+    setUpdateAccountRecoverNewPassword,
+    setUpdateAccountRecoverConfirmPassword,
+    closeUpdateAccountRecoverOtpModal,
+    submitUpdateAccountRecoverPasswordApply,
+    confirmDeleteAccount,
     requestDeleteAccount,
     refreshPetFeed,
     loadMorePetFeed,

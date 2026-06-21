@@ -23,6 +23,10 @@ import { AdminHubScreen } from './src/screens/AdminHubScreen';
 import { AdminUserDetailScreen } from './src/screens/AdminUserDetailScreen';
 import { CreateAdminPostScreen } from './src/screens/CreateAdminPostScreen';
 import { AccountScreen } from './src/screens/AccountScreen';
+import { UpdateAccountScreen } from './src/screens/UpdateAccountScreen';
+import { UpdateAccountChangeLoginScreen } from './src/screens/UpdateAccountChangeLoginScreen';
+import { UpdateAccountChangePasswordScreen } from './src/screens/UpdateAccountChangePasswordScreen';
+import { UpdateAccountRecoverPasswordScreen } from './src/screens/UpdateAccountRecoverPasswordScreen';
 import { AddPetScreen } from './src/screens/AddPetScreen';
 import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
 import { BreederProfileScreen } from './src/screens/BreederProfileScreen';
@@ -153,12 +157,13 @@ function AppContent() {
       onOpenPetFeed={app.openPetFeed}
       onOpenCreatePetFeedPost={app.openCreateAdminPost}
       onOpenAdminHub={app.openAdminHub}
+      onOpenUpdateAccount={app.openUpdateAccount}
       onUpdateBreederStatus={app.updateAdminBreederStatus}
       onUpdatePostStatus={app.updateAdminPostStatus}
       onUpdateReportStatus={app.updateAdminReportStatus}
       onLogout={app.logout}
-      onDeleteAccount={app.requestDeleteAccount}
-      showHeaderLogout={!isAdmin}
+      onConfirmDeleteAccount={app.confirmDeleteAccount}
+      showHeaderMenu={!isAdmin}
     />
   );
 
@@ -173,6 +178,7 @@ function AppContent() {
           confirmPassword={app.confirmPassword}
           isSignUp={app.isSignUp}
           error={app.authError}
+          fieldErrors={app.authFieldErrors}
           loading={app.loading}
           onChangeEmail={app.changeEmail}
           onChangePassword={app.changePassword}
@@ -249,6 +255,80 @@ function AppContent() {
             ) : null}
 
             {app.screen === 'account' && !isAdmin ? accountDashboard : null}
+
+            {app.screen === 'update-account' && !isAdmin ? (
+              <UpdateAccountScreen
+                onBack={app.backFromUpdateAccount}
+                onChangeLoginIdentifier={app.openUpdateAccountChangeLogin}
+                onChangePassword={app.openUpdateAccountChangePassword}
+                onRecoverPassword={app.openUpdateAccountRecoverPassword}
+              />
+            ) : null}
+
+            {app.screen === 'update-account-change-login' && !isAdmin ? (
+              <UpdateAccountChangeLoginScreen
+                currentLogin={app.accountProfile?.email ?? app.accountProfile?.login_identifier ?? ''}
+                value={app.updateAccountNewLogin}
+                currentPassword={app.updateAccountEmailChangePassword}
+                error={app.updateAccountChangeLoginError}
+                fieldErrors={app.updateAccountChangeLoginFieldErrors}
+                success={app.updateAccountChangeLoginSuccess}
+                loading={app.loading}
+                otpModalOpen={app.updateAccountEmailOtpOpen}
+                pendingEmail={app.updateAccountPendingNewEmail}
+                otp={app.updateAccountEmailOtp}
+                otpError={app.updateAccountEmailOtpError}
+                otpLoading={app.updateAccountEmailOtpLoading}
+                onChangeValue={app.changeUpdateAccountNewLogin}
+                onChangeCurrentPassword={app.changeUpdateAccountEmailChangePassword}
+                onChangeOtp={app.changeUpdateAccountEmailOtp}
+                onBack={app.backToUpdateAccount}
+                onSubmit={() => void app.submitUpdateAccountChangeLogin()}
+                onCloseOtpModal={app.closeUpdateAccountEmailOtpModal}
+                onSubmitOtp={() => void app.submitUpdateAccountEmailOtp()}
+              />
+            ) : null}
+
+            {app.screen === 'update-account-change-password' && !isAdmin ? (
+              <UpdateAccountChangePasswordScreen
+                currentPassword={app.updateAccountCurrentPassword}
+                newPassword={app.updateAccountNewPassword}
+                confirmPassword={app.updateAccountConfirmNewPassword}
+                error={app.updateAccountPasswordError}
+                success={app.updateAccountPasswordSuccess}
+                fieldErrors={app.updateAccountPasswordFieldErrors}
+                loading={app.loading}
+                onChangeCurrentPassword={app.setUpdateAccountCurrentPassword}
+                onChangeNewPassword={app.setUpdateAccountNewPassword}
+                onChangeConfirmPassword={app.setUpdateAccountConfirmNewPassword}
+                onBack={app.backToUpdateAccount}
+                onSubmit={() => void app.submitUpdateAccountChangePassword()}
+              />
+            ) : null}
+
+            {app.screen === 'update-account-recover-password' && !isAdmin ? (
+              <UpdateAccountRecoverPasswordScreen
+                email={app.accountProfile?.email ?? app.accountProfile?.login_identifier ?? ''}
+                error={app.updateAccountRecoverError}
+                success={app.updateAccountRecoverSuccess}
+                loading={app.loading}
+                otpModalOpen={app.updateAccountRecoverOtpOpen}
+                pendingEmail={app.updateAccountRecoverPendingEmail}
+                otp={app.updateAccountRecoverOtp}
+                newPassword={app.updateAccountRecoverNewPassword}
+                confirmPassword={app.updateAccountRecoverConfirmPassword}
+                otpError={app.updateAccountRecoverOtpError}
+                fieldErrors={app.updateAccountRecoverFieldErrors}
+                otpLoading={app.updateAccountRecoverOtpLoading}
+                onBack={app.backToUpdateAccount}
+                onSubmitSendOtp={() => void app.submitUpdateAccountRecoverPassword()}
+                onChangeOtp={app.changeUpdateAccountRecoverOtp}
+                onChangeNewPassword={app.setUpdateAccountRecoverNewPassword}
+                onChangeConfirmPassword={app.setUpdateAccountRecoverConfirmPassword}
+                onCloseOtpModal={app.closeUpdateAccountRecoverOtpModal}
+                onSubmitRecover={() => void app.submitUpdateAccountRecoverPasswordApply()}
+              />
+            ) : null}
 
             {app.screen === 'breeder-profile' && (
               <BreederProfileScreen

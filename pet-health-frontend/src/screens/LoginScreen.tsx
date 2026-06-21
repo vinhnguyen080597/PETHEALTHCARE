@@ -15,6 +15,11 @@ type LoginScreenProps = {
   confirmPassword: string;
   isSignUp: boolean;
   error?: string;
+  fieldErrors?: {
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  };
   loading?: boolean;
   onChangeEmail: (value: string) => void;
   onChangePassword: (value: string) => void;
@@ -22,6 +27,11 @@ type LoginScreenProps = {
   onToggleSignUp: () => void;
   onSubmit: () => void;
 };
+
+function FieldInlineError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <Text className="mt-1.5 text-xs font-medium text-red-600">{message}</Text>;
+}
 
 /** Mirrors `figma/code/src/app/components/LoginScreen.tsx` layout for React Native + NativeWind. */
 export function LoginScreen({
@@ -31,6 +41,7 @@ export function LoginScreen({
   confirmPassword,
   isSignUp,
   error,
+  fieldErrors,
   loading = false,
   onChangeEmail,
   onChangePassword,
@@ -91,18 +102,25 @@ export function LoginScreen({
                 <TextInput
                   testID="login-email-input"
                   accessibilityLabel={t('login.email')}
-                  className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
+                  className={`rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${
+                    fieldErrors?.email ? 'border-red-400' : 'border-gray-300'
+                  }`}
                   placeholder={t('login.placeholderEmail')}
                   placeholderTextColor="#9ca3af"
                   autoCapitalize="none"
                   value={email}
                   onChangeText={onChangeEmail}
                 />
+                <FieldInlineError message={fieldErrors?.email} />
               </View>
 
               <View className={isSignUp ? 'mb-4' : 'mb-6'}>
                 <Text className="mb-2 text-sm text-slate-700">{t('login.password')}</Text>
-                <View className="flex-row items-center rounded-xl border border-gray-300 bg-white">
+                <View
+                  className={`flex-row items-center rounded-xl border bg-white ${
+                    fieldErrors?.password ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                >
                   <TextInput
                     testID="login-password-input"
                     accessibilityLabel="Password"
@@ -124,12 +142,21 @@ export function LoginScreen({
                     <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#64748b" />
                   </Pressable>
                 </View>
+                {fieldErrors?.password ? (
+                  <FieldInlineError message={fieldErrors.password} />
+                ) : isSignUp ? (
+                  <Text className="mt-1.5 text-xs text-slate-500">{t('login.passwordHint')}</Text>
+                ) : null}
               </View>
 
               {isSignUp ? (
                 <View className="mb-6">
                   <Text className="mb-2 text-sm text-slate-700">{t('login.confirmPassword')}</Text>
-                  <View className="flex-row items-center rounded-xl border border-gray-300 bg-white">
+                  <View
+                    className={`flex-row items-center rounded-xl border bg-white ${
+                      fieldErrors?.confirmPassword ? 'border-red-400' : 'border-gray-300'
+                    }`}
+                  >
                     <TextInput
                       testID="login-confirm-password-input"
                       accessibilityLabel="Confirm password"
@@ -155,6 +182,7 @@ export function LoginScreen({
                       />
                     </Pressable>
                   </View>
+                  <FieldInlineError message={fieldErrors?.confirmPassword} />
                 </View>
               ) : null}
 

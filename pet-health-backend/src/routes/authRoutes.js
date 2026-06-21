@@ -1,7 +1,16 @@
 import { Router } from 'express';
 import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supabase.js';
 import { deleteAccountData, ensureAccountProfile } from '../repositories/accountRepository.js';
-import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../services/authIdentifierService.js';
+import { authEmailFromIdentifier, compactText, looksLikeEmail, requireSignupEmail } from '../services/authIdentifierService.js';
+import { findAuthUserByEmail } from '../services/adminAuthUserService.js';
+import {
+  applyUpdateEmail,
+  applyUpdatePassword,
+  applyRecoverPassword,
+  verifyRecoverPasswordRequest,
+  verifyUpdateEmailRequest,
+  verifyUpdatePasswordRequest,
+} from '../services/accountUpdateService.js';
 import { requireUser } from '../middleware/auth.js';
 import { deleteUserImageStorage } from '../services/imageStorageService.js';
 
@@ -13,6 +22,9 @@ router.post('/signup', async (req, res, next) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
     }
+    if (String(password).length < 6) {
+      return res.status(400).json({ error: 'password must be at least 6 characters', code: 'PASSWORD_TOO_SHORT' });
+    }
 
     const supabase = getSupabaseAnonClient();
     if (!supabase) {
@@ -21,15 +33,26 @@ router.post('/signup', async (req, res, next) => {
       });
     }
 
-    const authEmail = authEmailFromIdentifier(email);
+    const authEmail = requireSignupEmail(email);
     const name =
       typeof displayName === 'string' && displayName.trim() ? displayName.trim() : compactText(email);
     const metadata = {
       full_name: name,
       login_identifier: compactText(email),
-      auth_mode: looksLikeEmail(compactText(email)) ? 'email' : 'free_text_identifier',
+      auth_mode: 'email',
       primary_role: 'sen',
     };
+
+    const admin = getSupabaseServiceClient();
+    if (admin) {
+      const existing = await findAuthUserByEmail(admin, authEmail);
+      if (existing) {
+        return res.status(409).json({
+          error: 'This email is already registered. Please sign in instead.',
+          code: 'EMAIL_ALREADY_REGISTERED',
+        });
+      }
+    }
 
     const { data, error } = await supabase.auth.signInWithOtp({
       email: authEmail,
@@ -64,7 +87,7 @@ router.post('/signup/verify-otp', async (req, res, next) => {
       });
     }
 
-    const authEmail = authEmailFromIdentifier(email);
+    const authEmail = requireSignupEmail(email);
     const cleanPassword = String(password);
     if (cleanPassword.length < 6) {
       return res.status(400).json({ error: 'password must be at least 6 characters', code: 'PASSWORD_TOO_SHORT' });
@@ -138,8 +161,23 @@ router.post('/login', async (req, res, next) => {
       });
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email: authEmailFromIdentifier(email), password });
-    if (error) throw error;
+    let authEmail;
+    try {
+      authEmail = authEmailFromIdentifier(email);
+    } catch {
+      return res.status(401).json({
+        error: 'Incorrect email or password.',
+        code: 'invalid_credentials',
+      });
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
+    if (error) {
+      return res.status(401).json({
+        error: 'Incorrect email or password.',
+        code: 'invalid_credentials',
+      });
+    }
     const metadata = data.user?.user_metadata ?? {};
     const account = data.user?.id
       ? await ensureAccountProfile({
@@ -152,6 +190,35 @@ router.post('/login', async (req, res, next) => {
         })
       : null;
     return res.json({ data: { ...data, account } });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body ?? {};
+    if (!email) {
+      return res.status(400).json({ error: 'email is required' });
+    }
+
+    const supabase = getSupabaseAnonClient();
+    if (!supabase) {
+      return res.status(503).json({
+        error: 'Supabase auth is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY',
+      });
+    }
+
+    let authEmail;
+    try {
+      authEmail = looksLikeEmail(compactText(email)) ? requireSignupEmail(email) : authEmailFromIdentifier(email);
+    } catch {
+      return res.json({ data: { sent: true } });
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(authEmail);
+    if (error) throw error;
+    return res.json({ data: { sent: true } });
   } catch (err) {
     return next(err);
   }
@@ -235,6 +302,107 @@ router.post('/oauth/apple', async (req, res, next) => {
 
 router.get('/me', requireUser, async (req, res) => {
   return res.json({ data: req.account });
+});
+
+router.post('/account/verify-request', requireUser, async (req, res, next) => {
+  try {
+    const { type, newEmail, currentEmail, currentPassword, newPassword } = req.body ?? {};
+    if (!type || typeof type !== 'string') {
+      return res.status(400).json({ error: 'type is required' });
+    }
+
+    switch (type) {
+      case 'update_email': {
+        if (!newEmail || !currentPassword) {
+          return res.status(400).json({ error: 'newEmail and currentPassword are required' });
+        }
+        const result = await verifyUpdateEmailRequest({
+          user: req.user,
+          account: req.account,
+          newEmail,
+          currentEmail,
+          currentPassword,
+        });
+        return res.json({ data: result });
+      }
+      case 'update_password': {
+        if (!currentPassword || !newPassword) {
+          return res.status(400).json({ error: 'currentPassword and newPassword are required' });
+        }
+        const result = await verifyUpdatePasswordRequest({
+          user: req.user,
+          account: req.account,
+          currentEmail,
+          currentPassword,
+          newPassword,
+        });
+        return res.json({ data: result });
+      }
+      case 'recover_password': {
+        const result = await verifyRecoverPasswordRequest({ user: req.user, account: req.account });
+        return res.json({ data: result });
+      }
+      default:
+        return res.status(400).json({ error: 'Unsupported verification type', code: 'INVALID_INPUT' });
+    }
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/account/apply-update', requireUser, async (req, res, next) => {
+  try {
+    const { type, newEmail, otp, currentEmail, currentPassword, newPassword } = req.body ?? {};
+    if (!type || typeof type !== 'string') {
+      return res.status(400).json({ error: 'type is required' });
+    }
+
+    switch (type) {
+      case 'update_email': {
+        if (!newEmail || !otp || !currentPassword) {
+          return res.status(400).json({ error: 'newEmail, otp and currentPassword are required' });
+        }
+        const result = await applyUpdateEmail({
+          user: req.user,
+          account: req.account,
+          newEmail,
+          otp,
+          currentEmail,
+          currentPassword,
+        });
+        return res.json({ data: result });
+      }
+      case 'update_password': {
+        if (!currentPassword || !newPassword) {
+          return res.status(400).json({ error: 'currentPassword and newPassword are required' });
+        }
+        const result = await applyUpdatePassword({
+          user: req.user,
+          account: req.account,
+          currentEmail,
+          currentPassword,
+          newPassword,
+        });
+        return res.json({ data: result });
+      }
+      case 'recover_password': {
+        if (!otp || !newPassword) {
+          return res.status(400).json({ error: 'otp and newPassword are required' });
+        }
+        const result = await applyRecoverPassword({
+          user: req.user,
+          account: req.account,
+          otp,
+          newPassword,
+        });
+        return res.json({ data: result });
+      }
+      default:
+        return res.status(400).json({ error: 'Unsupported update type', code: 'INVALID_INPUT' });
+    }
+  } catch (err) {
+    return next(err);
+  }
 });
 
 router.delete('/me', requireUser, async (req, res, next) => {

@@ -23,6 +23,18 @@ export function looksLikeEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+/** Self-service signup sends OTP by email; free-text login names are not supported here. */
+export function requireSignupEmail(identifier) {
+  const value = compactText(identifier).toLocaleLowerCase('en-US');
+  if (!looksLikeEmail(value)) {
+    const err = new Error('Please enter a valid email address.');
+    err.status = 400;
+    err.code = 'INVALID_EMAIL_FORMAT';
+    throw err;
+  }
+  return value;
+}
+
 export function authEmailFromIdentifier(identifier) {
   const normalized = normalizeIdentifier(identifier).toLocaleLowerCase('en-US');
   if (looksLikeEmail(normalized)) return normalized;

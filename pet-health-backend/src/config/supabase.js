@@ -73,6 +73,25 @@ export function createSupabaseWithUserAccessToken(accessToken) {
   });
 }
 
+/** Auth methods (updateUser, verifyOtp email_change) require an in-memory session, not just a Bearer header. */
+export async function createSupabaseAuthClientWithSession(session) {
+  const url = process.env.SUPABASE_URL;
+  const anon = process.env.SUPABASE_ANON_KEY;
+  const accessToken = typeof session?.access_token === 'string' ? session.access_token.trim() : '';
+  const refreshToken = typeof session?.refresh_token === 'string' ? session.refresh_token.trim() : '';
+  if (!url || !anon || !accessToken || !refreshToken) return null;
+
+  const client = createClient(url, anon, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error } = await client.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error) throw error;
+  return client;
+}
+
 export function getImageBucketName() {
   return getPrivateMediaBucketName();
 }
