@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { installMockApi } from './fixtures/mockApi';
+import { installMockApi, MOCK_E2E_OTP } from './fixtures/mockApi';
 
 const tinyPng = {
   name: 'pet-photo.png',
@@ -72,12 +72,8 @@ async function openFreshApp(page: Page) {
 async function chooseBirthDate(page: Page, testID: string, isoDate: string) {
   await page.getByTestId(testID).click();
   const picker = page.getByTestId(`${testID}-picker`);
-  if (await picker.count()) {
-    await picker.fill(isoDate);
-    return;
-  }
-  const dateInput = page.locator('input[type="date"]').last();
-  await dateInput.fill(isoDate);
+  await picker.waitFor({ state: 'visible' });
+  await picker.fill(isoDate);
 }
 
 async function chooseImage(page: Page, testID: string) {
@@ -109,10 +105,14 @@ test.describe('Web feature smoke coverage', () => {
       await page.getByTestId('language-english-button').click();
 
       await page.getByTestId('signup-mode-button').click();
-      await page.getByTestId('login-email-input').fill("Luna's parent");
+      await page.getByTestId('login-email-input').fill('luna.parent@example.com');
       await page.getByTestId('login-password-input').fill('password123');
       await page.getByTestId('login-confirm-password-input').fill('password123');
       await page.getByTestId('signup-submit-button').click();
+
+      await verify(page, expect(page.getByTestId('signup-otp-input')).toBeVisible());
+      await page.getByTestId('signup-otp-input').fill(MOCK_E2E_OTP);
+      await page.getByTestId('signup-otp-verify-button').click();
 
       await verify(page, expect(page.getByTestId('onboarding-intro-screen')).toBeVisible());
       await page.getByTestId('onboarding-intro-go-button').click();
@@ -122,10 +122,10 @@ test.describe('Web feature smoke coverage', () => {
       await verify(page, expect(page.getByTestId('add-pet-name-input')).toBeVisible());
       await chooseImage(page, 'add-pet-avatar-button');
       await page.getByTestId('add-pet-name-input').fill('Luna');
-      await page.getByTestId('add-pet-species-select').click();
-      await page.getByTestId('add-pet-species-select-option-cat').click();
-      await page.getByTestId('add-pet-breed-input').fill('Domestic Shorthair');
       await chooseBirthDate(page, 'add-pet-birth-date-field', '2024-01-15');
+      await page.getByTestId('add-pet-gender-select').click();
+      await page.getByTestId('add-pet-gender-select-option-female').click();
+      await page.getByTestId('add-pet-breed-input').fill('Domestic Shorthair');
       await page.getByTestId('add-pet-submit-button').click();
 
       await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
@@ -231,7 +231,7 @@ test.describe('Web feature smoke coverage', () => {
       await verify(page, expect(page.getByTestId('pet-profile-screen').getByText('British Shorthair mix').first()).toBeVisible());
     });
 
-    await test.step('use bottom tabs and log out', async () => {
+    await test.step('use bottom tabs', async () => {
       await page.getByTestId('pet-profile-back-button').click();
       await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
       await page.getByTestId('bottom-tab-pet-feed-button').click();
@@ -244,9 +244,31 @@ test.describe('Web feature smoke coverage', () => {
       await page.getByLabel('Close listing details').click();
       await page.getByTestId('bottom-tab-home-button').click();
       await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
+    });
+
+    await test.step('update account password and log out', async () => {
       await page.getByTestId('bottom-tab-account-button').click();
       await verify(page, expect(page.getByTestId('account-screen')).toBeVisible());
-      await page.getByTestId('account-logout-button').click();
+
+      await page.getByTestId('account-menu-button').click();
+      await page.getByTestId('account-menu-update-button').click();
+      await verify(page, expect(page.getByTestId('update-account-screen')).toBeVisible());
+
+      await page.getByTestId('update-account-change-password-button').click();
+      await verify(page, expect(page.getByTestId('update-account-change-password-screen')).toBeVisible());
+      await page.getByTestId('update-account-current-password-input').fill('password123');
+      await page.getByTestId('update-account-new-password-input').fill('newpass99');
+      await page.getByTestId('update-account-confirm-new-password-input').fill('newpass99');
+      await page.getByTestId('update-account-change-password-submit-button').click();
+      await verify(page, expect(page.getByText('Your password has been updated successfully.')).toBeVisible());
+
+      await page.getByTestId('update-account-change-password-back-button').click();
+      await verify(page, expect(page.getByTestId('update-account-screen')).toBeVisible());
+      await page.getByTestId('update-account-back-button').click();
+      await verify(page, expect(page.getByTestId('account-screen')).toBeVisible());
+
+      await page.getByTestId('account-menu-button').click();
+      await page.getByTestId('account-menu-logout-button').click();
       await verify(page, expect(page.getByTestId('login-email-input')).toBeVisible());
     });
   });

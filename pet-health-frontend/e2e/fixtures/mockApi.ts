@@ -90,9 +90,18 @@ type MockApiState = {
   analyses: Analysis[];
   creditBalance: number;
   ledger: Array<Record<string, unknown>>;
+  accountPassword: string;
+  pendingNewEmail: string | null;
+  pendingPasswordRecovery: boolean;
 };
 
 const API_DELAY_MS = Number(process.env.E2E_API_DELAY_MS ?? 0);
+export const MOCK_E2E_OTP = '12345678';
+const MOCK_ACCOUNT_PASSWORD = 'password123';
+
+function isValidOtp(otp: unknown) {
+  return String(otp ?? '').trim() === MOCK_E2E_OTP;
+}
 
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({
@@ -215,6 +224,9 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     analyses: [],
     creditBalance: 2,
     ledger: [],
+    accountPassword: MOCK_ACCOUNT_PASSWORD,
+    pendingNewEmail: null,
+    pendingPasswordRecovery: false,
     ...initial,
   };
 
@@ -226,19 +238,30 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     const method = route.request().method();
 
     if (method === 'POST' && path === '/auth/signup') {
+      const payload = await bodyJson(route);
+      const email = String(payload.email ?? 'e2e@example.com');
       return json(route, {
         data: {
           otpSent: true,
-          email: 'e2e@example.com',
+          email,
         },
       });
     }
 
     if (method === 'POST' && path === '/auth/signup/verify-otp') {
+      const payload = await bodyJson(route);
+      const email = String(payload.email ?? 'e2e@example.com');
+      if (!isValidOtp(payload.otp)) {
+        return json(route, { error: 'Incorrect or expired OTP.', code: 'otp_invalid' }, 400);
+      }
       state.account.primary_role = 'sen';
+      state.account.email = email;
+      state.account.login_identifier = email;
+      state.account.display_name = email.split('@')[0] || email;
+      state.account.updated_at = new Date().toISOString();
       return json(route, {
         data: {
-          user: { id: 'e2e-user', email: 'e2e@example.com' },
+          user: { id: 'e2e-user', email },
           session: { access_token: state.token },
           account: state.account,
         },
@@ -257,6 +280,113 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
 
     if (method === 'GET' && path === '/auth/me') {
       return json(route, { data: state.account });
+    }
+
+    if (method === 'DELETE' && path === '/auth/me') {
+      return route.fulfill({ status: 204 });
+    }
+
+    if (method === 'POST' && path === '/auth/account/verify-request') {
+      const payload = await bodyJson(route);
+      const type = String(payload.type ?? '');
+
+      if (type === 'update_email') {
+        const currentPassword = String(payload.currentPassword ?? '');
+        const newEmail = String(payload.newEmail ?? '').trim().toLocaleLowerCase('en-US');
+        if (currentPassword !== state.accountPassword) {
+          return json(route, { error: 'Current password is incorrect.', code: 'WRONG_PASSWORD' }, 400);
+        }
+        if (!newEmail) {
+          return json(route, { error: 'newEmail is required' }, 400);
+        }
+        state.pendingNewEmail = newEmail;
+        state.account.metadata = {
+          ...state.account.metadata,
+          pending_email_change_to: newEmail,
+        };
+        return json(route, { data: { otpSent: true, email: newEmail } });
+      }
+
+      if (type === 'update_password') {
+        const currentPassword = String(payload.currentPassword ?? '');
+        const newPassword = String(payload.newPassword ?? '');
+        if (currentPassword !== state.accountPassword) {
+          return json(route, { error: 'Current password is incorrect.', code: 'WRONG_PASSWORD' }, 400);
+        }
+        if (newPassword.length < 6) {
+          return json(route, { error: 'password must be at least 6 characters', code: 'PASSWORD_TOO_SHORT' }, 400);
+        }
+        return json(route, { data: { verified: true } });
+      }
+
+      if (type === 'recover_password') {
+        const email = state.account.email;
+        if (!email) {
+          return json(route, { error: 'Please update your email before recovering your password.', code: 'UPDATE_EMAIL_FIRST' }, 400);
+        }
+        state.pendingPasswordRecovery = true;
+        state.account.metadata = {
+          ...state.account.metadata,
+          pending_password_recovery_to: email,
+        };
+        return json(route, { data: { otpSent: true, email } });
+      }
+
+      return json(route, { error: 'Unsupported verification type', code: 'INVALID_INPUT' }, 400);
+    }
+
+    if (method === 'POST' && path === '/auth/account/apply-update') {
+      const payload = await bodyJson(route);
+      const type = String(payload.type ?? '');
+
+      if (type === 'update_email') {
+        const currentPassword = String(payload.currentPassword ?? '');
+        const newEmail = String(payload.newEmail ?? '').trim().toLocaleLowerCase('en-US');
+        if (currentPassword !== state.accountPassword) {
+          return json(route, { error: 'Current password is incorrect.', code: 'WRONG_PASSWORD' }, 400);
+        }
+        if (!isValidOtp(payload.otp) || !state.pendingNewEmail || state.pendingNewEmail !== newEmail) {
+          return json(route, { error: 'Incorrect or expired OTP.', code: 'otp_invalid' }, 400);
+        }
+        state.account.email = newEmail;
+        state.account.login_identifier = newEmail;
+        state.account.display_name = newEmail.split('@')[0] || newEmail;
+        state.account.updated_at = new Date().toISOString();
+        state.pendingNewEmail = null;
+        state.account.metadata = { ...state.account.metadata };
+        delete state.account.metadata.pending_email_change_to;
+        return json(route, { data: { account: state.account, accessToken: state.token } });
+      }
+
+      if (type === 'update_password') {
+        const currentPassword = String(payload.currentPassword ?? '');
+        const newPassword = String(payload.newPassword ?? '');
+        if (currentPassword !== state.accountPassword) {
+          return json(route, { error: 'Current password is incorrect.', code: 'WRONG_PASSWORD' }, 400);
+        }
+        if (newPassword.length < 6) {
+          return json(route, { error: 'password must be at least 6 characters', code: 'PASSWORD_TOO_SHORT' }, 400);
+        }
+        state.accountPassword = newPassword;
+        return json(route, { data: { success: true, accessToken: state.token } });
+      }
+
+      if (type === 'recover_password') {
+        const newPassword = String(payload.newPassword ?? '');
+        if (!state.pendingPasswordRecovery || !isValidOtp(payload.otp)) {
+          return json(route, { error: 'Incorrect or expired OTP.', code: 'otp_invalid' }, 400);
+        }
+        if (newPassword.length < 6) {
+          return json(route, { error: 'password must be at least 6 characters', code: 'PASSWORD_TOO_SHORT' }, 400);
+        }
+        state.accountPassword = newPassword;
+        state.pendingPasswordRecovery = false;
+        state.account.metadata = { ...state.account.metadata };
+        delete state.account.metadata.pending_password_recovery_to;
+        return json(route, { data: { success: true, accessToken: state.token } });
+      }
+
+      return json(route, { error: 'Unsupported update type', code: 'INVALID_INPUT' }, 400);
     }
 
     if (method === 'GET' && path === '/pet-feed/posts') {

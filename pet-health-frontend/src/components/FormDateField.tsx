@@ -79,14 +79,34 @@ export function FormDateField({
           <View className="rounded-t-2xl bg-white px-4 pb-8 pt-2">
             <View className="mb-2 self-center rounded-full bg-gray-200 px-10 py-1" />
             <Text className="mb-2 text-center text-base font-semibold text-slate-900">{label}</Text>
-            <DateTimePicker
-              testID={testID ? `${testID}-picker` : undefined}
-              value={pickerValue}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              maximumDate={maximumDate}
-              onChange={handleChange}
-            />
+            {Platform.OS === 'web' ? (
+              <input
+                type="date"
+                data-testid={testID ? `${testID}-picker` : undefined}
+                value={value || ''}
+                max={maximumDate ? formatBirthDateIso(maximumDate) : undefined}
+                onChange={(event) => {
+                  onChange(event.currentTarget.value);
+                  setOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  borderRadius: 12,
+                  border: '1px solid #d1d5db',
+                  padding: '12px 16px',
+                  fontSize: 16,
+                }}
+              />
+            ) : (
+              <DateTimePicker
+                testID={testID ? `${testID}-picker` : undefined}
+                value={pickerValue}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                maximumDate={maximumDate}
+                onChange={handleChange}
+              />
+            )}
             {Platform.OS === 'ios' ? (
               <Pressable
                 className="mt-2 rounded-xl bg-blue-600 py-3 active:opacity-90"

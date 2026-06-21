@@ -10,7 +10,7 @@ import { Component, type ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TextInput } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from './src/components/AppHeader';
 import { BottomTabBar } from './src/components/BottomTabBar';
@@ -131,6 +131,19 @@ function AppContent() {
 
   if (!fontsLoaded && !fontError) return null;
   if (fontsLoaded) applyDefaultTypography();
+
+  if (app.sessionBootstrapping) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right', 'bottom']}>
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="#2563eb" />
+          </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
 
   const showBottomTab = app.screen === 'pet-feed' || app.screen === 'home' || app.screen === 'account';
   const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;

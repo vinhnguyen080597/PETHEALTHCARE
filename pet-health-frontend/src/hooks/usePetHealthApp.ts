@@ -220,6 +220,8 @@ function resolveAuthErrorMessage(error: unknown, isSignUp: boolean): string {
 
 export function usePetHealthApp() {
   const [screen, setScreen] = useState<AppScreen>('login');
+  /** True until stored session is checked on cold start — avoids flashing the login screen. */
+  const [sessionBootstrapping, setSessionBootstrapping] = useState(true);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [backendHealth, setBackendHealth] = useState<BackendHealthStatus>('checking');
@@ -419,10 +421,12 @@ export function usePetHealthApp() {
 
   const refreshAiCredits = useCallback(async (accessToken: string) => {
     try {
-      const response = await getAiCreditSummary(accessToken);
-      setAiCredits(response.data.account);
-      setAiEconomicsConfig(response.data.config);
-      const ledger = await listAiCreditLedger(accessToken);
+      const [summary, ledger] = await Promise.all([
+        getAiCreditSummary(accessToken),
+        listAiCreditLedger(accessToken),
+      ]);
+      setAiCredits(summary.data.account);
+      setAiEconomicsConfig(summary.data.config);
       setCreditLedger(ledger.data.slice(0, 20));
     } catch {
       // Credits are advisory in the UI; backend remains the source of truth.
@@ -579,42 +583,72 @@ export function usePetHealthApp() {
     return () => clearInterval(id);
   }, [analysisCooldownUntilMs]);
 
-  async function initializeApp() {
-    try {
-      await healthCheck();
-      setBackendHealth('online');
-    } catch {
-      setBackendHealth('offline');
+  async function clearInvalidSession() {
+    await removeStoredAuthToken();
+    await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
+    setToken(null);
+    setInitialOnboarding(false);
+  }
+
+  async function loadAuthenticatedUserData(accessToken: string, profile: AccountProfile) {
+    const loads: Promise<unknown>[] = [fetchPets(accessToken), refreshAiCredits(accessToken)];
+    if (profile.primary_role === 'admin') {
+      loads.push(loadAccountDashboard(accessToken, profile.primary_role));
+    }
+    await Promise.all(loads);
+  }
+
+  async function navigateAfterAuthenticatedSession(options?: { startInitialOnboarding?: boolean }) {
+    if (options?.startInitialOnboarding) {
+      await AsyncStorage.setItem(PENDING_INITIAL_ONBOARDING_KEY, '1');
+      setInitialOnboarding(true);
+      clearPetForm();
+      try {
+        await preloadMaiOnboardingImages();
+      } catch {
+        /* still show intro */
+      }
+      setScreen('onboarding-intro');
+      return;
     }
 
-    const savedToken = await getStoredAuthToken();
-    if (savedToken) {
+    const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
+    if (pending === '1') {
+      setInitialOnboarding(true);
+      try {
+        await preloadMaiOnboardingImages();
+      } catch {
+        /* still show intro; image may decode on mount */
+      }
+      setScreen('onboarding-intro');
+      return;
+    }
+
+    setInitialOnboarding(false);
+    setScreen('home');
+  }
+
+  async function initializeApp() {
+    try {
+      const [, savedToken] = await Promise.all([
+        healthCheck()
+          .then(() => setBackendHealth('online'))
+          .catch(() => setBackendHealth('offline')),
+        getStoredAuthToken(),
+      ]);
+
+      if (!savedToken) return;
+
       setToken(savedToken);
       try {
-        const petsList = await fetchPets(savedToken);
-        await refreshAiCredits(savedToken);
         const profile = await fetchAccountProfile(savedToken);
-        if (profile.primary_role === 'admin') {
-          await loadAccountDashboard(savedToken, profile.primary_role);
-        }
-        const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
-        if (pending === '1') {
-          setInitialOnboarding(true);
-          try {
-            await preloadMaiOnboardingImages();
-          } catch {
-            /* still show intro; image may decode on mount */
-          }
-          setScreen('onboarding-intro');
-        } else {
-          setScreen('home');
-        }
+        await loadAuthenticatedUserData(savedToken, profile);
+        await navigateAfterAuthenticatedSession();
       } catch {
-        await removeStoredAuthToken();
-        await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
-        setToken(null);
-        setInitialOnboarding(false);
+        await clearInvalidSession();
       }
+    } finally {
+      setSessionBootstrapping(false);
     }
   }
 
@@ -627,40 +661,9 @@ export function usePetHealthApp() {
     async (accessToken: string, options?: { startInitialOnboarding?: boolean }) => {
       await setStoredAuthToken(accessToken);
       setToken(accessToken);
-      const petsList = await fetchPets(accessToken);
-      await refreshAiCredits(accessToken);
       const profile = await fetchAccountProfile(accessToken);
-      if (profile.primary_role === 'admin') {
-        await loadAccountDashboard(accessToken, profile.primary_role);
-      }
-
-      if (options?.startInitialOnboarding) {
-        await AsyncStorage.setItem(PENDING_INITIAL_ONBOARDING_KEY, '1');
-        setInitialOnboarding(true);
-        clearPetForm();
-        try {
-          await preloadMaiOnboardingImages();
-        } catch {
-          /* still show intro */
-        }
-        setScreen('onboarding-intro');
-        return;
-      }
-
-      const pending = await AsyncStorage.getItem(PENDING_INITIAL_ONBOARDING_KEY);
-      if (pending === '1') {
-        setInitialOnboarding(true);
-        try {
-          await preloadMaiOnboardingImages();
-        } catch {
-          /* still show intro */
-        }
-        setScreen('onboarding-intro');
-        return;
-      }
-
-      setInitialOnboarding(false);
-      setScreen('home');
+      await loadAuthenticatedUserData(accessToken, profile);
+      await navigateAfterAuthenticatedSession(options);
     },
     [fetchAccountProfile, fetchPets, refreshAiCredits],
   );
@@ -2370,6 +2373,7 @@ export function usePetHealthApp() {
   return {
     screen,
     setScreen,
+    sessionBootstrapping,
     loading,
     refreshing,
     refreshPets,

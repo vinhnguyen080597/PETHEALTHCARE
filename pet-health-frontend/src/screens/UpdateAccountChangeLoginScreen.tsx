@@ -100,7 +100,7 @@ export function UpdateAccountChangeLoginScreen({
         keyboardShouldPersistTaps="handled"
       >
         <View className="mb-5 flex-row items-center">
-          <Pressable className="mr-2 rounded-lg p-2 active:bg-slate-200" onPress={onBack}>
+          <Pressable testID="update-account-change-login-back-button" className="mr-2 rounded-lg p-2 active:bg-slate-200" onPress={onBack}>
             <Ionicons name="arrow-back" size={24} color="#0f172a" />
           </Pressable>
           <Text className="text-xl font-bold text-slate-900">{t('account.updateAccount.changeLogin')}</Text>
