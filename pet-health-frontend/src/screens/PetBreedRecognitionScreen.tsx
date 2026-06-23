@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   getBreedRecognitionRequiredSlots,
   getBreedRecognitionSlotOrder,
@@ -60,6 +61,7 @@ export function PetBreedRecognitionScreen({
   onAnalyze,
 }: PetBreedRecognitionScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const slotOrder = getBreedRecognitionSlotOrder(pet.species);
   const requiredSlots = getBreedRecognitionRequiredSlots(pet.species);
   const referenceLinks = referenceLinksForSpecies(pet.species);
@@ -91,7 +93,7 @@ export function PetBreedRecognitionScreen({
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 150 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 24 }}
       >
         <View className="mb-4 flex-row items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
           <Image
@@ -216,7 +218,7 @@ export function PetBreedRecognitionScreen({
 
       </ScrollView>
 
-      <View className="border-t border-gray-200 bg-white px-5 pb-5 pt-3">
+      <View className="border-t border-gray-200 bg-white px-5 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
         {aiCredits ? (
           <Text className="mb-2 text-center text-xs text-slate-500">
             {t('breedRecognition.creditLine', {

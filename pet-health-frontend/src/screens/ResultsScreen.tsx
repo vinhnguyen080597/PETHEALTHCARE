@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import type { Analysis, Severity } from '../types';
 import { analysisCareGuidance, analysisConfidence, analysisObservedSigns, analysisPossibleFinding, analysisSeverity, hasUnsafeAiOutput } from '../utils/analysisDisplay';
@@ -31,6 +32,7 @@ export function ResultsScreen({
   onFinish,
 }: ResultsScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const assessment = result.assessment;
   const severity = analysisSeverity(result);
   const confidence = analysisConfidence(result);
@@ -80,7 +82,7 @@ export function ResultsScreen({
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: onboarding ? 100 : 24 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24 }}
       >
         {imageUri ? (
           <View className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -214,7 +216,10 @@ export function ResultsScreen({
       </ScrollView>
 
       {onboarding && onFinish ? (
-        <View className="border-t border-gray-200 bg-white px-5 py-4">
+        <View
+          className="border-t border-gray-200 bg-white px-5 pt-4"
+          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        >
           <Pressable
             testID="results-finish-button"
             className="rounded-xl bg-blue-600 py-4 active:bg-blue-700"

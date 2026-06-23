@@ -176,6 +176,7 @@ test.describe('Web feature smoke coverage', () => {
       await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
       await page.getByTestId('home-care-services-button-pet-1').click();
       await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
+      await page.getByTestId('onboarding-service-tab-health').click();
       await page.getByTestId('onboarding-service-health-button').click();
       await verify(page, expect(page.getByTestId('health-check-screen')).toBeVisible());
       await page.getByTestId('health-check-weight-input').fill('4.2');
@@ -207,6 +208,7 @@ test.describe('Web feature smoke coverage', () => {
       await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
       await page.getByTestId('home-care-services-button-pet-1').click();
       await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
+      await page.getByTestId('onboarding-service-tab-breed').click();
       await page.getByTestId('onboarding-service-breed-button').click();
       await verify(page, expect(page.getByTestId('breed-recognition-screen')).toBeVisible());
       await chooseImage(page, 'breed-recognition-pick-photo-face');

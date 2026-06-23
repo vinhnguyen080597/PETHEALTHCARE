@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
@@ -213,12 +213,17 @@ export function AddPetScreen({
         </View>
       ) : null}
 
-      <ScrollView
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View className="mb-6 items-center">
           <Pressable
             testID="add-pet-avatar-button"
@@ -331,7 +336,8 @@ export function AddPetScreen({
             <Text className="text-center text-base font-medium text-red-600">{t('addPet.removePet')}</Text>
           </Pressable>
         ) : null}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

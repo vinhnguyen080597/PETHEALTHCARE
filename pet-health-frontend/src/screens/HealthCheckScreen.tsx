@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
@@ -207,12 +207,17 @@ export function HealthCheckScreen({
         </View>
       </View>
 
-      <ScrollView
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
+        <ScrollView
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 }}
+        >
         <View className="mb-5 rounded-xl px-4 py-3" style={{ backgroundColor: INFO_BG }}>
           <Text className="text-sm leading-5" style={{ color: INFO_TEXT }}>
             {t('healthCheck.infoBanner')}
@@ -479,7 +484,8 @@ export function HealthCheckScreen({
                 : t('healthCheck.analysisBusyHint')}
           </Text>
         ) : null}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

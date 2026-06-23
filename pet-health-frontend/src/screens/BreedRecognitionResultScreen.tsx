@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBreedRecognitionSlotOrder } from '../constants/petBreedRecognitionSlots';
 import type { BreedRecognitionResult, Pet } from '../types';
 
@@ -47,6 +48,10 @@ export function BreedRecognitionResultScreen({
   onApplyToProfile,
 }: BreedRecognitionResultScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const compact = windowHeight < 760;
+  const heroImageHeight = compact ? 200 : 240;
   const orderedSlots = useMemo(() => getBreedRecognitionSlotOrder(pet.species), [pet.species]);
   const selectedPhotos = useMemo(
     () =>
@@ -103,19 +108,19 @@ export function BreedRecognitionResultScreen({
         </Text>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 132 }}>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
         <View className="bg-slate-950 px-5 pb-6 pt-5">
           <View className="overflow-hidden rounded-3xl border border-cyan-300/30 bg-slate-900">
             {heroPhoto ? (
               <Image
                 source={{ uri: heroPhoto.uri }}
-                style={styles.heroImage}
+                style={[styles.heroImage, { height: heroImageHeight }]}
                 contentFit="cover"
                 transition={180}
                 recyclingKey={heroPhoto.uri}
               />
             ) : (
-              <View className="h-60 w-full items-center justify-center bg-slate-800">
+              <View className="w-full items-center justify-center bg-slate-800" style={{ height: heroImageHeight }}>
                 <Ionicons name="paw-outline" size={42} color="#bae6fd" />
               </View>
             )}
@@ -288,7 +293,7 @@ export function BreedRecognitionResultScreen({
         </View>
       </ScrollView>
 
-      <View className="border-t border-slate-200 bg-white px-5 pb-5 pt-3">
+      <View className="border-t border-slate-200 bg-white px-5 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
         <Pressable
           testID="breed-recognition-apply-profile-button"
           accessibilityRole="button"

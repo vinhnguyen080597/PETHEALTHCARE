@@ -24,7 +24,7 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const bubbleScrollMaxHeight = Math.round(windowHeight * 0.44);
+  const compact = windowHeight < 760;
 
   return (
     <View testID="onboarding-intro-screen" className="flex-1 bg-white">
@@ -36,64 +36,60 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
         accessibilityLabel="Mai and pets"
       />
 
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 2,
-          paddingTop: 8,
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: Math.max(insets.top, compact ? 8 : 12),
           paddingHorizontal: 20,
+          paddingBottom: 16,
         }}
       >
-        <Text className="mb-2 text-center text-lg font-bold text-slate-900" style={titleShadow}>
+        <Text
+          className={`text-center font-bold text-slate-900 ${compact ? 'mb-2 text-base' : 'mb-2 text-lg'}`}
+          style={titleShadow}
+        >
           {t('onboarding.introTitle')}
         </Text>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          style={{ maxHeight: bubbleScrollMaxHeight }}
-        >
-          <View className="items-center">
-            <View
-              className="w-full max-w-md rounded-3xl border px-5 py-4"
-              style={{ backgroundColor: BUBBLE_BG, borderColor: BUBBLE_BORDER }}
+
+        <View className="items-center">
+          <View
+            className={`w-full max-w-md rounded-3xl border ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}
+            style={{ backgroundColor: BUBBLE_BG, borderColor: BUBBLE_BORDER }}
+          >
+            <Text
+              className={`text-center font-bold leading-[23px] text-slate-900 ${compact ? 'text-sm' : 'text-[15px]'}`}
             >
-              <Text className="text-center text-[15px] font-bold leading-[23px] text-slate-900">
-                {t('onboarding.introBubbleWelcome')}
-              </Text>
-              <View className="mx-auto my-3 h-px w-16 bg-blue-200" />
-              <Text className="text-center text-[15px] font-medium leading-[23px] text-slate-800">
-                {t('onboarding.introBubbleMission')}
-              </Text>
-            </View>
-            <View className="items-center" style={{ marginTop: -1 }}>
-              <View
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderLeftWidth: 12,
-                  borderRightWidth: 12,
-                  borderTopWidth: 14,
-                  borderLeftColor: 'transparent',
-                  borderRightColor: 'transparent',
-                  borderTopColor: BUBBLE_BG,
-                }}
-              />
-            </View>
+              {t('onboarding.introBubbleWelcome')}
+            </Text>
+            <View className="mx-auto my-3 h-px w-16 bg-blue-200" />
+            <Text
+              className={`text-center font-medium leading-[23px] text-slate-800 ${compact ? 'text-sm' : 'text-[15px]'}`}
+            >
+              {t('onboarding.introBubbleMission')}
+            </Text>
           </View>
-        </ScrollView>
-      </View>
+          <View className="items-center" style={{ marginTop: -1 }}>
+            <View
+              style={{
+                width: 0,
+                height: 0,
+                borderLeftWidth: 12,
+                borderRightWidth: 12,
+                borderTopWidth: 14,
+                borderLeftColor: 'transparent',
+                borderRightColor: 'transparent',
+                borderTopColor: BUBBLE_BG,
+              }}
+            />
+          </View>
+        </View>
+      </ScrollView>
 
       <View
         style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 2,
           paddingHorizontal: 20,
           paddingTop: 10,
           paddingBottom: Math.max(insets.bottom, 14),
@@ -104,7 +100,7 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
           testID="onboarding-intro-go-button"
           accessibilityRole="button"
           accessibilityLabel="Go to home"
-          className="rounded-xl py-4 active:opacity-90"
+          className={`rounded-xl active:opacity-90 ${compact ? 'py-3.5' : 'py-4'}`}
           style={{ backgroundColor: PRIMARY }}
           onPress={onGo}
         >

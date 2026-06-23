@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguageToggle } from '../components/LanguageToggle';
@@ -50,6 +50,8 @@ export function LoginScreen({
   onSubmit,
 }: LoginScreenProps) {
   const { t } = useTranslation();
+  const { height: windowHeight } = useWindowDimensions();
+  const compact = windowHeight < 760 || isSignUp;
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -73,21 +75,29 @@ export function LoginScreen({
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingVertical: 40 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: 24,
+            paddingVertical: compact ? 20 : 40,
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex-1 items-center justify-center pb-6">
-            <View className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-white shadow-lg">
-              <Ionicons name="medkit-outline" size={48} color="#2563eb" />
+          <View className={`items-center ${compact ? 'pb-4' : 'flex-1 justify-center pb-6'}`}>
+            <View className={`items-center justify-center rounded-full bg-white shadow-lg ${compact ? 'mb-4 h-20 w-20' : 'mb-6 h-24 w-24'}`}>
+              <Ionicons name="medkit-outline" size={compact ? 40 : 48} color="#2563eb" />
             </View>
-            <Text className="mb-2 text-center text-3xl font-semibold text-white">{t('login.appName')}</Text>
-            <Text className="mb-4 max-w-sm text-center text-base text-blue-100">{t('login.tagline')}</Text>
+            <Text className={`text-center font-semibold text-white ${compact ? 'mb-1 text-2xl' : 'mb-2 text-3xl'}`}>
+              {t('login.appName')}
+            </Text>
+            <Text className={`max-w-sm text-center text-base text-blue-100 ${compact ? 'mb-3' : 'mb-4'}`}>
+              {t('login.tagline')}
+            </Text>
 
             <LanguageToggle />
 
-            <View className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-              <Text className="mb-6 text-center text-xl font-semibold text-slate-900">
+            <View className={`w-full max-w-sm rounded-2xl bg-white shadow-2xl ${compact ? 'p-5' : 'p-6'}`}>
+              <Text className={`text-center font-semibold text-slate-900 ${compact ? 'mb-4 text-lg' : 'mb-6 text-xl'}`}>
                 {isSignUp ? t('login.createAccount') : t('login.welcomeBack')}
               </Text>
 

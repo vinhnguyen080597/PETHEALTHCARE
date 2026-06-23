@@ -1,17 +1,7 @@
 import { Image } from 'expo-image';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  FlatList,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Pressable,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-  type ImageSourcePropType,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -23,7 +13,7 @@ import {
 } from '../assets/servicesOnboardingAssets';
 
 const TEAL = '#0F766E';
-const CARD_GAP = 12;
+const PANEL_HORIZONTAL_INSET = 16 * 2 + 20 * 2;
 
 type ServiceCardId = 'breed' | 'health' | 'vaccine';
 
@@ -68,21 +58,23 @@ type OnboardingHealthPromptScreenProps = {
 
 function ServiceCard({
   item,
-  width,
+  iconWidth,
+  iconHeight,
+  compact,
   onPress,
 }: {
   item: ServiceCardConfig;
-  width: number;
+  iconWidth: number;
+  iconHeight: number;
+  compact: boolean;
   onPress: () => void;
 }) {
   const { t } = useTranslation();
 
   return (
     <View
-      className="rounded-2xl border border-slate-100 bg-white px-4 py-4"
+      className="rounded-2xl border border-slate-100 bg-white px-4 py-3"
       style={{
-        width,
-        marginRight: CARD_GAP,
         shadowColor: '#0f172a',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
@@ -90,24 +82,30 @@ function ServiceCard({
         elevation: 4,
       }}
     >
-      <View className="items-center p-0 m-0">
+      <View className="items-center">
         <Image
           source={item.icon}
-          style={{ width: 150, height: 130 }}
+          style={{ width: iconWidth, height: iconHeight }}
           contentFit="contain"
           accessibilityIgnoresInvertColors
         />
       </View>
-      <Text className="mt-3 text-center text-base font-bold text-slate-900">{t(item.titleKey)}</Text>
-      <Text className="mt-2 min-h-[52px] text-center text-sm leading-5 text-slate-600">{t(item.descriptionKey)}</Text>
+      <Text className={`text-center font-bold text-slate-900 ${compact ? 'mt-2 text-sm' : 'mt-3 text-base'}`}>
+        {t(item.titleKey)}
+      </Text>
+      <Text className={`mt-1.5 text-center leading-5 text-slate-600 ${compact ? 'text-xs' : 'text-sm'}`}>
+        {t(item.descriptionKey)}
+      </Text>
       <Pressable
         testID={`onboarding-service-${item.id}-button`}
-        className="mt-4 rounded-xl py-3 active:opacity-90"
+        className={`rounded-xl active:opacity-90 ${compact ? 'mt-3 py-2.5' : 'mt-4 py-3'}`}
         style={{ backgroundColor: TEAL }}
         onPress={onPress}
         accessibilityRole="button"
       >
-        <Text className="text-center text-sm font-bold text-white">{t(item.ctaKey)}</Text>
+        <Text className={`text-center font-bold text-white ${compact ? 'text-xs' : 'text-sm'}`}>
+          {t(item.ctaKey)}
+        </Text>
       </Pressable>
     </View>
   );
@@ -123,14 +121,18 @@ export function OnboardingHealthPromptScreen({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const listRef = useRef<FlatList<ServiceCardConfig>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const horizontalPadding = 20;
+  const compact = windowHeight < 760;
   const contentWidth = Math.min(windowWidth, 760);
-  const cardWidth = Math.round(contentWidth * 0.54);
-  const snapInterval = cardWidth + CARD_GAP;
-  const heroHeight = Math.min(250, Math.round(contentWidth * 0.62), Math.round(windowHeight * 0.32));
+  const cardWidth = Math.max(240, contentWidth - PANEL_HORIZONTAL_INSET);
+  const iconWidth = compact ? 104 : 130;
+  const iconHeight = compact ? 88 : 112;
+  const heroHeight = Math.min(
+    compact ? 168 : 220,
+    Math.round(contentWidth * (compact ? 0.5 : 0.58)),
+    Math.round(windowHeight * (compact ? 0.22 : 0.28)),
+  );
 
   const cardActions = useMemo(
     () =>
@@ -142,22 +144,7 @@ export function OnboardingHealthPromptScreen({
     [onExploreBreed, onCheckHealth, onManageVaccines],
   );
 
-  const onCarouselScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const x = e.nativeEvent.contentOffset.x;
-      const index = Math.round(x / snapInterval);
-      const clamped = Math.max(0, Math.min(index, SERVICE_CARDS.length - 1));
-      setActiveIndex((prev) => (prev === clamped ? prev : clamped));
-    },
-    [snapInterval],
-  );
-
-  const renderCard = useCallback(
-    ({ item }: { item: ServiceCardConfig }) => (
-      <ServiceCard item={item} width={cardWidth} onPress={cardActions[item.id]} />
-    ),
-    [cardActions, cardWidth],
-  );
+  const activeCard = SERVICE_CARDS[activeIndex];
 
   return (
     <View testID="onboarding-health-prompt-screen" className="flex-1 bg-slate-100">
@@ -169,14 +156,16 @@ export function OnboardingHealthPromptScreen({
         accessibilityIgnoresInvertColors
       />
 
-      <View
+      <ScrollView
         className="flex-1"
-        style={{
-          paddingTop: Math.max(insets.top - 16, 0),
-          paddingBottom: 84 + Math.max(insets.bottom, 12),
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          paddingTop: Math.max(insets.top, 8),
+          paddingBottom: 16,
         }}
       >
-        <View className="w-full items-center px-2" style={{ backgroundColor: 'transparent' }}>
+        <View className="w-full items-center px-2">
           <Image
             source={SERVICES_HERO_MAI}
             style={{ width: contentWidth - 24, height: heroHeight }}
@@ -187,7 +176,7 @@ export function OnboardingHealthPromptScreen({
         </View>
 
         <View
-          className="mx-4 -mt-7 overflow-hidden rounded-3xl bg-white px-5 pb-5 pt-4"
+          className="mx-4 -mt-5 rounded-3xl bg-white px-5 pb-5 pt-4"
           style={{
             shadowColor: '#0f172a',
             shadowOffset: { width: 0, height: -2 },
@@ -196,46 +185,31 @@ export function OnboardingHealthPromptScreen({
             elevation: 6,
           }}
         >
-          <Text className="mb-3 text-center text-[15px] leading-[22px] text-slate-600">
+          <Text
+            className={`mb-3 text-center leading-[22px] text-slate-600 ${compact ? 'text-sm' : 'text-[15px]'}`}
+          >
             {t('onboarding.servicesWelcomeBody')}
           </Text>
-          <FlatList
-            ref={listRef}
-            data={SERVICE_CARDS}
-            keyExtractor={(item) => item.id}
-            renderItem={renderCard}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            decelerationRate="fast"
-            snapToInterval={snapInterval}
-            snapToAlignment="start"
-            disableIntervalMomentum
-            onScroll={onCarouselScroll}
-            scrollEventThrottle={16}
-            getItemLayout={(_, index) => ({
-              length: snapInterval,
-              offset: snapInterval * index,
-              index,
-            })}
-            onScrollToIndexFailed={() => undefined}
-            contentContainerStyle={{
-              paddingTop: 4,
-              paddingHorizontal: horizontalPadding - 4,
-              paddingRight: horizontalPadding + 8,
-            }}
-            style={{ marginHorizontal: -horizontalPadding }}
-          />
 
-          <View className="mt-4 flex-row items-center justify-center gap-2">
+          <View style={{ width: cardWidth, alignSelf: 'center' }}>
+            <ServiceCard
+              item={activeCard}
+              iconWidth={iconWidth}
+              iconHeight={iconHeight}
+              compact={compact}
+              onPress={cardActions[activeCard.id]}
+            />
+          </View>
+
+          <View className="mt-3 flex-row items-center justify-center gap-2">
             {SERVICE_CARDS.map((card, index) => (
               <Pressable
                 key={card.id}
+                testID={`onboarding-service-tab-${card.id}`}
                 accessibilityRole="button"
                 accessibilityLabel={t(card.titleKey)}
-                onPress={() => {
-                  listRef.current?.scrollToIndex({ index, animated: true });
-                  setActiveIndex(index);
-                }}
+                accessibilityState={{ selected: activeIndex === index }}
+                onPress={() => setActiveIndex(index)}
                 hitSlop={8}
               >
                 <View
@@ -250,10 +224,10 @@ export function OnboardingHealthPromptScreen({
             ))}
           </View>
         </View>
-      </View>
+      </ScrollView>
 
       <View
-        className="absolute bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 px-5 pt-3"
+        className="border-t border-slate-200 bg-white/95 px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 14) }}
       >
         <Pressable
