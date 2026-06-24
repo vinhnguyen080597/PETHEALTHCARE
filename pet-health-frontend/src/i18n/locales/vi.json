@@ -1076,12 +1076,17 @@
     "manualEntryTitle": "Thêm thủ công",
     "vaccineType": "Loại vaccine đã tiêm",
     "desiredVaccineType": "Loại vaccine bạn muốn",
-    "desiredVaccineHint": "Nên chọn loại vaccine chính Sen muốn tạo lịch trước; app vẫn tạo thêm lịch tiêm dại và xổ giun nếu phù hợp.",
+    "desiredVaccineHint": "Chọn loại vaccine đa giá chính phổ biến tại phòng khám. App sẽ tự thêm lịch tiêm dại và xổ giun nếu phù hợp. FeLV là vaccine bổ sung theo nguy cơ, không tự tạo khi chọn 2 loại trên.",
+    "scheduleVaccineOptions": {
+      "cat_3in1_fvrcp": "Purevax (3-trong-1)",
+      "cat_4in1": "Zoetis/Felocell 4 (4-trong-1)"
+    },
     "selectVaccine": "Chọn vaccine",
     "selectDate": "Chọn ngày",
     "administeredDate": "Ngày tiêm",
     "petBirthDate": "Ngày sinh chính xác của bé",
     "generateVaccineSchedule": "Tạo lịch tiêm & tẩy giun",
+    "maiSavingScheduleMessage": "Mai đang ghi chép lại lịch tiêm của bé {{name}}, Sen đợi Mai xíu nhé!",
     "vaccineDoseNumber": "Mũi {{count}}",
     "saveVaccines": "Lưu mũi tiêm",
     "createVaccineSchedule": "Tạo lịch tiêm",
@@ -1109,7 +1114,6 @@
     "manualNextVaccineReminderNote": "Lịch nhắc mũi kế tiếp thủ công vào {{targetDate}}. Dựa trên guideline tham khảo, không thay thế tư vấn bác sĩ thú y. Hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
     "felvRiskNote": "Với FeLV: lịch nên quyết định theo nguy cơ, nên xét nghiệm/trao đổi bác sĩ trước.",
     "lapsedPrimarySeriesWarning": "Cảnh báo: chuỗi tiêm primary đã trễ quá lâu so với mũi trước, có thể cần tiêm lại từ mũi 1. Sen nên hỏi bác sĩ thú y trước khi tiếp tục.",
-    "preVaccineDewormingNote": "Thực hành thường gặp là tẩy giun trước vaccine khoảng 5-7 ngày nếu bé chưa tẩy gần đây hoặc có nguy cơ nhiễm giun. Nếu bé đang yếu, nôn, tiêu chảy hoặc nghi nhiễm ký sinh trùng nặng, nên hỏi bác sĩ thú y trước.",
     "targetScheduleLine": "Mốc guideline: {{date}}",
     "catchUpScheduleLine": "Lịch catch-up: đến hạn ngay vì đã qua mốc tuổi guideline.",
     "moreGeneratedRecommendations": "+{{count}} lịch nhắc nữa sẽ được tạo",
@@ -1117,6 +1121,9 @@
     "showLessSchedules": "Thu gọn",
     "noGeneratedScheduleTitle": "Chưa tạo được lịch",
     "noGeneratedScheduleBody": "Hiện lịch tự động chỉ hỗ trợ chó và mèo với ngày sinh hợp lệ.",
+    "noSelectedGeneratedScheduleBody": "Chưa chọn lịch nhắc nào để tạo. Hãy giữ ít nhất một mục trong danh sách gợi ý.",
+    "allGeneratedSchedulesRemoved": "Sen đã bỏ hết lịch gợi ý. Chọn lại loại vaccine để tải lại danh sách.",
+    "removeGeneratedScheduleItemA11y": "Bỏ lịch nhắc {{title}}",
     "scheduleAlreadyGeneratedTitle": "Đã tạo rồi",
     "scheduleAlreadyGeneratedBody": "Tất cả lịch nhắc gợi ý cho ngày sinh này đã có sẵn.",
     "scheduleGeneratedTitle": "Đã tạo lịch",
@@ -1139,9 +1146,6 @@
       "dogDeworming": {
         "title": "Tẩy giun cho chó lần {{dose}}"
       },
-      "dogPreVaccineDeworming": {
-        "title": "Tẩy giun cho chó trước tiêm vaccine"
-      },
       "catFvrcp": {
         "title": "Vaccine core FVRCP cho mèo mũi {{dose}}"
       },
@@ -1153,9 +1157,6 @@
       },
       "catDeworming": {
         "title": "Tẩy giun cho mèo lần {{dose}}"
-      },
-      "catPreVaccineDeworming": {
-        "title": "Tẩy giun cho mèo trước tiêm vaccine"
       }
     },
     "saveRecord": "Lưu",

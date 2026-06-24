@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { formatLocaleDateTime } from '../i18n/localeDate';
+import { formatLocaleDateTime, formatLocaleDayMonth } from '../i18n/localeDate';
 import { analysisPossibleFinding, analysisSeverity } from '../utils/analysisDisplay';
 import { buildCarePassportStats, metadataNumber } from '../utils/carePassport';
 import { formatPetAgeForDisplay } from '../utils/petAge';
@@ -314,7 +314,7 @@ export function PetProfileScreen({
 
           <View className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
             <View className="border-b border-blue-100 bg-blue-50/80 px-4 py-4">
-              <View className="flex-row items-start gap-3">
+              <View className="flex-row items-center gap-3">
                 <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
                   <Ionicons name="alarm-outline" size={22} color={PRIMARY_BLUE} />
                 </View>
@@ -335,6 +335,11 @@ export function PetProfileScreen({
                     <Text className="mt-1 text-sm leading-5 text-slate-600">{t('coreCare.noNextReminder')}</Text>
                   )}
                 </View>
+                {passport.nextReminder?.due_at ? (
+                  <Text className="shrink-0 text-[34px] font-extrabold leading-none text-blue-700">
+                    {formatLocaleDayMonth(passport.nextReminder.due_at, i18n.language)}
+                  </Text>
+                ) : null}
               </View>
             </View>
 

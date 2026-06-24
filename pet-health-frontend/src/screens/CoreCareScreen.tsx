@@ -4,7 +4,8 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
+import { MaiScheduleSavingModal } from '../components/MaiScheduleSavingModal';
+import { schedulePrimaryVaccineIdsForSpecies, vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import { formatLocaleDateTime } from '../i18n/localeDate';
 import { metadataText } from '../utils/carePassport';
 import {
@@ -342,6 +343,7 @@ export function CoreCareScreen({
   const [generatedScheduleErrors, setGeneratedScheduleErrors] = useState<GeneratedScheduleErrors>({});
   const [showAllUpcomingSchedules, setShowAllUpcomingSchedules] = useState(false);
   const [showAllGeneratedRecommendations, setShowAllGeneratedRecommendations] = useState(false);
+  const [dismissedGeneratedRecommendationIds, setDismissedGeneratedRecommendationIds] = useState<string[]>([]);
   const introGuideStorageKey = useMemo(() => coreCareIntroGuideStorageKey(pet.user_id), [pet.user_id]);
 
   useEffect(() => {
@@ -366,6 +368,17 @@ export function CoreCareScreen({
       (vaccineIdsForPetSpecies(pet.species) ?? []).map((id) => ({
         id,
         label: t(`healthCheck.vaccines.${id}.label`),
+      })),
+    [pet.species, t],
+  );
+
+  const schedulePrimaryVaccineOptions = useMemo(
+    () =>
+      (schedulePrimaryVaccineIdsForSpecies(pet.species) ?? []).map((id) => ({
+        id,
+        label: t(`coreCare.scheduleVaccineOptions.${id}`, {
+          defaultValue: t(`healthCheck.vaccines.${id}.label`),
+        }),
       })),
     [pet.species, t],
   );
@@ -418,16 +431,23 @@ export function CoreCareScreen({
     () => generatedRecommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation)),
     [careRecords, generatedRecommendations],
   );
+  const selectedGeneratedRecommendations = useMemo(
+    () =>
+      pendingGeneratedRecommendations.filter(
+        (recommendation) => !dismissedGeneratedRecommendationIds.includes(recommendation.id),
+      ),
+    [dismissedGeneratedRecommendationIds, pendingGeneratedRecommendations],
+  );
   const visiblePendingRecommendations = useMemo(
     () =>
       showAllGeneratedRecommendations
-        ? pendingGeneratedRecommendations
-        : pendingGeneratedRecommendations.slice(0, UPCOMING_SCHEDULE_PREVIEW_LIMIT),
-    [pendingGeneratedRecommendations, showAllGeneratedRecommendations],
+        ? selectedGeneratedRecommendations
+        : selectedGeneratedRecommendations.slice(0, UPCOMING_SCHEDULE_PREVIEW_LIMIT),
+    [selectedGeneratedRecommendations, showAllGeneratedRecommendations],
   );
   const hiddenPendingRecommendationsCount = Math.max(
     0,
-    pendingGeneratedRecommendations.length - UPCOMING_SCHEDULE_PREVIEW_LIMIT,
+    selectedGeneratedRecommendations.length - UPCOMING_SCHEDULE_PREVIEW_LIMIT,
   );
   const administeredVaccineDoses = useMemo(
     () =>
@@ -498,8 +518,15 @@ export function CoreCareScreen({
 
   function selectDesiredVaccine(vaccineId: string) {
     setDesiredVaccineId(vaccineId);
+    setDismissedGeneratedRecommendationIds([]);
     setShowAllGeneratedRecommendations(false);
     setGeneratedScheduleErrors((current) => ({ ...current, desiredVaccineId: undefined }));
+  }
+
+  function dismissGeneratedRecommendation(recommendationId: string) {
+    setDismissedGeneratedRecommendationIds((current) =>
+      current.includes(recommendationId) ? current : [...current, recommendationId],
+    );
   }
 
   function nextVaccineRecommendationTitle(recommendation: CoreCareNextVaccineRecommendation): string {
@@ -658,7 +685,9 @@ export function CoreCareScreen({
   }
 
   function recommendationTitle(recommendation: CoreCareScheduleRecommendation): string {
-    const desiredVaccineLabel = vaccineOptions.find((option) => option.id === desiredVaccineId)?.label;
+    const desiredVaccineLabel =
+      schedulePrimaryVaccineOptions.find((option) => option.id === desiredVaccineId)?.label ??
+      vaccineOptions.find((option) => option.id === desiredVaccineId)?.label;
     if (recommendation.kind === 'vaccine' && desiredVaccineLabel && desiredVaccineMatchesRecommendation(recommendation)) {
       return t('coreCare.nextVaccineReminderTitle', { vaccine: desiredVaccineLabel, dose: recommendation.doseNumber });
     }
@@ -671,9 +700,6 @@ export function CoreCareScreen({
       targetDate: formatLocaleDateTime(recommendation.targetDate, i18n.language),
       source: recommendation.sourceLabel,
     });
-    if (recommendation.family === 'dogPreVaccineDeworming' || recommendation.family === 'catPreVaccineDeworming') {
-      return `${note}\n\n${t('coreCare.preVaccineDewormingNote')}`;
-    }
     return recommendation.family === 'catFelv' ? `${note}\n\n${t('coreCare.felvRiskNote')}` : note;
   }
 
@@ -695,10 +721,14 @@ export function CoreCareScreen({
       Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
       return;
     }
+    if (selectedGeneratedRecommendations.length === 0) {
+      Alert.alert(t('coreCare.noGeneratedScheduleTitle'), t('coreCare.noSelectedGeneratedScheduleBody'));
+      return;
+    }
 
     setSubmittingGeneratedSchedule(true);
     try {
-      for (const recommendation of pendingGeneratedRecommendations) {
+      for (const recommendation of selectedGeneratedRecommendations) {
         await onCreateRecord({
           type: 'reminder',
           title: recommendationTitle(recommendation),
@@ -719,8 +749,9 @@ export function CoreCareScreen({
       }
       Alert.alert(
         t('coreCare.scheduleGeneratedTitle'),
-        t('coreCare.scheduleGeneratedBody', { count: pendingGeneratedRecommendations.length }),
+        t('coreCare.scheduleGeneratedBody', { count: selectedGeneratedRecommendations.length }),
       );
+      setDismissedGeneratedRecommendationIds([]);
       setScheduleSetupDismissed(true);
     } finally {
       setSubmittingGeneratedSchedule(false);
@@ -823,21 +854,32 @@ export function CoreCareScreen({
   function renderRecommendationPreview(recommendation: CoreCareScheduleRecommendation) {
     return (
       <View key={recommendation.id} className="rounded-xl border border-blue-100 bg-white p-3">
-        <View className="flex-row items-start gap-2">
-          <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
-            <Ionicons name={recommendation.kind === 'vaccine' ? 'shield-checkmark-outline' : 'medkit-outline'} size={16} color={PRIMARY} />
+        <View className="flex-row items-center gap-2">
+          <View className="min-w-0 flex-1 flex-row items-start gap-2">
+            <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+              <Ionicons name={recommendation.kind === 'vaccine' ? 'shield-checkmark-outline' : 'medkit-outline'} size={16} color={PRIMARY} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-sm font-bold text-slate-900">{recommendationTitle(recommendation)}</Text>
+              <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
+                {t(`coreCare.generatedKinds.${recommendation.kind}`)} · {formatLocaleDateTime(recommendation.dueDate, i18n.language)}
+              </Text>
+              <Text className="mt-1 text-xs leading-4 text-slate-500">
+                {recommendation.isCatchUp ? t('coreCare.catchUpScheduleLine') : t('coreCare.targetScheduleLine', {
+                  date: formatLocaleDateTime(recommendation.targetDate, i18n.language),
+                })}
+              </Text>
+            </View>
           </View>
-          <View className="min-w-0 flex-1">
-            <Text className="text-sm font-bold text-slate-900">{recommendationTitle(recommendation)}</Text>
-            <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
-              {t(`coreCare.generatedKinds.${recommendation.kind}`)} · {formatLocaleDateTime(recommendation.dueDate, i18n.language)}
-            </Text>
-            <Text className="mt-1 text-xs leading-4 text-slate-500">
-              {recommendation.isCatchUp ? t('coreCare.catchUpScheduleLine') : t('coreCare.targetScheduleLine', {
-                date: formatLocaleDateTime(recommendation.targetDate, i18n.language),
-              })}
-            </Text>
-          </View>
+          <Pressable
+            testID={`core-care-remove-recommendation-${recommendation.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={t('coreCare.removeGeneratedScheduleItemA11y', { title: recommendationTitle(recommendation) })}
+            className="rounded-full p-1.5 active:bg-slate-100"
+            onPress={() => dismissGeneratedRecommendation(recommendation.id)}
+          >
+            <Ionicons name="close" size={18} color="#64748b" />
+          </Pressable>
         </View>
       </View>
     );
@@ -862,6 +904,7 @@ export function CoreCareScreen({
 
   return (
     <View testID="core-care-screen" className="flex-1 bg-[#F2F4F8]">
+      <MaiScheduleSavingModal visible={submittingGeneratedSchedule} petName={pet.name} />
       <Modal visible={showIntroGuide} transparent animationType="fade" onRequestClose={dismissIntroGuide}>
         <View className="flex-1 justify-center bg-black/40 px-6">
           <View className="rounded-3xl bg-white p-5">
@@ -1049,7 +1092,7 @@ export function CoreCareScreen({
                 </View>
               ) : (
                 <View className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-3">
-                  {vaccineOptions.length === 0 ? (
+                  {schedulePrimaryVaccineOptions.length === 0 ? (
                     <Text className="mb-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{t('coreCare.unsupportedVaccineSpecies')}</Text>
                   ) : null}
                   <View className="gap-3">
@@ -1070,7 +1113,7 @@ export function CoreCareScreen({
                     <VaccineSelect
                       label={t('coreCare.desiredVaccineType')}
                       value={desiredVaccineId}
-                      options={vaccineOptions}
+                      options={schedulePrimaryVaccineOptions}
                       error={generatedScheduleErrors.desiredVaccineId}
                       onChange={selectDesiredVaccine}
                     />
@@ -1079,7 +1122,13 @@ export function CoreCareScreen({
                   <Text className="mt-3 text-sm leading-5 text-slate-700">{t('coreCare.generatedScheduleIntro')}</Text>
                   {pendingGeneratedRecommendations.length > 0 ? (
                     <View className="mt-3 gap-2">
-                      {visiblePendingRecommendations.map(renderRecommendationPreview)}
+                      {selectedGeneratedRecommendations.length > 0 ? (
+                        visiblePendingRecommendations.map(renderRecommendationPreview)
+                      ) : (
+                        <Text className="rounded-xl border border-dashed border-slate-200 bg-white px-3 py-4 text-center text-sm text-slate-500">
+                          {t('coreCare.allGeneratedSchedulesRemoved')}
+                        </Text>
+                      )}
                       {hiddenPendingRecommendationsCount > 0 ? (
                         <Pressable
                           testID="core-care-show-more-recommendations-button"
@@ -1104,9 +1153,9 @@ export function CoreCareScreen({
                       submittingGeneratedSchedule ? 'opacity-60' : ''
                     }`}
                     onPress={() => void createGeneratedSchedule()}
-                    disabled={submittingGeneratedSchedule || vaccineOptions.length === 0}
+                    disabled={submittingGeneratedSchedule || schedulePrimaryVaccineOptions.length === 0 || selectedGeneratedRecommendations.length === 0}
                   >
-                    {submittingGeneratedSchedule ? <ActivityIndicator color="#fff" /> : <Ionicons name="calendar-outline" size={18} color="#fff" />}
+                    {submittingGeneratedSchedule ? null : <Ionicons name="calendar-outline" size={18} color="#fff" />}
                     <Text className="text-sm font-bold text-white">{t('coreCare.generateVaccineSchedule')}</Text>
                   </Pressable>
                 </View>

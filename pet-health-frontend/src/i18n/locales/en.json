@@ -1079,12 +1079,17 @@
     "manualEntryTitle": "Add manually",
     "vaccineType": "Vaccine type",
     "desiredVaccineType": "Desired vaccine type",
-    "desiredVaccineHint": "Choose the main vaccine series you want to schedule first; the app will still add rabies and deworming reminders when appropriate.",
+    "desiredVaccineHint": "Choose the main multivalent vaccine commonly used at clinics. The app will also add rabies and deworming reminders when appropriate. FeLV is a risk-based optional vaccine and is not auto-scheduled with these choices.",
+    "scheduleVaccineOptions": {
+      "cat_3in1_fvrcp": "Purevax (3-in-1)",
+      "cat_4in1": "Zoetis/Felocell 4 (4-in-1)"
+    },
     "selectVaccine": "Select vaccine",
     "selectDate": "Select date",
     "administeredDate": "Date given",
     "petBirthDate": "Pet's exact birth date",
     "generateVaccineSchedule": "Create vaccine & deworming schedule",
+    "maiSavingScheduleMessage": "Mai is saving {{name}}'s vaccine schedule. Hang on just a moment!",
     "vaccineDoseNumber": "Dose {{count}}",
     "saveVaccines": "Save vaccines",
     "createVaccineSchedule": "Create vaccine schedule",
@@ -1112,7 +1117,6 @@
     "manualNextVaccineReminderNote": "Manual next-dose reminder for {{targetDate}}. Based on reference guidelines; this does not replace veterinary advice. Please confirm the product, dose, and local legal requirements with a veterinarian.",
     "felvRiskNote": "For FeLV: schedule by risk profile, and consider testing / discussing with a veterinarian first.",
     "lapsedPrimarySeriesWarning": "Warning: the primary series is overdue for too long after the previous dose and may need to restart from dose 1. Please ask a veterinarian before continuing.",
-    "preVaccineDewormingNote": "A common practice is deworming about 5-7 days before vaccination if the pet has not been dewormed recently or has worm exposure risk. If the pet is weak, vomiting, has diarrhea, or may have a heavy parasite burden, ask a veterinarian first.",
     "targetScheduleLine": "Guideline target: {{date}}",
     "catchUpScheduleLine": "Catch-up reminder: due now because the guideline target age has passed.",
     "moreGeneratedRecommendations": "+{{count}} more reminders will be created",
@@ -1120,6 +1124,9 @@
     "showLessSchedules": "Show less",
     "noGeneratedScheduleTitle": "Schedule unavailable",
     "noGeneratedScheduleBody": "Automatic schedules are currently available for dogs and cats with a valid birth date.",
+    "noSelectedGeneratedScheduleBody": "No reminders selected to create. Keep at least one suggested item in the list.",
+    "allGeneratedSchedulesRemoved": "You removed every suggested reminder. Pick the vaccine type again to refresh the list.",
+    "removeGeneratedScheduleItemA11y": "Remove reminder {{title}}",
     "scheduleAlreadyGeneratedTitle": "Already generated",
     "scheduleAlreadyGeneratedBody": "All suggested reminders for this birth date already exist.",
     "scheduleGeneratedTitle": "Schedule created",
@@ -1142,9 +1149,6 @@
       "dogDeworming": {
         "title": "Dog deworming dose {{dose}}"
       },
-      "dogPreVaccineDeworming": {
-        "title": "Dog deworming before vaccination"
-      },
       "catFvrcp": {
         "title": "Cat core vaccine FVRCP dose {{dose}}"
       },
@@ -1156,9 +1160,6 @@
       },
       "catDeworming": {
         "title": "Cat deworming dose {{dose}}"
-      },
-      "catPreVaccineDeworming": {
-        "title": "Cat deworming before vaccination"
       }
     },
     "saveRecord": "Save",

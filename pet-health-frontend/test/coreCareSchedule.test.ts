@@ -35,11 +35,23 @@ test('cat kitten schedule includes up to three FVRCP doses, FeLV, rabies, and tr
   const firstDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 1);
   const rabies = recommendations.find((item) => item.family === 'catRabies');
 
-  assert.equal(firstDeworming?.dueDate, '2026-01-15');
+  assert.equal(firstDeworming?.dueDate, '2026-01-22');
   assert.equal(firstFvrcp?.dueDate, '2026-02-26');
   assert.equal(fourthFvrcp, undefined);
   assert.equal(firstFelv?.dueDate, '2026-02-26');
   assert.equal(rabies?.dueDate, '2026-03-26');
+});
+
+test('cat kitten deworming starts at three weeks per reference schedule', () => {
+  const recommendations = calculateCoreCareSchedule({
+    species: 'cat',
+    birthDate: new Date('2026-06-24T00:00:00'),
+    today: new Date('2026-06-24T00:00:00'),
+    selectedVaccineId: 'cat_3in1_fvrcp',
+  });
+
+  const firstDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 1);
+  assert.equal(firstDeworming?.dueDate, '2026-07-15');
 });
 
 test('selected cat FVRCP schedule keeps rabies and deworming but excludes FeLV', () => {
@@ -53,12 +65,12 @@ test('selected cat FVRCP schedule keeps rabies and deworming but excludes FeLV',
   assert.ok(recommendations.some((item) => item.family === 'catFvrcp'));
   assert.ok(recommendations.some((item) => item.family === 'catRabies'));
   assert.ok(recommendations.some((item) => item.family === 'catDeworming'));
-  assert.equal(recommendations.find((item) => item.family === 'catPreVaccineDeworming')?.dueDate, '2026-02-19');
+  assert.equal(recommendations.find((item) => item.family === 'catDeworming' && item.dueDate === '2026-02-19')?.doseNumber, 3);
   assert.equal(recommendations.some((item) => item.family === 'catDeworming' && item.dueDate === firstFvrcpDueDate(recommendations)), false);
   assert.equal(recommendations.some((item) => item.family === 'catFelv'), false);
 });
 
-test('selected adult cat vaccine schedule creates pre-vaccine deworming due today when seven-day target passed', () => {
+test('selected adult cat vaccine schedule creates deworming due today when seven-day target passed', () => {
   const recommendations = calculateCoreCareSchedule({
     species: 'cat',
     birthDate: new Date('2025-01-01T00:00:00'),
@@ -66,9 +78,8 @@ test('selected adult cat vaccine schedule creates pre-vaccine deworming due toda
     selectedVaccineId: 'cat_3in1_fvrcp',
   });
 
-  const preVaccineDeworming = recommendations.find((item) => item.family === 'catPreVaccineDeworming');
+  const preVaccineDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.dueDate === '2026-01-01');
   assert.equal(preVaccineDeworming?.targetDate, '2025-12-25');
-  assert.equal(preVaccineDeworming?.dueDate, '2026-01-01');
   assert.equal(preVaccineDeworming?.isCatchUp, true);
 });
 
@@ -80,11 +91,11 @@ test('late kitten catch-up schedule staggers deworming, FVRCP, rabies, and next 
     selectedVaccineId: 'cat_3in1_fvrcp',
   });
 
-  const preVaccineDeworming = recommendations.find((item) => item.family === 'catPreVaccineDeworming');
+  const preVaccineDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 1);
   const fvrcpDoseOne = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 1);
   const fvrcpDoseTwo = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 2);
   const rabies = recommendations.find((item) => item.family === 'catRabies');
-  const routineDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 1);
+  const routineDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 2);
 
   assert.equal(preVaccineDeworming?.dueDate, '2026-06-14');
   assert.equal(preVaccineDeworming?.isCatchUp, true);

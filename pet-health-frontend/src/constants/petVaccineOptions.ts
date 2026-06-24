@@ -3,6 +3,10 @@
 export const DOG_VACCINE_IDS = ['dog_5in1_dhppl', 'dog_7in1', 'dog_rabies', 'dog_bordetella'] as const;
 export const CAT_VACCINE_IDS = ['cat_3in1_fvrcp', 'cat_4in1', 'cat_rabies', 'cat_felv'] as const;
 
+/** Primary series choices for Flow A schedule setup; rabies/FeLV/bordetella are added separately or recorded manually. */
+export const DOG_SCHEDULE_PRIMARY_VACCINE_IDS = ['dog_5in1_dhppl', 'dog_7in1'] as const;
+export const CAT_SCHEDULE_PRIMARY_VACCINE_IDS = ['cat_3in1_fvrcp', 'cat_4in1'] as const;
+
 const DOG_SET = new Set<string>(DOG_VACCINE_IDS);
 const CAT_SET = new Set<string>(CAT_VACCINE_IDS);
 
@@ -10,6 +14,13 @@ export function vaccineIdsForPetSpecies(species: string): readonly string[] | nu
   const s = species.trim().toLowerCase();
   if (s === 'dog') return DOG_VACCINE_IDS;
   if (s === 'cat') return CAT_VACCINE_IDS;
+  return null;
+}
+
+export function schedulePrimaryVaccineIdsForSpecies(species: string): readonly string[] | null {
+  const s = species.trim().toLowerCase();
+  if (s === 'dog') return DOG_SCHEDULE_PRIMARY_VACCINE_IDS;
+  if (s === 'cat') return CAT_SCHEDULE_PRIMARY_VACCINE_IDS;
   return null;
 }
 
