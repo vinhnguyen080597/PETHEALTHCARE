@@ -83,6 +83,16 @@ async function chooseImage(page: Page, testID: string) {
   await chooser.setFiles(tinyPng);
 }
 
+async function completeBreedRecognitionIntro(page: Page) {
+  await verify(page, expect(page.getByTestId('breed-recognition-intro-modal')).toBeVisible());
+  await page.getByTestId('breed-recognition-intro-continue-button').click();
+  await page.getByTestId('breed-recognition-intro-continue-button').click();
+  await chooseImage(page, 'breed-recognition-intro-pick-photo-face');
+  await chooseImage(page, 'breed-recognition-intro-pick-photo-fullBodySide');
+  await chooseImage(page, 'breed-recognition-intro-pick-photo-coat');
+  await verify(page, expect(page.getByTestId('breed-recognition-intro-modal')).not.toBeVisible());
+}
+
 const EXPECT_DELAY_MS = Number(process.env.E2E_EXPECT_DELAY_MS ?? process.env.E2E_SLOW_MO_MS ?? 0);
 
 async function verify(page: Page, assertion: Promise<void>) {
@@ -211,9 +221,7 @@ test.describe('Web feature smoke coverage', () => {
       await page.getByTestId('onboarding-service-tab-breed').click();
       await page.getByTestId('onboarding-service-breed-button').click();
       await verify(page, expect(page.getByTestId('breed-recognition-screen')).toBeVisible());
-      await chooseImage(page, 'breed-recognition-pick-photo-face');
-      await chooseImage(page, 'breed-recognition-pick-photo-fullBodySide');
-      await chooseImage(page, 'breed-recognition-pick-photo-coat');
+      await completeBreedRecognitionIntro(page);
       await verify(page, expect(page.getByTestId('breed-recognition-analyze-button')).toBeEnabled());
       await page.getByTestId('breed-recognition-analyze-button').click();
       await verify(

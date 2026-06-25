@@ -872,6 +872,10 @@
       }
     },
     "photoSectionTitle": "Photos by area",
+    "introNext": "Continue",
+    "introBack": "Back",
+    "introRequiredPhotoProgress": "Required photo {{current}} of {{total}}",
+    "introMainPlaceholder": "Complete the guide and upload the 3 required photos to unlock the full page.",
     "requiredBadge": "Required",
     "optionalBadge": "Recommended",
     "pickPhoto": "Choose photo",

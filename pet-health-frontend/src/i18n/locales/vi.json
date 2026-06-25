@@ -869,6 +869,10 @@
       }
     },
     "photoSectionTitle": "Ảnh theo từng vùng",
+    "introNext": "Tiếp",
+    "introBack": "Quay lại",
+    "introRequiredPhotoProgress": "Ảnh bắt buộc {{current}}/{{total}}",
+    "introMainPlaceholder": "Hoàn tất hướng dẫn và tải 3 ảnh bắt buộc để xem toàn bộ trang.",
     "requiredBadge": "Bắt buộc",
     "optionalBadge": "Khuyến nghị",
     "pickPhoto": "Chọn ảnh",
