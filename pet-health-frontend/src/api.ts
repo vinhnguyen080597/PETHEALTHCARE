@@ -239,10 +239,18 @@ export async function deleteMyAccount(token: string) {
 }
 
 export async function requestPasswordRecovery(email: string) {
-  return requestJson<{ data: { sent: boolean } }>('/auth/forgot-password', {
+  return requestJson<{ data: { sent: boolean; email?: string } }>('/auth/forgot-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
+  });
+}
+
+export async function applyForgotPassword(payload: { email: string; otp: string; newPassword: string }) {
+  return requestJson<{ data: { success: boolean; accessToken?: string | null } }>('/auth/forgot-password/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
 }
 

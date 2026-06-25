@@ -42,6 +42,13 @@
     "continue": "Continue",
     "toggleToSignIn": "Already have an account? Sign in",
     "toggleToSignUp": "Don't have an account? Sign up",
+    "forgotPassword": "Forgot password?",
+    "forgotPasswordTitle": "Forgot password",
+    "forgotPasswordBody": "Enter your registered email. Pet Health Care will send an OTP so you can reset your password in the app.",
+    "forgotPasswordSendOtp": "Send OTP",
+    "forgotPasswordBack": "Back to sign in",
+    "forgotPasswordSuccess": "Your password has been reset. You can sign in with your new password.",
+    "forgotPasswordSendFailed": "Could not send OTP. Please try again.",
     "errors": {
       "signUpRateLimit": "You recently requested an OTP. Please wait {{seconds}} seconds and try again.",
       "emailAlreadyRegistered": "This email is already registered. Please sign in.",

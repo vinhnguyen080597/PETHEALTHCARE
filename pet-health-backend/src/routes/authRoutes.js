@@ -6,7 +6,9 @@ import { findAuthUserByEmail } from '../services/adminAuthUserService.js';
 import {
   applyUpdateEmail,
   applyUpdatePassword,
+  applyPublicRecoverPassword,
   applyRecoverPassword,
+  requestPublicPasswordRecovery,
   verifyRecoverPasswordRequest,
   verifyUpdateEmailRequest,
   verifyUpdatePasswordRequest,
@@ -209,16 +211,25 @@ router.post('/forgot-password', async (req, res, next) => {
       });
     }
 
-    let authEmail;
-    try {
-      authEmail = looksLikeEmail(compactText(email)) ? requireSignupEmail(email) : authEmailFromIdentifier(email);
-    } catch {
-      return res.json({ data: { sent: true } });
+    const result = await requestPublicPasswordRecovery(email);
+    return res.json({ data: result });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/forgot-password/apply', async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body ?? {};
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ error: 'email, otp and newPassword are required' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ error: 'password must be at least 6 characters', code: 'PASSWORD_TOO_SHORT' });
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(authEmail);
-    if (error) throw error;
-    return res.json({ data: { sent: true } });
+    const result = await applyPublicRecoverPassword({ identifier: email, otp, newPassword });
+    return res.json({ data: result });
   } catch (err) {
     return next(err);
   }

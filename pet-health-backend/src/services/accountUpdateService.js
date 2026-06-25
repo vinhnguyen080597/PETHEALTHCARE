@@ -2,6 +2,7 @@ import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supab
 import { authEmailFromIdentifier, compactText, looksLikeEmail, requireSignupEmail } from './authIdentifierService.js';
 import { findAuthUserByEmail } from './adminAuthUserService.js';
 import {
+  getAccountProfile,
   updateSelfAccountLogin,
   setPendingEmailChange,
   clearPendingEmailChange,
@@ -283,6 +284,78 @@ export async function applyUpdatePassword({ user, account, currentEmail, current
   const accessToken = await refreshSessionAccessToken(authEmail, cleanPassword);
 
   return { success: true, accessToken };
+}
+
+function resolveAuthEmailFromIdentifier(identifier) {
+  return looksLikeEmail(compactText(identifier)) ? requireSignupEmail(identifier) : authEmailFromIdentifier(identifier);
+}
+
+async function resolveAuthUserAndAccountByIdentifier(identifier) {
+  const authEmail = resolveAuthEmailFromIdentifier(identifier);
+  const admin = getSupabaseServiceClient();
+  if (!admin) {
+    const err = new Error('Supabase service role is required.');
+    err.status = 503;
+    err.code = 'SERVICE_ROLE_REQUIRED';
+    throw err;
+  }
+  const authUser = await findAuthUserByEmail(admin, authEmail);
+  if (!authUser?.id) return null;
+  const account = await getAccountProfile(authUser.id);
+  return { authUser, account, authEmail };
+}
+
+export async function requestPublicPasswordRecovery(identifier) {
+  try {
+    resolveAuthEmailFromIdentifier(identifier);
+  } catch {
+    return { sent: true };
+  }
+
+  const resolved = await resolveAuthUserAndAccountByIdentifier(identifier);
+  if (!resolved) return { sent: true };
+
+  const realEmail = resolveRealEmailForAccount(resolved.account);
+  if (!realEmail) return { sent: true };
+
+  const supabase = getSupabaseAnonClient();
+  if (!supabase) {
+    const err = new Error('Supabase auth is not configured.');
+    err.status = 503;
+    throw err;
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(realEmail);
+  if (error) throw error;
+
+  await setPendingPasswordRecovery(resolved.authUser.id, { email: realEmail });
+
+  return { sent: true, email: realEmail };
+}
+
+export async function applyPublicRecoverPassword({ identifier, otp, newPassword }) {
+  let resolved;
+  try {
+    resolved = await resolveAuthUserAndAccountByIdentifier(identifier);
+  } catch {
+    const err = new Error('Incorrect or expired OTP.');
+    err.status = 400;
+    err.code = 'otp_invalid';
+    throw err;
+  }
+  if (!resolved) {
+    const err = new Error('Incorrect or expired OTP.');
+    err.status = 400;
+    err.code = 'otp_invalid';
+    throw err;
+  }
+
+  return applyRecoverPassword({
+    user: resolved.authUser,
+    account: resolved.account,
+    otp,
+    newPassword,
+  });
 }
 
 export async function verifyRecoverPasswordRequest({ user, account }) {

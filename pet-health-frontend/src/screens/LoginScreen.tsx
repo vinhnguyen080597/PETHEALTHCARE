@@ -26,6 +26,8 @@ type LoginScreenProps = {
   onChangeConfirmPassword: (value: string) => void;
   onToggleSignUp: () => void;
   onSubmit: () => void;
+  onForgotPassword?: () => void;
+  authSuccess?: string;
 };
 
 function FieldInlineError({ message }: { message?: string }) {
@@ -48,6 +50,8 @@ export function LoginScreen({
   onChangeConfirmPassword,
   onToggleSignUp,
   onSubmit,
+  onForgotPassword,
+  authSuccess,
 }: LoginScreenProps) {
   const { t } = useTranslation();
   const { height: windowHeight } = useWindowDimensions();
@@ -104,6 +108,12 @@ export function LoginScreen({
               {error ? (
                 <View testID="login-auth-error" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                   <Text className="text-sm font-medium text-red-700">{error}</Text>
+                </View>
+              ) : null}
+
+              {authSuccess ? (
+                <View testID="login-auth-success" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <Text className="text-sm font-medium text-emerald-800">{authSuccess}</Text>
                 </View>
               ) : null}
 
@@ -201,9 +211,9 @@ export function LoginScreen({
                 accessibilityRole="button"
                 accessibilityLabel={isSignUp ? 'Sign up' : 'Sign in'}
                 disabled={loading}
-                className={`mb-6 w-full rounded-xl py-3 ${
+                className={`w-full rounded-xl py-3 ${
                   loading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'
-                }`}
+                } ${!isSignUp && onForgotPassword ? 'mb-3' : 'mb-6'}`}
                 onPress={onSubmit}
               >
                 {loading ? (
@@ -214,6 +224,18 @@ export function LoginScreen({
                   </Text>
                 )}
               </Pressable>
+
+              {!isSignUp && onForgotPassword ? (
+                <Pressable
+                  testID="login-forgot-password-button"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('login.forgotPassword')}
+                  className="mb-6"
+                  onPress={onForgotPassword}
+                >
+                  <Text className="text-center text-sm font-semibold text-blue-600">{t('login.forgotPassword')}</Text>
+                </Pressable>
+              ) : null}
 
               <Pressable
                 testID={isSignUp ? 'login-mode-button' : 'signup-mode-button'}

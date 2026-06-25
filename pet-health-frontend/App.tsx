@@ -41,6 +41,7 @@ import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { ForgotPasswordScreen } from './src/screens/ForgotPasswordScreen';
 import { SignUpOtpVerificationScreen } from './src/screens/SignUpOtpVerificationScreen';
 import { OnboardingIntroScreen } from './src/screens/OnboardingIntroScreen';
 import { OnboardingHealthPromptScreen } from './src/screens/OnboardingHealthPromptScreen';
@@ -182,7 +183,7 @@ function AppContent() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style={app.screen === 'login' || app.screen === 'signup-otp-verification' ? 'light' : 'dark'} />
+      <StatusBar style={app.screen === 'login' || app.screen === 'forgot-password' || app.screen === 'signup-otp-verification' ? 'light' : 'dark'} />
       {app.screen === 'login' ? (
         <LoginScreen
           backendHealth={app.backendHealth}
@@ -192,12 +193,40 @@ function AppContent() {
           isSignUp={app.isSignUp}
           error={app.authError}
           fieldErrors={app.authFieldErrors}
+          authSuccess={app.authSuccess}
           loading={app.loading}
           onChangeEmail={app.changeEmail}
           onChangePassword={app.changePassword}
           onChangeConfirmPassword={app.changeConfirmPassword}
           onToggleSignUp={app.toggleLoginSignUpMode}
           onSubmit={app.submitAuth}
+          onForgotPassword={app.openForgotPassword}
+        />
+      ) : app.screen === 'forgot-password' ? (
+        <ForgotPasswordScreen
+          email={app.email}
+          error={app.forgotPasswordError}
+          success={app.forgotPasswordSuccess}
+          loading={app.loading}
+          otpModalOpen={app.forgotPasswordOtpOpen}
+          pendingEmail={app.forgotPasswordPendingEmail}
+          otp={app.forgotPasswordOtp}
+          newPassword={app.forgotPasswordNewPassword}
+          confirmPassword={app.forgotPasswordConfirmPassword}
+          otpError={app.forgotPasswordOtpError}
+          fieldErrors={{
+            ...app.forgotPasswordFieldErrors,
+            ...app.forgotPasswordRecoverFieldErrors,
+          }}
+          otpLoading={app.forgotPasswordOtpLoading}
+          onChangeEmail={app.changeForgotPasswordEmail}
+          onChangeOtp={app.changeForgotPasswordOtp}
+          onChangeNewPassword={app.setForgotPasswordNewPassword}
+          onChangeConfirmPassword={app.setForgotPasswordConfirmPassword}
+          onBack={app.backToLoginFromForgotPassword}
+          onSubmitSendOtp={() => void app.submitForgotPasswordSendOtp()}
+          onCloseOtpModal={app.closeForgotPasswordOtpModal}
+          onSubmitRecover={() => void app.submitForgotPasswordApply()}
         />
       ) : app.screen === 'signup-otp-verification' ? (
         <SignUpOtpVerificationScreen

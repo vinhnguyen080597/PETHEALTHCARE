@@ -52,6 +52,8 @@ import {
   requestSignUpOtp,
   translateAnalysesDisplay,
   login,
+  applyForgotPassword,
+  requestPasswordRecovery,
   verifySignUpOtp,
   updateAdminUserCoreCareRecord,
   updateAdminUserPet,
@@ -236,6 +238,22 @@ export function usePetHealthApp() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [pendingSignUpEmail, setPendingSignUpEmail] = useState('');
   const [pendingSignUpPassword, setPendingSignUpPassword] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
+  const [forgotPasswordError, setForgotPasswordError] = useState('');
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState('');
+  const [forgotPasswordFieldErrors, setForgotPasswordFieldErrors] = useState<{ email?: string }>({});
+  const [forgotPasswordOtpOpen, setForgotPasswordOtpOpen] = useState(false);
+  const [forgotPasswordPendingEmail, setForgotPasswordPendingEmail] = useState('');
+  const [forgotPasswordOtp, setForgotPasswordOtp] = useState('');
+  const [forgotPasswordNewPassword, setForgotPasswordNewPassword] = useState('');
+  const [forgotPasswordConfirmPassword, setForgotPasswordConfirmPassword] = useState('');
+  const [forgotPasswordOtpError, setForgotPasswordOtpError] = useState('');
+  const [forgotPasswordOtpLoading, setForgotPasswordOtpLoading] = useState(false);
+  const [forgotPasswordRecoverFieldErrors, setForgotPasswordRecoverFieldErrors] = useState<{
+    otp?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+  }>({});
   const [updateAccountNewLogin, setUpdateAccountNewLogin] = useState('');
   const [updateAccountChangeLoginError, setUpdateAccountChangeLoginError] = useState('');
   const [updateAccountChangeLoginFieldErrors, setUpdateAccountChangeLoginFieldErrors] = useState<{
@@ -678,6 +696,7 @@ export function usePetHealthApp() {
         setPendingSignUpPassword('');
       }
       setAuthError('');
+      setAuthSuccess('');
       setAuthFieldErrors({});
       return !prev;
     });
@@ -695,6 +714,7 @@ export function usePetHealthApp() {
   function changeEmail(value: string) {
     setEmail(value);
     if (authError) setAuthError('');
+    if (authSuccess) setAuthSuccess('');
     clearAuthFieldError('email');
   }
 
@@ -828,6 +848,148 @@ export function usePetHealthApp() {
     setSignUpOtpError('');
     setAuthError('');
     setScreen('login');
+  }
+
+  function resetForgotPasswordForm() {
+    setForgotPasswordError('');
+    setForgotPasswordSuccess('');
+    setForgotPasswordFieldErrors({});
+    setForgotPasswordOtpOpen(false);
+    setForgotPasswordPendingEmail('');
+    setForgotPasswordOtp('');
+    setForgotPasswordNewPassword('');
+    setForgotPasswordConfirmPassword('');
+    setForgotPasswordOtpError('');
+    setForgotPasswordOtpLoading(false);
+    setForgotPasswordRecoverFieldErrors({});
+  }
+
+  function openForgotPassword() {
+    resetForgotPasswordForm();
+    setScreen('forgot-password');
+  }
+
+  function backToLoginFromForgotPassword() {
+    resetForgotPasswordForm();
+    setScreen('login');
+  }
+
+  function changeForgotPasswordEmail(value: string) {
+    setEmail(value);
+    if (forgotPasswordError) setForgotPasswordError('');
+    if (forgotPasswordFieldErrors.email) {
+      setForgotPasswordFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.email;
+        return next;
+      });
+    }
+  }
+
+  function changeForgotPasswordOtp(value: string) {
+    const digits = value.replace(/\D/g, '').slice(0, ACCOUNT_UPDATE_OTP_LENGTH);
+    setForgotPasswordOtp(digits);
+    if (forgotPasswordOtpError) setForgotPasswordOtpError('');
+    if (forgotPasswordRecoverFieldErrors.otp) {
+      setForgotPasswordRecoverFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.otp;
+        return next;
+      });
+    }
+  }
+
+  function closeForgotPasswordOtpModal() {
+    setForgotPasswordOtpOpen(false);
+    setForgotPasswordOtp('');
+    setForgotPasswordNewPassword('');
+    setForgotPasswordConfirmPassword('');
+    setForgotPasswordOtpError('');
+    setForgotPasswordRecoverFieldErrors({});
+    setForgotPasswordOtpLoading(false);
+  }
+
+  async function submitForgotPasswordSendOtp() {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setForgotPasswordFieldErrors({ email: i18n.t('login.fieldErrors.emailRequired') });
+      setForgotPasswordError('');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setForgotPasswordFieldErrors({ email: i18n.t('login.errors.invalidEmailFormat') });
+      setForgotPasswordError('');
+      return;
+    }
+
+    setLoading(true);
+    setForgotPasswordFieldErrors({});
+    setForgotPasswordError('');
+    setForgotPasswordSuccess('');
+    try {
+      const { data } = await requestPasswordRecovery(trimmedEmail);
+      const pendingEmail = typeof data.email === 'string' ? data.email : trimmedEmail;
+      setForgotPasswordPendingEmail(pendingEmail);
+      setForgotPasswordOtp('');
+      setForgotPasswordNewPassword('');
+      setForgotPasswordConfirmPassword('');
+      setForgotPasswordOtpError('');
+      setForgotPasswordRecoverFieldErrors({});
+      setForgotPasswordOtpOpen(true);
+    } catch {
+      setForgotPasswordError(i18n.t('login.forgotPasswordSendFailed'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitForgotPasswordApply() {
+    const trimmedEmail = email.trim();
+    const fieldErrors: { otp?: string; newPassword?: string; confirmPassword?: string } = {};
+    if (forgotPasswordOtp.trim().length !== ACCOUNT_UPDATE_OTP_LENGTH) {
+      fieldErrors.otp = i18n.t('signupOtp.otpInvalidLength');
+    }
+    if (!forgotPasswordNewPassword) {
+      fieldErrors.newPassword = i18n.t('login.fieldErrors.passwordRequired');
+    } else if (forgotPasswordNewPassword.length < 6) {
+      fieldErrors.newPassword = i18n.t('login.fieldErrors.passwordTooShort');
+    }
+    if (!forgotPasswordConfirmPassword) {
+      fieldErrors.confirmPassword = i18n.t('login.fieldErrors.confirmPasswordRequired');
+    } else if (forgotPasswordNewPassword !== forgotPasswordConfirmPassword) {
+      fieldErrors.confirmPassword = i18n.t('login.fieldErrors.confirmPasswordMismatch');
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      setForgotPasswordRecoverFieldErrors(fieldErrors);
+      setForgotPasswordOtpError('');
+      return;
+    }
+
+    setForgotPasswordOtpLoading(true);
+    setForgotPasswordRecoverFieldErrors({});
+    setForgotPasswordOtpError('');
+    try {
+      const { data } = await applyForgotPassword({
+        email: trimmedEmail,
+        otp: forgotPasswordOtp.trim(),
+        newPassword: forgotPasswordNewPassword,
+      });
+      const accessToken = data.accessToken;
+      closeForgotPasswordOtpModal();
+      resetForgotPasswordForm();
+      setPassword('');
+      if (accessToken) {
+        await applySession(accessToken);
+        return;
+      }
+      setAuthError('');
+      setAuthSuccess(i18n.t('login.forgotPasswordSuccess'));
+      setScreen('login');
+    } catch (error: unknown) {
+      setForgotPasswordOtpError(resolveAccountUpdateErrorMessage(error));
+    } finally {
+      setForgotPasswordOtpLoading(false);
+    }
   }
 
   async function openCareServices(petId: string) {
@@ -2386,6 +2548,7 @@ export function usePetHealthApp() {
     changeConfirmPassword,
     authError,
     authFieldErrors,
+    authSuccess,
     signUpOtp,
     setSignUpOtp,
     changeSignUpOtp,
@@ -2452,6 +2615,26 @@ export function usePetHealthApp() {
     aiEconomicsConfig,
     refreshAiCredits: token ? () => refreshAiCredits(token) : undefined,
     submitAuth,
+    openForgotPassword,
+    backToLoginFromForgotPassword,
+    submitForgotPasswordSendOtp,
+    submitForgotPasswordApply,
+    changeForgotPasswordEmail,
+    changeForgotPasswordOtp,
+    setForgotPasswordNewPassword,
+    setForgotPasswordConfirmPassword,
+    closeForgotPasswordOtpModal,
+    forgotPasswordError,
+    forgotPasswordSuccess,
+    forgotPasswordFieldErrors,
+    forgotPasswordOtpOpen,
+    forgotPasswordPendingEmail,
+    forgotPasswordOtp,
+    forgotPasswordNewPassword,
+    forgotPasswordConfirmPassword,
+    forgotPasswordOtpError,
+    forgotPasswordRecoverFieldErrors,
+    forgotPasswordOtpLoading,
     submitSignUpOtpVerification,
     backToSignUpFromOtpVerification,
     handleAddPet,
