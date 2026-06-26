@@ -4,6 +4,7 @@ import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Te
 import { useTranslation } from 'react-i18next';
 import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
+import { getSpendableCreditsForFeature, hasCreditsForFeature } from '../utils/aiCredits';
 import type { AiCreditAccount, Pet } from '../types';
 
 const PRIMARY = '#1E6FE8';
@@ -171,7 +172,8 @@ export function HealthCheckScreen({
   const subtitle = [speciesLabel(pet.species, t('healthCheck.petFallback')), pet.breed?.trim() || null]
     .filter(Boolean)
     .join(' • ');
-  const hasInsufficientCredits = Boolean(aiCredits && aiCredits.creditBalance < aiCreditCost);
+  const hasInsufficientCredits = Boolean(aiCredits && !hasCreditsForFeature(aiCredits, 'health_analysis', aiCreditCost));
+  const healthCredits = getSpendableCreditsForFeature(aiCredits, 'health_analysis');
   const canStart = photoUris.length > 0 && !analyzeDisabled && analysisCooldownSeconds <= 0 && !hasInsufficientCredits;
   const photoCountHint =
     photoUris.length === 1
@@ -239,15 +241,17 @@ export function HealthCheckScreen({
               <Text className="text-sm font-bold text-slate-900">{t('aiCredits.cardTitle')}</Text>
             </View>
             <Text className="mt-2 text-sm leading-5 text-slate-700">
-              {t('aiCredits.remaining', {
-                remaining: aiCredits.creditBalance,
-                allowance: aiCredits.monthlyAllowance,
-              })}{' '}
+              {healthCredits.trial > 0
+                ? t('aiCredits.trialHealthRemaining', { count: healthCredits.trial })
+                : t('aiCredits.noTrialHealthRemaining')}
+              {healthCredits.shared > 0
+                ? ` ${t('aiCredits.sharedCreditsRemaining', { count: healthCredits.shared })}`
+                : ''}{' '}
               {t('aiCredits.healthCheckCost', { cost: aiCreditCost })}
             </Text>
             {hasInsufficientCredits ? (
               <View>
-                <Text className="mt-2 text-sm font-semibold text-amber-900">{t('aiCredits.outOfCredits')}</Text>
+                <Text className="mt-2 text-sm font-semibold text-amber-900">{t('aiCredits.outOfCreditsHealth')}</Text>
               </View>
             ) : null}
           </View>

@@ -1901,6 +1901,10 @@ export function usePetHealthApp() {
               ? {
                   ...prev,
                   creditBalance: typeof error.creditBalance === 'number' ? error.creditBalance : prev.creditBalance,
+                  featureTrialBalance:
+                    error.featureTrialBalance && typeof error.featureTrialBalance === 'object'
+                      ? { ...(prev.featureTrialBalance ?? {}), ...error.featureTrialBalance }
+                      : { ...(prev.featureTrialBalance ?? {}), health_analysis: 0 },
                   monthlyResetAt: error.monthlyResetAt ?? prev.monthlyResetAt,
                 }
               : prev,
@@ -2116,6 +2120,10 @@ export function usePetHealthApp() {
             ? {
                 ...prev,
                 creditBalance: typeof error.creditBalance === 'number' ? error.creditBalance : prev.creditBalance,
+                featureTrialBalance:
+                  error.featureTrialBalance && typeof error.featureTrialBalance === 'object'
+                    ? { ...(prev.featureTrialBalance ?? {}), ...error.featureTrialBalance }
+                    : { ...(prev.featureTrialBalance ?? {}), breed_recognition: 0 },
                 monthlyResetAt: error.monthlyResetAt ?? prev.monthlyResetAt,
               }
             : prev,
@@ -2123,7 +2131,7 @@ export function usePetHealthApp() {
       }
       const message =
         error instanceof ApiRequestError && error.code === 'AI_CREDITS_EXHAUSTED'
-          ? i18n.t('alerts.aiCreditsExhausted.message')
+          ? i18n.t('alerts.aiCreditsExhaustedBreed.message')
           : error instanceof Error
             ? error.message
             : i18n.t('common.unknownError');

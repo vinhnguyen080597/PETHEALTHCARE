@@ -19,6 +19,8 @@ import {
   getBreedRecognitionSlotOrder,
   type BreedRecognitionSlot,
 } from '../constants/petBreedRecognitionSlots';
+import { getBreedRecognitionSlotExampleImage } from '../assets/breedRecognitionSlotAssets';
+import { getSpendableCreditsForFeature, hasCreditsForFeature } from '../utils/aiCredits';
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
 import { MAI_GUIDING } from '../assets/maiAssets';
 import type { AiCreditAccount, Pet } from '../types';
@@ -136,6 +138,9 @@ function BreedRecognitionSlotCard({
 }: BreedRecognitionSlotCardProps) {
   const { t } = useTranslation();
   const trimmedUri = uri?.trim();
+  const exampleImage = getBreedRecognitionSlotExampleImage(slot);
+  const guideKey = `breedRecognition.slots.${slot}.guide`;
+  const guide = t(guideKey, { defaultValue: '' });
 
   return (
     <View className="rounded-2xl border border-gray-200 bg-white p-3">
@@ -154,6 +159,7 @@ function BreedRecognitionSlotCard({
             </Text>
           </View>
           <Text className="mt-1 text-xs leading-5 text-slate-500">{t(`breedRecognition.slots.${slot}.hint`)}</Text>
+          {guide ? <Text className="mt-2 text-xs leading-5 text-slate-600">{guide}</Text> : null}
         </View>
         {trimmedUri ? (
           <Pressable
@@ -167,6 +173,21 @@ function BreedRecognitionSlotCard({
           </Pressable>
         ) : null}
       </View>
+
+      {!trimmedUri && exampleImage ? (
+        <View className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+          <Text className="px-3 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            {t('breedRecognition.examplePhotoLabel')}
+          </Text>
+          <Image
+            source={exampleImage}
+            style={styles.slotExampleImage}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            accessibilityLabel={t(`breedRecognition.slots.${slot}.title`)}
+          />
+        </View>
+      ) : null}
 
       {trimmedUri ? (
         <Pressable
@@ -235,7 +256,11 @@ export function PetBreedRecognitionScreen({
   const missingRequiredSlots = requiredSlots.filter((s) => !slotUris[s]?.trim());
   const requiredOk = missingRequiredSlots.length === 0;
   const missingRequiredText = missingRequiredSlots.map((slot) => t(`breedRecognition.slots.${slot}.title`)).join(', ');
-  const hasInsufficientCredits = Boolean(aiCredits && aiCredits.creditBalance < aiCreditCost);
+  const hasInsufficientCredits = Boolean(aiCredits && !hasCreditsForFeature(aiCredits, 'breed_recognition', aiCreditCost));
+  const breedCredits = getSpendableCreditsForFeature(aiCredits, 'breed_recognition');
+  const creditsResolved = aiCredits != null;
+  const showCreditsExhaustedModal = creditsResolved && hasInsufficientCredits;
+  const showIntroModal = creditsResolved && !hasInsufficientCredits && !introComplete;
   const canAnalyze = requiredOk && !loading && !hasInsufficientCredits;
   const currentRequiredSlot = requiredSlots[requiredPhotoIndex] ?? requiredSlots[0];
   const activeAnchor =
@@ -257,12 +282,12 @@ export function PetBreedRecognitionScreen({
   }, []);
 
   useEffect(() => {
-    if (introComplete) return;
+    if (introComplete || showCreditsExhaustedModal) return;
     const frame = requestAnimationFrame(() => {
       remeasureAnchors();
     });
     return () => cancelAnimationFrame(frame);
-  }, [introComplete, introStep, remeasureAnchors]);
+  }, [introComplete, introStep, remeasureAnchors, showCreditsExhaustedModal]);
 
   function handleScrollContentLayout(_event: LayoutChangeEvent) {
     remeasureAnchors();
@@ -367,17 +392,10 @@ export function PetBreedRecognitionScreen({
       );
     }
 
-    const uploadedCount = requiredSlots.filter((slot) => Boolean(slotUris[slot]?.trim())).length;
-
     return (
       <>
         <Text className="text-base font-bold text-slate-900">{t('breedRecognition.photoSectionTitle')}</Text>
-        <Text className="mt-2 text-sm text-slate-600">
-          {t('breedRecognition.introRequiredPhotoProgress', {
-            current: Math.min(uploadedCount + 1, requiredSlots.length),
-            total: requiredSlots.length,
-          })}
-        </Text>
+        <Text className="mt-2 text-sm leading-5 text-slate-600">{t('breedRecognition.photoSectionIntro')}</Text>
         <View className="mt-4">
           <BreedRecognitionSlotCard
             slot={currentRequiredSlot}
@@ -390,6 +408,24 @@ export function PetBreedRecognitionScreen({
             onClear={() => onClearSlot(currentRequiredSlot)}
           />
         </View>
+      </>
+    );
+  }
+
+  function renderCreditsExhaustedModalContent() {
+    return (
+      <>
+        <Text className="text-base font-bold text-slate-900">{t('alerts.aiCreditsExhaustedBreed.title')}</Text>
+        <Text className="mt-3 text-sm leading-5 text-slate-600">{t('aiCredits.outOfCreditsBreed')}</Text>
+        <Pressable
+          testID="breed-recognition-credits-exhausted-back-button"
+          accessibilityRole="button"
+          className="mt-4 self-end rounded-lg px-5 py-2 active:opacity-90"
+          style={{ backgroundColor: PRIMARY }}
+          onPress={onBack}
+        >
+          <Text className="text-sm font-semibold text-white">{t('breedRecognition.introBack')}</Text>
+        </Pressable>
       </>
     );
   }
@@ -422,12 +458,6 @@ export function PetBreedRecognitionScreen({
         onScroll={remeasureAnchors}
         scrollEventThrottle={16}
       >
-        {aiCredits && hasInsufficientCredits ? (
-          <View className="mb-4 rounded-xl border border-amber-200 bg-white px-4 py-3">
-            <Text className="text-sm font-semibold text-amber-900">{t('aiCredits.outOfCredits')}</Text>
-          </View>
-        ) : null}
-
         <View
           ref={maiSectionRef}
           testID="breed-recognition-mai-section"
@@ -507,10 +537,11 @@ export function PetBreedRecognitionScreen({
       <View className="border-t border-gray-200 bg-white px-5 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
         {aiCredits ? (
           <Text className="mb-2 text-center text-xs text-slate-500">
-            {t('breedRecognition.creditLine', {
-              remaining: aiCredits.creditBalance,
-              cost: aiCreditCost,
-            })}
+            {breedCredits.trial > 0
+              ? t('breedRecognition.creditLineTrial', { count: breedCredits.trial, cost: aiCreditCost })
+              : breedCredits.shared > 0
+                ? t('breedRecognition.creditLineShared', { remaining: breedCredits.shared, cost: aiCreditCost })
+                : t('breedRecognition.creditLineExhausted', { cost: aiCreditCost })}
           </Text>
         ) : null}
         <Pressable
@@ -536,21 +567,40 @@ export function PetBreedRecognitionScreen({
         ) : null}
       </View>
 
-      <Modal visible={!introComplete} transparent animationType="fade" onRequestClose={() => undefined}>
+      <Modal
+        visible={showCreditsExhaustedModal || showIntroModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (showCreditsExhaustedModal) onBack();
+        }}
+      >
         <View testID="breed-recognition-intro-modal" className="flex-1 bg-black/40">
-          <View
-            className="absolute left-5 right-5"
-            style={{
-              top: anchoredPopupTop,
-              maxHeight: introStep === 'required-photo' ? '42%' : '78%',
-            }}
-          >
-            <View className="rounded-2xl bg-white p-4 shadow-2xl" style={styles.introAnchoredCard}>
-              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                {renderIntroModalContent()}
-              </ScrollView>
+          {showCreditsExhaustedModal ? (
+            <View
+              testID="breed-recognition-credits-exhausted-modal"
+              className="flex-1 items-center justify-center px-5"
+              style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+            >
+              <View className="w-full rounded-2xl bg-white p-4 shadow-2xl" style={styles.introAnchoredCard}>
+                {renderCreditsExhaustedModalContent()}
+              </View>
             </View>
-          </View>
+          ) : (
+            <View
+              className="absolute left-5 right-5"
+              style={{
+                top: anchoredPopupTop,
+                maxHeight: introStep === 'required-photo' ? '62%' : '78%',
+              }}
+            >
+              <View className="rounded-2xl bg-white p-4 shadow-2xl" style={styles.introAnchoredCard}>
+                <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  {renderIntroModalContent()}
+                </ScrollView>
+              </View>
+            </View>
+          )}
         </View>
       </Modal>
     </View>
@@ -561,6 +611,11 @@ const styles = StyleSheet.create({
   slotPreviewImage: {
     width: '100%',
     height: 112,
+  },
+  slotExampleImage: {
+    width: '100%',
+    height: 140,
+    marginTop: 6,
   },
   maiIntroImage: {
     width: 112,

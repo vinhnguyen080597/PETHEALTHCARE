@@ -848,7 +848,9 @@
     "subtitle": "Cats and dogs — optional extra context for health checks.",
     "noteTitle": "A note from Mai",
     "noteBody": "Dear pet parent, this is only a preliminary appearance-based suggestion. It may be wrong for mixed or unknown-lineage pets, and you can always edit your pet's profile manually.",
-    "creditLine": "{{remaining}} credits left. Breed recognition costs {{cost}} credit.",
+    "creditLineTrial": "{{count}} breed recognition trial left (beta). Each run costs {{cost}} credit.",
+    "creditLineShared": "{{remaining}} shared credits left. Breed recognition costs {{cost}} credit.",
+    "creditLineExhausted": "Breed recognition trial used. Each run costs {{cost}} credit.",
     "purposeTitle": "Purpose",
     "purposeBody": "This page collects angle-specific photos (similar to pedigree-style intake) so AI can suggest breed / coat pattern preliminarily. It does not replace a veterinary exam or health analysis.",
     "accuracyTitle": "Accuracy and limits",
@@ -872,12 +874,13 @@
       }
     },
     "photoSectionTitle": "Photos by area",
+    "photoSectionIntro": "The right angle and good lighting help Mai recognize breed traits more accurately. Check the example photo below before uploading.",
     "introNext": "Continue",
     "introBack": "Back",
-    "introRequiredPhotoProgress": "Required photo {{current}} of {{total}}",
     "introMainPlaceholder": "Complete the guide and upload the 3 required photos to unlock the full page.",
     "requiredBadge": "Required",
     "optionalBadge": "Recommended",
+    "examplePhotoLabel": "Example",
     "pickPhoto": "Choose photo",
     "changePhoto": "Change",
     "removePhoto": "Remove",
@@ -897,9 +900,21 @@
     "unsupportedSpeciesAlertBody": "This feature is available for cat and dog profiles only.",
     "applySuccess": "Breed field in the profile was updated.",
     "slots": {
-      "face": { "title": "Front face", "hint": "Clear front view of head, ears, eyes, muzzle/nose." },
-      "fullBodySide": { "title": "Full-body side profile", "hint": "Standing on a flat surface; whole body visible at pet eye level." },
-      "coat": { "title": "Coat and pattern", "hint": "Body/side close enough to show color, markings, and texture." },
+      "face": {
+        "title": "Front face",
+        "hint": "Clear front view of head, ears, eyes, muzzle/nose.",
+        "guide": "Have your pet sit or stand still, facing the camera. Both ears, both eyes, and the muzzle/nose should be visible. Avoid shooting from too far away, too close, or with part of the face blocked."
+      },
+      "fullBodySide": {
+        "title": "Full-body side profile",
+        "hint": "Standing on a flat surface; whole body visible at pet eye level.",
+        "guide": "Place your pet on a flat surface (floor or low table). Shoot at pet eye level with the full body from head to tail in frame. Avoid shooting from above or cropping out legs/tail."
+      },
+      "coat": {
+        "title": "Coat and pattern",
+        "hint": "Body/side close enough to show color, markings, and texture.",
+        "guide": "Move closer to the body or flank so coat color, stripes, spots, or patterns are clear. Use natural light or enough brightness; avoid shadows hiding fur detail."
+      },
       "eyes": { "title": "Eyes", "hint": "Close-up: iris color, shape, set, and clarity." },
       "headProfile": { "title": "Head side profile", "hint": "Side view of nose bridge, forehead, muzzle, and stop/profile." },
       "pawPads": { "title": "Paw pads / toes", "hint": "Underside of paws or toes if possible; useful for some cat traits." },
@@ -1184,7 +1199,7 @@
     "markDone": "Mark done",
     "libraryTitle": "Free care library",
     "creditsTitle": "AI credits",
-    "creditsBody": "{{credits}} AI credits available. Use free care tools anytime; spend credits only when AI is really needed.",
+    "creditsBody": "{{summary}} Health check: {{healthTrial}}. Breed recognition: {{breedTrial}}.{{shared}} Free care tools work anytime.",
     "creditsUnavailable": "Credit status is unavailable, but free care tools still work.",
     "claimAdCredit": "Request beta credit",
     "claimAdSuccess": "Added {{credits}} AI credit.",
@@ -1400,11 +1415,19 @@
     }
   },
   "aiCredits": {
-    "cardTitle": "AI credits",
+    "cardTitle": "AI credits (beta)",
     "remaining": "{{remaining}} / {{allowance}} credits left this month.",
+    "trialHealthRemaining": "{{count}} health check trial left (beta).",
+    "noTrialHealthRemaining": "Health check trial already used.",
+    "trialBreedRemaining": "{{count}} breed recognition trial left (beta).",
+    "noTrialBreedRemaining": "Breed recognition trial already used.",
+    "sharedCreditsRemaining": "{{count}} shared credits available.",
+    "trialSummary": "Each account gets 1 health check trial and 1 breed recognition trial.",
     "healthCheckCost": "Wellness check costs {{cost}} credit.",
     "breedCost": "Breed recognition costs {{cost}} credit.",
-    "outOfCredits": "You are out of AI credits for this beta. Free care tools still work; please wait for the monthly reset or contact support if this blocks testing.",
+    "outOfCredits": "You have no AI credits left in this beta. Free care tools still work; contact support if you need more testing access.",
+    "outOfCreditsHealth": "You have used your health check trial. Free care tools still work.",
+    "outOfCreditsBreed": "You have used your breed recognition trial. Free care tools still work.",
     "prompts": {
       "rewardedAd": "Beta credit",
       "topUp": "Top-up unavailable",
@@ -1538,8 +1561,16 @@
       "message": "There are many checks running right now. Please try again in a few minutes."
     },
     "aiCreditsExhausted": {
-      "title": "Out of AI credits",
-      "message": "You have used this month's beta AI credits. Free care tools still work; please wait for the monthly reset or contact support if this blocks testing."
+      "title": "AI trial used",
+      "message": "You have used the trial for this feature. Free care tools still work."
+    },
+    "aiCreditsExhaustedHealth": {
+      "title": "Health check trial used",
+      "message": "You have used your 1 health check trial (beta). Free care tools still work."
+    },
+    "aiCreditsExhaustedBreed": {
+      "title": "Breed recognition trial used",
+      "message": "You have used your 1 breed recognition trial (beta). Free care tools still work."
     },
     "aiBudgetExhausted": {
       "title": "Free AI capacity used",

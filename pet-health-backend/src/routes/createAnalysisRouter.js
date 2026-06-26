@@ -111,6 +111,8 @@ export function createAnalysisRouter(deps) {
             code: reserve.code,
             creditBalance: reserve.creditBalance,
             creditCost: reserve.creditCost,
+            featureTrialBalance: reserve.featureTrialBalance,
+            feature: reserve.feature,
             monthlyResetAt: reserve.monthlyResetAt,
           });
         }
@@ -382,6 +384,8 @@ export function createAnalysisRouter(deps) {
             code: reserve.code,
             creditBalance: reserve.creditBalance,
             creditCost: reserve.creditCost,
+            featureTrialBalance: reserve.featureTrialBalance,
+            feature: reserve.feature,
             monthlyResetAt: reserve.monthlyResetAt,
           });
         }

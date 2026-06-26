@@ -125,6 +125,8 @@ export class ApiRequestError extends Error {
   retryAfterSeconds?: number;
   creditBalance?: number;
   creditCost?: number;
+  featureTrialBalance?: Record<string, number>;
+  feature?: string;
   monthlyResetAt?: string;
 }
 
@@ -148,12 +150,18 @@ function buildApiRequestError(response: Response, body: unknown, fallback: strin
       retryAfterSeconds?: unknown;
       creditBalance?: unknown;
       creditCost?: unknown;
+      featureTrialBalance?: unknown;
+      feature?: unknown;
       monthlyResetAt?: unknown;
     };
     if (typeof b.code === 'string') err.code = b.code;
     if (typeof b.retryAfterSeconds === 'number') err.retryAfterSeconds = b.retryAfterSeconds;
     if (typeof b.creditBalance === 'number') err.creditBalance = b.creditBalance;
     if (typeof b.creditCost === 'number') err.creditCost = b.creditCost;
+    if (b.featureTrialBalance && typeof b.featureTrialBalance === 'object' && !Array.isArray(b.featureTrialBalance)) {
+      err.featureTrialBalance = b.featureTrialBalance as Record<string, number>;
+    }
+    if (typeof b.feature === 'string') err.feature = b.feature;
     if (typeof b.monthlyResetAt === 'string') err.monthlyResetAt = b.monthlyResetAt;
   }
   return err;
@@ -827,6 +835,8 @@ export class AnalyzeRequestError extends Error {
   retryAfterSeconds?: number;
   creditBalance?: number;
   creditCost?: number;
+  featureTrialBalance?: Record<string, number>;
+  feature?: string;
   monthlyResetAt?: string;
 }
 
@@ -923,6 +933,13 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
         }
         if (typeof (body as { monthlyResetAt?: unknown }).monthlyResetAt === 'string') {
           err.monthlyResetAt = (body as { monthlyResetAt: string }).monthlyResetAt;
+        }
+        const trialBalance = (body as { featureTrialBalance?: unknown }).featureTrialBalance;
+        if (trialBalance && typeof trialBalance === 'object' && !Array.isArray(trialBalance)) {
+          err.featureTrialBalance = trialBalance as Record<string, number>;
+        }
+        if (typeof (body as { feature?: unknown }).feature === 'string') {
+          err.feature = (body as { feature: string }).feature;
         }
       }
       throw err;

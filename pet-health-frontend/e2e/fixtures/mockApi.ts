@@ -89,6 +89,7 @@ type MockApiState = {
   careRecords: CareRecord[];
   analyses: Analysis[];
   creditBalance: number;
+  featureTrialBalance: { health_analysis: number; breed_recognition: number };
   ledger: Array<Record<string, unknown>>;
   accountPassword: string;
   pendingNewEmail: string | null;
@@ -138,11 +139,27 @@ function summarize(records: CareRecord[]) {
   };
 }
 
+function deductMockCredits(state: MockApiState, feature: 'health_analysis' | 'breed_recognition', amount = 1) {
+  const trials = { ...state.featureTrialBalance };
+  let remaining = amount;
+  const trialAvailable = Number(trials[feature] ?? 0);
+  if (trialAvailable > 0) {
+    const used = Math.min(trialAvailable, remaining);
+    trials[feature] = trialAvailable - used;
+    remaining -= used;
+  }
+  if (remaining > 0) {
+    state.creditBalance = Math.max(0, state.creditBalance - remaining);
+  }
+  state.featureTrialBalance = trials;
+}
+
 function defaultCreditAccount(state: MockApiState) {
   return {
     userId: 'e2e-user',
     planTier: 'free',
     creditBalance: state.creditBalance,
+    featureTrialBalance: { ...state.featureTrialBalance },
     monthlyAllowance: 0,
     monthlyResetAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   };
@@ -200,7 +217,7 @@ function createAnalysis(state: MockApiState, petId: string): Analysis {
     },
   };
   state.analyses.unshift(analysis);
-  state.creditBalance = Math.max(0, state.creditBalance - 1);
+  deductMockCredits(state, 'health_analysis', 1);
   state.ledger.unshift({ id: `ledger-${state.ledger.length + 1}`, reason: 'health_analysis', delta: -1 });
   return analysis;
 }
@@ -222,7 +239,8 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     pets: [],
     careRecords: [],
     analyses: [],
-    creditBalance: 2,
+    creditBalance: 0,
+    featureTrialBalance: { health_analysis: 1, breed_recognition: 1 },
     ledger: [],
     accountPassword: MOCK_ACCOUNT_PASSWORD,
     pendingNewEmail: null,
@@ -570,7 +588,7 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
 
     if (method === 'POST' && path === '/breed-recognition') {
       await delay(API_DELAY_MS);
-      state.creditBalance = Math.max(0, state.creditBalance - 1);
+      deductMockCredits(state, 'breed_recognition', 1);
       state.ledger.unshift({ id: `ledger-${state.ledger.length + 1}`, reason: 'breed_recognition', delta: -1 });
       return json(route, {
         data: {
@@ -615,7 +633,8 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
           account: defaultCreditAccount(state),
           config: {
             freeMonthlyCredits: 0,
-            initialTrialCredits: 2,
+            initialTrialCredits: 0,
+            featureTrialCredits: { health_analysis: 1, breed_recognition: 1 },
             defaultPlanTier: 'free',
             features: {
               health_analysis: { feature: 'health_analysis', creditCost: 1, estimatedInputTokens: 1, estimatedOutputTokens: 1, estimatedCostUsd: 0.001 },

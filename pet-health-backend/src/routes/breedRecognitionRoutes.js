@@ -188,13 +188,15 @@ router.post(
         metadata: { imageSlots: quality.slots, species: speciesNorm, qualityGate: 'passed' },
       });
       if (!reserve.ok) {
-        return res.status(reserve.status ?? 402).json({
-          error: reserve.error,
-          code: reserve.code,
-          creditBalance: reserve.creditBalance,
-          creditCost: reserve.creditCost,
-          monthlyResetAt: reserve.monthlyResetAt,
-        });
+          return res.status(reserve.status ?? 402).json({
+            error: reserve.error,
+            code: reserve.code,
+            creditBalance: reserve.creditBalance,
+            creditCost: reserve.creditCost,
+            featureTrialBalance: reserve.featureTrialBalance,
+            feature: reserve.feature,
+            monthlyResetAt: reserve.monthlyResetAt,
+          });
       }
       creditReservation = attachReservationContext(reserve, { userId: req.user.id, feature: 'breed_recognition', petId });
       markBreedAttempt(req.user.id, rate.kept);

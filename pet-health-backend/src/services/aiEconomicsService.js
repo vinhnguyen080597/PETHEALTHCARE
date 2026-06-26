@@ -1,8 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseServiceClient } from '../config/supabase.js';
 
-const DEFAULT_INITIAL_TRIAL_CREDITS = numberFromEnv('AI_INITIAL_TRIAL_CREDITS', 2);
+/** @deprecated Legacy generic trial pool (pre feature-specific trials). Used only for migration. */
+const LEGACY_INITIAL_TRIAL_POOL = 2;
+const DEFAULT_INITIAL_TRIAL_CREDITS = numberFromEnv('AI_INITIAL_TRIAL_CREDITS', 0);
 const DEFAULT_FREE_MONTHLY_CREDITS = numberFromEnv('AI_FREE_MONTHLY_CREDITS', 0);
+const FEATURE_TRIAL_DEFAULTS = {
+  health_analysis: numberFromEnv('AI_TRIAL_CREDITS_HEALTH_ANALYSIS', 1),
+  breed_recognition: numberFromEnv('AI_TRIAL_CREDITS_BREED_RECOGNITION', 1),
+};
 const DEFAULT_PLAN_TIER = process.env.AI_DEFAULT_PLAN_TIER || 'free';
 const GLOBAL_DAILY_BUDGET_USD = numberFromEnv('AI_GLOBAL_DAILY_BUDGET_USD', 10);
 const GLOBAL_MONTHLY_BUDGET_USD = numberFromEnv('AI_GLOBAL_MONTHLY_BUDGET_USD', 200);
@@ -65,15 +71,34 @@ function startOfMonthIso(now = new Date()) {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0)).toISOString();
 }
 
+function defaultFeatureTrialBalance() {
+  return {
+    health_analysis: FEATURE_TRIAL_DEFAULTS.health_analysis,
+    breed_recognition: FEATURE_TRIAL_DEFAULTS.breed_recognition,
+  };
+}
+
 function createDefaultAccount(userId) {
   const now = new Date();
   return {
     user_id: userId,
     plan_tier: DEFAULT_PLAN_TIER,
     credit_balance: DEFAULT_INITIAL_TRIAL_CREDITS,
+    feature_trial_balance: defaultFeatureTrialBalance(),
     monthly_allowance: DEFAULT_FREE_MONTHLY_CREDITS,
     monthly_reset_at: nextMonthlyResetDate(now).toISOString(),
     updated_at: now.toISOString(),
+  };
+}
+
+function normalizeFeatureTrialBalance(raw) {
+  const defaults = defaultFeatureTrialBalance();
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return defaults;
+  }
+  return {
+    health_analysis: Number(raw.health_analysis ?? defaults.health_analysis),
+    breed_recognition: Number(raw.breed_recognition ?? defaults.breed_recognition),
   };
 }
 
@@ -83,9 +108,89 @@ function normalizeAccount(row) {
     userId: row.user_id,
     planTier: row.plan_tier || DEFAULT_PLAN_TIER,
     creditBalance: Number(row.credit_balance ?? 0),
+    featureTrialBalance: normalizeFeatureTrialBalance(row.feature_trial_balance),
     monthlyAllowance: Number(row.monthly_allowance ?? DEFAULT_FREE_MONTHLY_CREDITS),
     monthlyResetAt: row.monthly_reset_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function hasFeatureTrialBalance(row) {
+  const trials = row?.feature_trial_balance;
+  return trials && typeof trials === 'object' && !Array.isArray(trials);
+}
+
+function getAvailableCreditsForFeature(row, feature) {
+  const trials = normalizeFeatureTrialBalance(row.feature_trial_balance);
+  const trial = Number(trials[feature] ?? 0);
+  const general = Number(row.credit_balance ?? 0);
+  return { trial, general, total: trial + general };
+}
+
+function applyCreditReservation(row, feature, amount) {
+  const trials = normalizeFeatureTrialBalance(row.feature_trial_balance);
+  let balance = Number(row.credit_balance ?? 0);
+  let fromTrial = 0;
+  let fromGeneral = 0;
+  let remaining = amount;
+
+  const trialAvailable = Number(trials[feature] ?? 0);
+  if (trialAvailable > 0 && remaining > 0) {
+    fromTrial = Math.min(trialAvailable, remaining);
+    trials[feature] = Number((trialAvailable - fromTrial).toFixed(2));
+    remaining -= fromTrial;
+  }
+
+  if (remaining > 0) {
+    fromGeneral = remaining;
+    balance = Number((balance - fromGeneral).toFixed(2));
+  }
+
+  return {
+    next: {
+      ...row,
+      feature_trial_balance: trials,
+      credit_balance: balance,
+      updated_at: nowIso(),
+    },
+    fromTrial,
+    fromGeneral,
+  };
+}
+
+async function ensureFeatureTrialBalance(row, userId) {
+  if (hasFeatureTrialBalance(row)) {
+    return {
+      ...row,
+      feature_trial_balance: normalizeFeatureTrialBalance(row.feature_trial_balance),
+    };
+  }
+
+  const trials = defaultFeatureTrialBalance();
+  const ledger = await listLedgerRowsForUser(userId);
+  const reserves = ledger.filter((entry) => entry.reason === 'ai_reserve' && Number(entry.delta) < 0);
+
+  for (const feature of Object.keys(trials)) {
+    if (reserves.some((entry) => entry.feature === feature)) {
+      trials[feature] = 0;
+    }
+  }
+
+  let balance = Number(row.credit_balance ?? 0);
+  if (reserves.length === 0 && balance > 0 && balance <= LEGACY_INITIAL_TRIAL_POOL) {
+    balance = 0;
+  } else if (reserves.length > 0 && balance > 0) {
+    const usedLegacySlots = Math.min(reserves.length, LEGACY_INITIAL_TRIAL_POOL);
+    if (balance <= LEGACY_INITIAL_TRIAL_POOL - usedLegacySlots) {
+      balance = 0;
+    }
+  }
+
+  return {
+    ...row,
+    feature_trial_balance: trials,
+    credit_balance: balance,
+    updated_at: nowIso(),
   };
 }
 
@@ -184,7 +289,8 @@ async function getAccountRow(userId) {
   const supabase = supabaseDisabled ? null : getSupabaseServiceClient();
   if (!supabase) {
     const current = memoryAccounts.get(userId) ?? createDefaultAccount(userId);
-    const next = maybeResetAccount(current);
+    const reset = maybeResetAccount(current);
+    const next = await ensureFeatureTrialBalance(reset, userId);
     memoryAccounts.set(userId, next);
     return next;
   }
@@ -194,6 +300,7 @@ async function getAccountRow(userId) {
     if (error) throw error;
     let row = data ?? createDefaultAccount(userId);
     row = maybeResetAccount(row);
+    row = await ensureFeatureTrialBalance(row, userId);
     const { data: saved, error: upsertError } = await supabase
       .from('ai_credit_accounts')
       .upsert(row, { onConflict: 'user_id' })
@@ -294,26 +401,26 @@ export async function reserveAiCredits({ userId, feature, petId = null, details 
   }
 
   const row = await getAccountRow(userId);
-  const balance = Number(row.credit_balance ?? 0);
-  if (balance < amount) {
+  const { trial, general, total } = getAvailableCreditsForFeature(row, feature);
+  if (total < amount) {
+    const account = normalizeAccount(row);
     return {
       ok: false,
       status: 402,
       code: 'AI_CREDITS_EXHAUSTED',
       error: 'You have used your available AI credits.',
-      creditBalance: balance,
+      creditBalance: general,
+      featureTrialBalance: account.featureTrialBalance,
+      featureTrialRemaining: trial,
       creditCost: amount,
       monthlyResetAt: row.monthly_reset_at,
       estimate,
+      feature,
     };
   }
 
   const reservationId = randomUUID();
-  const next = {
-    ...row,
-    credit_balance: Number((balance - amount).toFixed(2)),
-    updated_at: nowIso(),
-  };
+  const { next, fromTrial, fromGeneral } = applyCreditReservation(row, feature, amount);
   await saveAccountRow(next);
   await insertLedger({
     id: reservationId,
@@ -322,7 +429,7 @@ export async function reserveAiCredits({ userId, feature, petId = null, details 
     reason: 'ai_reserve',
     feature,
     pet_id: petId,
-    metadata: { ...metadata, estimate },
+    metadata: { ...metadata, estimate, fromTrial, fromGeneral },
     created_at: nowIso(),
   });
   return {
@@ -332,6 +439,8 @@ export async function reserveAiCredits({ userId, feature, petId = null, details 
     petId,
     reservationId,
     amount,
+    fromTrial,
+    fromGeneral,
     estimate,
     account: normalizeAccount(next),
   };
@@ -416,9 +525,23 @@ export async function refundAiCredits(reservation, reason = 'ai_refund') {
   if (!userId) return null;
 
   const row = await getAccountRow(userId);
+  const trials = normalizeFeatureTrialBalance(row.feature_trial_balance);
+  let balance = Number(row.credit_balance ?? 0);
+  const feature = reservation.feature;
+
+  if (reservation.fromTrial > 0 && feature) {
+    trials[feature] = Number((Number(trials[feature] ?? 0) + reservation.fromTrial).toFixed(2));
+  }
+  if (reservation.fromGeneral > 0) {
+    balance = Number((balance + reservation.fromGeneral).toFixed(2));
+  } else if (!(reservation.fromTrial > 0)) {
+    balance = Number((balance + reservation.amount).toFixed(2));
+  }
+
   const next = {
     ...row,
-    credit_balance: Number((Number(row.credit_balance ?? 0) + reservation.amount).toFixed(2)),
+    feature_trial_balance: trials,
+    credit_balance: balance,
     updated_at: nowIso(),
   };
   await saveAccountRow(next);
@@ -489,6 +612,7 @@ export function getAiEconomicsConfig() {
   return {
     freeMonthlyCredits: DEFAULT_FREE_MONTHLY_CREDITS,
     initialTrialCredits: DEFAULT_INITIAL_TRIAL_CREDITS,
+    featureTrialCredits: { ...FEATURE_TRIAL_DEFAULTS },
     defaultPlanTier: DEFAULT_PLAN_TIER,
     budgetGuard: {
       globalDailyBudgetUsd: GLOBAL_DAILY_BUDGET_USD,
@@ -499,6 +623,7 @@ export function getAiEconomicsConfig() {
       rewardedAdCredits: 1,
       freeMonthlyCredits: DEFAULT_FREE_MONTHLY_CREDITS,
       initialTrialCredits: DEFAULT_INITIAL_TRIAL_CREDITS,
+      featureTrialCredits: { ...FEATURE_TRIAL_DEFAULTS },
       creditPacks: [
         { credits: 5, priceVnd: 19000, label: 'Starter' },
         { credits: 20, priceVnd: 59000, label: 'Family' },

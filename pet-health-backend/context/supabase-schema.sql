@@ -152,11 +152,18 @@ using (bucket_id = 'pet-feed-public-media');
 create table if not exists public.ai_credit_accounts (
   user_id text primary key,
   plan_tier text not null default 'free',
-  credit_balance numeric(10,2) not null default 2,
+  credit_balance numeric(10,2) not null default 0,
+  feature_trial_balance jsonb not null default '{"health_analysis":1,"breed_recognition":1}'::jsonb,
   monthly_allowance numeric(10,2) not null default 0,
   monthly_reset_at timestamptz not null default (date_trunc('month', now()) + interval '1 month'),
   updated_at timestamptz not null default now()
 );
+
+-- Existing projects: feature-specific trial credits (1 health check + 1 breed recognition per user).
+alter table public.ai_credit_accounts
+  add column if not exists feature_trial_balance jsonb not null default '{"health_analysis":1,"breed_recognition":1}'::jsonb;
+alter table public.ai_credit_accounts
+  alter column credit_balance set default 0;
 
 create table if not exists public.ai_usage_events (
   id uuid primary key default gen_random_uuid(),

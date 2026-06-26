@@ -52,6 +52,7 @@ export type AiCreditAccount = {
   userId: string;
   planTier: string;
   creditBalance: number;
+  featureTrialBalance?: Record<string, number>;
   monthlyAllowance: number;
   monthlyResetAt: string;
   updatedAt?: string;
@@ -60,6 +61,7 @@ export type AiCreditAccount = {
 export type AiEconomicsConfig = {
   freeMonthlyCredits: number;
   initialTrialCredits?: number;
+  featureTrialCredits?: Record<string, number>;
   defaultPlanTier: string;
   features: Record<
     string,

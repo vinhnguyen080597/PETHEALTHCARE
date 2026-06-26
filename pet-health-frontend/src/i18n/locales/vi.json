@@ -845,7 +845,9 @@
     "subtitle": "Áp dụng cho mèo và chó — bổ sung ngữ cảnh tùy chọn cho kiểm tra sức khỏe.",
     "noteTitle": "Mai nhắn Sen",
     "noteBody": "Sen ơi, đây là gợi ý sơ bộ theo ngoại hình thôi nha. Kết quả có thể sai với thú lai hoặc giống chưa rõ nguồn, nên Sen luôn có thể chỉnh lại trong hồ sơ của bé.",
-    "creditLine": "Còn {{remaining}} credits. Nhận diện giống tốn {{cost}} credit.",
+    "creditLineTrial": "Còn {{count}} lần thử Nhận diện giống (beta). Mỗi lần tốn {{cost}} credit.",
+    "creditLineShared": "Còn {{remaining}} credits dùng chung. Nhận diện giống tốn {{cost}} credit.",
+    "creditLineExhausted": "Đã hết lần thử Nhận diện giống. Mỗi lần tốn {{cost}} credit.",
     "purposeTitle": "Mục đích",
     "purposeBody": "Trang này thu thập ảnh theo từng vùng (giống hướng dẫn khi đăng ký giống) để AI đưa ra gợi ý giống / màu lông / hoa văn lông sơ bộ. Không thay thế kiểm tra sức khỏe hay thăm khám thú y.",
     "accuracyTitle": "Độ chính xác và giới hạn",
@@ -869,12 +871,13 @@
       }
     },
     "photoSectionTitle": "Ảnh theo từng vùng",
+    "photoSectionIntro": "Chụp đúng góc và đủ sáng giúp Mai nhận diện chính xác hơn. Xem ảnh mẫu bên dưới trước khi tải lên.",
     "introNext": "Tiếp",
     "introBack": "Quay lại",
-    "introRequiredPhotoProgress": "Ảnh bắt buộc {{current}}/{{total}}",
     "introMainPlaceholder": "Hoàn tất hướng dẫn và tải 3 ảnh bắt buộc để xem toàn bộ trang.",
     "requiredBadge": "Bắt buộc",
     "optionalBadge": "Khuyến nghị",
+    "examplePhotoLabel": "Ảnh mẫu",
     "pickPhoto": "Chọn ảnh",
     "changePhoto": "Đổi ảnh",
     "removePhoto": "Gỡ",
@@ -894,9 +897,21 @@
     "unsupportedSpeciesAlertBody": "Tính năng này hiện chỉ dành cho hồ sơ loài mèo hoặc chó.",
     "applySuccess": "Đã cập nhật ô Giống trong hồ sơ.",
     "slots": {
-      "face": { "title": "Mặt chính diện", "hint": "Thấy rõ đầu, tai, mắt, mõm/mũi." },
-      "fullBodySide": { "title": "Toàn thân ngang", "hint": "Đứng trên mặt phẳng; thấy toàn thân ở ngang tầm mắt của bé." },
-      "coat": { "title": "Lông và vân màu", "hint": "Thân hoặc sườn đủ gần để thấy màu, vân và texture lông." },
+      "face": {
+        "title": "Mặt chính diện",
+        "hint": "Thấy rõ đầu, tai, mắt, mõm/mũi.",
+        "guide": "Cho bé ngồi hoặc đứng yên, nhìn thẳng vào camera. Ảnh cần thấy rõ cả hai tai, cả hai mắt và mõm/mũi. Tránh chụp từ quá xa, quá gần hoặc che khuất một phần mặt."
+      },
+      "fullBodySide": {
+        "title": "Toàn thân ngang",
+        "hint": "Đứng trên mặt phẳng; thấy toàn thân ở ngang tầm mắt của bé.",
+        "guide": "Để bé đứng trên mặt phẳng (sàn hoặc bàn thấp). Chụp từ ngang tầm mắt của bé, toàn bộ thân từ đầu đến đuôi nằm trong khung hình. Tránh góc chụp từ trên xuống hoặc cắt mất chân/đuôi."
+      },
+      "coat": {
+        "title": "Lông và vân màu",
+        "hint": "Thân hoặc sườn đủ gần để thấy màu, vân và texture lông.",
+        "guide": "Chụp gần phần thân hoặc sườn để thấy rõ màu lông, vân, sọc hoặc đốm. Dùng ánh sáng tự nhiên hoặc đủ sáng; tránh bóng đổ che mất chi tiết lông."
+      },
       "eyes": { "title": "Mắt", "hint": "Cận cảnh: màu mống mắt, hình dạng, khoảng cách và độ rõ." },
       "headProfile": { "title": "Đầu nhìn nghiêng", "hint": "Góc nghiêng của sống mũi, trán, mõm và profile đầu." },
       "pawPads": { "title": "Đệm / bàn chân", "hint": "Lòng bàn chân hoặc ngón nếu chụp được; hữu ích với một số đặc điểm mèo." },
@@ -1181,7 +1196,7 @@
     "markDone": "Đánh dấu xong",
     "libraryTitle": "Thư viện chăm sóc miễn phí",
     "creditsTitle": "AI credits",
-    "creditsBody": "Bạn còn {{credits}} AI credits. Công cụ chăm sóc miễn phí dùng bất cứ lúc nào; chỉ dùng credit khi thật sự cần AI.",
+    "creditsBody": "{{summary}} Kiểm tra sức khỏe: {{healthTrial}}. Nhận diện giống: {{breedTrial}}.{{shared}} Công cụ chăm sóc miễn phí dùng bất cứ lúc nào.",
     "creditsUnavailable": "Chưa tải được trạng thái credit, nhưng công cụ chăm sóc miễn phí vẫn dùng được.",
     "claimAdCredit": "Yêu cầu beta credit",
     "claimAdSuccess": "Đã cộng {{credits}} AI credit.",
@@ -1397,11 +1412,19 @@
     }
   },
   "aiCredits": {
-    "cardTitle": "AI credits",
+    "cardTitle": "AI credits (beta)",
     "remaining": "Còn {{remaining}} / {{allowance}} credits trong tháng này.",
+    "trialHealthRemaining": "Còn {{count}} lần thử Kiểm tra sức khỏe (beta).",
+    "noTrialHealthRemaining": "Đã dùng hết lần thử Kiểm tra sức khỏe.",
+    "trialBreedRemaining": "Còn {{count}} lần thử Nhận diện giống (beta).",
+    "noTrialBreedRemaining": "Đã dùng hết lần thử Nhận diện giống.",
+    "sharedCreditsRemaining": "Thêm {{count}} credits dùng chung.",
+    "trialSummary": "Mỗi tài khoản có 1 lần thử Kiểm tra sức khỏe và 1 lần thử Nhận diện giống.",
     "healthCheckCost": "Kiểm tra sức khỏe tốn {{cost}} credit.",
     "breedCost": "Nhận diện giống tốn {{cost}} credit.",
-    "outOfCredits": "Bạn đã hết AI credits trong giai đoạn beta. Các công cụ chăm sóc miễn phí vẫn dùng được; vui lòng chờ reset hằng tháng hoặc liên hệ hỗ trợ nếu cần test tiếp.",
+    "outOfCredits": "Bạn đã hết AI credits trong giai đoạn beta. Các công cụ chăm sóc miễn phí vẫn dùng được; vui lòng liên hệ hỗ trợ nếu cần test tiếp.",
+    "outOfCreditsHealth": "Bạn đã dùng hết lần thử Kiểm tra sức khỏe. Các công cụ chăm sóc miễn phí vẫn dùng được.",
+    "outOfCreditsBreed": "Bạn đã dùng hết lần thử Nhận diện giống. Các công cụ chăm sóc miễn phí vẫn dùng được.",
     "prompts": {
       "rewardedAd": "Beta credit",
       "topUp": "Chưa mở top-up",
@@ -1535,8 +1558,16 @@
       "message": "Hiện có nhiều lượt kiểm tra cùng lúc. Vui lòng thử lại sau vài phút."
     },
     "aiCreditsExhausted": {
-      "title": "Hết AI credits",
-      "message": "Bạn đã dùng hết AI credits beta trong tháng này. Các công cụ chăm sóc miễn phí vẫn dùng được; vui lòng chờ reset hằng tháng hoặc liên hệ hỗ trợ nếu cần test tiếp."
+      "title": "Hết lần thử AI",
+      "message": "Bạn đã dùng hết lần thử cho tính năng này. Các công cụ chăm sóc miễn phí vẫn dùng được."
+    },
+    "aiCreditsExhaustedHealth": {
+      "title": "Hết lần thử Kiểm tra sức khỏe",
+      "message": "Bạn đã dùng hết 1 lần thử Kiểm tra sức khỏe (beta). Các công cụ chăm sóc miễn phí vẫn dùng được."
+    },
+    "aiCreditsExhaustedBreed": {
+      "title": "Hết lần thử Nhận diện giống",
+      "message": "Bạn đã dùng hết 1 lần thử Nhận diện giống (beta). Các công cụ chăm sóc miễn phí vẫn dùng được."
     },
     "aiBudgetExhausted": {
       "title": "Hết ngân sách AI miễn phí",

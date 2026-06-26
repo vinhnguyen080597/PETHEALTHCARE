@@ -42,7 +42,11 @@ services:
       - key: ALLOW_OPEN_CORS
         value: "false"
       - key: AI_INITIAL_TRIAL_CREDITS
-        value: "2"
+        value: "0"
+      - key: AI_TRIAL_CREDITS_HEALTH_ANALYSIS
+        value: "1"
+      - key: AI_TRIAL_CREDITS_BREED_RECOGNITION
+        value: "1"
       - key: AI_FREE_MONTHLY_CREDITS
         value: "0"
       - key: AI_DEFAULT_PLAN_TIER
