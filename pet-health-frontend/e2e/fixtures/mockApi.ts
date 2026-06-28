@@ -94,6 +94,10 @@ type MockApiState = {
   accountPassword: string;
   pendingNewEmail: string | null;
   pendingPasswordRecovery: boolean;
+  featureFlags: {
+    breed_recognition: boolean;
+    health_analysis: boolean;
+  };
 };
 
 const API_DELAY_MS = Number(process.env.E2E_API_DELAY_MS ?? 0);
@@ -245,6 +249,7 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     accountPassword: MOCK_ACCOUNT_PASSWORD,
     pendingNewEmail: null,
     pendingPasswordRecovery: false,
+    featureFlags: { breed_recognition: true, health_analysis: true },
     ...initial,
   };
 
@@ -627,6 +632,25 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
       });
     }
 
+    if (method === 'GET' && path === '/feature-flags') {
+      return json(route, { data: state.featureFlags });
+    }
+
+    if (method === 'GET' && path === '/admin/feature-flags') {
+      return json(route, { data: state.featureFlags });
+    }
+
+    if (method === 'PUT' && path === '/admin/feature-flags') {
+      const payload = await bodyJson(route);
+      if ('breed_recognition' in payload) {
+        state.featureFlags.breed_recognition = payload.breed_recognition !== false;
+      }
+      if ('health_analysis' in payload) {
+        state.featureFlags.health_analysis = payload.health_analysis !== false;
+      }
+      return json(route, { data: state.featureFlags });
+    }
+
     if (method === 'GET' && path === '/ai-credits/summary') {
       return json(route, {
         data: {
@@ -636,6 +660,10 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
             initialTrialCredits: 0,
             featureTrialCredits: { health_analysis: 1, breed_recognition: 1 },
             defaultPlanTier: 'free',
+            rewardedAd: { creditsPerAd: 1, unlimited: true },
+            pricingExperiment: {
+              subscriptionTrial: { monthlyCredits: 60, priceVnd: 99000, label: 'Premium beta' },
+            },
             features: {
               health_analysis: { feature: 'health_analysis', creditCost: 1, estimatedInputTokens: 1, estimatedOutputTokens: 1, estimatedCostUsd: 0.001 },
               breed_recognition: { feature: 'breed_recognition', creditCost: 1, estimatedInputTokens: 1, estimatedOutputTokens: 1, estimatedCostUsd: 0.001 },
@@ -656,6 +684,21 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
         data: {
           grantedCredits: 1,
           remainingToday: 2,
+          account: defaultCreditAccount(state),
+        },
+      });
+    }
+
+    if (method === 'POST' && path === '/iap/verify') {
+      state.creditBalance = 60;
+      return json(route, {
+        data: {
+          ok: true,
+          alreadyProcessed: false,
+          productId: 'com.pethealthcare.app.premium.monthly',
+          transactionId: 'e2e-txn',
+          productType: 'subscription',
+          grantedCredits: 60,
           account: defaultCreditAccount(state),
         },
       });

@@ -6,7 +6,7 @@ import {
   Inter_700Bold,
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
-import { Component, type ReactNode } from 'react';
+import { Component, type ReactNode, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useTranslation } from 'react-i18next';
@@ -17,9 +17,12 @@ import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { ResponsiveFrame } from './src/components/ResponsiveFrame';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
+import { initializeRewardedAds } from './src/services/rewardedAd';
+import { initializeIap } from './src/services/iap';
 import { AdminReviewScreen } from './src/screens/AdminReviewScreen';
 import { ManagedUserBanner } from './src/components/ManagedUserBanner';
 import { AdminHubScreen } from './src/screens/AdminHubScreen';
+import { AdminFeaturesScreen } from './src/screens/AdminFeaturesScreen';
 import { AdminUserDetailScreen } from './src/screens/AdminUserDetailScreen';
 import { CreateAdminPostScreen } from './src/screens/CreateAdminPostScreen';
 import { AccountScreen } from './src/screens/AccountScreen';
@@ -129,6 +132,13 @@ function AppContent() {
   const { t } = useTranslation();
   const app = usePetHealthApp();
   const isAdmin = app.accountProfile?.primary_role === 'admin';
+  const breedRecognitionEnabled = app.isFeatureEnabled('breed_recognition');
+  const healthAnalysisEnabled = app.isFeatureEnabled('health_analysis');
+
+  useEffect(() => {
+    void initializeRewardedAds();
+    void initializeIap();
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
   if (fontsLoaded) applyDefaultTypography();
@@ -146,9 +156,14 @@ function AppContent() {
     );
   }
 
-  const showBottomTab = app.screen === 'pet-feed' || app.screen === 'home' || app.screen === 'account';
+  const showBottomTab =
+    app.screen === 'pet-feed' ||
+    app.screen === 'home' ||
+    app.screen === 'account' ||
+    (isAdmin && app.screen === 'admin-features');
   const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;
   const breedCreditCost = app.aiEconomicsConfig?.features.breed_recognition?.creditCost ?? 1;
+  const rewardedAdCredits = app.aiEconomicsConfig?.rewardedAd?.creditsPerAd ?? 1;
   const accountDashboard = (
     <AccountScreen
       account={app.accountProfile}
@@ -297,6 +312,16 @@ function AppContent() {
             ) : null}
 
             {app.screen === 'account' && !isAdmin ? accountDashboard : null}
+
+            {app.screen === 'admin-features' && isAdmin ? (
+              <AdminFeaturesScreen
+                flags={app.appFeatureFlags}
+                loading={app.featureFlagsLoading}
+                savingKey={app.featureFlagSavingKey}
+                onToggle={app.updateAdminFeatureFlag}
+                onLogout={app.logout}
+              />
+            ) : null}
 
             {app.screen === 'update-account' && !isAdmin ? (
               <UpdateAccountScreen
@@ -450,9 +475,15 @@ function AppContent() {
                 onBack={app.closePetProfile}
                 onEdit={() => app.openEditPet(app.selectedPet!.id, { returnToProfile: true })}
                 onDelete={() => app.handleDeletePet(app.selectedPet!)}
-                onScanHealth={() => app.goToCameraForPet(app.selectedPet!.id, { returnToProfile: true })}
+                onScanHealth={
+                  healthAnalysisEnabled
+                    ? () => app.goToCameraForPet(app.selectedPet!.id, { returnToProfile: true })
+                    : undefined
+                }
                 onSelectEntry={(entry) => app.openHistoryDetail(entry, 'pet-profile')}
-                onOpenBreedRecognition={() => app.openBreedRecognition('pet-profile')}
+                onOpenBreedRecognition={
+                  breedRecognitionEnabled ? () => app.openBreedRecognition('pet-profile') : undefined
+                }
                 onOpenCoreCare={() => app.openCoreCare(app.selectedPet!.id)}
                 onOpenVetSummary={() => app.openVetSummary(app.selectedPet!.id)}
                 coreCareSummary={app.coreCareSummary}
@@ -521,6 +552,8 @@ function AppContent() {
 
             {app.screen === 'onboarding-health-prompt' && app.selectedPet ? (
               <OnboardingHealthPromptScreen
+                showBreedService={breedRecognitionEnabled}
+                showHealthService={healthAnalysisEnabled}
                 onExploreBreed={() => app.openBreedRecognition('onboarding-health-prompt')}
                 onCheckHealth={app.goToHealthCheckFromServicesPrompt}
                 onManageVaccines={app.goToCoreCareFromServicesPrompt}
@@ -588,7 +621,12 @@ function AppContent() {
                 analyzeDisabled={app.analysisSubmitting}
                 aiCredits={app.aiCredits}
                 aiCreditCost={healthCreditCost}
-                onOpenBreedRecognition={() => app.openBreedRecognition('health-check')}
+                rewardedAdCredits={rewardedAdCredits}
+                onWatchRewardedAd={app.watchRewardedAdForCredit}
+                onSubscribePremium={app.openPremiumSubscription}
+                onOpenBreedRecognition={
+                  breedRecognitionEnabled ? () => app.openBreedRecognition('health-check') : undefined
+                }
               />
             ) : null}
 
@@ -623,25 +661,33 @@ function AppContent() {
                 analyzeDisabled={app.analysisSubmitting}
                 aiCredits={app.aiCredits}
                 aiCreditCost={healthCreditCost}
-                onOpenBreedRecognition={() => app.openBreedRecognition('onboarding-health-check')}
+                rewardedAdCredits={rewardedAdCredits}
+                onWatchRewardedAd={app.watchRewardedAdForCredit}
+                onSubscribePremium={app.openPremiumSubscription}
+                onOpenBreedRecognition={
+                  breedRecognitionEnabled ? () => app.openBreedRecognition('onboarding-health-check') : undefined
+                }
               />
             ) : null}
 
-            {app.screen === 'breed-recognition' && app.selectedPet ? (
+            {app.screen === 'breed-recognition' && app.selectedPet && breedRecognitionEnabled ? (
               <PetBreedRecognitionScreen
                 pet={app.selectedPet}
                 slotUris={app.breedRecognitionSlotUris}
                 loading={app.breedRecognitionLoading}
                 aiCredits={app.aiCredits}
                 aiCreditCost={breedCreditCost}
+                rewardedAdCredits={rewardedAdCredits}
                 onBack={app.closeBreedRecognition}
                 onPickSlot={app.pickBreedRecognitionSlot}
                 onClearSlot={app.clearBreedRecognitionSlot}
                 onAnalyze={app.submitBreedRecognition}
+                onWatchRewardedAd={app.watchRewardedAdForCredit}
+                onSubscribePremium={app.openPremiumSubscription}
               />
             ) : null}
 
-            {app.screen === 'breed-recognition-progress' && app.selectedPet ? (
+            {app.screen === 'breed-recognition-progress' && app.selectedPet && breedRecognitionEnabled ? (
               <BreedRecognitionProgressScreen
                 pet={app.selectedPet}
                 slotUris={app.breedRecognitionSlotUris}
@@ -649,7 +695,7 @@ function AppContent() {
               />
             ) : null}
 
-            {app.screen === 'breed-recognition-result' && app.selectedPet && app.breedRecognitionResult ? (
+            {app.screen === 'breed-recognition-result' && app.selectedPet && app.breedRecognitionResult && breedRecognitionEnabled ? (
               <BreedRecognitionResultScreen
                 pet={app.selectedPet}
                 result={app.breedRecognitionResult}
@@ -701,8 +747,8 @@ function AppContent() {
                 activeScreen={app.screen}
                 onPetFeed={app.openPetFeed}
                 onHome={app.goHomeAndRefresh}
-                onAccount={isAdmin ? app.logout : app.openAccount}
-                accountTabMode={isAdmin ? 'logout' : 'account'}
+                onAccount={isAdmin ? app.openAdminFeatures : app.openAccount}
+                accountTabMode={isAdmin ? 'features' : 'account'}
               />
             ) : null}
           </ResponsiveFrame>

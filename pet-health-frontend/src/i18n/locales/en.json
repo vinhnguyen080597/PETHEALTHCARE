@@ -99,6 +99,7 @@
     "home": "Home",
     "history": "History",
     "account": "Account",
+    "features": "Features",
     "logout": "Logout"
   },
   "header": {
@@ -685,6 +686,26 @@
     "actAsUser": "Manage as user",
     "addPetFor": "Add pet for {{name}}",
     "addPetHelper": "This pet profile is created for the selected user."
+  },
+  "adminFeatures": {
+    "title": "Feature controls",
+    "subtitle": "Show or hide features in the app for users. Admins still see them for testing.",
+    "statusOn": "Visible",
+    "statusOff": "Hidden",
+    "saving": "Saving…",
+    "updateFailed": "Could not update feature",
+    "noteTitle": "UI only",
+    "noteBody": "Disabling here only hides buttons and screens in the app. Backend APIs keep working. Users see changes after opening Home again or signing back in.",
+    "items": {
+      "breed_recognition": {
+        "title": "Breed recognition",
+        "description": "Visual breed suggestions from photos in the app."
+      },
+      "health_analysis": {
+        "title": "AI health check",
+        "description": "Symptom and health photo/video analysis screens."
+      }
+    }
   },
   "managedUser": {
     "banner": "Managing: {{name}}",
@@ -1429,10 +1450,33 @@
     "outOfCreditsHealth": "You have used your health check trial. Free care tools still work.",
     "outOfCreditsBreed": "You have used your breed recognition trial. Free care tools still work.",
     "prompts": {
-      "rewardedAd": "Beta credit",
+      "rewardedAd": "Watch ad",
       "topUp": "Top-up unavailable",
       "subscription": "Premium unavailable"
     }
+  },
+  "rewardedAd": {
+    "title": "Rewarded video",
+    "exhaustedMessage": "Mai is sorry — you've used your free trial. Watch ad videos to earn more uses anytime. Free care tools are always available.",
+    "watchCta": "Watch video",
+    "watchHint": "About 30 seconds · Free",
+    "notNow": "Not now",
+    "loading": "Loading video...",
+    "unavailable": "This feature is only available in App Store or Google Play builds.",
+    "loadFailed": "Could not load the video. Please try again later.",
+    "noAdRetry": "No ad available right now. Try again in a few minutes.",
+    "noAdUsePremium": "No ads are available right now. Subscribe to Premium to keep using AI.",
+    "retryAd": "Retry loading ad",
+    "claimSuccess": "{{credits}} use added. You can continue now."
+  },
+  "premium": {
+    "title": "Pet Health Care Premium",
+    "subscribeCta": "Subscribe to Premium",
+    "subscribeHint": "No ads required · Cancel anytime",
+    "comingSoonBody": "Premium plan: {{credits}} AI uses/month — {{price}} VND/month.\n\nIn-app purchase via the App Store is coming soon. Thank you for your interest!",
+    "mobileOnlyBody": "Premium plan: {{credits}} AI uses/month — {{price}} VND/month.\n\nIn-app purchase is only available in the App Store / Google Play build.",
+    "purchaseSuccess": "Premium activated! You have {{credits}} AI uses this month.",
+    "purchaseFailed": "Could not complete the purchase. Please try again later."
   },
   "alerts": {
     "missingEmailPassword": {

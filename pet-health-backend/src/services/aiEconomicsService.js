@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { getSupabaseServiceClient } from '../config/supabase.js';
+import { listIapCatalog } from '../config/iapCatalog.js';
 
 /** @deprecated Legacy generic trial pool (pre feature-specific trials). Used only for migration. */
 const LEGACY_INITIAL_TRIAL_POOL = 2;
@@ -13,7 +13,7 @@ const DEFAULT_PLAN_TIER = process.env.AI_DEFAULT_PLAN_TIER || 'free';
 const GLOBAL_DAILY_BUDGET_USD = numberFromEnv('AI_GLOBAL_DAILY_BUDGET_USD', 10);
 const GLOBAL_MONTHLY_BUDGET_USD = numberFromEnv('AI_GLOBAL_MONTHLY_BUDGET_USD', 200);
 const REWARDED_AD_CREDITS = numberFromEnv('AI_REWARDED_AD_CREDITS', 1);
-const REWARDED_AD_DAILY_CAP = numberFromEnv('AI_REWARDED_AD_DAILY_CAP', 3);
+const REWARDED_AD_DAILY_CAP = numberFromEnv('AI_REWARDED_AD_DAILY_CAP', 0);
 
 const FEATURE_DEFAULTS = {
   health_analysis: { credits: 1, inputTokens: 7000, outputTokens: 1200 },
@@ -501,7 +501,7 @@ export async function grantAiCredits({ userId, amount, reason, metadata = {} }) 
 export async function claimRewardedAdCredits(userId) {
   const todayRows = await listLedgerRowsForUser(userId, startOfDayIso());
   const claimedToday = todayRows.filter((row) => row.reason === 'ad_reward').length;
-  if (claimedToday >= REWARDED_AD_DAILY_CAP) {
+  if (REWARDED_AD_DAILY_CAP > 0 && claimedToday >= REWARDED_AD_DAILY_CAP) {
     return {
       ok: false,
       status: 429,
@@ -514,9 +514,79 @@ export async function claimRewardedAdCredits(userId) {
     userId,
     amount: REWARDED_AD_CREDITS,
     reason: 'ad_reward',
-    metadata: { source: 'rewarded_ad_placeholder', dailyCap: REWARDED_AD_DAILY_CAP },
+    metadata: { source: 'rewarded_ad', dailyCap: REWARDED_AD_DAILY_CAP || null },
   });
-  return { ok: true, account, grantedCredits: REWARDED_AD_CREDITS, remainingToday: REWARDED_AD_DAILY_CAP - claimedToday - 1 };
+  const remainingToday =
+    REWARDED_AD_DAILY_CAP > 0 ? REWARDED_AD_DAILY_CAP - claimedToday - 1 : null;
+  return { ok: true, account, grantedCredits: REWARDED_AD_CREDITS, remainingToday };
+}
+
+export async function hasProcessedIapTransaction(userId, transactionId) {
+  const id = String(transactionId || '').trim();
+  if (!id) return false;
+  const rows = await listLedgerRowsForUser(userId);
+  return rows.some((row) => {
+    if (!['iap_purchase', 'subscription_purchase', 'subscription_renewal'].includes(row.reason)) return false;
+    const meta = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+    return String(meta.transactionId || '') === id;
+  });
+}
+
+export async function activatePremiumSubscription(
+  userId,
+  { transactionId, productId, monthlyCredits, planTier = 'premium', metadata = {} },
+) {
+  const credits = Number(monthlyCredits);
+  if (!Number.isFinite(credits) || credits <= 0) {
+    const err = new Error('monthlyCredits must be positive');
+    err.status = 400;
+    err.code = 'INVALID_SUBSCRIPTION_CREDITS';
+    throw err;
+  }
+  if (await hasProcessedIapTransaction(userId, transactionId)) {
+    return getAiCreditSummary(userId);
+  }
+
+  const row = await getAccountRow(userId);
+  const next = {
+    ...row,
+    plan_tier: planTier,
+    monthly_allowance: credits,
+    credit_balance: credits,
+    monthly_reset_at: nextMonthlyResetDate().toISOString(),
+    updated_at: nowIso(),
+  };
+  await saveAccountRow(next);
+  await insertLedger({
+    id: randomUUID(),
+    user_id: userId,
+    delta: credits,
+    reason: 'subscription_purchase',
+    feature: null,
+    pet_id: null,
+    metadata: { transactionId, productId, ...metadata },
+    created_at: nowIso(),
+  });
+  return normalizeAccount(next);
+}
+
+export async function fulfillIapConsumable(userId, { transactionId, productId, credits, metadata = {} }) {
+  const creditAmount = Number(credits);
+  if (!Number.isFinite(creditAmount) || creditAmount <= 0) {
+    const err = new Error('credits must be positive');
+    err.status = 400;
+    err.code = 'INVALID_IAP_CREDITS';
+    throw err;
+  }
+  if (await hasProcessedIapTransaction(userId, transactionId)) {
+    return getAiCreditSummary(userId);
+  }
+  return grantAiCredits({
+    userId,
+    amount: creditAmount,
+    reason: 'iap_purchase',
+    metadata: { transactionId, productId, ...metadata },
+  });
 }
 
 export async function refundAiCredits(reservation, reason = 'ai_refund') {
@@ -620,7 +690,7 @@ export function getAiEconomicsConfig() {
     },
     pricingExperiment: {
       market: 'Vietnam beta',
-      rewardedAdCredits: 1,
+      rewardedAdCredits: REWARDED_AD_CREDITS,
       freeMonthlyCredits: DEFAULT_FREE_MONTHLY_CREDITS,
       initialTrialCredits: DEFAULT_INITIAL_TRIAL_CREDITS,
       featureTrialCredits: { ...FEATURE_TRIAL_DEFAULTS },
@@ -634,6 +704,13 @@ export function getAiEconomicsConfig() {
         label: 'Premium beta',
       },
       metrics: ['credit_consumption_per_active_user', 'ad_reward_claim_rate', 'top_up_conversion_rate', 'gross_margin'],
+    },
+    rewardedAd: {
+      creditsPerAd: REWARDED_AD_CREDITS,
+      unlimited: REWARDED_AD_DAILY_CAP <= 0,
+    },
+    iap: {
+      products: listIapCatalog(),
     },
     features: Object.fromEntries(
       Object.keys(FEATURE_DEFAULTS).map((feature) => [feature, estimateAiUsage(feature)]),

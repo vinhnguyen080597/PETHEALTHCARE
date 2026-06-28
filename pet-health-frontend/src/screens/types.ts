@@ -33,4 +33,5 @@ export type AppScreen =
   | 'onboarding-results'
   | 'breed-recognition-progress'
   | 'breed-recognition-result'
-  | 'breed-recognition';
+  | 'breed-recognition'
+  | 'admin-features';

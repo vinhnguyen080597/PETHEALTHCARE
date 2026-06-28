@@ -19,7 +19,7 @@ type PetProfileScreenProps = {
   onBack: () => void;
   onEdit: () => void;
   onDelete?: () => void;
-  onScanHealth: () => void;
+  onScanHealth?: () => void;
   onSelectEntry: (entry: Analysis) => void;
   onOpenBreedRecognition?: () => void;
   onOpenCoreCare?: () => void;
@@ -409,14 +409,16 @@ export function PetProfileScreen({
               </View>
               <Text className="text-center text-base font-bold text-slate-800">{t('profile.noHealthScans')}</Text>
               <Text className="mt-1 text-center text-sm leading-5 text-slate-500">{t('profile.noHealthScansHint')}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('profile.scanHealthA11y', { name: pet.name })}
-                className="mt-4 rounded-full bg-blue-50 px-4 py-2 active:bg-blue-100"
-                onPress={onScanHealth}
-              >
-                <Text className="text-sm font-bold text-blue-700">{t('profile.scanHealth')}</Text>
-              </Pressable>
+              {onScanHealth ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('profile.scanHealthA11y', { name: pet.name })}
+                  className="mt-4 rounded-full bg-blue-50 px-4 py-2 active:bg-blue-100"
+                  onPress={onScanHealth}
+                >
+                  <Text className="text-sm font-bold text-blue-700">{t('profile.scanHealth')}</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : (
             <View className="gap-3">

@@ -6,6 +6,7 @@ import type {
   AiCreditAccount,
   AiEconomicsConfig,
   AccountProfile,
+  AppFeatureFlags,
   AdminCreateAccountPayload,
   AdminUpdateAccountPayload,
   AnalyzeResponse,
@@ -497,6 +498,23 @@ export async function listAdminAccounts(token: string, search: string = '') {
   });
 }
 
+export async function fetchFeatureFlags(token: string) {
+  return requestJson<{ data: AppFeatureFlags }>('/feature-flags', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function updateAdminFeatureFlags(token: string, patch: Partial<AppFeatureFlags>) {
+  return requestJson<{ data: AppFeatureFlags }>('/admin/feature-flags', {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(patch),
+  });
+}
+
 export async function createAdminAccount(token: string, payload: AdminCreateAccountPayload) {
   return requestJson<{ data: AccountProfile }>('/admin/accounts', {
     method: 'POST',
@@ -667,6 +685,54 @@ export async function claimRewardedAdCredit(token: string) {
       headers: authHeaders(token),
     },
   );
+}
+
+export type IapVerifyPayload = {
+  platform: 'ios' | 'android';
+  productId: string;
+  transactionId: string;
+  purchaseToken?: string | null;
+  receiptData?: string | null;
+};
+
+export async function verifyIapPurchase(token: string, payload: IapVerifyPayload) {
+  return requestJson<{
+    data: {
+      ok: boolean;
+      alreadyProcessed?: boolean;
+      account: AiCreditAccount;
+      productId: string;
+      transactionId: string;
+      productType?: string;
+      grantedCredits?: number;
+    };
+  }>('/iap/verify', {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function restoreIapPurchases(
+  token: string,
+  purchases: IapVerifyPayload[],
+) {
+  return requestJson<{
+    data: {
+      account: AiCreditAccount;
+      results: Array<{
+        productId: string | null;
+        ok: boolean;
+        alreadyProcessed?: boolean;
+        code?: string | null;
+        error?: string | null;
+      }>;
+    };
+  }>('/iap/restore', {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ purchases }),
+  });
 }
 
 export async function listCoreCareRecords(token: string, petId: string, type?: string) {

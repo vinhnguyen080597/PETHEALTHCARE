@@ -25,6 +25,7 @@ import { getProductAnalyticsSummary } from '../services/productAnalyticsService.
 import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../services/authIdentifierService.js';
 import { resolveAdminCreatedAuthUser, validateAdminAccountPassword } from '../services/adminAuthUserService.js';
 import { hasValidAdminSecret, requireAdminOrSecret } from '../middleware/auth.js';
+import { getFeatureFlags, updateFeatureFlags } from '../repositories/featureFlagRepository.js';
 
 const router = Router();
 
@@ -97,6 +98,33 @@ router.get('/product-analytics-summary', async (req, res, next) => {
       });
     }
     const data = await getProductAnalyticsSummary();
+    return res.json({ data });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/feature-flags', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const data = await getFeatureFlags();
+    return res.json({ data });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/feature-flags', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const body = req.body ?? {};
+    const patch = {};
+    if ('breed_recognition' in body || 'breedRecognition' in body) {
+      patch.breed_recognition = body.breed_recognition ?? body.breedRecognition;
+    }
+    if ('health_analysis' in body || 'healthAnalysis' in body) {
+      patch.health_analysis = body.health_analysis ?? body.healthAnalysis;
+    }
+    const updatedBy = req.user?.id ?? null;
+    const data = await updateFeatureFlags(patch, updatedBy);
     return res.json({ data });
   } catch (err) {
     return next(err);

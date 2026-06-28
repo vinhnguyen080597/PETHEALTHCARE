@@ -20,6 +20,7 @@ import {
   type BreedRecognitionSlot,
 } from '../constants/petBreedRecognitionSlots';
 import { getBreedRecognitionSlotExampleImage } from '../assets/breedRecognitionSlotAssets';
+import { RewardedAdOffer } from '../components/RewardedAdOffer';
 import { getSpendableCreditsForFeature, hasCreditsForFeature } from '../utils/aiCredits';
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
 import { MAI_GUIDING } from '../assets/maiAssets';
@@ -71,10 +72,13 @@ type PetBreedRecognitionScreenProps = {
   loading: boolean;
   aiCredits?: AiCreditAccount | null;
   aiCreditCost?: number;
+  rewardedAdCredits?: number;
   onBack: () => void;
   onPickSlot: (slot: BreedRecognitionSlot) => void;
   onClearSlot: (slot: BreedRecognitionSlot) => void;
   onAnalyze: () => void;
+  onWatchRewardedAd?: () => Promise<boolean>;
+  onSubscribePremium?: () => void;
 };
 
 type SectionAnchor = { y: number; height: number };
@@ -228,10 +232,13 @@ export function PetBreedRecognitionScreen({
   loading,
   aiCredits = null,
   aiCreditCost = 1,
+  rewardedAdCredits = 1,
   onBack,
   onPickSlot,
   onClearSlot,
   onAnalyze,
+  onWatchRewardedAd,
+  onSubscribePremium,
 }: PetBreedRecognitionScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -413,20 +420,34 @@ export function PetBreedRecognitionScreen({
   }
 
   function renderCreditsExhaustedModalContent() {
+    if (!onWatchRewardedAd) {
+      return (
+        <>
+          <View className="flex-row items-start gap-3">
+            <Text className="min-w-0 flex-1 text-sm leading-6 text-slate-700">{t('rewardedAd.exhaustedMessage')}</Text>
+          </View>
+          <Pressable
+            testID="breed-recognition-credits-exhausted-back-button"
+            accessibilityRole="button"
+            className="mt-6 items-center py-2 active:opacity-70"
+            onPress={onBack}
+          >
+            <Text className="text-sm font-medium text-slate-500">{t('rewardedAd.notNow')}</Text>
+          </Pressable>
+        </>
+      );
+    }
+
     return (
-      <>
-        <Text className="text-base font-bold text-slate-900">{t('alerts.aiCreditsExhaustedBreed.title')}</Text>
-        <Text className="mt-3 text-sm leading-5 text-slate-600">{t('aiCredits.outOfCreditsBreed')}</Text>
-        <Pressable
-          testID="breed-recognition-credits-exhausted-back-button"
-          accessibilityRole="button"
-          className="mt-4 self-end rounded-lg px-5 py-2 active:opacity-90"
-          style={{ backgroundColor: PRIMARY }}
-          onPress={onBack}
-        >
-          <Text className="text-sm font-semibold text-white">{t('breedRecognition.introBack')}</Text>
-        </Pressable>
-      </>
+      <RewardedAdOffer
+        feature="breed_recognition"
+        layout="card"
+        creditsPerAd={rewardedAdCredits}
+        testID="breed-recognition-rewarded-ad-offer"
+        onWatch={onWatchRewardedAd}
+        onSubscribe={onSubscribePremium}
+        onDismiss={onBack}
+      />
     );
   }
 
@@ -582,7 +603,7 @@ export function PetBreedRecognitionScreen({
               className="flex-1 items-center justify-center px-5"
               style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
             >
-              <View className="w-full rounded-2xl bg-white p-4 shadow-2xl" style={styles.introAnchoredCard}>
+              <View className="w-full rounded-2xl bg-white p-6 shadow-2xl" style={styles.introAnchoredCard}>
                 {renderCreditsExhaustedModalContent()}
               </View>
             </View>

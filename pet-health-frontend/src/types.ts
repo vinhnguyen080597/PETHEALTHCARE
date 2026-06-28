@@ -37,6 +37,11 @@ export type AccountProfile = {
   updated_at?: string;
 };
 
+export type AppFeatureFlags = {
+  breed_recognition: boolean;
+  health_analysis: boolean;
+};
+
 export type AuthResponse = {
   user: {
     id: string;
@@ -63,6 +68,27 @@ export type AiEconomicsConfig = {
   initialTrialCredits?: number;
   featureTrialCredits?: Record<string, number>;
   defaultPlanTier: string;
+  rewardedAd?: {
+    creditsPerAd: number;
+    unlimited?: boolean;
+  };
+  iap?: {
+    products: Array<{
+      productId: string;
+      type: 'subscription' | 'consumable';
+      credits?: number;
+      monthlyCredits?: number;
+      planTier?: string;
+      label: string;
+    }>;
+  };
+  pricingExperiment?: {
+    subscriptionTrial?: {
+      monthlyCredits: number;
+      priceVnd: number;
+      label: string;
+    };
+  };
   features: Record<
     string,
     {

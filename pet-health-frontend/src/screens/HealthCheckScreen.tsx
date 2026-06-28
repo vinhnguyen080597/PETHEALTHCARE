@@ -4,6 +4,7 @@ import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Te
 import { useTranslation } from 'react-i18next';
 import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
+import { RewardedAdOffer } from '../components/RewardedAdOffer';
 import { getSpendableCreditsForFeature, hasCreditsForFeature } from '../utils/aiCredits';
 import type { AiCreditAccount, Pet } from '../types';
 
@@ -43,6 +44,9 @@ type HealthCheckScreenProps = {
   analyzeDisabled?: boolean;
   aiCredits?: AiCreditAccount | null;
   aiCreditCost?: number;
+  rewardedAdCredits?: number;
+  onWatchRewardedAd?: () => Promise<boolean>;
+  onSubscribePremium?: () => void;
   /** Opens cat breed hint flow (cats only). */
   onOpenBreedRecognition?: () => void;
 };
@@ -154,6 +158,9 @@ export function HealthCheckScreen({
   analyzeDisabled = false,
   aiCredits = null,
   aiCreditCost = 1,
+  rewardedAdCredits = 1,
+  onWatchRewardedAd,
+  onSubscribePremium,
   onOpenBreedRecognition,
 }: HealthCheckScreenProps) {
   const { t } = useTranslation();
@@ -235,26 +242,34 @@ export function HealthCheckScreen({
           </View>
         </View>
         {aiCredits ? (
-          <View className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-            <View className="flex-row items-center gap-2">
-              <Ionicons name="wallet-outline" size={18} color={PRIMARY} />
-              <Text className="text-sm font-bold text-slate-900">{t('aiCredits.cardTitle')}</Text>
+          hasInsufficientCredits && onWatchRewardedAd ? (
+            <View className="mb-5 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+              <RewardedAdOffer
+                feature="health_analysis"
+                layout="compact"
+                creditsPerAd={rewardedAdCredits}
+                testID="health-check-rewarded-ad-offer"
+                onWatch={onWatchRewardedAd}
+                onSubscribe={onSubscribePremium}
+              />
             </View>
-            <Text className="mt-2 text-sm leading-5 text-slate-700">
-              {healthCredits.trial > 0
-                ? t('aiCredits.trialHealthRemaining', { count: healthCredits.trial })
-                : t('aiCredits.noTrialHealthRemaining')}
-              {healthCredits.shared > 0
-                ? ` ${t('aiCredits.sharedCreditsRemaining', { count: healthCredits.shared })}`
-                : ''}{' '}
-              {t('aiCredits.healthCheckCost', { cost: aiCreditCost })}
-            </Text>
-            {hasInsufficientCredits ? (
-              <View>
-                <Text className="mt-2 text-sm font-semibold text-amber-900">{t('aiCredits.outOfCreditsHealth')}</Text>
+          ) : (
+            <View className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="wallet-outline" size={18} color={PRIMARY} />
+                <Text className="text-sm font-bold text-slate-900">{t('aiCredits.cardTitle')}</Text>
               </View>
-            ) : null}
-          </View>
+              <Text className="mt-2 text-sm leading-5 text-slate-700">
+                {healthCredits.trial > 0
+                  ? t('aiCredits.trialHealthRemaining', { count: healthCredits.trial })
+                  : t('aiCredits.noTrialHealthRemaining')}
+                {healthCredits.shared > 0
+                  ? ` ${t('aiCredits.sharedCreditsRemaining', { count: healthCredits.shared })}`
+                  : ''}{' '}
+                {t('aiCredits.healthCheckCost', { cost: aiCreditCost })}
+              </Text>
+            </View>
+          )
         ) : null}
         {isBreedRecognitionSpecies(pet.species) && onOpenBreedRecognition ? (
           <Pressable

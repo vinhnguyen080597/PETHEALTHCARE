@@ -99,6 +99,7 @@
     "home": "Trang chủ",
     "history": "Lịch sử",
     "account": "Tài khoản",
+    "features": "Tính năng",
     "logout": "Đăng xuất"
   },
   "header": {
@@ -685,6 +686,26 @@
     "actAsUser": "Quản lý thay user",
     "addPetFor": "Thêm thú cưng cho {{name}}",
     "addPetHelper": "Hồ sơ thú cưng này được tạo cho người dùng đã chọn."
+  },
+  "adminFeatures": {
+    "title": "Quản lý tính năng",
+    "subtitle": "Bật hoặc tắt hiển thị tính năng trên app cho người dùng. Admin vẫn thấy để kiểm tra.",
+    "statusOn": "Đang hiện",
+    "statusOff": "Đang ẩn",
+    "saving": "Đang lưu…",
+    "updateFailed": "Không thể cập nhật tính năng",
+    "noteTitle": "Chỉ thay đổi UI",
+    "noteBody": "Tắt ở đây chỉ ẩn nút và màn hình trên app. API backend vẫn hoạt động bình thường. User thấy thay đổi sau khi mở lại tab Trang chủ hoặc đăng nhập lại.",
+    "items": {
+      "breed_recognition": {
+        "title": "Nhận diện giống",
+        "description": "Gợi ý giống mèo từ ảnh trên app."
+      },
+      "health_analysis": {
+        "title": "Kiểm tra sức khỏe AI",
+        "description": "Màn hình phân tích triệu chứng và ảnh/video sức khỏe."
+      }
+    }
   },
   "managedUser": {
     "banner": "Đang quản lý: {{name}}",
@@ -1426,10 +1447,33 @@
     "outOfCreditsHealth": "Bạn đã dùng hết lần thử Kiểm tra sức khỏe. Các công cụ chăm sóc miễn phí vẫn dùng được.",
     "outOfCreditsBreed": "Bạn đã dùng hết lần thử Nhận diện giống. Các công cụ chăm sóc miễn phí vẫn dùng được.",
     "prompts": {
-      "rewardedAd": "Beta credit",
+      "rewardedAd": "Xem quảng cáo",
       "topUp": "Chưa mở top-up",
       "subscription": "Chưa mở Premium"
     }
+  },
+  "rewardedAd": {
+    "title": "Video thưởng",
+    "exhaustedMessage": "Mai rất tiếc, Sen đã hết lượt dùng thử rồi. Sen có thể xem hết các video quảng cáo để kiếm thêm lượt dùng nhé! Đối với các công cụ miễn phí khác vẫn luôn dùng được.",
+    "watchCta": "Xem video",
+    "watchHint": "Khoảng 30 giây · Miễn phí",
+    "notNow": "Để sau",
+    "loading": "Đang tải video...",
+    "unavailable": "Tính năng này chỉ khả dụng trên bản cài từ App Store hoặc Google Play.",
+    "loadFailed": "Không tải được video. Vui lòng thử lại sau.",
+    "noAdRetry": "Chưa có quảng cáo. Thử lại sau vài phút nhé.",
+    "noAdUsePremium": "Hiện chưa có quảng cáo. Sen có thể đăng ký Premium để tiếp tục dùng AI.",
+    "retryAd": "Thử tải quảng cáo lại",
+    "claimSuccess": "Đã thêm {{credits}} lượt. Bạn có thể tiếp tục ngay."
+  },
+  "premium": {
+    "title": "Pet Health Care Premium",
+    "subscribeCta": "Đăng ký Premium",
+    "subscribeHint": "Không cần xem quảng cáo · Hủy bất cứ lúc nào",
+    "comingSoonBody": "Gói Premium: {{credits}} lượt AI/tháng — {{price}}₫/tháng.\n\nThanh toán qua App Store sẽ sớm có. Cảm ơn Sen đã quan tâm!",
+    "mobileOnlyBody": "Gói Premium: {{credits}} lượt AI/tháng — {{price}}₫/tháng.\n\nThanh toán in-app chỉ khả dụng trên bản cài từ App Store / Google Play.",
+    "purchaseSuccess": "Đăng ký Premium thành công! Sen có {{credits}} lượt AI trong tháng này.",
+    "purchaseFailed": "Không thể hoàn tất thanh toán. Vui lòng thử lại sau."
   },
   "alerts": {
     "missingEmailPassword": {

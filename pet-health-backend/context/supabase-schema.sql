@@ -527,3 +527,21 @@ create policy "pet_feed_blocked_breeders_delete_own"
 on public.pet_feed_blocked_breeders for delete
 to authenticated
 using (auth.uid()::text = user_id);
+
+-- --- UI feature visibility toggles (backend service role only; no client RLS policies).
+
+create table if not exists public.app_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_by text,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.app_settings (key, value)
+values (
+  'feature_flags',
+  '{"breed_recognition": true, "health_analysis": true}'::jsonb
+)
+on conflict (key) do nothing;
+
+alter table public.app_settings enable row level security;

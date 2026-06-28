@@ -5,6 +5,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { DEFAULT_PET_SPECIES } from '../constants/petSpecies';
+import { showRewardedAd } from '../services/rewardedAd';
+import { initializeIap, purchasePremiumSubscription } from '../services/iap';
 import { birthDateToAgeMonths, petBirthDateForForm } from '../utils/petAge';
 import {
   AnalyzeRequestError,
@@ -12,6 +14,7 @@ import {
   analyzePetHealthCheck,
   blockBreederProfile,
   claimRewardedAdCredit,
+  verifyIapPurchase,
   createAdminAccount,
   createAdminUserPet,
   createAnnouncementPost,
@@ -25,6 +28,7 @@ import {
   applyAccountUpdate,
   deletePet,
   favoritePetFeedPost,
+  fetchFeatureFlags,
   getMe,
   getMyBreederProfile,
   getPet,
@@ -59,6 +63,7 @@ import {
   updateAdminUserPet,
   updateCoreCareRecord,
   updateAdminAccount,
+  updateAdminFeatureFlags,
   updateAdminBreederProfileStatus,
   updateAdminPetFeedPostStatus,
   updateAdminPetFeedReportStatus,
@@ -77,6 +82,7 @@ import type {
   AiEconomicsConfig,
   Analysis,
   AccountProfile,
+  AppFeatureFlags,
   AdminCreateAccountPayload,
   AdminUpdateAccountPayload,
   BreedRecognitionResult,
@@ -332,6 +338,9 @@ export function usePetHealthApp() {
   const [history, setHistory] = useState<Analysis[]>([]);
   const [aiCredits, setAiCredits] = useState<AiCreditAccount | null>(null);
   const [aiEconomicsConfig, setAiEconomicsConfig] = useState<AiEconomicsConfig | null>(null);
+  const [appFeatureFlags, setAppFeatureFlags] = useState<AppFeatureFlags | null>(null);
+  const [featureFlagsLoading, setFeatureFlagsLoading] = useState(false);
+  const [featureFlagSavingKey, setFeatureFlagSavingKey] = useState<keyof AppFeatureFlags | null>(null);
   const [creditLedger, setCreditLedger] = useState<Array<Record<string, unknown>>>([]);
   const [coreCareRecords, setCoreCareRecords] = useState<CoreCareRecord[]>([]);
   const [coreCareSummary, setCoreCareSummary] = useState<CoreCareSummary | null>(null);
@@ -608,8 +617,25 @@ export function usePetHealthApp() {
     setInitialOnboarding(false);
   }
 
+  async function loadFeatureFlags(accessToken: string) {
+    setFeatureFlagsLoading(true);
+    try {
+      const res = await fetchFeatureFlags(accessToken);
+      setAppFeatureFlags(res.data);
+    } catch {
+      setAppFeatureFlags({ breed_recognition: true, health_analysis: true });
+    } finally {
+      setFeatureFlagsLoading(false);
+    }
+  }
+
+  function isFeatureEnabled(key: keyof AppFeatureFlags) {
+    if (accountProfile?.primary_role === 'admin') return true;
+    return appFeatureFlags?.[key] !== false;
+  }
+
   async function loadAuthenticatedUserData(accessToken: string, profile: AccountProfile) {
-    const loads: Promise<unknown>[] = [fetchPets(accessToken), refreshAiCredits(accessToken)];
+    const loads: Promise<unknown>[] = [fetchPets(accessToken), refreshAiCredits(accessToken), loadFeatureFlags(accessToken)];
     if (profile.primary_role === 'admin') {
       loads.push(loadAccountDashboard(accessToken, profile.primary_role));
     }
@@ -1075,7 +1101,7 @@ export function usePetHealthApp() {
   }
 
   function goToHealthCheckFromServicesPrompt() {
-    if (!selectedPetId) return;
+    if (!selectedPetId || !isFeatureEnabled('health_analysis')) return;
     clearHealthCheckForm();
     setScreen(initialOnboarding ? 'onboarding-health-check' : 'health-check');
   }
@@ -1492,6 +1518,23 @@ export function usePetHealthApp() {
     setScreen('home');
   }
 
+  function openAdminFeatures() {
+    if (!hasAccountRole('admin')) return;
+    if (token) void loadFeatureFlags(token);
+    setScreen('admin-features');
+  }
+
+  async function updateAdminFeatureFlag(key: keyof AppFeatureFlags, enabled: boolean) {
+    if (!token || !hasAccountRole('admin')) return;
+    setFeatureFlagSavingKey(key);
+    try {
+      const res = await updateAdminFeatureFlags(token, { [key]: enabled });
+      setAppFeatureFlags(res.data);
+    } finally {
+      setFeatureFlagSavingKey(null);
+    }
+  }
+
   async function loadAdminUserPets(userId: string) {
     if (!token) return;
     setAdminUserPetsLoading(true);
@@ -1639,17 +1682,62 @@ export function usePetHealthApp() {
     }
   }
 
-  async function claimAdCredit() {
-    if (!token) return;
+  async function watchRewardedAdForCredit(): Promise<boolean> {
+    if (!token) return false;
+
+    const adResult = await showRewardedAd();
+    if (!adResult.earned) {
+      return false;
+    }
+
     try {
       const response = await claimRewardedAdCredit(token);
       setAiCredits(response.data.account);
       await refreshAiCredits(token);
-      Alert.alert(i18n.t('common.ok'), i18n.t('coreCare.claimAdSuccess', { credits: response.data.grantedCredits }));
+      Alert.alert(i18n.t('common.ok'), i18n.t('rewardedAd.claimSuccess', { credits: response.data.grantedCredits }));
+      return true;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      Alert.alert(i18n.t('coreCare.creditsTitle'), message);
+      Alert.alert(i18n.t('rewardedAd.title'), message);
+      return false;
     }
+  }
+
+  async function claimAdCredit() {
+    await watchRewardedAdForCredit();
+  }
+
+  function openPremiumSubscription() {
+    if (!token) return;
+
+    void (async () => {
+      const trial = aiEconomicsConfig?.pricingExperiment?.subscriptionTrial;
+      const monthlyCredits = trial?.monthlyCredits ?? 60;
+
+      const result = await purchasePremiumSubscription(async (payload) => {
+        const response = await verifyIapPurchase(token, payload);
+        setAiCredits(response.data.account);
+      });
+
+      if (result.ok) {
+        await refreshAiCredits(token);
+        Alert.alert(i18n.t('premium.title'), i18n.t('premium.purchaseSuccess', { credits: monthlyCredits }));
+        return;
+      }
+      if (result.cancelled) return;
+
+      if (result.message === 'IAP_UNAVAILABLE' || result.message === 'IAP_WEB_UNSUPPORTED') {
+        const priceVnd = trial?.priceVnd ?? 99000;
+        const priceLabel = new Intl.NumberFormat('vi-VN').format(priceVnd);
+        Alert.alert(
+          i18n.t('premium.title'),
+          i18n.t('premium.mobileOnlyBody', { credits: monthlyCredits, price: priceLabel }),
+        );
+        return;
+      }
+
+      Alert.alert(i18n.t('premium.title'), result.message || i18n.t('premium.purchaseFailed'));
+    })();
   }
 
   function cancelPetForm() {
@@ -1999,6 +2087,9 @@ export function usePetHealthApp() {
     setPets([]);
     setAiCredits(null);
     setAiEconomicsConfig(null);
+    setAppFeatureFlags(null);
+    setFeatureFlagsLoading(false);
+    setFeatureFlagSavingKey(null);
     setCreditLedger([]);
     setCoreCareRecords([]);
     setCoreCareSummary(null);
@@ -2041,6 +2132,7 @@ export function usePetHealthApp() {
   function openBreedRecognition(
     from: 'health-check' | 'onboarding-health-check' | 'onboarding-health-prompt' | 'pet-profile',
   ) {
+    if (!isFeatureEnabled('breed_recognition')) return;
     if (!token || !selectedPetId) {
       Alert.alert(i18n.t('alerts.selectPet.title'), i18n.t('alerts.selectPet.message'));
       return;
@@ -2524,6 +2616,7 @@ export function usePetHealthApp() {
   }
 
   function goToCameraForPet(petId: string, opts?: { returnToProfile?: boolean }) {
+    if (!isFeatureEnabled('health_analysis')) return;
     setHealthCheckReturnToProfile(Boolean(opts?.returnToProfile));
     setSelectedPetId(petId);
     clearHealthCheckForm();
@@ -2533,6 +2626,7 @@ export function usePetHealthApp() {
 
   function goHomeAndRefresh() {
     setScreen('home');
+    if (token) void loadFeatureFlags(token);
     if (token && accountProfile?.primary_role === 'admin' && !managedUser) {
       void loadAccountDashboard(token, accountProfile.primary_role);
       return;
@@ -2670,6 +2764,8 @@ export function usePetHealthApp() {
     createCoreCareEntry,
     markReminderDone,
     claimAdCredit,
+    watchRewardedAdForCredit,
+    openPremiumSubscription,
     logout,
     goToCameraForPet,
     goHomeAndRefresh,
@@ -2767,6 +2863,12 @@ export function usePetHealthApp() {
     adminBreederProfiles,
     openAdminHub,
     closeAdminHub,
+    openAdminFeatures,
+    updateAdminFeatureFlag,
+    appFeatureFlags,
+    featureFlagsLoading,
+    featureFlagSavingKey,
+    isFeatureEnabled,
     openAdminUserDetail,
     closeAdminUserDetail,
     adminSelectedAccount,

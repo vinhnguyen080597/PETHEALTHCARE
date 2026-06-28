@@ -70,6 +70,6 @@ services:
       - key: AI_REWARDED_AD_CREDITS
         value: "1"
       - key: AI_REWARDED_AD_DAILY_CAP
-        value: "3"
+        value: "0"
       - key: ADMIN_INTERNAL_API_KEY
         sync: false

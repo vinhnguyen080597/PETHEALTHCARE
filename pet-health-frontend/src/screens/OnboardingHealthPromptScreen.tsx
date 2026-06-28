@@ -50,6 +50,8 @@ const SERVICE_CARDS: ServiceCardConfig[] = [
 ];
 
 type OnboardingHealthPromptScreenProps = {
+  showBreedService?: boolean;
+  showHealthService?: boolean;
   onExploreBreed: () => void;
   onCheckHealth: () => void;
   onManageVaccines: () => void;
@@ -113,6 +115,8 @@ function ServiceCard({
 
 /** Shown after each new pet is added — showcase Pet Health Care services before home. */
 export function OnboardingHealthPromptScreen({
+  showBreedService = true,
+  showHealthService = true,
   onExploreBreed,
   onCheckHealth,
   onManageVaccines,
@@ -122,6 +126,16 @@ export function OnboardingHealthPromptScreen({
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const visibleCards = useMemo(
+    () =>
+      SERVICE_CARDS.filter((item) => {
+        if (item.id === 'breed') return showBreedService;
+        if (item.id === 'health') return showHealthService;
+        return true;
+      }),
+    [showBreedService, showHealthService],
+  );
 
   const compact = windowHeight < 760;
   const contentWidth = Math.min(windowWidth, 760);
@@ -144,7 +158,7 @@ export function OnboardingHealthPromptScreen({
     [onExploreBreed, onCheckHealth, onManageVaccines],
   );
 
-  const activeCard = SERVICE_CARDS[activeIndex];
+  const activeCard = visibleCards[Math.min(activeIndex, Math.max(visibleCards.length - 1, 0))];
 
   return (
     <View testID="onboarding-health-prompt-screen" className="flex-1 bg-slate-100">
@@ -192,17 +206,19 @@ export function OnboardingHealthPromptScreen({
           </Text>
 
           <View style={{ width: cardWidth, alignSelf: 'center' }}>
-            <ServiceCard
-              item={activeCard}
-              iconWidth={iconWidth}
-              iconHeight={iconHeight}
-              compact={compact}
-              onPress={cardActions[activeCard.id]}
-            />
+            {activeCard ? (
+              <ServiceCard
+                item={activeCard}
+                iconWidth={iconWidth}
+                iconHeight={iconHeight}
+                compact={compact}
+                onPress={cardActions[activeCard.id]}
+              />
+            ) : null}
           </View>
 
           <View className="mt-3 flex-row items-center justify-center gap-2">
-            {SERVICE_CARDS.map((card, index) => (
+            {visibleCards.map((card, index) => (
               <Pressable
                 key={card.id}
                 testID={`onboarding-service-tab-${card.id}`}

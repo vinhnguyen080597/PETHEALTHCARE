@@ -9,16 +9,16 @@ type BottomTabBarProps = {
   onPetFeed: () => void;
   onHome: () => void;
   onAccount: () => void;
-  accountTabMode?: 'account' | 'logout';
+  accountTabMode?: 'account' | 'features';
 };
 
 export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount, accountTabMode = 'account' }: BottomTabBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const isLogoutTab = accountTabMode === 'logout';
+  const isFeaturesTab = accountTabMode === 'features';
   const petFeedTabActive = activeScreen === 'pet-feed';
   const homeTabActive = activeScreen === 'home';
-  const accountTabActive = !isLogoutTab && activeScreen === 'account';
+  const accountTabActive = isFeaturesTab ? activeScreen === 'admin-features' : activeScreen === 'account';
   return (
     <View
       className="flex-row border-t border-slate-200 bg-white px-2 pt-2"
@@ -55,15 +55,15 @@ export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount, accou
       <Pressable
         testID="bottom-tab-account-button"
         accessibilityRole="button"
-        accessibilityLabel={isLogoutTab ? 'Log out' : 'Open account tab'}
+        accessibilityLabel={isFeaturesTab ? 'Open app features management' : 'Open account tab'}
         accessibilityState={{ selected: accountTabActive, disabled: accountTabActive }}
         className={`flex-1 items-center rounded-xl py-2 ${accountTabActive ? 'bg-blue-50' : ''}`}
         disabled={accountTabActive}
         onPress={accountTabActive ? undefined : onAccount}
       >
-        <Ionicons name={isLogoutTab ? 'log-out-outline' : 'person-circle-outline'} size={22} color={accountTabActive ? '#2563eb' : '#64748b'} />
+        <Ionicons name={isFeaturesTab ? 'options-outline' : 'person-circle-outline'} size={22} color={accountTabActive ? '#2563eb' : '#64748b'} />
         <Text className={`text-xs font-medium ${accountTabActive ? 'text-blue-600' : 'text-slate-600'}`}>
-          {t(isLogoutTab ? 'tabs.logout' : 'tabs.account')}
+          {t(isFeaturesTab ? 'tabs.features' : 'tabs.account')}
         </Text>
       </Pressable>
     </View>
