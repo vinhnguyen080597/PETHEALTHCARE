@@ -704,6 +704,14 @@
       "health_analysis": {
         "title": "Kiểm tra sức khỏe AI",
         "description": "Màn hình phân tích triệu chứng và ảnh/video sức khỏe."
+      },
+      "rewarded_ads": {
+        "title": "Xem quảng cáo",
+        "description": "Nút xem quảng cáo để nhận credit khi hết lượt dùng."
+      },
+      "subscription": {
+        "title": "Đăng ký Premium",
+        "description": "Nút đăng ký gói Premium / subscription trong app."
       }
     }
   },

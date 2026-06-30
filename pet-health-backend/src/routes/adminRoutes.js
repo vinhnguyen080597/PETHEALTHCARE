@@ -123,6 +123,12 @@ router.put('/feature-flags', requireAdminOrSecret, async (req, res, next) => {
     if ('health_analysis' in body || 'healthAnalysis' in body) {
       patch.health_analysis = body.health_analysis ?? body.healthAnalysis;
     }
+    if ('rewarded_ads' in body || 'rewardedAds' in body) {
+      patch.rewarded_ads = body.rewarded_ads ?? body.rewardedAds;
+    }
+    if ('subscription' in body) {
+      patch.subscription = body.subscription;
+    }
     const updatedBy = req.user?.id ?? null;
     const data = await updateFeatureFlags(patch, updatedBy);
     return res.json({ data });

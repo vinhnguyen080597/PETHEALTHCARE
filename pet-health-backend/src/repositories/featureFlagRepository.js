@@ -1,10 +1,12 @@
 import { getSupabaseServiceClient } from '../config/supabase.js';
 
-export const FEATURE_FLAG_KEYS = ['breed_recognition', 'health_analysis'];
+export const FEATURE_FLAG_KEYS = ['breed_recognition', 'health_analysis', 'rewarded_ads', 'subscription'];
 
 export const DEFAULT_FEATURE_FLAGS = {
   breed_recognition: true,
   health_analysis: true,
+  rewarded_ads: true,
+  subscription: true,
 };
 
 const SETTINGS_KEY = 'feature_flags';
@@ -15,6 +17,8 @@ export function normalizeFeatureFlags(raw) {
   return {
     breed_recognition: source.breed_recognition !== false,
     health_analysis: source.health_analysis !== false,
+    rewarded_ads: source.rewarded_ads !== false,
+    subscription: source.subscription !== false,
   };
 }
 

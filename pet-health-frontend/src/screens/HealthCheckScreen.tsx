@@ -242,7 +242,7 @@ export function HealthCheckScreen({
           </View>
         </View>
         {aiCredits ? (
-          hasInsufficientCredits && onWatchRewardedAd ? (
+          hasInsufficientCredits && (onWatchRewardedAd || onSubscribePremium) ? (
             <View className="mb-5 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
               <RewardedAdOffer
                 feature="health_analysis"

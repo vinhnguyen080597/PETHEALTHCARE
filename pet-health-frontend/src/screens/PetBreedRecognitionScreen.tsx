@@ -267,7 +267,8 @@ export function PetBreedRecognitionScreen({
   const breedCredits = getSpendableCreditsForFeature(aiCredits, 'breed_recognition');
   const creditsResolved = aiCredits != null;
   const showCreditsExhaustedModal = creditsResolved && hasInsufficientCredits;
-  const showIntroModal = creditsResolved && !hasInsufficientCredits && !introComplete;
+  const showIntroModal = !introComplete && !showCreditsExhaustedModal;
+  const showModal = showCreditsExhaustedModal || showIntroModal;
   const canAnalyze = requiredOk && !loading && !hasInsufficientCredits;
   const currentRequiredSlot = requiredSlots[requiredPhotoIndex] ?? requiredSlots[0];
   const activeAnchor =
@@ -420,7 +421,7 @@ export function PetBreedRecognitionScreen({
   }
 
   function renderCreditsExhaustedModalContent() {
-    if (!onWatchRewardedAd) {
+    if (!onWatchRewardedAd && !onSubscribePremium) {
       return (
         <>
           <View className="flex-row items-start gap-3">
@@ -589,7 +590,7 @@ export function PetBreedRecognitionScreen({
       </View>
 
       <Modal
-        visible={showCreditsExhaustedModal || showIntroModal}
+        visible={showModal}
         transparent
         animationType="fade"
         onRequestClose={() => {
@@ -597,31 +598,22 @@ export function PetBreedRecognitionScreen({
         }}
       >
         <View testID="breed-recognition-intro-modal" className="flex-1 bg-black/40">
-          {showCreditsExhaustedModal ? (
+          <View
+            className="flex-1 items-center justify-center px-5"
+            style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+          >
             <View
-              testID="breed-recognition-credits-exhausted-modal"
-              className="flex-1 items-center justify-center px-5"
-              style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+              testID={showCreditsExhaustedModal ? 'breed-recognition-credits-exhausted-modal' : undefined}
+              className="max-h-[85%] w-full rounded-2xl bg-white p-6 shadow-2xl"
+              style={styles.introAnchoredCard}
             >
-              <View className="w-full rounded-2xl bg-white p-6 shadow-2xl" style={styles.introAnchoredCard}>
-                {renderCreditsExhaustedModalContent()}
-              </View>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {showCreditsExhaustedModal
+                  ? renderCreditsExhaustedModalContent()
+                  : renderIntroModalContent()}
+              </ScrollView>
             </View>
-          ) : (
-            <View
-              className="absolute left-5 right-5"
-              style={{
-                top: anchoredPopupTop,
-                maxHeight: introStep === 'required-photo' ? '62%' : '78%',
-              }}
-            >
-              <View className="rounded-2xl bg-white p-4 shadow-2xl" style={styles.introAnchoredCard}>
-                <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                  {renderIntroModalContent()}
-                </ScrollView>
-              </View>
-            </View>
-          )}
+          </View>
         </View>
       </Modal>
     </View>

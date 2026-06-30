@@ -17,7 +17,7 @@ export type RewardedAdFeature = 'health_analysis' | 'breed_recognition';
 
 type RewardedAdOfferProps = {
   feature: RewardedAdFeature;
-  onWatch: () => Promise<boolean>;
+  onWatch?: () => Promise<boolean>;
   onSubscribe?: () => void;
   onDismiss?: () => void;
   creditsPerAd?: number;
@@ -63,18 +63,19 @@ export function RewardedAdOffer({
   const isCard = layout === 'card';
 
   useEffect(() => {
+    if (!onWatch) return;
     void preloadRewardedAd();
     return subscribeRewardedAdAvailability(setAvailability);
-  }, []);
+  }, [onWatch]);
 
   const adsBlocked = availability === 'unsupported' || availability === 'unavailable';
-  const hideVideoCta = adsBlocked && watchFailCount >= MAX_WATCH_FAILS_BEFORE_HIDE_VIDEO;
-  const showVideoCta = !hideVideoCta && availability !== 'unsupported';
+  const hideVideoCta = !onWatch || (adsBlocked && watchFailCount >= MAX_WATCH_FAILS_BEFORE_HIDE_VIDEO);
+  const showVideoCta = Boolean(onWatch) && !hideVideoCta && availability !== 'unsupported';
   const premiumPrimary = hideVideoCta || (adsBlocked && watchFailCount > 0) || !showVideoCta;
   const showRetry = showVideoCta && (adsBlocked || watchFailCount > 0);
 
   async function handleWatch() {
-    if (watching || disabled || preloading) return;
+    if (!onWatch || watching || disabled || preloading) return;
     setWatching(true);
     setInlineMessage(null);
     try {

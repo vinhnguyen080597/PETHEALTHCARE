@@ -704,6 +704,14 @@
       "health_analysis": {
         "title": "AI health check",
         "description": "Symptom and health photo/video analysis screens."
+      },
+      "rewarded_ads": {
+        "title": "Watch ads",
+        "description": "Rewarded ad button to earn credits when out of usage."
+      },
+      "subscription": {
+        "title": "Premium subscription",
+        "description": "Subscribe to Premium button in the app."
       }
     }
   },

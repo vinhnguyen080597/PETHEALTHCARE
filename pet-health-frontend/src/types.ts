@@ -40,6 +40,8 @@ export type AccountProfile = {
 export type AppFeatureFlags = {
   breed_recognition: boolean;
   health_analysis: boolean;
+  rewarded_ads: boolean;
+  subscription: boolean;
 };
 
 export type AuthResponse = {

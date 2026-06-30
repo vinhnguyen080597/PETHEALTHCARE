@@ -97,6 +97,8 @@ type MockApiState = {
   featureFlags: {
     breed_recognition: boolean;
     health_analysis: boolean;
+    rewarded_ads: boolean;
+    subscription: boolean;
   };
 };
 
@@ -249,7 +251,7 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     accountPassword: MOCK_ACCOUNT_PASSWORD,
     pendingNewEmail: null,
     pendingPasswordRecovery: false,
-    featureFlags: { breed_recognition: true, health_analysis: true },
+    featureFlags: { breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true },
     ...initial,
   };
 
@@ -647,6 +649,12 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
       }
       if ('health_analysis' in payload) {
         state.featureFlags.health_analysis = payload.health_analysis !== false;
+      }
+      if ('rewarded_ads' in payload) {
+        state.featureFlags.rewarded_ads = payload.rewarded_ads !== false;
+      }
+      if ('subscription' in payload) {
+        state.featureFlags.subscription = payload.subscription !== false;
       }
       return json(route, { data: state.featureFlags });
     }

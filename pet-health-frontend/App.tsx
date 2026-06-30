@@ -134,6 +134,8 @@ function AppContent() {
   const isAdmin = app.accountProfile?.primary_role === 'admin';
   const breedRecognitionEnabled = app.isFeatureEnabled('breed_recognition');
   const healthAnalysisEnabled = app.isFeatureEnabled('health_analysis');
+  const rewardedAdsEnabled = app.isFeatureEnabled('rewarded_ads');
+  const subscriptionEnabled = app.isFeatureEnabled('subscription');
 
   useEffect(() => {
     void initializeRewardedAds();
@@ -575,7 +577,7 @@ function AppContent() {
                 onRefresh={() => app.openCoreCare(app.selectedPet!.id)}
                 onCreateRecord={app.createCoreCareEntry}
                 onMarkReminderDone={app.markReminderDone}
-                onClaimRewardedAd={app.claimAdCredit}
+                onClaimRewardedAd={rewardedAdsEnabled ? app.claimAdCredit : async () => {}}
               />
             ) : null}
 
@@ -622,8 +624,8 @@ function AppContent() {
                 aiCredits={app.aiCredits}
                 aiCreditCost={healthCreditCost}
                 rewardedAdCredits={rewardedAdCredits}
-                onWatchRewardedAd={app.watchRewardedAdForCredit}
-                onSubscribePremium={app.openPremiumSubscription}
+                onWatchRewardedAd={rewardedAdsEnabled ? app.watchRewardedAdForCredit : undefined}
+                onSubscribePremium={subscriptionEnabled ? app.openPremiumSubscription : undefined}
                 onOpenBreedRecognition={
                   breedRecognitionEnabled ? () => app.openBreedRecognition('health-check') : undefined
                 }
@@ -662,8 +664,8 @@ function AppContent() {
                 aiCredits={app.aiCredits}
                 aiCreditCost={healthCreditCost}
                 rewardedAdCredits={rewardedAdCredits}
-                onWatchRewardedAd={app.watchRewardedAdForCredit}
-                onSubscribePremium={app.openPremiumSubscription}
+                onWatchRewardedAd={rewardedAdsEnabled ? app.watchRewardedAdForCredit : undefined}
+                onSubscribePremium={subscriptionEnabled ? app.openPremiumSubscription : undefined}
                 onOpenBreedRecognition={
                   breedRecognitionEnabled ? () => app.openBreedRecognition('onboarding-health-check') : undefined
                 }
@@ -682,8 +684,8 @@ function AppContent() {
                 onPickSlot={app.pickBreedRecognitionSlot}
                 onClearSlot={app.clearBreedRecognitionSlot}
                 onAnalyze={app.submitBreedRecognition}
-                onWatchRewardedAd={app.watchRewardedAdForCredit}
-                onSubscribePremium={app.openPremiumSubscription}
+                onWatchRewardedAd={rewardedAdsEnabled ? app.watchRewardedAdForCredit : undefined}
+                onSubscribePremium={subscriptionEnabled ? app.openPremiumSubscription : undefined}
               />
             ) : null}
 

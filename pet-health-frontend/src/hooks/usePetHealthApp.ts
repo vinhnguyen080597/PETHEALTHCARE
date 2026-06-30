@@ -623,7 +623,7 @@ export function usePetHealthApp() {
       const res = await fetchFeatureFlags(accessToken);
       setAppFeatureFlags(res.data);
     } catch {
-      setAppFeatureFlags({ breed_recognition: true, health_analysis: true });
+      setAppFeatureFlags({ breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true });
     } finally {
       setFeatureFlagsLoading(false);
     }
@@ -1683,6 +1683,7 @@ export function usePetHealthApp() {
   }
 
   async function watchRewardedAdForCredit(): Promise<boolean> {
+    if (!isFeatureEnabled('rewarded_ads')) return false;
     if (!token) return false;
 
     const adResult = await showRewardedAd();
@@ -1704,10 +1705,12 @@ export function usePetHealthApp() {
   }
 
   async function claimAdCredit() {
+    if (!isFeatureEnabled('rewarded_ads')) return;
     await watchRewardedAdForCredit();
   }
 
   function openPremiumSubscription() {
+    if (!isFeatureEnabled('subscription')) return;
     if (!token) return;
 
     void (async () => {
@@ -2145,6 +2148,7 @@ export function usePetHealthApp() {
     setBreedRecognitionReturnScreen(from);
     resetBreedRecognitionForm();
     setScreen('breed-recognition');
+    void refreshAiCredits(token);
   }
 
   function closeBreedRecognition() {

@@ -13,6 +13,8 @@ const FEATURE_ITEMS: Array<{
 }> = [
   { key: 'breed_recognition', icon: 'paw-outline' },
   { key: 'health_analysis', icon: 'pulse-outline' },
+  { key: 'rewarded_ads', icon: 'play-circle-outline' },
+  { key: 'subscription', icon: 'star-outline' },
 ];
 
 type AdminFeaturesScreenProps = {

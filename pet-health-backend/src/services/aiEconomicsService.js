@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { listIapCatalog } from '../config/iapCatalog.js';
+import { getSupabaseServiceClient } from '../config/supabase.js';
 
 /** @deprecated Legacy generic trial pool (pre feature-specific trials). Used only for migration. */
 const LEGACY_INITIAL_TRIAL_POOL = 2;
