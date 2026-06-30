@@ -1,16 +1,6 @@
 import { Platform } from 'react-native';
-import {
-  finishTransaction,
-  initConnection,
-  purchaseErrorListener,
-  purchaseUpdatedListener,
-  requestPurchase,
-  restorePurchases as restoreStorePurchases,
-  ErrorCode,
-  type Purchase,
-  type PurchaseError,
-} from 'react-native-iap';
 import { PREMIUM_MONTHLY_PRODUCT_ID } from '../constants/iapProducts';
+import { isExpoGo } from '../utils/expoRuntime';
 
 export type IapPurchasePayload = {
   platform: 'ios' | 'android';
@@ -20,8 +10,14 @@ export type IapPurchasePayload = {
   receiptData: string | null;
 };
 
+type IapModule = typeof import('react-native-iap');
+type Purchase = import('react-native-iap').Purchase;
+type PurchaseError = import('react-native-iap').PurchaseError;
+
 let initPromise: Promise<boolean> | null = null;
 let listenersAttached = false;
+let iapModule: IapModule | null = null;
+let iapModulePromise: Promise<IapModule | null> | null = null;
 let pendingPurchase:
   | {
       productId: string;
@@ -37,29 +33,44 @@ function platformName(): 'ios' | 'android' | null {
 }
 
 export function isIapSupported(): boolean {
+  if (isExpoGo()) return false;
   return platformName() != null;
 }
 
-function isUserCancelled(error: PurchaseError): boolean {
+async function loadIapModule(): Promise<IapModule | null> {
+  if (!isIapSupported()) return null;
+  if (iapModule) return iapModule;
+  if (!iapModulePromise) {
+    iapModulePromise = import('react-native-iap')
+      .then((module) => {
+        iapModule = module;
+        return module;
+      })
+      .catch(() => null);
+  }
+  return iapModulePromise;
+}
+
+function isUserCancelled(error: PurchaseError, ErrorCode: IapModule['ErrorCode']): boolean {
   return error.code === ErrorCode.UserCancelled;
 }
 
-function attachPurchaseListeners() {
+async function attachPurchaseListeners(iap: IapModule) {
   if (listenersAttached) return;
   listenersAttached = true;
 
-  purchaseUpdatedListener((purchase) => {
+  iap.purchaseUpdatedListener((purchase) => {
     if (!pendingPurchase) return;
     if (purchase.productId !== pendingPurchase.productId) return;
     pendingPurchase.resolve(purchase);
     pendingPurchase = null;
   });
 
-  purchaseErrorListener((error) => {
+  iap.purchaseErrorListener((error) => {
     if (!pendingPurchase) return;
     if (error.productId && error.productId !== pendingPurchase.productId) return;
     const err = new Error(error.message || 'Purchase failed');
-    if (isUserCancelled(error)) {
+    if (isUserCancelled(error, iap.ErrorCode)) {
       (err as Error & { userCancelled?: boolean }).userCancelled = true;
     }
     pendingPurchase.reject(err);
@@ -72,9 +83,11 @@ export async function initializeIap(): Promise<boolean> {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
+    const iap = await loadIapModule();
+    if (!iap) return false;
     try {
-      attachPurchaseListeners();
-      await initConnection();
+      await attachPurchaseListeners(iap);
+      await iap.initConnection();
       return true;
     } catch {
       return false;
@@ -105,22 +118,24 @@ export function purchasePayloadFromStore(purchase: Purchase): IapPurchasePayload
   };
 }
 
-async function waitForPurchase(productId: string, productType: 'subs' | 'in-app'): Promise<Purchase> {
+async function waitForPurchase(iap: IapModule, productId: string, productType: 'subs' | 'in-app'): Promise<Purchase> {
   return new Promise<Purchase>((resolve, reject) => {
     pendingPurchase = { productId, resolve, reject };
 
-    void requestPurchase({
-      type: productType,
-      request: {
-        apple: { sku: productId },
-        google: { skus: [productId] },
-      },
-    }).catch((error: unknown) => {
-      if (pendingPurchase?.productId === productId) {
-        pendingPurchase = null;
-        reject(error instanceof Error ? error : new Error('Purchase failed'));
-      }
-    });
+    void iap
+      .requestPurchase({
+        type: productType,
+        request: {
+          apple: { sku: productId },
+          google: { skus: [productId] },
+        },
+      })
+      .catch((error: unknown) => {
+        if (pendingPurchase?.productId === productId) {
+          pendingPurchase = null;
+          reject(error instanceof Error ? error : new Error('Purchase failed'));
+        }
+      });
   });
 }
 
@@ -132,11 +147,16 @@ export async function purchasePremiumSubscription(
     return { ok: false, message: 'IAP_UNAVAILABLE' };
   }
 
+  const iap = await loadIapModule();
+  if (!iap) {
+    return { ok: false, message: 'IAP_UNAVAILABLE' };
+  }
+
   try {
-    const purchase = await waitForPurchase(PREMIUM_MONTHLY_PRODUCT_ID, 'subs');
+    const purchase = await waitForPurchase(iap, PREMIUM_MONTHLY_PRODUCT_ID, 'subs');
     const payload = purchasePayloadFromStore(purchase);
     await verifyFn(payload);
-    await finishTransaction({ purchase, isConsumable: false });
+    await iap.finishTransaction({ purchase, isConsumable: false });
     return { ok: true };
   } catch (error: unknown) {
     const err = error as Error & { userCancelled?: boolean };
@@ -153,9 +173,11 @@ export async function restoreIapPurchases(
   const ready = await initializeIap();
   if (!ready) return { restored: 0, failed: 0 };
 
-  await restoreStorePurchases();
-  const { getAvailablePurchases } = await import('react-native-iap');
-  const purchases = await getAvailablePurchases();
+  const iap = await loadIapModule();
+  if (!iap) return { restored: 0, failed: 0 };
+
+  await iap.restorePurchases();
+  const purchases = await iap.getAvailablePurchases();
   let restored = 0;
   let failed = 0;
 
@@ -164,7 +186,7 @@ export async function restoreIapPurchases(
       const payload = purchasePayloadFromStore(purchase);
       await verifyFn(payload);
       const isConsumable = payload.productId.includes('.credits.');
-      await finishTransaction({ purchase, isConsumable });
+      await iap.finishTransaction({ purchase, isConsumable });
       restored += 1;
     } catch {
       failed += 1;

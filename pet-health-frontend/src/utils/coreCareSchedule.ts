@@ -28,6 +28,19 @@ export type AdministeredVaccineDoseInput = {
   administeredAt: Date;
 };
 
+export type AdministeredDewormingDoseInput = {
+  administeredAt: Date;
+};
+
+type CatKittenScheduleState = {
+  dewormDosesCompleted: number;
+  dewormDates: Date[];
+  fvrcpDosesCompleted: number;
+  fvrcpDates: Date[];
+  rabiesDosesCompleted: number;
+  rabiesDates: Date[];
+};
+
 export type CoreCareNextVaccineRecommendation = {
   id: string;
   vaccineId: string;
@@ -55,6 +68,15 @@ type CalculateNextVaccinationScheduleInput = {
   petAgeMonths?: number | null;
   today?: Date;
   horizonMonths?: number;
+};
+
+type CalculateCoreCareScheduleFromHistoryInput = {
+  species: string;
+  birthDate: Date;
+  administeredVaccines: AdministeredVaccineDoseInput[];
+  administeredDewormings: AdministeredDewormingDoseInput[];
+  selectedVaccineId?: string | null;
+  today?: Date;
 };
 
 type SeriesInput = {
@@ -253,6 +275,45 @@ export function calculateNextVaccinationSchedule({
     });
 }
 
+export function calculateCoreCareScheduleFromHistory({
+  species,
+  birthDate,
+  administeredVaccines,
+  administeredDewormings,
+  selectedVaccineId = null,
+  today = new Date(),
+}: CalculateCoreCareScheduleFromHistoryInput): CoreCareScheduleRecommendation[] {
+  const normalizedSpecies = normalizeCoreCareScheduleSpecies(species);
+  if (!normalizedSpecies) return [];
+
+  const normalizedBirthDate = startOfDay(birthDate);
+  const normalizedToday = startOfDay(today);
+  if (normalizedBirthDate.getTime() > normalizedToday.getTime()) return [];
+
+  const ageDays = daysBetween(normalizedBirthDate, normalizedToday);
+  if (ageDays > weeks(26)) {
+    return filterInitialScheduleBySelection(
+      normalizedSpecies,
+      normalizedSpecies === 'dog' ? adultDogCatchUp(normalizedToday) : adultCatCatchUp(normalizedToday),
+      selectedVaccineId,
+      normalizedToday,
+    );
+  }
+
+  if (normalizedSpecies === 'cat') {
+    const state = catKittenStateFromHistory(
+      administeredDewormings,
+      administeredVaccines.filter((dose) => dose.vaccineId === 'cat_3in1_fvrcp' || dose.vaccineId === 'cat_4in1'),
+      administeredVaccines.filter((dose) => dose.vaccineId === 'cat_rabies'),
+      normalizedToday,
+    );
+    const recommendations = buildCatKittenIntegratedSchedule(normalizedBirthDate, normalizedToday, state);
+    return filterInitialScheduleBySelection('cat', recommendations, selectedVaccineId, normalizedToday);
+  }
+
+  return calculateDogSchedule(normalizedBirthDate, normalizedToday, selectedVaccineId);
+}
+
 function calculateDogSchedule(birthDate: Date, today: Date, selectedVaccineId: string | null): CoreCareScheduleRecommendation[] {
   const ageDays = daysBetween(birthDate, today);
   if (ageDays > weeks(26)) return filterInitialScheduleBySelection('dog', adultDogCatchUp(today), selectedVaccineId, today);
@@ -302,18 +363,7 @@ function calculateCatSchedule(birthDate: Date, today: Date, selectedVaccineId: s
   if (ageDays > weeks(26)) return filterInitialScheduleBySelection('cat', adultCatCatchUp(today), selectedVaccineId, today);
 
   const recommendations = [
-    ...buildPrimarySeries({
-      family: 'catFvrcp',
-      kind: 'vaccine',
-      startAgeDays: weeks(8),
-      finalMinAgeDays: weeks(16),
-      intervalDays: weeks(4),
-      maxPrimaryDoseCount: 3,
-      birthDate,
-      today,
-      sourceLabel: 'WSAVA 2024 / AAHA-AAFP 2020',
-      sourceUrl: AAFP_FELINE_2020_URL,
-    }),
+    ...buildCatKittenIntegratedSchedule(birthDate, today),
     ...buildTwoDoseSeries({
       family: 'catFelv',
       kind: 'vaccine',
@@ -321,21 +371,6 @@ function calculateCatSchedule(birthDate: Date, today: Date, selectedVaccineId: s
       intervalDays: weeks(4),
       sourceLabel: 'AAHA-AAFP 2020',
       sourceUrl: AAFP_FELINE_2020_URL,
-    }),
-    buildSingleRecommendation({
-      family: 'catRabies',
-      kind: 'vaccine',
-      doseNumber: 1,
-      today,
-      targetDate: addDays(birthDate, weeks(12)),
-      sourceLabel: 'WSAVA 2024 / Vietnam rabies requirement',
-      sourceUrl: WSAVA_2024_URL,
-    }),
-    ...buildDewormingSeries({
-      family: 'catDeworming',
-      birthDate,
-      today,
-      earlyWeeks: [3, 5, 7, 9],
     }),
   ];
   return filterInitialScheduleBySelection('cat', recommendations, selectedVaccineId, today);
@@ -435,7 +470,261 @@ function filterInitialScheduleBySelection(
     return selectedFamilies.has(recommendation.family);
   });
 
+  if (species === 'cat') return filtered;
   return spaceInitialSchedule(species, filtered, selectedFamilies, today);
+}
+
+function catKittenStateFromHistory(
+  administeredDewormings: AdministeredDewormingDoseInput[],
+  fvrcpDoses: AdministeredVaccineDoseInput[],
+  rabiesDoses: AdministeredVaccineDoseInput[],
+  today: Date,
+): CatKittenScheduleState {
+  const dewormDates = administeredDewormings
+    .map((dose) => startOfDay(dose.administeredAt))
+    .filter((date) => date.getTime() <= today.getTime())
+    .sort((a, b) => a.getTime() - b.getTime());
+  const fvrcpDates = fvrcpDoses
+    .map((dose) => startOfDay(dose.administeredAt))
+    .filter((date) => date.getTime() <= today.getTime())
+    .sort((a, b) => a.getTime() - b.getTime());
+  const rabiesDates = rabiesDoses
+    .map((dose) => startOfDay(dose.administeredAt))
+    .filter((date) => date.getTime() <= today.getTime())
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  return {
+    dewormDosesCompleted: dewormDates.length,
+    dewormDates,
+    fvrcpDosesCompleted: fvrcpDates.length,
+    fvrcpDates,
+    rabiesDosesCompleted: rabiesDates.length,
+    rabiesDates,
+  };
+}
+
+function buildCatKittenIntegratedSchedule(
+  birthDate: Date,
+  today: Date,
+  state: CatKittenScheduleState = {
+    dewormDosesCompleted: 0,
+    dewormDates: [],
+    fvrcpDosesCompleted: 0,
+    fvrcpDates: [],
+    rabiesDosesCompleted: 0,
+    rabiesDates: [],
+  },
+): CoreCareScheduleRecommendation[] {
+  const dewormSourceLabel = 'TroCCAP / CAPC parasite guidance';
+  const dewormSourceUrl = TROCCAP_URL;
+  const vaccineSourceLabel = 'WSAVA 2024 / AAHA-AAFP 2020';
+  const vaccineSourceUrl = AAFP_FELINE_2020_URL;
+  const rabiesSourceLabel = 'WSAVA 2024 / Vietnam rabies requirement';
+  const rabiesSourceUrl = WSAVA_2024_URL;
+
+  const recommendations: CoreCareScheduleRecommendation[] = [];
+
+  let lastEarlyDewormDue: Date | null =
+    state.dewormDosesCompleted > 0 ? state.dewormDates[state.dewormDosesCompleted - 1] ?? null : null;
+
+  for (let doseNumber = state.dewormDosesCompleted + 1; doseNumber <= 3; doseNumber += 1) {
+    const targetDate =
+      doseNumber === 1
+        ? addDays(birthDate, weeks(3))
+        : addDays(birthDate, weeks(3 + (doseNumber - 1) * 2));
+    const dueDate =
+      doseNumber === 1 && state.dewormDosesCompleted === 0
+        ? maxDate(today, targetDate)
+        : maxDate(today, addDays(lastEarlyDewormDue!, weeks(2)));
+    recommendations.push(
+      buildScheduledRecommendation({
+        family: 'catDeworming',
+        kind: 'deworming',
+        doseNumber,
+        today,
+        targetDate,
+        dueDate,
+        sourceLabel: dewormSourceLabel,
+        sourceUrl: dewormSourceUrl,
+      }),
+    );
+    lastEarlyDewormDue = dueDate;
+  }
+
+  const thirdEarlyDewormDue =
+    state.dewormDosesCompleted >= 3
+      ? state.dewormDates[2]!
+      : recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 3)?.dueDate
+        ? new Date(`${recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 3)!.dueDate}T00:00:00`)
+        : lastEarlyDewormDue!;
+
+  let lastFvrcpDue: Date | null = state.fvrcpDosesCompleted > 0 ? state.fvrcpDates[state.fvrcpDosesCompleted - 1] ?? null : null;
+
+  for (let doseNumber = state.fvrcpDosesCompleted + 1; doseNumber <= 3; doseNumber += 1) {
+    const targetDate =
+      doseNumber === 1
+        ? addDays(thirdEarlyDewormDue, PRE_VACCINE_DEWORMING_DAYS)
+        : addDays(birthDate, weeks(8 + (doseNumber - 1) * 4));
+    const dueDate =
+      doseNumber === 1
+        ? maxDate(today, targetDate)
+        : maxDate(today, addDays(lastFvrcpDue!, weeks(4)));
+    recommendations.push(
+      buildScheduledRecommendation({
+        family: 'catFvrcp',
+        kind: 'vaccine',
+        doseNumber,
+        today,
+        targetDate,
+        dueDate,
+        sourceLabel: vaccineSourceLabel,
+        sourceUrl: vaccineSourceUrl,
+      }),
+    );
+    lastFvrcpDue = dueDate;
+  }
+
+  const firstFvrcpDue =
+    state.fvrcpDosesCompleted > 0
+      ? state.fvrcpDates[0]!
+      : new Date(
+          `${recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 1)!.dueDate}T00:00:00`,
+        );
+
+  const postVaccineDewormsCompleted = Math.max(0, state.dewormDosesCompleted - 3);
+  let lastPostVaccineDewormDue = firstFvrcpDue;
+
+  if (postVaccineDewormsCompleted < 1) {
+    const targetDate = addDays(firstFvrcpDue, PRE_VACCINE_DEWORMING_DAYS);
+    const dueDate = maxDate(today, targetDate);
+    recommendations.push(
+      buildScheduledRecommendation({
+        family: 'catDeworming',
+        kind: 'deworming',
+        doseNumber: 4,
+        today,
+        targetDate,
+        dueDate,
+        sourceLabel: dewormSourceLabel,
+        sourceUrl: dewormSourceUrl,
+      }),
+    );
+    lastPostVaccineDewormDue = dueDate;
+  } else if (postVaccineDewormsCompleted >= 1) {
+    lastPostVaccineDewormDue = state.dewormDates[3] ?? state.dewormDates[state.dewormDates.length - 1]!;
+  }
+
+  if (postVaccineDewormsCompleted < 2) {
+    const targetDate = addDays(addDays(firstFvrcpDue, PRE_VACCINE_DEWORMING_DAYS), weeks(2));
+    const dueDate = maxDate(today, addDays(lastPostVaccineDewormDue, weeks(2)));
+    recommendations.push(
+      buildScheduledRecommendation({
+        family: 'catDeworming',
+        kind: 'deworming',
+        doseNumber: 5,
+        today,
+        targetDate,
+        dueDate,
+        sourceLabel: dewormSourceLabel,
+        sourceUrl: dewormSourceUrl,
+      }),
+    );
+    lastPostVaccineDewormDue = dueDate;
+  } else if (state.dewormDates[4]) {
+    lastPostVaccineDewormDue = state.dewormDates[4];
+  }
+
+  const secondFvrcpDue = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 2)?.dueDate;
+  const projectedSecondFvrcpDue = secondFvrcpDue
+    ? new Date(`${secondFvrcpDue}T00:00:00`)
+    : lastFvrcpDue
+      ? addDays(lastFvrcpDue, weeks(4))
+      : addDays(firstFvrcpDue, weeks(4));
+
+  if (state.rabiesDosesCompleted < 1) {
+    const rabiesTarget = addDays(birthDate, weeks(12));
+    let dueDate = maxDate(projectedSecondFvrcpDue, rabiesTarget);
+    if (dueDate.getTime() === projectedSecondFvrcpDue.getTime()) {
+      dueDate = addDays(projectedSecondFvrcpDue, PRE_VACCINE_DEWORMING_DAYS);
+    }
+    recommendations.push(
+      buildScheduledRecommendation({
+        family: 'catRabies',
+        kind: 'vaccine',
+        doseNumber: 1,
+        today,
+        targetDate: rabiesTarget,
+        dueDate: maxDate(today, dueDate),
+        sourceLabel: rabiesSourceLabel,
+        sourceUrl: rabiesSourceUrl,
+      }),
+    );
+  }
+
+  const lastEarlySeriesDewormDue =
+    state.dewormDosesCompleted >= 5
+      ? state.dewormDates[4]!
+      : lastPostVaccineDewormDue ?? thirdEarlyDewormDue;
+  const maintenanceStartDose = Math.max(6, state.dewormDosesCompleted + 1);
+
+  recommendations.push(
+    ...buildCatMaintenanceDeworming(birthDate, today, maintenanceStartDose, lastEarlySeriesDewormDue),
+  );
+
+  return recommendations;
+}
+
+function buildCatMaintenanceDeworming(
+  birthDate: Date,
+  today: Date,
+  startDoseNumber: number,
+  afterDueDate: Date,
+): CoreCareScheduleRecommendation[] {
+  const threeMonths = addDays(birthDate, MONTH_DAYS * 3);
+  const sixMonths = addDays(birthDate, MONTH_DAYS * 6);
+  const kittenEnd = addDays(birthDate, weeks(26));
+  const recommendations: CoreCareScheduleRecommendation[] = [];
+  let doseNumber = startDoseNumber;
+
+  let nextTarget = maxDate(addDays(afterDueDate, MONTH_DAYS), threeMonths);
+  while (nextTarget.getTime() <= sixMonths.getTime() && nextTarget.getTime() <= kittenEnd.getTime()) {
+    const dueDate = maxDate(today, nextTarget);
+    recommendations.push(
+      buildScheduledRecommendation({
+        family: 'catDeworming',
+        kind: 'deworming',
+        doseNumber,
+        today,
+        targetDate: nextTarget,
+        dueDate,
+        sourceLabel: 'TroCCAP / CAPC parasite guidance',
+        sourceUrl: TROCCAP_URL,
+      }),
+    );
+    doseNumber += 1;
+    nextTarget = addDays(nextTarget, MONTH_DAYS);
+  }
+
+  let quarterlyTarget = addDays(sixMonths, MONTH_DAYS * 3);
+  while (quarterlyTarget.getTime() <= kittenEnd.getTime()) {
+    const dueDate = maxDate(today, quarterlyTarget);
+    recommendations.push(
+      buildScheduledRecommendation({
+        family: 'catDeworming',
+        kind: 'deworming',
+        doseNumber,
+        today,
+        targetDate: quarterlyTarget,
+        dueDate,
+        sourceLabel: 'TroCCAP / CAPC parasite guidance',
+        sourceUrl: TROCCAP_URL,
+      }),
+    );
+    doseNumber += 1;
+    quarterlyTarget = addDays(quarterlyTarget, MONTH_DAYS * 3);
+  }
+
+  return recommendations;
 }
 
 function spaceInitialSchedule(
@@ -755,16 +1044,48 @@ function buildSingleRecommendation({
   sourceUrl: string;
 }): CoreCareScheduleRecommendation {
   const dueDate = maxDate(today, targetDate);
-  return {
-    id: `${family}-${doseNumber}-${formatCoreCareScheduleDate(dueDate)}`,
+  return buildScheduledRecommendation({
     family,
     kind,
     doseNumber,
-    dueDate: formatCoreCareScheduleDate(dueDate),
+    today,
+    targetDate,
+    dueDate,
+    sourceLabel,
+    sourceUrl,
+  });
+}
+
+function buildScheduledRecommendation({
+  family,
+  kind,
+  doseNumber,
+  today,
+  targetDate,
+  dueDate,
+  sourceLabel,
+  sourceUrl,
+}: {
+  family: CoreCareScheduleFamily;
+  kind: CoreCareScheduleKind;
+  doseNumber: number;
+  today: Date;
+  targetDate: Date;
+  dueDate: Date;
+  sourceLabel: string;
+  sourceUrl: string;
+}): CoreCareScheduleRecommendation {
+  const normalizedDueDate = maxDate(today, dueDate);
+  return {
+    id: `${family}-${doseNumber}-${formatCoreCareScheduleDate(normalizedDueDate)}`,
+    family,
+    kind,
+    doseNumber,
+    dueDate: formatCoreCareScheduleDate(normalizedDueDate),
     targetDate: formatCoreCareScheduleDate(targetDate),
     sourceLabel,
     sourceUrl,
-    isCatchUp: dueDate.getTime() > targetDate.getTime(),
+    isCatchUp: normalizedDueDate.getTime() > targetDate.getTime(),
   };
 }
 

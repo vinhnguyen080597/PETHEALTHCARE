@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { isExpoGo } from '../utils/expoRuntime';
 
 export type RewardedAdResult = {
   earned: boolean;
@@ -22,7 +23,7 @@ const availabilityListeners = new Set<(status: RewardedAdAvailability) => void>(
 
 function getNativeAds(): RewardedAdModule | null {
   if (nativeAds !== undefined) return nativeAds;
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' || isExpoGo()) {
     nativeAds = null;
     return nativeAds;
   }

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "npx expo start --go --lan --port 8081",
-    "dev": "npx expo start --go --tunnel --port 8081 -c",
+    "start": "cross-env EXPO_PUBLIC_EXPO_GO_COMPAT=1 npx expo start --go --lan --port 8081",
+    "dev": "cross-env EXPO_PUBLIC_EXPO_GO_COMPAT=1 npx expo start --go --tunnel --port 8081 -c",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -50,6 +50,7 @@
     "react-native-nitro-modules": "^0.35.10",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
+    "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
     "react-native-worklets": "0.5.1"
   },
