@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import type { AppFeatureFlags } from '../types';
+import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
 
 const PRIMARY = '#2563eb';
 
@@ -13,8 +14,13 @@ const FEATURE_ITEMS: Array<{
 }> = [
   { key: 'breed_recognition', icon: 'paw-outline' },
   { key: 'health_analysis', icon: 'pulse-outline' },
-  { key: 'rewarded_ads', icon: 'play-circle-outline' },
-  { key: 'subscription', icon: 'star-outline' },
+  // v1 release: monetization disabled
+  ...(RELEASE_MONETIZATION_ENABLED
+    ? ([
+        { key: 'rewarded_ads' as const, icon: 'play-circle-outline' as const },
+        { key: 'subscription' as const, icon: 'star-outline' as const },
+      ] as const)
+    : []),
 ];
 
 type AdminFeaturesScreenProps = {

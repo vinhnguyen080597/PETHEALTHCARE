@@ -6,7 +6,7 @@ import {
   Inter_700Bold,
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
-import { Component, type ReactNode, useEffect } from 'react';
+import { Component, type ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useTranslation } from 'react-i18next';
@@ -17,8 +17,9 @@ import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { ResponsiveFrame } from './src/components/ResponsiveFrame';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
-import { initializeRewardedAds } from './src/services/rewardedAd';
-import { initializeIap } from './src/services/iap';
+// v1 release: monetization disabled — re-enable when shipping ads + IAP.
+// import { initializeRewardedAds } from './src/services/rewardedAd';
+// import { initializeIap } from './src/services/iap';
 import { AdminReviewScreen } from './src/screens/AdminReviewScreen';
 import { ManagedUserBanner } from './src/components/ManagedUserBanner';
 import { AdminHubScreen } from './src/screens/AdminHubScreen';
@@ -137,10 +138,11 @@ function AppContent() {
   const rewardedAdsEnabled = app.isFeatureEnabled('rewarded_ads');
   const subscriptionEnabled = app.isFeatureEnabled('subscription');
 
-  useEffect(() => {
-    void initializeRewardedAds();
-    void initializeIap();
-  }, []);
+  // v1 release: monetization init disabled.
+  // useEffect(() => {
+  //   void initializeRewardedAds();
+  //   void initializeIap();
+  // }, []);
 
   if (!fontsLoaded && !fontError) return null;
   if (fontsLoaded) applyDefaultTypography();

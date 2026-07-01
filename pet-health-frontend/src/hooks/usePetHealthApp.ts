@@ -5,16 +5,18 @@ import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { DEFAULT_PET_SPECIES } from '../constants/petSpecies';
-import { showRewardedAd } from '../services/rewardedAd';
-import { initializeIap, purchasePremiumSubscription } from '../services/iap';
+import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
+// v1 release: monetization disabled — re-enable imports when shipping ads + IAP.
+// import { showRewardedAd } from '../services/rewardedAd';
+// import { purchasePremiumSubscription } from '../services/iap';
 import { birthDateToAgeMonths, petBirthDateForForm } from '../utils/petAge';
 import {
   AnalyzeRequestError,
   ApiRequestError,
   analyzePetHealthCheck,
   blockBreederProfile,
-  claimRewardedAdCredit,
-  verifyIapPurchase,
+  // claimRewardedAdCredit, // v1 release: rewarded ads disabled
+  // verifyIapPurchase, // v1 release: IAP disabled
   createAdminAccount,
   createAdminUserPet,
   createAnnouncementPost,
@@ -623,13 +625,21 @@ export function usePetHealthApp() {
       const res = await fetchFeatureFlags(accessToken);
       setAppFeatureFlags(res.data);
     } catch {
-      setAppFeatureFlags({ breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true });
+      setAppFeatureFlags({
+        breed_recognition: true,
+        health_analysis: true,
+        rewarded_ads: RELEASE_MONETIZATION_ENABLED,
+        subscription: RELEASE_MONETIZATION_ENABLED,
+      });
     } finally {
       setFeatureFlagsLoading(false);
     }
   }
 
   function isFeatureEnabled(key: keyof AppFeatureFlags) {
+    if (!RELEASE_MONETIZATION_ENABLED && (key === 'rewarded_ads' || key === 'subscription')) {
+      return false;
+    }
     if (accountProfile?.primary_role === 'admin') return true;
     return appFeatureFlags?.[key] !== false;
   }
@@ -1683,25 +1693,28 @@ export function usePetHealthApp() {
   }
 
   async function watchRewardedAdForCredit(): Promise<boolean> {
-    if (!isFeatureEnabled('rewarded_ads')) return false;
+    if (!RELEASE_MONETIZATION_ENABLED || !isFeatureEnabled('rewarded_ads')) return false;
     if (!token) return false;
 
-    const adResult = await showRewardedAd();
-    if (!adResult.earned) {
-      return false;
-    }
+    // v1 release: rewarded ads disabled — restore block below when enabling AdMob.
+    return false;
 
-    try {
-      const response = await claimRewardedAdCredit(token);
-      setAiCredits(response.data.account);
-      await refreshAiCredits(token);
-      Alert.alert(i18n.t('common.ok'), i18n.t('rewardedAd.claimSuccess', { credits: response.data.grantedCredits }));
-      return true;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      Alert.alert(i18n.t('rewardedAd.title'), message);
-      return false;
-    }
+    // const adResult = await showRewardedAd();
+    // if (!adResult.earned) {
+    //   return false;
+    // }
+    //
+    // try {
+    //   const response = await claimRewardedAdCredit(token);
+    //   setAiCredits(response.data.account);
+    //   await refreshAiCredits(token);
+    //   Alert.alert(i18n.t('common.ok'), i18n.t('rewardedAd.claimSuccess', { credits: response.data.grantedCredits }));
+    //   return true;
+    // } catch (error: unknown) {
+    //   const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+    //   Alert.alert(i18n.t('rewardedAd.title'), message);
+    //   return false;
+    // }
   }
 
   async function claimAdCredit() {
@@ -1710,37 +1723,40 @@ export function usePetHealthApp() {
   }
 
   function openPremiumSubscription() {
-    if (!isFeatureEnabled('subscription')) return;
+    if (!RELEASE_MONETIZATION_ENABLED || !isFeatureEnabled('subscription')) return;
     if (!token) return;
 
-    void (async () => {
-      const trial = aiEconomicsConfig?.pricingExperiment?.subscriptionTrial;
-      const monthlyCredits = trial?.monthlyCredits ?? 60;
+    // v1 release: IAP disabled — restore block below when enabling subscriptions.
+    return;
 
-      const result = await purchasePremiumSubscription(async (payload) => {
-        const response = await verifyIapPurchase(token, payload);
-        setAiCredits(response.data.account);
-      });
-
-      if (result.ok) {
-        await refreshAiCredits(token);
-        Alert.alert(i18n.t('premium.title'), i18n.t('premium.purchaseSuccess', { credits: monthlyCredits }));
-        return;
-      }
-      if (result.cancelled) return;
-
-      if (result.message === 'IAP_UNAVAILABLE' || result.message === 'IAP_WEB_UNSUPPORTED') {
-        const priceVnd = trial?.priceVnd ?? 99000;
-        const priceLabel = new Intl.NumberFormat('vi-VN').format(priceVnd);
-        Alert.alert(
-          i18n.t('premium.title'),
-          i18n.t('premium.mobileOnlyBody', { credits: monthlyCredits, price: priceLabel }),
-        );
-        return;
-      }
-
-      Alert.alert(i18n.t('premium.title'), result.message || i18n.t('premium.purchaseFailed'));
-    })();
+    // void (async () => {
+    //   const trial = aiEconomicsConfig?.pricingExperiment?.subscriptionTrial;
+    //   const monthlyCredits = trial?.monthlyCredits ?? 60;
+    //
+    //   const result = await purchasePremiumSubscription(async (payload) => {
+    //     const response = await verifyIapPurchase(token, payload);
+    //     setAiCredits(response.data.account);
+    //   });
+    //
+    //   if (result.ok) {
+    //     await refreshAiCredits(token);
+    //     Alert.alert(i18n.t('premium.title'), i18n.t('premium.purchaseSuccess', { credits: monthlyCredits }));
+    //     return;
+    //   }
+    //   if (result.cancelled) return;
+    //
+    //   if (result.message === 'IAP_UNAVAILABLE' || result.message === 'IAP_WEB_UNSUPPORTED') {
+    //     const priceVnd = trial?.priceVnd ?? 99000;
+    //     const priceLabel = new Intl.NumberFormat('vi-VN').format(priceVnd);
+    //     Alert.alert(
+    //       i18n.t('premium.title'),
+    //       i18n.t('premium.mobileOnlyBody', { credits: monthlyCredits, price: priceLabel }),
+    //     );
+    //     return;
+    //   }
+    //
+    //   Alert.alert(i18n.t('premium.title'), result.message || i18n.t('premium.purchaseFailed'));
+    // })();
   }
 
   function cancelPetForm() {

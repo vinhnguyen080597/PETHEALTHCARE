@@ -5,8 +5,9 @@ export const FEATURE_FLAG_KEYS = ['breed_recognition', 'health_analysis', 'rewar
 export const DEFAULT_FEATURE_FLAGS = {
   breed_recognition: true,
   health_analysis: true,
-  rewarded_ads: true,
-  subscription: true,
+  // v1 App Store release: ads and IAP disabled until a later release.
+  rewarded_ads: false,
+  subscription: false,
 };
 
 const SETTINGS_KEY = 'feature_flags';

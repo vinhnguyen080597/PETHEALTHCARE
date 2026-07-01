@@ -540,7 +540,8 @@ create table if not exists public.app_settings (
 insert into public.app_settings (key, value)
 values (
   'feature_flags',
-  '{"breed_recognition": true, "health_analysis": true, "rewarded_ads": true, "subscription": true}'::jsonb
+  -- v1 App Store release: rewarded_ads and subscription default off.
+  '{"breed_recognition": true, "health_analysis": true, "rewarded_ads": false, "subscription": false}'::jsonb
 )
 on conflict (key) do nothing;
 

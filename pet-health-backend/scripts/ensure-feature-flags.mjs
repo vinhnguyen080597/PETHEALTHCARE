@@ -33,7 +33,7 @@ if (data) {
 
 const { error: insertError } = await admin.from('app_settings').insert({
   key: 'feature_flags',
-  value: { breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true },
+  value: { breed_recognition: true, health_analysis: true, rewarded_ads: false, subscription: false },
 });
 
 if (insertError) {
