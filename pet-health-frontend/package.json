@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit",
     "release:verify:public-links": "node scripts/verify-public-links.mjs",
     "release:verify:backend": "node scripts/verify-production-backend.mjs",
+    "release:verify:native-autolinking": "node scripts/verify-native-autolinking.mjs",
     "release:smoke:native": "node scripts/release-native-smoke.mjs",
     "release:check": "yarn typecheck && yarn test && npx expo-doctor && yarn release:verify:public-links && yarn release:verify:backend",
     "build:ios:production": "eas build --platform ios --profile production",

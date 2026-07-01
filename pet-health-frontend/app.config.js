@@ -60,6 +60,17 @@ module.exports = () => {
     expo: {
       ...base,
       plugins,
+      ...(RELEASE_MONETIZATION_ENABLED
+        ? {}
+        : {
+            autolinking: {
+              exclude: [
+                'react-native-google-mobile-ads',
+                'react-native-iap',
+                'react-native-nitro-modules',
+              ],
+            },
+          }),
     },
   };
 };
