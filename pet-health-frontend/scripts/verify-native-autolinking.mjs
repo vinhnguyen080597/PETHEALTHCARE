@@ -84,4 +84,29 @@ if (hits.length) {
 }
 
 console.log('OK  Android prebuild has no AdMob / IAP / nitro-modules autolinking.');
-console.log('Note: iOS uses the same react-native.config.js on EAS — this is the best free check on Windows.');
+
+let iosResolveOutput = '';
+try {
+  iosResolveOutput = execSync('npx expo-modules-autolinking resolve --platform ios', {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, CI: '1' },
+  });
+} catch (error) {
+  fail(`expo-modules-autolinking resolve failed: ${error instanceof Error ? error.message : String(error)}`);
+}
+
+const bannedIosModules = BANNED_PATTERNS.flatMap((pattern) => {
+  const matches = iosResolveOutput.match(new RegExp(`"packageName":\\s*"[^"]*${pattern.source}[^"]*"`, 'gi')) ?? [];
+  return matches;
+});
+if (bannedIosModules.length) {
+  console.error('\nBanned iOS autolinking modules still resolved:');
+  for (const match of bannedIosModules) {
+    console.error(`  - ${match}`);
+  }
+  fail('iOS autolinking still includes monetization packages.');
+}
+
+console.log('OK  iOS autolinking resolve has no AdMob / IAP / nitro-modules.');
+console.log('Note: run this before every paid EAS iOS build.');

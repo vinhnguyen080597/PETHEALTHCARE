@@ -10,6 +10,7 @@ import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
 // import { showRewardedAd } from '../services/rewardedAd';
 // import { purchasePremiumSubscription } from '../services/iap';
 import { birthDateToAgeMonths, petBirthDateForForm } from '../utils/petAge';
+import { debugCheck, debugLog } from '../utils/debugLog';
 import {
   AnalyzeRequestError,
   ApiRequestError,
@@ -683,26 +684,50 @@ export function usePetHealthApp() {
   }
 
   async function initializeApp() {
+    debugLog('STARTUP', 'usePetHealthApp.initializeApp.enter');
     try {
       const [, savedToken] = await Promise.all([
         healthCheck()
-          .then(() => setBackendHealth('online'))
-          .catch(() => setBackendHealth('offline')),
-        getStoredAuthToken(),
+          .then(() => {
+            setBackendHealth('online');
+            debugLog('STARTUP', 'usePetHealthApp.healthCheck.ok');
+          })
+          .catch((error) => {
+            setBackendHealth('offline');
+            debugLog('STARTUP', 'usePetHealthApp.healthCheck.fail', {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }),
+        getStoredAuthToken().then((token) => {
+          debugLog('STARTUP', 'usePetHealthApp.getStoredAuthToken', { hasToken: Boolean(token) });
+          return token;
+        }),
       ]);
 
-      if (!savedToken) return;
+      if (!savedToken) {
+        debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'login', reason: 'no_saved_token' });
+        return;
+      }
 
       setToken(savedToken);
       try {
         const profile = await fetchAccountProfile(savedToken);
+        debugLog('STARTUP', 'usePetHealthApp.fetchAccountProfile.ok', {
+          role: profile.primary_role,
+        });
         await loadAuthenticatedUserData(savedToken, profile);
         await navigateAfterAuthenticatedSession();
-      } catch {
+        debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'authenticated' });
+      } catch (error) {
+        debugCheck('STARTUP', 'usePetHealthApp.restore_session', false, {
+          message: error instanceof Error ? error.message : String(error),
+        });
         await clearInvalidSession();
+        debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'login', reason: 'invalid_session' });
       }
     } finally {
       setSessionBootstrapping(false);
+      debugLog('STARTUP', 'usePetHealthApp.sessionBootstrapping.false');
     }
   }
 

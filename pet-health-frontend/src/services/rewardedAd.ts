@@ -1,4 +1,7 @@
 import { Platform } from 'react-native';
+import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
+import type { NativeRewardedAdModule } from '../types/monetizationNative';
+import { debugCheck, debugLog } from '../utils/debugLog';
 import { isExpoGo } from '../utils/expoRuntime';
 
 export type RewardedAdResult = {
@@ -8,7 +11,7 @@ export type RewardedAdResult = {
 
 export type RewardedAdAvailability = 'unsupported' | 'loading' | 'ready' | 'unavailable';
 
-type RewardedAdModule = typeof import('react-native-google-mobile-ads');
+type RewardedAdModule = NativeRewardedAdModule;
 
 type PreloadedSlot = {
   ad: ReturnType<RewardedAdModule['RewardedAd']['createForAdRequest']>;
@@ -23,13 +26,24 @@ const availabilityListeners = new Set<(status: RewardedAdAvailability) => void>(
 
 function getNativeAds(): RewardedAdModule | null {
   if (nativeAds !== undefined) return nativeAds;
+  if (!RELEASE_MONETIZATION_ENABLED) {
+    debugLog('STARTUP', 'rewardedAd.getNativeAds', { skipped: true, reason: 'monetization_disabled' });
+    nativeAds = null;
+    return nativeAds;
+  }
   if (Platform.OS === 'web' || isExpoGo()) {
+    debugLog('STARTUP', 'rewardedAd.getNativeAds', { skipped: true, reason: Platform.OS === 'web' ? 'web' : 'expo_go' });
     nativeAds = null;
     return nativeAds;
   }
   try {
     nativeAds = require('react-native-google-mobile-ads') as RewardedAdModule;
-  } catch {
+    debugCheck('STARTUP', 'rewardedAd.getNativeAds', true, { platform: Platform.OS });
+  } catch (error) {
+    debugCheck('STARTUP', 'rewardedAd.getNativeAds', false, {
+      platform: Platform.OS,
+      message: error instanceof Error ? error.message : String(error),
+    });
     nativeAds = null;
   }
   return nativeAds;
@@ -66,19 +80,29 @@ export function subscribeRewardedAdAvailability(listener: (status: RewardedAdAva
 }
 
 export function initializeRewardedAds(): Promise<void> {
+  debugLog('STARTUP', 'rewardedAd.initializeRewardedAds.enter');
   if (initPromise) return initPromise;
   const ads = getNativeAds();
   if (!ads) {
     initPromise = Promise.resolve();
     setAvailability('unsupported');
+    debugLog('STARTUP', 'rewardedAd.initializeRewardedAds.exit', { availability: 'unsupported' });
     return initPromise;
   }
   setAvailability('loading');
   initPromise = ads
     .default()
     .initialize()
-    .then(() => undefined)
-    .catch(() => undefined);
+    .then(() => {
+      debugLog('STARTUP', 'rewardedAd.initializeRewardedAds.exit', { availability: 'ready_to_preload' });
+      return undefined;
+    })
+    .catch((error) => {
+      debugCheck('STARTUP', 'rewardedAd.initializeRewardedAds', false, {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    });
   return initPromise;
 }
 

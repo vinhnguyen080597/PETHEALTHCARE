@@ -1,5 +1,8 @@
 import { Platform } from 'react-native';
 import { PREMIUM_MONTHLY_PRODUCT_ID } from '../constants/iapProducts';
+import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
+import type { NativeIapModule, NativePurchase, NativePurchaseError } from '../types/monetizationNative';
+import { debugCheck, debugLog } from '../utils/debugLog';
 import { isExpoGo } from '../utils/expoRuntime';
 
 export type IapPurchasePayload = {
@@ -10,9 +13,9 @@ export type IapPurchasePayload = {
   receiptData: string | null;
 };
 
-type IapModule = typeof import('react-native-iap');
-type Purchase = import('react-native-iap').Purchase;
-type PurchaseError = import('react-native-iap').PurchaseError;
+type IapModule = NativeIapModule;
+type Purchase = NativePurchase;
+type PurchaseError = NativePurchaseError;
 
 let initPromise: Promise<boolean> | null = null;
 let listenersAttached = false;
@@ -33,20 +36,31 @@ function platformName(): 'ios' | 'android' | null {
 }
 
 export function isIapSupported(): boolean {
+  if (!RELEASE_MONETIZATION_ENABLED) return false;
   if (isExpoGo()) return false;
   return platformName() != null;
 }
 
 async function loadIapModule(): Promise<IapModule | null> {
-  if (!isIapSupported()) return null;
+  debugLog('STARTUP', 'iap.loadIapModule.enter');
+  if (!isIapSupported()) {
+    debugLog('STARTUP', 'iap.loadIapModule.exit', { skipped: true });
+    return null;
+  }
   if (iapModule) return iapModule;
   if (!iapModulePromise) {
     iapModulePromise = import('react-native-iap')
       .then((module) => {
         iapModule = module;
+        debugCheck('STARTUP', 'iap.loadIapModule', true, { platform: Platform.OS });
         return module;
       })
-      .catch(() => null);
+      .catch((error) => {
+        debugCheck('STARTUP', 'iap.loadIapModule', false, {
+          message: error instanceof Error ? error.message : String(error),
+        });
+        return null;
+      });
   }
   return iapModulePromise;
 }
@@ -79,7 +93,11 @@ async function attachPurchaseListeners(iap: IapModule) {
 }
 
 export async function initializeIap(): Promise<boolean> {
-  if (!isIapSupported()) return false;
+  debugLog('STARTUP', 'iap.initializeIap.enter');
+  if (!isIapSupported()) {
+    debugLog('STARTUP', 'iap.initializeIap.exit', { ready: false, reason: 'unsupported' });
+    return false;
+  }
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
@@ -88,8 +106,12 @@ export async function initializeIap(): Promise<boolean> {
     try {
       await attachPurchaseListeners(iap);
       await iap.initConnection();
+      debugLog('STARTUP', 'iap.initializeIap.exit', { ready: true });
       return true;
-    } catch {
+    } catch (error) {
+      debugCheck('STARTUP', 'iap.initializeIap', false, {
+        message: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   })();

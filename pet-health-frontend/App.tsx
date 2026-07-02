@@ -17,6 +17,7 @@ import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
 import { ResponsiveFrame } from './src/components/ResponsiveFrame';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
+import { debugLog } from './src/utils/debugLog';
 // v1 release: monetization disabled — re-enable when shipping ads + IAP.
 // import { initializeRewardedAds } from './src/services/rewardedAd';
 // import { initializeIap } from './src/services/iap';
@@ -93,6 +94,10 @@ class StartupErrorBoundary extends Component<StartupErrorBoundaryProps, StartupE
   }
 
   componentDidCatch(error: Error) {
+    debugLog('STARTUP', 'App.StartupErrorBoundary.catch', {
+      message: error.message,
+      stack: error.stack,
+    });
     console.error('Pet Health Care startup error', error);
   }
 
@@ -123,6 +128,7 @@ export default function App() {
 }
 
 function AppContent() {
+  debugLog('STARTUP', 'App.AppContent.render');
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -144,10 +150,27 @@ function AppContent() {
   //   void initializeIap();
   // }, []);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsLoaded && !fontError) {
+    debugLog('STARTUP', 'App.AppContent.waiting_for_fonts');
+    return null;
+  }
+  if (fontError) {
+    debugLog('STARTUP', 'App.AppContent.font_error', { message: fontError.message });
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Fonts could not load</Text>
+          <Text style={styles.errorMessage} selectable>
+            {fontError.message}
+          </Text>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
   if (fontsLoaded) applyDefaultTypography();
 
   if (app.sessionBootstrapping) {
+    debugLog('STARTUP', 'App.AppContent.session_bootstrapping');
     return (
       <SafeAreaProvider>
         <StatusBar style="dark" />

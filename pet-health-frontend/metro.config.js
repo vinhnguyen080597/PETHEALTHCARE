@@ -4,11 +4,13 @@ const { withNativeWind } = require('nativewind/metro');
 
 const config = getDefaultConfig(__dirname);
 
+const monetizationNativeEnabled = process.env.EXPO_PUBLIC_MONETIZATION_ENABLED === 'true';
 const stubExpoGoNativeModules = process.env.EXPO_PUBLIC_EXPO_GO_COMPAT === '1';
+const stubMonetizationNativeModules = stubExpoGoNativeModules || !monetizationNativeEnabled;
 const originalResolveRequest = config.resolver.resolveRequest;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (stubExpoGoNativeModules) {
+  if (stubMonetizationNativeModules) {
     if (moduleName === 'react-native-iap') {
       return {
         filePath: path.resolve(__dirname, 'src/stubs/react-native-iap.ts'),
@@ -18,6 +20,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     if (moduleName === 'react-native-nitro-modules') {
       return {
         filePath: path.resolve(__dirname, 'src/stubs/react-native-nitro-modules.ts'),
+        type: 'sourceFile',
+      };
+    }
+    if (moduleName === 'react-native-google-mobile-ads') {
+      return {
+        filePath: path.resolve(__dirname, 'src/stubs/react-native-google-mobile-ads.ts'),
         type: 'sourceFile',
       };
     }

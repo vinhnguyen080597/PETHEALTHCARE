@@ -19,6 +19,7 @@ import {
   type CoreCareScheduleRecommendation,
   normalizeManualVaccineId,
 } from '../utils/coreCareSchedule';
+import { debugCheck, debugLog } from '../utils/debugLog';
 import { resolvePetAgeMonths, parseBirthDateIso, formatBirthDateIso } from '../utils/petAge';
 import type {
   AiCreditAccount,
@@ -641,6 +642,44 @@ export function CoreCareScreen({
   );
   const showScheduleSetup = !scheduleSetupDismissed && !hasGeneratedSchedule;
 
+  useEffect(() => {
+    debugLog('CORE_CARE', 'CoreCareScreen.schedule_state', {
+      petId: pet.id,
+      species: pet.species,
+      birthDate: pet.birth_date,
+      isCatSpecies,
+      hasGeneratedSchedule,
+      administeredVaccineDoses: administeredVaccineDoses.length,
+      administeredDewormingDoses: administeredDewormingDoses.length,
+      draftVaccineDoses: draftVaccineDoses.length,
+      draftDewormingDoses: draftDewormingDoses.length,
+      generatedRecommendations: generatedRecommendations.length,
+      pendingGeneratedRecommendations: pendingGeneratedRecommendations.length,
+      historyScheduleRecommendations: historyScheduleRecommendations.length,
+      pendingHistoryRecommendations: pendingHistoryRecommendations.length,
+      pendingNextVaccineRecommendations: pendingNextVaccineRecommendations.length,
+      resolvedHistoryVaccineId,
+      desiredVaccineId,
+    });
+  }, [
+    administeredDewormingDoses.length,
+    administeredVaccineDoses.length,
+    desiredVaccineId,
+    draftDewormingDoses.length,
+    draftVaccineDoses.length,
+    generatedRecommendations.length,
+    hasGeneratedSchedule,
+    historyScheduleRecommendations.length,
+    isCatSpecies,
+    pendingGeneratedRecommendations.length,
+    pendingHistoryRecommendations.length,
+    pendingNextVaccineRecommendations.length,
+    pet.birth_date,
+    pet.id,
+    pet.species,
+    resolvedHistoryVaccineId,
+  ]);
+
   function optionsForDose(draft: CareEntryDraft) {
     if (draft.careKind !== 'vaccine') return vaccineOptions;
     return vaccineOptions.filter((option) => option.id === draft.vaccineId || !selectedDoseIds.includes(option.id));
@@ -726,6 +765,11 @@ export function CoreCareScreen({
   }
 
   async function createScheduleFromVaccines() {
+    debugLog('CORE_CARE', 'CoreCareScreen.createScheduleFromVaccines.enter', {
+      doseDraftCount: doseDrafts.length,
+      pendingCareRecommendations: pendingCareRecommendations.length,
+      isCatSpecies,
+    });
     const nextErrors: CareEntryDraftErrors = {};
     for (const draft of doseDrafts) {
       const draftErrors: { careKind?: string; vaccineId?: string; administeredAt?: string } = {};
@@ -851,6 +895,12 @@ export function CoreCareScreen({
           ? t('coreCare.scheduleGeneratedBody', { count: pendingHistoryRecommendations.length })
           : t('coreCare.vaccineScheduleGeneratedBody', { count: pendingNextVaccineRecommendations.length }),
       );
+      debugLog('CORE_CARE', 'CoreCareScreen.createScheduleFromVaccines.exit', { ok: true });
+    } catch (error) {
+      debugCheck('CORE_CARE', 'CoreCareScreen.createScheduleFromVaccines', false, {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
     } finally {
       setSubmittingVaccines(false);
     }
