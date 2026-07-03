@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supabase.js';
 import { deleteAccountData, ensureAccountProfile } from '../repositories/accountRepository.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail, requireSignupEmail } from '../services/authIdentifierService.js';
-import { findAuthUserByEmail } from '../services/adminAuthUserService.js';
+import { getPendingSignUpLoginBlockCode, requestEmailSignUpOtp } from '../services/signupAuthService.js';
 import {
   applyUpdateEmail,
   applyUpdatePassword,
@@ -46,30 +46,8 @@ router.post('/signup', async (req, res, next) => {
     };
 
     const admin = getSupabaseServiceClient();
-    if (admin) {
-      const existing = await findAuthUserByEmail(admin, authEmail);
-      if (existing) {
-        return res.status(409).json({
-          error: 'This email is already registered. Please sign in instead.',
-          code: 'EMAIL_ALREADY_REGISTERED',
-        });
-      }
-    }
-
-    const { data, error } = await supabase.auth.signInWithOtp({
-      email: authEmail,
-      options: {
-        shouldCreateUser: true,
-        data: metadata,
-      },
-    });
-    if (error) throw error;
-    return res.status(200).json({
-      data: {
-        otpSent: true,
-        email: authEmail,
-      },
-    });
+    const result = await requestEmailSignUpOtp({ supabase, admin, authEmail, metadata });
+    return res.status(200).json({ data: result });
   } catch (err) {
     return next(err);
   }
@@ -175,6 +153,14 @@ router.post('/login', async (req, res, next) => {
 
     const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
     if (error) {
+      const admin = getSupabaseServiceClient();
+      const pendingCode = await getPendingSignUpLoginBlockCode(admin, authEmail);
+      if (pendingCode === 'SIGNUP_OTP_PENDING') {
+        return res.status(403).json({
+          error: 'This account is not activated yet. Sign up again with the same email to receive a new OTP.',
+          code: 'SIGNUP_OTP_PENDING',
+        });
+      }
       return res.status(401).json({
         error: 'Incorrect email or password.',
         code: 'invalid_credentials',

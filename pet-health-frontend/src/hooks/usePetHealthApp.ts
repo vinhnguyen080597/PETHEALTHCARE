@@ -203,6 +203,9 @@ function resolveAuthErrorMessage(error: unknown, isSignUp: boolean): string {
       if (error.status === 503) {
         return i18n.t('login.errors.signInFailed');
       }
+      if (error.code === 'SIGNUP_OTP_PENDING') {
+        return i18n.t('login.errors.signupOtpPending');
+      }
       return i18n.t('login.errors.invalidCredentials');
     }
     if (error.code === 'over_email_send_rate_limit') {
@@ -850,6 +853,28 @@ export function usePetHealthApp() {
       }
       await applySession(accessToken);
     } catch (error: unknown) {
+      if (
+        !isSignUp &&
+        error instanceof ApiRequestError &&
+        error.code === 'SIGNUP_OTP_PENDING' &&
+        password &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      ) {
+        try {
+          const signUpEmail = email.trim();
+          await requestSignUpOtp({ email: signUpEmail, password });
+          setPendingSignUpEmail(signUpEmail);
+          setPendingSignUpPassword(password);
+          setSignUpOtp('');
+          setSignUpOtpError('');
+          setAuthError('');
+          setScreen('signup-otp-verification');
+          return;
+        } catch (resendError: unknown) {
+          setAuthError(resolveAuthErrorMessage(resendError, true));
+          return;
+        }
+      }
       if (
         isSignUp &&
         error instanceof ApiRequestError &&

@@ -56,7 +56,8 @@
       "invalidCredentials": "Email hoặc mật khẩu không đúng.",
       "weakPassword": "Mật khẩu phải có ít nhất 6 ký tự.",
       "signUpFailed": "Không thể gửi mã xác thực. Vui lòng thử lại.",
-      "signInFailed": "Không thể đăng nhập. Vui lòng thử lại."
+      "signInFailed": "Không thể đăng nhập. Vui lòng thử lại.",
+      "signupOtpPending": "Tài khoản chưa kích hoạt. Chúng tôi đã gửi lại mã OTP — vui lòng xác thực để hoàn tất đăng ký."
     },
     "fieldErrors": {
       "emailRequired": "Vui lòng nhập email.",

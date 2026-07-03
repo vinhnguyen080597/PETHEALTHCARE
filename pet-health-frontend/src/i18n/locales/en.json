@@ -56,7 +56,8 @@
       "invalidCredentials": "Incorrect email or password.",
       "weakPassword": "Password must be at least 6 characters.",
       "signUpFailed": "Could not send verification code. Please try again.",
-      "signInFailed": "Could not sign in. Please try again."
+      "signInFailed": "Could not sign in. Please try again.",
+      "signupOtpPending": "This account is not activated yet. We sent a new OTP — verify it to finish signing up."
     },
     "fieldErrors": {
       "emailRequired": "Please enter your email.",
