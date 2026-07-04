@@ -477,7 +477,9 @@ export function PetFeedScreen({
         return (
           <View className="px-5">
             <View className="items-center rounded-2xl border border-red-100 bg-white px-5 py-10">
-              <Text className="text-center text-sm text-slate-500">{announcementInitialError}</Text>
+              <Ionicons name="cloud-offline-outline" size={38} color="#dc2626" />
+              <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.loadFailedTitle')}</Text>
+              <Text className="mt-2 text-center text-sm leading-5 text-slate-500">{announcementInitialError}</Text>
               <Pressable className="mt-5 rounded-xl bg-blue-600 px-5 py-3" onPress={onRefresh}>
                 <Text className="text-sm font-bold text-white">{t('petFeed.retry')}</Text>
               </Pressable>

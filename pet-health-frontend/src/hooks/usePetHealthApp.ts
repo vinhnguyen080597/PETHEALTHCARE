@@ -494,9 +494,14 @@ export function usePetHealthApp() {
     }
   }, [token, fetchPets]);
 
-  const loadPetFeedFirstPage = useCallback(async (accessToken: string, options: { showInitialLoading?: boolean } = {}) => {
-    if (options.showInitialLoading) setPetFeedInitialLoading(true);
+  const loadPetFeedFirstPage = useCallback(async (
+    accessToken: string,
+    options: { showFeedInitialLoading?: boolean; showAnnouncementInitialLoading?: boolean } = {},
+  ) => {
+    if (options.showFeedInitialLoading) setPetFeedInitialLoading(true);
+    if (options.showAnnouncementInitialLoading) setAnnouncementInitialLoading(true);
     setPetFeedInitialError('');
+    setAnnouncementInitialError('');
     setPetFeedLoadMoreError('');
     try {
       const [postsResponse, announcementsResponse, breedersResponse] = await Promise.all([
@@ -508,15 +513,16 @@ export function usePetHealthApp() {
       setPetFeedNextCursor(postsResponse.nextCursor ?? null);
       setAnnouncementPosts(announcementsResponse.data);
       setAnnouncementNextCursor(announcementsResponse.nextCursor ?? null);
-      setAnnouncementInitialError('');
       setTopBreederProfiles(breedersResponse.data);
       return true;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      setPetFeedInitialError(message);
+      if (options.showFeedInitialLoading) setPetFeedInitialError(message);
+      if (options.showAnnouncementInitialLoading) setAnnouncementInitialError(message);
       return false;
     } finally {
-      if (options.showInitialLoading) setPetFeedInitialLoading(false);
+      if (options.showFeedInitialLoading) setPetFeedInitialLoading(false);
+      if (options.showAnnouncementInitialLoading) setAnnouncementInitialLoading(false);
     }
   }, []);
 
@@ -1393,7 +1399,10 @@ export function usePetHealthApp() {
     if (screen === 'pet-feed') return;
     setSelectedBreederProfileId(null);
     setScreen('pet-feed');
-    await loadPetFeedFirstPage(token, { showInitialLoading: petFeedPosts.length === 0 });
+    await loadPetFeedFirstPage(token, {
+      showFeedInitialLoading: petFeedPosts.length === 0,
+      showAnnouncementInitialLoading: announcementPosts.length === 0,
+    });
   }
 
   function openBreederDetail(profileId: string) {
