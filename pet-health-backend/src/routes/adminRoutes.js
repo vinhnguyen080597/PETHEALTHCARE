@@ -129,6 +129,15 @@ router.put('/feature-flags', requireAdminOrSecret, async (req, res, next) => {
     if ('subscription' in body) {
       patch.subscription = body.subscription;
     }
+    if ('pet_feed_news' in body || 'petFeedNews' in body) {
+      patch.pet_feed_news = body.pet_feed_news ?? body.petFeedNews;
+    }
+    if ('pet_feed_listings' in body || 'petFeedListings' in body) {
+      patch.pet_feed_listings = body.pet_feed_listings ?? body.petFeedListings;
+    }
+    if ('pet_feed_breeders' in body || 'petFeedBreeders' in body) {
+      patch.pet_feed_breeders = body.pet_feed_breeders ?? body.petFeedBreeders;
+    }
     const updatedBy = req.user?.id ?? null;
     const data = await updateFeatureFlags(patch, updatedBy);
     return res.json({ data });

@@ -715,7 +715,25 @@
       "subscription": {
         "title": "Đăng ký Premium",
         "description": "Nút đăng ký gói Premium / subscription trong app."
+      },
+      "pet_feed_news": {
+        "title": "Tab Tin tức",
+        "description": "Tin tức và thông báo Pet Health Care trên Pet Feed."
+      },
+      "pet_feed_listings": {
+        "title": "Tab Bài đăng",
+        "description": "Bài đăng mèo/thú cưng trên Pet Feed."
+      },
+      "pet_feed_breeders": {
+        "title": "Tab Breeder",
+        "description": "Danh sách breeder nổi bật trên Pet Feed."
       }
+    },
+    "petFeedTabs": {
+      "sectionTitle": "Tab Pet Feed",
+      "sectionSubtitle": "Bật hoặc tắt từng mục trên Pet Feed. Luôn phải giữ ít nhất 1 tab đang bật.",
+      "lastTabTitle": "Giữ ít nhất 1 tab",
+      "lastTabBody": "Pet Feed cần ít nhất 1 tab hiển thị. Hãy bật lại tab khác trước khi tắt tab này."
     }
   },
   "managedUser": {

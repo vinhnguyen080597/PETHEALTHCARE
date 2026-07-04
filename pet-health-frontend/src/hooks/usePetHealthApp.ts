@@ -634,6 +634,9 @@ export function usePetHealthApp() {
         health_analysis: true,
         rewarded_ads: RELEASE_MONETIZATION_ENABLED,
         subscription: RELEASE_MONETIZATION_ENABLED,
+        pet_feed_news: true,
+        pet_feed_listings: true,
+        pet_feed_breeders: true,
       });
     } finally {
       setFeatureFlagsLoading(false);
@@ -2939,6 +2942,11 @@ export function usePetHealthApp() {
     featureFlagsLoading,
     featureFlagSavingKey,
     isFeatureEnabled,
+    petFeedEnabledTabs: {
+      news: appFeatureFlags?.pet_feed_news !== false,
+      feed: appFeatureFlags?.pet_feed_listings !== false,
+      breeders: appFeatureFlags?.pet_feed_breeders !== false,
+    },
     openAdminUserDetail,
     closeAdminUserDetail,
     adminSelectedAccount,

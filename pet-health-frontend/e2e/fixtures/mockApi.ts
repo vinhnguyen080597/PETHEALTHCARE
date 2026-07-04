@@ -99,6 +99,9 @@ type MockApiState = {
     health_analysis: boolean;
     rewarded_ads: boolean;
     subscription: boolean;
+    pet_feed_news: boolean;
+    pet_feed_listings: boolean;
+    pet_feed_breeders: boolean;
   };
 };
 
@@ -251,7 +254,7 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     accountPassword: MOCK_ACCOUNT_PASSWORD,
     pendingNewEmail: null,
     pendingPasswordRecovery: false,
-    featureFlags: { breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true },
+    featureFlags: { breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true, pet_feed_news: true, pet_feed_listings: true, pet_feed_breeders: true },
     ...initial,
   };
 
@@ -655,6 +658,23 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
       }
       if ('subscription' in payload) {
         state.featureFlags.subscription = payload.subscription !== false;
+      }
+      if ('pet_feed_news' in payload) {
+        state.featureFlags.pet_feed_news = payload.pet_feed_news !== false;
+      }
+      if ('pet_feed_listings' in payload) {
+        state.featureFlags.pet_feed_listings = payload.pet_feed_listings !== false;
+      }
+      if ('pet_feed_breeders' in payload) {
+        state.featureFlags.pet_feed_breeders = payload.pet_feed_breeders !== false;
+      }
+      const enabledPetFeedTabs = [
+        state.featureFlags.pet_feed_news,
+        state.featureFlags.pet_feed_listings,
+        state.featureFlags.pet_feed_breeders,
+      ].filter(Boolean).length;
+      if (enabledPetFeedTabs < 1) {
+        return json(route, { error: 'At least one Pet Feed tab must stay enabled.', code: 'PET_FEED_TAB_REQUIRED' }, 400);
       }
       return json(route, { data: state.featureFlags });
     }

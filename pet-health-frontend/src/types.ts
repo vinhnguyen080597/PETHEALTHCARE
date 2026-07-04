@@ -42,6 +42,9 @@ export type AppFeatureFlags = {
   health_analysis: boolean;
   rewarded_ads: boolean;
   subscription: boolean;
+  pet_feed_news: boolean;
+  pet_feed_listings: boolean;
+  pet_feed_breeders: boolean;
 };
 
 export type AuthResponse = {

@@ -715,7 +715,25 @@
       "subscription": {
         "title": "Premium subscription",
         "description": "Subscribe to Premium button in the app."
+      },
+      "pet_feed_news": {
+        "title": "News tab",
+        "description": "Pet Health Care news and announcements in Pet Feed."
+      },
+      "pet_feed_listings": {
+        "title": "Listings tab",
+        "description": "Pet listings and adoption posts in Pet Feed."
+      },
+      "pet_feed_breeders": {
+        "title": "Breeders tab",
+        "description": "Top breeder profiles in Pet Feed."
       }
+    },
+    "petFeedTabs": {
+      "sectionTitle": "Pet Feed tabs",
+      "sectionSubtitle": "Show or hide each Pet Feed section. At least one tab must stay on.",
+      "lastTabTitle": "Keep one tab on",
+      "lastTabBody": "Pet Feed needs at least one visible tab. Turn another tab back on before hiding this one."
     }
   },
   "managedUser": {

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -22,6 +22,10 @@ import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, metadataString } from '../utils/breederTrust';
 import { ACTIVE_PET_FEED_SPECIES, type ActivePetFeedSpecies } from '../constants/petSpecies';
+import {
+  PET_FEED_TAB_ORDER,
+  type PetFeedScreenTab,
+} from '../constants/petFeedTabFlags';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 import { modalTopInset } from '../utils/modalSafeArea';
 
@@ -33,7 +37,7 @@ type SpeciesFilter = 'all' | ActivePetFeedSpecies;
 type GenderFilter = 'all' | 'male' | 'female';
 type SortField = 'date' | 'age' | 'price';
 type SortDirection = 'asc' | 'desc';
-type FeedTab = 'feed' | 'news' | 'breeders';
+type FeedTab = PetFeedScreenTab;
 type ChipItem<T extends string> = {
   key: T;
   label: string;
@@ -63,6 +67,7 @@ type PetFeedScreenProps = {
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
   onHideBreeder: (profile: BreederProfile) => void;
   onOpenBreederDetail: (profileId: string) => void;
+  enabledTabs?: { news: boolean; feed: boolean; breeders: boolean };
 };
 
 function normalizeSearchText(value: string) {
@@ -180,11 +185,22 @@ export function PetFeedScreen({
   onReportPost,
   onHideBreeder,
   onOpenBreederDetail,
+  enabledTabs = { news: true, feed: true, breeders: true },
 }: PetFeedScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const [activeTab, setActiveTab] = useState<FeedTab>('feed');
+  const visibleTabs = useMemo(
+    () => PET_FEED_TAB_ORDER.filter((tab) => enabledTabs[tab]),
+    [enabledTabs],
+  );
+  const [activeTab, setActiveTab] = useState<FeedTab>(() => visibleTabs[0] ?? 'feed');
+
+  useEffect(() => {
+    if (!visibleTabs.includes(activeTab) && visibleTabs.length > 0) {
+      setActiveTab(visibleTabs[0]);
+    }
+  }, [activeTab, visibleTabs]);
   const [query, setQuery] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState<SpeciesFilter>('all');
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
@@ -638,6 +654,7 @@ export function PetFeedScreen({
                 </Pressable>
               ) : null}
             </View>
+            {enabledTabs.feed && activeTab === 'feed' ? (
             <Pressable
               testID="pet-feed-filter-sidebar-button"
               accessibilityRole="button"
@@ -650,15 +667,19 @@ export function PetFeedScreen({
             >
               <Ionicons name="menu-outline" size={22} color={hasActiveFilters ? PRIMARY : '#64748b'} />
             </Pressable>
+            ) : (
+              <View className="h-9 w-9" />
+            )}
           </View>
 
+          {visibleTabs.length > 1 ? (
           <View className="mb-3 border-b border-gray-200 bg-white px-2 pb-2">
             <View className="flex-row rounded-xl border border-blue-100 bg-blue-50/40 p-0.5">
               {([
                 { key: 'news' as const, label: t('petFeed.tabs.news'), count: announcementPosts.length, icon: 'megaphone-outline' as const },
                 { key: 'feed' as const, label: t('petFeed.tabs.feed'), count: posts.length, icon: 'newspaper-outline' as const },
                 { key: 'breeders' as const, label: t('petFeed.tabs.breeders'), count: topBreeders.length, icon: 'ribbon-outline' as const },
-              ]).map((item) => {
+              ]).filter((item) => enabledTabs[item.key]).map((item) => {
                 const active = activeTab === item.key;
                 const compactTabs = windowWidth < 390;
                 return (
@@ -691,6 +712,7 @@ export function PetFeedScreen({
               })}
             </View>
           </View>
+          ) : null}
         </>
       )}
     />

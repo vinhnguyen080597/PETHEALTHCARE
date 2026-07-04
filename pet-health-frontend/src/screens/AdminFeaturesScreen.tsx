@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import type { AppFeatureFlags } from '../types';
 import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
+import { countEnabledPetFeedTabs, PET_FEED_TAB_FLAG_KEYS, type PetFeedTabFlagKey } from '../constants/petFeedTabFlags';
 
 const PRIMARY = '#2563eb';
 
@@ -23,6 +24,15 @@ const FEATURE_ITEMS: Array<{
     : []),
 ];
 
+const PET_FEED_TAB_ITEMS: Array<{
+  key: PetFeedTabFlagKey;
+  icon: keyof typeof Ionicons.glyphMap;
+}> = [
+  { key: 'pet_feed_news', icon: 'megaphone-outline' },
+  { key: 'pet_feed_listings', icon: 'newspaper-outline' },
+  { key: 'pet_feed_breeders', icon: 'ribbon-outline' },
+];
+
 type AdminFeaturesScreenProps = {
   flags: AppFeatureFlags | null;
   loading: boolean;
@@ -41,12 +51,65 @@ export function AdminFeaturesScreen({
   const { t } = useTranslation();
 
   async function handleToggle(key: FeatureToggleKey, nextValue: boolean) {
+    if (
+      !nextValue
+      && PET_FEED_TAB_FLAG_KEYS.includes(key as PetFeedTabFlagKey)
+      && flags
+      && flags[key] !== false
+      && countEnabledPetFeedTabs(flags) <= 1
+    ) {
+      Alert.alert(t('adminFeatures.petFeedTabs.lastTabTitle'), t('adminFeatures.petFeedTabs.lastTabBody'));
+      return;
+    }
     try {
       await onToggle(key, nextValue);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
       Alert.alert(t('adminFeatures.updateFailed'), message);
     }
+  }
+
+  function renderToggleCard(item: { key: FeatureToggleKey; icon: keyof typeof Ionicons.glyphMap }) {
+    const enabled = flags?.[item.key] !== false;
+    const saving = savingKey === item.key;
+    const isLastPetFeedTab = PET_FEED_TAB_FLAG_KEYS.includes(item.key as PetFeedTabFlagKey)
+      && enabled
+      && flags
+      && countEnabledPetFeedTabs(flags) <= 1;
+    return (
+      <View
+        key={item.key}
+        testID={`admin-feature-toggle-${item.key}`}
+        className="rounded-2xl border border-gray-200 bg-white p-4"
+      >
+        <View className="flex-row items-start gap-3">
+          <View className="mt-0.5 h-11 w-11 items-center justify-center rounded-2xl bg-blue-50">
+            <Ionicons name={item.icon} size={22} color={PRIMARY} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-base font-bold text-slate-900">{t(`adminFeatures.items.${item.key}.title`)}</Text>
+            <Text className="mt-1 text-sm leading-5 text-slate-600">{t(`adminFeatures.items.${item.key}.description`)}</Text>
+            <Text className={`mt-2 text-xs font-bold uppercase ${enabled ? 'text-emerald-600' : 'text-amber-600'}`}>
+              {enabled ? t('adminFeatures.statusOn') : t('adminFeatures.statusOff')}
+            </Text>
+          </View>
+          <Switch
+            testID={`admin-feature-switch-${item.key}`}
+            value={enabled}
+            disabled={saving || loading || isLastPetFeedTab}
+            onValueChange={(value) => void handleToggle(item.key, value)}
+            trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
+            thumbColor={enabled ? PRIMARY : '#f8fafc'}
+          />
+        </View>
+        {saving ? (
+          <View className="mt-3 flex-row items-center gap-2">
+            <ActivityIndicator size="small" color={PRIMARY} />
+            <Text className="text-xs text-slate-500">{t('adminFeatures.saving')}</Text>
+          </View>
+        ) : null}
+      </View>
+    );
   }
 
   return (
@@ -64,46 +127,19 @@ export function AdminFeaturesScreen({
           <ActivityIndicator size="large" color={PRIMARY} />
         </View>
       ) : (
+        <>
         <View className="mt-6 gap-3">
-          {FEATURE_ITEMS.map((item) => {
-            const enabled = flags?.[item.key] !== false;
-            const saving = savingKey === item.key;
-            return (
-              <View
-                key={item.key}
-                testID={`admin-feature-toggle-${item.key}`}
-                className="rounded-2xl border border-gray-200 bg-white p-4"
-              >
-                <View className="flex-row items-start gap-3">
-                  <View className="mt-0.5 h-11 w-11 items-center justify-center rounded-2xl bg-blue-50">
-                    <Ionicons name={item.icon} size={22} color={PRIMARY} />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-base font-bold text-slate-900">{t(`adminFeatures.items.${item.key}.title`)}</Text>
-                    <Text className="mt-1 text-sm leading-5 text-slate-600">{t(`adminFeatures.items.${item.key}.description`)}</Text>
-                    <Text className={`mt-2 text-xs font-bold uppercase ${enabled ? 'text-emerald-600' : 'text-amber-600'}`}>
-                      {enabled ? t('adminFeatures.statusOn') : t('adminFeatures.statusOff')}
-                    </Text>
-                  </View>
-                  <Switch
-                    testID={`admin-feature-switch-${item.key}`}
-                    value={enabled}
-                    disabled={saving || loading}
-                    onValueChange={(value) => void handleToggle(item.key, value)}
-                    trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
-                    thumbColor={enabled ? PRIMARY : '#f8fafc'}
-                  />
-                </View>
-                {saving ? (
-                  <View className="mt-3 flex-row items-center gap-2">
-                    <ActivityIndicator size="small" color={PRIMARY} />
-                    <Text className="text-xs text-slate-500">{t('adminFeatures.saving')}</Text>
-                  </View>
-                ) : null}
-              </View>
-            );
-          })}
+          {FEATURE_ITEMS.map((item) => renderToggleCard(item))}
         </View>
+
+        <View className="mt-8">
+          <Text className="text-base font-bold text-slate-900">{t('adminFeatures.petFeedTabs.sectionTitle')}</Text>
+          <Text className="mt-1 text-sm leading-5 text-slate-600">{t('adminFeatures.petFeedTabs.sectionSubtitle')}</Text>
+          <View className="mt-3 gap-3">
+            {PET_FEED_TAB_ITEMS.map((item) => renderToggleCard(item))}
+          </View>
+        </View>
+        </>
       )}
 
       <View className="mt-8 rounded-2xl border border-gray-200 bg-white p-4">

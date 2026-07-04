@@ -324,6 +324,7 @@ function AppContent() {
                 onReportPost={app.submitPetFeedReport}
                 onHideBreeder={app.hideBreederProfile}
                 onOpenBreederDetail={app.openBreederDetail}
+                enabledTabs={app.petFeedEnabledTabs}
               />
               </View>
             )}
