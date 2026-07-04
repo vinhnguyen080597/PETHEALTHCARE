@@ -62,5 +62,14 @@
     "typescript": "~5.9.2",
     "vitest": "^4.1.5"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "react-native-google-mobile-ads",
+        "react-native-iap",
+        "react-native-nitro-modules"
+      ]
+    }
+  }
 }
