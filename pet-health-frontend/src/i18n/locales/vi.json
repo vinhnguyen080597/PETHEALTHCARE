@@ -132,6 +132,7 @@
     "emptyFilteredTitle": "Chưa có bài phù hợp",
     "emptyFilteredBody": "Sen thử đổi bộ lọc khác để xem thêm bài đăng nhé.",
     "detailTitle": "Chi tiết bài đăng",
+    "newsDetailTitle": "Chi tiết tin tức",
     "breederFallback": "Breeder",
     "locationUnknown": "Chưa chia sẻ khu vực",
     "tabs": {
@@ -204,6 +205,7 @@
       "openFilters": "Mở bộ lọc Pet Feed",
       "closeFilters": "Đóng bộ lọc Pet Feed",
       "closeDetail": "Đóng chi tiết bài đăng",
+      "closeNewsDetail": "Quay lại danh sách tin tức",
       "openListing": "Mở bài đăng {{title}}",
       "listingMedia": "Media của bài đăng {{title}}",
       "openListingPhoto": "Xem ảnh {{index}} của bài đăng",

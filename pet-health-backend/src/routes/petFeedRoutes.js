@@ -20,13 +20,20 @@ import {
   updatePetFeedPost,
   upsertMyBreederProfile,
 } from '../repositories/petFeedRepository.js';
+import {
+  PET_FEED_PHOTO_MAX_BYTES,
+  PET_FEED_UPLOAD_MAX_BYTES,
+  PET_FEED_VIDEO_MAX_BYTES,
+  petFeedPhotoMaxLabel,
+  petFeedVideoMaxLabel,
+} from '../constants/petFeedMediaLimits.js';
 import { storePetFeedImage, storePetFeedVideo } from '../services/imageStorageService.js';
 import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 const router = Router();
 const petFeedUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: PET_FEED_UPLOAD_MAX_BYTES },
 });
 const SUPPORTED_IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const SUPPORTED_VIDEO_MIMES = new Set(['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp']);
@@ -76,8 +83,8 @@ function validatePetFeedMedia({ payload, photos, video }) {
     if (!Buffer.isBuffer(photo.buffer) || photo.buffer.length < 1024) {
       throw badMedia('Photo is too small or empty. Please upload a clear image.', 'PET_FEED_PHOTO_TOO_SMALL');
     }
-    if (photo.size > 8 * 1024 * 1024) {
-      throw badMedia('Photo is too large. Please use photos under 8MB.', 'PET_FEED_PHOTO_TOO_LARGE');
+    if (photo.size > PET_FEED_PHOTO_MAX_BYTES) {
+      throw badMedia(`Photo is too large. Please use photos under ${petFeedPhotoMaxLabel()}.`, 'PET_FEED_PHOTO_TOO_LARGE');
     }
   }
   if (video) {
@@ -87,8 +94,8 @@ function validatePetFeedMedia({ payload, photos, video }) {
     if (!Buffer.isBuffer(video.buffer) || video.buffer.length < 1024) {
       throw badMedia('Video is too small or empty. Please upload a real clip.', 'PET_FEED_VIDEO_TOO_SMALL');
     }
-    if (video.size > 20 * 1024 * 1024) {
-      throw badMedia('Video is too large. Please use a short clip under 20MB.', 'PET_FEED_VIDEO_TOO_LARGE');
+    if (video.size > PET_FEED_VIDEO_MAX_BYTES) {
+      throw badMedia(`Video is too large. Please use a short clip under ${petFeedVideoMaxLabel()}.`, 'PET_FEED_VIDEO_TOO_LARGE');
     }
   }
 }
@@ -122,8 +129,8 @@ function validateAnnouncementMedia({ photos, video }) {
     if (!Buffer.isBuffer(photo.buffer) || photo.buffer.length < 1024) {
       throw badMedia('Photo is too small or empty. Please upload a clear image.', 'PET_FEED_PHOTO_TOO_SMALL');
     }
-    if (photo.size > 8 * 1024 * 1024) {
-      throw badMedia('Photo is too large. Please use photos under 8MB.', 'PET_FEED_PHOTO_TOO_LARGE');
+    if (photo.size > PET_FEED_PHOTO_MAX_BYTES) {
+      throw badMedia(`Photo is too large. Please use photos under ${petFeedPhotoMaxLabel()}.`, 'PET_FEED_PHOTO_TOO_LARGE');
     }
   }
   if (video) {
@@ -133,8 +140,8 @@ function validateAnnouncementMedia({ photos, video }) {
     if (!Buffer.isBuffer(video.buffer) || video.buffer.length < 1024) {
       throw badMedia('Video is too small or empty. Please upload a real clip.', 'PET_FEED_VIDEO_TOO_SMALL');
     }
-    if (video.size > 20 * 1024 * 1024) {
-      throw badMedia('Video is too large. Please use a short clip under 20MB.', 'PET_FEED_VIDEO_TOO_LARGE');
+    if (video.size > PET_FEED_VIDEO_MAX_BYTES) {
+      throw badMedia(`Video is too large. Please use a short clip under ${petFeedVideoMaxLabel()}.`, 'PET_FEED_VIDEO_TOO_LARGE');
     }
   }
 }

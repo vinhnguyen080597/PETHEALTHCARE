@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, hasBreederContact, metadataArray, metadataString } from '../utils/breederTrust';
@@ -246,30 +247,25 @@ export function BreederDetailScreen({
           ))}
         </View>
       </ScrollView>
-      <Modal visible={Boolean(selectedPost)} animationType="slide" onRequestClose={() => setSelectedPostId(null)}>
-        <View className="flex-1 bg-[#F2F4F8]">
-          <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
-            <Pressable className="w-14 rounded-lg p-2" onPress={() => setSelectedPostId(null)}>
-              <Ionicons name="close" size={24} color="#1e293b" />
-            </Pressable>
-            <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('petFeed.detailTitle')}</Text>
-            <View className="w-14" />
-          </View>
-          <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}>
-            {selectedPost ? (
-              <PetFeedPostCard
-                post={selectedPost}
-                onToggleFavorite={onToggleFavorite}
-                onReportPost={onReportPost}
-                onHideBreeder={onHideBreeder}
-                showHideBreeder
-                autoPlayVideo={false}
-                testID={`breeder-detail-post-${selectedPost.id}`}
-              />
-            ) : null}
-          </ScrollView>
-        </View>
-      </Modal>
+      <ModalScreenShell
+        visible={selectedPostId != null}
+        title={t('petFeed.detailTitle')}
+        closeLabel={t('petFeed.accessibility.closeDetail')}
+        closeTestID="breeder-detail-post-back-button"
+        onClose={() => setSelectedPostId(null)}
+      >
+        {selectedPost ? (
+          <PetFeedPostCard
+            post={selectedPost}
+            onToggleFavorite={onToggleFavorite}
+            onReportPost={onReportPost}
+            onHideBreeder={onHideBreeder}
+            showHideBreeder
+            autoPlayVideo={false}
+            testID={`breeder-detail-post-${selectedPost.id}`}
+          />
+        ) : null}
+      </ModalScreenShell>
       <Modal visible={reportVisible} transparent animationType="fade" onRequestClose={() => setReportVisible(false)}>
         <View className="flex-1 justify-center bg-black/40 px-5">
           <View className="rounded-3xl bg-white p-5">

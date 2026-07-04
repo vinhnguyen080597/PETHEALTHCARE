@@ -3,9 +3,11 @@ import { Image as ExpoImage } from 'expo-image';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
 import { FormDateField } from '../components/FormDateField';
+import { modalBottomInset } from '../utils/modalSafeArea';
 
 type PetFormVariant = 'create' | 'edit';
 
@@ -68,6 +70,7 @@ function FormSelect({
   required?: boolean;
 }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const selectedLabel = options.find((o) => o.value === value)?.label;
 
@@ -89,7 +92,7 @@ function FormSelect({
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View className="flex-1 justify-end">
           <Pressable className="absolute inset-0 bg-black/40" onPress={() => setOpen(false)} />
-          <View className="rounded-t-2xl bg-white px-4 pb-8 pt-2">
+          <View className="rounded-t-2xl bg-white px-4 pt-2" style={{ paddingBottom: modalBottomInset(insets.bottom, 16) }}>
             <View className="mb-2 self-center rounded-full bg-gray-200 px-10 py-1" />
             {options.map((opt) => (
               <Pressable

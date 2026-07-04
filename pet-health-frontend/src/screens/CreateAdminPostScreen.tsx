@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AdminPostCard } from '../components/AdminPostCard';
+import { ModalScreenShell } from '../components/ModalScreenShell';
 import type { AnnouncementCategory, CreateAnnouncementPostMedia, CreateAnnouncementPostPayload, PetFeedPost } from '../types';
 
 type CreateAdminPostScreenProps = {
@@ -170,20 +171,16 @@ export function CreateAdminPostScreen({ onBack, onSubmit }: CreateAdminPostScree
         </Pressable>
       </ScrollView>
 
-      <Modal visible={reviewOpen} animationType="slide" onRequestClose={() => setReviewOpen(false)}>
-        <View className="flex-1 bg-[#F2F4F8]">
-          <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
-            <Pressable className="w-14 rounded-lg p-2" onPress={() => setReviewOpen(false)}>
-              <Ionicons name="close" size={24} color="#1e293b" />
-            </Pressable>
-            <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('adminPost.preview')}</Text>
-            <View className="w-14" />
-          </View>
-          <ScrollView className="flex-1 p-5">
-            <AdminPostCard post={previewPost} />
-          </ScrollView>
-        </View>
-      </Modal>
+      <ModalScreenShell
+        visible={reviewOpen}
+        title={t('adminPost.preview')}
+        closeLabel={t('common.cancel')}
+        closeIconName="close"
+        onClose={() => setReviewOpen(false)}
+        scrollPaddingHorizontal={20}
+      >
+        <AdminPostCard post={previewPost} />
+      </ModalScreenShell>
     </View>
   );
 }

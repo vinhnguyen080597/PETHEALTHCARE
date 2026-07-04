@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ModalBottomSheet } from '../components/ModalBottomSheet';
+import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { CreatePetFeedPostMedia, CreatePetFeedPostPayload, PetFeedPost, UserRole } from '../types';
 import { ACTIVE_PET_FEED_SPECIES } from '../constants/petSpecies';
@@ -47,29 +49,25 @@ function SelectField({
         <Text className="text-base font-semibold text-slate-900">{selected?.label ?? label}</Text>
         <Ionicons name="chevron-down" size={18} color="#64748b" />
       </Pressable>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 justify-end bg-slate-950/40" onPress={() => setOpen(false)}>
-          <View className="rounded-t-3xl bg-white p-5" onStartShouldSetResponder={() => true}>
-            <Text className="mb-3 text-lg font-bold text-slate-900">{label}</Text>
-            {options.map((option) => {
-              const active = option.value === value;
-              return (
-                <Pressable
-                  key={option.value}
-                  className={`mb-2 flex-row items-center justify-between rounded-xl px-3 py-3 ${active ? 'bg-blue-50' : 'bg-slate-50'}`}
-                  onPress={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                >
-                  <Text className={`text-base font-semibold ${active ? 'text-blue-700' : 'text-slate-800'}`}>{option.label}</Text>
-                  {active ? <Ionicons name="checkmark-circle" size={20} color={PRIMARY} /> : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        </Pressable>
-      </Modal>
+      <ModalBottomSheet visible={open} onClose={() => setOpen(false)} sheetClassName="rounded-t-3xl bg-white p-5">
+        <Text className="mb-3 text-lg font-bold text-slate-900">{label}</Text>
+        {options.map((option) => {
+          const active = option.value === value;
+          return (
+            <Pressable
+              key={option.value}
+              className={`mb-2 flex-row items-center justify-between rounded-xl px-3 py-3 ${active ? 'bg-blue-50' : 'bg-slate-50'}`}
+              onPress={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+            >
+              <Text className={`text-base font-semibold ${active ? 'text-blue-700' : 'text-slate-800'}`}>{option.label}</Text>
+              {active ? <Ionicons name="checkmark-circle" size={20} color={PRIMARY} /> : null}
+            </Pressable>
+          );
+        })}
+      </ModalBottomSheet>
     </View>
   );
 }
@@ -236,17 +234,22 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       selectionLimit: MAX_PHOTOS,
-      quality: 0.85,
+      quality: 1,
     });
     if (result.canceled || !result.assets?.length) return;
     const newUris: string[] = [];
     for (const asset of result.assets) {
-      const compressed = await ImageManipulator.manipulateAsync(
+      const isVeryLarge = (asset.width ?? 0) > 2560 || (asset.fileSize ?? 0) > 12 * 1024 * 1024;
+      if (!isVeryLarge) {
+        newUris.push(asset.uri);
+        continue;
+      }
+      const optimized = await ImageManipulator.manipulateAsync(
         asset.uri,
-        [{ resize: { width: 1400 } }],
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+        [{ resize: { width: 2560 } }],
+        { compress: 0.92, format: ImageManipulator.SaveFormat.JPEG },
       );
-      newUris.push(compressed.uri);
+      newUris.push(optimized.uri);
     }
     setPhotoUris((current) => [...current, ...newUris].slice(0, MAX_PHOTOS));
     setValidationMessage('');
@@ -424,19 +427,15 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
         </View>
       </ScrollView>
 
-      <Modal visible={reviewOpen} animationType="slide" onRequestClose={() => setReviewOpen(false)}>
-        <View className="flex-1 bg-[#F2F4F8]">
-          <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
-            <Pressable className="w-14 rounded-lg p-2" onPress={() => setReviewOpen(false)}>
-              <Ionicons name="close" size={24} color="#1e293b" />
-            </Pressable>
-            <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('createPetFeedPost.review')}</Text>
-            <View className="w-14" />
-          </View>
-          <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120 }}>
-            <PetFeedPostCard post={previewPost} showFavorite={false} showContact={false} showReport={false} testID="create-pet-feed-post-preview-card" />
-          </ScrollView>
-          <View className="border-t border-gray-200 bg-white p-4">
+      <ModalScreenShell
+        visible={reviewOpen}
+        title={t('createPetFeedPost.review')}
+        closeLabel={t('common.cancel')}
+        closeIconName="close"
+        onClose={() => setReviewOpen(false)}
+        scrollPaddingBottom={120}
+        footer={(
+          <View className="px-4 pt-4">
             <Pressable className="mb-3 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50" onPress={() => setReviewOpen(false)}>
               <Text className="text-center text-sm font-bold text-slate-700">{t('createPetFeedPost.edit')}</Text>
             </Pressable>
@@ -450,8 +449,10 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
               <Text className="text-sm font-bold text-white">{isAdmin ? t('createPetFeedPost.publish') : t('createPetFeedPost.submit')}</Text>
             </Pressable>
           </View>
-        </View>
-      </Modal>
+        )}
+      >
+        <PetFeedPostCard post={previewPost} showFavorite={false} showContact={false} showReport={false} testID="create-pet-feed-post-preview-card" />
+      </ModalScreenShell>
     </View>
   );
 }

@@ -27,14 +27,38 @@ Mỗi bài gồm:
 ### Quy Ước TikTok Slide
 
 - Tỷ lệ ảnh: **9:16 dọc** (1080×1920), phù hợp TikTok photo carousel.
+- **Vùng an toàn phía trên (bắt buộc)**: Khi đăng ảnh carousel trên TikTok, UI phía trên (status bar, tab Bạn bè/Theo dõi...) **che mất ~12–15% mép trên ảnh** — title dễ bị cắt nếu dán sát đầu. Mọi Image prompt phải ghi rõ: **để trống ~12–15% mép trên**, tiêu đề/chữ hook bắt đầu từ **~15–18% chiều cao** khung hình trở xuống.
 - Mỗi bài: **5–6 slide** — slide 1 là **hook** (chữ to, tương phản mạnh, gây tò mò/dừng cuộn).
 - **Slide 2 trở đi**: text **nhiều và chi tiết hơn** — mỗi slide nên có tiêu đề + 3–5 dòng giải thích/bullet đầy đủ để Sen đọc được ngay trên ảnh, không chỉ gạch đầu dòng ngắn.
 - **Màu sắc đồng nhất**: toàn bộ carousel (Slide 1–6) dùng **cùng bảng màu** với Slide 1 hook — không đổi sang tông khác giữa chừng.
+- **Slide 1 (Hook) — ảnh Mai**: Image prompt phải có phần **Bối cảnh** mô tả Mai (nhân vật thương hiệu Pet Health Care) xuất hiện trong khung hình, **đính kèm ảnh tham chiếu Mai** khi tạo ảnh. Mai nhìn/nghiêng về phía camera như đang nói chuyện trực tiếp với Sen — thân thiện, gần gũi, không formal. Mục tiêu: tạo cảm giác Mai đang hook Sen dừng cuộn và lắng nghe.
 - **Image prompt Slide 2+** phải gồm đủ: bảng màu carousel, bố cục text/minh họa, typography, và **copy nguyên văn toàn bộ Image text** vào phần "chữ trên ảnh" (không rút gọn).
 - Slide cuối: CTA (follow, lưu, comment) + logo/nhận diện Pet Health Care nhẹ.
 - Phong cách ảnh: digital illustration pastel, dễ thương, không bác sĩ thật, không máu/cảnh bệnh nặng.
 - Nhạc gợi ý: nhạc chill dễ thương hoặc trending sound nhẹ (tuỳ thời điểm đăng).
+- **Caption TikTok**: ghi **Chủ đề** bài ở dòng đầu (copy từ `Chủ đề:` của post), sau đó mới đến nội dung caption + hashtag.
 - Hashtag TikTok gợi ý: `#meo #meocung #chamsocmeo #nguoimoinuoimeo #pethealthcare #senmeo #tipsmeo`
+
+**Template Image prompt cho Slide 1 (Hook)** (áp dụng mọi bài):
+
+```text
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở [vị trí: góc dưới trái/phải hoặc nửa dưới khung hình], nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Phần còn lại của khung: [minh họa nội dung hook của bài — mèo, icon, v.v.].
+- Nền gradient [màu cụ thể của bài], ánh sáng ấm, cảm giác "dừng cuộn lại đọc".
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+
+Chữ tiếng Việt CỰC TO, đậm, dễ đọc trên điện thoại:
+[copy nguyên văn Image text hook]
+
+Phong cách: digital illustration hiện đại, cute nhưng hook mạnh. Mai tích hợp tự nhiên vào layout, không che chữ. Không bác sĩ thật, không cảnh buồn.
+```
 
 **Template Image prompt cho Slide 2 trở đi** (áp dụng mỗi slide):
 
@@ -44,12 +68,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 [Dòng bảng màu cụ thể của bài — copy từ Slide 1 hook]
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -152,6 +177,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Checklist trước khi quyết định nuôi mèo
+
 Yêu mèo ≠ sẵn sàng nuôi mèo 🐱
 5 câu hỏi Sen NÊN tự hỏi trước khi đón bé — lưu lại cho chắc nha 👇
 
@@ -172,14 +199,22 @@ SẴN SÀNG NUÔI MÈO
 Image prompt:
 
 ```text
-Tạo ảnh minh họa dọc 9:16 cho TikTok slide, thương hiệu "Pet Health Care".
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
 
-Bối cảnh: một chú mèo dễ thương ngồi giữa khung ảnh, phía sau là dấu hỏi lớn và icon checklist. Màu nền gradient pastel hồng-cam nổi bật, ánh sáng ấm, cảm giác "dừng cuộn lại đọc".
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- một chú mèo dễ thương ngồi giữa khung ảnh, phía sau là dấu hỏi lớn và icon checklist. Màu nền gradient pastel hồng-cam nổi bật, ánh sáng ấm, cảm giác "dừng cuộn lại đọc".
 
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
 Chữ tiếng Việt CỰC TO, đậm, dễ đọc trên điện thoại, chia 3 dòng:
 "YÊU MÈO ≠ SẴN SÀNG NUÔI MÈO"
 "5 điều Sen phải hỏi"
 "TRƯỚC khi đón bé"
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
 
 Phong cách: digital illustration hiện đại, cute nhưng hook mạnh. Không bác sĩ thật, không cảnh buồn.
 ```
@@ -207,12 +242,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient pastel hồng-cam nổi bật, ánh sáng ấm — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -254,12 +290,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient pastel hồng-cam nổi bật, ánh sáng ấm — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -304,12 +341,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient pastel hồng-cam nổi bật, ánh sáng ấm — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -351,12 +389,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient pastel hồng-cam nổi bật, ánh sáng ấm — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -394,12 +433,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient pastel hồng-cam nổi bật, ánh sáng ấm — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -504,6 +544,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Mèo con vs mèo trưởng thành — nên chọn bé nào?
+
 Mèo con hay mèo lớn — chọn sai là mệt lắm đó Sen 😅
 So sánh nhanh để chọn bé hợp lối sống nha 👇
 
@@ -522,10 +564,22 @@ Chọn SAI = mệt cả Sen lẫn bé 😿
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 TikTok hook cực mạnh. Chia đôi màn hình: trái mèo con hyper chạy nhảy, phải mèo lớn điềm đạm nằm gối. Giữa có vs lớn. Nền gradient tím-hồng nổi bật. Chữ CỰC TO:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Chia đôi màn hình: trái mèo con hyper chạy nhảy, phải mèo lớn điềm đạm nằm gối. Giữa có vs lớn. Nền gradient tím-hồng nổi bật. 
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+Chữ CỰC TO:
 "MÈO CON hay MÈO LỚN?"
 "Chọn SAI = mệt cả Sen lẫn bé"
-Digital illustration cute, high contrast text.
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -553,12 +607,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient tím-hồng nổi bật — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -603,12 +658,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient tím-hồng nổi bật — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -651,12 +707,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient tím-hồng nổi bật — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -694,12 +751,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient tím-hồng nổi bật — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -806,6 +864,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Nhận nuôi từ cứu hộ, nhà nuôi hay nguồn khác — Sen nên lưu ý gì?
+
 Đón mèo mà không hỏi 5 câu này = rủi ro lắm Sen ơi 🐱
 Lưu lại trước khi đi xem bé nha 👇
 
@@ -826,11 +886,24 @@ mà KHÔNG HỎI
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook TikTok cực mạnh. Mèo dễ thương nhưng có icon cảnh báo vàng lớn, nền đỏ-cam gradient attention-grabbing. Chữ CỰC TO, đậm, dễ đọc:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo dễ thương nhưng có icon cảnh báo vàng lớn, nền đỏ-cam gradient attention-grabbing. 
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+Chữ CỰC TO, đậm, dễ đọc:
 "ĐÓN MÈO mà KHÔNG HỎI"
 "5 câu này"
 "= RỦI RO ⚠️"
 Cảm giác dừng cuộn ngay.
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -856,12 +929,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-cam gradient attention-grabbing — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -901,12 +975,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-cam gradient attention-grabbing — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -946,12 +1021,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-cam gradient attention-grabbing — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -991,12 +1067,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-cam gradient attention-grabbing — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1102,6 +1179,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Dấu hiệu một bé mèo khỏe khi Sen đi xem/adopt
+
 Dễ thương CHƯA ĐỦ để đón mèo đâu Sen 🐱
 Bé khỏe nhìn ở đâu? Checklist 30 giây 👇
 
@@ -1122,9 +1201,20 @@ CHỖ NÀO?
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook viral. Mèo siêu cute ở giữa nhưng có stamp đỏ "CHƯA ĐỦ" gạch chéo qua trái tim hồng. Nền gradient vàng-cam nổi. Chữ CỰC TO:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo siêu cute ở giữa nhưng có stamp đỏ "CHƯA ĐỦ" gạch chéo qua trái tim hồng. Nền gradient vàng-cam nổi. Chữ CỰC TO:
 "DỄ THƯƠNG CHƯA ĐỦ ❌"
 "Bé khỏe nhìn CHỖ NÀO?"
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -1149,12 +1239,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient vàng-cam nổi — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1194,12 +1285,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient vàng-cam nổi — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1240,12 +1332,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient vàng-cam nổi — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1283,12 +1376,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient vàng-cam nổi — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1394,6 +1488,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Chuẩn bị nhà trước khi bé về — không gian an toàn
+
 Đón mèo về mà quên chuẩn bị nhà = bé stress + Sen vội vàng 😿
 Checklist an toàn trước khi bé về 👇
 
@@ -1414,10 +1510,23 @@ CHUẨN BỊ NHÀ
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook. Mèo nhỏ trốn góc phòng, dây điện lộn xộn, cửa sổ mở (minh họa nguy hiểm nhẹ). Chữ CỰC TO đỏ-cam:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo nhỏ trốn góc phòng, dây điện lộn xộn, cửa sổ mở (minh họa nguy hiểm nhẹ). 
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+Chữ CỰC TO đỏ-cam:
 "ĐÓN MÈO VỀ mà QUÊN CHUẨN BỊ NHÀ"
 "= BÉ STRESS"
 Cảm giác urgency nhưng vẫn cute illustration.
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -1445,12 +1554,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-cam gradient — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1493,12 +1603,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-cam gradient — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1539,12 +1650,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-cam gradient — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1583,12 +1695,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-cam gradient — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1695,6 +1808,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Đồ cần mua cho bé mèo mới về
+
 Mèo mới về cần mua gì? Đừng mua lung tung tốn tiền nha Sen 🛒
 Danh sách "cần ngay" vs "mua sau" 👇
 
@@ -1715,11 +1830,22 @@ Chỉ cần NHỮNG MÓN NÀY
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook. Mèo ngồi giữa đống đồ xịn lung tung (illustration hài hước), một bên giỏ đồ tối thiểu gọn gàng. Chữ CỰC TO:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo ngồi giữa đống đồ xịn lung tung (illustration hài hước), một bên giỏ đồ tối thiểu gọn gàng. Chữ CỰC TO:
 "MÈO MỚI VỀ"
 "ĐỪNG MUA LUNG TUNG 💸"
 "Chỉ cần NHỮNG MÓN NÀY"
 Gradient xanh lá-cam attention.
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -1746,12 +1872,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient xanh lá-cam attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1795,12 +1922,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient xanh lá-cam attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1842,12 +1970,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient xanh lá-cam attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1886,12 +2015,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient xanh lá-cam attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -1998,6 +2128,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Quy tắc 3-3-3 những ngày đầu bé về nhà
+
 Bé mới về không ngoan ngay là BÌNH THƯỜNG nha Sen 🐱
 Quy tắc 3-3-3 ai mới nuôi cũng nên biết 👇
 
@@ -2018,11 +2150,24 @@ Quy tắc 3-3-3
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook viral. Mèo trốn dưới giường cute, Sen lo lắng minh họa nhẹ. Chữ CỰC TO trấn an:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo trốn dưới giường cute, Sen lo lắng minh họa nhẹ. 
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+Chữ CỰC TO trấn an:
 "BÉ MỚI VỀ KHÔNG NGOAN NGAY"
 "= BÌNH THƯỜNG ✅"
 "Quy tắc 3-3-3"
 Nền xanh dương-pastel calming + attention.
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -2052,12 +2197,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền xanh dương-pastel calming — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2103,12 +2249,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền xanh dương-pastel calming — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2152,12 +2299,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền xanh dương-pastel calming — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2197,12 +2345,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền xanh dương-pastel calming — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2304,6 +2453,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Dạy bé dùng khay cát — gợi ý cho người mới
+
 Mèo đi sai chỗ — ĐỪNG vội mắng bé nha Sen 😿
 Tuần đầu hay gặp lắm, xử lý thế này 👇
 
@@ -2324,11 +2475,24 @@ Tuần đầu hay gặp lắm
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook empathy. Mèo nhỏ scared cute, Sen định la (minh họa nhẹ không tiêu cực), icon X đỏ trên "mắng bé". Nền gradient soft coral-hồng pastel (#FFCDB2 → #FFB4A2), ánh sáng ấm trấn an. Chữ CỰC TO:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo nhỏ scared cute, Sen định la (minh họa nhẹ không tiêu cực), icon X đỏ trên "mắng bé". Nền gradient soft coral-hồng pastel (#FFCDB2 → #FFB4A2), ánh sáng ấm trấn an. 
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+Chữ CỰC TO:
 "MÈO ĐI SAI CHỖ"
 "ĐỪNG VỘI MẮNG BÉ"
 "Tuần đầu hay gặp"
 BẢNG MÀU CAROUSEL (dùng cho toàn bộ Slide 2–5): soft coral-hồng pastel — KHÔNG đổi tông.
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -2355,12 +2519,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền soft coral-hồng pastel empathy — đồng nhất Slide 1 hook (tông trấn an).
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2401,12 +2566,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền soft coral-hồng pastel empathy — đồng nhất Slide 1 hook (tông trấn an).
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2446,12 +2612,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền soft coral-hồng pastel empathy — đồng nhất Slide 1 hook (tông trấn an).
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2488,12 +2655,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền soft coral-hồng pastel empathy — đồng nhất Slide 1 hook (tông trấn an).
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2598,6 +2766,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Dinh dưỡng cơ bản cho mèo mới — ăn gì, tránh gì
+
 Mèo mới về ăn gì? Tránh 3 thứ này nếu không muốn bé tiêu chảy 😿
 Lưu cho tuần đầu nha Sen 👇
 
@@ -2618,11 +2788,24 @@ Kẻo bé tiêu chảy
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook. Mèo bên ly sữa bò, đồ ăn người, túi thức ăn lạ — cả 3 có dấu X đỏ lớn. Chữ CỰC TO:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo bên ly sữa bò, đồ ăn người, túi thức ăn lạ — cả 3 có dấu X đỏ lớn. 
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+Chữ CỰC TO:
 "MÈO MỚI VỀ"
 "ĐỪNG CHO ĂN 3 THỨ NÀY ❌"
 "Kẻo bé tiêu chảy"
 Nền cam-đỏ attention.
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -2648,12 +2831,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền cam-đỏ attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2694,12 +2878,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền cam-đỏ attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2740,12 +2925,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền cam-đỏ attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2783,12 +2969,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền cam-đỏ attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2892,6 +3079,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Lịch tiêm phòng và tẩy giun cơ bản cho người mới nuôi
+
 Sen mới nuôi mèo mà quên tiêm/tẩy giun = rủi ro lớn đó 🐱
 Khung cơ bản — lịch cụ thể hỏi thú y nha 👇
 
@@ -2912,10 +3101,21 @@ TIÊM & TẨY GIUN
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook. Mèo cute nhưng lịch tiêm bị gạch đỏ, icon cảnh báo lớn. Chữ CỰC TO đỏ-vàng:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo cute nhưng lịch tiêm bị gạch đỏ, icon cảnh báo lớn. Chữ CỰC TO đỏ-vàng:
 "MỚI NUÔI MÈO mà QUÊN"
 "TIÊM & TẨY GIUN"
 "= RỦI RO LỚN ⚠️"
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -2940,12 +3140,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-vàng attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -2984,12 +3185,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-vàng attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3027,12 +3229,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-vàng attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3069,12 +3272,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền đỏ-vàng attention — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3181,6 +3385,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Mèo mới stress — dấu hiệu và cách xử lý nhẹ nhàng
+
 Bé mới về stress là BÌNH THƯỜNG — đừng ép ôm ngay nha Sen 😿
 Dấu hiệu + cách xử lý nhẹ nhàng 👇
 
@@ -3201,11 +3407,24 @@ STRESS
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook empathy viral. Mèo trốn hộp/gầm giường, Sen đưa tay (có icon X "đừng ép"). Nền gradient soft lavender-xanh nhạt pastel (#E8E0F0 → #D4E4F7), ánh sáng dịu trấn an. Chữ CỰC TO:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo trốn hộp/gầm giường, Sen đưa tay (có icon X "đừng ép"). Nền gradient soft lavender-xanh nhạt pastel (#E8E0F0 → #D4E4F7), ánh sáng dịu trấn an. 
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+Chữ CỰC TO:
 "BÉ MỚI VỀ STRESS"
 "= BÌNH THƯỜNG ✅"
 "Đừng ép ôm ngay ❌"
 BẢNG MÀU CAROUSEL (dùng cho toàn bộ Slide 2–5): soft lavender-xanh nhạt pastel — KHÔNG đổi tông.
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -3233,12 +3452,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền soft lavender-xanh nhạt pastel empathy — đồng nhất Slide 1 hook (tông trấn an).
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3282,12 +3502,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền soft lavender-xanh nhạt pastel empathy — đồng nhất Slide 1 hook (tông trấn an).
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3328,12 +3549,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền soft lavender-xanh nhạt pastel empathy — đồng nhất Slide 1 hook (tông trấn an).
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3370,12 +3592,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền soft lavender-xanh nhạt pastel empathy — đồng nhất Slide 1 hook (tông trấn an).
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3479,6 +3702,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Giới thiệu mèo mới với trẻ em, người lớn và thú cưng khác
+
 Đừng cho CẢ NHÀ + chó/mèo khác gặp bé ngay ngày 1 😿
 Giới thiệu từ từ mới bền nha Sen 👇
 
@@ -3499,10 +3724,23 @@ NGAY NGÀY 1 ❌
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook. Đám đông trẻ em + chó + người vây quanh mèo scared (illustration hài/cute). Stamp X đỏ lớn. Nền gradient peach-hồng pastel (#FFD6BA → #FFC8DD), ánh sáng ấm. Chữ CỰC TO:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Đám đông trẻ em + chó + người vây quanh mèo scared (illustration hài/cute). Stamp X đỏ lớn. Nền gradient peach-hồng pastel (#FFD6BA → #FFC8DD), ánh sáng ấm. 
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+Chữ CỰC TO:
 "ĐỪNG cho CẢ NHÀ"
 "gặp bé NGAY NGÀY 1 ❌"
 BẢNG MÀU CAROUSEL (dùng cho toàn bộ Slide 2–5): peach-hồng pastel — KHÔNG đổi tông.
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -3528,12 +3766,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền peach-hồng pastel — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3573,12 +3812,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền peach-hồng pastel — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3618,12 +3858,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền peach-hồng pastel — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3662,12 +3903,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền peach-hồng pastel — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3774,6 +4016,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: 7 sai lầm phổ biến người mới nuôi mèo hay gặp
+
 7 sai lầm người mới nuôi mèo hay mắc — Sen từng mắc cái nào? 😅
 Không phải để trách, mà để tránh sớm nha 👇
 
@@ -3794,10 +4038,21 @@ Sen từng mắc cái nào?
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook listicle viral. Số "7" khổng lồ, mèo mặt ngơ ngác cute. Nền gradient tím-hồng pop. Chữ CỰC TO:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Số "7" khổng lồ, mèo mặt ngơ ngác cute. Nền gradient tím-hồng pop. Chữ CỰC TO:
 "7 SAI LẦM"
 "người mới nuôi mèo hay mắc"
 "Sen từng mắc cái nào?"
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -3825,12 +4080,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient tím-hồng pop — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3874,12 +4130,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient tím-hồng pop — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3921,12 +4178,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient tím-hồng pop — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -3964,12 +4222,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền gradient tím-hồng pop — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -4076,6 +4335,8 @@ TikTok slide:
 Caption TikTok:
 
 ```text
+Chủ đề: Thói quen chăm sóc hàng ngày Sen nên bắt đầu từ tuần đầu
+
 Tuần đầu nuôi mèo — chỉ cần 3 thói quen nhỏ mỗi ngày là đủ 🐱
 Bắt đầu từ hôm nay nha Sen 👇
 
@@ -4096,10 +4357,23 @@ mỗi ngày là đủ ✅
 Image prompt:
 
 ```text
-Ảnh dọc 9:16 hook positive. Mèo + lịch ngày với 3 ô sáng. Nền xanh mint-pastel tươi. Chữ CỰC TO:
+Tạo ảnh minh họa dọc 9:16 cho TikTok slide hook, thương hiệu "Pet Health Care".
+
+Bối cảnh:
+- Đính kèm ảnh tham chiếu Mai (nhân vật thương hiệu Pet Health Care) — giữ đúng khuôn mặt/nhận diện Mai.
+- Mai đặt ở góc dưới trái hoặc phải (hoặc nửa dưới khung hình), nhìn thẳng hoặc hơi nghiêng về phía Sen (camera) như đang nói chuyện trực tiếp 1-1, cười nhẹ/thân thiện — tạo sự gần gũi giữa Mai và Sen.
+- Mèo + lịch ngày với 3 ô sáng minh họa hook. Nền xanh mint-pastel tươi.
+
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG dán hook text sát đầu ảnh.
+- Hook text bắt đầu từ ~15–18% chiều cao khung hình; Mai + minh họa nằm vùng giữa-trên, hơi lệch trái (tránh cột nút tương tác bên phải).
+Chữ CỰC TO:
 "TUẦN ĐẦU NUÔI MÈO"
 "chỉ cần 3 THÓI QUEN NHỎ"
 "mỗi ngày là đủ ✅"
+
+Mai tích hợp tự nhiên vào layout, không che chữ hook.
+Phong cách: digital illustration cute, high contrast text. Không bác sĩ thật, không cảnh buồn.
 ```
 
 Slide 2:
@@ -4124,12 +4398,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền xanh mint-pastel tươi — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -4168,12 +4443,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền xanh mint-pastel tươi — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -4216,12 +4492,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền xanh mint-pastel tươi — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 
@@ -4262,12 +4539,13 @@ Tạo ảnh minh họa dọc 9:16 cho TikTok carousel "Pet Health Care" — slid
 BẢNG MÀU CAROUSEL (đồng nhất Slide 1, KHÔNG đổi tông):
 Nền xanh mint-pastel tươi — đồng nhất Slide 1 hook.
 
-BỐ CỤC:
-- 65–75% diện tích trên: khối chữ nhiều dòng, infographic dễ đọc trên điện thoại
-- 25–35% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ
+BỐ CỤC (bù trừ UI TikTok che phần trên):
+- Để trống ~12–15% mép trên cùng — KHÔNG đặt tiêu đề/chữ quan trọng (TikTok che bởi status bar + tab khi xem feed).
+- 55–65% diện tích giữa-trên (bắt đầu từ ~15% chiều cao): khối chữ nhiều dòng, infographic dễ đọc trên điện thoại.
+- 25–30% diện tích dưới: minh họa nhỏ minh họa nội dung (mèo, icon), không che chữ.
 
 TYPOGRAPHY:
-- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient
+- Tiêu đề slide: bold, cỡ lớn, tương phản cao với nền gradient — đặt dưới vùng an toàn phía trên (~15% từ mép trên), không dán sát đầu ảnh
 - Bullet/đoạn: cỡ vừa, căn trái, khoảng cách dòng thoáng
 - Dòng kết/lưu ý: cỡ nhỏ hơn một chút nhưng vẫn đọc được khi xem TikTok
 

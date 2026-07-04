@@ -15,12 +15,15 @@ import {
   type TextStyle,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { PetFeedPostCard } from '../components/PetFeedPostCard';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminPostCard } from '../components/AdminPostCard';
+import { ModalScreenShell } from '../components/ModalScreenShell';
+import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, metadataString } from '../utils/breederTrust';
 import { ACTIVE_PET_FEED_SPECIES, type ActivePetFeedSpecies } from '../constants/petSpecies';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
+import { modalTopInset } from '../utils/modalSafeArea';
 
 const PRIMARY = '#1E6FE8';
 const WEB_SEARCH_INPUT_STYLE =
@@ -179,6 +182,7 @@ export function PetFeedScreen({
   onOpenBreederDetail,
 }: PetFeedScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<FeedTab>('feed');
   const [query, setQuery] = useState('');
@@ -327,7 +331,7 @@ export function PetFeedScreen({
   }, [normalizedQuery, topBreeders]);
   const filterPanelWidth = Math.min(Math.round(windowWidth * 0.76), 330);
   const filterPanelMaxHeight = Math.min(Math.round(windowHeight * 0.58), 480);
-  const filterPanelTopOffset = Math.min(Math.round(windowHeight * 0.2), 112);
+  const filterPanelTopOffset = modalTopInset(insets.top) + 112;
   const hasActiveFilters = speciesFilter !== 'all' || genderFilter !== 'all' || sortField !== 'date' || sortDirection !== 'desc';
   const listItems = useMemo<FeedListItem[]>(() => {
     if (activeTab === 'feed') {
@@ -798,47 +802,34 @@ export function PetFeedScreen({
         </View>
       </View>
     </Modal>
-    <Modal visible={Boolean(selectedPost)} animationType="slide" onRequestClose={() => setSelectedPostId(null)}>
-      <View className="flex-1 bg-[#F2F4F8]">
-        <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
-          <Pressable accessibilityRole="button" accessibilityLabel={t('petFeed.accessibility.closeDetail')} className="w-14 rounded-lg p-2" onPress={() => setSelectedPostId(null)}>
-            <Ionicons name="close" size={24} color="#1e293b" />
-          </Pressable>
-          <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('petFeed.detailTitle')}</Text>
-          <View className="w-14" />
-        </View>
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}>
-          {selectedPost ? (
-            <PetFeedPostCard
-              post={selectedPost}
-              onToggleFavorite={onToggleFavorite}
-              onReportPost={onReportPost}
-              onHideBreeder={onHideBreeder}
-              showHideBreeder
-              autoPlayVideo={false}
-              testID={`pet-feed-detail-post-${selectedPost.id}`}
-            />
-          ) : null}
-        </ScrollView>
-      </View>
-    </Modal>
-    <Modal visible={Boolean(selectedAnnouncement)} animationType="slide" onRequestClose={() => setSelectedAnnouncementId(null)}>
-      <View className="flex-1 bg-[#F2F4F8]">
-        <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
-          <Pressable className="w-14 rounded-lg p-2" onPress={() => setSelectedAnnouncementId(null)}>
-            <Ionicons name="close" size={24} color="#1e293b" />
-          </Pressable>
-          <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('petFeed.tabs.news')}</Text>
-          <View className="w-14" />
-        </View>
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}>
-          {selectedAnnouncement ? <AdminPostCard post={selectedAnnouncement} /> : null}
-          {selectedAnnouncement ? (
-            <Text className="mt-4 text-sm leading-6 text-slate-700">{selectedAnnouncement.description}</Text>
-          ) : null}
-        </ScrollView>
-      </View>
-    </Modal>
+    <ModalScreenShell
+      visible={selectedPostId != null}
+      title={t('petFeed.detailTitle')}
+      closeLabel={t('petFeed.accessibility.closeDetail')}
+      closeTestID="pet-feed-detail-back-button"
+      onClose={() => setSelectedPostId(null)}
+    >
+      {selectedPost ? (
+        <PetFeedPostCard
+          post={selectedPost}
+          onToggleFavorite={onToggleFavorite}
+          onReportPost={onReportPost}
+          onHideBreeder={onHideBreeder}
+          showHideBreeder
+          autoPlayVideo={false}
+          testID={`pet-feed-detail-post-${selectedPost.id}`}
+        />
+      ) : null}
+    </ModalScreenShell>
+    <ModalScreenShell
+      visible={selectedAnnouncementId != null}
+      title={t('petFeed.newsDetailTitle')}
+      closeLabel={t('petFeed.accessibility.closeNewsDetail')}
+      closeTestID="announcement-detail-back-button"
+      onClose={() => setSelectedAnnouncementId(null)}
+    >
+      {selectedAnnouncement ? <AdminPostCard post={selectedAnnouncement} /> : null}
+    </ModalScreenShell>
     </>
   );
 }

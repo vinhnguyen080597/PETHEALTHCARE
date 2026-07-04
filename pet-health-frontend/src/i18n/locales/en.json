@@ -132,6 +132,7 @@
     "emptyFilteredTitle": "No matching listings",
     "emptyFilteredBody": "Try another filter to browse more listings.",
     "detailTitle": "Listing details",
+    "newsDetailTitle": "News details",
     "breederFallback": "Breeder",
     "locationUnknown": "Location not shared",
     "tabs": {
@@ -204,6 +205,7 @@
       "openFilters": "Open Pet Feed filters",
       "closeFilters": "Close Pet Feed filters",
       "closeDetail": "Close listing details",
+      "closeNewsDetail": "Back to news list",
       "openListing": "Open listing {{title}}",
       "listingMedia": "Media for listing {{title}}",
       "openListingPhoto": "Show listing photo {{index}}",

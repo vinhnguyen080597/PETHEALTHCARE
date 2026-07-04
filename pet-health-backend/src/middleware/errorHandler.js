@@ -1,4 +1,5 @@
 import multer from 'multer';
+import { petFeedPhotoMaxLabel, petFeedVideoMaxLabel } from '../constants/petFeedMediaLimits.js';
 import { notifySystemError } from '../services/errorNotifierService.js';
 
 function detectAiProviderError(err) {
@@ -24,7 +25,11 @@ function detectAiProviderError(err) {
 
 export function errorHandler(err, req, res, _next) {
   if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({ error: 'Image too large. Max 5MB', code: 'MEDIA_TOO_LARGE' });
+    const isPetFeed = /\/pet-feed\b/.test(String(req.originalUrl || req.url || ''));
+    const message = isPetFeed
+      ? `Uploaded file is too large. Photos up to ${petFeedPhotoMaxLabel()} and videos up to ${petFeedVideoMaxLabel()} are supported.`
+      : 'Uploaded file is too large.';
+    return res.status(400).json({ error: message, code: 'MEDIA_TOO_LARGE' });
   }
 
   const aiMapped = detectAiProviderError(err);

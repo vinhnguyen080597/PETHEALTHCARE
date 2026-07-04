@@ -36,13 +36,8 @@ export function AdminPostCard({ post, onPress, testID }: AdminPostCardProps) {
   const ctaUrl = typeof post.metadata?.ctaUrl === 'string' ? post.metadata.ctaUrl.trim() : '';
   const cover = post.media_urls[0] ?? null;
 
-  return (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm active:opacity-95"
-      onPress={onPress ? () => onPress(post) : undefined}
-    >
+  const body = (
+    <>
       {cover ? (
         <Image source={{ uri: cover }} style={{ width: '100%', height: 160 }} contentFit="cover" />
       ) : null}
@@ -58,7 +53,7 @@ export function AdminPostCard({ post, onPress, testID }: AdminPostCardProps) {
           {t(`adminPost.category.${category}`)}
         </Text>
         <Text className="text-base font-bold text-slate-900">{post.title}</Text>
-        <Text className="text-sm leading-5 text-slate-600" numberOfLines={3}>{post.description}</Text>
+        <Text className="text-sm leading-5 text-slate-600" numberOfLines={onPress ? 3 : undefined}>{post.description}</Text>
         {ctaLabel && ctaUrl ? (
           <Pressable
             className="mt-1 self-start rounded-xl bg-blue-600 px-4 py-2.5 active:opacity-90"
@@ -68,6 +63,25 @@ export function AdminPostCard({ post, onPress, testID }: AdminPostCardProps) {
           </Pressable>
         ) : null}
       </View>
-    </Pressable>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm active:opacity-95"
+        onPress={() => onPress(post)}
+      >
+        {body}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View testID={testID} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      {body}
+    </View>
   );
 }

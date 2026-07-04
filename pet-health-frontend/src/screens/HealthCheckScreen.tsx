@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ModalBottomSheet } from '../components/ModalBottomSheet';
 import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
 import { RewardedAdOffer } from '../components/RewardedAdOffer';
@@ -405,34 +406,29 @@ export function HealthCheckScreen({
                 </Text>
                 <Ionicons name="chevron-down" size={22} color="#64748b" />
               </Pressable>
-              <Modal visible={vaccineModalOpen} animationType="slide" transparent onRequestClose={() => setVaccineModalOpen(false)}>
-                <View className="flex-1 justify-end bg-black/50">
-                  <Pressable className="flex-1" onPress={() => setVaccineModalOpen(false)} accessibilityLabel="Close" />
-                  <View className="rounded-t-2xl bg-white px-4 pb-5 pt-4">
-                    <Text className="mb-1 text-lg font-bold text-slate-900">{t('healthCheck.vaccineModalTitle')}</Text>
-                    <ScrollView style={{ maxHeight: modalScrollMaxHeight }} keyboardShouldPersistTaps="handled">
-                      {vaccineOptionIds.map((id) => (
-                        <VaccineCheckboxRow
-                          testID={`health-check-vaccine-option-${id}`}
-                          key={id}
-                          checked={vaccineIds.includes(id)}
-                          onToggle={() => toggleVaccineId(id)}
-                          label={t(`healthCheck.vaccines.${id}.label`)}
-                          detail={t(`healthCheck.vaccines.${id}.detail`)}
-                        />
-                      ))}
-                    </ScrollView>
-                    <Pressable
-                      testID="health-check-vaccine-done-button"
-                      className="mt-3 rounded-xl py-3.5 active:opacity-90"
-                      style={{ backgroundColor: PRIMARY }}
-                      onPress={() => setVaccineModalOpen(false)}
-                    >
-                      <Text className="text-center text-base font-bold text-white">{t('healthCheck.vaccineDone')}</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </Modal>
+              <ModalBottomSheet visible={vaccineModalOpen} onClose={() => setVaccineModalOpen(false)}>
+                <Text className="mb-1 text-lg font-bold text-slate-900">{t('healthCheck.vaccineModalTitle')}</Text>
+                <ScrollView style={{ maxHeight: modalScrollMaxHeight }} keyboardShouldPersistTaps="handled">
+                  {vaccineOptionIds.map((id) => (
+                    <VaccineCheckboxRow
+                      testID={`health-check-vaccine-option-${id}`}
+                      key={id}
+                      checked={vaccineIds.includes(id)}
+                      onToggle={() => toggleVaccineId(id)}
+                      label={t(`healthCheck.vaccines.${id}.label`)}
+                      detail={t(`healthCheck.vaccines.${id}.detail`)}
+                    />
+                  ))}
+                </ScrollView>
+                <Pressable
+                  testID="health-check-vaccine-done-button"
+                  className="mt-3 rounded-xl py-3.5 active:opacity-90"
+                  style={{ backgroundColor: PRIMARY }}
+                  onPress={() => setVaccineModalOpen(false)}
+                >
+                  <Text className="text-center text-base font-bold text-white">{t('healthCheck.vaccineDone')}</Text>
+                </Pressable>
+              </ModalBottomSheet>
             </View>
           ) : (
             <TextInput

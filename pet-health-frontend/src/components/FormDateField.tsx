@@ -3,7 +3,9 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { useState } from 'react';
 import { Modal, Platform, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatBirthDateIso, parseBirthDateIso } from '../utils/petAge';
+import { modalBottomInset } from '../utils/modalSafeArea';
 
 type FormDateFieldProps = {
   label: string;
@@ -35,6 +37,7 @@ export function FormDateField({
   onChange,
 }: FormDateFieldProps) {
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const selectedDate = parseBirthDateIso(value);
   const pickerValue = selectedDate ?? maximumDate ?? new Date();
@@ -76,7 +79,7 @@ export function FormDateField({
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View className="flex-1 justify-end">
           <Pressable className="absolute inset-0 bg-black/40" onPress={() => setOpen(false)} />
-          <View className="rounded-t-2xl bg-white px-4 pb-8 pt-2">
+          <View className="rounded-t-2xl bg-white px-4 pt-2" style={{ paddingBottom: modalBottomInset(insets.bottom, 16) }}>
             <View className="mb-2 self-center rounded-full bg-gray-200 px-10 py-1" />
             <Text className="mb-2 text-center text-base font-semibold text-slate-900">{label}</Text>
             {Platform.OS === 'web' ? (

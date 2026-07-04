@@ -2,10 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Alert, Image, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAI_GUIDING } from '../assets/maiAssets';
 import { APP_LINKS } from '../config';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
+import { modalTopInset } from '../utils/modalSafeArea';
 
 const PRIMARY = '#1E6FE8';
 
@@ -166,6 +168,7 @@ export function AccountScreen({
   showHeaderMenu = true,
 }: AccountScreenProps) {
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -904,7 +907,7 @@ export function AccountScreen({
 
     <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
       <Pressable className="flex-1 bg-black/20" onPress={() => setMenuOpen(false)}>
-        <View className="absolute right-5 top-14 w-60 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+        <View className="absolute right-5 w-60 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl" style={{ top: modalTopInset(insets.top) + 56 }}>
           <AccountMenuItem
             testID="account-menu-update-button"
             icon="create-outline"

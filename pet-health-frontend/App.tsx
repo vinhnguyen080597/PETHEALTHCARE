@@ -211,7 +211,7 @@ function AppContent() {
       inactiveBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'rejected' || profile.verification_status === 'suspended').length}
       onOpenBreederProfile={app.openBreederProfile}
       onOpenPetFeed={app.openPetFeed}
-      onOpenCreatePetFeedPost={app.openCreateAdminPost}
+      onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
       onOpenAdminHub={app.openAdminHub}
       onOpenUpdateAccount={app.openUpdateAccount}
       onUpdateBreederStatus={app.updateAdminBreederStatus}
@@ -301,6 +301,7 @@ function AppContent() {
             )}
 
             {app.screen === 'pet-feed' && (
+              <View className="flex-1">
               <PetFeedScreen
                 posts={app.petFeedPosts}
                 announcementPosts={app.announcementPosts}
@@ -324,6 +325,7 @@ function AppContent() {
                 onHideBreeder={app.hideBreederProfile}
                 onOpenBreederDetail={app.openBreederDetail}
               />
+              </View>
             )}
 
             {app.screen === 'breeder-detail' && app.selectedBreederProfile ? (
