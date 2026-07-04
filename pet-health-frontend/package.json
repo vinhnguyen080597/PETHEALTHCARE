@@ -1,6 +1,6 @@
 {
   "name": "pet-health-frontend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.ts",
   "scripts": {
     "start": "cross-env EXPO_PUBLIC_EXPO_GO_COMPAT=1 npx expo start --go --lan --port 8081",
@@ -21,7 +21,9 @@
     "release:smoke:native": "node scripts/release-native-smoke.mjs",
     "release:check": "yarn typecheck && yarn test && npx expo-doctor && yarn release:verify:public-links && yarn release:verify:backend",
     "build:ios:production": "eas build --platform ios --profile production",
-    "build:android:production": "eas build --platform android --profile production"
+    "build:ios:production:submit": "eas build --platform ios --profile production --auto-submit",
+    "build:android:production": "eas build --platform android --profile production",
+    "submit:ios:production": "eas submit --platform ios --profile production --latest"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

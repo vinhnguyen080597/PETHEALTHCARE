@@ -72,10 +72,12 @@ export function AdminFeaturesScreen({
   function renderToggleCard(item: { key: FeatureToggleKey; icon: keyof typeof Ionicons.glyphMap }) {
     const enabled = flags?.[item.key] !== false;
     const saving = savingKey === item.key;
-    const isLastPetFeedTab = PET_FEED_TAB_FLAG_KEYS.includes(item.key as PetFeedTabFlagKey)
+    const isLastPetFeedTab = Boolean(
+      PET_FEED_TAB_FLAG_KEYS.includes(item.key as PetFeedTabFlagKey)
       && enabled
       && flags
-      && countEnabledPetFeedTabs(flags) <= 1;
+      && countEnabledPetFeedTabs(flags) <= 1,
+    );
     return (
       <View
         key={item.key}

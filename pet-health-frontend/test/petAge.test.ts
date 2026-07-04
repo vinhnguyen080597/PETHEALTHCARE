@@ -27,7 +27,7 @@ test('petBirthDateForForm prefers stored birth_date', () => {
 });
 
 test('resolvePetAgeMonths uses birth_date when available', () => {
-  const today = new Date('2026-06-01T00:00:00');
+  const today = new Date();
   const birthDate = formatBirthDateIso(approximateBirthDateFromAgeMonths(6, today));
   assert.equal(resolvePetAgeMonths({ birth_date: birthDate, age: 99 }), 6);
 });
