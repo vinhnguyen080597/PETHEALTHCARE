@@ -1277,7 +1277,6 @@ export function usePetHealthApp() {
         name: petName.trim(),
         species: petSpecies.trim().toLowerCase(),
         breed: petBreed.trim() || null,
-        ...petPayloadFromBirthDate(petBirthDate),
         gender: petGender,
         ...avatarPatch,
       };

@@ -13,7 +13,6 @@ type HomeScreenProps = {
   onAddPet: () => void;
   onViewProfile: (petId: string) => void;
   onOpenCareServices: (petId: string) => void;
-  onUploadPetAvatar: (petId: string) => void;
 };
 
 function formatPetSubtitle(pet: Pet, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -34,7 +33,6 @@ export function HomeScreen({
   onAddPet,
   onViewProfile,
   onOpenCareServices,
-  onUploadPetAvatar,
 }: HomeScreenProps) {
   const { t } = useTranslation();
   return (
@@ -92,10 +90,10 @@ export function HomeScreen({
                 <Pressable
                   testID={`home-pet-avatar-button-${pet.id}`}
                   accessibilityRole="button"
-                  accessibilityLabel={t('home.uploadAvatar')}
+                  accessibilityLabel={t('home.viewProfileFor', { name: pet.name })}
                   className="h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full active:opacity-90"
                   style={{ backgroundColor: PRIMARY_BLUE }}
-                  onPress={() => onUploadPetAvatar(pet.id)}
+                  onPress={() => onViewProfile(pet.id)}
                 >
                   {pet.avatar_url ? (
                     <Image source={{ uri: pet.avatar_url }} className="h-full w-full" resizeMode="cover" />
@@ -103,12 +101,18 @@ export function HomeScreen({
                     <Ionicons name="paw" size={32} color="#ffffff" />
                   )}
                 </Pressable>
-                <View className="min-w-0 flex-1">
+                <Pressable
+                  testID={`home-pet-name-button-${pet.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.viewProfileFor', { name: pet.name })}
+                  className="min-w-0 flex-1 active:opacity-80"
+                  onPress={() => onViewProfile(pet.id)}
+                >
                   <Text className="text-[17px] font-bold text-slate-900">{pet.name}</Text>
                   <Text className="mt-0.5 text-[13px] text-slate-500" numberOfLines={2}>
                     {formatPetSubtitle(pet, t)}
                   </Text>
-                </View>
+                </Pressable>
               </View>
 
               <View className="mt-3.5 flex-row gap-2.5">

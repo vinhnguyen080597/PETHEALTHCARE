@@ -310,6 +310,8 @@ export function AddPetScreen({
           maximumDate={new Date()}
           testID="add-pet-birth-date-field"
           required
+          readOnly={variant === 'edit'}
+          helperText={variant === 'edit' ? t('addPet.birthDateLockedHint') : undefined}
           error={fieldErrors.petBirthDate}
           onChange={(value) => {
             clearFieldError('petBirthDate');

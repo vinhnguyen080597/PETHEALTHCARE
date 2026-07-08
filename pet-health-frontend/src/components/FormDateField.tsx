@@ -15,6 +15,8 @@ type FormDateFieldProps = {
   maximumDate?: Date;
   testID?: string;
   required?: boolean;
+  readOnly?: boolean;
+  helperText?: string;
   onChange: (value: string) => void;
 };
 
@@ -34,6 +36,8 @@ export function FormDateField({
   maximumDate,
   testID,
   required,
+  readOnly = false,
+  helperText,
   onChange,
 }: FormDateFieldProps) {
   const { t, i18n } = useTranslation();
@@ -77,16 +81,22 @@ export function FormDateField({
         testID={testID}
         accessibilityRole="button"
         accessibilityLabel={label}
-        className={`flex-row items-center justify-between rounded-xl border bg-white px-4 py-3 active:bg-gray-50 ${
-          error ? 'border-red-300' : 'border-gray-300'
-        }`}
-        onPress={() => setOpen(true)}
+        accessibilityState={{ disabled: readOnly }}
+        disabled={readOnly}
+        className={`flex-row items-center justify-between rounded-xl border px-4 py-3 ${
+          readOnly ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white active:bg-gray-50'
+        } ${error ? 'border-red-300' : ''}`}
+        onPress={() => {
+          if (!readOnly) setOpen(true);
+        }}
       >
         <Text className={`text-base ${displayValue ? 'text-slate-900' : 'text-gray-400'}`}>
           {displayValue ?? placeholder ?? t('addPet.birthDatePlaceholder')}
         </Text>
-        <Ionicons name="calendar-outline" size={20} color="#64748b" />
+        <Ionicons name={readOnly ? 'lock-closed-outline' : 'calendar-outline'} size={20} color="#64748b" />
       </Pressable>
+      {helperText ? <Text className="mt-1.5 text-xs leading-4 text-slate-500">{helperText}</Text> : null}
+      {!readOnly ? (
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View className="flex-1 justify-end">
           <Pressable className="absolute inset-0 bg-black/40" onPress={() => setOpen(false)} />
@@ -138,6 +148,7 @@ export function FormDateField({
           </View>
         </View>
       </Modal>
+      ) : null}
       {error ? <Text className="mt-1.5 text-xs font-semibold text-red-600">{error}</Text> : null}
     </View>
   );

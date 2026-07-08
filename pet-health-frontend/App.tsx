@@ -300,7 +300,6 @@ function AppContent() {
                 onAddPet={app.openCreatePet}
                 onViewProfile={app.openPetProfile}
                 onOpenCareServices={app.openCareServices}
-                onUploadPetAvatar={app.uploadPetAvatarFromHome}
               />
             )}
 

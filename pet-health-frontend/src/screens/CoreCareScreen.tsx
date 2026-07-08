@@ -159,6 +159,19 @@ function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+function clampPerformedDate(date: Date, minimumDate?: Date, maximumDate?: Date): Date {
+  let next = startOfDay(date);
+  if (minimumDate) {
+    const min = startOfDay(minimumDate);
+    if (next.getTime() < min.getTime()) next = min;
+  }
+  if (maximumDate) {
+    const max = startOfDay(maximumDate);
+    if (next.getTime() > max.getTime()) next = max;
+  }
+  return next;
+}
+
 function formatDateValue(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -203,6 +216,7 @@ function DateField({
   value,
   placeholder,
   error,
+  minimumDate,
   maximumDate,
   readOnly = false,
   fullWidth = false,
@@ -213,6 +227,7 @@ function DateField({
   value: Date | null;
   placeholder?: string;
   error?: string;
+  minimumDate?: Date;
   maximumDate?: Date;
   readOnly?: boolean;
   fullWidth?: boolean;
@@ -221,7 +236,7 @@ function DateField({
 }) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
-  const pickerValue = value ?? maximumDate ?? new Date();
+  const pickerValue = value ?? maximumDate ?? minimumDate ?? new Date();
   const isoValue = value ? formatBirthDateIso(value) : '';
   const displayValue = value
     ? new Intl.DateTimeFormat(i18n.language === 'vi' ? 'vi-VN' : 'en-US', {
@@ -231,9 +246,13 @@ function DateField({
       }).format(value)
     : null;
 
+  function commitDate(date: Date) {
+    onChange(clampPerformedDate(date, minimumDate, maximumDate));
+  }
+
   function applyIsoValue(nextValue: string) {
     const parsed = parseBirthDateIso(nextValue);
-    if (parsed) onChange(parsed);
+    if (parsed) commitDate(parsed);
   }
 
   function handleChange(event: DateTimePickerEvent, selectedDate?: Date) {
@@ -241,7 +260,7 @@ function DateField({
       setOpen(false);
       return;
     }
-    if (selectedDate) onChange(selectedDate);
+    if (selectedDate) commitDate(selectedDate);
     if (Platform.OS !== 'ios') setOpen(false);
   }
 
@@ -258,6 +277,7 @@ function DateField({
             type="date"
             data-testid={testID}
             value={isoValue}
+            min={minimumDate ? formatBirthDateIso(minimumDate) : undefined}
             max={maximumDate ? formatBirthDateIso(maximumDate) : undefined}
             onChange={(event) => applyIsoValue(event.currentTarget.value)}
             style={{
@@ -309,6 +329,7 @@ function DateField({
                 value={pickerValue}
                 mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={minimumDate}
                 maximumDate={maximumDate}
                 onChange={handleChange}
               />
@@ -316,7 +337,7 @@ function DateField({
                 <Pressable
                   className="mt-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
                   onPress={() => {
-                    if (!value) onChange(pickerValue);
+                    if (!value) commitDate(pickerValue);
                     setOpen(false);
                   }}
                 >
@@ -778,8 +799,13 @@ export function CoreCareScreen({
       }
       if (!draft.administeredAt) {
         draftErrors.administeredAt = t('coreCare.performedDateFieldRequired');
-      } else if (startOfDay(draft.administeredAt).getTime() > today.getTime()) {
-        draftErrors.administeredAt = t('coreCare.pastDateRequired');
+      } else {
+        const performed = startOfDay(draft.administeredAt);
+        if (performed.getTime() > today.getTime()) {
+          draftErrors.administeredAt = t('coreCare.performedDateFuture');
+        } else if (petBirthDate && performed.getTime() < startOfDay(petBirthDate).getTime()) {
+          draftErrors.administeredAt = t('coreCare.performedDateBeforeBirth');
+        }
       }
       if (draftErrors.vaccineId || draftErrors.administeredAt) nextErrors[draft.id] = draftErrors;
     }
@@ -1361,6 +1387,7 @@ export function CoreCareScreen({
                               value={draft.administeredAt}
                               placeholder={t('coreCare.selectDate')}
                               error={doseDraftErrors[draft.id]?.administeredAt}
+                              minimumDate={petBirthDate ?? undefined}
                               maximumDate={today}
                               onChange={(administeredAt) => updateCareEntry(draft.id, { administeredAt })}
                             />
@@ -1373,6 +1400,7 @@ export function CoreCareScreen({
                             value={draft.administeredAt}
                             placeholder={t('coreCare.selectDate')}
                             error={doseDraftErrors[draft.id]?.administeredAt}
+                            minimumDate={petBirthDate ?? undefined}
                             maximumDate={today}
                             onChange={(administeredAt) => updateCareEntry(draft.id, { administeredAt })}
                           />
