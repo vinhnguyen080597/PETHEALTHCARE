@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
 import { FormDateField } from '../components/FormDateField';
+import { isBirthDateInFuture } from '../utils/petAge';
 import { modalBottomInset } from '../utils/modalSafeArea';
 
 type PetFormVariant = 'create' | 'edit';
@@ -17,6 +18,13 @@ export const PET_SPECIES_VALUES = ACTIVE_PET_SPECIES;
 export const PET_GENDER_VALUES = ['male', 'female'] as const;
 
 type SelectOption = { value: string; label: string };
+
+type PetFormFieldErrors = {
+  petName?: string;
+  petBirthDate?: string;
+  petGender?: string;
+  petSpecies?: string;
+};
 
 function RequiredLabel({ children }: { children: string }) {
   return (
@@ -60,6 +68,7 @@ function FormSelect({
   placeholder,
   testID,
   required,
+  error,
 }: {
   label: string;
   value: string;
@@ -68,6 +77,7 @@ function FormSelect({
   placeholder: string;
   testID?: string;
   required?: boolean;
+  error?: string;
 }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -79,7 +89,9 @@ function FormSelect({
       {required ? <RequiredLabel>{label}</RequiredLabel> : <Text className="mb-2 text-sm font-semibold text-slate-900">{label}</Text>}
       <Pressable
         testID={testID}
-        className="flex-row items-center justify-between rounded-xl border border-gray-300 bg-white px-4 py-3 active:bg-gray-50"
+        className={`flex-row items-center justify-between rounded-xl border bg-white px-4 py-3 active:bg-gray-50 ${
+          error ? 'border-red-400' : 'border-gray-300'
+        }`}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={`${label} picker`}
@@ -89,6 +101,7 @@ function FormSelect({
         </Text>
         <Ionicons name="chevron-down" size={20} color="#64748b" />
       </Pressable>
+      {error ? <Text className="mt-1.5 text-xs font-medium text-red-600">{error}</Text> : null}
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View className="flex-1 justify-end">
           <Pressable className="absolute inset-0 bg-black/40" onPress={() => setOpen(false)} />
@@ -166,29 +179,43 @@ export function AddPetScreen({
   }, [petGender, t]);
 
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<PetFormFieldErrors>({});
   const hasAvatarUri = Boolean(petAvatarUrl?.trim());
   const showAvatarImage = hasAvatarUri && !avatarLoadFailed;
+  const showSpeciesSelect = speciesOptions.length > 1;
 
   useEffect(() => {
     setAvatarLoadFailed(false);
   }, [petAvatarUrl]);
 
-  function submitWithRequiredFields() {
-    const missingFields = [
-      !petName.trim() ? t('addPet.petName') : null,
-      !petSpecies.trim() ? t('addPet.petType') : null,
-      !petGender.trim() ? t('addPet.gender') : null,
-      !petBirthDate.trim() ? t('addPet.birthDate') : null,
-      !petAvatarUrl.trim() ? t('addPet.avatar') : null,
-    ].filter((field): field is string => Boolean(field));
+  function clearFieldError(key: keyof PetFormFieldErrors) {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
 
-    if (missingFields.length > 0) {
-      Alert.alert(
-        t('alerts.missingPetInfo.title'),
-        t('alerts.missingPetInfo.fieldsMessage', { fields: missingFields.join(', ') }),
-      );
+  function submitWithRequiredFields() {
+    const nextErrors: PetFormFieldErrors = {};
+    if (!petName.trim()) nextErrors.petName = t('addPet.fieldErrors.petNameRequired');
+    if (!petBirthDate.trim()) {
+      nextErrors.petBirthDate = t('addPet.fieldErrors.birthDateRequired');
+    } else if (isBirthDateInFuture(petBirthDate)) {
+      nextErrors.petBirthDate = t('addPet.fieldErrors.birthDateFuture');
+    }
+    if (!petGender.trim()) nextErrors.petGender = t('addPet.fieldErrors.genderRequired');
+    if (showSpeciesSelect && !petSpecies.trim()) {
+      nextErrors.petSpecies = t('addPet.fieldErrors.petTypeRequired');
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
       return;
     }
+
+    setFieldErrors({});
     onSubmit();
   }
 
@@ -258,12 +285,22 @@ export function AddPetScreen({
           <TextInput
             testID="add-pet-name-input"
             accessibilityLabel="Pet name"
-            className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
+            className={`rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${
+              fieldErrors.petName ? 'border-red-400' : 'border-gray-300'
+            }`}
             placeholder={t('addPet.enterPetName')}
             placeholderTextColor="#9ca3af"
             value={petName}
-            onChangeText={onChangeName}
+            onChangeText={(value) => {
+              clearFieldError('petName');
+              onChangeName(value);
+            }}
           />
+          {fieldErrors.petName ? (
+            <Text testID="add-pet-name-error" className="mt-1.5 text-xs font-medium text-red-600">
+              {fieldErrors.petName}
+            </Text>
+          ) : null}
         </View>
 
         <FormDateField
@@ -273,28 +310,40 @@ export function AddPetScreen({
           maximumDate={new Date()}
           testID="add-pet-birth-date-field"
           required
-          onChange={onChangeBirthDate}
+          error={fieldErrors.petBirthDate}
+          onChange={(value) => {
+            clearFieldError('petBirthDate');
+            onChangeBirthDate(value);
+          }}
         />
 
         <FormSelect
           label={t('addPet.gender')}
           value={petGender}
           options={genderOptions}
-          onChange={onChangeGender}
+          onChange={(value) => {
+            clearFieldError('petGender');
+            onChangeGender(value);
+          }}
           placeholder={t('addPet.selectGender')}
           testID="add-pet-gender-select"
           required
+          error={fieldErrors.petGender}
         />
 
-        {speciesOptions.length > 1 ? (
+        {showSpeciesSelect ? (
           <FormSelect
             label={t('addPet.petType')}
             value={petSpecies}
             options={speciesOptions}
-            onChange={onChangeSpecies}
+            onChange={(value) => {
+              clearFieldError('petSpecies');
+              onChangeSpecies(value);
+            }}
             placeholder={t('addPet.selectPetType')}
             testID="add-pet-species-select"
             required
+            error={fieldErrors.petSpecies}
           />
         ) : (
           <View className="mb-5">

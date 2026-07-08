@@ -13,6 +13,7 @@ type HomeScreenProps = {
   onAddPet: () => void;
   onViewProfile: (petId: string) => void;
   onOpenCareServices: (petId: string) => void;
+  onUploadPetAvatar: (petId: string) => void;
 };
 
 function formatPetSubtitle(pet: Pet, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -33,6 +34,7 @@ export function HomeScreen({
   onAddPet,
   onViewProfile,
   onOpenCareServices,
+  onUploadPetAvatar,
 }: HomeScreenProps) {
   const { t } = useTranslation();
   return (
@@ -87,16 +89,20 @@ export function HomeScreen({
               className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm"
             >
               <View className="flex-row items-center gap-3.5">
-                <View
-                  className="h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full"
+                <Pressable
+                  testID={`home-pet-avatar-button-${pet.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.uploadAvatar')}
+                  className="h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full active:opacity-90"
                   style={{ backgroundColor: PRIMARY_BLUE }}
+                  onPress={() => onUploadPetAvatar(pet.id)}
                 >
                   {pet.avatar_url ? (
                     <Image source={{ uri: pet.avatar_url }} className="h-full w-full" resizeMode="cover" />
                   ) : (
-                    <Ionicons name="person" size={32} color="#ffffff" />
+                    <Ionicons name="paw" size={32} color="#ffffff" />
                   )}
-                </View>
+                </Pressable>
                 <View className="min-w-0 flex-1">
                   <Text className="text-[17px] font-bold text-slate-900">{pet.name}</Text>
                   <Text className="mt-0.5 text-[13px] text-slate-500" numberOfLines={2}>

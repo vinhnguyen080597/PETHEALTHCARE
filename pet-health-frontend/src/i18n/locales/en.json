@@ -15,7 +15,10 @@
   },
   "language": {
     "english": "English",
-    "vietnamese": "Tiếng Việt"
+    "vietnamese": "Tiếng Việt",
+    "vietnameseDisplay": "Việt Nam",
+    "selectionTitle": "Language selection",
+    "selectionSubtitle": "Choose the language you want to use in the app."
   },
   "health": {
     "checking": "Checking backend...",
@@ -49,6 +52,7 @@
     "forgotPasswordBack": "Back to sign in",
     "forgotPasswordSuccess": "Your password has been reset. You can sign in with your new password.",
     "forgotPasswordSendFailed": "Could not send OTP. Please try again.",
+    "forgotPasswordRateLimit": "For security purposes, you can only request this after {{seconds}} seconds.",
     "errors": {
       "signUpRateLimit": "You recently requested an OTP. Please wait {{seconds}} seconds and try again.",
       "emailAlreadyRegistered": "This email is already registered. Please sign in.",
@@ -118,6 +122,7 @@
     "viewProfile": "View Profile",
     "openCoreCare": "Vaccines & Reminders",
     "openCareServices": "Care services",
+    "uploadAvatar": "Upload profile photo",
     "petFallback": "Pet",
     "yearOld": "{{count}} month old",
     "yearsOld": "{{count}} months old",
@@ -287,6 +292,7 @@
     "menu": {
       "open": "Open account menu",
       "updateAccount": "Update account",
+      "changeLanguage": "Change language",
       "logout": "Log out",
       "deleteAccount": "Delete account"
     },
@@ -801,7 +807,14 @@
     "agePlaceholder": "e.g. 6",
     "gender": "Gender",
     "selectGender": "Select gender",
-    "removePet": "Remove pet"
+    "removePet": "Remove pet",
+    "fieldErrors": {
+      "petNameRequired": "Please enter the pet name.",
+      "birthDateRequired": "Please select the date of birth.",
+      "birthDateFuture": "Date of birth cannot be in the future.",
+      "genderRequired": "Please select the gender.",
+      "petTypeRequired": "Please select the pet type."
+    }
   },
   "onboarding": {
     "introTitle": "Hey there!",
@@ -1548,7 +1561,7 @@
     },
     "missingPetInfo": {
       "title": "Missing info",
-      "message": "Pet name, species, avatar, and age are required.",
+      "message": "Pet name, species, and age are required.",
       "fieldsMessage": "Please enter: {{fields}}."
     },
     "createPetFailed": {

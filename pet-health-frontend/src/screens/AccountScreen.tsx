@@ -99,6 +99,7 @@ type AccountScreenProps = {
   onOpenCreatePetFeedPost: () => void;
   onOpenAdminHub: () => void;
   onOpenUpdateAccount: () => void;
+  onOpenLanguageSelection: () => void;
   onUpdateBreederStatus: (userId: string, verificationStatus: string) => Promise<void>;
   onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
@@ -160,6 +161,7 @@ export function AccountScreen({
   onOpenCreatePetFeedPost,
   onOpenAdminHub,
   onOpenUpdateAccount,
+  onOpenLanguageSelection,
   onUpdateBreederStatus,
   onUpdatePostStatus,
   onUpdateReportStatus,
@@ -915,6 +917,16 @@ export function AccountScreen({
             onPress={() => {
               setMenuOpen(false);
               onOpenUpdateAccount();
+            }}
+          />
+          <View className="h-px bg-gray-100" />
+          <AccountMenuItem
+            testID="account-menu-language-button"
+            icon="language-outline"
+            label={t('account.menu.changeLanguage')}
+            onPress={() => {
+              setMenuOpen(false);
+              onOpenLanguageSelection();
             }}
           />
           <View className="h-px bg-gray-100" />

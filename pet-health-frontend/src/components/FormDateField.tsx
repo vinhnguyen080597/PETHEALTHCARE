@@ -42,12 +42,23 @@ export function FormDateField({
   const selectedDate = parseBirthDateIso(value);
   const pickerValue = selectedDate ?? maximumDate ?? new Date();
 
+  function clampToMaximum(date: Date): Date {
+    if (!maximumDate) return date;
+    const max = new Date(maximumDate.getFullYear(), maximumDate.getMonth(), maximumDate.getDate());
+    const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return next.getTime() > max.getTime() ? max : next;
+  }
+
+  function commitDate(date: Date) {
+    onChange(formatBirthDateIso(clampToMaximum(date)));
+  }
+
   function handleChange(event: DateTimePickerEvent, nextDate?: Date) {
     if (event.type === 'dismissed') {
       setOpen(false);
       return;
     }
-    if (nextDate) onChange(formatBirthDateIso(nextDate));
+    if (nextDate) commitDate(nextDate);
     if (Platform.OS !== 'ios') setOpen(false);
   }
 
@@ -89,7 +100,10 @@ export function FormDateField({
                 value={value || ''}
                 max={maximumDate ? formatBirthDateIso(maximumDate) : undefined}
                 onChange={(event) => {
-                  onChange(event.currentTarget.value);
+                  const raw = event.currentTarget.value;
+                  const parsed = parseBirthDateIso(raw);
+                  if (parsed) commitDate(parsed);
+                  else onChange(raw);
                   setOpen(false);
                 }}
                 style={{
@@ -114,7 +128,7 @@ export function FormDateField({
               <Pressable
                 className="mt-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
                 onPress={() => {
-                  if (!value) onChange(formatBirthDateIso(pickerValue));
+                  if (!value) commitDate(pickerValue);
                   setOpen(false);
                 }}
               >

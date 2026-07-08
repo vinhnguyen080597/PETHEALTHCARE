@@ -19,6 +19,7 @@ type ForgotPasswordScreenProps = {
   error?: string;
   success?: string;
   loading?: boolean;
+  rateLimitSeconds?: number;
   otpModalOpen?: boolean;
   pendingEmail?: string;
   otp?: string;
@@ -82,6 +83,7 @@ export function ForgotPasswordScreen({
   error,
   success,
   loading = false,
+  rateLimitSeconds = 0,
   otpModalOpen = false,
   pendingEmail = '',
   otp = '',
@@ -152,8 +154,10 @@ export function ForgotPasswordScreen({
               <Pressable
                 testID="forgot-password-send-otp-button"
                 accessibilityRole="button"
-                disabled={loading}
-                className={`mb-3 w-full rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
+                disabled={loading || Boolean(rateLimitSeconds && rateLimitSeconds > 0)}
+                className={`mb-3 w-full rounded-xl py-3 ${
+                  loading || (rateLimitSeconds && rateLimitSeconds > 0) ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'
+                }`}
                 onPress={onSubmitSendOtp}
               >
                 {loading ? (

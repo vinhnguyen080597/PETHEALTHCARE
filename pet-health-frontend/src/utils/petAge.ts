@@ -20,6 +20,13 @@ export function parseBirthDateIso(value: string): Date | null {
   return startOfDay(date);
 }
 
+/** True when the ISO birth date is after today (local calendar day). */
+export function isBirthDateInFuture(value: string, today = new Date()): boolean {
+  const birth = parseBirthDateIso(value);
+  if (!birth) return false;
+  return birth.getTime() > startOfDay(today).getTime();
+}
+
 export function birthDateToAgeMonths(birthDate: Date | string, today = new Date()): number {
   const birth = typeof birthDate === 'string' ? parseBirthDateIso(birthDate) : startOfDay(birthDate);
   if (!birth) return 0;

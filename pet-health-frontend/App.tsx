@@ -47,6 +47,7 @@ import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { ForgotPasswordScreen } from './src/screens/ForgotPasswordScreen';
+import { LanguageSelectionScreen } from './src/screens/LanguageSelectionScreen';
 import { SignUpOtpVerificationScreen } from './src/screens/SignUpOtpVerificationScreen';
 import { OnboardingIntroScreen } from './src/screens/OnboardingIntroScreen';
 import { OnboardingHealthPromptScreen } from './src/screens/OnboardingHealthPromptScreen';
@@ -214,6 +215,7 @@ function AppContent() {
       onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
       onOpenAdminHub={app.openAdminHub}
       onOpenUpdateAccount={app.openUpdateAccount}
+      onOpenLanguageSelection={app.openLanguageSelection}
       onUpdateBreederStatus={app.updateAdminBreederStatus}
       onUpdatePostStatus={app.updateAdminPostStatus}
       onUpdateReportStatus={app.updateAdminReportStatus}
@@ -250,6 +252,7 @@ function AppContent() {
           error={app.forgotPasswordError}
           success={app.forgotPasswordSuccess}
           loading={app.loading}
+          rateLimitSeconds={app.forgotPasswordRateLimitSeconds}
           otpModalOpen={app.forgotPasswordOtpOpen}
           pendingEmail={app.forgotPasswordPendingEmail}
           otp={app.forgotPasswordOtp}
@@ -297,6 +300,7 @@ function AppContent() {
                 onAddPet={app.openCreatePet}
                 onViewProfile={app.openPetProfile}
                 onOpenCareServices={app.openCareServices}
+                onUploadPetAvatar={app.uploadPetAvatarFromHome}
               />
             )}
 
@@ -360,6 +364,10 @@ function AppContent() {
                 onChangePassword={app.openUpdateAccountChangePassword}
                 onRecoverPassword={app.openUpdateAccountRecoverPassword}
               />
+            ) : null}
+
+            {app.screen === 'language-selection' && !isAdmin ? (
+              <LanguageSelectionScreen onBack={app.backFromLanguageSelection} />
             ) : null}
 
             {app.screen === 'update-account-change-login' && !isAdmin ? (

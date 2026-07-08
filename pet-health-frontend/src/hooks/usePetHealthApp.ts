@@ -9,7 +9,7 @@ import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
 // v1 release: monetization disabled — re-enable imports when shipping ads + IAP.
 // import { showRewardedAd } from '../services/rewardedAd';
 // import { purchasePremiumSubscription } from '../services/iap';
-import { birthDateToAgeMonths, petBirthDateForForm } from '../utils/petAge';
+import { birthDateToAgeMonths, isBirthDateInFuture, petBirthDateForForm } from '../utils/petAge';
 import { debugCheck, debugLog } from '../utils/debugLog';
 import {
   AnalyzeRequestError,
@@ -261,6 +261,8 @@ export function usePetHealthApp() {
   const [forgotPasswordConfirmPassword, setForgotPasswordConfirmPassword] = useState('');
   const [forgotPasswordOtpError, setForgotPasswordOtpError] = useState('');
   const [forgotPasswordOtpLoading, setForgotPasswordOtpLoading] = useState(false);
+  const [forgotPasswordRateLimitUntilMs, setForgotPasswordRateLimitUntilMs] = useState(0);
+  const [forgotPasswordRateLimitSeconds, setForgotPasswordRateLimitSeconds] = useState(0);
   const [forgotPasswordRecoverFieldErrors, setForgotPasswordRecoverFieldErrors] = useState<{
     otp?: string;
     newPassword?: string;
@@ -316,7 +318,7 @@ export function usePetHealthApp() {
   const [petSpecies, setPetSpecies] = useState<string>(DEFAULT_PET_SPECIES);
   const [petBreed, setPetBreed] = useState('');
   const [petBirthDate, setPetBirthDate] = useState('');
-  const [petGender, setPetGender] = useState('male');
+  const [petGender, setPetGender] = useState('');
   const [petAvatarUrl, setPetAvatarUrl] = useState('');
   const [petAvatarStorageUrl, setPetAvatarStorageUrl] = useState('');
 
@@ -411,7 +413,7 @@ export function usePetHealthApp() {
     setPetSpecies(DEFAULT_PET_SPECIES);
     setPetBreed('');
     setPetBirthDate('');
-    setPetGender('male');
+    setPetGender('');
     setPetAvatarUrl('');
     setPetAvatarStorageUrl('');
     setEditingPetId(null);
@@ -621,6 +623,26 @@ export function usePetHealthApp() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [analysisCooldownUntilMs]);
+
+  useEffect(() => {
+    if (!forgotPasswordRateLimitUntilMs || forgotPasswordRateLimitUntilMs <= Date.now()) {
+      setForgotPasswordRateLimitSeconds(0);
+      return;
+    }
+    const tick = () => {
+      const remain = Math.max(0, Math.ceil((forgotPasswordRateLimitUntilMs - Date.now()) / 1000));
+      setForgotPasswordRateLimitSeconds(remain);
+      if (remain > 0) {
+        setForgotPasswordError(i18n.t('login.forgotPasswordRateLimit', { seconds: remain }));
+      } else {
+        setForgotPasswordError('');
+        setForgotPasswordRateLimitUntilMs(0);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [forgotPasswordRateLimitUntilMs]);
 
   async function clearInvalidSession() {
     await removeStoredAuthToken();
@@ -956,6 +978,8 @@ export function usePetHealthApp() {
     setForgotPasswordConfirmPassword('');
     setForgotPasswordOtpError('');
     setForgotPasswordOtpLoading(false);
+    setForgotPasswordRateLimitUntilMs(0);
+    setForgotPasswordRateLimitSeconds(0);
     setForgotPasswordRecoverFieldErrors({});
   }
 
@@ -971,7 +995,10 @@ export function usePetHealthApp() {
 
   function changeForgotPasswordEmail(value: string) {
     setEmail(value);
-    if (forgotPasswordError) setForgotPasswordError('');
+    // Keep rate-limit countdown visible while waiting; only clear non-rate-limit errors.
+    if (forgotPasswordError && forgotPasswordRateLimitSeconds <= 0) {
+      setForgotPasswordError('');
+    }
     if (forgotPasswordFieldErrors.email) {
       setForgotPasswordFieldErrors((prev) => {
         const next = { ...prev };
@@ -1008,12 +1035,16 @@ export function usePetHealthApp() {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       setForgotPasswordFieldErrors({ email: i18n.t('login.fieldErrors.emailRequired') });
-      setForgotPasswordError('');
+      if (forgotPasswordRateLimitSeconds <= 0) setForgotPasswordError('');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setForgotPasswordFieldErrors({ email: i18n.t('login.errors.invalidEmailFormat') });
-      setForgotPasswordError('');
+      if (forgotPasswordRateLimitSeconds <= 0) setForgotPasswordError('');
+      return;
+    }
+    if (forgotPasswordRateLimitSeconds > 0) {
+      setForgotPasswordError(i18n.t('login.forgotPasswordRateLimit', { seconds: forgotPasswordRateLimitSeconds }));
       return;
     }
 
@@ -1030,9 +1061,25 @@ export function usePetHealthApp() {
       setForgotPasswordConfirmPassword('');
       setForgotPasswordOtpError('');
       setForgotPasswordRecoverFieldErrors({});
+      setForgotPasswordRateLimitUntilMs(0);
+      setForgotPasswordRateLimitSeconds(0);
       setForgotPasswordOtpOpen(true);
-    } catch {
-      setForgotPasswordError(i18n.t('login.forgotPasswordSendFailed'));
+    } catch (error: unknown) {
+      if (
+        error instanceof ApiRequestError &&
+        (error.code === 'over_email_send_rate_limit' || /after \d+ seconds?/i.test(error.message))
+      ) {
+        const seconds = parseRetryAfterSeconds(error);
+        setForgotPasswordRateLimitUntilMs(Date.now() + seconds * 1000);
+        setForgotPasswordRateLimitSeconds(seconds);
+        setForgotPasswordError(i18n.t('login.forgotPasswordRateLimit', { seconds }));
+      } else {
+        setForgotPasswordError(
+          error instanceof ApiRequestError && error.message
+            ? error.message
+            : i18n.t('login.forgotPasswordSendFailed'),
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -1070,13 +1117,16 @@ export function usePetHealthApp() {
         newPassword: forgotPasswordNewPassword,
       });
       const accessToken = data.accessToken;
-      closeForgotPasswordOtpModal();
-      resetForgotPasswordForm();
       setPassword('');
       if (accessToken) {
+        // Keep OTP modal open until session is ready so we don't flash the forgot-password form.
         await applySession(accessToken);
+        closeForgotPasswordOtpModal();
+        resetForgotPasswordForm();
         return;
       }
+      closeForgotPasswordOtpModal();
+      resetForgotPasswordForm();
       setAuthError('');
       setAuthSuccess(i18n.t('login.forgotPasswordSuccess'));
       setScreen('login');
@@ -1103,8 +1153,12 @@ export function usePetHealthApp() {
 
   async function handleAddPet() {
     if (!token) return;
-    if (!petName.trim() || !petSpecies.trim() || !petBirthDate.trim() || !petAvatarStorageUrl.trim()) {
+    if (!petName.trim() || !petSpecies.trim() || !petBirthDate.trim() || !petGender.trim()) {
       Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
+      return;
+    }
+    if (isBirthDateInFuture(petBirthDate)) {
+      Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('addPet.fieldErrors.birthDateFuture'));
       return;
     }
 
@@ -1207,8 +1261,12 @@ export function usePetHealthApp() {
 
   async function handleUpdatePet() {
     if (!token || !editingPetId) return;
-    if (!petName.trim() || !petSpecies.trim() || !petBirthDate.trim() || (!petAvatarStorageUrl.trim() && !petAvatarUrl.trim())) {
+    if (!petName.trim() || !petSpecies.trim() || !petBirthDate.trim() || !petGender.trim()) {
       Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('alerts.missingPetInfo.message'));
+      return;
+    }
+    if (isBirthDateInFuture(petBirthDate)) {
+      Alert.alert(i18n.t('alerts.missingPetInfo.title'), i18n.t('addPet.fieldErrors.birthDateFuture'));
       return;
     }
 
@@ -1911,6 +1969,41 @@ export function usePetHealthApp() {
     }
   }
 
+  async function uploadPetAvatarFromHome(petId: string) {
+    if (!token) {
+      Alert.alert(i18n.t('alerts.signInRequired.title'), i18n.t('alerts.signInRequired.message'));
+      return;
+    }
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(i18n.t('alerts.permissionAvatar.title'), i18n.t('alerts.permissionAvatar.message'));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    setLoading(true);
+    try {
+      const resized = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 512 } }],
+        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      const { data } = await uploadPetAvatar(token, resized.uri);
+      await updatePet(token, petId, { avatarUrl: data.avatarStorageUrl });
+      await fetchPets(token);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.avatarUploadFailed.title'), i18n.t('alerts.avatarUploadFailed.message', { message }));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function pickHealthCheckPhotos() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -2359,6 +2452,14 @@ export function usePetHealthApp() {
     setScreen('update-account');
   }
 
+  function openLanguageSelection() {
+    setScreen('language-selection');
+  }
+
+  function backFromLanguageSelection() {
+    setScreen('account');
+  }
+
   function backFromUpdateAccount() {
     setScreen('account');
   }
@@ -2761,6 +2862,7 @@ export function usePetHealthApp() {
     petAvatarUrl,
     setPetAvatarUrl,
     pickPetAvatar,
+    uploadPetAvatarFromHome,
     healthCheckPhotos,
     healthCheckVideoUri,
     healthCheckWeightKg,
@@ -2819,6 +2921,7 @@ export function usePetHealthApp() {
     forgotPasswordOtpError,
     forgotPasswordRecoverFieldErrors,
     forgotPasswordOtpLoading,
+    forgotPasswordRateLimitSeconds,
     submitSignUpOtpVerification,
     backToSignUpFromOtpVerification,
     handleAddPet,
@@ -2854,6 +2957,8 @@ export function usePetHealthApp() {
     openPetFeed,
     openAccount,
     openUpdateAccount,
+    openLanguageSelection,
+    backFromLanguageSelection,
     backFromUpdateAccount,
     backToUpdateAccount,
     openUpdateAccountChangeLogin,

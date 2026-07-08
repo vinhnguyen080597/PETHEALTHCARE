@@ -10,6 +10,7 @@ export type AppScreen =
   | 'update-account-change-login'
   | 'update-account-change-password'
   | 'update-account-recover-password'
+  | 'language-selection'
   | 'breeder-profile'
   | 'create-pet-feed-post'
   | 'create-admin-post'

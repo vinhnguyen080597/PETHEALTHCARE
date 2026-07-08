@@ -15,7 +15,10 @@
   },
   "language": {
     "english": "English",
-    "vietnamese": "Tiếng Việt"
+    "vietnamese": "Tiếng Việt",
+    "vietnameseDisplay": "Việt Nam",
+    "selectionTitle": "Lựa chọn ngôn ngữ",
+    "selectionSubtitle": "Chọn ngôn ngữ Sen muốn dùng trong ứng dụng."
   },
   "health": {
     "checking": "Đang kiểm tra máy chủ...",
@@ -49,6 +52,7 @@
     "forgotPasswordBack": "Quay lại đăng nhập",
     "forgotPasswordSuccess": "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập bằng mật khẩu mới.",
     "forgotPasswordSendFailed": "Không thể gửi mã OTP. Vui lòng thử lại.",
+    "forgotPasswordRateLimit": "Vì lý do bảo mật, bạn chỉ có thể yêu cầu lại sau {{seconds}} giây.",
     "errors": {
       "signUpRateLimit": "Bạn vừa yêu cầu gửi mã OTP. Vui lòng đợi {{seconds}} giây rồi thử lại.",
       "emailAlreadyRegistered": "Email này đã được đăng ký. Vui lòng đăng nhập.",
@@ -118,6 +122,7 @@
     "viewProfile": "Xem hồ sơ",
     "openCoreCare": "Sổ tiêm & Lịch nhắc",
     "openCareServices": "Dịch vụ chăm sóc",
+    "uploadAvatar": "Tải ảnh đại diện",
     "petFallback": "Thú cưng",
     "yearOld": "{{count}} tháng tuổi",
     "yearsOld": "{{count}} tháng tuổi",
@@ -287,6 +292,7 @@
     "menu": {
       "open": "Mở menu tài khoản",
       "updateAccount": "Cập nhật tài khoản",
+      "changeLanguage": "Chuyển đổi ngôn ngữ",
       "logout": "Đăng xuất",
       "deleteAccount": "Xóa tài khoản"
     },
@@ -798,7 +804,14 @@
     "agePlaceholder": "vd: 6",
     "gender": "Giới tính",
     "selectGender": "Chọn giới tính",
-    "removePet": "Xóa thú cưng"
+    "removePet": "Xóa thú cưng",
+    "fieldErrors": {
+      "petNameRequired": "Vui lòng nhập tên thú cưng.",
+      "birthDateRequired": "Vui lòng chọn ngày sinh.",
+      "birthDateFuture": "Ngày sinh không được là ngày trong tương lai.",
+      "genderRequired": "Vui lòng chọn giới tính.",
+      "petTypeRequired": "Vui lòng chọn loài."
+    }
   },
   "onboarding": {
     "introTitle": "Sen ơi!",
@@ -1545,7 +1558,7 @@
     },
     "missingPetInfo": {
       "title": "Thiếu thông tin",
-      "message": "Cần có tên, loài, ảnh đại diện và tuổi của thú cưng.",
+      "message": "Cần có tên, loài và tuổi của thú cưng.",
       "fieldsMessage": "Vui lòng nhập: {{fields}}."
     },
     "createPetFailed": {
