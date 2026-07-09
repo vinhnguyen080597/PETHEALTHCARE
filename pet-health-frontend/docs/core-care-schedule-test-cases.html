@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Core Care Schedule — Bảng test cases</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #fff;
+      --text: #152238;
+      --muted: #5b6b82;
+      --border: #d7e0ee;
+      --accent: #1e6fe8;
+      --review: #fff6e8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      background: linear-gradient(135deg, #123f86, #1e6fe8);
+      color: #fff;
+      padding: 24px 28px;
+    }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.92; max-width: 900px; }
+    main { padding: 20px 28px 40px; }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+    h2 { margin: 0 0 10px; font-size: 1.1rem; }
+    ul { margin: 8px 0; padding-left: 20px; }
+    li { margin: 4px 0; }
+    code { font-family: Consolas, "Courier New", monospace; font-size: 0.9em; }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+    table.matrix { width: 100%; border-collapse: collapse; min-width: 1400px; font-size: 0.88rem; }
+    table.matrix th, table.matrix td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+    table.matrix th { background: #eef3fb; position: sticky; top: 0; z-index: 1; }
+    table.matrix tr.review { background: var(--review); }
+    table.mini { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    table.mini th, table.mini td { border: 1px solid var(--border); padding: 4px 6px; }
+    table.mini th { background: #f8fafc; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.9rem; color: var(--muted); }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef3fb; }
+    footer { color: var(--muted); font-size: 0.85rem; padding: 0 28px 24px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Core Care Schedule — Bảng test cases (công thức hiện tại)</h1>
+    <p>
+      Sinh tự động từ <code>src/utils/coreCareSchedule.ts</code> lúc 2026-07-09T15:13:50.215Z.
+      Cột <strong>Output thực tế</strong> chạy trực tiếp hàm tính lịch — dùng để review trước khi sửa công thức.
+    </p>
+  </header>
+  <main>
+    <section>
+      <h2>Hằng số &amp; nhánh logic chính</h2>
+      <ul>
+        <li><code>PRE_VACCINE_DEWORMING_DAYS = 7</code> — tẩy giun trước vaccine (mốc guideline trong app)</li>
+        <li><code>weeks(26)</code> — ngưỡng chuyển sang lịch catch-up người lớn (~6 tháng)</li>
+        <li><code>MONTH_DAYS = 30</code> — tẩy giun duy trì hàng tháng (mèo con)</li>
+        <li>Mèo ≤26 tuần + có lịch sử → <code>calculateCoreCareScheduleFromHistory</code> → <code>buildCatKittenIntegratedSchedule</code></li>
+        <li>Mèo &gt;26 tuần + có lịch sử → <code>adultCatCatchUp</code> (không đọc vaccine đã tiêm)</li>
+        <li>Chó trong app (màn hình chăm sóc) dùng <code>calculateNextVaccinationSchedule</code> cho mũi kế tiếp</li>
+      </ul>
+      <div class="legend">
+        <span class="pill">Due = max(hôm nay, target)</span>
+        <span class="pill">Catch-up = due &gt; target</span>
+        <span class="pill" style="background:#fff6e8">Dòng vàng = case cần review</span>
+      </div>
+    </section>
+    <section>
+      <h2>Công thức tẩy giun mèo con (tóm tắt)</h2>
+      <ul>
+        <li><strong>Mũi 1–3:</strong> target theo tuổi 3, 5, 7 tuần; catch-up cách nhau 2 tuần</li>
+        <li><strong>FVRCP #1:</strong> target = tẩy giun #3 + 7 ngày</li>
+        <li><strong>Tẩy giun #4:</strong> target = FVRCP #1 + 7 ngày</li>
+        <li><strong>Tẩy giun #5:</strong> target = tẩy #4 + 2 tuần</li>
+        <li><strong>FVRCP #2+:</strong> cách mũi trước 4 tuần</li>
+        <li><strong>Dại:</strong> max(FVRCP #2, 12 tuần tuổi); nếu trùng FVRCP #2 thì +7 ngày</li>
+        <li><strong>Duy trì #6+:</strong> hàng tháng từ 3–6 tháng tuổi, sau đó 3 tháng/lần đến 26 tuần</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Bảng test cases (14 case)</h2>
+      <div class="table-wrap">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nhóm</th>
+              <th>Hàm</th>
+              <th>Mô tả</th>
+              <th>Ngày sinh</th>
+              <th>Hôm nay</th>
+              <th>Tuổi</th>
+              <th>Vaccine chọn</th>
+              <th>Lịch sử</th>
+              <th>Nhánh code</th>
+              <th>Output thực tế (102 mũi)</th>
+              <th>Điểm cần kiểm tra</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="">
+      <td><code>CAT-01</code></td>
+      <td>Mèo — lịch mới</td>
+      <td><code>calculateCoreCareSchedule</code></td>
+      <td>Mèo con mới sinh, không chọn vaccine (đủ FVRCP + FeLV + tẩy giun + dại)</td>
+      <td>2026-01-01</td>
+      <td>2026-01-01</td>
+      <td>0 tuần</td>
+      <td>—</td>
+      <td>Không có</td>
+      <td><code>buildCatKittenIntegratedSchedule</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>catDeworming</td><td>1</td><td><code>2026-01-22</code></td><td><code>2026-01-22</code></td><td></td></tr><tr><td>catDeworming</td><td>2</td><td><code>2026-02-05</code></td><td><code>2026-02-05</code></td><td></td></tr><tr><td>catDeworming</td><td>3</td><td><code>2026-02-19</code></td><td><code>2026-02-19</code></td><td></td></tr><tr><td>catFelv</td><td>1</td><td><code>2026-02-26</code></td><td><code>2026-02-26</code></td><td></td></tr><tr><td>catFvrcp</td><td>1</td><td><code>2026-02-26</code></td><td><code>2026-02-26</code></td><td></td></tr><tr><td>catDeworming</td><td>4</td><td><code>2026-03-05</code></td><td><code>2026-03-05</code></td><td></td></tr><tr><td>catDeworming</td><td>5</td><td><code>2026-03-19</code></td><td><code>2026-03-19</code></td><td></td></tr><tr><td>catFelv</td><td>2</td><td><code>2026-03-26</code></td><td><code>2026-03-26</code></td><td></td></tr><tr><td>catFvrcp</td><td>2</td><td><code>2026-03-26</code></td><td><code>2026-03-26</code></td><td></td></tr><tr><td>catRabies</td><td>1</td><td><code>2026-04-02</code></td><td><code>2026-03-26</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>6</td><td><code>2026-04-18</code></td><td><code>2026-04-18</code></td><td></td></tr><tr><td>catFvrcp</td><td>3</td><td><code>2026-04-23</code></td><td><code>2026-04-23</code></td><td></td></tr><tr><td>catDeworming</td><td>7</td><td><code>2026-05-18</code></td><td><code>2026-05-18</code></td><td></td></tr><tr><td>catDeworming</td><td>8</td><td><code>2026-06-17</code></td><td><code>2026-06-17</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>Tẩy giun #1 due 2026-01-22 (3 tuần tuổi)</li><li>Tẩy giun #3 due 2026-02-19 (7 tuần tuổi)</li><li>FVRCP #1 due 2026-02-26 (= tẩy #3 + 7 ngày)</li><li>Tẩy giun #4 due 2026-03-05 (= FVRCP #1 + 7 ngày)</li><li>Dại #1 due 2026-04-02 (sau FVRCP #2, không trùng FVRCP #1)</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>CAT-02</code></td>
+      <td>Mèo — lịch mới</td>
+      <td><code>calculateCoreCareSchedule</code></td>
+      <td>Mèo con mới sinh, chọn FVRCP 3-in-1 (loại FeLV)</td>
+      <td>2026-01-01</td>
+      <td>2026-01-01</td>
+      <td>0 tuần</td>
+      <td>cat_3in1_fvrcp</td>
+      <td>Không có</td>
+      <td><code>filterInitialScheduleBySelection (cat)</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>catDeworming</td><td>1</td><td><code>2026-01-22</code></td><td><code>2026-01-22</code></td><td></td></tr><tr><td>catDeworming</td><td>2</td><td><code>2026-02-05</code></td><td><code>2026-02-05</code></td><td></td></tr><tr><td>catDeworming</td><td>3</td><td><code>2026-02-19</code></td><td><code>2026-02-19</code></td><td></td></tr><tr><td>catFvrcp</td><td>1</td><td><code>2026-02-26</code></td><td><code>2026-02-26</code></td><td></td></tr><tr><td>catDeworming</td><td>4</td><td><code>2026-03-05</code></td><td><code>2026-03-05</code></td><td></td></tr><tr><td>catDeworming</td><td>5</td><td><code>2026-03-19</code></td><td><code>2026-03-19</code></td><td></td></tr><tr><td>catFvrcp</td><td>2</td><td><code>2026-03-26</code></td><td><code>2026-03-26</code></td><td></td></tr><tr><td>catRabies</td><td>1</td><td><code>2026-04-02</code></td><td><code>2026-03-26</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>6</td><td><code>2026-04-18</code></td><td><code>2026-04-18</code></td><td></td></tr><tr><td>catFvrcp</td><td>3</td><td><code>2026-04-23</code></td><td><code>2026-04-23</code></td><td></td></tr><tr><td>catDeworming</td><td>7</td><td><code>2026-05-18</code></td><td><code>2026-05-18</code></td><td></td></tr><tr><td>catDeworming</td><td>8</td><td><code>2026-06-17</code></td><td><code>2026-06-17</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>Có FVRCP, dại, tẩy giun</li><li>Không có FeLV</li><li>Không có mũi tẩy giun trùng ngày FVRCP #1</li><li>Tẩy giun #3 vẫn 2026-02-19</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>CAT-03</code></td>
+      <td>Mèo — catch-up</td>
+      <td><code>calculateCoreCareSchedule</code></td>
+      <td>Mèo ~4 tuần, trễ mốc tẩy giun đầu, chọn FVRCP</td>
+      <td>2026-06-02</td>
+      <td>2026-06-28</td>
+      <td>3 tuần</td>
+      <td>cat_3in1_fvrcp</td>
+      <td>Không có</td>
+      <td><code>catch-up: due = max(today, target)</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>catDeworming</td><td>1</td><td><code>2026-06-28</code></td><td><code>2026-06-23</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>2</td><td><code>2026-07-12</code></td><td><code>2026-07-07</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>3</td><td><code>2026-07-26</code></td><td><code>2026-07-21</code></td><td>✓</td></tr><tr><td>catFvrcp</td><td>1</td><td><code>2026-08-02</code></td><td><code>2026-08-02</code></td><td></td></tr><tr><td>catDeworming</td><td>4</td><td><code>2026-08-09</code></td><td><code>2026-08-09</code></td><td></td></tr><tr><td>catDeworming</td><td>5</td><td><code>2026-08-23</code></td><td><code>2026-08-23</code></td><td></td></tr><tr><td>catFvrcp</td><td>2</td><td><code>2026-08-30</code></td><td><code>2026-08-25</code></td><td>✓</td></tr><tr><td>catRabies</td><td>1</td><td><code>2026-09-06</code></td><td><code>2026-08-25</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>6</td><td><code>2026-09-22</code></td><td><code>2026-09-22</code></td><td></td></tr><tr><td>catFvrcp</td><td>3</td><td><code>2026-09-27</code></td><td><code>2026-09-22</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>7</td><td><code>2026-10-22</code></td><td><code>2026-10-22</code></td><td></td></tr><tr><td>catDeworming</td><td>8</td><td><code>2026-11-21</code></td><td><code>2026-11-21</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>Tẩy giun #1 due 2026-06-28, catch-up</li><li>Tẩy giun #3 due 2026-07-26</li><li>FVRCP #1 due 2026-08-02 (= tẩy #3 + 7 ngày)</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>CAT-04</code></td>
+      <td>Mèo — catch-up muộn</td>
+      <td><code>calculateCoreCareSchedule</code></td>
+      <td>Mèo ~22 tuần, trễ toàn bộ lịch, chọn FVRCP → staggerInitialCatchUpSchedule</td>
+      <td>2026-01-14</td>
+      <td>2026-06-14</td>
+      <td>21 tuần</td>
+      <td>cat_3in1_fvrcp</td>
+      <td>Không có</td>
+      <td><code>staggerInitialCatchUpSchedule (dog-style cho mèo khi due=today &amp; target quá khứ)</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>catDeworming</td><td>1</td><td><code>2026-06-14</code></td><td><code>2026-02-04</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>2</td><td><code>2026-06-28</code></td><td><code>2026-02-18</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>3</td><td><code>2026-07-12</code></td><td><code>2026-03-04</code></td><td>✓</td></tr><tr><td>catFvrcp</td><td>1</td><td><code>2026-07-19</code></td><td><code>2026-07-19</code></td><td></td></tr><tr><td>catDeworming</td><td>4</td><td><code>2026-07-26</code></td><td><code>2026-07-26</code></td><td></td></tr><tr><td>catDeworming</td><td>5</td><td><code>2026-08-09</code></td><td><code>2026-08-09</code></td><td></td></tr><tr><td>catFvrcp</td><td>2</td><td><code>2026-08-16</code></td><td><code>2026-04-08</code></td><td>✓</td></tr><tr><td>catRabies</td><td>1</td><td><code>2026-08-23</code></td><td><code>2026-04-08</code></td><td>✓</td></tr><tr><td>catFvrcp</td><td>3</td><td><code>2026-09-13</code></td><td><code>2026-05-06</code></td><td>✓</td></tr></tbody></table></td>
+      <td><ul><li>Tẩy giun #1 due 2026-06-14 (hôm nay)</li><li>FVRCP #1 due 2026-07-19 (= hôm nay + 7 + 28*0)</li><li>Tẩy giun #2 due 2026-07-19 hoặc #4 due 2026-07-26 (xem output)</li><li>FVRCP #2 due 2026-08-16</li><li>Dại due 2026-08-23</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>CAT-05</code></td>
+      <td>Mèo — người lớn</td>
+      <td><code>calculateCoreCareSchedule</code></td>
+      <td>Mèo &gt;26 tuần (~1 tuổi), không lịch sử, chọn FVRCP → adultCatCatchUp</td>
+      <td>2025-01-01</td>
+      <td>2026-01-01</td>
+      <td>52 tuần</td>
+      <td>cat_3in1_fvrcp</td>
+      <td>Không có</td>
+      <td><code>adultCatCatchUp</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>catDeworming</td><td>1</td><td><code>2026-01-01</code></td><td><code>2026-01-01</code></td><td></td></tr><tr><td>catFvrcp</td><td>1</td><td><code>2026-01-01</code></td><td><code>2026-01-01</code></td><td></td></tr><tr><td>catRabies</td><td>1</td><td><code>2026-01-01</code></td><td><code>2026-01-01</code></td><td></td></tr><tr><td>catFvrcp</td><td>2</td><td><code>2026-01-29</code></td><td><code>2026-01-29</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>Tẩy giun due hôm nay</li><li>FVRCP #1 due hôm nay</li><li>FVRCP #2 due 2026-01-29 (+28 ngày)</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>CAT-H01</code></td>
+      <td>Mèo — có lịch sử</td>
+      <td><code>calculateCoreCareScheduleFromHistory</code></td>
+      <td>Đã tẩy giun lần 1 (24/06), chưa tiêm vaccine</td>
+      <td>2026-06-02</td>
+      <td>2026-06-28</td>
+      <td>3 tuần</td>
+      <td>cat_3in1_fvrcp</td>
+      <td>Tẩy giun: 2026-06-24</td>
+      <td><code>cat_kitten_history</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>catDeworming</td><td>2</td><td><code>2026-07-08</code></td><td><code>2026-07-07</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>3</td><td><code>2026-07-22</code></td><td><code>2026-07-21</code></td><td>✓</td></tr><tr><td>catFvrcp</td><td>1</td><td><code>2026-07-29</code></td><td><code>2026-07-29</code></td><td></td></tr><tr><td>catFvrcp</td><td>2</td><td><code>2026-08-26</code></td><td><code>2026-08-25</code></td><td>✓</td></tr><tr><td>catFvrcp</td><td>3</td><td><code>2026-09-23</code></td><td><code>2026-09-22</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>4</td><td><code>2026-08-05</code></td><td><code>2026-08-05</code></td><td></td></tr><tr><td>catDeworming</td><td>5</td><td><code>2026-08-19</code></td><td><code>2026-08-19</code></td><td></td></tr><tr><td>catRabies</td><td>1</td><td><code>2026-09-02</code></td><td><code>2026-08-25</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>6</td><td><code>2026-09-18</code></td><td><code>2026-09-18</code></td><td></td></tr><tr><td>catDeworming</td><td>7</td><td><code>2026-10-18</code></td><td><code>2026-10-18</code></td><td></td></tr><tr><td>catDeworming</td><td>8</td><td><code>2026-11-17</code></td><td><code>2026-11-17</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>Tẩy giun #2 due 2026-07-08 (+14 ngày từ 24/06)</li><li>Tẩy giun #3 due 2026-07-22</li><li>FVRCP #1 due 2026-07-29 (= tẩy #3 + 7 ngày)</li></ul></td>
+    </tr>
+<tr class="review">
+      <td><code>CAT-H02</code></td>
+      <td>Mèo — edge case (cần review)</td>
+      <td><code>calculateCoreCareScheduleFromHistory</code></td>
+      <td>Bé &gt;6 tháng (~30 tuần), chưa tẩy/tiêm gì, hôm nay vừa tiêm FVRCP mũi 1</td>
+      <td>2025-12-12</td>
+      <td>2026-07-09</td>
+      <td>29 tuần</td>
+      <td>cat_3in1_fvrcp</td>
+      <td>FVRCP mũi 1: 2026-07-09</td>
+      <td><code>adult_catch_up (vì ageDays &gt; 26 tuần — bỏ qua lịch sử vaccine)</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>catFvrcp</td><td>1</td><td><code>2026-07-09</code></td><td><code>2026-07-09</code></td><td></td></tr><tr><td>catFvrcp</td><td>2</td><td><code>2026-08-06</code></td><td><code>2026-08-06</code></td><td></td></tr><tr><td>catRabies</td><td>1</td><td><code>2026-07-09</code></td><td><code>2026-07-09</code></td><td></td></tr><tr><td>catDeworming</td><td>1</td><td><code>2026-07-09</code></td><td><code>2026-07-09</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>⚠ Hiện tại: path adult_catch_up, có thể gợi ý lại FVRCP #1 cùng ngày</li><li>⚠ Tẩy giun due cùng ngày tiêm — chưa xử lý edge case</li><li>Đây là case cần cập nhật trong bước review tiếp theo</li></ul></td>
+    </tr>
+<tr class="review">
+      <td><code>CAT-H03</code></td>
+      <td>Mèo — có lịch sử</td>
+      <td><code>calculateCoreCareScheduleFromHistory</code></td>
+      <td>Mèo 9 tuần, vừa tiêm FVRCP mũi 1 hôm nay, chưa tẩy giun</td>
+      <td>2025-12-12</td>
+      <td>2026-02-14</td>
+      <td>9 tuần</td>
+      <td>cat_3in1_fvrcp</td>
+      <td>FVRCP mũi 1: 2026-02-14</td>
+      <td><code>cat_kitten_history (≤26 tuần)</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>catDeworming</td><td>1</td><td><code>2026-02-14</code></td><td><code>2026-01-02</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>2</td><td><code>2026-02-28</code></td><td><code>2026-01-16</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>3</td><td><code>2026-03-14</code></td><td><code>2026-01-30</code></td><td>✓</td></tr><tr><td>catFvrcp</td><td>2</td><td><code>2026-03-14</code></td><td><code>2026-03-06</code></td><td>✓</td></tr><tr><td>catFvrcp</td><td>3</td><td><code>2026-04-11</code></td><td><code>2026-04-03</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>4</td><td><code>2026-02-21</code></td><td><code>2026-02-21</code></td><td></td></tr><tr><td>catDeworming</td><td>5</td><td><code>2026-03-07</code></td><td><code>2026-03-07</code></td><td></td></tr><tr><td>catRabies</td><td>1</td><td><code>2026-03-21</code></td><td><code>2026-03-06</code></td><td>✓</td></tr><tr><td>catDeworming</td><td>6</td><td><code>2026-04-06</code></td><td><code>2026-04-06</code></td><td></td></tr><tr><td>catDeworming</td><td>7</td><td><code>2026-05-06</code></td><td><code>2026-05-06</code></td><td></td></tr><tr><td>catDeworming</td><td>8</td><td><code>2026-06-05</code></td><td><code>2026-06-05</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>Vẫn tạo tẩy giun #1–3 catch-up theo tuổi</li><li>Tẩy giun #4 = FVRCP #1 + 7 ngày (có thể xung đột thứ tự với #3)</li><li>FVRCP #2 cách mũi 1 đã tiêm 4 tuần</li><li>⚠ Cần review khi tiêm trước tẩy giun</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>DOG-01</code></td>
+      <td>Chó — lịch mới</td>
+      <td><code>calculateCoreCareSchedule</code></td>
+      <td>Chó con mới sinh, không chọn vaccine</td>
+      <td>2026-01-01</td>
+      <td>2026-01-01</td>
+      <td>0 tuần</td>
+      <td>—</td>
+      <td>Không có</td>
+      <td><code>calculateDogSchedule + spaceInitialSchedule</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>dogDeworming</td><td>1</td><td><code>2026-01-15</code></td><td><code>2026-01-15</code></td><td></td></tr><tr><td>dogDeworming</td><td>2</td><td><code>2026-01-29</code></td><td><code>2026-01-29</code></td><td></td></tr><tr><td>dogDeworming</td><td>3</td><td><code>2026-02-12</code></td><td><code>2026-02-12</code></td><td></td></tr><tr><td>dogDeworming</td><td>4</td><td><code>2026-02-26</code></td><td><code>2026-02-26</code></td><td></td></tr><tr><td>dogDhpp</td><td>1</td><td><code>2026-02-26</code></td><td><code>2026-02-26</code></td><td></td></tr><tr><td>dogDeworming</td><td>5</td><td><code>2026-03-26</code></td><td><code>2026-03-26</code></td><td></td></tr><tr><td>dogDhpp</td><td>2</td><td><code>2026-03-26</code></td><td><code>2026-03-26</code></td><td></td></tr><tr><td>dogLepto</td><td>1</td><td><code>2026-03-26</code></td><td><code>2026-03-26</code></td><td></td></tr><tr><td>dogRabies</td><td>1</td><td><code>2026-03-26</code></td><td><code>2026-03-26</code></td><td></td></tr><tr><td>dogDhpp</td><td>3</td><td><code>2026-04-23</code></td><td><code>2026-04-23</code></td><td></td></tr><tr><td>dogLepto</td><td>2</td><td><code>2026-04-23</code></td><td><code>2026-04-23</code></td><td></td></tr><tr><td>dogDeworming</td><td>6</td><td><code>2026-04-25</code></td><td><code>2026-04-25</code></td><td></td></tr><tr><td>dogDeworming</td><td>7</td><td><code>2026-05-25</code></td><td><code>2026-05-25</code></td><td></td></tr><tr><td>dogDeworming</td><td>8</td><td><code>2026-06-24</code></td><td><code>2026-06-24</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>Tẩy giun #1 due 2026-01-15 (2 tuần tuổi)</li><li>DHPP #1 due 2026-02-26 (8 tuần tuổi)</li><li>Dại due 2026-03-26 (12 tuần tuổi)</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>DOG-02</code></td>
+      <td>Chó — người lớn</td>
+      <td><code>calculateCoreCareSchedule</code></td>
+      <td>Chó &gt;26 tuần, không lịch sử</td>
+      <td>2025-01-01</td>
+      <td>2026-01-01</td>
+      <td>52 tuần</td>
+      <td>—</td>
+      <td>Không có</td>
+      <td><code>adultDogCatchUp</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>dogDeworming</td><td>1</td><td><code>2026-01-01</code></td><td><code>2026-01-01</code></td><td></td></tr><tr><td>dogDhpp</td><td>1</td><td><code>2026-01-01</code></td><td><code>2026-01-01</code></td><td></td></tr><tr><td>dogLepto</td><td>1</td><td><code>2026-01-01</code></td><td><code>2026-01-01</code></td><td></td></tr><tr><td>dogRabies</td><td>1</td><td><code>2026-01-01</code></td><td><code>2026-01-01</code></td><td></td></tr><tr><td>dogDhpp</td><td>2</td><td><code>2026-01-29</code></td><td><code>2026-01-29</code></td><td></td></tr><tr><td>dogLepto</td><td>2</td><td><code>2026-01-29</code></td><td><code>2026-01-29</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>DHPP #1, dại, tẩy giun due hôm nay</li><li>DHPP #2 due 2026-01-29</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>NEXT-01</code></td>
+      <td>Mũi tiêm kế tiếp (chó trong app)</td>
+      <td><code>calculateNextVaccinationSchedule</code></td>
+      <td>Chó 3 tháng, vừa tiêm 5-in-1 mũi 1 → còn 2 mũi primary</td>
+      <td>—</td>
+      <td>2026-06-12</td>
+      <td>—</td>
+      <td>—</td>
+      <td>dog_5in1_dhppl: 2026-06-12, petAgeMonths=3</td>
+      <td><code>primary series, interval 28 ngày</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>dog_5in1_dhppl</td><td>2</td><td><code>2026-07-10</code></td><td><code>2026-07-10</code></td><td></td></tr><tr><td>dog_5in1_dhppl</td><td>3</td><td><code>2026-08-07</code></td><td><code>2026-08-07</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>Mũi #2 due 2026-07-10</li><li>Mũi #3 due 2026-08-07</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>NEXT-02</code></td>
+      <td>Mũi tiêm kế tiếp</td>
+      <td><code>calculateNextVaccinationSchedule</code></td>
+      <td>Mèo 12 tháng, vừa tiêm dại → booster 1 năm</td>
+      <td>—</td>
+      <td>2026-06-12</td>
+      <td>—</td>
+      <td>—</td>
+      <td>cat_rabies: 2026-06-12, petAgeMonths=12</td>
+      <td><code>booster ONE_YEAR_DAYS</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>cat_rabies</td><td>2</td><td><code>2027-06-12</code></td><td><code>2027-06-12</code></td><td></td></tr></tbody></table></td>
+      <td><ul><li>1 mũi due 2027-06-12</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>NEXT-03</code></td>
+      <td>Mũi tiêm kế tiếp</td>
+      <td><code>calculateNextVaccinationSchedule</code></td>
+      <td>Mèo 4 tháng, mũi 1 cách &gt;42 ngày → isRestartRequired</td>
+      <td>—</td>
+      <td>2026-06-12</td>
+      <td>—</td>
+      <td>—</td>
+      <td>cat_4in1: 2026-04-15, petAgeMonths=4</td>
+      <td><code>LAPSED_PRIMARY_SERIES_DAYS=42</code></td>
+      <td><table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody><tr><td>cat_4in1</td><td>2</td><td><code>2026-06-12</code></td><td><code>2026-05-13</code></td><td>✓ restart</td></tr><tr><td>cat_4in1</td><td>3</td><td><code>2026-07-10</code></td><td><code>2026-07-10</code></td><td> restart</td></tr></tbody></table></td>
+      <td><ul><li>Mũi #2</li><li>isRestartRequired = true</li></ul></td>
+    </tr>
+<tr class="">
+      <td><code>EDGE-01</code></td>
+      <td>Biên / lỗi</td>
+      <td><code>calculateCoreCareSchedule</code></td>
+      <td>Species không hỗ trợ</td>
+      <td>2026-01-01</td>
+      <td>2026-01-01</td>
+      <td>0 tuần</td>
+      <td>—</td>
+      <td>species=hamster</td>
+      <td><code>return []</code></td>
+      <td><em>Không có lịch</em></td>
+      <td><ul><li>Kết quả rỗng</li></ul></td>
+    </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <footer>
+  Regenerate: <code>node --experimental-strip-types scripts/generate-schedule-test-cases-html.mjs</code>
+  </footer>
+</body>
+</html>

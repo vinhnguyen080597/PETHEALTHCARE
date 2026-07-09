@@ -20,7 +20,12 @@ import {
   normalizeManualVaccineId,
 } from '../utils/coreCareSchedule';
 import { debugCheck, debugLog } from '../utils/debugLog';
-import { resolvePetAgeMonths, parseBirthDateIso, formatBirthDateIso } from '../utils/petAge';
+import { resolvePetAgeMonths, parseBirthDateIso, formatBirthDateIso, isBirthDateInFuture } from '../utils/petAge';
+import {
+  resolveScheduleDueStatus,
+  scheduleDueStatusTextClass,
+  type ScheduleDueStatus,
+} from '../utils/scheduleDueStatus';
 import type {
   AiCreditAccount,
   Analysis,
@@ -50,6 +55,10 @@ type GeneratedScheduleErrors = {
   birthDate?: string;
   desiredVaccineId?: string;
 };
+
+type YesSchedulePreview =
+  | { kind: 'cat'; recommendations: CoreCareScheduleRecommendation[] }
+  | { kind: 'dog'; recommendations: CoreCareNextVaccineRecommendation[] };
 
 type CoreCareScreenProps = {
   pet: Pet;
@@ -132,6 +141,27 @@ function isPendingScheduleRecord(record: CoreCareRecord): boolean {
   return true;
 }
 
+function scheduleDueStatusLabel(t: (key: string) => string, status: ScheduleDueStatus): string {
+  if (status === 'upcoming') return t('coreCare.scheduleDueStatus.upcoming');
+  if (status === 'due_today') return t('coreCare.scheduleDueStatus.dueToday');
+  return t('coreCare.scheduleDueStatus.overdue');
+}
+
+function ScheduleDueStatusBadge({
+  dueAt,
+  today,
+  t,
+}: {
+  dueAt?: string | null;
+  today: Date;
+  t: (key: string) => string;
+}) {
+  if (!dueAt) return null;
+  const status = resolveScheduleDueStatus(dueAt, today);
+  if (!status) return null;
+  return <Text className={`mt-1 ${scheduleDueStatusTextClass(status)}`}>{scheduleDueStatusLabel(t, status)}</Text>;
+}
+
 function recommendationRecordExists(records: CoreCareRecord[], recommendation: CoreCareScheduleRecommendation): boolean {
   return records.some((record) => {
     const generatedId = record.metadata?.generatedCoreCareScheduleId;
@@ -209,6 +239,128 @@ function isHistoricalDewormingRecord(record: CoreCareRecord): boolean {
   if (record.metadata?.generatedCoreCareKind !== 'deworming') return false;
   if (record.metadata?.isHistoricalDeworming) return true;
   return Boolean(record.occurred_at) && record.status !== 'pending';
+}
+
+function hasRecordedCareHistory(records: CoreCareRecord[]): boolean {
+  return records.some((record) => record.type === 'vaccine' || isHistoricalDewormingRecord(record));
+}
+
+function isGeneratedUpcomingScheduleRecord(record: CoreCareRecord): boolean {
+  return Boolean(record.metadata?.generatedCoreCareScheduleId || record.metadata?.generatedCoreCareVaccineScheduleId);
+}
+
+function recordToCatScheduleRecommendation(record: CoreCareRecord): CoreCareScheduleRecommendation | null {
+  const id = metadataText(record, 'generatedCoreCareScheduleId');
+  const family = metadataText(record, 'generatedCoreCareFamily');
+  const kind = metadataText(record, 'generatedCoreCareKind');
+  const doseNumber = record.metadata?.generatedCoreCareDoseNumber;
+  if (!id || !record.due_at || !family || !kind || typeof doseNumber !== 'number') return null;
+
+  return {
+    id,
+    kind: kind === 'deworming' ? 'deworming' : 'vaccine',
+    family: family as CoreCareScheduleRecommendation['family'],
+    doseNumber,
+    dueDate: record.due_at.slice(0, 10),
+    targetDate: metadataText(record, 'targetDate') || record.due_at.slice(0, 10),
+    sourceLabel: metadataText(record, 'sourceLabel'),
+    sourceUrl: metadataText(record, 'sourceUrl'),
+    isCatchUp: Boolean(record.metadata?.isCatchUp),
+  };
+}
+
+function recordToDogScheduleRecommendation(record: CoreCareRecord): CoreCareNextVaccineRecommendation | null {
+  const id = metadataText(record, 'generatedCoreCareVaccineScheduleId');
+  const vaccineId = metadataText(record, 'vaccineId');
+  const doseNumber = record.metadata?.generatedCoreCareDoseNumber;
+  if (!id || !record.due_at || !vaccineId || typeof doseNumber !== 'number') return null;
+
+  return {
+    id,
+    vaccineId,
+    doseNumber,
+    dueDate: record.due_at.slice(0, 10),
+    targetDate: metadataText(record, 'targetDate') || record.due_at.slice(0, 10),
+    administeredAt: metadataText(record, 'administeredAt') || record.occurred_at || record.created_at,
+    sourceLabel: metadataText(record, 'sourceLabel'),
+    sourceUrl: metadataText(record, 'sourceUrl'),
+    isCatchUp: Boolean(record.metadata?.isCatchUp),
+    horizonMonths: typeof record.metadata?.horizonMonths === 'number' ? record.metadata.horizonMonths : 12,
+    isRestartRequired: Boolean(record.metadata?.isRestartRequired),
+  };
+}
+
+function inferDesiredVaccineIdFromRecords(
+  records: CoreCareRecord[],
+  scheduleOptions: Array<{ id: string; label: string }>,
+): string | null {
+  const generatedUpcoming = records.filter((record) => isPendingScheduleRecord(record) && isGeneratedUpcomingScheduleRecord(record));
+  for (const record of generatedUpcoming) {
+    const family = metadataText(record, 'generatedCoreCareFamily');
+    if (family === 'catFvrcp' || family === 'dogDhpp' || family === 'dogLepto') {
+      const matchedOption = scheduleOptions.find((option) => record.title.includes(option.label));
+      if (matchedOption) return matchedOption.id;
+    }
+  }
+
+  for (const record of records) {
+    const vaccineId = metadataText(record, 'vaccineId');
+    if (vaccineId && scheduleOptions.some((option) => option.id === vaccineId)) return vaccineId;
+  }
+
+  return null;
+}
+
+function hydrateDoseDraftsFromHistory(records: CoreCareRecord[], petBirthDate: Date | null, today: Date): CareEntryDraft[] {
+  const drafts: CareEntryDraft[] = [];
+
+  for (const record of records) {
+    if (record.type !== 'vaccine') continue;
+    const vaccineId = metadataText(record, 'vaccineId');
+    const administeredAtValue = metadataText(record, 'administeredAt') || record.occurred_at || record.created_at;
+    const administeredAt = parseBirthDateIso(administeredAtValue.slice(0, 10));
+    if (!vaccineId || !administeredAt) continue;
+    drafts.push({
+      id: `${record.id}-history`,
+      careKind: 'vaccine',
+      vaccineId,
+      administeredAt: clampPerformedDate(administeredAt, petBirthDate ?? undefined, today),
+    });
+  }
+
+  for (const record of records.filter(isHistoricalDewormingRecord)) {
+    const administeredAtValue = metadataText(record, 'administeredAt') || record.occurred_at || record.created_at;
+    const administeredAt = parseBirthDateIso(administeredAtValue.slice(0, 10));
+    if (!administeredAt) continue;
+    drafts.push({
+      id: `${record.id}-history`,
+      careKind: 'deworming',
+      vaccineId: '',
+      administeredAt: clampPerformedDate(administeredAt, petBirthDate ?? undefined, today),
+    });
+  }
+
+  return drafts.length > 0 ? drafts : [makeCareEntryDraft()];
+}
+
+function careEntryDraftAlreadyRecorded(draft: CareEntryDraft, records: CoreCareRecord[]): boolean {
+  if (!draft.administeredAt) return false;
+  const administeredAt = formatDateValue(draft.administeredAt);
+
+  if (draft.careKind === 'vaccine') {
+    return records.some((record) => {
+      if (record.type !== 'vaccine') return false;
+      const vaccineId = metadataText(record, 'vaccineId');
+      const recordDate = (metadataText(record, 'administeredAt') || record.occurred_at || record.created_at).slice(0, 10);
+      return vaccineId === draft.vaccineId && recordDate === administeredAt;
+    });
+  }
+
+  return records.some((record) => {
+    if (!isHistoricalDewormingRecord(record)) return false;
+    const recordDate = (metadataText(record, 'administeredAt') || record.occurred_at || record.created_at).slice(0, 10);
+    return recordDate === administeredAt;
+  });
 }
 
 function DateField({
@@ -361,7 +513,7 @@ function VaccineSelect({
   onChange,
 }: {
   label: string;
-  value: string;
+  value: string | null;
   options: Array<{ id: string; label: string }>;
   error?: string;
   onChange: (value: string) => void;
@@ -431,7 +583,7 @@ export function CoreCareScreen({
   const [vaccinatedAnswer, setVaccinatedAnswer] = useState<VaccinatedAnswer>('yes');
   const [manualEntryType, setManualEntryType] = useState<ManualEntryType>('vaccine');
   const [doseDrafts, setDoseDrafts] = useState<CareEntryDraft[]>(() => [makeCareEntryDraft()]);
-  const [desiredVaccineId, setDesiredVaccineId] = useState('');
+  const [desiredVaccineId, setDesiredVaccineId] = useState<string | null>(null);
   const [vaccineTitle, setVaccineTitle] = useState('');
   const [vaccineClinic, setVaccineClinic] = useState('');
   const [vaccineNextDueDate, setVaccineNextDueDate] = useState<Date>(today);
@@ -444,12 +596,17 @@ export function CoreCareScreen({
   const [submittingGeneratedSchedule, setSubmittingGeneratedSchedule] = useState(false);
   const [submittingReminder, setSubmittingReminder] = useState(false);
   const [scheduleSetupDismissed, setScheduleSetupDismissed] = useState(false);
+  const [isEditingGeneratedSchedule, setIsEditingGeneratedSchedule] = useState(false);
   const [showIntroGuide, setShowIntroGuide] = useState(false);
   const [doseDraftErrors, setDoseDraftErrors] = useState<CareEntryDraftErrors>({});
   const [generatedScheduleErrors, setGeneratedScheduleErrors] = useState<GeneratedScheduleErrors>({});
   const [showAllUpcomingSchedules, setShowAllUpcomingSchedules] = useState(false);
   const [showAllGeneratedRecommendations, setShowAllGeneratedRecommendations] = useState(false);
   const [dismissedGeneratedRecommendationIds, setDismissedGeneratedRecommendationIds] = useState<string[]>([]);
+  const [previewedGeneratedRecommendations, setPreviewedGeneratedRecommendations] = useState<CoreCareScheduleRecommendation[] | null>(null);
+  const [previewedYesSchedule, setPreviewedYesSchedule] = useState<YesSchedulePreview | null>(null);
+  const [dismissedYesRecommendationIds, setDismissedYesRecommendationIds] = useState<string[]>([]);
+  const [showAllYesRecommendations, setShowAllYesRecommendations] = useState(false);
   const introGuideStorageKey = useMemo(() => coreCareIntroGuideStorageKey(pet.user_id), [pet.user_id]);
 
   useEffect(() => {
@@ -493,6 +650,12 @@ export function CoreCareScreen({
     if (!pet.birth_date) return null;
     return parseBirthDateIso(pet.birth_date.slice(0, 10));
   }, [pet.birth_date]);
+  const petBirthDateIso = pet.birth_date?.slice(0, 10) ?? '';
+  const petBirthDateIsFuture = Boolean(petBirthDateIso && isBirthDateInFuture(petBirthDateIso, today));
+  const selectedDesiredVaccineId =
+    desiredVaccineId && schedulePrimaryVaccineOptions.some((option) => option.id === desiredVaccineId)
+      ? desiredVaccineId
+      : null;
 
   const careRecords = useMemo(
     () => records.filter((record) => record.type === 'vaccine' || record.type === 'reminder'),
@@ -530,16 +693,14 @@ export function CoreCareScreen({
     .map((draft) => draft.vaccineId)
     .filter(Boolean);
   const canAddCareEntry = doseDrafts.length < 12;
-  const generatedRecommendations = useMemo(
-    () =>
-      petBirthDate && desiredVaccineId
-        ? calculateCoreCareSchedule({ species: pet.species, birthDate: petBirthDate, today, selectedVaccineId: desiredVaccineId })
-        : [],
-    [petBirthDate, desiredVaccineId, pet.species, today],
-  );
+  const generatedRecommendations = previewedGeneratedRecommendations ?? [];
+  const hasGeneratedSchedulePreview = previewedGeneratedRecommendations !== null;
   const pendingGeneratedRecommendations = useMemo(
-    () => generatedRecommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation)),
-    [careRecords, generatedRecommendations],
+    () =>
+      isEditingGeneratedSchedule
+        ? generatedRecommendations
+        : generatedRecommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation)),
+    [careRecords, generatedRecommendations, isEditingGeneratedSchedule],
   );
   const selectedGeneratedRecommendations = useMemo(
     () =>
@@ -613,55 +774,46 @@ export function CoreCareScreen({
     if (administeredVaccineDoses[0]?.vaccineId) return administeredVaccineDoses[0].vaccineId;
     return schedulePrimaryVaccineOptions[0]?.id ?? '';
   }, [administeredVaccineDoses, draftVaccineDoses, schedulePrimaryVaccineOptions]);
-  const historyScheduleRecommendations = useMemo(
+  const hasYesSchedulePreview = previewedYesSchedule !== null;
+  const pendingYesCatRecommendations = useMemo(
     () =>
-      isCatSpecies && petBirthDate && resolvedHistoryVaccineId
-        ? calculateCoreCareScheduleFromHistory({
-            species: pet.species,
-            birthDate: petBirthDate,
-            today,
-            selectedVaccineId: resolvedHistoryVaccineId,
-            administeredVaccines: [...administeredVaccineDoses, ...draftVaccineDoses],
-            administeredDewormings: [...administeredDewormingDoses, ...draftDewormingDoses],
-          })
+      previewedYesSchedule?.kind === 'cat'
+        ? isEditingGeneratedSchedule
+          ? previewedYesSchedule.recommendations
+          : previewedYesSchedule.recommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation))
         : [],
-    [
-      administeredDewormingDoses,
-      administeredVaccineDoses,
-      draftDewormingDoses,
-      draftVaccineDoses,
-      isCatSpecies,
-      pet.species,
-      petBirthDate,
-      resolvedHistoryVaccineId,
-      today,
-    ],
+    [careRecords, isEditingGeneratedSchedule, previewedYesSchedule],
   );
-  const pendingHistoryRecommendations = useMemo(
-    () => historyScheduleRecommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation)),
-    [careRecords, historyScheduleRecommendations],
-  );
-  const nextVaccineRecommendations = useMemo(
+  const pendingYesDogRecommendations = useMemo(
     () =>
-      isCatSpecies
-        ? []
-        : calculateNextVaccinationSchedule({
-            species: pet.species,
-            petAgeMonths: resolvePetAgeMonths(pet),
-            today,
-            administeredDoses: [...administeredVaccineDoses, ...draftVaccineDoses],
-          }),
-    [administeredVaccineDoses, draftVaccineDoses, isCatSpecies, pet, today],
+      previewedYesSchedule?.kind === 'dog'
+        ? isEditingGeneratedSchedule
+          ? previewedYesSchedule.recommendations
+          : previewedYesSchedule.recommendations.filter((recommendation) => !nextVaccineRecommendationRecordExists(careRecords, recommendation))
+        : [],
+    [careRecords, isEditingGeneratedSchedule, previewedYesSchedule],
   );
-  const pendingNextVaccineRecommendations = useMemo(
-    () => nextVaccineRecommendations.filter((recommendation) => !nextVaccineRecommendationRecordExists(careRecords, recommendation)),
-    [careRecords, nextVaccineRecommendations],
+  const selectedYesCatRecommendations = useMemo(
+    () => pendingYesCatRecommendations.filter((recommendation) => !dismissedYesRecommendationIds.includes(recommendation.id)),
+    [dismissedYesRecommendationIds, pendingYesCatRecommendations],
   );
-  const pendingCareRecommendations = isCatSpecies ? pendingHistoryRecommendations : pendingNextVaccineRecommendations;
+  const selectedYesDogRecommendations = useMemo(
+    () => pendingYesDogRecommendations.filter((recommendation) => !dismissedYesRecommendationIds.includes(recommendation.id)),
+    [dismissedYesRecommendationIds, pendingYesDogRecommendations],
+  );
+  const selectedYesRecommendations = isCatSpecies ? selectedYesCatRecommendations : selectedYesDogRecommendations;
+  const visibleYesRecommendations = useMemo(
+    () =>
+      showAllYesRecommendations
+        ? selectedYesRecommendations
+        : selectedYesRecommendations.slice(0, UPCOMING_SCHEDULE_PREVIEW_LIMIT),
+    [selectedYesRecommendations, showAllYesRecommendations],
+  );
+  const hiddenYesRecommendationsCount = Math.max(0, selectedYesRecommendations.length - UPCOMING_SCHEDULE_PREVIEW_LIMIT);
   const hasGeneratedSchedule = careRecords.some((record) =>
     Boolean(record.metadata?.generatedCoreCareScheduleId || record.metadata?.generatedCoreCareVaccineScheduleId),
   );
-  const showScheduleSetup = !scheduleSetupDismissed && !hasGeneratedSchedule;
+  const showScheduleSetup = isEditingGeneratedSchedule || (!scheduleSetupDismissed && !hasGeneratedSchedule);
 
   useEffect(() => {
     debugLog('CORE_CARE', 'CoreCareScreen.schedule_state', {
@@ -676,9 +828,12 @@ export function CoreCareScreen({
       draftDewormingDoses: draftDewormingDoses.length,
       generatedRecommendations: generatedRecommendations.length,
       pendingGeneratedRecommendations: pendingGeneratedRecommendations.length,
-      historyScheduleRecommendations: historyScheduleRecommendations.length,
-      pendingHistoryRecommendations: pendingHistoryRecommendations.length,
-      pendingNextVaccineRecommendations: pendingNextVaccineRecommendations.length,
+      previewedYesSchedule: previewedYesSchedule
+        ? previewedYesSchedule.kind === 'cat'
+          ? previewedYesSchedule.recommendations.length
+          : previewedYesSchedule.recommendations.length
+        : null,
+      selectedYesRecommendations: selectedYesRecommendations.length,
       resolvedHistoryVaccineId,
       desiredVaccineId,
     });
@@ -690,15 +845,14 @@ export function CoreCareScreen({
     draftVaccineDoses.length,
     generatedRecommendations.length,
     hasGeneratedSchedule,
-    historyScheduleRecommendations.length,
     isCatSpecies,
     pendingGeneratedRecommendations.length,
-    pendingHistoryRecommendations.length,
-    pendingNextVaccineRecommendations.length,
     pet.birth_date,
     pet.id,
     pet.species,
+    previewedYesSchedule,
     resolvedHistoryVaccineId,
+    selectedYesRecommendations.length,
   ]);
 
   function optionsForDose(draft: CareEntryDraft) {
@@ -706,7 +860,14 @@ export function CoreCareScreen({
     return vaccineOptions.filter((option) => option.id === draft.vaccineId || !selectedDoseIds.includes(option.id));
   }
 
+  function clearYesSchedulePreview() {
+    setPreviewedYesSchedule(null);
+    setDismissedYesRecommendationIds([]);
+    setShowAllYesRecommendations(false);
+  }
+
   function updateCareEntry(id: string, patch: Partial<CareEntryDraft>) {
+    clearYesSchedulePreview();
     setDoseDrafts((current) => current.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft)));
     setDoseDraftErrors((current) => {
       const next = { ...current };
@@ -745,6 +906,7 @@ export function CoreCareScreen({
 
   function selectDesiredVaccine(vaccineId: string) {
     setDesiredVaccineId(vaccineId);
+    setPreviewedGeneratedRecommendations(null);
     setDismissedGeneratedRecommendationIds([]);
     setShowAllGeneratedRecommendations(false);
     setGeneratedScheduleErrors((current) => ({ ...current, desiredVaccineId: undefined }));
@@ -785,12 +947,13 @@ export function CoreCareScreen({
     return false;
   }
 
-  async function createScheduleFromVaccines() {
-    debugLog('CORE_CARE', 'CoreCareScreen.createScheduleFromVaccines.enter', {
-      doseDraftCount: doseDrafts.length,
-      pendingCareRecommendations: pendingCareRecommendations.length,
-      isCatSpecies,
-    });
+  function dismissYesRecommendation(recommendationId: string) {
+    setDismissedYesRecommendationIds((current) =>
+      current.includes(recommendationId) ? current : [...current, recommendationId],
+    );
+  }
+
+  function validateDoseDrafts(): CareEntryDraftErrors {
     const nextErrors: CareEntryDraftErrors = {};
     for (const draft of doseDrafts) {
       const draftErrors: { careKind?: string; vaccineId?: string; administeredAt?: string } = {};
@@ -809,7 +972,185 @@ export function CoreCareScreen({
       }
       if (draftErrors.vaccineId || draftErrors.administeredAt) nextErrors[draft.id] = draftErrors;
     }
+    return nextErrors;
+  }
 
+  function computeYesSchedulePreview(): YesSchedulePreview | null {
+    if (isCatSpecies) {
+      if (!petBirthDate || !resolvedHistoryVaccineId) return null;
+      return {
+        kind: 'cat',
+        recommendations: calculateCoreCareScheduleFromHistory({
+          species: pet.species,
+          birthDate: petBirthDate,
+          today,
+          selectedVaccineId: resolvedHistoryVaccineId,
+          administeredVaccines: [...administeredVaccineDoses, ...draftVaccineDoses],
+          administeredDewormings: [...administeredDewormingDoses, ...draftDewormingDoses],
+        }),
+      };
+    }
+
+    return {
+      kind: 'dog',
+      recommendations: calculateNextVaccinationSchedule({
+        species: pet.species,
+        petAgeMonths: resolvePetAgeMonths(pet),
+        today,
+        administeredDoses: [...administeredVaccineDoses, ...draftVaccineDoses],
+      }),
+    };
+  }
+
+  function buildYesPreviewFromUpcomingRecords(): YesSchedulePreview | null {
+    const upcomingGenerated = allUpcomingRecords.filter(isGeneratedUpcomingScheduleRecord);
+    const catRecommendations = upcomingGenerated
+      .map(recordToCatScheduleRecommendation)
+      .filter((recommendation): recommendation is CoreCareScheduleRecommendation => Boolean(recommendation));
+    if (catRecommendations.length > 0) {
+      return { kind: 'cat', recommendations: catRecommendations };
+    }
+
+    const dogRecommendations = upcomingGenerated
+      .map(recordToDogScheduleRecommendation)
+      .filter((recommendation): recommendation is CoreCareNextVaccineRecommendation => Boolean(recommendation));
+    if (dogRecommendations.length > 0) {
+      return { kind: 'dog', recommendations: dogRecommendations };
+    }
+
+    return null;
+  }
+
+  function buildNoPreviewFromUpcomingRecords(): CoreCareScheduleRecommendation[] {
+    return allUpcomingRecords
+      .map(recordToCatScheduleRecommendation)
+      .filter((recommendation): recommendation is CoreCareScheduleRecommendation => Boolean(recommendation));
+  }
+
+  function openGeneratedScheduleEdit() {
+    setIsEditingGeneratedSchedule(true);
+    setGeneratedScheduleErrors({});
+    setDoseDraftErrors({});
+    setDismissedGeneratedRecommendationIds([]);
+    setDismissedYesRecommendationIds([]);
+    setShowAllGeneratedRecommendations(false);
+    setShowAllYesRecommendations(false);
+
+    const yesPath = hasRecordedCareHistory(careRecords);
+
+    if (yesPath) {
+      const hydratedDrafts = hydrateDoseDraftsFromHistory(careRecords, petBirthDate, today);
+      setVaccinatedAnswer('yes');
+      setDoseDrafts(hydratedDrafts);
+
+      const hydratedVaccineDoses = hydratedDrafts
+        .filter((draft) => draft.careKind === 'vaccine' && draft.vaccineId && draft.administeredAt)
+        .map((draft) => ({ vaccineId: draft.vaccineId, administeredAt: draft.administeredAt! }));
+      const hydratedDewormingDoses = hydratedDrafts
+        .filter((draft) => draft.careKind === 'deworming' && draft.administeredAt)
+        .map((draft) => ({ administeredAt: draft.administeredAt! }));
+      const historyVaccineId =
+        hydratedVaccineDoses[0]?.vaccineId ||
+        administeredVaccineDoses[0]?.vaccineId ||
+        schedulePrimaryVaccineOptions[0]?.id ||
+        '';
+
+      let preview: YesSchedulePreview | null = null;
+      if (isCatSpecies && petBirthDate && historyVaccineId) {
+        preview = {
+          kind: 'cat',
+          recommendations: calculateCoreCareScheduleFromHistory({
+            species: pet.species,
+            birthDate: petBirthDate,
+            today,
+            selectedVaccineId: historyVaccineId,
+            administeredVaccines: [...administeredVaccineDoses, ...hydratedVaccineDoses],
+            administeredDewormings: [...administeredDewormingDoses, ...hydratedDewormingDoses],
+          }),
+        };
+      } else if (!isCatSpecies) {
+        preview = {
+          kind: 'dog',
+          recommendations: calculateNextVaccinationSchedule({
+            species: pet.species,
+            petAgeMonths: resolvePetAgeMonths(pet),
+            today,
+            administeredDoses: [...administeredVaccineDoses, ...hydratedVaccineDoses],
+          }),
+        };
+      }
+
+      setPreviewedYesSchedule(preview ?? buildYesPreviewFromUpcomingRecords());
+      setPreviewedGeneratedRecommendations(null);
+      setDesiredVaccineId(null);
+      return;
+    }
+
+    setVaccinatedAnswer('no');
+    const inferredVaccineId = inferDesiredVaccineIdFromRecords(careRecords, schedulePrimaryVaccineOptions);
+    setDesiredVaccineId(inferredVaccineId);
+
+    let recommendations: CoreCareScheduleRecommendation[] = [];
+    if (petBirthDate && inferredVaccineId && !petBirthDateIsFuture) {
+      recommendations = calculateCoreCareSchedule({
+        species: pet.species,
+        birthDate: petBirthDate,
+        today,
+        selectedVaccineId: inferredVaccineId,
+      });
+    }
+    if (recommendations.length === 0) {
+      recommendations = buildNoPreviewFromUpcomingRecords();
+    }
+
+    setPreviewedGeneratedRecommendations(recommendations);
+    setPreviewedYesSchedule(null);
+  }
+
+  function checkScheduleFromVaccines() {
+    const nextErrors = validateDoseDrafts();
+    setDoseDraftErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    if (isCatSpecies && !petBirthDate) {
+      Alert.alert(t('alerts.missingData.title'), t('coreCare.birthDateEditPetHint'));
+      return;
+    }
+
+    const preview = computeYesSchedulePreview();
+    if (!preview) {
+      Alert.alert(t('coreCare.noGeneratedScheduleTitle'), t('coreCare.noGeneratedScheduleBody'));
+      return;
+    }
+
+    setPreviewedYesSchedule(preview);
+    setDismissedYesRecommendationIds([]);
+    setShowAllYesRecommendations(false);
+
+    const pendingRecommendations =
+      preview.kind === 'cat'
+        ? preview.recommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation))
+        : preview.recommendations.filter((recommendation) => !nextVaccineRecommendationRecordExists(careRecords, recommendation));
+
+    if (preview.recommendations.length === 0) {
+      Alert.alert(t('coreCare.noGeneratedScheduleTitle'), t('coreCare.noGeneratedScheduleBody'));
+      return;
+    }
+
+    if (pendingRecommendations.length === 0) {
+      Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
+    }
+  }
+
+  async function createScheduleFromVaccines() {
+    debugLog('CORE_CARE', 'CoreCareScreen.createScheduleFromVaccines.enter', {
+      doseDraftCount: doseDrafts.length,
+      selectedYesRecommendations: selectedYesRecommendations.length,
+      isCatSpecies,
+    });
+    const nextErrors = validateDoseDrafts();
     if (isCatSpecies && !petBirthDate) {
       Alert.alert(t('alerts.missingData.title'), t('coreCare.birthDateEditPetHint'));
       return;
@@ -820,8 +1161,33 @@ export function CoreCareScreen({
       return;
     }
 
-    if (pendingCareRecommendations.length === 0) {
+    if (!hasYesSchedulePreview) {
+      Alert.alert(t('coreCare.noGeneratedScheduleTitle'), t('coreCare.checkGeneratedScheduleFirst'));
+      return;
+    }
+
+    if (selectedYesRecommendations.length === 0) {
+      Alert.alert(t('coreCare.noGeneratedScheduleTitle'), t('coreCare.noSelectedGeneratedScheduleBody'));
+      return;
+    }
+
+    const yesCatRecommendationsToCreate = selectedYesCatRecommendations.filter(
+      (recommendation) => !recommendationRecordExists(careRecords, recommendation),
+    );
+    const yesDogRecommendationsToCreate = selectedYesDogRecommendations.filter(
+      (recommendation) => !nextVaccineRecommendationRecordExists(careRecords, recommendation),
+    );
+    const hasNewCareDrafts = doseDrafts.some(
+      (draft) => Boolean(draft.administeredAt) && !careEntryDraftAlreadyRecorded(draft, careRecords),
+    );
+    const recommendationsToCreate = isCatSpecies ? yesCatRecommendationsToCreate : yesDogRecommendationsToCreate;
+
+    if (!hasNewCareDrafts && recommendationsToCreate.length === 0) {
       Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
+      if (isEditingGeneratedSchedule) {
+        setIsEditingGeneratedSchedule(false);
+        clearYesSchedulePreview();
+      }
       return;
     }
 
@@ -829,7 +1195,7 @@ export function CoreCareScreen({
     try {
       let dewormingHistoryCount = administeredDewormingDoses.length;
       for (const draft of doseDrafts) {
-        if (!draft.administeredAt) continue;
+        if (!draft.administeredAt || careEntryDraftAlreadyRecorded(draft, careRecords)) continue;
         const administeredAt = formatDateValue(draft.administeredAt);
         if (draft.careKind === 'deworming') {
           dewormingHistoryCount += 1;
@@ -869,7 +1235,7 @@ export function CoreCareScreen({
       }
 
       if (isCatSpecies) {
-        for (const recommendation of pendingHistoryRecommendations) {
+        for (const recommendation of yesCatRecommendationsToCreate) {
           await onCreateRecord({
             type: 'reminder',
             title: historyRecommendationTitle(recommendation),
@@ -889,7 +1255,7 @@ export function CoreCareScreen({
           });
         }
       } else {
-        for (const recommendation of pendingNextVaccineRecommendations) {
+        for (const recommendation of yesDogRecommendationsToCreate) {
           await onCreateRecord({
             type: 'reminder',
             title: nextVaccineRecommendationTitle(recommendation),
@@ -914,12 +1280,14 @@ export function CoreCareScreen({
       }
 
       setDoseDrafts([makeCareEntryDraft()]);
+      clearYesSchedulePreview();
+      setIsEditingGeneratedSchedule(false);
       setScheduleSetupDismissed(true);
       Alert.alert(
         t('coreCare.scheduleGeneratedTitle'),
         isCatSpecies
-          ? t('coreCare.scheduleGeneratedBody', { count: pendingHistoryRecommendations.length })
-          : t('coreCare.vaccineScheduleGeneratedBody', { count: pendingNextVaccineRecommendations.length }),
+          ? t('coreCare.scheduleGeneratedBody', { count: yesCatRecommendationsToCreate.length })
+          : t('coreCare.vaccineScheduleGeneratedBody', { count: yesDogRecommendationsToCreate.length }),
       );
       debugLog('CORE_CARE', 'CoreCareScreen.createScheduleFromVaccines.exit', { ok: true });
     } catch (error) {
@@ -1000,13 +1368,54 @@ export function CoreCareScreen({
     return recommendation.family === 'catFelv' ? `${note}\n\n${t('coreCare.felvRiskNote')}` : note;
   }
 
-  async function createGeneratedSchedule() {
-    const nextErrors: GeneratedScheduleErrors = {
-      birthDate: petBirthDate ? undefined : t('coreCare.birthDateEditPetHint'),
-      desiredVaccineId: desiredVaccineId ? undefined : t('coreCare.desiredVaccineRequired'),
+  function validateGeneratedScheduleInputs(): GeneratedScheduleErrors {
+    return {
+      birthDate: petBirthDate
+        ? petBirthDateIsFuture
+          ? t('coreCare.birthDateFutureScheduleHint')
+          : undefined
+        : t('coreCare.birthDateEditPetHint'),
+      desiredVaccineId: selectedDesiredVaccineId ? undefined : t('coreCare.desiredVaccineRequired'),
     };
+  }
+
+  function checkGeneratedSchedule() {
+    const nextErrors = validateGeneratedScheduleInputs();
     setGeneratedScheduleErrors(nextErrors);
     if (nextErrors.birthDate || nextErrors.desiredVaccineId) {
+      return;
+    }
+
+    const recommendations = calculateCoreCareSchedule({
+      species: pet.species,
+      birthDate: petBirthDate!,
+      today,
+      selectedVaccineId: selectedDesiredVaccineId!,
+    });
+    setPreviewedGeneratedRecommendations(recommendations);
+    setDismissedGeneratedRecommendationIds([]);
+    setShowAllGeneratedRecommendations(false);
+
+    if (recommendations.length === 0) {
+      Alert.alert(t('coreCare.noGeneratedScheduleTitle'), t('coreCare.noGeneratedScheduleBody'));
+      return;
+    }
+
+    const pendingRecommendations = recommendations.filter((recommendation) => !recommendationRecordExists(careRecords, recommendation));
+    if (pendingRecommendations.length === 0) {
+      Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
+    }
+  }
+
+  async function createGeneratedSchedule() {
+    const nextErrors = validateGeneratedScheduleInputs();
+    setGeneratedScheduleErrors(nextErrors);
+    if (nextErrors.birthDate || nextErrors.desiredVaccineId) {
+      return;
+    }
+
+    if (!hasGeneratedSchedulePreview) {
+      Alert.alert(t('coreCare.noGeneratedScheduleTitle'), t('coreCare.checkGeneratedScheduleFirst'));
       return;
     }
 
@@ -1014,7 +1423,7 @@ export function CoreCareScreen({
       Alert.alert(t('coreCare.noGeneratedScheduleTitle'), t('coreCare.noGeneratedScheduleBody'));
       return;
     }
-    if (pendingGeneratedRecommendations.length === 0) {
+    if (!isEditingGeneratedSchedule && pendingGeneratedRecommendations.length === 0) {
       Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
       return;
     }
@@ -1023,9 +1432,21 @@ export function CoreCareScreen({
       return;
     }
 
+    const recommendationsToCreate = selectedGeneratedRecommendations.filter(
+      (recommendation) => !recommendationRecordExists(careRecords, recommendation),
+    );
+    if (recommendationsToCreate.length === 0) {
+      Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
+      if (isEditingGeneratedSchedule) {
+        setIsEditingGeneratedSchedule(false);
+        setPreviewedGeneratedRecommendations(null);
+      }
+      return;
+    }
+
     setSubmittingGeneratedSchedule(true);
     try {
-      for (const recommendation of selectedGeneratedRecommendations) {
+      for (const recommendation of recommendationsToCreate) {
         await onCreateRecord({
           type: 'reminder',
           title: recommendationTitle(recommendation),
@@ -1046,9 +1467,11 @@ export function CoreCareScreen({
       }
       Alert.alert(
         t('coreCare.scheduleGeneratedTitle'),
-        t('coreCare.scheduleGeneratedBody', { count: selectedGeneratedRecommendations.length }),
+        t('coreCare.scheduleGeneratedBody', { count: recommendationsToCreate.length }),
       );
       setDismissedGeneratedRecommendationIds([]);
+      setPreviewedGeneratedRecommendations(null);
+      setIsEditingGeneratedSchedule(false);
       setScheduleSetupDismissed(true);
     } finally {
       setSubmittingGeneratedSchedule(false);
@@ -1092,10 +1515,6 @@ export function CoreCareScreen({
     const shouldShowNote = Boolean(record.note) && !isUpcoming;
     const shouldShowClinic = Boolean(clinicName) && !isUpcoming;
     const shouldShowDoneAction = Boolean(options?.showDoneAction && record.type === 'reminder' && !generatedKind);
-    const targetDate = metadataText(record, 'targetDate');
-    const targetDateLine = targetDate ? t('coreCare.targetScheduleLine', { date: formatLocaleDateTime(targetDate, i18n.language) }) : '';
-    const isCatchUp = record.metadata?.isCatchUp === true;
-    const upcomingScheduleLine = isCatchUp ? t('coreCare.catchUpScheduleLine') : targetDateLine;
     const displayTitle = isUpcoming ? record.title : vaccineLabel || record.title;
 
     return (
@@ -1117,7 +1536,7 @@ export function CoreCareScreen({
                 <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
                   {typeLabel} {dueDateTimeLabel ? `· ${dueDateTimeLabel}` : ''}
                 </Text>
-                {upcomingScheduleLine ? <Text className="mt-1 text-xs leading-4 text-slate-500">{upcomingScheduleLine}</Text> : null}
+                <ScheduleDueStatusBadge dueAt={record.due_at} today={today} t={t} />
               </>
             ) : (
               <>
@@ -1127,6 +1546,7 @@ export function CoreCareScreen({
                 <Text className="mt-1 text-xs font-semibold uppercase text-slate-500">{typeLabel}</Text>
                 {dueLabel ? <Text className="mt-2 text-sm font-semibold text-blue-700">{t('coreCare.dueLine', { date: dueLabel })}</Text> : null}
                 {!dueLabel ? <Text className="mt-2 text-sm text-slate-500">{createdLabel}</Text> : null}
+                {dueLabel ? <ScheduleDueStatusBadge dueAt={record.due_at} today={today} t={t} /> : null}
               </>
             )}
             {shouldShowClinic ? <Text className="mt-1 text-sm text-slate-600">{t('coreCare.clinicLine', { clinic: clinicName })}</Text> : null}
@@ -1148,6 +1568,66 @@ export function CoreCareScreen({
     );
   }
 
+  function renderYesCatRecommendationPreview(recommendation: CoreCareScheduleRecommendation) {
+    return (
+      <View key={recommendation.id} className="rounded-xl border border-blue-100 bg-white p-3">
+        <View className="flex-row items-center gap-2">
+          <View className="min-w-0 flex-1 flex-row items-start gap-2">
+            <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+              <CareScheduleIcon kind={recommendation.kind} size={16} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-sm font-bold text-slate-900">{historyRecommendationTitle(recommendation)}</Text>
+              <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
+                {t(`coreCare.generatedKinds.${recommendation.kind}`)} · {formatLocaleDateTime(recommendation.dueDate, i18n.language)}
+              </Text>
+              <ScheduleDueStatusBadge dueAt={recommendation.dueDate} today={today} t={t} />
+            </View>
+          </View>
+          <Pressable
+            testID={`core-care-remove-yes-recommendation-${recommendation.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={t('coreCare.removeGeneratedScheduleItemA11y', { title: historyRecommendationTitle(recommendation) })}
+            className="rounded-full p-1.5 active:bg-slate-100"
+            onPress={() => dismissYesRecommendation(recommendation.id)}
+          >
+            <Ionicons name="close" size={18} color="#64748b" />
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  function renderYesDogRecommendationPreview(recommendation: CoreCareNextVaccineRecommendation) {
+    return (
+      <View key={recommendation.id} className="rounded-xl border border-blue-100 bg-white p-3">
+        <View className="flex-row items-center gap-2">
+          <View className="min-w-0 flex-1 flex-row items-start gap-2">
+            <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+              <CareScheduleIcon kind="vaccine" size={16} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-sm font-bold text-slate-900">{nextVaccineRecommendationTitle(recommendation)}</Text>
+              <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
+                {t('coreCare.generatedKinds.vaccine')} · {formatLocaleDateTime(recommendation.dueDate, i18n.language)}
+              </Text>
+              <ScheduleDueStatusBadge dueAt={recommendation.dueDate} today={today} t={t} />
+            </View>
+          </View>
+          <Pressable
+            testID={`core-care-remove-yes-recommendation-${recommendation.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={t('coreCare.removeGeneratedScheduleItemA11y', { title: nextVaccineRecommendationTitle(recommendation) })}
+            className="rounded-full p-1.5 active:bg-slate-100"
+            onPress={() => dismissYesRecommendation(recommendation.id)}
+          >
+            <Ionicons name="close" size={18} color="#64748b" />
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   function renderRecommendationPreview(recommendation: CoreCareScheduleRecommendation) {
     return (
       <View key={recommendation.id} className="rounded-xl border border-blue-100 bg-white p-3">
@@ -1161,11 +1641,7 @@ export function CoreCareScreen({
               <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
                 {t(`coreCare.generatedKinds.${recommendation.kind}`)} · {formatLocaleDateTime(recommendation.dueDate, i18n.language)}
               </Text>
-              <Text className="mt-1 text-xs leading-4 text-slate-500">
-                {recommendation.isCatchUp ? t('coreCare.catchUpScheduleLine') : t('coreCare.targetScheduleLine', {
-                  date: formatLocaleDateTime(recommendation.targetDate, i18n.language),
-                })}
-              </Text>
+              <ScheduleDueStatusBadge dueAt={recommendation.dueDate} today={today} t={t} />
             </View>
           </View>
           <Pressable
@@ -1264,28 +1740,42 @@ export function CoreCareScreen({
         showsVerticalScrollIndicator={false}
       >
         <View className="rounded-2xl border border-gray-200 bg-white p-4">
-          <Text className="text-base font-bold text-slate-900">{t('coreCare.nextScheduleForPet', { name: pet.name })}</Text>
-          {nextRecord?.due_at ? (
-            <View className="mt-3 gap-3">
-              {visibleUpcomingRecords.map((record) => renderRecordCard(record, { showDoneAction: true }))}
-              {hiddenUpcomingCount > 0 ? (
-                <Pressable
-                  testID="core-care-show-more-upcoming-button"
-                  accessibilityRole="button"
-                  className="self-center py-1 active:opacity-70"
-                  onPress={() => setShowAllUpcomingSchedules((current) => !current)}
-                >
-                  <Text className="text-xs font-semibold text-blue-700">
-                    {showAllUpcomingSchedules
-                      ? t('coreCare.showLessSchedules')
-                      : t('coreCare.showMoreSchedules', { count: hiddenUpcomingCount })}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : (
-            <Text className="mt-2 text-sm leading-5 text-slate-600">{t('coreCare.noNextSchedule')}</Text>
-          )}
+          <View className="flex-row items-center justify-between gap-3">
+            <Text className="flex-1 text-base font-bold text-slate-900">{t('coreCare.nextScheduleForPet', { name: pet.name })}</Text>
+            {hasGeneratedSchedule && !isEditingGeneratedSchedule ? (
+              <Pressable
+                testID="core-care-edit-generated-schedule-button"
+                accessibilityRole="button"
+                className="rounded-lg px-2 py-1 active:opacity-70"
+                onPress={openGeneratedScheduleEdit}
+              >
+                <Text className="text-sm font-bold text-blue-700">{t('coreCare.editSchedule')}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+          {!isEditingGeneratedSchedule ? (
+            nextRecord?.due_at ? (
+              <View className="mt-3 gap-3">
+                {visibleUpcomingRecords.map((record) => renderRecordCard(record, { showDoneAction: true }))}
+                {hiddenUpcomingCount > 0 ? (
+                  <Pressable
+                    testID="core-care-show-more-upcoming-button"
+                    accessibilityRole="button"
+                    className="self-center py-1 active:opacity-70"
+                    onPress={() => setShowAllUpcomingSchedules((current) => !current)}
+                  >
+                    <Text className="text-xs font-semibold text-blue-700">
+                      {showAllUpcomingSchedules
+                        ? t('coreCare.showLessSchedules')
+                        : t('coreCare.showMoreSchedules', { count: hiddenUpcomingCount })}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : (
+              <Text className="mt-2 text-sm leading-5 text-slate-600">{t('coreCare.noNextSchedule')}</Text>
+            )
+          ) : null}
           {showScheduleSetup ? (
             <>
               <Text className="mt-5 text-sm font-bold text-slate-900">{t('coreCare.hasPetReceivedCare', { name: pet.name })}</Text>
@@ -1303,9 +1793,16 @@ export function CoreCareScreen({
                       onPress={() => {
                         setVaccinatedAnswer(answer);
                         if (answer === 'yes') {
+                          clearYesSchedulePreview();
                           setGeneratedScheduleErrors({});
                         } else {
+                          clearYesSchedulePreview();
+                          setDesiredVaccineId(null);
+                          setPreviewedGeneratedRecommendations(null);
                           setDoseDraftErrors({});
+                          setDismissedGeneratedRecommendationIds([]);
+                          setShowAllGeneratedRecommendations(false);
+                          setGeneratedScheduleErrors((current) => ({ ...current, desiredVaccineId: undefined }));
                         }
                       }}
                     >
@@ -1332,6 +1829,7 @@ export function CoreCareScreen({
                               accessibilityRole="button"
                               className="rounded-full bg-white p-1.5"
                               onPress={() => {
+                                clearYesSchedulePreview();
                                 setDoseDrafts((current) => current.filter((item) => item.id !== draft.id));
                                 setDoseDraftErrors((current) => {
                                   const next = { ...current };
@@ -1414,22 +1912,82 @@ export function CoreCareScreen({
                     className={`mt-3 h-11 items-center justify-center rounded-xl border border-dashed ${
                       canAddCareEntry ? 'border-blue-300 bg-blue-50 active:bg-blue-100' : 'border-gray-200 bg-gray-50 opacity-50'
                     }`}
-                    onPress={() => canAddCareEntry && setDoseDrafts((current) => [...current, makeCareEntryDraft()])}
+                    onPress={() => {
+                      if (!canAddCareEntry) return;
+                      clearYesSchedulePreview();
+                      setDoseDrafts((current) => [...current, makeCareEntryDraft()]);
+                    }}
                   >
                     <Ionicons name="add" size={22} color={canAddCareEntry ? PRIMARY : '#94a3b8'} />
                   </Pressable>
-                  <Pressable
-                    testID="core-care-save-vaccines-button"
-                    accessibilityRole="button"
-                    className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
-                      submittingVaccines ? 'opacity-60' : ''
-                    }`}
-                    onPress={() => void createScheduleFromVaccines()}
-                    disabled={submittingVaccines || vaccineOptions.length === 0}
-                  >
-                    {submittingVaccines ? <ActivityIndicator color="#fff" /> : <Ionicons name="calendar-outline" size={18} color="#fff" />}
-                    <Text className="text-sm font-bold text-white">{t('coreCare.generateVaccineSchedule')}</Text>
-                  </Pressable>
+                  <Text className="mt-3 text-sm leading-5 text-slate-700">{t('coreCare.generatedScheduleIntro')}</Text>
+                  {hasYesSchedulePreview ? (
+                    <View className="mt-3 gap-2">
+                      {previewedYesSchedule && previewedYesSchedule.recommendations.length > 0 ? (
+                        selectedYesRecommendations.length > 0 ? (
+                          isCatSpecies
+                            ? visibleYesRecommendations.map((recommendation) =>
+                                renderYesCatRecommendationPreview(recommendation as CoreCareScheduleRecommendation),
+                              )
+                            : visibleYesRecommendations.map((recommendation) =>
+                                renderYesDogRecommendationPreview(recommendation as CoreCareNextVaccineRecommendation),
+                              )
+                        ) : (
+                          <Text className="rounded-xl border border-dashed border-slate-200 bg-white px-3 py-4 text-center text-sm text-slate-500">
+                            {t('coreCare.allGeneratedSchedulesRemoved')}
+                          </Text>
+                        )
+                      ) : (
+                        <Text className="rounded-xl border border-dashed border-slate-200 bg-white px-3 py-4 text-center text-sm text-slate-500">
+                          {t('coreCare.noGeneratedScheduleBody')}
+                        </Text>
+                      )}
+                      {hiddenYesRecommendationsCount > 0 ? (
+                        <Pressable
+                          testID="core-care-show-more-yes-recommendations-button"
+                          accessibilityRole="button"
+                          className="self-center py-1 active:opacity-70"
+                          onPress={() => setShowAllYesRecommendations((current) => !current)}
+                        >
+                          <Text className="text-xs font-semibold text-blue-700">
+                            {showAllYesRecommendations
+                              ? t('coreCare.showLessSchedules')
+                              : t('coreCare.showMoreSchedules', { count: hiddenYesRecommendationsCount })}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ) : null}
+                  <Text className="mt-3 text-xs leading-4 text-slate-500">{t('coreCare.generatedScheduleDisclaimer')}</Text>
+                  {!hasYesSchedulePreview ? (
+                    <Pressable
+                      testID="core-care-check-yes-schedule-button"
+                      accessibilityRole="button"
+                      className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+                      onPress={checkScheduleFromVaccines}
+                      disabled={vaccineOptions.length === 0}
+                    >
+                      <Ionicons name="search-outline" size={18} color="#fff" />
+                      <Text className="text-sm font-bold text-white">{t('coreCare.checkGeneratedSchedule')}</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      testID="core-care-save-vaccines-button"
+                      accessibilityRole="button"
+                      className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
+                        submittingVaccines || selectedYesRecommendations.length === 0 ? 'opacity-60' : ''
+                      }`}
+                      onPress={() => void createScheduleFromVaccines()}
+                      disabled={submittingVaccines || vaccineOptions.length === 0 || selectedYesRecommendations.length === 0}
+                    >
+                      {submittingVaccines ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Ionicons name="calendar-outline" size={18} color="#fff" />
+                      )}
+                      <Text className="text-sm font-bold text-white">{t('coreCare.generateVaccineSchedule')}</Text>
+                    </Pressable>
+                  )}
                 </View>
               ) : (
                 <View className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-3">
@@ -1461,13 +2019,21 @@ export function CoreCareScreen({
                   </View>
                   <Text className="mt-3 text-xs leading-4 text-slate-500">{t('coreCare.desiredVaccineHint')}</Text>
                   <Text className="mt-3 text-sm leading-5 text-slate-700">{t('coreCare.generatedScheduleIntro')}</Text>
-                  {pendingGeneratedRecommendations.length > 0 ? (
+                  {petBirthDateIsFuture ? (
+                    <Text className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{t('coreCare.birthDateFutureScheduleHint')}</Text>
+                  ) : hasGeneratedSchedulePreview ? (
                     <View className="mt-3 gap-2">
-                      {selectedGeneratedRecommendations.length > 0 ? (
-                        visiblePendingRecommendations.map(renderRecommendationPreview)
+                      {generatedRecommendations.length > 0 ? (
+                        selectedGeneratedRecommendations.length > 0 ? (
+                          visiblePendingRecommendations.map(renderRecommendationPreview)
+                        ) : (
+                          <Text className="rounded-xl border border-dashed border-slate-200 bg-white px-3 py-4 text-center text-sm text-slate-500">
+                            {t('coreCare.allGeneratedSchedulesRemoved')}
+                          </Text>
+                        )
                       ) : (
                         <Text className="rounded-xl border border-dashed border-slate-200 bg-white px-3 py-4 text-center text-sm text-slate-500">
-                          {t('coreCare.allGeneratedSchedulesRemoved')}
+                          {t('coreCare.noGeneratedScheduleBody')}
                         </Text>
                       )}
                       {hiddenPendingRecommendationsCount > 0 ? (
@@ -1487,18 +2053,39 @@ export function CoreCareScreen({
                     </View>
                   ) : null}
                   <Text className="mt-3 text-xs leading-4 text-slate-500">{t('coreCare.generatedScheduleDisclaimer')}</Text>
-                  <Pressable
-                    testID="core-care-generate-vaccine-schedule-button"
-                    accessibilityRole="button"
-                    className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
-                      submittingGeneratedSchedule ? 'opacity-60' : ''
-                    }`}
-                    onPress={() => void createGeneratedSchedule()}
-                    disabled={submittingGeneratedSchedule || schedulePrimaryVaccineOptions.length === 0 || selectedGeneratedRecommendations.length === 0}
-                  >
-                    {submittingGeneratedSchedule ? null : <Ionicons name="calendar-outline" size={18} color="#fff" />}
-                    <Text className="text-sm font-bold text-white">{t('coreCare.generateVaccineSchedule')}</Text>
-                  </Pressable>
+                  {!hasGeneratedSchedulePreview ? (
+                    <Pressable
+                      testID="core-care-check-generated-schedule-button"
+                      accessibilityRole="button"
+                      className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+                      onPress={checkGeneratedSchedule}
+                      disabled={schedulePrimaryVaccineOptions.length === 0}
+                    >
+                      <Ionicons name="search-outline" size={18} color="#fff" />
+                      <Text className="text-sm font-bold text-white">{t('coreCare.checkGeneratedSchedule')}</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      testID="core-care-generate-vaccine-schedule-button"
+                      accessibilityRole="button"
+                      className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
+                        submittingGeneratedSchedule || selectedGeneratedRecommendations.length === 0 ? 'opacity-60' : ''
+                      }`}
+                      onPress={() => void createGeneratedSchedule()}
+                      disabled={
+                        submittingGeneratedSchedule ||
+                        schedulePrimaryVaccineOptions.length === 0 ||
+                        selectedGeneratedRecommendations.length === 0
+                      }
+                    >
+                      {submittingGeneratedSchedule ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Ionicons name="calendar-outline" size={18} color="#fff" />
+                      )}
+                      <Text className="text-sm font-bold text-white">{t('coreCare.generateVaccineSchedule')}</Text>
+                    </Pressable>
+                  )}
                 </View>
               )}
             </>
