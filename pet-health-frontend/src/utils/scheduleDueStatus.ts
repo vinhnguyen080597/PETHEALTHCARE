@@ -33,3 +33,8 @@ export function scheduleDueStatusTextClass(status: ScheduleDueStatus): string {
   if (status === 'due_today') return 'text-xs font-semibold text-amber-600';
   return 'text-xs font-semibold text-slate-500';
 }
+
+export function canMarkScheduleAdministered(dueAt: string | Date, today: Date = new Date()): boolean {
+  const status = resolveScheduleDueStatus(dueAt, today);
+  return status === 'due_today' || status === 'overdue';
+}

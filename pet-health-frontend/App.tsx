@@ -295,11 +295,13 @@ function AppContent() {
             {app.screen === 'home' && (!isAdmin || app.managedUser) && (
               <HomeScreen
                 pets={app.pets}
+                vaccinationDueCounts={app.petVaccinationDueCounts}
                 refreshing={app.refreshing}
                 onRefresh={app.refreshPets}
                 onAddPet={app.openCreatePet}
                 onViewProfile={app.openPetProfile}
                 onOpenCareServices={app.openCareServices}
+                onOpenVaccinationDue={app.openCoreCare}
               />
             )}
 

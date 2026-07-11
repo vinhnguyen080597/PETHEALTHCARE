@@ -54,6 +54,13 @@ const baseConfig = {
     'expo-secure-store',
     'expo-font',
     'expo-video',
+    [
+      'expo-notifications',
+      {
+        icon: './assets/icon.png',
+        color: '#1E6FE8',
+      },
+    ],
     '@react-native-community/datetimepicker',
     [
       'expo-build-properties',

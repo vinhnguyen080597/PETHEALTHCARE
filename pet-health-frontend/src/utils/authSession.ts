@@ -75,6 +75,34 @@ export function buildLegacyAuthSession(accessToken: string): AuthSession | null 
   };
 }
 
+export function toPersistedAuthSession(
+  raw: RawAuthSession | null | undefined,
+  nowSeconds = Math.floor(Date.now() / 1000),
+): AuthSession | null {
+  const accessToken = typeof raw?.access_token === 'string' ? raw.access_token.trim() : '';
+  if (!accessToken) return null;
+
+  let expiresAt = typeof raw?.expires_at === 'number' ? raw.expires_at : null;
+  if (!expiresAt) {
+    const expiresIn = typeof raw?.expires_in === 'number' ? raw.expires_in : null;
+    if (expiresIn && expiresIn > 0) {
+      expiresAt = nowSeconds + expiresIn;
+    }
+  }
+  if (!expiresAt) {
+    expiresAt = decodeJwtExpirySeconds(accessToken);
+  }
+  if (!expiresAt) return null;
+
+  const expiresIn = typeof raw?.expires_in === 'number' ? raw.expires_in : undefined;
+  return {
+    access_token: accessToken,
+    refresh_token: '',
+    expires_at: expiresAt,
+    ...(expiresIn !== undefined ? { expires_in: expiresIn } : {}),
+  };
+}
+
 export function getRefreshDelayMs(
   session: AuthSession,
   nowMs = Date.now(),

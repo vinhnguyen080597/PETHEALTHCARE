@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { NotificationBellBadge } from '../components/NotificationBellBadge';
 import type { Pet } from '../types';
 import { formatPetAgeForDisplay } from '../utils/petAge';
 
@@ -8,11 +9,13 @@ const PRIMARY_BLUE = '#1E6FE8';
 
 type HomeScreenProps = {
   pets: Pet[];
+  vaccinationDueCounts: Record<string, number>;
   refreshing: boolean;
   onRefresh: () => void;
   onAddPet: () => void;
   onViewProfile: (petId: string) => void;
   onOpenCareServices: (petId: string) => void;
+  onOpenVaccinationDue: (petId: string) => void;
 };
 
 function formatPetSubtitle(pet: Pet, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -28,11 +31,13 @@ function formatPetSubtitle(pet: Pet, t: (key: string, opts?: Record<string, unkn
 /** Home list — aligned with `figma/UI/Home.PNG`: My Pets header, cards with Health Check + View Profile only. */
 export function HomeScreen({
   pets,
+  vaccinationDueCounts,
   refreshing,
   onRefresh,
   onAddPet,
   onViewProfile,
   onOpenCareServices,
+  onOpenVaccinationDue,
 }: HomeScreenProps) {
   const { t } = useTranslation();
   return (
@@ -80,7 +85,9 @@ export function HomeScreen({
         </View>
       ) : (
         <View className="gap-4">
-          {pets.map((pet) => (
+          {pets.map((pet) => {
+            const dueCount = vaccinationDueCounts[pet.id] ?? 0;
+            return (
             <View
               testID={`home-pet-card-${pet.id}`}
               key={pet.id}
@@ -113,6 +120,17 @@ export function HomeScreen({
                     {formatPetSubtitle(pet, t)}
                   </Text>
                 </Pressable>
+                {dueCount > 0 ? (
+                  <Pressable
+                    testID={`home-pet-vaccination-due-button-${pet.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('home.vaccinationDueNotification', { name: pet.name, count: dueCount })}
+                    className="flex-shrink-0 self-start active:opacity-80"
+                    onPress={() => onOpenVaccinationDue(pet.id)}
+                  >
+                    <NotificationBellBadge count={dueCount} testID={`home-pet-vaccination-due-badge-${pet.id}`} />
+                  </Pressable>
+                ) : null}
               </View>
 
               <View className="mt-3.5 flex-row gap-2.5">
@@ -138,7 +156,8 @@ export function HomeScreen({
                 </Pressable>
               </View>
             </View>
-          ))}
+          );
+          })}
         </View>
       )}
     </ScrollView>

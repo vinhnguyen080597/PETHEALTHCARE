@@ -3,7 +3,7 @@ import * as Crypto from 'expo-crypto';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import { DEFAULT_PET_SPECIES } from '../constants/petSpecies';
 import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
 // v1 release: monetization disabled — re-enable imports when shipping ads + IAP.
@@ -77,6 +77,7 @@ import {
 } from '../api';
 import { preloadMaiOnboardingImages } from '../assets/maiOnboardingAssets';
 import { preloadServicesOnboardingImages } from '../assets/servicesOnboardingAssets';
+import { clearAppIconBadge, setAppIconBadgeCount } from '../services/appIconBadge';
 import { PENDING_INITIAL_ONBOARDING_KEY } from '../constants/auth';
 import { isBreedRecognitionSpecies, type BreedRecognitionSlot } from '../constants/petBreedRecognitionSlots';
 import { normalizeAuthSession } from '../utils/authSession';
@@ -118,6 +119,10 @@ import type { AppScreen } from '../screens/types';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
 import { formatHealthCheckVaccineTypeForApi } from '../utils/formatHealthCheckVaccineType';
+import {
+  countVaccinationScheduleDue,
+  totalVaccinationScheduleDue,
+} from '../utils/vaccinationDueNotifications';
 import { postsForBreeder } from '../utils/breederTrust';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 
@@ -362,6 +367,7 @@ export function usePetHealthApp() {
   const [creditLedger, setCreditLedger] = useState<Array<Record<string, unknown>>>([]);
   const [coreCareRecords, setCoreCareRecords] = useState<CoreCareRecord[]>([]);
   const [coreCareSummary, setCoreCareSummary] = useState<CoreCareSummary | null>(null);
+  const [petVaccinationDueCounts, setPetVaccinationDueCounts] = useState<Record<string, number>>({});
   const [petFeedPosts, setPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [topBreederProfiles, setTopBreederProfiles] = useState<BreederProfile[]>([]);
   const [petFeedInitialLoading, setPetFeedInitialLoading] = useState(false);
@@ -484,6 +490,37 @@ export function usePetHealthApp() {
     return response.data;
   }, []);
 
+  const refreshVaccinationDueCounts = useCallback(
+    async (petsToCheck?: Pet[]) => {
+      if (!token) return;
+      const targetPets = petsToCheck ?? pets;
+      if (targetPets.length === 0) {
+        setPetVaccinationDueCounts({});
+        await clearAppIconBadge();
+        return;
+      }
+
+      try {
+        const responses = await Promise.all(
+          targetPets.map(async (pet) => {
+            const response = managedUser
+              ? await listAdminUserCoreCareRecords(token, managedUser.userId, pet.id)
+              : await listCoreCareRecords(token, pet.id);
+            return { petId: pet.id, records: response.data };
+          }),
+        );
+        const counts = Object.fromEntries(
+          responses.map(({ petId, records }) => [petId, countVaccinationScheduleDue(records)]),
+        );
+        setPetVaccinationDueCounts(counts);
+        await setAppIconBadgeCount(totalVaccinationScheduleDue(counts));
+      } catch {
+        // Keep the last known counts when a background refresh fails.
+      }
+    },
+    [managedUser, pets, token],
+  );
+
   const refreshCoreCare = useCallback(
     async (petId: string = selectedPetId ?? '') => {
       if (!token || !petId) return;
@@ -492,6 +529,12 @@ export function usePetHealthApp() {
         : await listCoreCareRecords(token, petId);
       setCoreCareRecords(response.data);
       setCoreCareSummary(response.summary);
+      const count = countVaccinationScheduleDue(response.data);
+      setPetVaccinationDueCounts((previous) => {
+        const next = { ...previous, [petId]: count };
+        void setAppIconBadgeCount(totalVaccinationScheduleDue(next));
+        return next;
+      });
     },
     [managedUser, selectedPetId, token],
   );
@@ -500,11 +543,12 @@ export function usePetHealthApp() {
     if (!token) return;
     setRefreshing(true);
     try {
-      await fetchPets(token);
+      const nextPets = await fetchPets(token);
+      await refreshVaccinationDueCounts(nextPets);
     } finally {
       setRefreshing(false);
     }
-  }, [token, fetchPets]);
+  }, [token, fetchPets, refreshVaccinationDueCounts]);
 
   const loadPetFeedFirstPage = useCallback(async (
     accessToken: string,
@@ -651,6 +695,16 @@ export function usePetHealthApp() {
   }, [analysisCooldownUntilMs]);
 
   useEffect(() => {
+    if (!token) return;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void refreshVaccinationDueCounts();
+      }
+    });
+    return () => subscription.remove();
+  }, [token, refreshVaccinationDueCounts]);
+
+  useEffect(() => {
     if (!forgotPasswordRateLimitUntilMs || forgotPasswordRateLimitUntilMs <= Date.now()) {
       setForgotPasswordRateLimitSeconds(0);
       return;
@@ -707,11 +761,14 @@ export function usePetHealthApp() {
   }
 
   async function loadAuthenticatedUserData(accessToken: string, profile: AccountProfile) {
-    const loads: Promise<unknown>[] = [fetchPets(accessToken), refreshAiCredits(accessToken), loadFeatureFlags(accessToken)];
+    const petsPromise = fetchPets(accessToken);
+    const loads: Promise<unknown>[] = [petsPromise, refreshAiCredits(accessToken), loadFeatureFlags(accessToken)];
     if (profile.primary_role === 'admin') {
       loads.push(loadAccountDashboard(accessToken, profile.primary_role));
     }
     await Promise.all(loads);
+    const loadedPets = await petsPromise;
+    await refreshVaccinationDueCounts(loadedPets);
   }
 
   async function navigateAfterAuthenticatedSession(options?: { startInitialOnboarding?: boolean }) {
@@ -2311,6 +2368,8 @@ export function usePetHealthApp() {
     setCreditLedger([]);
     setCoreCareRecords([]);
     setCoreCareSummary(null);
+    setPetVaccinationDueCounts({});
+    void clearAppIconBadge();
     setPetFeedPosts([]);
     setAnnouncementPosts([]);
     setTopBreederProfiles([]);
@@ -2614,13 +2673,7 @@ export function usePetHealthApp() {
       return;
     }
     if (!data.accessToken) return;
-    const current = getActiveAuthSession();
-    if (!current?.refresh_token) return;
-    const merged = normalizeAuthSession({
-      access_token: data.accessToken,
-      refresh_token: current.refresh_token,
-      expires_at: current.expires_at,
-    });
+    const merged = normalizeAuthSession({ access_token: data.accessToken, refresh_token: getActiveAuthSession()?.refresh_token ?? '' });
     if (!merged) return;
     await activateAuthSession(merged);
     setToken(merged.access_token);
@@ -2902,6 +2955,7 @@ export function usePetHealthApp() {
     token,
     accountProfile,
     pets,
+    petVaccinationDueCounts,
     selectedPetId,
     setSelectedPetId,
     selectedPet,

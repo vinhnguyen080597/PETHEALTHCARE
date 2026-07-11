@@ -75,7 +75,7 @@ export async function getStoredAuthSession(): Promise<AuthSession | null> {
 }
 
 export async function setStoredAuthSession(session: AuthSession): Promise<void> {
-  const normalized = session.refresh_token ? normalizeAuthSession(session) : session;
+  const normalized = normalizeAuthSession(session) ?? session;
   if (!normalized?.access_token) return;
   await writeSecureOrAsync(AUTH_SESSION_STORAGE_KEY, JSON.stringify(normalized));
   await removeSecureOrAsync(TOKEN_STORAGE_KEY);

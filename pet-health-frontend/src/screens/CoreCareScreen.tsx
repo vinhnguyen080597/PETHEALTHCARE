@@ -22,6 +22,7 @@ import {
 import { debugCheck, debugLog } from '../utils/debugLog';
 import { resolvePetAgeMonths, parseBirthDateIso, formatBirthDateIso, isBirthDateInFuture } from '../utils/petAge';
 import {
+  canMarkScheduleAdministered,
   resolveScheduleDueStatus,
   scheduleDueStatusTextClass,
   type ScheduleDueStatus,
@@ -141,6 +142,11 @@ function isPendingScheduleRecord(record: CoreCareRecord): boolean {
   return true;
 }
 
+function isFulfilledGeneratedReminder(record: CoreCareRecord): boolean {
+  if (record.type !== 'reminder' || record.status !== 'done') return false;
+  return Boolean(record.metadata?.generatedCoreCareScheduleId || record.metadata?.generatedCoreCareVaccineScheduleId);
+}
+
 function scheduleDueStatusLabel(t: (key: string) => string, status: ScheduleDueStatus): string {
   if (status === 'upcoming') return t('coreCare.scheduleDueStatus.upcoming');
   if (status === 'due_today') return t('coreCare.scheduleDueStatus.dueToday');
@@ -215,6 +221,24 @@ function formatDateOnly(value: string, language: string): string {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(value));
+}
+
+function recordScheduleDateLabel(record: CoreCareRecord, language: string, preferDueDate: boolean): string | null {
+  if (preferDueDate && record.due_at) return formatDateOnly(record.due_at, language);
+  const performedAt =
+    metadataText(record, 'administeredAt') || record.occurred_at || record.due_at || record.created_at;
+  if (!performedAt) return null;
+  return formatDateOnly(performedAt, language);
+}
+
+function historyStatusLabel(
+  record: CoreCareRecord,
+  t: (key: string) => string,
+): string {
+  const generatedKind = generatedCareKind(record);
+  if (generatedKind === 'deworming' || isDewormingCareRecord(record)) return t('coreCare.historyDewormed');
+  if (record.type === 'vaccine' || generatedKind === 'vaccine') return t('coreCare.markAdministered');
+  return t('coreCare.historyCompleted');
 }
 
 function sortByDueDate<T extends { dueDate: string; id?: string }>(items: T[]): T[] {
@@ -655,6 +679,7 @@ export function CoreCareScreen({
   const [submittingVaccines, setSubmittingVaccines] = useState(false);
   const [submittingGeneratedSchedule, setSubmittingGeneratedSchedule] = useState(false);
   const [submittingReminder, setSubmittingReminder] = useState(false);
+  const [markingAdministeredRecordId, setMarkingAdministeredRecordId] = useState<string | null>(null);
   const [scheduleSetupDismissed, setScheduleSetupDismissed] = useState(false);
   const [isEditingGeneratedSchedule, setIsEditingGeneratedSchedule] = useState(false);
   const [editScheduleBaseline, setEditScheduleBaseline] = useState<EditScheduleBaseline | null>(null);
@@ -742,6 +767,7 @@ export function CoreCareScreen({
     () =>
       careRecords
         .filter((record) => !allUpcomingRecords.some((upcoming) => upcoming.id === record.id))
+        .filter((record) => !isFulfilledGeneratedReminder(record))
         .sort((a, b) => occurredTimestamp(b) - occurredTimestamp(a))
         .slice(0, 10),
     [careRecords, allUpcomingRecords],
@@ -1654,67 +1680,119 @@ export function CoreCareScreen({
     }
   }
 
-  function renderRecordCard(record: CoreCareRecord, options?: { showDoneAction?: boolean }) {
-    const clinicName = metadataText(record, 'clinic');
+  async function markScheduleItemAdministered(record: CoreCareRecord) {
+    if (!record.due_at || !canMarkScheduleAdministered(record.due_at, today)) return;
+
+    const administeredAt = formatDateValue(today);
+    const generatedKind = generatedCareKind(record);
     const vaccineId = metadataText(record, 'vaccineId');
-    const vaccineLabel = vaccineId ? t(`healthCheck.vaccines.${vaccineId}.label`) : '';
-    const dueLabel = record.due_at ? formatDateOnly(record.due_at, i18n.language) : null;
-    const dueDateTimeLabel = record.due_at ? formatLocaleDateTime(record.due_at, i18n.language) : null;
-    const createdLabel = formatLocaleDateTime(record.occurred_at || record.created_at, i18n.language);
+
+    setMarkingAdministeredRecordId(record.id);
+    try {
+      if (generatedKind === 'vaccine' || vaccineId) {
+        const label = vaccineId ? t(`healthCheck.vaccines.${vaccineId}.label`, { defaultValue: record.title }) : record.title;
+        await onCreateRecord({
+          type: 'vaccine',
+          title: label,
+          note: record.note || '',
+          occurredAt: administeredAt,
+          dueAt: null,
+          status: 'active',
+          metadata: {
+            ...(vaccineId ? { vaccineId } : {}),
+            vaccineName: label,
+            administeredAt,
+            fulfilledReminderId: record.id,
+          },
+        });
+      } else if (generatedKind === 'deworming' || isDewormingCareRecord(record)) {
+        const doseNumber = record.metadata?.generatedCoreCareDoseNumber;
+        await onCreateRecord({
+          type: 'reminder',
+          title:
+            typeof doseNumber === 'number'
+              ? t('coreCare.generatedRules.catDeworming.title', { dose: doseNumber })
+              : record.title,
+          note: '',
+          occurredAt: administeredAt,
+          dueAt: null,
+          status: 'done',
+          metadata: {
+            generatedCoreCareKind: 'deworming',
+            generatedCoreCareFamily: metadataText(record, 'generatedCoreCareFamily') || 'catDeworming',
+            ...(typeof doseNumber === 'number' ? { generatedCoreCareDoseNumber: doseNumber } : {}),
+            administeredAt,
+            isHistoricalDeworming: true,
+            fulfilledReminderId: record.id,
+          },
+        });
+      }
+
+      await onMarkReminderDone(record);
+    } finally {
+      setMarkingAdministeredRecordId(null);
+    }
+  }
+
+  function renderRecordCard(record: CoreCareRecord, options?: { showDoneAction?: boolean }) {
     const generatedKind = generatedCareKind(record);
     const typeLabel = generatedKind ? t(`coreCare.generatedKinds.${generatedKind}`) : t(`coreCare.types.${record.type}`);
-    const isUpcoming = Boolean(options?.showDoneAction && dueLabel);
-    const shouldShowNote = Boolean(record.note) && !isUpcoming;
-    const shouldShowClinic = Boolean(clinicName) && !isUpcoming;
-    const shouldShowDoneAction = Boolean(options?.showDoneAction && record.type === 'reminder' && !generatedKind);
-    const displayTitle = isUpcoming ? record.title : vaccineLabel || record.title;
+    const isUpcoming = Boolean(options?.showDoneAction && record.due_at);
+    const scheduleDateLabel = recordScheduleDateLabel(record, i18n.language, isUpcoming);
+    const shouldShowAdministeredAction = Boolean(options?.showDoneAction && record.type === 'reminder');
+    const canMarkAdministered = Boolean(record.due_at && canMarkScheduleAdministered(record.due_at, today));
+    const isMarkingAdministered = markingAdministeredRecordId === record.id;
+    const displayTitle = record.title;
 
     return (
       <View
         key={record.id}
         testID={`core-care-record-${record.id}`}
-        className={isUpcoming ? 'rounded-xl border border-blue-100 bg-white p-3' : 'rounded-2xl border border-gray-200 bg-white p-4'}
+        className="rounded-xl border border-blue-100 bg-white p-3"
       >
         <View className="flex-row items-start gap-3">
-          <View className={isUpcoming ? 'mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50' : 'h-10 w-10 items-center justify-center rounded-full bg-blue-50'}>
-            <CareScheduleIcon record={record} size={isUpcoming ? 16 : 20} />
+          <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+            <CareScheduleIcon record={record} size={16} />
           </View>
           <View className="min-w-0 flex-1">
+            <Text className="text-sm font-bold text-slate-900" numberOfLines={2}>
+              {displayTitle}
+            </Text>
+            <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
+              {typeLabel} {scheduleDateLabel ? `· ${scheduleDateLabel}` : ''}
+            </Text>
             {isUpcoming ? (
-              <>
-                <Text className="text-sm font-bold text-slate-900" numberOfLines={2}>
-                  {displayTitle}
-                </Text>
-                <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
-                  {typeLabel} {dueDateTimeLabel ? `· ${dueDateTimeLabel}` : ''}
-                </Text>
-                <ScheduleDueStatusBadge dueAt={record.due_at} today={today} t={t} />
-              </>
+              <ScheduleDueStatusBadge dueAt={record.due_at} today={today} t={t} />
             ) : (
-              <>
-                <Text className="text-base font-bold text-slate-900" numberOfLines={2}>
-                  {displayTitle}
-                </Text>
-                <Text className="mt-1 text-xs font-semibold uppercase text-slate-500">{typeLabel}</Text>
-                {dueLabel ? <Text className="mt-2 text-sm font-semibold text-blue-700">{t('coreCare.dueLine', { date: dueLabel })}</Text> : null}
-                {!dueLabel ? <Text className="mt-2 text-sm text-slate-500">{createdLabel}</Text> : null}
-                {dueLabel ? <ScheduleDueStatusBadge dueAt={record.due_at} today={today} t={t} /> : null}
-              </>
+              <Text className="mt-1 text-xs font-semibold text-emerald-600">{historyStatusLabel(record, t)}</Text>
             )}
-            {shouldShowClinic ? <Text className="mt-1 text-sm text-slate-600">{t('coreCare.clinicLine', { clinic: clinicName })}</Text> : null}
-            {shouldShowNote ? <Text className="mt-2 text-sm leading-5 text-slate-700">{record.note}</Text> : null}
-            {shouldShowDoneAction ? (
-              <Pressable
-                testID={`core-care-mark-reminder-done-${record.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Mark reminder ${record.title} done`}
-                className="mt-3 self-start rounded-full bg-emerald-50 px-3 py-1.5 active:bg-emerald-100"
-                onPress={() => onMarkReminderDone(record)}
-              >
-                <Text className="text-xs font-bold text-emerald-700">{t('coreCare.markDone')}</Text>
-              </Pressable>
-            ) : null}
           </View>
+          {shouldShowAdministeredAction ? (
+            <Pressable
+              testID={`core-care-mark-administered-${record.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={t('coreCare.markAdministeredA11y', { title: displayTitle })}
+              accessibilityState={{ disabled: !canMarkAdministered || isMarkingAdministered }}
+              className={`shrink-0 rounded-lg px-2.5 py-2 ${
+                canMarkAdministered && !isMarkingAdministered
+                  ? 'bg-emerald-50 active:bg-emerald-100'
+                  : 'opacity-50'
+              }`}
+              disabled={!canMarkAdministered || isMarkingAdministered}
+              onPress={() => void markScheduleItemAdministered(record)}
+            >
+              {isMarkingAdministered ? (
+                <ActivityIndicator size="small" color="#059669" />
+              ) : (
+                <Text
+                  className={`text-xs font-bold ${canMarkAdministered ? 'text-emerald-700' : 'text-slate-400'}`}
+                  numberOfLines={2}
+                >
+                  {t('coreCare.markAdministered')}
+                </Text>
+              )}
+            </Pressable>
+          ) : null}
         </View>
       </View>
     );

@@ -6,6 +6,7 @@ import {
   isAuthSessionExpired,
   normalizeAuthSession,
   shouldRefreshAuthSession,
+  toPersistedAuthSession,
 } from '../src/utils/authSession.ts';
 
 function makeJwt(exp: number): string {
@@ -56,6 +57,23 @@ test('builds a legacy access-token-only session from JWT exp', () => {
       refresh_token: '',
       expires_at: exp,
     });
+});
+
+test('builds a persisted session without refresh token', () => {
+  const now = 1_700_000_000;
+  const session = toPersistedAuthSession(
+    {
+      access_token: 'access-token',
+      refresh_token: 'ignored-refresh',
+      expires_at: now + 604_800,
+    },
+    now,
+  );
+  assert.deepEqual(session, {
+    access_token: 'access-token',
+    refresh_token: '',
+    expires_at: now + 604_800,
+  });
 });
 
 test('detects expiry and refresh windows', () => {

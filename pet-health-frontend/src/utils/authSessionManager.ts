@@ -16,12 +16,8 @@ type RefreshResult = {
   code?: string;
 };
 
-/** Safety refresh while the app stays open (covers background timer throttling / inactivity limits). */
-const PERIODIC_REFRESH_MS = 20 * 60 * 1000;
-
 let activeSession: AuthSession | null = null;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-let periodicRefreshInterval: ReturnType<typeof setInterval> | null = null;
 let refreshInFlight: Promise<AuthSession | null> | null = null;
 let sessionListener: SessionListener | null = null;
 let lifecycleInstalled = false;
@@ -31,13 +27,6 @@ function clearRefreshTimer() {
   if (refreshTimer) {
     clearTimeout(refreshTimer);
     refreshTimer = null;
-  }
-}
-
-function stopPeriodicRefresh() {
-  if (periodicRefreshInterval) {
-    clearInterval(periodicRefreshInterval);
-    periodicRefreshInterval = null;
   }
 }
 
@@ -52,14 +41,6 @@ function scheduleProactiveRefresh(session: AuthSession) {
   refreshTimer = setTimeout(() => {
     void tryRefreshAuthSession();
   }, delayMs);
-}
-
-function startPeriodicRefresh() {
-  stopPeriodicRefresh();
-  if (!activeSession?.refresh_token) return;
-  periodicRefreshInterval = setInterval(() => {
-    void tryRefreshAuthSession();
-  }, PERIODIC_REFRESH_MS);
 }
 
 async function syncActiveSessionFromStorage(): Promise<AuthSession | null> {
@@ -111,11 +92,9 @@ async function persistSession(session: AuthSession | null) {
   if (session) {
     await setStoredAuthSession(session);
     scheduleProactiveRefresh(session);
-    startPeriodicRefresh();
     installLifecycleHandlers();
   } else {
     clearRefreshTimer();
-    stopPeriodicRefresh();
     await removeStoredAuthSession();
   }
   notifySessionListener();
@@ -147,7 +126,6 @@ export async function hydrateAuthSessionFromStorage(): Promise<AuthSession | nul
     return null;
   }
   scheduleProactiveRefresh(stored);
-  startPeriodicRefresh();
   installLifecycleHandlers();
   notifySessionListener();
   return stored;
@@ -274,5 +252,4 @@ export function teardownAuthSessionLifecycle() {
   lifecycleTeardown = null;
   lifecycleInstalled = false;
   clearRefreshTimer();
-  stopPeriodicRefresh();
 }
