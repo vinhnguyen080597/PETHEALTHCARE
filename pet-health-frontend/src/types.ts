@@ -47,14 +47,19 @@ export type AppFeatureFlags = {
   pet_feed_breeders: boolean;
 };
 
+export type AuthSession = {
+  access_token: string;
+  refresh_token: string;
+  expires_at: number;
+  expires_in?: number;
+};
+
 export type AuthResponse = {
   user: {
     id: string;
     email: string;
   } | null;
-  session: {
-    access_token: string;
-  } | null;
+  session: AuthSession | null;
   account?: AccountProfile | null;
 };
 

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { DEFAULT_PET_SPECIES } from '../constants/petSpecies';
 import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
@@ -79,13 +79,22 @@ import { preloadMaiOnboardingImages } from '../assets/maiOnboardingAssets';
 import { preloadServicesOnboardingImages } from '../assets/servicesOnboardingAssets';
 import { PENDING_INITIAL_ONBOARDING_KEY } from '../constants/auth';
 import { isBreedRecognitionSpecies, type BreedRecognitionSlot } from '../constants/petBreedRecognitionSlots';
-import { getStoredAuthToken, removeStoredAuthToken, setStoredAuthToken } from '../utils/authTokenStorage';
+import { normalizeAuthSession } from '../utils/authSession';
+import {
+  activateAuthSession,
+  bindAuthSessionListener,
+  clearAuthSession,
+  ensureFreshAccessToken,
+  getActiveAuthSession,
+  hydrateAuthSessionFromStorage,
+} from '../utils/authSessionManager';
 import type {
   AiCreditAccount,
   AiEconomicsConfig,
   Analysis,
   AccountProfile,
   AppFeatureFlags,
+  AuthSession,
   AdminCreateAccountPayload,
   AdminUpdateAccountPayload,
   BreedRecognitionResult,
@@ -606,6 +615,19 @@ export function usePetHealthApp() {
     [managedUser, token, i18n.language, refreshAiCredits],
   );
 
+  const hadActiveSessionRef = useRef(false);
+
+  useEffect(() => {
+    bindAuthSessionListener((session) => {
+      setToken(session?.access_token ?? null);
+      if (hadActiveSessionRef.current && !session) {
+        setScreen('login');
+      }
+      hadActiveSessionRef.current = Boolean(session);
+    });
+    return () => bindAuthSessionListener(null);
+  }, []);
+
   useEffect(() => {
     void initializeApp();
   }, []);
@@ -645,10 +667,11 @@ export function usePetHealthApp() {
   }, [forgotPasswordRateLimitUntilMs]);
 
   async function clearInvalidSession() {
-    await removeStoredAuthToken();
+    await clearAuthSession();
     await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
     setToken(null);
     setInitialOnboarding(false);
+    setScreen('login');
   }
 
   async function loadFeatureFlags(accessToken: string) {
@@ -720,7 +743,7 @@ export function usePetHealthApp() {
   async function initializeApp() {
     debugLog('STARTUP', 'usePetHealthApp.initializeApp.enter');
     try {
-      const [, savedToken] = await Promise.all([
+      const [, savedSession] = await Promise.all([
         healthCheck()
           .then(() => {
             setBackendHealth('online');
@@ -732,24 +755,34 @@ export function usePetHealthApp() {
               message: error instanceof Error ? error.message : String(error),
             });
           }),
-        getStoredAuthToken().then((token) => {
-          debugLog('STARTUP', 'usePetHealthApp.getStoredAuthToken', { hasToken: Boolean(token) });
-          return token;
+        hydrateAuthSessionFromStorage().then((session) => {
+          debugLog('STARTUP', 'usePetHealthApp.hydrateAuthSessionFromStorage', {
+            hasSession: Boolean(session?.access_token),
+            hasRefreshToken: Boolean(session?.refresh_token),
+          });
+          return session;
         }),
       ]);
 
-      if (!savedToken) {
-        debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'login', reason: 'no_saved_token' });
+      if (!savedSession?.access_token) {
+        debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'login', reason: 'no_saved_session' });
         return;
       }
 
-      setToken(savedToken);
+      const accessToken = await ensureFreshAccessToken();
+      if (!accessToken) {
+        await clearInvalidSession();
+        debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'login', reason: 'expired_session' });
+        return;
+      }
+
+      setToken(accessToken);
       try {
-        const profile = await fetchAccountProfile(savedToken);
+        const profile = await fetchAccountProfile(accessToken);
         debugLog('STARTUP', 'usePetHealthApp.fetchAccountProfile.ok', {
           role: profile.primary_role,
         });
-        await loadAuthenticatedUserData(savedToken, profile);
+        await loadAuthenticatedUserData(accessToken, profile);
         await navigateAfterAuthenticatedSession();
         debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'authenticated' });
       } catch (error) {
@@ -771,11 +804,15 @@ export function usePetHealthApp() {
   }
 
   const applySession = useCallback(
-    async (accessToken: string, options?: { startInitialOnboarding?: boolean }) => {
-      await setStoredAuthToken(accessToken);
-      setToken(accessToken);
-      const profile = await fetchAccountProfile(accessToken);
-      await loadAuthenticatedUserData(accessToken, profile);
+    async (sessionInput: AuthSession | null | undefined, options?: { startInitialOnboarding?: boolean }) => {
+      const session = normalizeAuthSession(sessionInput ?? null);
+      if (!session) {
+        throw new Error('Missing auth session');
+      }
+      await activateAuthSession(session);
+      setToken(session.access_token);
+      const profile = await fetchAccountProfile(session.access_token);
+      await loadAuthenticatedUserData(session.access_token, profile);
       await navigateAfterAuthenticatedSession(options);
     },
     [fetchAccountProfile, fetchPets, refreshAiCredits],
@@ -877,12 +914,12 @@ export function usePetHealthApp() {
       }
 
       const response = await login({ email: email.trim(), password });
-      const accessToken = response.data.session?.access_token;
-      if (!accessToken) {
+      const session = normalizeAuthSession(response.data.session ?? null);
+      if (!session) {
         setAuthError(i18n.t('alerts.loginNoToken.message'));
         return;
       }
-      await applySession(accessToken);
+      await applySession(session);
     } catch (error: unknown) {
       if (
         !isSignUp &&
@@ -942,8 +979,8 @@ export function usePetHealthApp() {
         otp: signUpOtp.trim(),
         password: pendingSignUpPassword,
       });
-      const signUpToken = signUpRes.data.session?.access_token;
-      if (!signUpToken) {
+      const signUpSession = normalizeAuthSession(signUpRes.data.session ?? null);
+      if (!signUpSession) {
         setSignUpOtpError(i18n.t('alerts.verifyEmail.message'));
         return;
       }
@@ -952,7 +989,7 @@ export function usePetHealthApp() {
       setPendingSignUpEmail('');
       setPendingSignUpPassword('');
       setConfirmPassword('');
-      await applySession(signUpToken, { startInitialOnboarding: true });
+      await applySession(signUpSession, { startInitialOnboarding: true });
     } catch (error: unknown) {
       setSignUpOtpError(resolveSignUpOtpErrorMessage(error));
     } finally {
@@ -1116,11 +1153,11 @@ export function usePetHealthApp() {
         otp: forgotPasswordOtp.trim(),
         newPassword: forgotPasswordNewPassword,
       });
-      const accessToken = data.accessToken;
+      const refreshedSession = normalizeAuthSession(data.session ?? null);
       setPassword('');
-      if (accessToken) {
+      if (refreshedSession) {
         // Keep OTP modal open until session is ready so we don't flash the forgot-password form.
-        await applySession(accessToken);
+        await applySession(refreshedSession);
         closeForgotPasswordOtpModal();
         resetForgotPasswordForm();
         return;
@@ -2245,7 +2282,7 @@ export function usePetHealthApp() {
   }
 
   async function logout() {
-    await removeStoredAuthToken();
+    await clearAuthSession();
     await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
     setInitialOnboarding(false);
     setToken(null);
@@ -2561,10 +2598,24 @@ export function usePetHealthApp() {
     return null;
   }
 
-  async function persistRefreshedAccessToken(accessToken?: string | null) {
-    if (!accessToken) return;
-    await setStoredAuthToken(accessToken);
-    setToken(accessToken);
+  async function persistRefreshedSession(data: { accessToken?: string | null; session?: AuthSession | null }) {
+    const session = normalizeAuthSession(data.session ?? null);
+    if (session) {
+      await activateAuthSession(session);
+      setToken(session.access_token);
+      return;
+    }
+    if (!data.accessToken) return;
+    const current = getActiveAuthSession();
+    if (!current?.refresh_token) return;
+    const merged = normalizeAuthSession({
+      access_token: data.accessToken,
+      refresh_token: current.refresh_token,
+      expires_at: current.expires_at,
+    });
+    if (!merged) return;
+    await activateAuthSession(merged);
+    setToken(merged.access_token);
   }
 
   async function submitUpdateAccountChangeLogin() {
@@ -2627,7 +2678,7 @@ export function usePetHealthApp() {
         currentPassword: updateAccountEmailChangePassword,
       });
       if (data.account) setAccountProfile(data.account);
-      await persistRefreshedAccessToken(data.accessToken);
+      await persistRefreshedSession(data);
       closeUpdateAccountEmailOtpModal();
       setUpdateAccountNewLogin('');
       setUpdateAccountEmailChangePassword('');
@@ -2684,7 +2735,7 @@ export function usePetHealthApp() {
         currentPassword: updateAccountCurrentPassword,
         newPassword: updateAccountNewPassword,
       });
-      await persistRefreshedAccessToken(data.accessToken);
+      await persistRefreshedSession(data);
       setUpdateAccountCurrentPassword('');
       setUpdateAccountNewPassword('');
       setUpdateAccountConfirmNewPassword('');
@@ -2777,7 +2828,7 @@ export function usePetHealthApp() {
         otp: updateAccountRecoverOtp.trim(),
         newPassword: updateAccountRecoverNewPassword,
       });
-      await persistRefreshedAccessToken(data.accessToken);
+      await persistRefreshedSession(data);
       closeUpdateAccountRecoverOtpModal();
       setUpdateAccountRecoverSuccess(i18n.t('account.updateAccount.recoverPasswordSuccess'));
     } catch (error: unknown) {

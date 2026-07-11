@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { API_BASE_URL, API_HEALTH_URL } from './config';
+import { resolveAuthorizedToken, retryAfterUnauthorized } from './utils/authSessionManager';
 import { BREED_RECOGNITION_SLOT_ORDER } from './constants/petBreedRecognitionSlots';
 import type {
   Analysis,
@@ -12,6 +13,7 @@ import type {
   AnalyzeResponse,
   AuthPayload,
   AuthResponse,
+  AuthSession,
   SignUpOtpRequestPayload,
   SignUpOtpRequestResponse,
   BreedRecognitionResult,
@@ -168,10 +170,27 @@ function buildApiRequestError(response: Response, body: unknown, fallback: strin
   return err;
 }
 
-async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
+function extractBearerToken(headers: Record<string, string>): string | null {
+  const auth = headers.Authorization || headers.authorization;
+  if (!auth?.startsWith('Bearer ')) return null;
+  return auth.slice(7).trim();
+}
+
+function withBearerToken(headers: Record<string, string>, token: string): Record<string, string> {
+  return { ...headers, Authorization: `Bearer ${token}` };
+}
+
+async function requestJson<T>(path: string, options: RequestInit = {}, allowAuthRetry = true): Promise<T> {
+  let headers = mergeHeaders(options.headers);
+  const bearer = extractBearerToken(headers);
+  if (bearer) {
+    const resolved = await resolveAuthorizedToken(bearer);
+    headers = withBearerToken(headers, resolved);
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
-    headers: mergeHeaders(options.headers),
+    headers,
   });
   const contentType = response.headers.get('content-type') || '';
 
@@ -190,6 +209,20 @@ async function requestJson<T>(path: string, options: RequestInit = {}): Promise<
   }
 
   if (!response.ok) {
+    if (response.status === 401 && allowAuthRetry && bearer && !path.startsWith('/auth/')) {
+      const retried = await retryAfterUnauthorized(bearer);
+      if (retried) {
+        return requestJson<T>(
+          path,
+          {
+            ...options,
+            headers: withBearerToken(mergeHeaders(options.headers), retried),
+          },
+          false,
+        );
+      }
+    }
+
     const message =
       typeof body === 'object' && body !== null ? parseErrorMessage(response, body) : `Request failed (${response.status})`;
     throw buildApiRequestError(response, body, message);
@@ -234,6 +267,14 @@ export async function login(payload: AuthPayload) {
   });
 }
 
+export async function refreshAuthSession(refreshToken: string) {
+  return requestJson<{ data: { session: AuthSession | null } }>('/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  }, false);
+}
+
 export async function getMe(token: string) {
   return requestJson<{ data: AccountProfile }>('/auth/me', {
     headers: authHeaders(token),
@@ -256,7 +297,7 @@ export async function requestPasswordRecovery(email: string) {
 }
 
 export async function applyForgotPassword(payload: { email: string; otp: string; newPassword: string }) {
-  return requestJson<{ data: { success: boolean; accessToken?: string | null } }>('/auth/forgot-password/apply', {
+  return requestJson<{ data: { success: boolean; accessToken?: string | null; session?: AuthSession | null } }>('/auth/forgot-password/apply', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -282,7 +323,7 @@ export async function verifyAccountUpdateRequest(token: string, payload: Account
 }
 
 export async function applyAccountUpdate(token: string, payload: AccountUpdateApplyPayload) {
-  return requestJson<{ data: { account?: AccountProfile; success?: boolean; accessToken?: string | null } }>(
+  return requestJson<{ data: { account?: AccountProfile; success?: boolean; accessToken?: string | null; session?: AuthSession | null } }>(
     '/auth/account/apply-update',
     {
       method: 'POST',

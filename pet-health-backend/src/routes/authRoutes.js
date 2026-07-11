@@ -127,6 +127,40 @@ router.post('/signup/verify-otp', async (req, res, next) => {
   }
 });
 
+router.post('/refresh', async (req, res, next) => {
+  try {
+    const { refresh_token: refreshToken } = req.body ?? {};
+    if (!refreshToken || typeof refreshToken !== 'string') {
+      return res.status(400).json({ error: 'refresh_token is required' });
+    }
+
+    const supabase = getSupabaseAnonClient();
+    if (!supabase) {
+      return res.status(503).json({
+        error: 'Supabase auth is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY',
+      });
+    }
+
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken.trim() });
+    if (error || !data.session?.access_token || !data.session?.refresh_token) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token', code: 'invalid_refresh_token' });
+    }
+
+    return res.json({
+      data: {
+        session: {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_at: data.session.expires_at ?? null,
+          expires_in: data.session.expires_in ?? null,
+        },
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = req.body;

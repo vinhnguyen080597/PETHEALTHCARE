@@ -106,8 +106,18 @@ async function refreshSessionAccessToken(authEmail, password) {
     email: authEmail,
     password: String(password),
   });
-  if (error || !data.session?.access_token) return null;
-  return data.session.access_token;
+  if (error || !data.session?.access_token || !data.session?.refresh_token) return null;
+  return data.session;
+}
+
+export function toAuthSessionPayload(session) {
+  if (!session?.access_token || !session?.refresh_token) return null;
+  return {
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+    expires_at: session.expires_at ?? null,
+    expires_in: session.expires_in ?? null,
+  };
 }
 
 export async function verifyUpdateEmailRequest({ user, account, newEmail, currentEmail, currentPassword }) {
@@ -241,9 +251,9 @@ export async function applyUpdateEmail({ user, account, newEmail, otp, currentEm
   });
   await clearPendingEmailChange(user.id);
 
-  const accessToken = await refreshSessionAccessToken(nextEmail, currentPassword);
+  const session = await refreshSessionAccessToken(nextEmail, currentPassword);
 
-  return { account: updatedAccount, accessToken };
+  return { account: updatedAccount, accessToken: session?.access_token ?? null, session: toAuthSessionPayload(session) };
 }
 
 export async function verifyUpdatePasswordRequest({ user, account, currentEmail, currentPassword, newPassword }) {
@@ -281,9 +291,9 @@ export async function applyUpdatePassword({ user, account, currentEmail, current
   const { error } = await admin.auth.admin.updateUserById(user.id, { password: cleanPassword });
   if (error) throw error;
 
-  const accessToken = await refreshSessionAccessToken(authEmail, cleanPassword);
+  const session = await refreshSessionAccessToken(authEmail, cleanPassword);
 
-  return { success: true, accessToken };
+  return { success: true, accessToken: session?.access_token ?? null, session: toAuthSessionPayload(session) };
 }
 
 function resolveAuthEmailFromIdentifier(identifier) {
@@ -436,7 +446,7 @@ export async function applyRecoverPassword({ user, account, otp, newPassword }) 
 
   await clearPendingPasswordRecovery(user.id);
 
-  const accessToken = await refreshSessionAccessToken(realEmail, cleanPassword);
+  const session = await refreshSessionAccessToken(realEmail, cleanPassword);
 
-  return { success: true, accessToken };
+  return { success: true, accessToken: session?.access_token ?? null, session: toAuthSessionPayload(session) };
 }
