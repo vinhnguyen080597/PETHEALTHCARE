@@ -217,6 +217,66 @@ function formatDateOnly(value: string, language: string): string {
   }).format(new Date(value));
 }
 
+function sortByDueDate<T extends { dueDate: string; id?: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const dueDiff = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    if (dueDiff !== 0) return dueDiff;
+    return (a.id ?? '').localeCompare(b.id ?? '');
+  });
+}
+
+function scheduleItemsFingerprint(items: Array<{ id: string; dueDate: string }>): string {
+  return sortByDueDate(items)
+    .map((item) => `${item.id}|${item.dueDate}`)
+    .join('\n');
+}
+
+function doseDraftsFingerprint(drafts: CareEntryDraft[]): string {
+  return drafts
+    .filter((draft) => draft.administeredAt && (draft.careKind === 'deworming' || draft.vaccineId))
+    .map((draft) => `${draft.careKind}|${draft.vaccineId}|${formatDateValue(draft.administeredAt!)}`)
+    .sort()
+    .join('\n');
+}
+
+function mergeAdministeredVaccineDoses(
+  ...sources: AdministeredVaccineDoseInput[][]
+): AdministeredVaccineDoseInput[] {
+  const seen = new Set<string>();
+  const merged: AdministeredVaccineDoseInput[] = [];
+  for (const doses of sources) {
+    for (const dose of doses) {
+      const key = `${dose.vaccineId}|${formatDateValue(startOfDay(dose.administeredAt))}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(dose);
+    }
+  }
+  return merged;
+}
+
+function mergeAdministeredDewormingDoses(
+  ...sources: AdministeredDewormingDoseInput[][]
+): AdministeredDewormingDoseInput[] {
+  const seen = new Set<string>();
+  const merged: AdministeredDewormingDoseInput[] = [];
+  for (const doses of sources) {
+    for (const dose of doses) {
+      const key = formatDateValue(startOfDay(dose.administeredAt));
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(dose);
+    }
+  }
+  return merged;
+}
+
+type EditScheduleBaseline = {
+  scheduleFingerprint: string;
+  doseDraftsFingerprint: string;
+  desiredVaccineId: string | null;
+};
+
 function isFelvVaccine(value: string): boolean {
   const normalized = value.trim().toLowerCase();
   return normalized === 'cat_felv' || normalized.includes('felv') || normalized.includes('bạch cầu');
@@ -597,6 +657,7 @@ export function CoreCareScreen({
   const [submittingReminder, setSubmittingReminder] = useState(false);
   const [scheduleSetupDismissed, setScheduleSetupDismissed] = useState(false);
   const [isEditingGeneratedSchedule, setIsEditingGeneratedSchedule] = useState(false);
+  const [editScheduleBaseline, setEditScheduleBaseline] = useState<EditScheduleBaseline | null>(null);
   const [showIntroGuide, setShowIntroGuide] = useState(false);
   const [doseDraftErrors, setDoseDraftErrors] = useState<CareEntryDraftErrors>({});
   const [generatedScheduleErrors, setGeneratedScheduleErrors] = useState<GeneratedScheduleErrors>({});
@@ -704,8 +765,10 @@ export function CoreCareScreen({
   );
   const selectedGeneratedRecommendations = useMemo(
     () =>
-      pendingGeneratedRecommendations.filter(
-        (recommendation) => !dismissedGeneratedRecommendationIds.includes(recommendation.id),
+      sortByDueDate(
+        pendingGeneratedRecommendations.filter(
+          (recommendation) => !dismissedGeneratedRecommendationIds.includes(recommendation.id),
+        ),
       ),
     [dismissedGeneratedRecommendationIds, pendingGeneratedRecommendations],
   );
@@ -794,11 +857,17 @@ export function CoreCareScreen({
     [careRecords, isEditingGeneratedSchedule, previewedYesSchedule],
   );
   const selectedYesCatRecommendations = useMemo(
-    () => pendingYesCatRecommendations.filter((recommendation) => !dismissedYesRecommendationIds.includes(recommendation.id)),
+    () =>
+      sortByDueDate(
+        pendingYesCatRecommendations.filter((recommendation) => !dismissedYesRecommendationIds.includes(recommendation.id)),
+      ),
     [dismissedYesRecommendationIds, pendingYesCatRecommendations],
   );
   const selectedYesDogRecommendations = useMemo(
-    () => pendingYesDogRecommendations.filter((recommendation) => !dismissedYesRecommendationIds.includes(recommendation.id)),
+    () =>
+      sortByDueDate(
+        pendingYesDogRecommendations.filter((recommendation) => !dismissedYesRecommendationIds.includes(recommendation.id)),
+      ),
     [dismissedYesRecommendationIds, pendingYesDogRecommendations],
   );
   const selectedYesRecommendations = isCatSpecies ? selectedYesCatRecommendations : selectedYesDogRecommendations;
@@ -810,6 +879,41 @@ export function CoreCareScreen({
     [selectedYesRecommendations, showAllYesRecommendations],
   );
   const hiddenYesRecommendationsCount = Math.max(0, selectedYesRecommendations.length - UPCOMING_SCHEDULE_PREVIEW_LIMIT);
+  const hasEditScheduleChanges = useMemo(() => {
+    if (!isEditingGeneratedSchedule || !editScheduleBaseline) return false;
+
+    if (vaccinatedAnswer === 'yes') {
+      const currentScheduleFingerprint = scheduleItemsFingerprint(
+        selectedYesRecommendations.map((recommendation) => ({
+          id: recommendation.id,
+          dueDate: recommendation.dueDate,
+        })),
+      );
+      return (
+        currentScheduleFingerprint !== editScheduleBaseline.scheduleFingerprint ||
+        doseDraftsFingerprint(doseDrafts) !== editScheduleBaseline.doseDraftsFingerprint
+      );
+    }
+
+    const currentScheduleFingerprint = scheduleItemsFingerprint(
+      selectedGeneratedRecommendations.map((recommendation) => ({
+        id: recommendation.id,
+        dueDate: recommendation.dueDate,
+      })),
+    );
+    return (
+      currentScheduleFingerprint !== editScheduleBaseline.scheduleFingerprint ||
+      desiredVaccineId !== editScheduleBaseline.desiredVaccineId
+    );
+  }, [
+    desiredVaccineId,
+    doseDrafts,
+    editScheduleBaseline,
+    isEditingGeneratedSchedule,
+    selectedGeneratedRecommendations,
+    selectedYesRecommendations,
+    vaccinatedAnswer,
+  ]);
   const hasGeneratedSchedule = careRecords.some((record) =>
     Boolean(record.metadata?.generatedCoreCareScheduleId || record.metadata?.generatedCoreCareVaccineScheduleId),
   );
@@ -985,8 +1089,8 @@ export function CoreCareScreen({
           birthDate: petBirthDate,
           today,
           selectedVaccineId: resolvedHistoryVaccineId,
-          administeredVaccines: [...administeredVaccineDoses, ...draftVaccineDoses],
-          administeredDewormings: [...administeredDewormingDoses, ...draftDewormingDoses],
+          administeredVaccines: mergeAdministeredVaccineDoses(administeredVaccineDoses, draftVaccineDoses),
+          administeredDewormings: mergeAdministeredDewormingDoses(administeredDewormingDoses, draftDewormingDoses),
         }),
       };
     }
@@ -997,7 +1101,7 @@ export function CoreCareScreen({
         species: pet.species,
         petAgeMonths: resolvePetAgeMonths(pet),
         today,
-        administeredDoses: [...administeredVaccineDoses, ...draftVaccineDoses],
+        administeredDoses: mergeAdministeredVaccineDoses(administeredVaccineDoses, draftVaccineDoses),
       }),
     };
   }
@@ -1029,6 +1133,7 @@ export function CoreCareScreen({
 
   function cancelEditGeneratedSchedule() {
     setIsEditingGeneratedSchedule(false);
+    setEditScheduleBaseline(null);
     setGeneratedScheduleErrors({});
     setDoseDraftErrors({});
     setPreviewedGeneratedRecommendations(null);
@@ -1086,8 +1191,8 @@ export function CoreCareScreen({
             birthDate: petBirthDate,
             today,
             selectedVaccineId: historyVaccineId,
-            administeredVaccines: [...administeredVaccineDoses, ...hydratedVaccineDoses],
-            administeredDewormings: [...administeredDewormingDoses, ...hydratedDewormingDoses],
+            administeredVaccines: mergeAdministeredVaccineDoses(administeredVaccineDoses, hydratedVaccineDoses),
+            administeredDewormings: mergeAdministeredDewormingDoses(administeredDewormingDoses, hydratedDewormingDoses),
           }),
         };
       } else if (!isCatSpecies) {
@@ -1097,14 +1202,25 @@ export function CoreCareScreen({
             species: pet.species,
             petAgeMonths: resolvePetAgeMonths(pet),
             today,
-            administeredDoses: [...administeredVaccineDoses, ...hydratedVaccineDoses],
+            administeredDoses: mergeAdministeredVaccineDoses(administeredVaccineDoses, hydratedVaccineDoses),
           }),
         };
       }
 
-      setPreviewedYesSchedule(preview ?? buildYesPreviewFromUpcomingRecords());
+      const resolvedYesPreview = preview ?? buildYesPreviewFromUpcomingRecords();
+      setPreviewedYesSchedule(resolvedYesPreview);
       setPreviewedGeneratedRecommendations(null);
       setDesiredVaccineId(null);
+      setEditScheduleBaseline({
+        scheduleFingerprint: scheduleItemsFingerprint(
+          (resolvedYesPreview?.recommendations ?? []).map((recommendation) => ({
+            id: recommendation.id,
+            dueDate: recommendation.dueDate,
+          })),
+        ),
+        doseDraftsFingerprint: doseDraftsFingerprint(hydratedDrafts),
+        desiredVaccineId: null,
+      });
       return;
     }
 
@@ -1127,6 +1243,16 @@ export function CoreCareScreen({
 
     setPreviewedGeneratedRecommendations(recommendations);
     setPreviewedYesSchedule(null);
+    setEditScheduleBaseline({
+      scheduleFingerprint: scheduleItemsFingerprint(
+        recommendations.map((recommendation) => ({
+          id: recommendation.id,
+          dueDate: recommendation.dueDate,
+        })),
+      ),
+      doseDraftsFingerprint: '',
+      desiredVaccineId: inferredVaccineId,
+    });
   }
 
   function checkScheduleFromVaccines() {
@@ -1208,6 +1334,7 @@ export function CoreCareScreen({
       Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
       if (isEditingGeneratedSchedule) {
         setIsEditingGeneratedSchedule(false);
+        setEditScheduleBaseline(null);
         clearYesSchedulePreview();
       }
       return;
@@ -1304,6 +1431,7 @@ export function CoreCareScreen({
       setDoseDrafts([makeCareEntryDraft()]);
       clearYesSchedulePreview();
       setIsEditingGeneratedSchedule(false);
+      setEditScheduleBaseline(null);
       setScheduleSetupDismissed(true);
       Alert.alert(
         t('coreCare.scheduleGeneratedTitle'),
@@ -1461,6 +1589,7 @@ export function CoreCareScreen({
       Alert.alert(t('coreCare.scheduleAlreadyGeneratedTitle'), t('coreCare.scheduleAlreadyGeneratedBody'));
       if (isEditingGeneratedSchedule) {
         setIsEditingGeneratedSchedule(false);
+        setEditScheduleBaseline(null);
         setPreviewedGeneratedRecommendations(null);
       }
       return;
@@ -1494,6 +1623,7 @@ export function CoreCareScreen({
       setDismissedGeneratedRecommendationIds([]);
       setPreviewedGeneratedRecommendations(null);
       setIsEditingGeneratedSchedule(false);
+      setEditScheduleBaseline(null);
       setScheduleSetupDismissed(true);
     } finally {
       setSubmittingGeneratedSchedule(false);
@@ -2006,17 +2136,28 @@ export function CoreCareScreen({
                       testID="core-care-save-vaccines-button"
                       accessibilityRole="button"
                       className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
-                        submittingVaccines || selectedYesRecommendations.length === 0 ? 'opacity-60' : ''
+                        submittingVaccines ||
+                        selectedYesRecommendations.length === 0 ||
+                        (isEditingGeneratedSchedule && !hasEditScheduleChanges)
+                          ? 'opacity-60'
+                          : ''
                       }`}
                       onPress={() => void createScheduleFromVaccines()}
-                      disabled={submittingVaccines || vaccineOptions.length === 0 || selectedYesRecommendations.length === 0}
+                      disabled={
+                        submittingVaccines ||
+                        vaccineOptions.length === 0 ||
+                        selectedYesRecommendations.length === 0 ||
+                        (isEditingGeneratedSchedule && !hasEditScheduleChanges)
+                      }
                     >
                       {submittingVaccines ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
                         <Ionicons name="calendar-outline" size={18} color="#fff" />
                       )}
-                      <Text className="text-sm font-bold text-white">{t('coreCare.generateVaccineSchedule')}</Text>
+                      <Text className="text-sm font-bold text-white">
+                        {t(isEditingGeneratedSchedule ? 'coreCare.updateVaccineSchedule' : 'coreCare.generateVaccineSchedule')}
+                      </Text>
                     </Pressable>
                   )}
                 </View>
@@ -2100,13 +2241,18 @@ export function CoreCareScreen({
                       testID="core-care-generate-vaccine-schedule-button"
                       accessibilityRole="button"
                       className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
-                        submittingGeneratedSchedule || selectedGeneratedRecommendations.length === 0 ? 'opacity-60' : ''
+                        submittingGeneratedSchedule ||
+                        selectedGeneratedRecommendations.length === 0 ||
+                        (isEditingGeneratedSchedule && !hasEditScheduleChanges)
+                          ? 'opacity-60'
+                          : ''
                       }`}
                       onPress={() => void createGeneratedSchedule()}
                       disabled={
                         submittingGeneratedSchedule ||
                         schedulePrimaryVaccineOptions.length === 0 ||
-                        selectedGeneratedRecommendations.length === 0
+                        selectedGeneratedRecommendations.length === 0 ||
+                        (isEditingGeneratedSchedule && !hasEditScheduleChanges)
                       }
                     >
                       {submittingGeneratedSchedule ? (
@@ -2114,7 +2260,9 @@ export function CoreCareScreen({
                       ) : (
                         <Ionicons name="calendar-outline" size={18} color="#fff" />
                       )}
-                      <Text className="text-sm font-bold text-white">{t('coreCare.generateVaccineSchedule')}</Text>
+                      <Text className="text-sm font-bold text-white">
+                        {t(isEditingGeneratedSchedule ? 'coreCare.updateVaccineSchedule' : 'coreCare.generateVaccineSchedule')}
+                      </Text>
                     </Pressable>
                   )}
                 </View>

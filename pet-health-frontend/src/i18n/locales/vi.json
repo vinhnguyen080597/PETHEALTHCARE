@@ -1181,6 +1181,7 @@
     "administeredDate": "Ngày tiêm",
     "petBirthDate": "Ngày sinh chính xác của bé",
     "generateVaccineSchedule": "Tạo lịch tiêm & tẩy giun",
+    "updateVaccineSchedule": "Cập nhật lịch tiêm & tẩy giun",
     "checkGeneratedSchedule": "Kiểm tra",
     "checkGeneratedScheduleFirst": "Vui lòng bấm Kiểm tra để xem lịch gợi ý trước khi tạo.",
     "maiSavingScheduleMessage": "Mai đang ghi chép lại lịch tiêm của bé {{name}}, Sen đợi Mai xíu nhé!",

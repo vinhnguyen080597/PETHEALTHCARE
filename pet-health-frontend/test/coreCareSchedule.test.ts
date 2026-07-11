@@ -137,6 +137,144 @@ test('cat schedule from history continues after first deworming on 24/06', () =>
   assert.equal(firstFvrcp?.dueDate, '2026-07-29');
 });
 
+test('late adult cat vaccinated today defers deworming one week after skipped pre-vaccine dose', () => {
+  const birthDate = new Date('2025-01-01T00:00:00');
+  const today = new Date('2026-07-11T00:00:00');
+  const vaccineDate = new Date('2026-07-11T00:00:00');
+
+  const recommendations = calculateCoreCareScheduleFromHistory({
+    species: 'cat',
+    birthDate,
+    today,
+    selectedVaccineId: 'cat_3in1_fvrcp',
+    administeredVaccines: [{ vaccineId: 'cat_3in1_fvrcp', administeredAt: vaccineDate }],
+    administeredDewormings: [],
+  });
+
+  const dewormingDueToday = recommendations.find(
+    (item) => item.family === 'catDeworming' && item.dueDate === '2026-07-11',
+  );
+  const fvrcpDoseOne = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 1);
+  const firstDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 1);
+  const fvrcpDoseTwo = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 2);
+
+  assert.equal(fvrcpDoseOne, undefined, 'should not schedule FVRCP dose 1 after it was already administered');
+  assert.equal(dewormingDueToday, undefined, 'should not schedule deworming on the same day as catch-up vaccine');
+  assert.equal(firstDeworming?.dueDate, '2026-07-18', 'deworming should be one week after the recent vaccine');
+  assert.equal(fvrcpDoseTwo?.dueDate, '2026-08-08', 'next FVRCP dose stays four weeks after the first dose');
+});
+
+test('late adult cat vaccinated yesterday skips completed FVRCP dose in preview', () => {
+  const recommendations = calculateCoreCareScheduleFromHistory({
+    species: 'cat',
+    birthDate: new Date('2025-01-01T00:00:00'),
+    today: new Date('2026-07-11T00:00:00'),
+    selectedVaccineId: 'cat_3in1_fvrcp',
+    administeredVaccines: [{ vaccineId: 'cat_3in1_fvrcp', administeredAt: new Date('2026-07-10T00:00:00') }],
+    administeredDewormings: [],
+  });
+
+  const fvrcpDoseOne = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 1);
+  const fvrcpDoseTwo = recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 2);
+  const firstDeworming = recommendations.find((item) => item.family === 'catDeworming' && item.doseNumber === 1);
+  const rabiesDoseOne = recommendations.find((item) => item.family === 'catRabies' && item.doseNumber === 1);
+
+  assert.equal(fvrcpDoseOne, undefined);
+  assert.equal(fvrcpDoseTwo?.dueDate, '2026-08-07');
+  assert.equal(firstDeworming?.dueDate, '2026-07-17');
+  assert.equal(rabiesDoseOne?.dueDate, '2026-07-11');
+  assert.deepEqual(
+    recommendations.map((item) => item.dueDate),
+    ['2026-07-11', '2026-07-17', '2026-08-07'],
+  );
+});
+
+test('duplicate administered FVRCP doses still schedule the next dose once', () => {
+  const duplicateDose = { vaccineId: 'cat_3in1_fvrcp', administeredAt: new Date('2026-07-11T00:00:00') };
+  const recommendations = calculateCoreCareScheduleFromHistory({
+    species: 'cat',
+    birthDate: new Date('2025-01-01T00:00:00'),
+    today: new Date('2026-07-11T00:00:00'),
+    selectedVaccineId: 'cat_3in1_fvrcp',
+    administeredVaccines: [duplicateDose, duplicateDose],
+    administeredDewormings: [],
+  });
+
+  assert.equal(recommendations.length, 3);
+  assert.equal(
+    recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 2)?.dueDate,
+    '2026-08-08',
+  );
+});
+
+test('kitten deworming defers one week after same-day first vaccine', () => {
+  const recommendations = calculateCoreCareScheduleFromHistory({
+    species: 'cat',
+    birthDate: new Date('2026-01-14T00:00:00'),
+    today: new Date('2026-06-14T00:00:00'),
+    selectedVaccineId: 'cat_3in1_fvrcp',
+    administeredVaccines: [{ vaccineId: 'cat_3in1_fvrcp', administeredAt: new Date('2026-06-14T00:00:00') }],
+    administeredDewormings: [],
+  });
+
+  const nextDeworming = recommendations
+    .filter((item) => item.family === 'catDeworming')
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+  assert.equal(nextDeworming?.dueDate, '2026-06-21');
+});
+
+test('kitten deworm doses stay chronological after same-day vaccine and deworm history', () => {
+  const recommendations = calculateCoreCareScheduleFromHistory({
+    species: 'cat',
+    birthDate: new Date('2026-04-01T00:00:00'),
+    today: new Date('2026-07-11T00:00:00'),
+    selectedVaccineId: 'cat_3in1_fvrcp',
+    administeredVaccines: [{ vaccineId: 'cat_3in1_fvrcp', administeredAt: new Date('2026-07-10T00:00:00') }],
+    administeredDewormings: [{ administeredAt: new Date('2026-07-10T00:00:00') }],
+  });
+
+  const dewormingDates = recommendations
+    .filter((item) => item.family === 'catDeworming')
+    .map((item) => item.dueDate);
+  assert.deepEqual(dewormingDates, ['2026-07-24', '2026-08-07', '2026-08-21', '2026-09-04']);
+});
+
+test('adult dog vaccinated today skips completed core dose and defers deworming', () => {
+  const recommendations = calculateCoreCareScheduleFromHistory({
+    species: 'dog',
+    birthDate: new Date('2025-01-01T00:00:00'),
+    today: new Date('2026-07-11T00:00:00'),
+    selectedVaccineId: 'dog_5in1_dhppl',
+    administeredVaccines: [{ vaccineId: 'dog_5in1_dhppl', administeredAt: new Date('2026-07-11T00:00:00') }],
+    administeredDewormings: [],
+  });
+
+  const dhppDoseOne = recommendations.find((item) => item.family === 'dogDhpp' && item.doseNumber === 1);
+  const dhppDoseTwo = recommendations.find((item) => item.family === 'dogDhpp' && item.doseNumber === 2);
+  const firstDeworming = recommendations.find((item) => item.family === 'dogDeworming' && item.doseNumber === 1);
+
+  assert.equal(dhppDoseOne, undefined);
+  assert.equal(dhppDoseTwo?.dueDate, '2026-08-08');
+  assert.equal(firstDeworming?.dueDate, '2026-07-18');
+});
+
+test('puppy dog history skips completed DHPP dose and schedules the next one', () => {
+  const recommendations = calculateCoreCareScheduleFromHistory({
+    species: 'dog',
+    birthDate: new Date('2026-01-01T00:00:00'),
+    today: new Date('2026-03-01T00:00:00'),
+    selectedVaccineId: 'dog_5in1_dhppl',
+    administeredVaccines: [{ vaccineId: 'dog_5in1_dhppl', administeredAt: new Date('2026-02-15T00:00:00') }],
+    administeredDewormings: [],
+  });
+
+  const dhppDoseOne = recommendations.find((item) => item.family === 'dogDhpp' && item.doseNumber === 1);
+  const dhppDoseTwo = recommendations.find((item) => item.family === 'dogDhpp' && item.doseNumber === 2);
+
+  assert.equal(dhppDoseOne, undefined);
+  assert.equal(dhppDoseTwo?.dueDate, '2026-03-15');
+});
+
 test('manual vaccine text is normalized into stable vaccine ids', () => {
   assert.equal(normalizeManualVaccineId('Đã tiêm vaccine 4 trong 1 Felocell', 'cat'), 'cat_4in1');
   assert.equal(normalizeManualVaccineId('Vaccine 4-trong-1', 'cat'), 'cat_4in1');

@@ -1184,6 +1184,7 @@
     "administeredDate": "Date given",
     "petBirthDate": "Pet's exact birth date",
     "generateVaccineSchedule": "Create vaccine & deworming schedule",
+    "updateVaccineSchedule": "Update vaccine & deworming schedule",
     "checkGeneratedSchedule": "Check",
     "checkGeneratedScheduleFirst": "Please tap Check to preview the suggested schedule before creating it.",
     "maiSavingScheduleMessage": "Mai is saving {{name}}'s vaccine schedule. Hang on just a moment!",
