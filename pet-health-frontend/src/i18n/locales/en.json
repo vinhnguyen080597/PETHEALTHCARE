@@ -825,6 +825,7 @@
     "go": "Explore now",
     "createPetProfile": "Create your pet's profile",
     "profileGuideByMai": "Dear pet parent, please help me fill in your pet's details.",
+    "careServicesTitle": "{{name}}'s care corner",
     "servicesWelcomeTitle": "Welcome to Pet Health Care! 👋",
     "servicesWelcomeBody": "Pet Health Care uses AI technology for early guidance only. 🐾 It does not replace a veterinarian; if your pet shows serious signs, please seek in-person veterinary care.",
     "serviceBreedTitle": "AI breed recognition",

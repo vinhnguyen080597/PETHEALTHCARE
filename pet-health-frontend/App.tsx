@@ -589,8 +589,10 @@ function AppContent() {
 
             {app.screen === 'onboarding-health-prompt' && app.selectedPet ? (
               <OnboardingHealthPromptScreen
+                petName={app.selectedPet.name}
                 showBreedService={breedRecognitionEnabled}
                 showHealthService={healthAnalysisEnabled}
+                onBack={app.careServicesShowBack ? app.closeCareServices : undefined}
                 onExploreBreed={() => app.openBreedRecognition('onboarding-health-prompt')}
                 onCheckHealth={app.goToHealthCheckFromServicesPrompt}
                 onManageVaccines={app.goToCoreCareFromServicesPrompt}

@@ -87,6 +87,7 @@ import {
   ensureFreshAccessToken,
   getActiveAuthSession,
   hydrateAuthSessionFromStorage,
+  teardownAuthSessionLifecycle,
 } from '../utils/authSessionManager';
 import type {
   AiCreditAccount,
@@ -625,7 +626,10 @@ export function usePetHealthApp() {
       }
       hadActiveSessionRef.current = Boolean(session);
     });
-    return () => bindAuthSessionListener(null);
+    return () => {
+      bindAuthSessionListener(null);
+      teardownAuthSessionLifecycle();
+    };
   }, []);
 
   useEffect(() => {
@@ -1182,6 +1186,10 @@ export function usePetHealthApp() {
       /* show screen even if preload fails */
     }
     setScreen('onboarding-health-prompt');
+  }
+
+  function closeCareServices() {
+    setScreen('home');
   }
 
   async function showServicesPromptForNewPet(petId: string) {
@@ -2985,6 +2993,8 @@ export function usePetHealthApp() {
     dismissResults,
     openPetProfile,
     openCareServices,
+    closeCareServices,
+    careServicesShowBack: !initialOnboarding,
     closePetProfile,
     refreshPetProfile,
     openCoreCare,

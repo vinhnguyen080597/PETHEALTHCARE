@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -50,8 +51,10 @@ const SERVICE_CARDS: ServiceCardConfig[] = [
 ];
 
 type OnboardingHealthPromptScreenProps = {
+  petName: string;
   showBreedService?: boolean;
   showHealthService?: boolean;
+  onBack?: () => void;
   onExploreBreed: () => void;
   onCheckHealth: () => void;
   onManageVaccines: () => void;
@@ -115,8 +118,10 @@ function ServiceCard({
 
 /** Shown after each new pet is added — showcase Pet Health Care services before home. */
 export function OnboardingHealthPromptScreen({
+  petName,
   showBreedService = true,
   showHealthService = true,
+  onBack,
   onExploreBreed,
   onCheckHealth,
   onManageVaccines,
@@ -162,23 +167,44 @@ export function OnboardingHealthPromptScreen({
 
   return (
     <View testID="onboarding-health-prompt-screen" className="flex-1 bg-slate-100">
-      <Image
-        source={SERVICES_BACKGROUND}
-        style={StyleSheet.absoluteFillObject}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-        accessibilityIgnoresInvertColors
-      />
+      <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
+        <View className="w-14">
+          {onBack ? (
+            <Pressable
+              testID="onboarding-health-prompt-back-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('profile.backA11y')}
+              className="rounded-lg p-2 active:bg-gray-100"
+              onPress={onBack}
+            >
+              <Ionicons name="arrow-back" size={24} color="#1e293b" />
+            </Pressable>
+          ) : null}
+        </View>
+        <Text className="flex-1 text-center text-lg font-semibold text-slate-900" numberOfLines={1}>
+          {t('onboarding.careServicesTitle', { name: petName.trim() || t('home.petFallback') })}
+        </Text>
+        <View className="w-14" />
+      </View>
 
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          paddingTop: Math.max(insets.top, 8),
-          paddingBottom: 16,
-        }}
-      >
+      <View className="flex-1">
+        <Image
+          source={SERVICES_BACKGROUND}
+          style={StyleSheet.absoluteFillObject}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          accessibilityIgnoresInvertColors
+        />
+
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            paddingTop: 8,
+            paddingBottom: 16,
+          }}
+        >
         <View className="w-full items-center px-2">
           <Image
             source={SERVICES_HERO_MAI}
@@ -240,7 +266,8 @@ export function OnboardingHealthPromptScreen({
             ))}
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       <View
         className="border-t border-slate-200 bg-white/95 px-5 pt-3"
