@@ -1159,6 +1159,8 @@
     "nextSchedule": "Next schedule",
     "nextScheduleForPet": "{{name}}'s next schedule",
     "editSchedule": "Edit",
+    "cancelEditScheduleConfirmTitle": "Stop editing?",
+    "cancelEditScheduleConfirmBody": "Your current schedule will stay unchanged. Unsaved changes will be discarded.",
     "noNextSchedule": "No upcoming schedule yet.",
     "addVaccine": "Add vaccine",
     "addReminder": "Add reminder",

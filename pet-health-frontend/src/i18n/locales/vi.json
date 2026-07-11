@@ -1156,6 +1156,8 @@
     "nextSchedule": "Lịch tiếp theo",
     "nextScheduleForPet": "Lịch tiếp theo của {{name}}",
     "editSchedule": "Chỉnh sửa",
+    "cancelEditScheduleConfirmTitle": "Không muốn tiếp tục chỉnh sửa?",
+    "cancelEditScheduleConfirmBody": "Lịch hiện tại sẽ giữ nguyên. Các thay đổi chưa lưu sẽ không được cập nhật.",
     "noNextSchedule": "Chưa có lịch sắp tới.",
     "addVaccine": "Thêm mũi tiêm",
     "addReminder": "Thêm nhắc lịch",

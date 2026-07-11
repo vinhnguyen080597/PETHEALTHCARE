@@ -1027,6 +1027,28 @@ export function CoreCareScreen({
       .filter((recommendation): recommendation is CoreCareScheduleRecommendation => Boolean(recommendation));
   }
 
+  function cancelEditGeneratedSchedule() {
+    setIsEditingGeneratedSchedule(false);
+    setGeneratedScheduleErrors({});
+    setDoseDraftErrors({});
+    setPreviewedGeneratedRecommendations(null);
+    clearYesSchedulePreview();
+    setDismissedGeneratedRecommendationIds([]);
+    setShowAllGeneratedRecommendations(false);
+    setDismissedYesRecommendationIds([]);
+    setShowAllYesRecommendations(false);
+    setDoseDrafts([makeCareEntryDraft()]);
+    setDesiredVaccineId(null);
+    setVaccinatedAnswer('yes');
+  }
+
+  function confirmCancelEditGeneratedSchedule() {
+    Alert.alert(t('coreCare.cancelEditScheduleConfirmTitle'), t('coreCare.cancelEditScheduleConfirmBody'), [
+      { text: t('common.no'), style: 'cancel' },
+      { text: t('common.yes'), onPress: cancelEditGeneratedSchedule },
+    ]);
+  }
+
   function openGeneratedScheduleEdit() {
     setIsEditingGeneratedSchedule(true);
     setGeneratedScheduleErrors({});
@@ -1750,6 +1772,15 @@ export function CoreCareScreen({
                 onPress={openGeneratedScheduleEdit}
               >
                 <Text className="text-sm font-bold text-blue-700">{t('coreCare.editSchedule')}</Text>
+              </Pressable>
+            ) : isEditingGeneratedSchedule ? (
+              <Pressable
+                testID="core-care-cancel-edit-generated-schedule-button"
+                accessibilityRole="button"
+                className="rounded-lg px-2 py-1 active:opacity-70"
+                onPress={confirmCancelEditGeneratedSchedule}
+              >
+                <Text className="text-sm font-bold text-slate-600">{t('common.cancel')}</Text>
               </Pressable>
             ) : null}
           </View>
