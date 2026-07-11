@@ -6,6 +6,7 @@ import {
   calculateCoreCareScheduleFromHistory,
   calculateNextVaccinationSchedule,
 } from '../src/utils/coreCareSchedule.ts';
+import { EXTENDED_SCHEDULE_TEST_CASES, extendedCaseForHtml } from '../test/coreCareScheduleCases.extended.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outPath = join(__dirname, '..', 'docs', 'core-care-schedule-test-cases.html');
@@ -27,6 +28,9 @@ function esc(value) {
 }
 
 function formatOutput(recs) {
+  if (recs == null || recs === '') return '<em>Không có lịch</em>';
+  if (typeof recs === 'string') return `<code>${esc(recs)}</code>`;
+  if (!Array.isArray(recs)) return `<code>${esc(String(recs))}</code>`;
   if (recs.length === 0) return '<em>Không có lịch</em>';
   return `<table class="mini"><thead><tr><th>Loại</th><th>Mũi</th><th>Due</th><th>Target</th><th>Catch-up</th></tr></thead><tbody>${recs
     .map((r) => {
@@ -36,7 +40,7 @@ function formatOutput(recs) {
     .join('')}</tbody></table>`;
 }
 
-const CASES = [
+const BASE_CASES = [
   {
     id: 'CAT-01',
     fn: 'calculateCoreCareSchedule',
@@ -175,13 +179,13 @@ const CASES = [
   {
     id: 'CAT-H02',
     fn: 'calculateCoreCareScheduleFromHistory',
-    group: 'Mèo — edge case (cần review)',
+    group: 'Mèo — có lịch sử',
     desc: 'Bé >6 tháng (~30 tuần), chưa tẩy/tiêm gì, hôm nay vừa tiêm FVRCP mũi 1',
     birth: '2025-12-12',
     today: '2026-07-09',
     vaccine: 'cat_3in1_fvrcp',
     history: 'FVRCP mũi 1: 2026-07-09',
-    path: 'adult_catch_up (vì ageDays > 26 tuần — bỏ qua lịch sử vaccine)',
+    path: 'adult_catch_up + adjustAdultCatCatchUpForAdministeredVaccines',
     run: () =>
       calculateCoreCareScheduleFromHistory({
         species: 'cat',
@@ -192,9 +196,10 @@ const CASES = [
         administeredDewormings: [],
       }),
     checks: [
-      '⚠ Hiện tại: path adult_catch_up, có thể gợi ý lại FVRCP #1 cùng ngày',
-      '⚠ Tẩy giun due cùng ngày tiêm — chưa xử lý edge case',
-      'Đây là case cần cập nhật trong bước review tiếp theo',
+      'Ẩn FVRCP #1 đã tiêm',
+      'FVRCP #2 due 2026-08-06 (+28 ngày)',
+      'Dại due hôm nay',
+      'Tẩy giun defer +7 ngày → 2026-07-16',
     ],
   },
   {
@@ -325,9 +330,20 @@ const CASES = [
   },
 ];
 
+const CASES = [
+  ...BASE_CASES,
+  ...EXTENDED_SCHEDULE_TEST_CASES.map((testCase) => extendedCaseForHtml(testCase)),
+];
+
 const results = CASES.map((testCase) => {
   const recs = testCase.run();
-  return { ...testCase, recs, age: testCase.birth !== '—' ? `${ageWeeks(testCase.birth, testCase.today)} tuần` : '—' };
+  const recCount = Array.isArray(recs) ? recs.length : recs ? 1 : 0;
+  return {
+    ...testCase,
+    recs,
+    recCount,
+    age: testCase.birth !== '—' ? `${ageWeeks(testCase.birth, testCase.today)} tuần` : '—',
+  };
 });
 
 const rows = results
@@ -427,7 +443,7 @@ const html = `<!DOCTYPE html>
         <li><code>weeks(26)</code> — ngưỡng chuyển sang lịch catch-up người lớn (~6 tháng)</li>
         <li><code>MONTH_DAYS = 30</code> — tẩy giun duy trì hàng tháng (mèo con)</li>
         <li>Mèo ≤26 tuần + có lịch sử → <code>calculateCoreCareScheduleFromHistory</code> → <code>buildCatKittenIntegratedSchedule</code></li>
-        <li>Mèo &gt;26 tuần + có lịch sử → <code>adultCatCatchUp</code> (không đọc vaccine đã tiêm)</li>
+        <li>Mèo &gt;26 tuần + có lịch sử → <code>adultCatCatchUp</code> + <code>adjustAdultCatCatchUpForAdministeredVaccines</code></li>
         <li>Chó trong app (màn hình chăm sóc) dùng <code>calculateNextVaccinationSchedule</code> cho mũi kế tiếp</li>
       </ul>
       <div class="legend">
@@ -464,7 +480,7 @@ const html = `<!DOCTYPE html>
               <th>Vaccine chọn</th>
               <th>Lịch sử</th>
               <th>Nhánh code</th>
-              <th>Output thực tế (${results.reduce((n, r) => n + r.recs.length, 0)} mũi)</th>
+              <th>Output thực tế (${results.reduce((n, r) => n + r.recCount, 0)} mũi)</th>
               <th>Điểm cần kiểm tra</th>
             </tr>
           </thead>

@@ -6,9 +6,16 @@ import {
   calculateNextVaccinationSchedule,
   normalizeManualVaccineId,
 } from '../src/utils/coreCareSchedule.ts';
+import { EXTENDED_SCHEDULE_TEST_CASES } from './coreCareScheduleCases.extended.ts';
+import { verifyScheduleTestCase } from './coreCareScheduleCaseHelpers.ts';
 
-function firstFvrcpDueDate(recommendations: ReturnType<typeof calculateCoreCareSchedule>): string | undefined {
-  return recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 1)?.dueDate;
+for (const scheduleCase of EXTENDED_SCHEDULE_TEST_CASES) {
+  test(`${scheduleCase.id}: ${scheduleCase.title}`, () => {
+    verifyScheduleTestCase(scheduleCase);
+  });
+}
+
+function firstFvrcpDueDate(recommendations: ReturnType<typeof calculateCoreCareSchedule>): string | undefined {  return recommendations.find((item) => item.family === 'catFvrcp' && item.doseNumber === 1)?.dueDate;
 }
 
 test('dog puppy schedule starts core vaccine at eight weeks and includes deworming', () => {
