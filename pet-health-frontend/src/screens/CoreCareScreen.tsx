@@ -1952,19 +1952,8 @@ export function CoreCareScreen({
                         active ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'
                       }`}
                       onPress={() => {
+                        if (vaccinatedAnswer === answer) return;
                         setVaccinatedAnswer(answer);
-                        if (answer === 'yes') {
-                          clearYesSchedulePreview();
-                          setGeneratedScheduleErrors({});
-                        } else {
-                          clearYesSchedulePreview();
-                          setDesiredVaccineId(null);
-                          setPreviewedGeneratedRecommendations(null);
-                          setDoseDraftErrors({});
-                          setDismissedGeneratedRecommendationIds([]);
-                          setShowAllGeneratedRecommendations(false);
-                          setGeneratedScheduleErrors((current) => ({ ...current, desiredVaccineId: undefined }));
-                        }
                       }}
                     >
                       <Text className={`text-center text-sm font-bold ${active ? 'text-blue-700' : 'text-slate-700'}`}>
