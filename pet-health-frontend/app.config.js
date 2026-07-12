@@ -15,7 +15,7 @@ const baseConfig = {
   name: 'Pet Health Care',
   slug: 'pet-health-care',
   scheme: 'pethealthcare',
-  version: '1.0.2',
+  version: '1.0.3',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
