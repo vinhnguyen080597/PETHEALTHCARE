@@ -491,8 +491,10 @@ export function usePetHealthApp() {
   }, []);
 
   const refreshVaccinationDueCounts = useCallback(
-    async (petsToCheck?: Pet[]) => {
-      if (!token) return;
+    async (petsToCheck?: Pet[], accessToken?: string | null) => {
+      // Prefer explicit token — state `token` is still null right after setToken() on login.
+      const effectiveToken = accessToken ?? token;
+      if (!effectiveToken) return;
       const targetPets = petsToCheck ?? pets;
       if (targetPets.length === 0) {
         setPetVaccinationDueCounts({});
@@ -504,8 +506,8 @@ export function usePetHealthApp() {
         const responses = await Promise.all(
           targetPets.map(async (pet) => {
             const response = managedUser
-              ? await listAdminUserCoreCareRecords(token, managedUser.userId, pet.id)
-              : await listCoreCareRecords(token, pet.id);
+              ? await listAdminUserCoreCareRecords(effectiveToken, managedUser.userId, pet.id)
+              : await listCoreCareRecords(effectiveToken, pet.id);
             return { petId: pet.id, records: response.data };
           }),
         );
@@ -704,6 +706,14 @@ export function usePetHealthApp() {
     return () => subscription.remove();
   }, [token, refreshVaccinationDueCounts]);
 
+  // Backfill due badges if Home opens before login-time refresh finished (stale token race).
+  useEffect(() => {
+    if (screen !== 'home' || !token || pets.length === 0) return;
+    const missing = pets.some((pet) => !(pet.id in petVaccinationDueCounts));
+    if (!missing) return;
+    void refreshVaccinationDueCounts(pets, token);
+  }, [screen, token, pets, petVaccinationDueCounts, refreshVaccinationDueCounts]);
+
   useEffect(() => {
     if (!forgotPasswordRateLimitUntilMs || forgotPasswordRateLimitUntilMs <= Date.now()) {
       setForgotPasswordRateLimitSeconds(0);
@@ -768,7 +778,7 @@ export function usePetHealthApp() {
     }
     await Promise.all(loads);
     const loadedPets = await petsPromise;
-    await refreshVaccinationDueCounts(loadedPets);
+    await refreshVaccinationDueCounts(loadedPets, accessToken);
   }
 
   async function navigateAfterAuthenticatedSession(options?: { startInitialOnboarding?: boolean }) {
