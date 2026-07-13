@@ -1551,12 +1551,26 @@ export function usePetHealthApp() {
     setSelectedPetId(petId);
     setLoading(true);
     try {
-      const [mergedHistory] = await Promise.all([
+      const [historyResult, coreCareResult] = await Promise.allSettled([
         fetchPetHistoryMerged(petId),
         refreshCoreCare(petId),
       ]);
-      applyHistoryPage(mergedHistory);
+      if (historyResult.status === 'fulfilled') {
+        applyHistoryPage(historyResult.value);
+      } else {
+        applyHistoryPage({ data: [], nextCursor: null, totalCount: 0 });
+      }
       setScreen('pet-profile');
+      const firstError =
+        historyResult.status === 'rejected'
+          ? historyResult.reason
+          : coreCareResult.status === 'rejected'
+            ? coreCareResult.reason
+            : null;
+      if (firstError) {
+        const message = firstError instanceof Error ? firstError.message : i18n.t('common.unknownError');
+        Alert.alert(i18n.t('alerts.loadProfileFailed.title'), i18n.t('alerts.loadProfileFailed.message', { message }));
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('alerts.loadProfileFailed.title'), i18n.t('alerts.loadProfileFailed.message', { message }));

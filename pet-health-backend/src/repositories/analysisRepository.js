@@ -23,10 +23,7 @@ function isMissingOptionalColumnError(error) {
   const msg = [error.message, error.details, error.hint, String(error.code ?? '')].filter(Boolean).join(' ');
   return (
     /Could not find the|column .* does not exist|42703/i.test(msg) ||
-    (String(error.code) === 'PGRST204' &&
-      /(weight_kg|video_url|extra_image|vaccination|neutering|medical_history|symptom_description|output_locale|display_translations|assessment)/i.test(
-        msg,
-      ))
+    String(error.code) === 'PGRST204'
   );
 }
 
@@ -108,7 +105,7 @@ async function withSignedAnalysisMedia(row) {
 const DEFAULT_ANALYSIS_PAGE_LIMIT = 20;
 const MAX_ANALYSIS_PAGE_LIMIT = 50;
 const LIST_ANALYSIS_SELECT =
-  'id,user_id,pet_id,diagnosis,severity,confidence,created_at,output_locale,display_translations,assessment,symptoms,treatment,disclaimer,status,red_flags';
+  'id,user_id,pet_id,diagnosis,severity,confidence,created_at,output_locale,display_translations,assessment,symptoms,treatment,disclaimer';
 
 function normalizeAnalysisPageLimit(value) {
   const parsed = Number(value);
@@ -294,20 +291,27 @@ export async function listAnalysesByPet(userId, petId, displayLocaleOrOptions = 
     };
   }
 
-  let query = supabase
-    .from('analyses')
-    .select(view === 'list' ? LIST_ANALYSIS_SELECT : '*', cursor ? {} : { count: 'exact' })
-    .eq('user_id', userId)
-    .eq('pet_id', petId)
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(limit + 1);
+  const selectOpts = cursor ? {} : { count: 'exact' };
+  const applyListFilters = (builder) => {
+    let q = builder
+      .eq('user_id', userId)
+      .eq('pet_id', petId)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(limit + 1);
+    if (cursor) {
+      q = q.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
+    }
+    return q;
+  };
 
-  if (cursor) {
-    query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
+  let { data, error, count } = await applyListFilters(
+    supabase.from('analyses').select(view === 'list' ? LIST_ANALYSIS_SELECT : '*', selectOpts),
+  );
+  if (error && view === 'list' && isMissingOptionalColumnError(error)) {
+    // Older DBs may lack optional columns referenced by the slim select list.
+    ({ data, error, count } = await applyListFilters(supabase.from('analyses').select('*', selectOpts)));
   }
-
-  const { data, error, count } = await query;
   if (error) throw error;
   const fetched = data ?? [];
   rows = fetched.slice(0, limit);
