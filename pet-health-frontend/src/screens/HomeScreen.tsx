@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NotificationBellBadge } from '../components/NotificationBellBadge';
 import type { Pet } from '../types';
@@ -103,7 +104,13 @@ export function HomeScreen({
                   onPress={() => onViewProfile(pet.id)}
                 >
                   {pet.avatar_url ? (
-                    <Image source={{ uri: pet.avatar_url }} className="h-full w-full" resizeMode="cover" />
+                    <Image
+                      source={{ uri: pet.avatar_url }}
+                      style={{ height: '100%', width: '100%' }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={120}
+                    />
                   ) : (
                     <Ionicons name="paw" size={32} color="#ffffff" />
                   )}

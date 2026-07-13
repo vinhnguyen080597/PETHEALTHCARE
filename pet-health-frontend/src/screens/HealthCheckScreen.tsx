@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ModalBottomSheet } from '../components/ModalBottomSheet';
 import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
@@ -322,7 +323,12 @@ export function HealthCheckScreen({
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
                 {photoUris.map((uri, index) => (
                   <View key={`${uri}-${index}`} className="relative">
-                    <Image source={{ uri }} className="h-20 w-20 rounded-lg" resizeMode="cover" />
+                    <Image
+                      source={{ uri }}
+                      style={{ height: 80, width: 80, borderRadius: 8 }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
                     <Pressable
                       testID={`health-check-remove-photo-${index}`}
                       className="absolute -right-1 -top-1 h-6 w-6 items-center justify-center rounded-full bg-slate-900/80"

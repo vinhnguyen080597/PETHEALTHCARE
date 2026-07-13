@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
-import { Alert, Image, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAI_GUIDING } from '../assets/maiAssets';
@@ -379,7 +380,7 @@ export function AccountScreen({
         <View className="mt-5 overflow-hidden rounded-2xl border border-blue-100 bg-white p-4">
           <View className="flex-row items-start gap-3">
             <View className="h-32 w-24 overflow-hidden rounded-2xl">
-              <Image source={MAI_GUIDING} resizeMode="cover" style={{ height: 128, width: 96 }} />
+              <Image source={MAI_GUIDING} contentFit="cover" style={{ height: 128, width: 96 }} cachePolicy="memory-disk" />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="text-base font-bold text-slate-900">{t('account.senIntro.title')}</Text>
@@ -1093,7 +1094,13 @@ function AdminPostMediaPreview({ post }: { post: PetFeedPost }) {
     <View className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
       <View className="h-40 w-full">
         {imageUrl ? (
-          <Image source={{ uri: imageUrl }} className="h-full w-full" resizeMode="cover" />
+          <Image
+            source={{ uri: imageUrl }}
+            style={{ height: '100%', width: '100%' }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={120}
+          />
         ) : (
           <View className="h-full w-full items-center justify-center">
             <Ionicons name="videocam-outline" size={32} color="#64748b" />

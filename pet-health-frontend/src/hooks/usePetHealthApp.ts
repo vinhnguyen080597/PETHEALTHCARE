@@ -673,6 +673,8 @@ export function usePetHealthApp() {
   );
 
   const hadActiveSessionRef = useRef(false);
+  const adminReviewLoadedRef = useRef(false);
+  const adminReviewInFlightRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     bindAuthSessionListener((session) => {
@@ -723,6 +725,14 @@ export function usePetHealthApp() {
     if (!missing) return;
     void refreshVaccinationDueCounts(pets, token);
   }, [screen, token, pets, petVaccinationDueCounts, refreshVaccinationDueCounts]);
+
+  // Admin Home needs review catalogs, but never block cold start / first paint on them.
+  useEffect(() => {
+    if (!token || managedUser) return;
+    if (accountProfile?.primary_role !== 'admin') return;
+    if (screen !== 'home' && screen !== 'admin-review' && screen !== 'admin-hub') return;
+    void ensureAdminReviewLoaded(token);
+  }, [screen, token, accountProfile?.primary_role, managedUser]);
 
   useEffect(() => {
     if (!forgotPasswordRateLimitUntilMs || forgotPasswordRateLimitUntilMs <= Date.now()) {
@@ -1607,7 +1617,7 @@ export function usePetHealthApp() {
         if (role === 'admin') {
           const postsRes = await listMyAnnouncementPosts(accessToken);
           setMyPetFeedPosts(postsRes.data);
-          await loadAdminReview(accessToken);
+          // Admin review catalogs load lazily when Home/Admin screens need them.
         } else {
           const postsRes = await listMyPetFeedPosts(accessToken);
           setMyPetFeedPosts(postsRes.data);
@@ -1760,7 +1770,7 @@ export function usePetHealthApp() {
     if (!hasAccountRole('admin') || !token) return;
     setLoading(true);
     try {
-      await loadAdminReview(token);
+      await ensureAdminReviewLoaded(token);
       setScreen('admin-hub');
     } finally {
       setLoading(false);
@@ -1848,16 +1858,12 @@ export function usePetHealthApp() {
       return;
     }
     if (!token) return;
-    setAdminAccounts([]);
-    setAdminBreederProfiles([]);
-    setAdminFeedPosts([]);
-    setAdminFeedReports([]);
+    setScreen('admin-review');
     try {
-      await loadAdminReview();
+      await ensureAdminReviewLoaded(token);
     } catch {
       // The admin screen can still show and let the user retry manually.
     }
-    setScreen('admin-review');
   }
 
   function closeAdminReview() {
@@ -1876,13 +1882,30 @@ export function usePetHealthApp() {
     setAdminBreederProfiles(breedersRes.data);
     setAdminFeedPosts(postsRes.data);
     setAdminFeedReports(reportsRes.data);
+    adminReviewLoadedRef.current = true;
+  }
+
+  async function ensureAdminReviewLoaded(accessToken: string | null = token, options?: { force?: boolean }) {
+    if (!accessToken) return;
+    if (!options?.force && adminReviewLoadedRef.current) return;
+    if (adminReviewInFlightRef.current) {
+      await adminReviewInFlightRef.current;
+      return;
+    }
+    const inflight = loadAdminReview(accessToken).finally(() => {
+      if (adminReviewInFlightRef.current === inflight) {
+        adminReviewInFlightRef.current = null;
+      }
+    });
+    adminReviewInFlightRef.current = inflight;
+    await inflight;
   }
 
   async function createAdminManagedAccount(payload: AdminCreateAccountPayload) {
     if (!token) return;
     try {
       await createAdminAccount(token, payload);
-      await loadAdminReview();
+      await ensureAdminReviewLoaded(token, { force: true });
       Alert.alert(i18n.t('common.ok'), i18n.t('adminHub.createAccountSuccess'));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -1894,25 +1917,25 @@ export function usePetHealthApp() {
   async function updateAdminManagedAccount(userId: string, payload: AdminUpdateAccountPayload) {
     if (!token) return;
     await updateAdminAccount(token, userId, payload);
-    await loadAdminReview();
+    await ensureAdminReviewLoaded(token, { force: true });
   }
 
   async function updateAdminBreederStatus(userId: string, verificationStatus: string) {
     if (!token) return;
     await updateAdminBreederProfileStatus(token, userId, verificationStatus);
-    await loadAdminReview();
+    await ensureAdminReviewLoaded(token, { force: true });
   }
 
   async function updateAdminPostStatus(postId: string, status: string) {
     if (!token) return;
     await updateAdminPetFeedPostStatus(token, postId, status);
-    await loadAdminReview();
+    await ensureAdminReviewLoaded(token, { force: true });
   }
 
   async function updateAdminReportStatus(reportId: string, status: string) {
     if (!token) return;
     await updateAdminPetFeedReportStatus(token, reportId, status);
-    await loadAdminReview();
+    await ensureAdminReviewLoaded(token, { force: true });
   }
 
   async function togglePetFeedFavorite(post: PetFeedPost) {
@@ -2406,6 +2429,8 @@ export function usePetHealthApp() {
     setAdminBreederProfiles([]);
     setAdminFeedPosts([]);
     setAdminFeedReports([]);
+    adminReviewLoadedRef.current = false;
+    adminReviewInFlightRef.current = null;
     setSelectedPetId(null);
     clearHealthCheckForm();
     setCurrentResult(null);

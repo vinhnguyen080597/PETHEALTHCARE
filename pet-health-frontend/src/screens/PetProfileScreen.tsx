@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useMemo } from 'react';
-import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime, formatLocaleDayMonth } from '../i18n/localeDate';
 import { analysisPossibleFinding, analysisSeverity } from '../utils/analysisDisplay';
@@ -276,7 +277,13 @@ export function PetProfileScreen({
         <View className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
           <View className="h-64" style={{ backgroundColor: HERO_BLUE }}>
             {pet.avatar_url ? (
-              <Image source={{ uri: pet.avatar_url }} className="h-full w-full" resizeMode="cover" />
+              <Image
+                source={{ uri: pet.avatar_url }}
+                style={{ height: '100%', width: '100%' }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={160}
+              />
             ) : (
               <View className="h-full w-full items-center justify-center bg-blue-600">
                 <Ionicons name="paw" size={56} color="#ffffff" />
