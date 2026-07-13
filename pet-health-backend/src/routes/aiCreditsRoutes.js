@@ -27,7 +27,8 @@ router.get('/summary', async (req, res, next) => {
 
 router.get('/ledger', async (req, res, next) => {
   try {
-    const data = await listAiCreditLedger(req.user.id);
+    const limit = req.query.limit;
+    const data = await listAiCreditLedger(req.user.id, { limit });
     return res.json({ data });
   } catch (err) {
     return next(err);

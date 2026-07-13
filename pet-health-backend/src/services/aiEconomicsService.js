@@ -299,9 +299,28 @@ async function getAccountRow(userId) {
   try {
     const { data, error } = await supabase.from('ai_credit_accounts').select('*').eq('user_id', userId).maybeSingle();
     if (error) throw error;
-    let row = data ?? createDefaultAccount(userId);
-    row = maybeResetAccount(row);
+    if (!data) {
+      let row = createDefaultAccount(userId);
+      row = maybeResetAccount(row);
+      row = await ensureFeatureTrialBalance(row, userId);
+      const { data: saved, error: upsertError } = await supabase
+        .from('ai_credit_accounts')
+        .upsert(row, { onConflict: 'user_id' })
+        .select('*')
+        .single();
+      if (upsertError) throw upsertError;
+      return saved;
+    }
+
+    const before = data;
+    let row = maybeResetAccount(before);
     row = await ensureFeatureTrialBalance(row, userId);
+    const changed =
+      Number(before.credit_balance ?? 0) !== Number(row.credit_balance ?? 0) ||
+      String(before.monthly_reset_at ?? '') !== String(row.monthly_reset_at ?? '') ||
+      JSON.stringify(before.feature_trial_balance ?? null) !== JSON.stringify(row.feature_trial_balance ?? null);
+    if (!changed) return before;
+
     const { data: saved, error: upsertError } = await supabase
       .from('ai_credit_accounts')
       .upsert(row, { onConflict: 'user_id' })
@@ -447,28 +466,32 @@ export async function reserveAiCredits({ userId, feature, petId = null, details 
   };
 }
 
-async function listLedgerRowsForUser(userId, sinceIso = null) {
+async function listLedgerRowsForUser(userId, sinceIso = null, limit = null) {
   const supabase = supabaseDisabled ? null : getSupabaseServiceClient();
   if (!supabase) {
-    return memoryLedger
+    const rows = memoryLedger
       .filter((row) => row.user_id === userId && (!sinceIso || String(row.created_at) >= sinceIso))
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    return Number.isFinite(limit) && limit > 0 ? rows.slice(0, limit) : rows;
   }
   let query = supabase.from('ai_credit_ledger').select('*').eq('user_id', userId).order('created_at', { ascending: false });
   if (sinceIso) query = query.gte('created_at', sinceIso);
+  if (Number.isFinite(limit) && limit > 0) query = query.limit(limit);
   const { data, error } = await query;
   if (error) {
     if (isMissingEconomicsTable(error)) {
       supabaseDisabled = true;
-      return listLedgerRowsForUser(userId, sinceIso);
+      return listLedgerRowsForUser(userId, sinceIso, limit);
     }
     throw error;
   }
   return data ?? [];
 }
 
-export async function listAiCreditLedger(userId) {
-  return listLedgerRowsForUser(userId);
+export async function listAiCreditLedger(userId, options = {}) {
+  const parsed = Number(options.limit);
+  const limit = Number.isFinite(parsed) ? Math.min(Math.max(Math.round(parsed), 1), 100) : 20;
+  return listLedgerRowsForUser(userId, null, limit);
 }
 
 export async function grantAiCredits({ userId, amount, reason, metadata = {} }) {

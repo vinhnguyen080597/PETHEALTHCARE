@@ -1070,7 +1070,9 @@
   "history": {
     "title": "Lịch sử kiểm tra sức khỏe",
     "subtitle": "Các lần kiểm tra trước — chạm một dòng để xem chi tiết",
-    "empty": "Chưa có lịch sử."
+    "empty": "Chưa có lịch sử.",
+    "loadMore": "Tải thêm",
+    "loadingMore": "Đang tải thêm…"
   },
   "profile": {
     "title": "Hồ sơ thú cưng",

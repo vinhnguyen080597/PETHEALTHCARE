@@ -46,6 +46,7 @@ import {
   listAdminUserPets,
   listAnnouncementPosts,
   listHistoryByPet,
+  getAnalysisById,
   listAiCreditLedger,
   listCoreCareRecords,
   getVaccinationDueSummary,
@@ -129,6 +130,7 @@ import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealth
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
 const PET_FEED_PAGE_SIZE = 12;
+const HISTORY_PAGE_SIZE = 20;
 const SIGNUP_OTP_LENGTH = 8;
 const ACCOUNT_UPDATE_OTP_LENGTH = 8;
 const SYNTHETIC_AUTH_EMAIL_PATTERN = /^login-[a-f0-9]{32}@/i;
@@ -360,6 +362,9 @@ export function usePetHealthApp() {
   const [resultImageUri, setResultImageUri] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [history, setHistory] = useState<Analysis[]>([]);
+  const [historyNextCursor, setHistoryNextCursor] = useState<string | null>(null);
+  const [historyTotalCount, setHistoryTotalCount] = useState<number | null>(null);
+  const [historyLoadingMore, setHistoryLoadingMore] = useState(false);
   const [aiCredits, setAiCredits] = useState<AiCreditAccount | null>(null);
   const [aiEconomicsConfig, setAiEconomicsConfig] = useState<AiEconomicsConfig | null>(null);
   const [appFeatureFlags, setAppFeatureFlags] = useState<AppFeatureFlags | null>(null);
@@ -475,11 +480,11 @@ export function usePetHealthApp() {
     try {
       const [summary, ledger] = await Promise.all([
         getAiCreditSummary(accessToken),
-        listAiCreditLedger(accessToken),
+        listAiCreditLedger(accessToken, { limit: 20 }),
       ]);
       setAiCredits(summary.data.account);
       setAiEconomicsConfig(summary.data.config);
-      setCreditLedger(ledger.data.slice(0, 20));
+      setCreditLedger(ledger.data);
     } catch {
       // Credits are advisory in the UI; backend remains the source of truth.
     }
@@ -638,39 +643,105 @@ export function usePetHealthApp() {
 
   /** History rows merged for current UI language; English-only archives get one-time Gemini translation via API. */
   const fetchPetHistoryMerged = useCallback(
-    async (petId: string): Promise<Analysis[]> => {
-      if (!token) return [];
+    async (
+      petId: string,
+      options?: { cursor?: string | null; append?: boolean },
+    ): Promise<{ data: Analysis[]; nextCursor: string | null; totalCount: number | null }> => {
+      if (!token) return { data: [], nextCursor: null, totalCount: null };
       const wantVi = Boolean(i18n.language?.startsWith('vi'));
+      const locale = wantVi ? 'vi' : undefined;
       const res = managedUser
-        ? await listAdminUserAnalyses(token, managedUser.userId, petId, wantVi ? 'vi' : undefined)
-        : await listHistoryByPet(token, petId, wantVi ? { displayLocale: 'vi' } : undefined);
+        ? await listAdminUserAnalyses(token, managedUser.userId, petId, {
+            displayLocale: locale,
+            limit: HISTORY_PAGE_SIZE,
+            cursor: options?.cursor ?? null,
+            view: 'list',
+          })
+        : await listHistoryByPet(token, petId, {
+            displayLocale: locale,
+            limit: HISTORY_PAGE_SIZE,
+            cursor: options?.cursor ?? null,
+            view: 'list',
+          });
       let rows = res.data;
-      if (!wantVi) return rows;
-
-      const pending = rows.filter((a) => {
-        const ol = String(a.output_locale ?? '').toLowerCase();
-        if (ol.startsWith('vi')) return false;
-        return !(a.display_translations?.vi && typeof a.display_translations.vi === 'object');
-      });
-
-      if (pending.length === 0) return rows;
-
-      try {
-        const tr = await translateAnalysesDisplay(token, {
-          analysisIds: pending.map((p) => p.id),
-          petId,
-          targetLocale: 'vi',
+      if (wantVi) {
+        const pending = rows.filter((a) => {
+          const ol = String(a.output_locale ?? '').toLowerCase();
+          if (ol.startsWith('vi')) return false;
+          if (a.has_vi_translation) return false;
+          return !(a.display_translations?.vi && typeof a.display_translations.vi === 'object');
         });
-        const merged = new Map(tr.data.map((r) => [r.id, r]));
-        rows = rows.map((h) => merged.get(h.id) ?? h);
-        void refreshAiCredits(token);
-      } catch {
-        /* offline or translate failure — leave English snippets */
+
+        if (pending.length > 0) {
+          try {
+            const tr = await translateAnalysesDisplay(token, {
+              analysisIds: pending.map((p) => p.id),
+              petId,
+              targetLocale: 'vi',
+            });
+            const merged = new Map(tr.data.map((r) => [r.id, r]));
+            rows = rows.map((h) => {
+              const full = merged.get(h.id);
+              if (!full) return h;
+              // Keep list card fields; mark incomplete so detail still fetches full row.
+              return {
+                ...h,
+                diagnosis: full.diagnosis ?? h.diagnosis,
+                severity: full.severity ?? h.severity,
+                confidence: full.confidence ?? h.confidence,
+                assessment: full.assessment
+                  ? {
+                      ...(h.assessment ?? {}),
+                      ...full.assessment,
+                      possible_finding: full.assessment.possible_finding ?? h.assessment?.possible_finding,
+                      severity: full.assessment.severity ?? h.assessment?.severity,
+                      confidence: full.assessment.confidence ?? h.assessment?.confidence,
+                      safety: full.assessment.safety ?? h.assessment?.safety,
+                    }
+                  : h.assessment,
+                has_vi_translation: true,
+                list_incomplete: true,
+              } as Analysis;
+            });
+            void refreshAiCredits(token);
+          } catch {
+            /* offline or translate failure — leave English snippets */
+          }
+        }
       }
-      return rows;
+
+      return {
+        data: rows,
+        nextCursor: res.nextCursor ?? null,
+        totalCount: res.totalCount ?? null,
+      };
     },
     [managedUser, token, i18n.language, refreshAiCredits],
   );
+
+  const loadMorePetHistory = useCallback(async () => {
+    if (!token || !selectedPetId || historyLoadingMore || !historyNextCursor) return;
+    setHistoryLoadingMore(true);
+    try {
+      const page = await fetchPetHistoryMerged(selectedPetId, { cursor: historyNextCursor, append: true });
+      setHistory((current) => {
+        const seen = new Set(current.map((row) => row.id));
+        return [...current, ...page.data.filter((row) => !seen.has(row.id))];
+      });
+      setHistoryNextCursor(page.nextCursor);
+      if (page.totalCount != null) setHistoryTotalCount(page.totalCount);
+    } catch {
+      // Keep existing history when pagination fails.
+    } finally {
+      setHistoryLoadingMore(false);
+    }
+  }, [token, selectedPetId, historyLoadingMore, historyNextCursor, fetchPetHistoryMerged]);
+
+  const applyHistoryPage = useCallback((page: { data: Analysis[]; nextCursor: string | null; totalCount: number | null }) => {
+    setHistory(page.data);
+    setHistoryNextCursor(page.nextCursor);
+    setHistoryTotalCount(page.totalCount);
+  }, []);
 
   const hadActiveSessionRef = useRef(false);
   const adminReviewLoadedRef = useRef(false);
@@ -1427,9 +1498,11 @@ export function usePetHealthApp() {
       if (returnToProfile && updatedPetId && token) {
         try {
           const mergedHistory = await fetchPetHistoryMerged(updatedPetId);
-          setHistory(mergedHistory);
+          applyHistoryPage(mergedHistory);
         } catch {
           setHistory([]);
+          setHistoryNextCursor(null);
+          setHistoryTotalCount(null);
         }
         setSelectedPetId(updatedPetId);
         setScreen('pet-profile');
@@ -1478,9 +1551,11 @@ export function usePetHealthApp() {
     setSelectedPetId(petId);
     setLoading(true);
     try {
-      const mergedHistory = await fetchPetHistoryMerged(petId);
-      setHistory(mergedHistory);
-      await refreshCoreCare(petId);
+      const [mergedHistory] = await Promise.all([
+        fetchPetHistoryMerged(petId),
+        refreshCoreCare(petId),
+      ]);
+      applyHistoryPage(mergedHistory);
       setScreen('pet-profile');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -1500,7 +1575,7 @@ export function usePetHealthApp() {
     try {
       await fetchPets(token);
       const mergedHistory = await fetchPetHistoryMerged(selectedPetId);
-      setHistory(mergedHistory);
+      applyHistoryPage(mergedHistory);
       await refreshCoreCare(selectedPetId);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -1551,7 +1626,7 @@ export function usePetHealthApp() {
     try {
       await refreshCoreCare(petId);
       const merged = await fetchPetHistoryMerged(petId);
-      setHistory(merged);
+      applyHistoryPage(merged);
       setScreen('vet-summary');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -2062,6 +2137,8 @@ export function usePetHealthApp() {
       if (selectedPetId === petId) {
         setSelectedPetId(null);
         setHistory([]);
+        setHistoryNextCursor(null);
+        setHistoryTotalCount(null);
         setCoreCareRecords([]);
         setCoreCareSummary(null);
         setScreen('home');
@@ -2292,7 +2369,7 @@ export function usePetHealthApp() {
       setHealthCheckReturnToProfile(false);
       setResultsReturnScreen(returnToProfileAfterScan ? 'pet-profile' : null);
       const mergedHistory = await fetchPetHistoryMerged(safePetId);
-      setHistory(mergedHistory);
+      applyHistoryPage(mergedHistory);
       setAnalysisCooldownUntilMs(Date.now() + 90 * 1000);
       clearHealthCheckForm();
       setScreen(initialOnboarding ? 'onboarding-results' : 'results');
@@ -2353,7 +2430,7 @@ export function usePetHealthApp() {
     setLoading(true);
     try {
       const mergedHistory = await fetchPetHistoryMerged(selectedPetId);
-      setHistory(mergedHistory);
+      applyHistoryPage(mergedHistory);
       setScreen('history');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -2363,15 +2440,33 @@ export function usePetHealthApp() {
     }
   }
 
-  function openHistoryDetail(
+  async function openHistoryDetail(
     entry: Analysis,
     source: 'home' | 'history' | 'pet-profile' = 'home',
   ) {
     setResultsReturnScreen(source === 'home' ? 'home' : source);
-    setCurrentResult(entry);
-    setResultImageUri(entry.image_url);
     setWarnings([]);
-    setScreen('results');
+    if (!token || !entry.list_incomplete) {
+      setCurrentResult(entry);
+      setResultImageUri(entry.image_url);
+      setScreen('results');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const wantVi = Boolean(i18n.language?.startsWith('vi'));
+      const res = await getAnalysisById(token, entry.id, wantVi ? { displayLocale: 'vi' } : undefined);
+      setCurrentResult(res.data);
+      setResultImageUri(res.data.image_url);
+      setHistory((current) => current.map((row) => (row.id === res.data.id ? { ...row, ...res.data, list_incomplete: false } : row)));
+      setScreen('results');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('alerts.historyFailed.title'), i18n.t('alerts.historyFailed.message', { message }));
+    } finally {
+      setLoading(false);
+    }
   }
 
   function dismissResults() {
@@ -2384,7 +2479,7 @@ export function usePetHealthApp() {
     if (target === 'pet-profile') {
       setScreen('pet-profile');
       if (token && selectedPetId) {
-        void fetchPetHistoryMerged(selectedPetId).then(setHistory);
+        void fetchPetHistoryMerged(selectedPetId).then(applyHistoryPage);
       }
       return;
     }
@@ -2436,6 +2531,9 @@ export function usePetHealthApp() {
     setCurrentResult(null);
     setResultImageUri(null);
     setHistory([]);
+    setHistoryNextCursor(null);
+    setHistoryTotalCount(null);
+    setHistoryLoadingMore(false);
     clearPetForm();
     setPetFormReturnToProfile(false);
     setHealthCheckReturnToProfile(false);
@@ -3056,6 +3154,10 @@ export function usePetHealthApp() {
     resultImageUri,
     warnings,
     history,
+    historyHasMore: Boolean(historyNextCursor),
+    historyLoadingMore,
+    historyTotalCount,
+    loadMorePetHistory,
     aiCredits,
     aiEconomicsConfig,
     refreshAiCredits: token ? () => refreshAiCredits(token) : undefined,

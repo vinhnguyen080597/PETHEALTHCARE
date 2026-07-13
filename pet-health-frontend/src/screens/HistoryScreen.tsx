@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime } from '../i18n/localeDate';
 import type { Analysis, Severity } from '../types';
@@ -8,6 +8,9 @@ import { analysisPossibleFinding, analysisSeverity } from '../utils/analysisDisp
 type HistoryScreenProps = {
   history: Analysis[];
   onSelectEntry: (entry: Analysis) => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 };
 
 function severityBadgeClass(severity: Severity) {
@@ -23,7 +26,7 @@ function severityIconName(severity: Severity) {
 }
 
 /** List layout inspired by `figma/code/src/app/components/HistoryScreen.tsx`. */
-export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
+export function HistoryScreen({ history, onSelectEntry, hasMore = false, loadingMore = false, onLoadMore }: HistoryScreenProps) {
   const { t, i18n } = useTranslation();
   return (
     <View testID="history-screen" className="flex-1 bg-gray-50">
@@ -72,6 +75,25 @@ export function HistoryScreen({ history, onSelectEntry }: HistoryScreenProps) {
             );
           })
         )}
+        {hasMore && onLoadMore ? (
+          <Pressable
+            testID="history-load-more-button"
+            accessibilityRole="button"
+            accessibilityLabel={t('history.loadMore')}
+            className="mt-2 items-center rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50"
+            onPress={onLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? (
+              <View className="flex-row items-center gap-2">
+                <ActivityIndicator size="small" color="#1E6FE8" />
+                <Text className="text-sm font-semibold text-slate-600">{t('history.loadingMore')}</Text>
+              </View>
+            ) : (
+              <Text className="text-sm font-bold text-blue-700">{t('history.loadMore')}</Text>
+            )}
+          </Pressable>
+        ) : null}
       </ScrollView>
     </View>
   );

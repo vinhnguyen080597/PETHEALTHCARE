@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime, formatLocaleDayMonth } from '../i18n/localeDate';
 import { analysisPossibleFinding, analysisSeverity } from '../utils/analysisDisplay';
@@ -15,6 +15,9 @@ const HERO_BLUE = '#1557C0';
 type PetProfileScreenProps = {
   pet: Pet;
   history: Analysis[];
+  historyHasMore?: boolean;
+  historyLoadingMore?: boolean;
+  onLoadMoreHistory?: () => void;
   refreshing: boolean;
   onRefresh: () => void;
   onBack: () => void;
@@ -206,6 +209,9 @@ function HealthStatusBadge({
 export function PetProfileScreen({
   pet,
   history,
+  historyHasMore = false,
+  historyLoadingMore = false,
+  onLoadMoreHistory,
   refreshing,
   onRefresh,
   onBack,
@@ -464,6 +470,25 @@ export function PetProfileScreen({
                   </Pressable>
                 );
               })}
+              {historyHasMore && onLoadMoreHistory ? (
+                <Pressable
+                  testID="pet-profile-history-load-more-button"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('history.loadMore')}
+                  className="items-center rounded-2xl border border-slate-200 bg-white py-3 active:bg-slate-50"
+                  onPress={onLoadMoreHistory}
+                  disabled={historyLoadingMore}
+                >
+                  {historyLoadingMore ? (
+                    <View className="flex-row items-center gap-2">
+                      <ActivityIndicator size="small" color={PRIMARY_BLUE} />
+                      <Text className="text-sm font-semibold text-slate-600">{t('history.loadingMore')}</Text>
+                    </View>
+                  ) : (
+                    <Text className="text-sm font-bold text-blue-700">{t('history.loadMore')}</Text>
+                  )}
+                </Pressable>
+              ) : null}
             </View>
           )}
         </View>

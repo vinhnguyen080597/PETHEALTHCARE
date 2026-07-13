@@ -13,6 +13,7 @@ type VetSummaryScreenProps = {
   pet: Pet;
   records: CoreCareRecord[];
   history: Analysis[];
+  historyTotalCount?: number | null;
   onBack: () => void;
 };
 
@@ -29,9 +30,10 @@ function EmptyLine({ text }: { text: string }) {
   return <Text className="text-sm text-slate-500">{text}</Text>;
 }
 
-export function VetSummaryScreen({ pet, records, history, onBack }: VetSummaryScreenProps) {
+export function VetSummaryScreen({ pet, records, history, historyTotalCount = null, onBack }: VetSummaryScreenProps) {
   const { t, i18n } = useTranslation();
   const passport = buildCarePassportStats(records, history);
+  const healthCheckCount = historyTotalCount ?? history.length;
   const vaccines = records.filter((record) => record.type === 'vaccine').slice(0, 6);
   const weights = records.filter((record) => record.type === 'weight').slice(0, 6);
   const vetVisits = records.filter((record) => record.type === 'vet_visit').slice(0, 5);
@@ -70,7 +72,7 @@ export function VetSummaryScreen({ pet, records, history, onBack }: VetSummarySc
 
         <Section title={t('vetSummary.overview')}>
           <Text className="text-sm text-slate-700">{t('vetSummary.pendingReminders', { count: passport.pendingReminders.length })}</Text>
-          <Text className="text-sm text-slate-700">{t('vetSummary.healthChecks', { count: history.length })}</Text>
+          <Text className="text-sm text-slate-700">{t('vetSummary.healthChecks', { count: healthCheckCount })}</Text>
           <Text className="text-sm text-slate-700">
             {t('vetSummary.latestWeight', {
               value: passport.latestWeight ? metadataNumber(passport.latestWeight, 'weightKg') ?? '-' : '-',

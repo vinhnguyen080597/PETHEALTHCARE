@@ -401,8 +401,16 @@ router.get('/users/:userId/pets/:petId/analyses', requireAdminOrSecret, async (r
     const pet = await requireManagedPet(userId, petId, res);
     if (!pet) return;
     const displayLocale = typeof req.query.displayLocale === 'string' ? req.query.displayLocale : null;
-    const analyses = await listAnalysesByPet(userId, petId, displayLocale);
-    return res.json({ data: analyses });
+    const limit = req.query.limit;
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : null;
+    const view = typeof req.query.view === 'string' ? req.query.view : 'list';
+    const page = await listAnalysesByPet(userId, petId, {
+      displayLocale,
+      limit,
+      cursor,
+      view,
+    });
+    return res.json(page);
   } catch (err) {
     return next(err);
   }

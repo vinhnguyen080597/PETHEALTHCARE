@@ -700,9 +700,19 @@ export async function deleteAdminUserCoreCareRecord(token: string, userId: strin
   });
 }
 
-export async function listAdminUserAnalyses(token: string, userId: string, petId: string, displayLocale?: string) {
-  const qs = displayLocale ? `?displayLocale=${encodeURIComponent(displayLocale)}` : '';
-  return requestJson<{ data: Analysis[] }>(
+export async function listAdminUserAnalyses(
+  token: string,
+  userId: string,
+  petId: string,
+  options?: { displayLocale?: string; limit?: number; cursor?: string | null; view?: 'list' | 'full' },
+) {
+  const params = new URLSearchParams();
+  if (options?.displayLocale) params.set('displayLocale', options.displayLocale);
+  if (options?.limit != null) params.set('limit', String(options.limit));
+  if (options?.cursor) params.set('cursor', options.cursor);
+  if (options?.view) params.set('view', options.view);
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return requestJson<{ data: Analysis[]; nextCursor?: string | null; totalCount?: number | null }>(
     `/admin/users/${encodeURIComponent(userId)}/pets/${encodeURIComponent(petId)}/analyses${qs}`,
     { headers: authHeaders(token) },
   );
@@ -714,10 +724,14 @@ export async function getAiCreditSummary(token: string) {
   });
 }
 
-export async function listAiCreditLedger(token: string) {
-  return requestJson<{ data: Array<Record<string, unknown>> }>('/ai-credits/ledger', {
-    headers: authHeaders(token),
-  });
+export async function listAiCreditLedger(token: string, options?: { limit?: number }) {
+  const limit = options?.limit ?? 20;
+  return requestJson<{ data: Array<Record<string, unknown>> }>(
+    `/ai-credits/ledger?limit=${encodeURIComponent(String(limit))}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
 }
 
 export async function claimRewardedAdCredit(token: string) {
@@ -879,11 +893,30 @@ export async function requestBreedRecognition(
 export async function listHistoryByPet(
   token: string,
   petId: string,
+  options?: { displayLocale?: string; limit?: number; cursor?: string | null; view?: 'list' | 'full' },
+) {
+  const params = new URLSearchParams();
+  if (options?.displayLocale?.trim()) params.set('displayLocale', options.displayLocale.trim());
+  if (options?.limit != null) params.set('limit', String(options.limit));
+  if (options?.cursor) params.set('cursor', options.cursor);
+  if (options?.view) params.set('view', options.view);
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return requestJson<{ data: Analysis[]; nextCursor?: string | null; totalCount?: number | null }>(
+    `/analysis/${encodeURIComponent(petId)}${qs}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
+}
+
+export async function getAnalysisById(
+  token: string,
+  analysisId: string,
   options?: { displayLocale?: string },
 ) {
   const loc = options?.displayLocale?.trim();
   const qs = loc ? `?displayLocale=${encodeURIComponent(loc)}` : '';
-  return requestJson<{ data: Analysis[] }>(`/analysis/${encodeURIComponent(petId)}${qs}`, {
+  return requestJson<{ data: Analysis }>(`/analysis/item/${encodeURIComponent(analysisId)}${qs}`, {
     headers: authHeaders(token),
   });
 }

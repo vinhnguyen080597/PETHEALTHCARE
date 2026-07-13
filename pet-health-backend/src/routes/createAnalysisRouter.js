@@ -66,12 +66,43 @@ export function createAnalysisRouter(deps) {
     return res.json({ data: progress });
   });
 
+  router.get('/item/:analysisId', async (req, res, next) => {
+    try {
+      const analysisId = typeof req.params.analysisId === 'string' ? req.params.analysisId.trim() : '';
+      if (!analysisId) {
+        return res.status(400).json({ error: 'analysisId is required', code: 'MISSING_ANALYSIS_ID' });
+      }
+      const q = typeof req.query.displayLocale === 'string' ? req.query.displayLocale.trim() : '';
+      const displayLocale = q || (typeof req.query.locale === 'string' ? req.query.locale.trim() : '');
+      const row = await getAnalysisByIdForUser(req.user.id, analysisId);
+      if (!row) {
+        return res.status(404).json({ error: 'Analysis not found', code: 'ANALYSIS_NOT_FOUND' });
+      }
+      const loc =
+        typeof displayLocale === 'string' && displayLocale.trim().slice(0, 2).toLowerCase().startsWith('vi')
+          ? 'vi'
+          : null;
+      const data = loc ? mergeDisplayLocaleRow(row, loc) : row;
+      return res.json({ data });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
   router.get('/:petId', async (req, res, next) => {
     try {
       const q = typeof req.query.displayLocale === 'string' ? req.query.displayLocale.trim() : '';
       const displayLocale = q || (typeof req.query.locale === 'string' ? req.query.locale.trim() : '');
-      const data = await listAnalysesByPet(req.user.id, req.params.petId, displayLocale || null);
-      return res.json({ data });
+      const limit = req.query.limit;
+      const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : null;
+      const view = typeof req.query.view === 'string' ? req.query.view : 'list';
+      const page = await listAnalysesByPet(req.user.id, req.params.petId, {
+        displayLocale: displayLocale || null,
+        limit,
+        cursor,
+        view,
+      });
+      return res.json(page);
     } catch (err) {
       return next(err);
     }

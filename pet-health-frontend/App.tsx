@@ -522,6 +522,9 @@ function AppContent() {
               <PetProfileScreen
                 pet={app.selectedPet}
                 history={app.history}
+                historyHasMore={app.historyHasMore}
+                historyLoadingMore={app.historyLoadingMore}
+                onLoadMoreHistory={app.loadMorePetHistory}
                 refreshing={app.refreshing}
                 onRefresh={app.refreshPetProfile}
                 onBack={app.closePetProfile}
@@ -640,6 +643,7 @@ function AppContent() {
                 pet={app.selectedPet}
                 records={app.coreCareRecords}
                 history={app.history}
+                historyTotalCount={app.historyTotalCount}
                 onBack={app.closeVetSummary}
               />
             ) : null}
@@ -792,6 +796,9 @@ function AppContent() {
             {app.screen === 'history' && (
               <HistoryScreen
                 history={app.history}
+                hasMore={app.historyHasMore}
+                loadingMore={app.historyLoadingMore}
+                onLoadMore={app.loadMorePetHistory}
                 onSelectEntry={(entry) => app.openHistoryDetail(entry, 'history')}
               />
             )}

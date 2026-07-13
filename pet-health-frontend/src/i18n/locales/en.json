@@ -1073,7 +1073,9 @@
   "history": {
     "title": "Health Check History",
     "subtitle": "All previous checks — tap a row for details",
-    "empty": "No history yet."
+    "empty": "No history yet.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading more…"
   },
   "profile": {
     "title": "Pet profile",

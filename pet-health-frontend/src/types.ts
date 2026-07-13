@@ -426,6 +426,10 @@ export type Analysis = {
   /** Language the model originally used for diagnosis/treatment strings (`en`, `vi`, …). */
   output_locale?: string | null;
   display_translations?: AnalysisDisplayTranslations | null;
+  /** Present on paginated list rows when Vietnamese overlay already exists server-side. */
+  has_vi_translation?: boolean;
+  /** List endpoint omits full assessment/media; fetch `/analysis/item/:id` before Results. */
+  list_incomplete?: boolean;
   image_url: string | null;
   created_at: string;
   extra_image_urls?: string[] | null;
