@@ -84,22 +84,26 @@ async function withServer(router, run) {
 }
 
 test('GET /analysis/:petId forwards displayLocale to repository', async () => {
-  let capturedLocale = null;
+  let capturedOptions = null;
   const router = createAnalysisRouter(
     buildDeps({
-      listAnalysesByPet: async (_u, _p, loc) => {
-        capturedLocale = loc;
-        return [{ id: 'a1' }];
+      listAnalysesByPet: async (_u, _p, options) => {
+        capturedOptions = options;
+        return { data: [{ id: 'a1' }], nextCursor: null, totalCount: 1 };
       },
     }),
   );
   await withServer(router, async (base) => {
-    const res = await fetch(`${base}/analysis/p1?displayLocale=vi`);
+    const res = await fetch(`${base}/analysis/p1?displayLocale=vi&limit=10`);
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(Array.isArray(body.data), true);
+    assert.equal(body.data[0].id, 'a1');
+    assert.equal(body.nextCursor, null);
+    assert.equal(body.totalCount, 1);
   });
-  assert.equal(capturedLocale, 'vi');
+  assert.equal(capturedOptions?.displayLocale, 'vi');
+  assert.equal(capturedOptions?.limit, '10');
 });
 
 test('POST /analysis/translate-display validates locale', async () => {
@@ -117,37 +121,44 @@ test('POST /analysis/translate-display validates locale', async () => {
 });
 
 test('POST /analysis/translate-display translates and returns merged rows', async () => {
+  const previousCredits = process.env.AI_CREDITS_ANALYSIS_TRANSLATION;
+  process.env.AI_CREDITS_ANALYSIS_TRANSLATION = '0';
   const rows = new Map([
     ['a1', { id: 'a1', pet_id: 'p1', output_locale: 'en' }],
     ['a2', { id: 'a2', pet_id: 'p1', output_locale: 'en' }],
   ]);
-  const router = createAnalysisRouter(
-    buildDeps({
-      getAnalysisByIdForUser: async (_u, id) => rows.get(id) ?? null,
-      mergeAnalysisDisplayTranslation: async (_u, id, _loc, vi) => {
-        const prev = rows.get(id);
-        rows.set(id, { ...prev, display_translations: { vi } });
-      },
-      mergeDisplayLocaleRow: (row, locale) => ({
-        ...row,
-        diagnosis: locale === 'vi' ? row.display_translations?.vi?.diagnosis ?? row.diagnosis : row.diagnosis,
+  try {
+    const router = createAnalysisRouter(
+      buildDeps({
+        getAnalysisByIdForUser: async (_u, id) => rows.get(id) ?? null,
+        mergeAnalysisDisplayTranslation: async (_u, id, _loc, vi) => {
+          const prev = rows.get(id);
+          rows.set(id, { ...prev, display_translations: { vi } });
+        },
+        mergeDisplayLocaleRow: (row, locale) => ({
+          ...row,
+          diagnosis: locale === 'vi' ? row.display_translations?.vi?.diagnosis ?? row.diagnosis : row.diagnosis,
+        }),
+        translateManyAnalysisRecordsToVietnamese: async (records) =>
+          records.map((r) => ({ id: r.id, diagnosis: `vi-${r.id}` })),
       }),
-      translateManyAnalysisRecordsToVietnamese: async (records) =>
-        records.map((r) => ({ id: r.id, diagnosis: `vi-${r.id}` })),
-    }),
-  );
+    );
 
-  await withServer(router, async (base) => {
-    const res = await fetch(`${base}/analysis/translate-display`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ analysisIds: ['a1', 'a2'], targetLocale: 'vi', petId: 'p1' }),
+    await withServer(router, async (base) => {
+      const res = await fetch(`${base}/analysis/translate-display`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analysisIds: ['a1', 'a2'], targetLocale: 'vi', petId: 'p1' }),
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.data.length, 2);
+      assert.equal(body.data[0].diagnosis.startsWith('vi-'), true);
     });
-    assert.equal(res.status, 200);
-    const body = await res.json();
-    assert.equal(body.data.length, 2);
-    assert.equal(body.data[0].diagnosis.startsWith('vi-'), true);
-  });
+  } finally {
+    if (previousCredits === undefined) delete process.env.AI_CREDITS_ANALYSIS_TRANSLATION;
+    else process.env.AI_CREDITS_ANALYSIS_TRANSLATION = previousCredits;
+  }
 });
 
 test('POST /analysis returns cached response when cache hit', async () => {
