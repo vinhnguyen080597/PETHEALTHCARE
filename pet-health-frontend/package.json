@@ -1,6 +1,6 @@
 {
   "name": "pet-health-frontend",
-  "version": "1.0.2",
+  "version": "1.1.1",
   "main": "index.ts",
   "scripts": {
     "start": "cross-env EXPO_PUBLIC_EXPO_GO_COMPAT=1 npx expo start --go --lan --port 8081",
