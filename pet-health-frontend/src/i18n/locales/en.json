@@ -891,11 +891,11 @@
         "detail": ""
       },
       "cat_3in1_fvrcp": {
-        "label": "3-in-1 FVRCP",
+        "label": "Purevax (3-in-1)",
         "detail": "Panleukopenia, rhinotracheitis, calicivirus."
       },
       "cat_4in1": {
-        "label": "4-in-1",
+        "label": "Zoetis/Felocell 4 (4-in-1)",
         "detail": "FVRCP diseases plus Chlamydia (eye inflammation)."
       },
       "cat_rabies": {

@@ -888,11 +888,11 @@
         "detail": ""
       },
       "cat_3in1_fvrcp": {
-        "label": "Vaccine 3-trong-1 (FVRCP)",
+        "label": "Purevax (3-trong-1)",
         "detail": "Ngừa Giảm bạch cầu, Viêm mũi khí quản, Calicivirus."
       },
       "cat_4in1": {
-        "label": "Vaccine 4-trong-1",
+        "label": "Zoetis/Felocell 4 (4-trong-1)",
         "detail": "Bao gồm các bệnh 3-trong-1 và thêm Chlamydia (viêm mắt)."
       },
       "cat_rabies": {
