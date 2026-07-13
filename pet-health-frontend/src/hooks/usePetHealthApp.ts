@@ -48,6 +48,7 @@ import {
   listHistoryByPet,
   listAiCreditLedger,
   listCoreCareRecords,
+  getVaccinationDueSummary,
   listMyAnnouncementPosts,
   listMyPetFeedPosts,
   listPetFeedPosts,
@@ -503,11 +504,20 @@ export function usePetHealthApp() {
       }
 
       try {
+        if (!managedUser) {
+          const response = await getVaccinationDueSummary(effectiveToken);
+          const counts: Record<string, number> = {};
+          for (const pet of targetPets) {
+            counts[pet.id] = response.data[pet.id] ?? 0;
+          }
+          setPetVaccinationDueCounts(counts);
+          await setAppIconBadgeCount(totalVaccinationScheduleDue(counts));
+          return;
+        }
+
         const responses = await Promise.all(
           targetPets.map(async (pet) => {
-            const response = managedUser
-              ? await listAdminUserCoreCareRecords(effectiveToken, managedUser.userId, pet.id)
-              : await listCoreCareRecords(effectiveToken, pet.id);
+            const response = await listAdminUserCoreCareRecords(effectiveToken, managedUser.userId, pet.id);
             return { petId: pet.id, records: response.data };
           }),
         );
@@ -546,7 +556,7 @@ export function usePetHealthApp() {
     setRefreshing(true);
     try {
       const nextPets = await fetchPets(token);
-      await refreshVaccinationDueCounts(nextPets);
+      void refreshVaccinationDueCounts(nextPets);
     } finally {
       setRefreshing(false);
     }
@@ -771,14 +781,14 @@ export function usePetHealthApp() {
   }
 
   async function loadAuthenticatedUserData(accessToken: string, profile: AccountProfile) {
-    const petsPromise = fetchPets(accessToken);
-    const loads: Promise<unknown>[] = [petsPromise, refreshAiCredits(accessToken), loadFeatureFlags(accessToken)];
+    // Critical path for first paint: pets only. Defer badges, credits, flags, admin catalogs.
+    const loadedPets = await fetchPets(accessToken);
+    void refreshVaccinationDueCounts(loadedPets, accessToken);
+    void refreshAiCredits(accessToken);
+    void loadFeatureFlags(accessToken);
     if (profile.primary_role === 'admin') {
-      loads.push(loadAccountDashboard(accessToken, profile.primary_role));
+      void loadAccountDashboard(accessToken, profile.primary_role);
     }
-    await Promise.all(loads);
-    const loadedPets = await petsPromise;
-    await refreshVaccinationDueCounts(loadedPets, accessToken);
   }
 
   async function navigateAfterAuthenticatedSession(options?: { startInitialOnboarding?: boolean }) {
@@ -811,36 +821,38 @@ export function usePetHealthApp() {
     setScreen('home');
   }
 
+  function probeBackendHealth() {
+    void healthCheck({ timeoutMs: 2000 })
+      .then(() => {
+        setBackendHealth('online');
+        debugLog('STARTUP', 'usePetHealthApp.healthCheck.ok');
+      })
+      .catch((error) => {
+        setBackendHealth('offline');
+        debugLog('STARTUP', 'usePetHealthApp.healthCheck.fail', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+  }
+
   async function initializeApp() {
     debugLog('STARTUP', 'usePetHealthApp.initializeApp.enter');
     try {
-      const [, savedSession] = await Promise.all([
-        healthCheck()
-          .then(() => {
-            setBackendHealth('online');
-            debugLog('STARTUP', 'usePetHealthApp.healthCheck.ok');
-          })
-          .catch((error) => {
-            setBackendHealth('offline');
-            debugLog('STARTUP', 'usePetHealthApp.healthCheck.fail', {
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }),
-        hydrateAuthSessionFromStorage().then((session) => {
-          debugLog('STARTUP', 'usePetHealthApp.hydrateAuthSessionFromStorage', {
-            hasSession: Boolean(session?.access_token),
-            hasRefreshToken: Boolean(session?.refresh_token),
-          });
-          return session;
-        }),
-      ]);
+      // Do not block first paint on /health (Render cold starts).
+      probeBackendHealth();
+
+      const savedSession = await hydrateAuthSessionFromStorage();
+      debugLog('STARTUP', 'usePetHealthApp.hydrateAuthSessionFromStorage', {
+        hasSession: Boolean(savedSession?.access_token),
+        hasRefreshToken: Boolean(savedSession?.refresh_token),
+      });
 
       if (!savedSession?.access_token) {
         debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'login', reason: 'no_saved_session' });
         return;
       }
 
-      const accessToken = await ensureFreshAccessToken();
+      const accessToken = await ensureFreshAccessToken({ preferMemory: true });
       if (!accessToken) {
         await clearInvalidSession();
         debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'login', reason: 'expired_session' });

@@ -238,19 +238,92 @@ export async function deleteUserImageStorage(userId) {
   return { deleted };
 }
 
+const SIGNED_URL_CACHE_SKEW_MS = 60_000;
+/** @type {Map<string, { url: string, expiresAt: number }>} */
+const signedUrlCache = new Map();
+
+function getCachedSignedUrl(storageKey) {
+  const entry = signedUrlCache.get(storageKey);
+  if (!entry) return null;
+  if (Date.now() >= entry.expiresAt - SIGNED_URL_CACHE_SKEW_MS) {
+    signedUrlCache.delete(storageKey);
+    return null;
+  }
+  return entry.url;
+}
+
+function setCachedSignedUrl(storageKey, url, expiresInSeconds) {
+  signedUrlCache.set(storageKey, {
+    url,
+    expiresAt: Date.now() + expiresInSeconds * 1000,
+  });
+}
+
 export async function resolvePrivateMediaUrl(value, expiresInSeconds = 86400) {
   const parsed = parseStorageUri(value);
   if (!parsed) return value;
+  const cached = getCachedSignedUrl(value);
+  if (cached) return cached;
   const supabase = getSupabaseServiceClient();
   if (!supabase) return value;
   const { data, error } = await supabase.storage
     .from(parsed.bucketName)
     .createSignedUrl(parsed.filePath, expiresInSeconds);
   if (error) throw error;
-  return data?.signedUrl ?? value;
+  const signedUrl = data?.signedUrl ?? value;
+  if (signedUrl && signedUrl !== value) {
+    setCachedSignedUrl(value, signedUrl, expiresInSeconds);
+  }
+  return signedUrl;
 }
 
+/**
+ * Batch-sign storage:// URIs (grouped by bucket). Non-storage values pass through.
+ * Preserves input order.
+ */
 export async function resolvePrivateMediaUrls(values, expiresInSeconds = 86400) {
-  if (!Array.isArray(values)) return [];
-  return Promise.all(values.map((value) => resolvePrivateMediaUrl(value, expiresInSeconds)));
+  if (!Array.isArray(values) || values.length === 0) return [];
+
+  const results = values.map((value) => value);
+  /** @type {Map<string, Array<{ index: number, filePath: string, storageKey: string }>>} */
+  const byBucket = new Map();
+
+  for (let i = 0; i < values.length; i += 1) {
+    const value = values[i];
+    const parsed = parseStorageUri(value);
+    if (!parsed) continue;
+    const cached = getCachedSignedUrl(value);
+    if (cached) {
+      results[i] = cached;
+      continue;
+    }
+    const list = byBucket.get(parsed.bucketName) ?? [];
+    list.push({ index: i, filePath: parsed.filePath, storageKey: value });
+    byBucket.set(parsed.bucketName, list);
+  }
+
+  if (byBucket.size === 0) return results;
+
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return results;
+
+  await Promise.all(
+    [...byBucket.entries()].map(async ([bucketName, items]) => {
+      const paths = items.map((item) => item.filePath);
+      const { data, error } = await supabase.storage.from(bucketName).createSignedUrls(paths, expiresInSeconds);
+      if (error) throw error;
+      const signedByPath = new Map();
+      for (const row of data ?? []) {
+        if (row?.path && row?.signedUrl) signedByPath.set(row.path, row.signedUrl);
+      }
+      for (const item of items) {
+        const signedUrl = signedByPath.get(item.filePath);
+        if (!signedUrl) continue;
+        results[item.index] = signedUrl;
+        setCachedSignedUrl(item.storageKey, signedUrl, expiresInSeconds);
+      }
+    }),
+  );
+
+  return results;
 }

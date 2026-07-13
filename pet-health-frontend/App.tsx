@@ -6,9 +6,10 @@ import {
   Inter_700Bold,
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
-import { Component, type ReactNode } from 'react';
+import { Component, type ReactNode, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -58,6 +59,10 @@ import { VetSummaryScreen } from './src/screens/VetSummaryScreen';
 
 const DEFAULT_TEXT_STYLE = { fontFamily: 'Inter_400Regular', fontWeight: '400' as const };
 let defaultTypographyApplied = false;
+
+void SplashScreen.preventAutoHideAsync().catch(() => {
+  /* native splash may already be hidden in some reload paths */
+});
 
 function mergeDefaultStyle(existing: unknown) {
   if (!existing) return DEFAULT_TEXT_STYLE;
@@ -144,6 +149,14 @@ function AppContent() {
   const healthAnalysisEnabled = app.isFeatureEnabled('health_analysis');
   const rewardedAdsEnabled = app.isFeatureEnabled('rewarded_ads');
   const subscriptionEnabled = app.isFeatureEnabled('subscription');
+
+  useEffect(() => {
+    if (app.sessionBootstrapping) return;
+    if (!fontsLoaded && !fontError) return;
+    void SplashScreen.hideAsync().catch(() => {
+      /* ignore */
+    });
+  }, [fontsLoaded, fontError, app.sessionBootstrapping]);
 
   // v1 release: monetization init disabled.
   // useEffect(() => {

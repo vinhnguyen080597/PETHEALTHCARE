@@ -194,3 +194,48 @@ export function summarizeCoreCareRecords(records) {
   }
   return summary;
 }
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function isVaccinationScheduleDueRecord(record, today = new Date()) {
+  if (!record?.due_at || record.status === 'done' || record.type === 'vaccine') return false;
+  const trimmed = String(record.due_at).trim();
+  if (!trimmed) return false;
+  const parsed = new Date(trimmed.includes('T') ? trimmed : `${trimmed}T00:00:00`);
+  if (!Number.isFinite(parsed.getTime())) return false;
+  return startOfDay(parsed).getTime() <= startOfDay(today).getTime();
+}
+
+/** Counts due schedule badges per pet (matches frontend vaccinationDueNotifications). */
+export async function listVaccinationDueCountsByUser(userId, accessToken) {
+  const supabase = getCoreCareSupabase(accessToken);
+  const today = new Date();
+
+  if (!supabase) {
+    const counts = {};
+    for (const row of memoryRecords) {
+      if (row.user_id !== userId || !isVaccinationScheduleDueRecord(row, today)) continue;
+      counts[row.pet_id] = (counts[row.pet_id] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  const { data, error } = await supabase
+    .from('pet_care_records')
+    .select('pet_id, type, status, due_at')
+    .eq('user_id', userId)
+    .not('due_at', 'is', null)
+    .neq('status', 'done')
+    .neq('type', 'vaccine');
+
+  if (error) throw error;
+
+  const counts = {};
+  for (const row of data ?? []) {
+    if (!isVaccinationScheduleDueRecord(row, today)) continue;
+    counts[row.pet_id] = (counts[row.pet_id] ?? 0) + 1;
+  }
+  return counts;
+}

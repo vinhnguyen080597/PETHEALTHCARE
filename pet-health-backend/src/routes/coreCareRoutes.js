@@ -5,6 +5,7 @@ import {
   createCoreCareRecord,
   deleteCoreCareRecord,
   listCoreCareRecords,
+  listVaccinationDueCountsByUser,
   summarizeCoreCareRecords,
   updateCoreCareRecord,
 } from '../repositories/coreCareRepository.js';
@@ -26,6 +27,15 @@ async function requireOwnedPet(req, res) {
   }
   return pet;
 }
+
+router.get('/vaccination-due-summary', async (req, res, next) => {
+  try {
+    const counts = await listVaccinationDueCountsByUser(req.user.id, req.accessToken);
+    return res.json({ data: counts });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 router.get('/pets/:petId/records', async (req, res, next) => {
   try {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
-import { resolvePrivateMediaUrl } from '../services/imageStorageService.js';
+import { resolvePrivateMediaUrl, resolvePrivateMediaUrls } from '../services/imageStorageService.js';
 
 const memoryPets = [];
 
@@ -18,10 +18,20 @@ async function withSignedPetMedia(pet) {
   };
 }
 
+async function withSignedPetMediaBatch(pets) {
+  if (!Array.isArray(pets) || pets.length === 0) return [];
+  const avatarKeys = pets.map((pet) => pet?.avatar_url ?? null);
+  const signedAvatars = await resolvePrivateMediaUrls(avatarKeys);
+  return pets.map((pet, index) => ({
+    ...pet,
+    avatar_url: signedAvatars[index] ?? pet.avatar_url,
+  }));
+}
+
 export async function listPetsByUser(userId, accessToken) {
   const supabase = getPetsSupabase(accessToken);
   if (!supabase) {
-    return Promise.all(memoryPets.filter((pet) => pet.user_id === userId).map(withSignedPetMedia));
+    return withSignedPetMediaBatch(memoryPets.filter((pet) => pet.user_id === userId));
   }
 
   const { data, error } = await supabase
@@ -31,7 +41,7 @@ export async function listPetsByUser(userId, accessToken) {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return Promise.all((data ?? []).map(withSignedPetMedia));
+  return withSignedPetMediaBatch(data ?? []);
 }
 
 export async function getPetByIdForUser(userId, petId, accessToken) {

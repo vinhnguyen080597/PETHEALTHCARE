@@ -202,8 +202,10 @@ export async function tryRefreshAuthSession(): Promise<AuthSession | null> {
   }
 }
 
-export async function ensureFreshAccessToken(): Promise<string | null> {
-  await syncActiveSessionFromStorage();
+export async function ensureFreshAccessToken(options?: { preferMemory?: boolean }): Promise<string | null> {
+  if (!options?.preferMemory || !activeSession) {
+    await syncActiveSessionFromStorage();
+  }
   if (!activeSession) return null;
 
   if (!activeSession.refresh_token) {
@@ -227,13 +229,24 @@ export async function clearAuthSession() {
 }
 
 export async function resolveAuthorizedToken(token: string): Promise<string> {
+  // Hot path: reuse in-memory session and skip SecureStore on every API call.
+  if (activeSession?.access_token === token) {
+    if (!shouldRefreshAuthSession(activeSession) && !isAuthSessionExpired(activeSession)) {
+      return activeSession.access_token;
+    }
+    const fresh = await ensureFreshAccessToken({ preferMemory: true });
+    if (fresh) return fresh;
+    if (!isAuthSessionExpired(activeSession)) return activeSession.access_token;
+    return token;
+  }
+
   await syncActiveSessionFromStorage();
   if (!activeSession) return token;
 
   const isAppToken = token === activeSession.access_token;
   if (!isAppToken) return token;
 
-  const fresh = await ensureFreshAccessToken();
+  const fresh = await ensureFreshAccessToken({ preferMemory: true });
   if (fresh) return fresh;
   if (!isAuthSessionExpired(activeSession)) return activeSession.access_token;
   return token;

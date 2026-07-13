@@ -235,12 +235,22 @@ async function requestJson<T>(path: string, options: RequestInit = {}, allowAuth
   return body as T;
 }
 
-export async function healthCheck() {
-  const res = await fetch(API_HEALTH_URL, { headers: mergeHeaders() });
-  if (!res.ok) {
-    throw new Error('Backend health check failed');
+export async function healthCheck(options?: { timeoutMs?: number }) {
+  const timeoutMs = options?.timeoutMs ?? 2500;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(API_HEALTH_URL, {
+      headers: mergeHeaders(),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      throw new Error('Backend health check failed');
+    }
+    return res.json() as Promise<{ status: string; service?: string; timestamp?: string }>;
+  } finally {
+    clearTimeout(timer);
   }
-  return res.json() as Promise<{ status: string; service?: string; timestamp?: string }>;
 }
 
 export async function requestSignUpOtp(payload: SignUpOtpRequestPayload) {
@@ -776,6 +786,12 @@ export async function listCoreCareRecords(token: string, petId: string, type?: s
       headers: authHeaders(token),
     },
   );
+}
+
+export async function getVaccinationDueSummary(token: string) {
+  return requestJson<{ data: Record<string, number> }>('/core-care/vaccination-due-summary', {
+    headers: authHeaders(token),
+  });
 }
 
 export async function createCoreCareRecord(token: string, petId: string, payload: CreateCoreCareRecordPayload) {

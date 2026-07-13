@@ -53,6 +53,7 @@ const baseConfig = {
     'expo-asset',
     'expo-secure-store',
     'expo-font',
+    'expo-splash-screen',
     'expo-video',
     [
       'expo-notifications',
