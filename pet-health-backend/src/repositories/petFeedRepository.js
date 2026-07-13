@@ -219,6 +219,32 @@ function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
   };
 }
 
+/** Feed card list DTO: first image only + optional video; lighter JSON for scroll. */
+function toListPost(row, favoriteIds = new Set(), profilesById = new Map()) {
+  const post = toPost(row, favoriteIds, profilesById);
+  if (!post) return post;
+  const media = Array.isArray(post.media_urls) ? post.media_urls.filter(Boolean) : [];
+  const profile = post.breeder_profile;
+  return {
+    ...post,
+    media_urls: media.slice(0, 1),
+    media_count: media.length,
+    description: typeof post.description === 'string' ? post.description.slice(0, 280) : post.description,
+    breeder_profile: profile
+      ? {
+          id: profile.id,
+          user_id: profile.user_id,
+          display_name: profile.display_name,
+          verification_status: profile.verification_status,
+          location: profile.location,
+          contact: profile.contact ?? {},
+          created_at: profile.created_at,
+          updated_at: profile.updated_at,
+        }
+      : null,
+  };
+}
+
 function toReport(row) {
   if (!row) return row;
   return {
@@ -301,7 +327,7 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
       cursor,
     );
     return {
-      data: rows.map((post) => toPost(post, favoriteIds, profilesById)),
+      data: rows.map((post) => toListPost(post, favoriteIds, profilesById)),
       nextCursor,
     };
   }
@@ -329,7 +355,7 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
   const rows = data ?? [];
   const pageRows = rows.slice(0, limit);
   return {
-    data: pageRows.map((row) => toPost(row, favoriteIds)),
+    data: pageRows.map((row) => toListPost(row, favoriteIds)),
     nextCursor: rows.length > limit ? encodePetFeedCursor(pageRows[pageRows.length - 1]) : null,
   };
 }

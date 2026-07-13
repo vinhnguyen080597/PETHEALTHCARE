@@ -6,7 +6,7 @@ import {
   Inter_700Bold,
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
-import { Component, type ReactNode, useEffect } from 'react';
+import { Component, Suspense, type ReactNode, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -22,40 +22,42 @@ import { debugLog } from './src/utils/debugLog';
 // v1 release: monetization disabled — re-enable when shipping ads + IAP.
 // import { initializeRewardedAds } from './src/services/rewardedAd';
 // import { initializeIap } from './src/services/iap';
-import { AdminReviewScreen } from './src/screens/AdminReviewScreen';
 import { ManagedUserBanner } from './src/components/ManagedUserBanner';
-import { AdminHubScreen } from './src/screens/AdminHubScreen';
-import { AdminFeaturesScreen } from './src/screens/AdminFeaturesScreen';
-import { AdminUserDetailScreen } from './src/screens/AdminUserDetailScreen';
-import { CreateAdminPostScreen } from './src/screens/CreateAdminPostScreen';
 import { AccountScreen } from './src/screens/AccountScreen';
-import { UpdateAccountScreen } from './src/screens/UpdateAccountScreen';
-import { UpdateAccountChangeLoginScreen } from './src/screens/UpdateAccountChangeLoginScreen';
-import { UpdateAccountChangePasswordScreen } from './src/screens/UpdateAccountChangePasswordScreen';
-import { UpdateAccountRecoverPasswordScreen } from './src/screens/UpdateAccountRecoverPasswordScreen';
-import { AddPetScreen } from './src/screens/AddPetScreen';
-import { AnalysisProgressScreen } from './src/screens/AnalysisProgressScreen';
-import { BreederProfileScreen } from './src/screens/BreederProfileScreen';
-import { BreedRecognitionProgressScreen } from './src/screens/BreedRecognitionProgressScreen';
-import { BreedRecognitionResultScreen } from './src/screens/BreedRecognitionResultScreen';
-import { BreederDetailScreen } from './src/screens/BreederDetailScreen';
-import { CoreCareInfoScreen } from './src/screens/CoreCareInfoScreen';
-import { CoreCareScreen } from './src/screens/CoreCareScreen';
-import { CreatePetFeedPostScreen } from './src/screens/CreatePetFeedPostScreen';
-import { PetBreedRecognitionScreen } from './src/screens/PetBreedRecognitionScreen';
-import { HealthCheckScreen } from './src/screens/HealthCheckScreen';
-import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
-import { ForgotPasswordScreen } from './src/screens/ForgotPasswordScreen';
-import { LanguageSelectionScreen } from './src/screens/LanguageSelectionScreen';
-import { SignUpOtpVerificationScreen } from './src/screens/SignUpOtpVerificationScreen';
-import { OnboardingIntroScreen } from './src/screens/OnboardingIntroScreen';
-import { OnboardingHealthPromptScreen } from './src/screens/OnboardingHealthPromptScreen';
-import { PetProfileScreen } from './src/screens/PetProfileScreen';
 import { PetFeedScreen } from './src/screens/PetFeedScreen';
-import { ResultsScreen } from './src/screens/ResultsScreen';
-import { VetSummaryScreen } from './src/screens/VetSummaryScreen';
+import {
+  AddPetScreen,
+  AdminFeaturesScreen,
+  AdminHubScreen,
+  AdminReviewScreen,
+  AdminUserDetailScreen,
+  AnalysisProgressScreen,
+  BreedRecognitionProgressScreen,
+  BreedRecognitionResultScreen,
+  BreederDetailScreen,
+  BreederProfileScreen,
+  CoreCareInfoScreen,
+  CoreCareScreen,
+  CreateAdminPostScreen,
+  CreatePetFeedPostScreen,
+  ForgotPasswordScreen,
+  HealthCheckScreen,
+  HistoryScreen,
+  LanguageSelectionScreen,
+  OnboardingHealthPromptScreen,
+  OnboardingIntroScreen,
+  PetBreedRecognitionScreen,
+  PetProfileScreen,
+  ResultsScreen,
+  SignUpOtpVerificationScreen,
+  UpdateAccountChangeLoginScreen,
+  UpdateAccountChangePasswordScreen,
+  UpdateAccountRecoverPasswordScreen,
+  UpdateAccountScreen,
+  VetSummaryScreen,
+} from './src/screens/lazyScreens';
 
 const DEFAULT_TEXT_STYLE = { fontFamily: 'Inter_400Regular', fontWeight: '400' as const };
 let defaultTypographyApplied = false;
@@ -63,6 +65,14 @@ let defaultTypographyApplied = false;
 void SplashScreen.preventAutoHideAsync().catch(() => {
   /* native splash may already be hidden in some reload paths */
 });
+
+function ScreenFallback() {
+  return (
+    <View className="flex-1 items-center justify-center bg-slate-100">
+      <ActivityIndicator size="large" color="#2563eb" />
+    </View>
+  );
+}
 
 function mergeDefaultStyle(existing: unknown) {
   if (!existing) return DEFAULT_TEXT_STYLE;
@@ -259,7 +269,9 @@ function AppContent() {
           onSubmit={app.submitAuth}
           onForgotPassword={app.openForgotPassword}
         />
-      ) : app.screen === 'forgot-password' ? (
+      ) : (
+      <Suspense fallback={<ScreenFallback />}>
+      {app.screen === 'forgot-password' ? (
         <ForgotPasswordScreen
           email={app.email}
           error={app.forgotPasswordError}
@@ -814,6 +826,8 @@ function AppContent() {
             ) : null}
           </ResponsiveFrame>
         </SafeAreaView>
+      )}
+      </Suspense>
       )}
       <LoadingOverlay visible={app.loading} />
     </SafeAreaProvider>

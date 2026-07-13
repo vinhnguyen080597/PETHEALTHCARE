@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Alert, Linking, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { BreederProfile, PetFeedPost } from '../types';
@@ -189,7 +189,7 @@ function PetFeedMedia({
   );
 }
 
-export function PetFeedPostCard({
+function PetFeedPostCardComponent({
   post,
   onToggleFavorite,
   onReportPost,
@@ -437,6 +437,8 @@ export function PetFeedPostCard({
     </>
   );
 }
+
+export const PetFeedPostCard = memo(PetFeedPostCardComponent);
 
 function ReportModal({
   visible,

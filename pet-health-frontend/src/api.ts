@@ -133,6 +133,47 @@ export class ApiRequestError extends Error {
   monthlyResetAt?: string;
 }
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
+const UPLOAD_REQUEST_TIMEOUT_MS = 120_000;
+
+function timeoutError(timeoutMs: number): ApiRequestError {
+  const err = new ApiRequestError(
+    timeoutMs >= 60_000
+      ? 'Upload timed out. Check your connection and try again.'
+      : 'Request timed out. Please try again.',
+  );
+  err.code = 'REQUEST_TIMEOUT';
+  err.status = 408;
+  return err;
+}
+
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = DEFAULT_REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const parentSignal = options.signal;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const onParentAbort = () => controller.abort();
+  if (parentSignal) {
+    if (parentSignal.aborted) controller.abort();
+    else parentSignal.addEventListener('abort', onParentAbort);
+  }
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      if (parentSignal?.aborted) throw error;
+      throw timeoutError(timeoutMs);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    parentSignal?.removeEventListener('abort', onParentAbort);
+  }
+}
+
 function parseErrorMessage(response: Response, body: unknown): string {
   if (body && typeof body === 'object' && 'error' in body && typeof (body as { error: unknown }).error === 'string') {
     return (body as { error: string }).error;
@@ -180,7 +221,12 @@ function withBearerToken(headers: Record<string, string>, token: string): Record
   return { ...headers, Authorization: `Bearer ${token}` };
 }
 
-async function requestJson<T>(path: string, options: RequestInit = {}, allowAuthRetry = true): Promise<T> {
+async function requestJson<T>(
+  path: string,
+  options: RequestInit = {},
+  allowAuthRetry = true,
+  timeoutMs: number = DEFAULT_REQUEST_TIMEOUT_MS,
+): Promise<T> {
   let headers = mergeHeaders(options.headers);
   const bearer = extractBearerToken(headers);
   if (bearer) {
@@ -188,10 +234,14 @@ async function requestJson<T>(path: string, options: RequestInit = {}, allowAuth
     headers = withBearerToken(headers, resolved);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}${path}`,
+    {
+      ...options,
+      headers,
+    },
+    timeoutMs,
+  );
   const contentType = response.headers.get('content-type') || '';
 
   let body: unknown = null;
@@ -219,6 +269,7 @@ async function requestJson<T>(path: string, options: RequestInit = {}, allowAuth
             headers: withBearerToken(mergeHeaders(options.headers), retried),
           },
           false,
+          timeoutMs,
         );
       }
     }
@@ -835,11 +886,15 @@ export async function uploadPetAvatar(token: string, imageUri: string, mimeHint:
   const formData = new FormData();
   await appendImageFileToFormData(formData, 'image', imageUri, `avatar-${Date.now()}`, mimeHint);
 
-  const response = await fetch(`${API_BASE_URL}/pets/upload-avatar`, {
-    method: 'POST',
-    headers: mergeHeaders(authHeaders(token)),
-    body: formData,
-  });
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/pets/upload-avatar`,
+    {
+      method: 'POST',
+      headers: mergeHeaders(authHeaders(token)),
+      body: formData,
+    },
+    UPLOAD_REQUEST_TIMEOUT_MS,
+  );
 
   const contentType = response.headers.get('content-type') || '';
   const body = contentType.includes('application/json') ? await response.json() : null;
@@ -870,11 +925,15 @@ export async function requestBreedRecognition(
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}/breed-recognition`, {
-    method: 'POST',
-    headers: mergeHeaders(authHeaders(token)),
-    body: formData,
-  });
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/breed-recognition`,
+    {
+      method: 'POST',
+      headers: mergeHeaders(authHeaders(token)),
+      body: formData,
+    },
+    UPLOAD_REQUEST_TIMEOUT_MS,
+  );
 
   const contentType = response.headers.get('content-type') || '';
   const body = contentType.includes('application/json') ? await response.json() : null;
@@ -1052,11 +1111,15 @@ export async function analyzePetHealthCheck(params: AnalyzeHealthCheckParams): P
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/analysis`, {
-      method: 'POST',
-      headers: mergeHeaders(authHeaders(token)),
-      body: formData,
-    });
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/analysis`,
+      {
+        method: 'POST',
+        headers: mergeHeaders(authHeaders(token)),
+        body: formData,
+      },
+      UPLOAD_REQUEST_TIMEOUT_MS,
+    );
 
     const contentType = response.headers.get('content-type') || '';
     const body = contentType.includes('application/json') ? await response.json() : null;

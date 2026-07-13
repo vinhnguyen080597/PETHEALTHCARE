@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { memo } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { AnnouncementCategory, PetFeedPost } from '../types';
@@ -29,7 +30,7 @@ function formatRelativeTime(value: string) {
   return `${days}d`;
 }
 
-export function AdminPostCard({ post, onPress, testID }: AdminPostCardProps) {
+function AdminPostCardComponent({ post, onPress, testID }: AdminPostCardProps) {
   const { t } = useTranslation();
   const category = categoryKey(String(post.metadata?.category ?? 'general'));
   const ctaLabel = typeof post.metadata?.ctaLabel === 'string' ? post.metadata.ctaLabel.trim() : '';
@@ -85,3 +86,5 @@ export function AdminPostCard({ post, onPress, testID }: AdminPostCardProps) {
     </View>
   );
 }
+
+export const AdminPostCard = memo(AdminPostCardComponent);

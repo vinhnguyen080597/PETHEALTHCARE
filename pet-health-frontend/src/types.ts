@@ -194,6 +194,8 @@ export type PetFeedPost = {
   deworming_status: string;
   paperwork: string[];
   media_urls: string[];
+  /** Present on feed list pages: total photo count before list truncation. */
+  media_count?: number;
   video_url: string | null;
   contact: BreederContact & Record<string, unknown>;
   status: PetFeedPostStatus;
