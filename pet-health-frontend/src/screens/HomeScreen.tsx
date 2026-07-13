@@ -127,17 +127,19 @@ export function HomeScreen({
                     {formatPetSubtitle(pet, t)}
                   </Text>
                 </Pressable>
-                {dueCount > 0 ? (
-                  <Pressable
-                    testID={`home-pet-vaccination-due-button-${pet.id}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('home.vaccinationDueNotification', { name: pet.name, count: dueCount })}
-                    className="flex-shrink-0 self-start active:opacity-80"
-                    onPress={() => onOpenVaccinationDue(pet.id)}
-                  >
-                    <NotificationBellBadge count={dueCount} testID={`home-pet-vaccination-due-badge-${pet.id}`} />
-                  </Pressable>
-                ) : null}
+                <Pressable
+                  testID={`home-pet-vaccination-due-button-${pet.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    dueCount > 0
+                      ? t('home.vaccinationDueNotification', { name: pet.name, count: dueCount })
+                      : t('home.openCoreCare')
+                  }
+                  className="flex-shrink-0 self-start active:opacity-80"
+                  onPress={() => onOpenVaccinationDue(pet.id)}
+                >
+                  <NotificationBellBadge count={dueCount} testID={`home-pet-vaccination-due-badge-${pet.id}`} />
+                </Pressable>
               </View>
 
               <View className="mt-3.5 flex-row gap-2.5">
