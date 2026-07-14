@@ -321,12 +321,14 @@ function AppContent() {
               <HomeScreen
                 pets={app.pets}
                 vaccinationDueCounts={app.petVaccinationDueCounts}
+                vaccinationDuePopupVisible={app.vaccinationDuePopupVisible}
                 refreshing={app.refreshing}
                 onRefresh={app.refreshPets}
                 onAddPet={app.openCreatePet}
                 onViewProfile={app.openPetProfile}
                 onOpenCareServices={app.openCareServices}
                 onOpenVaccinationDue={app.openCoreCare}
+                onDismissVaccinationDuePopup={app.dismissVaccinationDuePopup}
               />
             )}
 

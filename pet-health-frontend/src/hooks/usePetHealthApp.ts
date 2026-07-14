@@ -125,6 +125,10 @@ import {
   countVaccinationScheduleDue,
   totalVaccinationScheduleDue,
 } from '../utils/vaccinationDueNotifications';
+import {
+  hasShownVaccinationDuePopupToday,
+  markVaccinationDuePopupShownToday,
+} from '../utils/vaccinationDuePopupStorage';
 import { postsForBreeder } from '../utils/breederTrust';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 
@@ -374,6 +378,8 @@ export function usePetHealthApp() {
   const [coreCareRecords, setCoreCareRecords] = useState<CoreCareRecord[]>([]);
   const [coreCareSummary, setCoreCareSummary] = useState<CoreCareSummary | null>(null);
   const [petVaccinationDueCounts, setPetVaccinationDueCounts] = useState<Record<string, number>>({});
+  const [vaccinationDuePopupVisible, setVaccinationDuePopupVisible] = useState(false);
+  const vaccinationDuePopupOfferedRef = useRef(false);
   const [petFeedPosts, setPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [topBreederProfiles, setTopBreederProfiles] = useState<BreederProfile[]>([]);
   const [petFeedInitialLoading, setPetFeedInitialLoading] = useState(false);
@@ -496,8 +502,40 @@ export function usePetHealthApp() {
     return response.data;
   }, []);
 
+  const offerVaccinationDuePopupIfNeeded = useCallback(
+    async (counts: Record<string, number>, userId?: string | null) => {
+      if (vaccinationDuePopupOfferedRef.current) return;
+      if (totalVaccinationScheduleDue(counts) <= 0) return;
+
+      const effectiveUserId = userId ?? managedUser?.userId ?? accountProfile?.user_id ?? null;
+      if (!effectiveUserId) return;
+
+      try {
+        if (await hasShownVaccinationDuePopupToday(effectiveUserId)) {
+          vaccinationDuePopupOfferedRef.current = true;
+          return;
+        }
+      } catch {
+        // If storage read fails, still offer once this session.
+      }
+
+      vaccinationDuePopupOfferedRef.current = true;
+      setVaccinationDuePopupVisible(true);
+      void markVaccinationDuePopupShownToday(effectiveUserId);
+    },
+    [accountProfile?.user_id, managedUser?.userId],
+  );
+
+  const dismissVaccinationDuePopup = useCallback(() => {
+    setVaccinationDuePopupVisible(false);
+    const userId = managedUser?.userId ?? accountProfile?.user_id ?? null;
+    if (userId) {
+      void markVaccinationDuePopupShownToday(userId);
+    }
+  }, [accountProfile?.user_id, managedUser?.userId]);
+
   const refreshVaccinationDueCounts = useCallback(
-    async (petsToCheck?: Pet[], accessToken?: string | null) => {
+    async (petsToCheck?: Pet[], accessToken?: string | null, userId?: string | null) => {
       // Prefer explicit token — state `token` is still null right after setToken() on login.
       const effectiveToken = accessToken ?? token;
       if (!effectiveToken) return;
@@ -508,6 +546,8 @@ export function usePetHealthApp() {
         return;
       }
 
+      const effectiveUserId = userId ?? managedUser?.userId ?? accountProfile?.user_id ?? null;
+
       try {
         if (!managedUser) {
           const response = await getVaccinationDueSummary(effectiveToken);
@@ -516,6 +556,7 @@ export function usePetHealthApp() {
             counts[pet.id] = response.data[pet.id] ?? 0;
           }
           setPetVaccinationDueCounts(counts);
+          void offerVaccinationDuePopupIfNeeded(counts, effectiveUserId);
           await setAppIconBadgeCount(totalVaccinationScheduleDue(counts));
           return;
         }
@@ -530,12 +571,13 @@ export function usePetHealthApp() {
           responses.map(({ petId, records }) => [petId, countVaccinationScheduleDue(records)]),
         );
         setPetVaccinationDueCounts(counts);
+        void offerVaccinationDuePopupIfNeeded(counts, effectiveUserId);
         await setAppIconBadgeCount(totalVaccinationScheduleDue(counts));
       } catch {
         // Keep the last known counts when a background refresh fails.
       }
     },
-    [managedUser, pets, token],
+    [accountProfile?.user_id, managedUser, offerVaccinationDuePopupIfNeeded, pets, token],
   );
 
   const refreshCoreCare = useCallback(
@@ -830,6 +872,8 @@ export function usePetHealthApp() {
     await AsyncStorage.removeItem(PENDING_INITIAL_ONBOARDING_KEY);
     setToken(null);
     setInitialOnboarding(false);
+    vaccinationDuePopupOfferedRef.current = false;
+    setVaccinationDuePopupVisible(false);
     setScreen('login');
   }
 
@@ -864,7 +908,7 @@ export function usePetHealthApp() {
   async function loadAuthenticatedUserData(accessToken: string, profile: AccountProfile) {
     // Critical path for first paint: pets only. Defer badges, credits, flags, admin catalogs.
     const loadedPets = await fetchPets(accessToken);
-    void refreshVaccinationDueCounts(loadedPets, accessToken);
+    void refreshVaccinationDueCounts(loadedPets, accessToken, profile.user_id);
     void refreshAiCredits(accessToken);
     void loadFeatureFlags(accessToken);
     if (profile.primary_role === 'admin') {
@@ -2523,6 +2567,8 @@ export function usePetHealthApp() {
     setCoreCareRecords([]);
     setCoreCareSummary(null);
     setPetVaccinationDueCounts({});
+    vaccinationDuePopupOfferedRef.current = false;
+    setVaccinationDuePopupVisible(false);
     void clearAppIconBadge();
     setPetFeedPosts([]);
     setAnnouncementPosts([]);
@@ -3115,6 +3161,8 @@ export function usePetHealthApp() {
     accountProfile,
     pets,
     petVaccinationDueCounts,
+    vaccinationDuePopupVisible,
+    dismissVaccinationDuePopup,
     selectedPetId,
     setSelectedPetId,
     selectedPet,

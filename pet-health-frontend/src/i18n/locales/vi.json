@@ -123,6 +123,8 @@
     "viewProfileFor": "Xem hồ sơ của {{name}}",
     "openCoreCare": "Sổ tiêm & Lịch nhắc",
     "vaccinationDueNotification": "{{name}} có {{count}} nhắc lịch đến hạn",
+    "vaccinationDuePopupMessage": "Hôm nay chúng ta có lịch tiêm, Sen chú ý đừng quên nhé!",
+    "vaccinationDuePopupAction": "Kiểm tra ngay",
     "openCareServices": "Dịch vụ chăm sóc",
     "uploadAvatar": "Tải ảnh đại diện",
     "petFallback": "Thú cưng",

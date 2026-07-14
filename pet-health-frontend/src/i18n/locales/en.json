@@ -123,6 +123,8 @@
     "viewProfileFor": "View profile for {{name}}",
     "openCoreCare": "Vaccines & Reminders",
     "vaccinationDueNotification": "{{name}} has {{count}} due reminders",
+    "vaccinationDuePopupMessage": "We have a vaccination schedule today — please don't forget!",
+    "vaccinationDuePopupAction": "Check now",
     "openCareServices": "Care services",
     "uploadAvatar": "Upload profile photo",
     "petFallback": "Pet",
