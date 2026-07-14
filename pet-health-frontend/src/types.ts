@@ -254,11 +254,13 @@ export type CreatePetFeedPostPayload = {
   videoUrl?: string | null;
   contact?: BreederContact;
   status?: PetFeedPostStatus;
+  metadata?: Record<string, unknown>;
 };
 
 export type CreatePetFeedPostMedia = {
   photoUris: string[];
-  videoUri: string;
+  videoUri?: string;
+  listThumbUri?: string;
 };
 
 export type CreateAnnouncementPostPayload = {

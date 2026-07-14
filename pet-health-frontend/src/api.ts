@@ -135,6 +135,8 @@ export class ApiRequestError extends Error {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 const UPLOAD_REQUEST_TIMEOUT_MS = 120_000;
+/** Per-file API upload timeout for listing media (videos up to ~50MB). */
+const DIRECT_STORAGE_UPLOAD_TIMEOUT_MS = 300_000;
 
 function timeoutError(timeoutMs: number): ApiRequestError {
   const err = new ApiRequestError(
@@ -515,6 +517,33 @@ export async function updateMyPetFeedPost(token: string, postId: string, payload
   });
 }
 
+function isRemotePetFeedMediaUri(uri: string) {
+  return /^https?:\/\//i.test(uri) || uri.startsWith('memory://');
+}
+
+/** Update a draft; uploads any local photo/video via API, then PUT JSON URLs (draft-only). */
+export async function updateMyPetFeedDraft(
+  token: string,
+  postId: string,
+  payload: CreatePetFeedPostPayload,
+  media?: CreatePetFeedPostMedia,
+) {
+  if (!media) {
+    return updateMyPetFeedPost(token, postId, payload);
+  }
+
+  const uploaded = await uploadPetFeedDraftMediaUrls(token, media);
+  return updateMyPetFeedPost(token, postId, {
+    ...payload,
+    mediaUrls: uploaded.mediaUrls,
+    videoUrl: uploaded.videoUrl,
+    metadata: {
+      ...(payload.metadata ?? {}),
+      ...uploaded.metadata,
+    },
+  });
+}
+
 export async function getMyBreederProfile(token: string) {
   return requestJson<{ data: BreederProfile | null }>('/pet-feed/breeder-profile/me', {
     headers: authHeaders(token),
@@ -539,25 +568,108 @@ export async function cancelMyBreederVerificationRequest(token: string) {
   });
 }
 
-export async function createPetFeedPost(token: string, payload: CreatePetFeedPostPayload, media?: CreatePetFeedPostMedia) {
-  if (media) {
-    const formData = new FormData();
-    const { mediaUrls: _mediaUrls, videoUrl: _videoUrl, ...reviewPayload } = payload;
-    formData.append('payload', JSON.stringify(reviewPayload));
-    for (let i = 0; i < media.photoUris.length; i++) {
-      await appendImageFileToFormData(formData, 'photos', media.photoUris[i], `pet-feed-photo-${i}-${Date.now()}`, 'image/jpeg');
+type PetFeedSignedUploadKind = 'photo' | 'video' | 'thumb';
+
+async function uploadPetFeedMediaViaApi(
+  token: string,
+  kind: PetFeedSignedUploadKind,
+  uri: string,
+  contentType: string,
+): Promise<string> {
+  const formData = new FormData();
+  formData.append('kind', kind);
+  const base = `pet-feed-${kind}-${Date.now()}`;
+  if (kind === 'video') {
+    await appendVideoFileToFormData(formData, 'file', uri, base, contentType);
+  } else {
+    await appendImageFileToFormData(formData, 'file', uri, base, contentType);
+  }
+  const response = await requestJson<{ data: { publicUrl: string } }>(
+    '/pet-feed/uploads/file',
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    },
+    true,
+    DIRECT_STORAGE_UPLOAD_TIMEOUT_MS,
+  );
+  if (!response.data?.publicUrl) {
+    const err = new ApiRequestError('Media upload did not return a URL.');
+    err.code = 'PET_FEED_DIRECT_UPLOAD_FAILED';
+    throw err;
+  }
+  return response.data.publicUrl;
+}
+
+/** Upload local files one-by-one via API (honors Supabase per-object size); skip remote URLs. */
+async function uploadPetFeedDraftMediaUrls(
+  token: string,
+  media: CreatePetFeedPostMedia,
+): Promise<{ mediaUrls: string[]; videoUrl: string | null; metadata: Record<string, unknown> }> {
+  const mediaUrls: string[] = [];
+  for (const photoUri of media.photoUris) {
+    if (isRemotePetFeedMediaUri(photoUri)) {
+      mediaUrls.push(photoUri);
+    } else {
+      mediaUrls.push(await uploadPetFeedMediaViaApi(token, 'photo', photoUri, 'image/jpeg'));
     }
-    await appendVideoFileToFormData(formData, 'video', media.videoUri, `pet-feed-video-${Date.now()}`, 'video/mp4');
-    return requestJson<{ data: PetFeedPost }>(
-      '/pet-feed/posts',
-      {
-        method: 'POST',
-        headers: authHeaders(token),
-        body: formData,
+  }
+  let videoUrl: string | null = null;
+  const videoUri = typeof media.videoUri === 'string' ? media.videoUri.trim() : '';
+  if (videoUri) {
+    videoUrl = isRemotePetFeedMediaUri(videoUri)
+      ? videoUri
+      : await uploadPetFeedMediaViaApi(token, 'video', videoUri, 'video/mp4');
+  }
+  let listThumbUrl = '';
+  if (media.listThumbUri) {
+    listThumbUrl = isRemotePetFeedMediaUri(media.listThumbUri)
+      ? media.listThumbUri
+      : await uploadPetFeedMediaViaApi(token, 'thumb', media.listThumbUri, 'image/jpeg');
+  }
+  const metadata: Record<string, unknown> = {};
+  if (listThumbUrl) {
+    metadata.list_thumb_url = listThumbUrl;
+    metadata.video_poster_url = listThumbUrl;
+  } else if (mediaUrls[0]) {
+    metadata.video_poster_url = mediaUrls[0];
+  }
+  return { mediaUrls, videoUrl, metadata };
+}
+
+async function createPetFeedPostViaSequentialUploads(
+  token: string,
+  payload: CreatePetFeedPostPayload,
+  media: CreatePetFeedPostMedia,
+): Promise<{ data: PetFeedPost }> {
+  // Upload each object separately so we stay under Supabase per-file limits
+  // (Free global cap ~50MB) and avoid one giant multipart body.
+  const uploaded = await uploadPetFeedDraftMediaUrls(token, media);
+  return requestJson<{ data: PetFeedPost }>('/pet-feed/posts', {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      ...payload,
+      mediaUrls: uploaded.mediaUrls,
+      videoUrl: uploaded.videoUrl,
+      metadata: {
+        ...(payload.metadata ?? {}),
+        ...uploaded.metadata,
       },
-      true,
-      UPLOAD_REQUEST_TIMEOUT_MS,
-    );
+    }),
+  });
+}
+
+export async function createPetFeedPost(token: string, payload: CreatePetFeedPostPayload, media?: CreatePetFeedPostMedia) {
+  const hasLocalMedia = Boolean(
+    media && (media.photoUris.length > 0 || (typeof media.videoUri === 'string' && media.videoUri.trim())),
+  );
+  if (media && hasLocalMedia) {
+    return createPetFeedPostViaSequentialUploads(token, payload, media);
   }
   return requestJson<{ data: PetFeedPost }>('/pet-feed/posts', {
     method: 'POST',
@@ -565,7 +677,11 @@ export async function createPetFeedPost(token: string, payload: CreatePetFeedPos
       ...authHeaders(token),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      mediaUrls: payload.mediaUrls ?? [],
+      videoUrl: payload.videoUrl ?? null,
+    }),
   });
 }
 

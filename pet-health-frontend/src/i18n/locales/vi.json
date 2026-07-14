@@ -430,7 +430,8 @@
       "editDraft": "Chỉnh sửa",
       "submitDraft": "Gửi duyệt",
       "submitDraftSuccess": "Đã gửi bản nháp đi duyệt.",
-      "submitDraftFailed": "Không gửi được bản nháp."
+      "submitDraftFailed": "Không gửi được bản nháp.",
+      "submitDraftMediaRequired": "Bản nháp cần ít nhất 1 ảnh và 1 video trước khi gửi duyệt."
     },
     "vetSummary": "Vai trò bác sĩ thú y sẽ dành cho nội dung giáo dục và xem hồ sơ chăm sóc, không đưa ra quyết định y tế trong app.",
     "roleRequiredTitle": "Cần đúng vai trò",
@@ -609,7 +610,7 @@
     "basicInfo": "Thông tin cơ bản",
     "basicInfoRequiredHint": "Tất cả các mục trong phần này đều bắt buộc.",
     "mediaSection": "Ảnh & video",
-    "mediaHint": "Cần ít nhất 1 ảnh rõ và 1 video ngắn (≤15 giây). Ảnh tối đa 25MB, video tối đa 50MB — nên chọn video 720p để gửi được.",
+    "mediaHint": "Khi Gửi duyệt cần ít nhất 1 ảnh rõ và 1 video (tối đa 3 phút, ≤50MB). Lưu nháp chỉ cần tiêu đề — có thể thêm ảnh/video sau.",
     "careInfo": "Chăm sóc & giấy tờ",
     "descriptionAndContact": "Mô tả & liên hệ",
     "postTitle": "Tiêu đề bài đăng",
@@ -636,12 +637,14 @@
     "edit": "Quay lại chỉnh sửa",
     "publish": "Đăng",
     "saveDraft": "Lưu nháp",
-    "draftSaved": "Đã lưu bản nháp. Bạn có thể chỉnh sửa hoặc gửi duyệt sau trong mục Bài đăng của tôi.",
+    "draftSaved": "Đã lưu bản nháp cho bạn. Bài chưa gửi duyệt — chỉnh sửa hoặc bấm Gửi duyệt sau trong Bài đăng của tôi.",
+    "draftSaveFailed": "Không lưu được bản nháp",
     "submit": "Gửi duyệt",
     "submitFailed": "Không thể gửi bài",
     "previewUntitled": "Bài đăng chưa có tiêu đề",
     "editDraftTitle": "Chỉnh sửa bản nháp",
     "mediaLockedNote": "Ảnh/video đã lưu cùng bản nháp. Để đổi media, hãy tạo bài mới.",
+    "draftMediaHint": "Bạn có thể bổ sung hoặc đổi ảnh/video khi chỉnh bản nháp. Chỉ cần tiêu đề để Lưu nháp — đủ ảnh + video khi Gửi duyệt.",
     "errors": {
       "titleRequired": "Vui lòng nhập tiêu đề bài đăng.",
       "breedRequired": "Vui lòng chọn giống.",
@@ -651,9 +654,10 @@
       "priceRequired": "Vui lòng nhập giá hoặc ghi chú giá.",
       "photoRequired": "Vui lòng tải ít nhất 1 ảnh rõ của bé.",
       "videoRequired": "Vui lòng tải 1 video ngắn của bé.",
-      "photoTooLarge": "Ảnh {{index}} quá lớn ({{size}}). Vui lòng chọn ảnh nhỏ hơn 25MB hoặc để app tự nén lại.",
-      "videoTooLarge": "Video quá lớn ({{size}}). Giới hạn 50MB — hãy chọn clip ≤15 giây ở chất lượng 720p/Medium.",
-      "mediaTooLarge": "File media quá lớn. Ảnh tối đa 25MB, video tối đa 50MB. Hãy chọn video ngắn hơn hoặc chất lượng thấp hơn rồi thử lại."
+      "photoTooLarge": "Ảnh {{index}} quá lớn ({{size}}). Vui lòng chọn ảnh nhỏ hơn 8MB hoặc để app tự nén lại.",
+      "videoTooLarge": "Video quá lớn ({{size}}). Giới hạn 50MB — hãy chọn clip ≤3 phút ở 720p.",
+      "videoTooLong": "Video dài quá giới hạn {{seconds}} giây (tối đa 3 phút).",
+      "mediaTooLarge": "File media vượt giới hạn lưu trữ. Ảnh tối đa ~8MB sau nén, video tối đa 50MB. Hãy chọn video ngắn hơn / chất lượng thấp hơn rồi thử lại."
     },
     "options": {
       "species": {

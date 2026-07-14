@@ -30,7 +30,11 @@ import { modalBottomInset } from '../utils/modalSafeArea';
 import {
   findOversizedPetFeedMedia,
   formatBytesAsMb,
+  getLocalUriByteSize,
+  optimizePetFeedListThumbUri,
   optimizePetFeedPhotoUri,
+  isPetFeedVideoDurationAllowed,
+  PET_FEED_VIDEO_MAX_DURATION_SECONDS,
   PET_FEED_VIDEO_MAX_BYTES,
 } from '../utils/petFeedMedia';
 
@@ -47,7 +51,7 @@ type Option = {
 type CreatePetFeedPostScreenProps = {
   onBack: () => void;
   onSubmit: (payload: CreatePetFeedPostPayload, media: CreatePetFeedPostMedia) => Promise<void>;
-  onUpdate?: (postId: string, payload: CreatePetFeedPostPayload) => Promise<void>;
+  onUpdate?: (postId: string, payload: CreatePetFeedPostPayload, media?: CreatePetFeedPostMedia) => Promise<void>;
   editingPost?: PetFeedPost | null;
   role?: UserRole;
 };
@@ -351,7 +355,7 @@ export function CreatePetFeedPostScreen({
     media_urls: photoUris,
     video_url: videoUri || null,
     contact: { facebook, zalo, phone },
-    status: isAdmin ? 'published' : 'pending_review',
+    status: isAdmin ? 'published' : isEditingDraft ? 'draft' : 'pending_review',
     metadata: {},
     breeder_profile: null,
     is_favorited: false,
@@ -387,13 +391,20 @@ export function CreatePetFeedPostScreen({
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['videos'],
-      videoMaxDuration: 15,
+      videoMaxDuration: PET_FEED_VIDEO_MAX_DURATION_SECONDS,
       videoQuality: ImagePicker.UIImagePickerControllerQualityType.IFrame1280x720,
-      quality: 0.7,
+      quality: 0.8,
     });
     if (result.canceled || !result.assets[0]?.uri) return;
     const asset = result.assets[0];
-    const sizeBytes = asset.fileSize ?? null;
+    if (!isPetFeedVideoDurationAllowed(asset.duration)) {
+      Alert.alert(
+        t('createPetFeedPost.submitFailed'),
+        t('createPetFeedPost.errors.videoTooLong', { seconds: PET_FEED_VIDEO_MAX_DURATION_SECONDS }),
+      );
+      return;
+    }
+    const sizeBytes = asset.fileSize ?? (await getLocalUriByteSize(asset.uri));
     if (sizeBytes != null && sizeBytes > PET_FEED_VIDEO_MAX_BYTES) {
       Alert.alert(
         t('createPetFeedPost.submitFailed'),
@@ -457,6 +468,16 @@ export function CreatePetFeedPostScreen({
     setReviewOpen(true);
   }
 
+  /** Draft = private for breeder only; title is enough (media/fields completed later before Gửi duyệt). */
+  function saveDraftFromForm() {
+    if (!title.trim()) {
+      setFieldErrors((current) => ({ ...current, title: t('createPetFeedPost.errors.titleRequired') }));
+      scrollToMissingField('title');
+      return;
+    }
+    void submit('draft');
+  }
+
   function clearFieldError(key: keyof typeof fieldErrors) {
     setFieldErrors((current) => {
       if (!current[key]) return current;
@@ -467,10 +488,17 @@ export function CreatePetFeedPostScreen({
   }
 
   function mediaErrorMessage(error: unknown): string {
-    if (error instanceof ApiRequestError && (error.code === 'MEDIA_TOO_LARGE' || error.code === 'PET_FEED_VIDEO_TOO_LARGE' || error.code === 'PET_FEED_PHOTO_TOO_LARGE')) {
+    const code = error instanceof ApiRequestError ? error.code : null;
+    const raw = error instanceof Error ? error.message : '';
+    if (
+      code === 'MEDIA_TOO_LARGE' ||
+      code === 'PET_FEED_VIDEO_TOO_LARGE' ||
+      code === 'PET_FEED_PHOTO_TOO_LARGE' ||
+      /exceeded the maximum allowed size|EntityTooLarge|too large for storage/i.test(raw)
+    ) {
       return t('createPetFeedPost.errors.mediaTooLarge');
     }
-    return error instanceof Error ? error.message : t('common.unknownError');
+    return raw || t('common.unknownError');
   }
 
   async function submit(status: CreatePetFeedPostPayload['status']) {
@@ -494,15 +522,80 @@ export function CreatePetFeedPostScreen({
       };
 
       if (isEditingDraft && editingPost && onUpdate) {
-        await onUpdate(editingPost.id, payload);
+        const nextStatus = status === 'pending_review' ? 'pending_review' : 'draft';
+        if (nextStatus === 'pending_review') {
+          const result = validateForReview();
+          if (result.message) {
+            if (result.focusKey) scrollToMissingField(result.focusKey);
+            throw new Error(result.message);
+          }
+        } else if (!title.trim()) {
+          throw new Error(t('createPetFeedPost.errors.titleRequired'));
+        }
+
+        const optimizedPhotos: string[] = [];
+        for (const uri of photoUris) {
+          optimizedPhotos.push(/^https?:\/\//i.test(uri) || uri.startsWith('memory://') ? uri : await optimizePetFeedPhotoUri(uri));
+        }
+        const localForThumb = optimizedPhotos.find((uri) => !/^https?:\/\//i.test(uri) && !uri.startsWith('memory://'));
+        const listThumbUri = localForThumb
+          ? await optimizePetFeedListThumbUri(localForThumb)
+          : undefined;
+        const oversized = await findOversizedPetFeedMedia({
+          photoUris: optimizedPhotos.filter((uri) => !/^https?:\/\//i.test(uri) && !uri.startsWith('memory://')),
+          videoUri: videoUri && !/^https?:\/\//i.test(videoUri) && !videoUri.startsWith('memory://') ? videoUri : null,
+        });
+        if (oversized?.kind === 'photo') {
+          throw new Error(
+            t('createPetFeedPost.errors.photoTooLarge', {
+              index: oversized.index + 1,
+              size: formatBytesAsMb(oversized.sizeBytes),
+            }),
+          );
+        }
+        if (oversized?.kind === 'video') {
+          throw new Error(
+            t('createPetFeedPost.errors.videoTooLarge', {
+              size: formatBytesAsMb(oversized.sizeBytes),
+            }),
+          );
+        }
+
+        await onUpdate(
+          editingPost.id,
+          { ...payload, status: nextStatus },
+          {
+            photoUris: optimizedPhotos,
+            videoUri: videoUri || undefined,
+            listThumbUri,
+          },
+        );
+        setReviewOpen(false);
         return;
+      }
+
+      const isDraft = status === 'draft';
+      if (!isDraft) {
+        const result = validateForReview();
+        if (result.message) {
+          if (result.focusKey) scrollToMissingField(result.focusKey);
+          throw new Error(result.message);
+        }
+      } else if (!title.trim()) {
+        throw new Error(t('createPetFeedPost.errors.titleRequired'));
       }
 
       const optimizedPhotos: string[] = [];
       for (const uri of photoUris) {
         optimizedPhotos.push(await optimizePetFeedPhotoUri(uri));
       }
-      const oversized = await findOversizedPetFeedMedia({ photoUris: optimizedPhotos, videoUri });
+      const listThumbUri = optimizedPhotos[0]
+        ? await optimizePetFeedListThumbUri(optimizedPhotos[0])
+        : undefined;
+      const oversized = await findOversizedPetFeedMedia({
+        photoUris: optimizedPhotos,
+        videoUri: videoUri || null,
+      });
       if (oversized?.kind === 'photo') {
         throw new Error(
           t('createPetFeedPost.errors.photoTooLarge', {
@@ -518,9 +611,15 @@ export function CreatePetFeedPostScreen({
           }),
         );
       }
-      await onSubmit(payload, { photoUris: optimizedPhotos, videoUri });
+      await onSubmit(payload, {
+        photoUris: optimizedPhotos,
+        videoUri: videoUri || undefined,
+        listThumbUri,
+      });
+      setReviewOpen(false);
     } catch (error: unknown) {
-      Alert.alert(t('createPetFeedPost.submitFailed'), mediaErrorMessage(error));
+      const failTitle = status === 'draft' ? t('createPetFeedPost.draftSaveFailed') : t('createPetFeedPost.submitFailed');
+      Alert.alert(failTitle, mediaErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -672,37 +771,33 @@ export function CreatePetFeedPostScreen({
         >
           <Text className="mb-3 text-base font-bold text-slate-900">{t('createPetFeedPost.mediaSection')}</Text>
           {isEditingDraft ? (
-            <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.mediaLockedNote')}</Text>
+            <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.draftMediaHint')}</Text>
           ) : (
             <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.mediaHint')}</Text>
           )}
           <View onLayout={(event) => markFieldOffset('photos', event.nativeEvent.layout.y)}>
-            {!isEditingDraft ? (
-              <Pressable
-                className={`flex-row items-center justify-center gap-2 rounded-xl border border-dashed py-3 active:opacity-80 ${
-                  fieldErrors.photos ? 'border-red-400 bg-red-50' : 'border-blue-300 bg-blue-50'
-                }`}
-                onPress={pickPhotos}
-              >
-                <Ionicons name="images-outline" size={18} color={fieldErrors.photos ? '#dc2626' : PRIMARY} />
-                <Text className={`text-sm font-bold ${fieldErrors.photos ? 'text-red-600' : 'text-blue-700'}`}>
-                  {t('createPetFeedPost.pickPhotos', { count: photoUris.length, max: MAX_PHOTOS })}
-                </Text>
-              </Pressable>
-            ) : null}
+            <Pressable
+              className={`flex-row items-center justify-center gap-2 rounded-xl border border-dashed py-3 active:opacity-80 ${
+                fieldErrors.photos ? 'border-red-400 bg-red-50' : 'border-blue-300 bg-blue-50'
+              }`}
+              onPress={pickPhotos}
+            >
+              <Ionicons name="images-outline" size={18} color={fieldErrors.photos ? '#dc2626' : PRIMARY} />
+              <Text className={`text-sm font-bold ${fieldErrors.photos ? 'text-red-600' : 'text-blue-700'}`}>
+                {t('createPetFeedPost.pickPhotos', { count: photoUris.length, max: MAX_PHOTOS })}
+              </Text>
+            </Pressable>
             {photoUris.length > 0 ? (
-              <View className={`flex-row flex-wrap gap-2 ${isEditingDraft ? '' : 'mt-3'}`}>
+              <View className="mt-3 flex-row flex-wrap gap-2">
                 {photoUris.map((uri, index) => (
                   <View key={`${uri}-${index}`} className="relative h-20 w-20 overflow-hidden rounded-xl bg-slate-100">
                     <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
-                    {!isEditingDraft ? (
-                      <Pressable
-                        className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1"
-                        onPress={() => setPhotoUris((current) => current.filter((_, i) => i !== index))}
-                      >
-                        <Ionicons name="close" size={14} color="#fff" />
-                      </Pressable>
-                    ) : null}
+                    <Pressable
+                      className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1"
+                      onPress={() => setPhotoUris((current) => current.filter((_, i) => i !== index))}
+                    >
+                      <Ionicons name="close" size={14} color="#fff" />
+                    </Pressable>
                   </View>
                 ))}
               </View>
@@ -710,36 +805,30 @@ export function CreatePetFeedPostScreen({
             {fieldErrors.photos ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.photos}</Text> : null}
           </View>
           <View onLayout={(event) => markFieldOffset('video', event.nativeEvent.layout.y)}>
-            {!isEditingDraft ? (
-              <>
-                <Pressable
-                  className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-dashed py-3 active:opacity-80 ${
-                    fieldErrors.video ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
-                  }`}
-                  onPress={pickVideo}
-                >
-                  <Ionicons
-                    name={videoUri ? 'videocam' : 'videocam-outline'}
-                    size={18}
-                    color={fieldErrors.video ? '#dc2626' : videoUri ? PRIMARY : '#64748b'}
-                  />
-                  <Text
-                    className={`text-sm font-bold ${
-                      fieldErrors.video ? 'text-red-600' : videoUri ? 'text-blue-700' : 'text-slate-600'
-                    }`}
-                  >
-                    {videoUri ? t('createPetFeedPost.videoSelected') : t('createPetFeedPost.pickVideo')}
-                  </Text>
-                </Pressable>
-                {fieldErrors.video ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.video}</Text> : null}
-                {videoUri ? (
-                  <Pressable className="mt-2 self-start active:opacity-80" onPress={() => setVideoUri('')}>
-                    <Text className="text-sm font-bold text-red-600">{t('createPetFeedPost.removeVideo')}</Text>
-                  </Pressable>
-                ) : null}
-              </>
-            ) : videoUri ? (
-              <Text className="mt-3 text-sm font-semibold text-slate-600">{t('createPetFeedPost.videoSelected')}</Text>
+            <Pressable
+              className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-dashed py-3 active:opacity-80 ${
+                fieldErrors.video ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
+              }`}
+              onPress={pickVideo}
+            >
+              <Ionicons
+                name={videoUri ? 'videocam' : 'videocam-outline'}
+                size={18}
+                color={fieldErrors.video ? '#dc2626' : videoUri ? PRIMARY : '#64748b'}
+              />
+              <Text
+                className={`text-sm font-bold ${
+                  fieldErrors.video ? 'text-red-600' : videoUri ? 'text-blue-700' : 'text-slate-600'
+                }`}
+              >
+                {videoUri ? t('createPetFeedPost.videoSelected') : t('createPetFeedPost.pickVideo')}
+              </Text>
+            </Pressable>
+            {fieldErrors.video ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.video}</Text> : null}
+            {videoUri ? (
+              <Pressable className="mt-2 self-start active:opacity-80" onPress={() => setVideoUri('')}>
+                <Text className="text-sm font-bold text-red-600">{t('createPetFeedPost.removeVideo')}</Text>
+              </Pressable>
             ) : null}
           </View>
         </View>
@@ -765,7 +854,18 @@ export function CreatePetFeedPostScreen({
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder="Facebook URL" value={facebook} onChangeText={setFacebook} />
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder="Zalo" value={zalo} onChangeText={setZalo} />
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder={t('breederProfile.phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-          <Pressable testID="create-pet-feed-post-review-button" className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90" onPress={openReview}>
+          {!isAdmin ? (
+            <Pressable
+              testID="create-pet-feed-post-save-draft-button"
+              className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"
+              onPress={saveDraftFromForm}
+              disabled={submitting}
+            >
+              {submitting ? <ActivityIndicator color={PRIMARY} /> : <Ionicons name="document-outline" size={18} color={PRIMARY} />}
+              <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('createPetFeedPost.saveDraft')}</Text>
+            </Pressable>
+          ) : null}
+          <Pressable testID="create-pet-feed-post-review-button" className={`${isAdmin ? 'mt-4' : 'mt-3'} flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90`} onPress={openReview} disabled={submitting}>
             <Ionicons name="eye-outline" size={18} color="#fff" />
             <Text className="text-sm font-bold text-white">{t('createPetFeedPost.review')}</Text>
           </Pressable>
@@ -786,7 +886,7 @@ export function CreatePetFeedPostScreen({
             </Pressable>
             {!isAdmin ? (
               <Pressable
-                testID="create-pet-feed-post-save-draft-button"
+                testID="create-pet-feed-post-review-save-draft-button"
                 className="mb-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"
                 onPress={() => void submit('draft')}
                 disabled={submitting}

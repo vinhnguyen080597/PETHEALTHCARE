@@ -224,10 +224,12 @@ function toListPost(row, favoriteIds = new Set(), profilesById = new Map()) {
   const post = toPost(row, favoriteIds, profilesById);
   if (!post) return post;
   const media = Array.isArray(post.media_urls) ? post.media_urls.filter(Boolean) : [];
+  const listThumb =
+    post.metadata && typeof post.metadata.list_thumb_url === 'string' ? post.metadata.list_thumb_url.trim() : '';
   const profile = post.breeder_profile;
   return {
     ...post,
-    media_urls: media.slice(0, 1),
+    media_urls: listThumb ? [listThumb] : media.slice(0, 1),
     media_count: media.length,
     description: typeof post.description === 'string' ? post.description.slice(0, 280) : post.description,
     breeder_profile: profile
@@ -488,6 +490,29 @@ export async function createPetFeedPost(userId, payload, accessToken, _options =
   return toPost(data);
 }
 
+/** Count listing posts with video created by the user since `sinceIso` (inclusive). */
+export async function countMyPetFeedVideoListingsSince(userId, sinceIso, accessToken) {
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    return memoryPosts.filter(
+      (post) =>
+        post.user_id === userId
+        && post.post_kind === 'listing'
+        && Boolean(post.video_url)
+        && String(post.created_at || '') >= sinceIso,
+    ).length;
+  }
+  const { count, error } = await supabase
+    .from('pet_feed_posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('post_kind', 'listing')
+    .not('video_url', 'is', null)
+    .gte('created_at', sinceIso);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function createAnnouncementPost(userId, payload, accessToken) {
   const title = trimText(payload.title, 120);
   const description = trimText(payload.description, 2000);
@@ -530,6 +555,7 @@ export async function createAnnouncementPost(userId, payload, accessToken) {
       ctaLabel: trimText(payload.ctaLabel ?? payload.cta_label, 80),
       ctaUrl: trimText(payload.ctaUrl ?? payload.cta_url, 500),
       authorLabel: 'Pet Health Care',
+      ...normalizeJsonObject(payload.metadata),
     },
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

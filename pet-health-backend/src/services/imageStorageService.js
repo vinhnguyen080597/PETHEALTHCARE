@@ -45,6 +45,19 @@ function parseStorageUri(value) {
   };
 }
 
+function mapStorageUploadError(error) {
+  const text = String(error?.message || error?.error || error || '');
+  if (/exceeded the maximum allowed size|EntityTooLarge|Payload too large|maximum allowed size/i.test(text)) {
+    const mapped = new Error(
+      'Uploaded file is too large for storage. Use a shorter/lower-quality video (max 50MB) or a smaller photo.',
+    );
+    mapped.status = 400;
+    mapped.code = 'MEDIA_TOO_LARGE';
+    return mapped;
+  }
+  return error;
+}
+
 async function uploadToImageBucket({ accessToken, bucketName, filePath, buffer, contentType, publicRead }) {
   const clients = getSupabaseClientsForImageUpload(accessToken);
   if (clients.length === 0) return null;
@@ -63,11 +76,11 @@ async function uploadToImageBucket({ accessToken, bucketName, filePath, buffer, 
       }
       return storageUri(bucketName, filePath);
     }
-    lastError = error;
+    lastError = mapStorageUploadError(error);
     const canRetry = isStorageRlsError(error) && i < clients.length - 1;
-    if (!canRetry) throw error;
+    if (!canRetry) throw lastError;
   }
-  throw lastError;
+  throw mapStorageUploadError(lastError);
 }
 
 export async function storeDiagnosisImage({ userId, petId, file, accessToken }) {
@@ -93,6 +106,26 @@ export async function storeDiagnosisImage({ userId, petId, file, accessToken }) 
 export async function storePetFeedImage({ userId, file, accessToken }) {
   const extension = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
   const filePath = `${userId}/pet-feed/photos/${Date.now()}-${randomUUID()}.${extension}`;
+  const bucketName = getPublicMediaBucketName();
+
+  const publicUrl = await uploadToImageBucket({
+    accessToken,
+    bucketName,
+    filePath,
+    buffer: file.buffer,
+    contentType: file.mimetype,
+    publicRead: true,
+  });
+  if (publicUrl) return publicUrl;
+
+  memoryImages.set(filePath, file.buffer);
+  return `memory://${bucketName}/${filePath}`;
+}
+
+/** Feed-card thumbs — path `userId/pet-feed/thumbs/...` (must match ownership checks). */
+export async function storePetFeedThumb({ userId, file, accessToken }) {
+  const extension = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
+  const filePath = `${userId}/pet-feed/thumbs/${Date.now()}-${randomUUID()}.${extension}`;
   const bucketName = getPublicMediaBucketName();
 
   const publicUrl = await uploadToImageBucket({
@@ -154,6 +187,84 @@ export async function storePetFeedVideo({ userId, file, accessToken }) {
 
   memoryImages.set(filePath, file.buffer);
   return `memory://${bucketName}/${filePath}`;
+}
+
+const PET_FEED_SIGNED_KINDS = new Set(['photo', 'video', 'thumb']);
+
+function petFeedSignedFolder(kind) {
+  if (kind === 'video') return 'videos';
+  if (kind === 'thumb') return 'thumbs';
+  return 'photos';
+}
+
+function photoExtension(mimetype) {
+  if (mimetype === 'image/png') return 'png';
+  if (mimetype === 'image/webp') return 'webp';
+  return 'jpg';
+}
+
+/**
+ * Mint a short-lived signed upload URL so the client can PUT bytes directly to Supabase Storage.
+ * Requires service role. Returns null when storage is unavailable (caller should fallback to multipart).
+ */
+export async function createPetFeedSignedUpload({ userId, kind, contentType }) {
+  const safeUserId = typeof userId === 'string' ? userId.trim() : '';
+  const safeKind = typeof kind === 'string' ? kind.trim().toLowerCase() : '';
+  const mime = typeof contentType === 'string' ? contentType.trim().toLowerCase() : '';
+  if (!safeUserId || !PET_FEED_SIGNED_KINDS.has(safeKind) || !mime) return null;
+
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return null;
+
+  const isVideo = safeKind === 'video';
+  const extension = isVideo ? videoExtension(mime) : photoExtension(mime);
+  const filePath = `${safeUserId}/pet-feed/${petFeedSignedFolder(safeKind)}/${Date.now()}-${randomUUID()}.${extension}`;
+  const bucketName = getPublicMediaBucketName();
+
+  const { data, error } = await supabase.storage.from(bucketName).createSignedUploadUrl(filePath);
+  if (error || !data?.signedUrl || !data?.token) {
+    throw error ?? new Error('Failed to create signed upload URL');
+  }
+
+  const { data: publicData } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+  return {
+    bucket: bucketName,
+    path: filePath,
+    token: data.token,
+    signedUrl: data.signedUrl,
+    publicUrl: publicData?.publicUrl ?? null,
+    contentType: mime,
+  };
+}
+
+/**
+ * Ensure a public media URL was uploaded under this user's pet-feed path in the public bucket.
+ */
+export function isOwnedPetFeedPublicMediaUrl(userId, url, kind = 'photo') {
+  const safeUserId = typeof userId === 'string' ? userId.trim() : '';
+  const value = typeof url === 'string' ? url.trim() : '';
+  if (!safeUserId || !value) return false;
+
+  const folder = petFeedSignedFolder(kind === 'video' ? 'video' : kind === 'thumb' ? 'thumb' : 'photo');
+  const expectedPrefix = `${safeUserId}/pet-feed/${folder}/`;
+  const bucket = getPublicMediaBucketName();
+
+  if (value.startsWith('memory://')) {
+    const rest = value.slice('memory://'.length);
+    return rest === `${bucket}/${expectedPrefix}` || rest.startsWith(`${bucket}/${expectedPrefix}`);
+  }
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = parsed.pathname.indexOf(marker);
+    if (idx < 0) return false;
+    const objectPath = decodeURIComponent(parsed.pathname.slice(idx + marker.length));
+    return objectPath.startsWith(expectedPrefix);
+  } catch {
+    return false;
+  }
 }
 
 /** Pet profile photos — same bucket, path `userId/avatars/...` (public URL for `avatar_url`). */

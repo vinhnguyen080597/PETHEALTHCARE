@@ -4,6 +4,7 @@ import { requireAnyRole, requireUser } from '../middleware/auth.js';
 import {
   blockBreederProfile,
   cancelMyBreederVerificationRequest,
+  countMyPetFeedVideoListingsSince,
   createAnnouncementPost,
   createPetFeedPost,
   favoritePetFeedPost,
@@ -22,13 +23,21 @@ import {
   upsertMyBreederProfile,
 } from '../repositories/petFeedRepository.js';
 import {
+  PET_FEED_LIST_THUMB_MAX_BYTES,
   PET_FEED_PHOTO_MAX_BYTES,
   PET_FEED_UPLOAD_MAX_BYTES,
+  PET_FEED_VIDEO_LISTINGS_PER_MONTH,
   PET_FEED_VIDEO_MAX_BYTES,
   petFeedPhotoMaxLabel,
   petFeedVideoMaxLabel,
 } from '../constants/petFeedMediaLimits.js';
-import { storePetFeedImage, storePetFeedVideo } from '../services/imageStorageService.js';
+import {
+  createPetFeedSignedUpload,
+  isOwnedPetFeedPublicMediaUrl,
+  storePetFeedImage,
+  storePetFeedThumb,
+  storePetFeedVideo,
+} from '../services/imageStorageService.js';
 import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 const router = Router();
@@ -62,19 +71,11 @@ function badMedia(message, code) {
   return err;
 }
 
-function validatePetFeedMedia({ payload, photos, video }) {
-  const clientMediaUrls = Array.isArray(payload.mediaUrls ?? payload.media_urls)
-    ? (payload.mediaUrls ?? payload.media_urls).filter(Boolean)
-    : [];
-  const clientVideoUrl = typeof (payload.videoUrl ?? payload.video_url) === 'string' && (payload.videoUrl ?? payload.video_url).trim();
-  if (clientMediaUrls.length > 0 || clientVideoUrl) {
-    throw badMedia('Pet Feed media must be uploaded as files for review.', 'PET_FEED_MEDIA_UPLOAD_REQUIRED');
-  }
-
-  if (photos.length === 0) {
+function validateUploadedFiles({ photos, video }, { requireComplete = true } = {}) {
+  if (requireComplete && photos.length === 0) {
     throw badMedia('Please upload at least one clear photo for the Pet Feed post.', 'PET_FEED_PHOTO_REQUIRED');
   }
-  if (!video) {
+  if (requireComplete && !video) {
     throw badMedia('Please upload one short video for the Pet Feed post.', 'PET_FEED_VIDEO_REQUIRED');
   }
   for (const photo of photos) {
@@ -96,9 +97,47 @@ function validatePetFeedMedia({ payload, photos, video }) {
       throw badMedia('Video is too small or empty. Please upload a real clip.', 'PET_FEED_VIDEO_TOO_SMALL');
     }
     if (video.size > PET_FEED_VIDEO_MAX_BYTES) {
-      throw badMedia(`Video is too large. Please use a short clip under ${petFeedVideoMaxLabel()}.`, 'PET_FEED_VIDEO_TOO_LARGE');
+      throw badMedia(`Video is too large. Please use a clip under ${petFeedVideoMaxLabel()}.`, 'PET_FEED_VIDEO_TOO_LARGE');
     }
   }
+}
+
+function validateDirectMediaUrls(userId, payload, { requireComplete = true } = {}) {
+  const mediaUrls = Array.isArray(payload.mediaUrls ?? payload.media_urls)
+    ? (payload.mediaUrls ?? payload.media_urls).map((item) => (typeof item === 'string' ? item.trim() : '')).filter(Boolean)
+    : [];
+  const videoUrlRaw = payload.videoUrl ?? payload.video_url;
+  const videoUrl = typeof videoUrlRaw === 'string' ? videoUrlRaw.trim() : '';
+  const metadata = payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {};
+  const listThumbUrl = typeof metadata.list_thumb_url === 'string' ? metadata.list_thumb_url.trim() : '';
+  const videoPosterUrl = typeof metadata.video_poster_url === 'string' ? metadata.video_poster_url.trim() : '';
+
+  if (requireComplete && mediaUrls.length === 0) {
+    throw badMedia('Please upload at least one clear photo for the Pet Feed post.', 'PET_FEED_PHOTO_REQUIRED');
+  }
+  if (requireComplete && !videoUrl) {
+    throw badMedia('Please upload one short video for the Pet Feed post.', 'PET_FEED_VIDEO_REQUIRED');
+  }
+  for (const url of mediaUrls) {
+    if (!isOwnedPetFeedPublicMediaUrl(userId, url, 'photo')) {
+      throw badMedia('Invalid photo upload URL.', 'PET_FEED_MEDIA_URL_INVALID');
+    }
+  }
+  if (videoUrl && !isOwnedPetFeedPublicMediaUrl(userId, videoUrl, 'video')) {
+    throw badMedia('Invalid video upload URL.', 'PET_FEED_MEDIA_URL_INVALID');
+  }
+  if (listThumbUrl && !isOwnedPetFeedPublicMediaUrl(userId, listThumbUrl, 'thumb') && !isOwnedPetFeedPublicMediaUrl(userId, listThumbUrl, 'photo')) {
+    throw badMedia('Invalid thumbnail upload URL.', 'PET_FEED_MEDIA_URL_INVALID');
+  }
+  if (videoPosterUrl && !isOwnedPetFeedPublicMediaUrl(userId, videoPosterUrl, 'thumb') && !isOwnedPetFeedPublicMediaUrl(userId, videoPosterUrl, 'photo')) {
+    throw badMedia('Invalid video poster upload URL.', 'PET_FEED_MEDIA_URL_INVALID');
+  }
+  return { mediaUrls, videoUrl: videoUrl || null, listThumbUrl, videoPosterUrl };
+}
+
+function isDraftStatus(payload) {
+  const status = typeof payload?.status === 'string' ? payload.status.trim().toLowerCase() : '';
+  return status === 'draft';
 }
 
 function cleanId(value) {
@@ -142,7 +181,7 @@ function validateAnnouncementMedia({ photos, video }) {
       throw badMedia('Video is too small or empty. Please upload a real clip.', 'PET_FEED_VIDEO_TOO_SMALL');
     }
     if (video.size > PET_FEED_VIDEO_MAX_BYTES) {
-      throw badMedia(`Video is too large. Please use a short clip under ${petFeedVideoMaxLabel()}.`, 'PET_FEED_VIDEO_TOO_LARGE');
+      throw badMedia(`Video is too large. Please use a clip under ${petFeedVideoMaxLabel()}.`, 'PET_FEED_VIDEO_TOO_LARGE');
     }
   }
 }
@@ -221,6 +260,88 @@ router.get('/posts/:postId', async (req, res, next) => {
   }
 });
 
+router.post('/uploads/sign', requireAnyRole('breeder', 'admin'), async (req, res, next) => {
+  try {
+    const kindRaw = typeof req.body?.kind === 'string' ? req.body.kind.trim().toLowerCase() : '';
+    const contentType = typeof req.body?.contentType === 'string' ? req.body.contentType.trim().toLowerCase() : '';
+    const kind = kindRaw === 'video' || kindRaw === 'thumb' ? kindRaw : kindRaw === 'photo' ? 'photo' : '';
+    if (!kind) {
+      return res.status(400).json({ error: 'kind must be photo, video, or thumb', code: 'INVALID_UPLOAD_KIND' });
+    }
+    const allowedMimes = kind === 'video' ? SUPPORTED_VIDEO_MIMES : SUPPORTED_IMAGE_MIMES;
+    if (!allowedMimes.has(contentType)) {
+      return res.status(400).json({
+        error: kind === 'video' ? 'Unsupported video type. Use MP4, MOV, WebM, or 3GP.' : 'Unsupported photo type. Use JPEG, PNG, or WebP.',
+        code: kind === 'video' ? 'PET_FEED_UNSUPPORTED_VIDEO' : 'PET_FEED_UNSUPPORTED_PHOTO',
+      });
+    }
+    const maxBytes =
+      kind === 'video' ? PET_FEED_VIDEO_MAX_BYTES : kind === 'thumb' ? PET_FEED_LIST_THUMB_MAX_BYTES : PET_FEED_PHOTO_MAX_BYTES;
+    const signed = await createPetFeedSignedUpload({
+      userId: req.user.id,
+      kind,
+      contentType,
+    });
+    if (!signed?.signedUrl || !signed?.publicUrl) {
+      return res.status(503).json({
+        error: 'Direct storage upload is unavailable. Retry later or use multipart upload.',
+        code: 'STORAGE_SIGNED_UPLOAD_UNAVAILABLE',
+      });
+    }
+    return res.status(201).json({
+      data: {
+        ...signed,
+        maxBytes,
+        kind,
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/** Reliable device upload path: client → API → Supabase (service role). */
+router.post('/uploads/file', requireAnyRole('breeder', 'admin'), petFeedUpload.single('file'), async (req, res, next) => {
+  try {
+    const kindRaw = typeof req.body?.kind === 'string' ? req.body.kind.trim().toLowerCase() : '';
+    const kind = kindRaw === 'video' || kindRaw === 'thumb' ? kindRaw : 'photo';
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'file is required', code: 'PET_FEED_FILE_REQUIRED' });
+    }
+    if (kind === 'video') {
+      if (!SUPPORTED_VIDEO_MIMES.has(file.mimetype)) {
+        return res.status(400).json({ error: 'Unsupported video type.', code: 'PET_FEED_UNSUPPORTED_VIDEO' });
+      }
+      if (file.size > PET_FEED_VIDEO_MAX_BYTES) {
+        return res.status(400).json({
+          error: `Video is too large. Please use a clip under ${petFeedVideoMaxLabel()}.`,
+          code: 'PET_FEED_VIDEO_TOO_LARGE',
+        });
+      }
+      const publicUrl = await storePetFeedVideo({ userId: req.user.id, file, accessToken: req.accessToken });
+      return res.status(201).json({ data: { publicUrl, kind } });
+    }
+    if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
+      return res.status(400).json({ error: 'Unsupported photo type.', code: 'PET_FEED_UNSUPPORTED_PHOTO' });
+    }
+    const maxBytes = kind === 'thumb' ? PET_FEED_LIST_THUMB_MAX_BYTES : PET_FEED_PHOTO_MAX_BYTES;
+    if (file.size > maxBytes) {
+      return res.status(400).json({
+        error: `Photo is too large. Please use photos under ${petFeedPhotoMaxLabel()}.`,
+        code: 'PET_FEED_PHOTO_TOO_LARGE',
+      });
+    }
+    const publicUrl =
+      kind === 'thumb'
+        ? await storePetFeedThumb({ userId: req.user.id, file, accessToken: req.accessToken })
+        : await storePetFeedImage({ userId: req.user.id, file, accessToken: req.accessToken });
+    return res.status(201).json({ data: { publicUrl, kind } });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.post('/posts', requireAnyRole('breeder'), petFeedUpload.fields([
   { name: 'photos', maxCount: 6 },
   { name: 'video', maxCount: 1 },
@@ -229,20 +350,54 @@ router.post('/posts', requireAnyRole('breeder'), petFeedUpload.fields([
     const payload = parsePostPayload(req.body);
     const photos = Array.isArray(req.files?.photos) ? req.files.photos : [];
     const video = Array.isArray(req.files?.video) ? req.files.video[0] : null;
-    validatePetFeedMedia({ payload, photos, video });
+    const hasFiles = photos.length > 0 || Boolean(video);
+    const draft = isDraftStatus(payload);
 
-    const uploadedPhotoUrls = [];
-    for (const photo of photos) {
-      uploadedPhotoUrls.push(await storePetFeedImage({ userId: req.user.id, file: photo, accessToken: req.accessToken }));
+    let postPayload;
+    if (hasFiles) {
+      validateUploadedFiles({ photos, video }, { requireComplete: !draft });
+      const uploadedPhotoUrls = [];
+      for (const photo of photos) {
+        uploadedPhotoUrls.push(await storePetFeedImage({ userId: req.user.id, file: photo, accessToken: req.accessToken }));
+      }
+      const uploadedVideoUrl = video
+        ? await storePetFeedVideo({ userId: req.user.id, file: video, accessToken: req.accessToken })
+        : '';
+      postPayload = {
+        ...payload,
+        mediaUrls: uploadedPhotoUrls,
+        videoUrl: uploadedVideoUrl || null,
+      };
+    } else if (hasClientProvidedMediaReferences(payload) || draft) {
+      const validated = validateDirectMediaUrls(req.user.id, payload, { requireComplete: !draft });
+      const metadata = {
+        ...(payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {}),
+      };
+      if (validated.listThumbUrl) metadata.list_thumb_url = validated.listThumbUrl;
+      if (validated.videoPosterUrl) metadata.video_poster_url = validated.videoPosterUrl;
+      postPayload = {
+        ...payload,
+        mediaUrls: validated.mediaUrls,
+        videoUrl: validated.videoUrl,
+        metadata,
+      };
+    } else {
+      throw badMedia('Please upload at least one clear photo and one short video for the Pet Feed post.', 'PET_FEED_MEDIA_UPLOAD_REQUIRED');
     }
-    const uploadedVideoUrl = video
-      ? await storePetFeedVideo({ userId: req.user.id, file: video, accessToken: req.accessToken })
-      : '';
-    const postPayload = {
-      ...payload,
-      mediaUrls: uploadedPhotoUrls,
-      videoUrl: uploadedVideoUrl || null,
-    };
+
+    // Quota only when submitting for review / publish with a video (not private drafts without going live).
+    if (postPayload.videoUrl && !draft) {
+      const monthStart = new Date();
+      monthStart.setUTCDate(1);
+      monthStart.setUTCHours(0, 0, 0, 0);
+      const used = await countMyPetFeedVideoListingsSince(req.user.id, monthStart.toISOString(), req.accessToken);
+      if (used >= PET_FEED_VIDEO_LISTINGS_PER_MONTH) {
+        return res.status(429).json({
+          error: `Monthly video listing limit reached (${PET_FEED_VIDEO_LISTINGS_PER_MONTH}).`,
+          code: 'PET_FEED_VIDEO_QUOTA_EXCEEDED',
+        });
+      }
+    }
 
     const post = await createPetFeedPost(req.user.id, postPayload, req.accessToken);
     void recordProductEvent({
@@ -311,13 +466,47 @@ router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) =
   try {
     const postId = cleanId(req.params.postId);
     if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    if (hasClientProvidedMediaReferences(req.body ?? {})) {
-      return res.status(400).json({
-        error: 'Pet Feed media changes must be uploaded as files for review.',
-        code: 'PET_FEED_MEDIA_UPLOAD_REQUIRED',
-      });
+    const existing = await getPetFeedPost(req.user.id, postId, req.accessToken);
+    if (!existing || existing.user_id !== req.user.id) {
+      return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
     }
-    const post = await updatePetFeedPost(req.user.id, postId, req.body ?? {}, req.accessToken);
+
+    const body = req.body ?? {};
+    const nextStatus = typeof body.status === 'string' ? body.status.trim().toLowerCase() : '';
+    const submittingForReview = nextStatus === 'pending_review';
+    let updatePayload = { ...body };
+
+    if (hasClientProvidedMediaReferences(body)) {
+      if (existing.status !== 'draft') {
+        return res.status(400).json({
+          error: 'Pet Feed media changes must be uploaded as files for review.',
+          code: 'PET_FEED_MEDIA_UPLOAD_REQUIRED',
+        });
+      }
+      const validated = validateDirectMediaUrls(req.user.id, body, { requireComplete: submittingForReview });
+      const metadata = {
+        ...(existing.metadata && typeof existing.metadata === 'object' ? existing.metadata : {}),
+        ...(body.metadata && typeof body.metadata === 'object' ? body.metadata : {}),
+      };
+      if (validated.listThumbUrl) metadata.list_thumb_url = validated.listThumbUrl;
+      if (validated.videoPosterUrl) metadata.video_poster_url = validated.videoPosterUrl;
+      updatePayload = {
+        ...updatePayload,
+        mediaUrls: validated.mediaUrls,
+        videoUrl: validated.videoUrl,
+        metadata,
+      };
+    } else if (submittingForReview) {
+      const media = Array.isArray(existing.media_urls) ? existing.media_urls.filter(Boolean) : [];
+      if (media.length === 0 || !existing.video_url) {
+        return res.status(400).json({
+          error: 'Add at least one photo and one video before submitting for review.',
+          code: 'PET_FEED_MEDIA_UPLOAD_REQUIRED',
+        });
+      }
+    }
+
+    const post = await updatePetFeedPost(req.user.id, postId, updatePayload, req.accessToken);
     if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
     return res.json({ data: post });
   } catch (err) {

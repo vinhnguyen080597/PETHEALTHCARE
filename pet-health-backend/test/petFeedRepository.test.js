@@ -68,6 +68,28 @@ test('getPetFeedPost returns full media while list page stays slim', async () =>
   assert.equal(detail.description, longDescription);
 });
 
+test('list page prefers metadata.list_thumb_url when present', async () => {
+  const userId = `thumb-user-${Date.now()}`;
+  const mediaUrls = [
+    'https://cdn.example/pet-feed/photo-full.jpg',
+    'https://cdn.example/pet-feed/photo-2.jpg',
+  ];
+  const listThumb = 'https://cdn.example/pet-feed/thumb-720.jpg';
+  const created = await createAnnouncementPost(userId, {
+    title: 'Thumb announcement',
+    description: 'Has list thumb',
+    category: 'general',
+    mediaUrls,
+    metadata: { list_thumb_url: listThumb },
+  }, null);
+
+  const listPage = await listPublishedPetFeedPostPage(userId, null, { limit: 50, kind: 'announcement' });
+  const listItem = listPage.data.find((post) => post.id === created.id);
+  assert.ok(listItem);
+  assert.deepEqual(listItem.media_urls, [listThumb]);
+  assert.equal(listItem.media_count, 2);
+});
+
 test('cancelMyBreederVerificationRequest withdraws pending requests only', async () => {
   const userId = `cancel-breeder-${Date.now()}`;
   const pending = await upsertMyBreederProfile(userId, {

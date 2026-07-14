@@ -430,7 +430,8 @@
       "editDraft": "Edit",
       "submitDraft": "Submit for review",
       "submitDraftSuccess": "Draft submitted for review.",
-      "submitDraftFailed": "Could not submit draft."
+      "submitDraftFailed": "Could not submit draft.",
+      "submitDraftMediaRequired": "Add at least one photo and one video before submitting this draft."
     },
     "vetSummary": "Veterinarian features are planned for educational content and care-record review, not medical decisions inside the app.",
     "roleRequiredTitle": "Role required",
@@ -609,7 +610,7 @@
     "basicInfo": "Basic information",
     "basicInfoRequiredHint": "All fields in this section are required.",
     "mediaSection": "Photos & video",
-    "mediaHint": "Each listing needs at least 1 clear photo and 1 short video (≤15s). Photos max 25MB, videos max 50MB — prefer 720p clips so upload succeeds.",
+    "mediaHint": "Submitting for review needs at least 1 clear photo and 1 video (up to 3 minutes, ≤50MB). Saving a draft only needs a title — add media later.",
     "careInfo": "Care & documents",
     "descriptionAndContact": "Description & contact",
     "postTitle": "Listing title",
@@ -636,12 +637,14 @@
     "edit": "Back to edit",
     "publish": "Publish",
     "saveDraft": "Save draft",
-    "draftSaved": "Draft saved. You can edit or submit it later from My listings.",
+    "draftSaved": "Draft saved for you. It was not submitted for review — edit or submit later from My listings.",
+    "draftSaveFailed": "Could not save draft",
     "submit": "Submit for review",
     "submitFailed": "Could not submit listing",
     "previewUntitled": "Untitled listing",
     "editDraftTitle": "Edit draft",
     "mediaLockedNote": "Photos/video are saved with this draft. To change media, create a new listing.",
+    "draftMediaHint": "You can add or change photos/video while editing this draft. Title is enough to save a draft — photo + video are required only when submitting for review.",
     "errors": {
       "titleRequired": "Please enter a listing title.",
       "breedRequired": "Please select a breed.",
@@ -651,9 +654,10 @@
       "priceRequired": "Please enter a price or price note.",
       "photoRequired": "Please upload at least 1 clear photo.",
       "videoRequired": "Please upload 1 short video.",
-      "photoTooLarge": "Photo {{index}} is too large ({{size}}). Please choose a photo under 25MB.",
-      "videoTooLarge": "Video is too large ({{size}}). Limit is 50MB — pick a ≤15s clip at 720p/Medium quality.",
-      "mediaTooLarge": "A media file is too large. Photos max 25MB, videos max 50MB. Choose a shorter or lower-quality clip and try again."
+      "photoTooLarge": "Photo {{index}} is too large ({{size}}). Please choose a photo under 8MB (the app will compress when possible).",
+      "videoTooLarge": "Video is too large ({{size}}). Limit is 50MB — pick a ≤3 min clip at 720p.",
+      "videoTooLong": "Video is longer than {{seconds}} seconds (max 3 minutes).",
+      "mediaTooLarge": "A media file is too large for storage. Photos max 8MB after compress, videos max 50MB. Choose a shorter clip or lower quality and try again."
     },
     "options": {
       "species": {

@@ -251,7 +251,10 @@ function PetFeedPostCardComponent({
           >
             {mediaItems.map((item, index) => {
               const active = index === selectedMediaIndex;
-              const posterUri = item.type === 'image' ? item.uri : post.media_urls[0];
+              const posterFromMeta =
+                typeof post.metadata?.video_poster_url === 'string' ? post.metadata.video_poster_url.trim() : '';
+              const posterUri =
+                item.type === 'image' ? item.uri : posterFromMeta || post.media_urls[0];
               return (
                 <Pressable
                   key={`${item.type}-${item.uri}-${index}`}

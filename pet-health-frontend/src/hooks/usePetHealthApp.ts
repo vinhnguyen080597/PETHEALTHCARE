@@ -74,6 +74,7 @@ import {
   updateAdminBreederProfileStatus,
   updateAdminPetFeedPostStatus,
   updateAdminPetFeedReportStatus,
+  updateMyPetFeedDraft,
   updateMyPetFeedPost,
   updatePet,
   unfavoritePetFeedPost,
@@ -1894,9 +1895,13 @@ export function usePetHealthApp() {
     setScreen(createPetFeedReturnScreen);
   }
 
-  async function updatePetFeedDraft(postId: string, payload: CreatePetFeedPostPayload) {
+  async function updatePetFeedDraft(
+    postId: string,
+    payload: CreatePetFeedPostPayload,
+    media?: CreatePetFeedPostMedia,
+  ) {
     if (!token) return;
-    await updateMyPetFeedPost(token, postId, payload);
+    await updateMyPetFeedDraft(token, postId, payload, media);
     const postsRes = await listMyPetFeedPosts(token);
     setMyPetFeedPosts(postsRes.data);
     setEditingPetFeedPost(null);
@@ -1910,6 +1915,14 @@ export function usePetHealthApp() {
 
   async function submitPetFeedDraftForReview(post: PetFeedPost) {
     if (!token || post.status !== 'draft') return;
+    const mediaCount = Array.isArray(post.media_urls) ? post.media_urls.filter(Boolean).length : 0;
+    if (mediaCount === 0 || !post.video_url) {
+      Alert.alert(
+        i18n.t('account.breederPosts.submitDraftFailed'),
+        i18n.t('account.breederPosts.submitDraftMediaRequired'),
+      );
+      return;
+    }
     try {
       await updateMyPetFeedPost(token, post.id, {
         title: post.title,
