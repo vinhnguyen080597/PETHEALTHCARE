@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { AccountProfile, AdminCreateAccountPayload, AdminUpdateAccountPayload, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 
@@ -20,6 +20,14 @@ type AdminReviewScreenProps = {
 
 const ROLE_OPTIONS: UserRole[] = ['sen', 'breeder', 'admin', 'vet'];
 const BREEDER_REVIEW_STATUSES = ['pending_review', 'verified', 'rejected', 'suspended', 'unverified'] as const;
+
+function notifyUser(title: string, message: string) {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.alert(message ? `${title}\n\n${message}` : title);
+    return;
+  }
+  Alert.alert(title, message);
+}
 
 export function AdminReviewScreen({
   accounts,
@@ -51,7 +59,7 @@ export function AdminReviewScreen({
       await onLoad();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
-      Alert.alert(t('adminReview.loadFailed'), message);
+      notifyUser(t('adminReview.loadFailed'), message);
     } finally {
       setLoading(false);
     }
@@ -66,7 +74,7 @@ export function AdminReviewScreen({
       setNewDisplayName('');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
-      Alert.alert(t('adminReview.updateFailed'), message);
+      notifyUser(t('adminReview.updateFailed'), message);
     } finally {
       setLoading(false);
     }
@@ -78,7 +86,7 @@ export function AdminReviewScreen({
       await onUpdateAccount(userId, payload);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
-      Alert.alert(t('adminReview.updateFailed'), message);
+      notifyUser(t('adminReview.updateFailed'), message);
     } finally {
       setLoading(false);
     }
@@ -88,9 +96,18 @@ export function AdminReviewScreen({
     setLoading(true);
     try {
       await onUpdateBreederStatus(userId, status);
+      const successKey =
+        status === 'verified'
+          ? 'adminReview.verifySuccess'
+          : status === 'rejected'
+            ? 'adminReview.rejectSuccess'
+            : status === 'suspended'
+              ? 'adminReview.suspendSuccess'
+              : 'adminReview.updateSuccess';
+      notifyUser(t('adminReview.updateSuccess'), t(successKey));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
-      Alert.alert(t('adminReview.updateFailed'), message);
+      notifyUser(t('adminReview.updateFailed'), message);
     } finally {
       setLoading(false);
     }
@@ -102,7 +119,7 @@ export function AdminReviewScreen({
       await onUpdateStatus(postId, status);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
-      Alert.alert(t('adminReview.updateFailed'), message);
+      notifyUser(t('adminReview.updateFailed'), message);
     } finally {
       setLoading(false);
     }
@@ -114,7 +131,7 @@ export function AdminReviewScreen({
       await onUpdateReportStatus(reportId, status);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
-      Alert.alert(t('adminReview.updateFailed'), message);
+      notifyUser(t('adminReview.updateFailed'), message);
     } finally {
       setLoading(false);
     }
@@ -184,14 +201,29 @@ export function AdminReviewScreen({
               <Text className="mt-1 text-xs text-slate-500">{[profile.location, t(`account.breederRequestStatus.${profile.verification_status}`)].filter(Boolean).join(' • ')}</Text>
               <Text className="mt-2 text-sm leading-5 text-slate-700">{profile.bio}</Text>
               <View className="mt-3 flex-row flex-wrap gap-2">
-                <Pressable className="min-w-[96px] flex-1 rounded-xl bg-emerald-600 py-3" onPress={() => updateBreederStatus(profile.user_id, 'verified')}>
-                  <Text className="text-center text-xs font-bold text-white">{t('adminReview.verify')}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  className="min-w-[96px] flex-1 rounded-xl bg-emerald-600 py-3 active:opacity-90"
+                  style={{ cursor: 'pointer' }}
+                  onPress={() => updateBreederStatus(profile.user_id, 'verified')}
+                >
+                  <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.verify')}</Text>
                 </Pressable>
-                <Pressable className="min-w-[96px] flex-1 rounded-xl bg-amber-600 py-3" onPress={() => updateBreederStatus(profile.user_id, 'rejected')}>
-                  <Text className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  className="min-w-[96px] flex-1 rounded-xl bg-amber-600 py-3 active:opacity-90"
+                  style={{ cursor: 'pointer' }}
+                  onPress={() => updateBreederStatus(profile.user_id, 'rejected')}
+                >
+                  <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
                 </Pressable>
-                <Pressable className="min-w-[96px] flex-1 rounded-xl bg-slate-700 py-3" onPress={() => updateBreederStatus(profile.user_id, 'suspended')}>
-                  <Text className="text-center text-xs font-bold text-white">{t('adminReview.suspend')}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  className="min-w-[96px] flex-1 rounded-xl bg-slate-700 py-3 active:opacity-90"
+                  style={{ cursor: 'pointer' }}
+                  onPress={() => updateBreederStatus(profile.user_id, 'suspended')}
+                >
+                  <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.suspend')}</Text>
                 </Pressable>
               </View>
             </View>

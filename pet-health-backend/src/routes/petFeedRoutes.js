@@ -3,6 +3,7 @@ import multer from 'multer';
 import { requireAnyRole, requireUser } from '../middleware/auth.js';
 import {
   blockBreederProfile,
+  cancelMyBreederVerificationRequest,
   createAnnouncementPost,
   createPetFeedPost,
   favoritePetFeedPost,
@@ -381,6 +382,16 @@ router.put('/breeder-profile/me', async (req, res, next) => {
   try {
     const profile = await upsertMyBreederProfile(req.user.id, req.body ?? {}, req.accessToken);
     void recordProductEvent({ userId: req.user.id, event: 'breeder_profile_upserted', metadata: { status: profile.verification_status } });
+    return res.json({ data: profile });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/breeder-profile/me/cancel', async (req, res, next) => {
+  try {
+    const profile = await cancelMyBreederVerificationRequest(req.user.id, req.accessToken);
+    void recordProductEvent({ userId: req.user.id, event: 'breeder_verification_cancelled', metadata: { status: profile.verification_status } });
     return res.json({ data: profile });
   } catch (err) {
     return next(err);

@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
+import { ReportModal } from '../components/ReportModal';
+import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
+import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, hasBreederContact, metadataArray, metadataString } from '../utils/breederTrust';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
@@ -18,12 +21,12 @@ type BreederDetailScreenProps = {
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
   onReportBreeder: (profile: BreederProfile, reason: string, note?: string) => void;
   onHideBreeder: (profile: BreederProfile) => void;
+  onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
 };
 
 type GenderFilter = 'all' | 'male' | 'female' | 'unknown';
 type SortField = 'date' | 'age' | 'price';
 type SortDirection = 'asc' | 'desc';
-const REPORT_REASONS = ['scam', 'misleading_health_claims', 'abusive_content', 'fake_contact', 'unsafe_transaction'] as const;
 
 function normalizeSearchText(value: string) {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -56,6 +59,7 @@ export function BreederDetailScreen({
   onReportPost,
   onReportBreeder,
   onHideBreeder,
+  onFetchPostDetail,
 }: BreederDetailScreenProps) {
   const { t } = useTranslation();
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
@@ -63,10 +67,10 @@ export function BreederDetailScreen({
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [reportVisible, setReportVisible] = useState(false);
-  const [reportReason, setReportReason] = useState<(typeof REPORT_REASONS)[number]>('scam');
+  const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
   const [reportNote, setReportNote] = useState('');
   const trust = useMemo(() => computeBreederTrust(profile, posts), [profile, posts]);
-  const selectedPost = selectedPostId ? posts.find((post) => post.id === selectedPostId) ?? null : null;
+  const { selectedPost, detailLoading } = usePetFeedPostDetail(selectedPostId, posts, onFetchPostDetail);
   const scaleRange = metadataString(profile.metadata, 'scaleRange');
   const breedingPetRange = metadataString(profile.metadata, 'breedingPetRange');
   const breederType = metadataString(profile.metadata, 'breederType');
@@ -264,50 +268,26 @@ export function BreederDetailScreen({
             autoPlayVideo={false}
             testID={`breeder-detail-post-${selectedPost.id}`}
           />
+        ) : detailLoading ? (
+          <View className="items-center py-16">
+            <ActivityIndicator color={PRIMARY} />
+          </View>
         ) : null}
       </ModalScreenShell>
-      <Modal visible={reportVisible} transparent animationType="fade" onRequestClose={() => setReportVisible(false)}>
-        <View className="flex-1 justify-center bg-black/40 px-5">
-          <View className="rounded-3xl bg-white p-5">
-            <Text className="text-lg font-bold text-slate-900">{t('breederDetail.reportProfile')}</Text>
-            <Text className="mt-1 text-sm leading-5 text-slate-500">{t('breederDetail.reportBody')}</Text>
-            <View className="mt-4 gap-2">
-              {REPORT_REASONS.map((reason) => (
-                <Pressable
-                  key={reason}
-                  accessibilityRole="button"
-                  className={`flex-row items-center justify-between rounded-xl border px-3 py-3 ${
-                    reportReason === reason ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
-                  }`}
-                  onPress={() => setReportReason(reason)}
-                >
-                  <Text className={`text-sm font-semibold ${reportReason === reason ? 'text-blue-700' : 'text-slate-700'}`}>
-                    {t(`breederDetail.reportReasons.${reason}`)}
-                  </Text>
-                  {reportReason === reason ? <Ionicons name="checkmark" size={18} color={PRIMARY} /> : null}
-                </Pressable>
-              ))}
-            </View>
-            <TextInput
-              className="mt-4 min-h-[84px] rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-sm text-slate-900"
-              placeholder={t('breederDetail.reportNotePlaceholder')}
-              placeholderTextColor="#94a3b8"
-              multiline
-              textAlignVertical="top"
-              value={reportNote}
-              onChangeText={setReportNote}
-            />
-            <View className="mt-4 flex-row gap-3">
-              <Pressable className="flex-1 rounded-xl border border-gray-200 py-3" onPress={() => setReportVisible(false)}>
-                <Text className="text-center text-sm font-bold text-slate-700">{t('common.cancel')}</Text>
-              </Pressable>
-              <Pressable className="flex-1 rounded-xl bg-blue-600 py-3" onPress={submitProfileReport}>
-                <Text className="text-center text-sm font-bold text-white">{t('breederDetail.submitReport')}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ReportModal
+        visible={reportVisible}
+        title={t('breederDetail.reportProfile')}
+        body={t('breederDetail.reportBody')}
+        reason={reportReason}
+        note={reportNote}
+        reasonLabel={(reason) => t(`breederDetail.reportReasons.${reason}`)}
+        notePlaceholder={t('breederDetail.reportNotePlaceholder')}
+        submitLabel={t('breederDetail.submitReport')}
+        onChangeReason={setReportReason}
+        onChangeNote={setReportNote}
+        onCancel={() => setReportVisible(false)}
+        onSubmit={submitProfileReport}
+      />
     </View>
   );
 }

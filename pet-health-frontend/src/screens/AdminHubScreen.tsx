@@ -144,14 +144,24 @@ export function AdminHubScreen({
               {breederProfiles.filter((p) => p.verification_status === 'pending_review').map((profile) => (
                 <View key={profile.id} className="rounded-2xl border border-gray-200 bg-white p-4">
                   <Text className="font-bold text-slate-900">{profile.display_name}</Text>
-                  <View className="mt-3 flex-row flex-wrap gap-2">
-                    <Pressable className="min-w-[96px] flex-1 rounded-xl bg-emerald-600 py-3" onPress={() => void onUpdateBreederStatus(profile.user_id, 'verified')}>
-                      <Text className="text-center text-xs font-bold text-white">{t('adminReview.verify')}</Text>
-                    </Pressable>
-                    <Pressable className="min-w-[96px] flex-1 rounded-xl bg-amber-600 py-3" onPress={() => void onUpdateBreederStatus(profile.user_id, 'rejected')}>
-                      <Text className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
-                    </Pressable>
-                  </View>
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                <Pressable
+                  accessibilityRole="button"
+                  className="min-w-[96px] flex-1 rounded-xl bg-emerald-600 py-3 active:opacity-90"
+                  style={{ cursor: 'pointer' }}
+                  onPress={() => void onUpdateBreederStatus(profile.user_id, 'verified')}
+                >
+                  <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.verify')}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  className="min-w-[96px] flex-1 rounded-xl bg-amber-600 py-3 active:opacity-90"
+                  style={{ cursor: 'pointer' }}
+                  onPress={() => void onUpdateBreederStatus(profile.user_id, 'rejected')}
+                >
+                  <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
+                </Pressable>
+              </View>
                 </View>
               ))}
             </View>

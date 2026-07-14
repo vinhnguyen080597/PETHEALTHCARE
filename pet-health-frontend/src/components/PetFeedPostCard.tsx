@@ -2,13 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { memo, useEffect, useState } from 'react';
-import { Alert, Linking, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
+import { ReportModal } from './ReportModal';
 
 const PRIMARY = '#1E6FE8';
-const REPORT_REASONS = ['scam', 'misleading_health_claims', 'abusive_content', 'fake_contact', 'unsafe_transaction'] as const;
 
 type PetFeedMediaItem =
   | { type: 'image'; uri: string }
@@ -208,7 +209,7 @@ function PetFeedPostCardComponent({
   const showActions = showContact || showReport || showHideBreeder;
   const isCompact = variant === 'compact';
   const [reportVisible, setReportVisible] = useState(false);
-  const [reportReason, setReportReason] = useState<(typeof REPORT_REASONS)[number]>('scam');
+  const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
   const [reportNote, setReportNote] = useState('');
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const mediaItems = mediaItemsForPost(post);
@@ -427,8 +428,13 @@ function PetFeedPostCardComponent({
       </View>
       <ReportModal
         visible={reportVisible}
+        title={t('petFeed.reportListing')}
+        body={t('petFeed.reportBody')}
         reason={reportReason}
         note={reportNote}
+        reasonLabel={(item) => t(`petFeed.reportReasons.${item}`)}
+        notePlaceholder={t('petFeed.reportNotePlaceholder')}
+        submitLabel={t('petFeed.submitReport')}
         onChangeReason={setReportReason}
         onChangeNote={setReportNote}
         onCancel={() => setReportVisible(false)}
@@ -439,70 +445,3 @@ function PetFeedPostCardComponent({
 }
 
 export const PetFeedPostCard = memo(PetFeedPostCardComponent);
-
-function ReportModal({
-  visible,
-  reason,
-  note,
-  onChangeReason,
-  onChangeNote,
-  onCancel,
-  onSubmit,
-}: {
-  visible: boolean;
-  reason: (typeof REPORT_REASONS)[number];
-  note: string;
-  onChangeReason: (reason: (typeof REPORT_REASONS)[number]) => void;
-  onChangeNote: (note: string) => void;
-  onCancel: () => void;
-  onSubmit: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View className="flex-1 justify-center bg-black/40 px-5">
-        <View className="rounded-3xl bg-white p-5">
-          <Text className="text-lg font-bold text-slate-900">{t('petFeed.reportListing')}</Text>
-          <Text className="mt-1 text-sm leading-5 text-slate-500">{t('petFeed.reportBody')}</Text>
-          <View className="mt-4 gap-2">
-            {REPORT_REASONS.map((item) => (
-              <Pressable
-                key={item}
-                accessibilityRole="button"
-                accessibilityLabel={t(`petFeed.reportReasons.${item}`)}
-                accessibilityState={{ selected: reason === item }}
-                className={`flex-row items-center justify-between rounded-xl border px-3 py-3 ${
-                  reason === item ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
-                }`}
-                onPress={() => onChangeReason(item)}
-              >
-                <Text className={`text-sm font-semibold ${reason === item ? 'text-blue-700' : 'text-slate-700'}`}>
-                  {t(`petFeed.reportReasons.${item}`)}
-                </Text>
-                {reason === item ? <Ionicons name="checkmark" size={18} color={PRIMARY} /> : null}
-              </Pressable>
-            ))}
-          </View>
-          <TextInput
-            className="mt-4 min-h-[84px] rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-sm text-slate-900"
-            accessibilityLabel={t('petFeed.reportNotePlaceholder')}
-            placeholder={t('petFeed.reportNotePlaceholder')}
-            placeholderTextColor="#94a3b8"
-            multiline
-            textAlignVertical="top"
-            value={note}
-            onChangeText={onChangeNote}
-          />
-          <View className="mt-4 flex-row gap-3">
-            <Pressable accessibilityRole="button" className="flex-1 rounded-xl border border-gray-200 py-3" onPress={onCancel}>
-              <Text className="text-center text-sm font-bold text-slate-700">{t('common.cancel')}</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" className="flex-1 rounded-xl bg-blue-600 py-3" onPress={onSubmit}>
-              <Text className="text-center text-sm font-bold text-white">{t('petFeed.submitReport')}</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}

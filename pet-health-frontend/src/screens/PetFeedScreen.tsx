@@ -28,6 +28,7 @@ import {
 } from '../constants/petFeedTabFlags';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 import { modalTopInset } from '../utils/modalSafeArea';
+import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
 
 const PRIMARY = '#1E6FE8';
 const WEB_SEARCH_INPUT_STYLE =
@@ -67,6 +68,7 @@ type PetFeedScreenProps = {
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
   onHideBreeder: (profile: BreederProfile) => void;
   onOpenBreederDetail: (profileId: string) => void;
+  onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
   enabledTabs?: { news: boolean; feed: boolean; breeders: boolean };
 };
 
@@ -185,6 +187,7 @@ export function PetFeedScreen({
   onReportPost,
   onHideBreeder,
   onOpenBreederDetail,
+  onFetchPostDetail,
   enabledTabs = { news: true, feed: true, breeders: true },
 }: PetFeedScreenProps) {
   const { t } = useTranslation();
@@ -285,7 +288,7 @@ export function PetFeedScreen({
     ));
   }, [searchMatchedAnnouncements, sortDirection]);
 
-  const selectedPost = selectedPostId ? posts.find((post) => post.id === selectedPostId) ?? null : null;
+  const { selectedPost, detailLoading } = usePetFeedPostDetail(selectedPostId, posts, onFetchPostDetail);
   const selectedAnnouncement = selectedAnnouncementId ? announcementPosts.find((post) => post.id === selectedAnnouncementId) ?? null : null;
   const topBreeders = useMemo<TopBreeder[]>(() => {
     const byBreeder = new Map<string, TopBreeder>();
@@ -843,6 +846,10 @@ export function PetFeedScreen({
           autoPlayVideo={false}
           testID={`pet-feed-detail-post-${selectedPost.id}`}
         />
+      ) : detailLoading ? (
+        <View className="items-center py-16">
+          <ActivityIndicator color={PRIMARY} />
+        </View>
       ) : null}
     </ModalScreenShell>
     <ModalScreenShell

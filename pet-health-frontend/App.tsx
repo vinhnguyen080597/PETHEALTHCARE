@@ -234,14 +234,18 @@ function AppContent() {
       activeBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'verified').length}
       inactiveBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'rejected' || profile.verification_status === 'suspended').length}
       onOpenBreederProfile={app.openBreederProfile}
+      onCancelBreederRequest={app.cancelBreederVerificationRequest}
       onOpenPetFeed={app.openPetFeed}
       onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
+      onEditPetFeedDraft={app.openEditPetFeedDraft}
+      onSubmitPetFeedDraft={app.submitPetFeedDraftForReview}
       onOpenAdminHub={app.openAdminHub}
       onOpenUpdateAccount={app.openUpdateAccount}
       onOpenLanguageSelection={app.openLanguageSelection}
       onUpdateBreederStatus={app.updateAdminBreederStatus}
       onUpdatePostStatus={app.updateAdminPostStatus}
       onUpdateReportStatus={app.updateAdminReportStatus}
+      onRefreshAdmin={app.refreshAdminReview}
       onLogout={app.logout}
       onConfirmDeleteAccount={app.confirmDeleteAccount}
       showHeaderMenu={!isAdmin}
@@ -356,6 +360,7 @@ function AppContent() {
                 onReportPost={app.submitPetFeedReport}
                 onHideBreeder={app.hideBreederProfile}
                 onOpenBreederDetail={app.openBreederDetail}
+                onFetchPostDetail={app.fetchPetFeedPostDetail}
                 enabledTabs={app.petFeedEnabledTabs}
               />
               </View>
@@ -370,6 +375,7 @@ function AppContent() {
                 onReportPost={app.submitPetFeedReport}
                 onReportBreeder={app.submitBreederProfileReport}
                 onHideBreeder={app.hideBreederProfile}
+                onFetchPostDetail={app.fetchPetFeedPostDetail}
               />
             ) : null}
 
@@ -474,8 +480,10 @@ function AppContent() {
             {app.screen === 'create-pet-feed-post' && (
               <CreatePetFeedPostScreen
                 role={app.accountProfile?.primary_role}
+                editingPost={app.editingPetFeedPost}
                 onBack={app.closeCreatePetFeedPost}
                 onSubmit={app.submitPetFeedPost}
+                onUpdate={app.updatePetFeedDraft}
               />
             )}
 

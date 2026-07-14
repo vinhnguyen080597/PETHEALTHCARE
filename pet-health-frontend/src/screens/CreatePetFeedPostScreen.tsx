@@ -1,18 +1,43 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { ModalBottomSheet } from '../components/ModalBottomSheet';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
+import { ApiRequestError } from '../api';
 import type { CreatePetFeedPostMedia, CreatePetFeedPostPayload, PetFeedPost, UserRole } from '../types';
 import { ACTIVE_PET_FEED_SPECIES } from '../constants/petSpecies';
-import { normalizePetFeedPriceInput, petFeedPriceInputUnit } from '../utils/petFeedCurrency';
+import { POPULAR_CAT_BREED_KEYS } from '../constants/petBreeds';
+import {
+  formatPetFeedPriceInputDisplay,
+  normalizePetFeedPriceInput,
+  petFeedPriceInputFromStored,
+  petFeedPriceInputUnit,
+} from '../utils/petFeedCurrency';
+import { modalBottomInset } from '../utils/modalSafeArea';
+import {
+  findOversizedPetFeedMedia,
+  formatBytesAsMb,
+  optimizePetFeedPhotoUri,
+  PET_FEED_VIDEO_MAX_BYTES,
+} from '../utils/petFeedMedia';
 
 const PRIMARY = '#1E6FE8';
 const MAX_PHOTOS = 6;
+
+type BasicFieldKey = 'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video';
 
 type Option = {
   value: string;
@@ -22,52 +47,98 @@ type Option = {
 type CreatePetFeedPostScreenProps = {
   onBack: () => void;
   onSubmit: (payload: CreatePetFeedPostPayload, media: CreatePetFeedPostMedia) => Promise<void>;
+  onUpdate?: (postId: string, payload: CreatePetFeedPostPayload) => Promise<void>;
+  editingPost?: PetFeedPost | null;
   role?: UserRole;
 };
 
+function matchOptionValue(options: Option[], stored: string | undefined | null, fallback: string) {
+  const value = typeof stored === 'string' ? stored.trim() : '';
+  if (!value) return fallback;
+  const match = options.find((option) => option.value === value || option.label === value);
+  return match?.value ?? fallback;
+}
+
+/** Same picker behavior as Add Pet gender select (fade sheet + cancel). */
 function SelectField({
   label,
   value,
   options,
   onChange,
+  required = false,
+  error,
+  placeholder,
 }: {
   label: string;
   value: string;
   options: Option[];
   onChange: (value: string) => void;
+  required?: boolean;
+  error?: string;
+  placeholder?: string;
 }) {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.value === value);
+
   return (
     <View className="mb-3">
-      <Text className="mb-2 text-xs font-bold uppercase text-slate-500">{label}</Text>
+      <Text className="mb-2 text-xs font-bold uppercase text-slate-500">
+        {label}
+        {required ? <Text className="text-red-500"> *</Text> : null}
+      </Text>
       <Pressable
         accessibilityRole="button"
-        className="flex-row items-center justify-between rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 active:bg-slate-100"
+        accessibilityLabel={`${label} picker`}
+        className={`flex-row items-center justify-between rounded-xl border bg-slate-50 px-3 py-3 active:bg-slate-100 ${
+          error ? 'border-red-400' : 'border-gray-200'
+        }`}
         onPress={() => setOpen(true)}
       >
-        <Text className="text-base font-semibold text-slate-900">{selected?.label ?? label}</Text>
+        <Text className={`flex-1 pr-2 text-base font-semibold ${selected ? 'text-slate-900' : 'text-slate-400'}`}>
+          {selected?.label ?? placeholder ?? label}
+        </Text>
         <Ionicons name="chevron-down" size={18} color="#64748b" />
       </Pressable>
-      <ModalBottomSheet visible={open} onClose={() => setOpen(false)} sheetClassName="rounded-t-3xl bg-white p-5">
-        <Text className="mb-3 text-lg font-bold text-slate-900">{label}</Text>
-        {options.map((option) => {
-          const active = option.value === value;
-          return (
-            <Pressable
-              key={option.value}
-              className={`mb-2 flex-row items-center justify-between rounded-xl px-3 py-3 ${active ? 'bg-blue-50' : 'bg-slate-50'}`}
-              onPress={() => {
-                onChange(option.value);
-                setOpen(false);
-              }}
+      {error ? <Text className="mt-1.5 text-xs font-medium text-red-600">{error}</Text> : null}
+      {open ? (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+          <View className="flex-1 justify-end">
+            <Pressable className="absolute inset-0 bg-black/40" onPress={() => setOpen(false)} />
+            <View
+              className="max-h-[70%] rounded-t-2xl bg-white px-4 pt-2"
+              style={{ paddingBottom: modalBottomInset(insets.bottom, 16) }}
             >
-              <Text className={`text-base font-semibold ${active ? 'text-blue-700' : 'text-slate-800'}`}>{option.label}</Text>
-              {active ? <Ionicons name="checkmark-circle" size={20} color={PRIMARY} /> : null}
-            </Pressable>
-          );
-        })}
-      </ModalBottomSheet>
+              <View className="mb-2 self-center rounded-full bg-gray-200 px-10 py-1" />
+              <Text className="mb-1 text-center text-sm font-semibold text-slate-500">{label}</Text>
+              <ScrollView bounces={false} keyboardShouldPersistTaps="handled">
+                {options.map((option) => {
+                  const active = option.value === value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      accessibilityRole="button"
+                      className="border-b border-gray-100 py-3.5 active:bg-gray-50"
+                      onPress={() => {
+                        onChange(option.value);
+                        setOpen(false);
+                      }}
+                    >
+                      <Text className={`text-center text-base ${active ? 'font-bold text-blue-600' : 'text-slate-900'}`}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <Pressable className="mt-2 py-3" onPress={() => setOpen(false)}>
+                <Text className="text-center text-base text-blue-600">{t('common.cancel')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      ) : null}
     </View>
   );
 }
@@ -108,33 +179,57 @@ function ChipMultiSelect({
   );
 }
 
-function FieldLabel({ children }: { children: string }) {
-  return <Text className="mb-2 text-xs font-bold uppercase text-slate-500">{children}</Text>;
+function FieldLabel({ children, required = false }: { children: string; required?: boolean }) {
+  return (
+    <Text className="mb-2 text-xs font-bold uppercase text-slate-500">
+      {children}
+      {required ? <Text className="text-red-500"> *</Text> : null}
+    </Text>
+  );
 }
 
-export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: CreatePetFeedPostScreenProps) {
+export function CreatePetFeedPostScreen({
+  onBack,
+  onSubmit,
+  onUpdate,
+  editingPost = null,
+  role = 'breeder',
+}: CreatePetFeedPostScreenProps) {
   const { t, i18n } = useTranslation();
-  const [title, setTitle] = useState('');
-  const [species, setSpecies] = useState('cat');
+  const isEditingDraft = Boolean(editingPost?.id);
+  const [title, setTitle] = useState(editingPost?.title ?? '');
+  const [species, setSpecies] = useState(editingPost?.species || 'cat');
   const [breed, setBreed] = useState('');
-  const [gender, setGender] = useState('unknown');
-  const [ageMonths, setAgeMonths] = useState('3');
-  const [location, setLocation] = useState('');
-  const [priceNote, setPriceNote] = useState('');
-  const [description, setDescription] = useState('');
-  const [personality, setPersonality] = useState<string[]>([]);
+  const [customBreed, setCustomBreed] = useState('');
+  const [gender, setGender] = useState('male');
+  const [ageMonths, setAgeMonths] = useState(
+    editingPost?.age_months != null ? String(editingPost.age_months) : '3',
+  );
+  const [location, setLocation] = useState(editingPost?.location ?? '');
+  const [priceNote, setPriceNote] = useState(() => petFeedPriceInputFromStored(editingPost?.price_note, i18n.language));
+  const [description, setDescription] = useState(editingPost?.description ?? '');
+  const [personality, setPersonality] = useState<string[]>(editingPost?.personality ?? []);
   const [vaccineStatus, setVaccineStatus] = useState('unknown');
   const [dewormingStatus, setDewormingStatus] = useState('unknown');
-  const [paperwork, setPaperwork] = useState<string[]>([]);
-  const [facebook, setFacebook] = useState('');
-  const [zalo, setZalo] = useState('');
-  const [phone, setPhone] = useState('');
-  const [photoUris, setPhotoUris] = useState<string[]>([]);
-  const [videoUri, setVideoUri] = useState('');
+  const [paperwork, setPaperwork] = useState<string[]>(editingPost?.paperwork ?? []);
+  const [facebook, setFacebook] = useState(editingPost?.contact?.facebook ?? '');
+  const [zalo, setZalo] = useState(editingPost?.contact?.zalo ?? '');
+  const [phone, setPhone] = useState(editingPost?.contact?.phone ?? '');
+  const [photoUris, setPhotoUris] = useState<string[]>(editingPost?.media_urls ?? []);
+  const [videoUri, setVideoUri] = useState(editingPost?.video_url ?? '');
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [validationMessage, setValidationMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video', string>>
+  >({});
   const [submitting, setSubmitting] = useState(false);
   const isAdmin = role === 'admin';
+  const scrollRef = useRef<ScrollView>(null);
+  const basicSectionYRef = useRef(0);
+  const mediaSectionYRef = useRef(0);
+  const fieldOffsetRef = useRef<Partial<Record<BasicFieldKey, number>>>({});
+  const titleInputRef = useRef<TextInput>(null);
+  const customBreedInputRef = useRef<TextInput>(null);
+  const priceInputRef = useRef<TextInput>(null);
 
   const speciesOptions = useMemo<Option[]>(
     () =>
@@ -144,8 +239,15 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
       })),
     [t],
   );
+  const breedOptions = useMemo<Option[]>(
+    () =>
+      POPULAR_CAT_BREED_KEYS.map((value) => ({
+        value,
+        label: t(`createPetFeedPost.options.breeds.${value}`),
+      })),
+    [t],
+  );
   const genderOptions = useMemo<Option[]>(() => [
-    { value: 'unknown', label: t('createPetFeedPost.options.gender.unknown') },
     { value: 'male', label: t('createPetFeedPost.options.gender.male') },
     { value: 'female', label: t('createPetFeedPost.options.gender.female') },
   ], [t]);
@@ -157,7 +259,6 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
     { value: '24', label: t('createPetFeedPost.options.age.twentyFour') },
   ], [t]);
   const locationOptions = useMemo<Option[]>(() => [
-    { value: '', label: t('createPetFeedPost.options.location.unspecified') },
     { value: 'TP. Hồ Chí Minh', label: 'TP. Hồ Chí Minh' },
     { value: 'Hà Nội', label: 'Hà Nội' },
     { value: 'Đà Nẵng', label: 'Đà Nẵng' },
@@ -191,7 +292,40 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
     { value: t('createPetFeedPost.options.paperwork.contract'), label: t('createPetFeedPost.options.paperwork.contract') },
   ], [t]);
 
+  useEffect(() => {
+    if (!editingPost) return;
+    setGender(matchOptionValue(genderOptions, editingPost.gender, 'male'));
+    setVaccineStatus(matchOptionValue(vaccineOptions, editingPost.vaccine_status, 'unknown'));
+    setDewormingStatus(matchOptionValue(dewormingOptions, editingPost.deworming_status, 'unknown'));
+    if (editingPost.age_months != null && ageOptions.some((option) => option.value === String(editingPost.age_months))) {
+      setAgeMonths(String(editingPost.age_months));
+    }
+    if (editingPost.location) {
+      const locationMatch = locationOptions.find(
+        (option) => option.value === editingPost.location || option.label === editingPost.location,
+      );
+      setLocation(locationMatch?.value ?? editingPost.location);
+    }
+    const storedBreed = editingPost.breed?.trim() ?? '';
+    if (storedBreed) {
+      const breedMatch = breedOptions.find(
+        (option) => option.value === storedBreed || option.label === storedBreed,
+      );
+      if (breedMatch) {
+        setBreed(breedMatch.value);
+        setCustomBreed('');
+      } else {
+        setBreed('other');
+        setCustomBreed(storedBreed);
+      }
+    }
+  }, [ageOptions, breedOptions, dewormingOptions, editingPost, genderOptions, locationOptions, vaccineOptions]);
+
   const selectedGenderLabel = genderOptions.find((option) => option.value === gender)?.label ?? '';
+  const selectedBreedLabel =
+    breed === 'other'
+      ? customBreed.trim() || t('createPetFeedPost.options.breeds.other')
+      : breedOptions.find((option) => option.value === breed)?.label ?? '';
   const selectedVaccineLabel = vaccineStatus === 'unknown' ? '' : vaccineStatus;
   const selectedDewormingLabel = dewormingStatus === 'unknown' ? '' : dewormingStatus;
   const ageValue = ageMonths ? Number(ageMonths) : null;
@@ -204,7 +338,7 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
     breeder_profile_id: null,
     title: title.trim() || t('createPetFeedPost.previewUntitled'),
     species,
-    breed,
+    breed: selectedBreedLabel,
     gender: selectedGenderLabel,
     age_months: ageValue != null && Number.isFinite(ageValue) ? ageValue : null,
     location,
@@ -234,25 +368,15 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       selectionLimit: MAX_PHOTOS,
-      quality: 1,
+      quality: 0.85,
     });
     if (result.canceled || !result.assets?.length) return;
     const newUris: string[] = [];
     for (const asset of result.assets) {
-      const isVeryLarge = (asset.width ?? 0) > 2560 || (asset.fileSize ?? 0) > 12 * 1024 * 1024;
-      if (!isVeryLarge) {
-        newUris.push(asset.uri);
-        continue;
-      }
-      const optimized = await ImageManipulator.manipulateAsync(
-        asset.uri,
-        [{ resize: { width: 2560 } }],
-        { compress: 0.92, format: ImageManipulator.SaveFormat.JPEG },
-      );
-      newUris.push(optimized.uri);
+      newUris.push(await optimizePetFeedPhotoUri(asset.uri));
     }
     setPhotoUris((current) => [...current, ...newUris].slice(0, MAX_PHOTOS));
-    setValidationMessage('');
+    clearFieldError('photos');
   }
 
   async function pickVideo() {
@@ -264,33 +388,98 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['videos'],
       videoMaxDuration: 15,
-      quality: 0.75,
+      videoQuality: ImagePicker.UIImagePickerControllerQualityType.IFrame1280x720,
+      quality: 0.7,
     });
     if (result.canceled || !result.assets[0]?.uri) return;
-    setVideoUri(result.assets[0].uri);
-    setValidationMessage('');
+    const asset = result.assets[0];
+    const sizeBytes = asset.fileSize ?? null;
+    if (sizeBytes != null && sizeBytes > PET_FEED_VIDEO_MAX_BYTES) {
+      Alert.alert(
+        t('createPetFeedPost.submitFailed'),
+        t('createPetFeedPost.errors.videoTooLarge', { size: formatBytesAsMb(sizeBytes) }),
+      );
+      return;
+    }
+    setVideoUri(asset.uri);
+    clearFieldError('video');
   }
 
-  function validateForReview() {
-    if (!title.trim()) return t('createPetFeedPost.errors.titleRequired');
-    if (photoUris.length === 0) return t('createPetFeedPost.errors.photoRequired');
-    if (!videoUri) return t('createPetFeedPost.errors.videoRequired');
-    return '';
+  function markFieldOffset(key: BasicFieldKey, y: number) {
+    fieldOffsetRef.current[key] = y;
+  }
+
+  function scrollToMissingField(key: BasicFieldKey) {
+    const inMedia = key === 'photos' || key === 'video';
+    const sectionY = inMedia ? mediaSectionYRef.current : basicSectionYRef.current;
+    const fieldY = fieldOffsetRef.current[key] ?? 0;
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, sectionY + fieldY - 12),
+      animated: true,
+    });
+    requestAnimationFrame(() => {
+      if (key === 'title') titleInputRef.current?.focus();
+      else if (key === 'breed' && breed === 'other') customBreedInputRef.current?.focus();
+      else if (key === 'priceNote') priceInputRef.current?.focus();
+    });
+  }
+
+  function validateForReview(): { message: string; focusKey?: BasicFieldKey } {
+    const nextErrors: typeof fieldErrors = {};
+    if (!title.trim()) nextErrors.title = t('createPetFeedPost.errors.titleRequired');
+    if (!breed || (breed === 'other' && !customBreed.trim())) {
+      nextErrors.breed = t('createPetFeedPost.errors.breedRequired');
+    }
+    if (!gender) nextErrors.gender = t('createPetFeedPost.errors.genderRequired');
+    if (!ageMonths) nextErrors.ageMonths = t('createPetFeedPost.errors.ageRequired');
+    if (!location.trim()) nextErrors.location = t('createPetFeedPost.errors.locationRequired');
+    if (!priceNote.trim() && !canonicalPriceNote.trim()) {
+      nextErrors.priceNote = t('createPetFeedPost.errors.priceRequired');
+    }
+    if (photoUris.length === 0) nextErrors.photos = t('createPetFeedPost.errors.photoRequired');
+    if (!videoUri) nextErrors.video = t('createPetFeedPost.errors.videoRequired');
+    setFieldErrors(nextErrors);
+    const fieldOrder: BasicFieldKey[] = ['title', 'breed', 'gender', 'ageMonths', 'location', 'priceNote', 'photos', 'video'];
+    for (const key of fieldOrder) {
+      if (nextErrors[key]) {
+        return { message: nextErrors[key]!, focusKey: key };
+      }
+    }
+    return { message: '' };
   }
 
   function openReview() {
-    const message = validateForReview();
-    setValidationMessage(message);
-    if (!message) setReviewOpen(true);
+    const result = validateForReview();
+    if (result.message) {
+      if (result.focusKey) scrollToMissingField(result.focusKey);
+      return;
+    }
+    setReviewOpen(true);
+  }
+
+  function clearFieldError(key: keyof typeof fieldErrors) {
+    setFieldErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function mediaErrorMessage(error: unknown): string {
+    if (error instanceof ApiRequestError && (error.code === 'MEDIA_TOO_LARGE' || error.code === 'PET_FEED_VIDEO_TOO_LARGE' || error.code === 'PET_FEED_PHOTO_TOO_LARGE')) {
+      return t('createPetFeedPost.errors.mediaTooLarge');
+    }
+    return error instanceof Error ? error.message : t('common.unknownError');
   }
 
   async function submit(status: CreatePetFeedPostPayload['status']) {
     setSubmitting(true);
     try {
-      await onSubmit({
+      const payload: CreatePetFeedPostPayload = {
         title,
         species,
-        breed,
+        breed: selectedBreedLabel,
         gender: selectedGenderLabel,
         ageMonths: ageValue != null && Number.isFinite(ageValue) ? ageValue : null,
         location,
@@ -302,10 +491,36 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
         paperwork,
         contact: { facebook, zalo, phone },
         status,
-      }, { photoUris, videoUri });
+      };
+
+      if (isEditingDraft && editingPost && onUpdate) {
+        await onUpdate(editingPost.id, payload);
+        return;
+      }
+
+      const optimizedPhotos: string[] = [];
+      for (const uri of photoUris) {
+        optimizedPhotos.push(await optimizePetFeedPhotoUri(uri));
+      }
+      const oversized = await findOversizedPetFeedMedia({ photoUris: optimizedPhotos, videoUri });
+      if (oversized?.kind === 'photo') {
+        throw new Error(
+          t('createPetFeedPost.errors.photoTooLarge', {
+            index: oversized.index + 1,
+            size: formatBytesAsMb(oversized.sizeBytes),
+          }),
+        );
+      }
+      if (oversized?.kind === 'video') {
+        throw new Error(
+          t('createPetFeedPost.errors.videoTooLarge', {
+            size: formatBytesAsMb(oversized.sizeBytes),
+          }),
+        );
+      }
+      await onSubmit(payload, { photoUris: optimizedPhotos, videoUri });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('common.unknownError');
-      Alert.alert(t('createPetFeedPost.submitFailed'), message);
+      Alert.alert(t('createPetFeedPost.submitFailed'), mediaErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -317,10 +532,13 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
         <Pressable testID="create-pet-feed-post-back-button" className="w-14 rounded-lg p-2" onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </Pressable>
-        <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('createPetFeedPost.title')}</Text>
+        <Text className="flex-1 text-center text-lg font-semibold text-slate-900">
+          {isEditingDraft ? t('createPetFeedPost.editDraftTitle') : t('createPetFeedPost.title')}
+        </Text>
         <View className="w-14" />
       </View>
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
@@ -331,71 +549,199 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
           </Text>
         </View>
 
-        <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
-          <Text className="mb-3 text-base font-bold text-slate-900">{t('createPetFeedPost.basicInfo')}</Text>
-          <FieldLabel>{t('createPetFeedPost.postTitle')}</FieldLabel>
-          <TextInput
-            className="mb-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900"
-            placeholder={t('createPetFeedPost.postTitle')}
-            value={title}
-            onChangeText={setTitle}
-          />
+        <View
+          className="mt-4 rounded-2xl border border-gray-200 bg-white p-4"
+          onLayout={(event) => {
+            basicSectionYRef.current = event.nativeEvent.layout.y;
+          }}
+        >
+          <Text className="mb-1 text-base font-bold text-slate-900">{t('createPetFeedPost.basicInfo')}</Text>
+          <Text className="mb-3 text-xs leading-5 text-slate-500">{t('createPetFeedPost.basicInfoRequiredHint')}</Text>
+          <View onLayout={(event) => markFieldOffset('title', event.nativeEvent.layout.y)}>
+            <FieldLabel required>{t('createPetFeedPost.postTitle')}</FieldLabel>
+            <TextInput
+              ref={titleInputRef}
+              className={`mb-1 rounded-xl border bg-slate-50 px-3 py-3 text-slate-900 ${
+                fieldErrors.title ? 'border-red-400' : 'border-gray-200'
+              }`}
+              placeholder={t('createPetFeedPost.postTitle')}
+              value={title}
+              onChangeText={(value) => {
+                clearFieldError('title');
+                setTitle(value);
+              }}
+            />
+            {fieldErrors.title ? <Text className="mb-3 text-xs font-medium text-red-600">{fieldErrors.title}</Text> : <View className="mb-3" />}
+          </View>
           {speciesOptions.length > 1 ? (
-            <SelectField label={t('createPetFeedPost.species')} value={species} options={speciesOptions} onChange={setSpecies} />
+            <SelectField required label={t('createPetFeedPost.species')} value={species} options={speciesOptions} onChange={setSpecies} />
           ) : null}
-          <FieldLabel>{t('createPetFeedPost.breed')}</FieldLabel>
-          <TextInput
-            className="mb-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900"
-            placeholder={t('createPetFeedPost.breed')}
-            value={breed}
-            onChangeText={setBreed}
-          />
-          <SelectField label={t('createPetFeedPost.gender')} value={gender} options={genderOptions} onChange={setGender} />
-          <SelectField label={t('createPetFeedPost.ageMonths')} value={ageMonths} options={ageOptions} onChange={setAgeMonths} />
-          <SelectField label={t('createPetFeedPost.location')} value={location} options={locationOptions} onChange={setLocation} />
-          <FieldLabel>{t('createPetFeedPost.priceNote', { unit: priceUnit })}</FieldLabel>
-          <TextInput
-            className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900"
-            placeholder={t('createPetFeedPost.pricePlaceholder', { unit: priceUnit })}
-            value={priceNote}
-            onChangeText={setPriceNote}
-            keyboardType="decimal-pad"
-          />
+          <View onLayout={(event) => markFieldOffset('breed', event.nativeEvent.layout.y)}>
+            <SelectField
+              required
+              label={t('createPetFeedPost.breed')}
+              value={breed}
+              options={breedOptions}
+              placeholder={t('createPetFeedPost.selectBreed')}
+              error={fieldErrors.breed}
+              onChange={(value) => {
+                clearFieldError('breed');
+                setBreed(value);
+                if (value !== 'other') setCustomBreed('');
+              }}
+            />
+            {breed === 'other' ? (
+              <TextInput
+                ref={customBreedInputRef}
+                className={`mb-3 rounded-xl border bg-slate-50 px-3 py-3 text-slate-900 ${
+                  fieldErrors.breed ? 'border-red-400' : 'border-gray-200'
+                }`}
+                placeholder={t('createPetFeedPost.breedOtherPlaceholder')}
+                value={customBreed}
+                onChangeText={(value) => {
+                  clearFieldError('breed');
+                  setCustomBreed(value);
+                }}
+              />
+            ) : null}
+          </View>
+          <View onLayout={(event) => markFieldOffset('gender', event.nativeEvent.layout.y)}>
+            <SelectField
+              required
+              label={t('createPetFeedPost.gender')}
+              value={gender}
+              options={genderOptions}
+              error={fieldErrors.gender}
+              onChange={(value) => {
+                clearFieldError('gender');
+                setGender(value);
+              }}
+            />
+          </View>
+          <View onLayout={(event) => markFieldOffset('ageMonths', event.nativeEvent.layout.y)}>
+            <SelectField
+              required
+              label={t('createPetFeedPost.ageMonths')}
+              value={ageMonths}
+              options={ageOptions}
+              error={fieldErrors.ageMonths}
+              onChange={(value) => {
+                clearFieldError('ageMonths');
+                setAgeMonths(value);
+              }}
+            />
+          </View>
+          <View onLayout={(event) => markFieldOffset('location', event.nativeEvent.layout.y)}>
+            <SelectField
+              required
+              label={t('createPetFeedPost.location')}
+              value={location}
+              options={locationOptions}
+              placeholder={t('createPetFeedPost.selectLocation')}
+              error={fieldErrors.location}
+              onChange={(value) => {
+                clearFieldError('location');
+                setLocation(value);
+              }}
+            />
+          </View>
+          <View onLayout={(event) => markFieldOffset('priceNote', event.nativeEvent.layout.y)}>
+            <FieldLabel required>{t('createPetFeedPost.priceNote', { unit: priceUnit })}</FieldLabel>
+            <TextInput
+              ref={priceInputRef}
+              className={`rounded-xl border bg-slate-50 px-3 py-3 text-slate-900 ${
+                fieldErrors.priceNote ? 'border-red-400' : 'border-gray-200'
+              }`}
+              placeholder={t('createPetFeedPost.pricePlaceholder', { unit: priceUnit })}
+              value={priceNote}
+              onChangeText={(value) => {
+                clearFieldError('priceNote');
+                setPriceNote(formatPetFeedPriceInputDisplay(value, i18n.language));
+              }}
+              keyboardType="number-pad"
+            />
+            {fieldErrors.priceNote ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.priceNote}</Text> : null}
+          </View>
         </View>
 
-        <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
+        <View
+          className="mt-4 rounded-2xl border border-gray-200 bg-white p-4"
+          onLayout={(event) => {
+            mediaSectionYRef.current = event.nativeEvent.layout.y;
+          }}
+        >
           <Text className="mb-3 text-base font-bold text-slate-900">{t('createPetFeedPost.mediaSection')}</Text>
-          <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.mediaHint')}</Text>
-          <Pressable className="flex-row items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50 py-3 active:opacity-80" onPress={pickPhotos}>
-            <Ionicons name="images-outline" size={18} color={PRIMARY} />
-            <Text className="text-sm font-bold text-blue-700">{t('createPetFeedPost.pickPhotos', { count: photoUris.length, max: MAX_PHOTOS })}</Text>
-          </Pressable>
-          {photoUris.length > 0 ? (
-            <View className="mt-3 flex-row flex-wrap gap-2">
-              {photoUris.map((uri, index) => (
-                <View key={`${uri}-${index}`} className="relative h-20 w-20 overflow-hidden rounded-xl bg-slate-100">
-                  <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
-                  <Pressable
-                    className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1"
-                    onPress={() => setPhotoUris((current) => current.filter((_, i) => i !== index))}
+          {isEditingDraft ? (
+            <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.mediaLockedNote')}</Text>
+          ) : (
+            <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.mediaHint')}</Text>
+          )}
+          <View onLayout={(event) => markFieldOffset('photos', event.nativeEvent.layout.y)}>
+            {!isEditingDraft ? (
+              <Pressable
+                className={`flex-row items-center justify-center gap-2 rounded-xl border border-dashed py-3 active:opacity-80 ${
+                  fieldErrors.photos ? 'border-red-400 bg-red-50' : 'border-blue-300 bg-blue-50'
+                }`}
+                onPress={pickPhotos}
+              >
+                <Ionicons name="images-outline" size={18} color={fieldErrors.photos ? '#dc2626' : PRIMARY} />
+                <Text className={`text-sm font-bold ${fieldErrors.photos ? 'text-red-600' : 'text-blue-700'}`}>
+                  {t('createPetFeedPost.pickPhotos', { count: photoUris.length, max: MAX_PHOTOS })}
+                </Text>
+              </Pressable>
+            ) : null}
+            {photoUris.length > 0 ? (
+              <View className={`flex-row flex-wrap gap-2 ${isEditingDraft ? '' : 'mt-3'}`}>
+                {photoUris.map((uri, index) => (
+                  <View key={`${uri}-${index}`} className="relative h-20 w-20 overflow-hidden rounded-xl bg-slate-100">
+                    <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
+                    {!isEditingDraft ? (
+                      <Pressable
+                        className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1"
+                        onPress={() => setPhotoUris((current) => current.filter((_, i) => i !== index))}
+                      >
+                        <Ionicons name="close" size={14} color="#fff" />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            {fieldErrors.photos ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.photos}</Text> : null}
+          </View>
+          <View onLayout={(event) => markFieldOffset('video', event.nativeEvent.layout.y)}>
+            {!isEditingDraft ? (
+              <>
+                <Pressable
+                  className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-dashed py-3 active:opacity-80 ${
+                    fieldErrors.video ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
+                  }`}
+                  onPress={pickVideo}
+                >
+                  <Ionicons
+                    name={videoUri ? 'videocam' : 'videocam-outline'}
+                    size={18}
+                    color={fieldErrors.video ? '#dc2626' : videoUri ? PRIMARY : '#64748b'}
+                  />
+                  <Text
+                    className={`text-sm font-bold ${
+                      fieldErrors.video ? 'text-red-600' : videoUri ? 'text-blue-700' : 'text-slate-600'
+                    }`}
                   >
-                    <Ionicons name="close" size={14} color="#fff" />
+                    {videoUri ? t('createPetFeedPost.videoSelected') : t('createPetFeedPost.pickVideo')}
+                  </Text>
+                </Pressable>
+                {fieldErrors.video ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.video}</Text> : null}
+                {videoUri ? (
+                  <Pressable className="mt-2 self-start active:opacity-80" onPress={() => setVideoUri('')}>
+                    <Text className="text-sm font-bold text-red-600">{t('createPetFeedPost.removeVideo')}</Text>
                   </Pressable>
-                </View>
-              ))}
-            </View>
-          ) : null}
-          <Pressable className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 py-3 active:opacity-80" onPress={pickVideo}>
-            <Ionicons name={videoUri ? 'videocam' : 'videocam-outline'} size={18} color={videoUri ? PRIMARY : '#64748b'} />
-            <Text className={`text-sm font-bold ${videoUri ? 'text-blue-700' : 'text-slate-600'}`}>
-              {videoUri ? t('createPetFeedPost.videoSelected') : t('createPetFeedPost.pickVideo')}
-            </Text>
-          </Pressable>
-          {videoUri ? (
-            <Pressable className="mt-2 self-start active:opacity-80" onPress={() => setVideoUri('')}>
-              <Text className="text-sm font-bold text-red-600">{t('createPetFeedPost.removeVideo')}</Text>
-            </Pressable>
-          ) : null}
+                ) : null}
+              </>
+            ) : videoUri ? (
+              <Text className="mt-3 text-sm font-semibold text-slate-600">{t('createPetFeedPost.videoSelected')}</Text>
+            ) : null}
+          </View>
         </View>
 
         <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
@@ -419,7 +765,6 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder="Facebook URL" value={facebook} onChangeText={setFacebook} />
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder="Zalo" value={zalo} onChangeText={setZalo} />
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder={t('breederProfile.phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-          {validationMessage ? <Text className="mt-3 text-sm font-semibold text-red-600">{validationMessage}</Text> : null}
           <Pressable testID="create-pet-feed-post-review-button" className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90" onPress={openReview}>
             <Ionicons name="eye-outline" size={18} color="#fff" />
             <Text className="text-sm font-bold text-white">{t('createPetFeedPost.review')}</Text>
@@ -433,12 +778,23 @@ export function CreatePetFeedPostScreen({ onBack, onSubmit, role = 'breeder' }: 
         closeLabel={t('common.cancel')}
         closeIconName="close"
         onClose={() => setReviewOpen(false)}
-        scrollPaddingBottom={120}
+        scrollPaddingBottom={160}
         footer={(
           <View className="px-4 pt-4">
-            <Pressable className="mb-3 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50" onPress={() => setReviewOpen(false)}>
+            <Pressable className="mb-3 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50" onPress={() => setReviewOpen(false)} disabled={submitting}>
               <Text className="text-center text-sm font-bold text-slate-700">{t('createPetFeedPost.edit')}</Text>
             </Pressable>
+            {!isAdmin ? (
+              <Pressable
+                testID="create-pet-feed-post-save-draft-button"
+                className="mb-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"
+                onPress={() => void submit('draft')}
+                disabled={submitting}
+              >
+                {submitting ? <ActivityIndicator color={PRIMARY} /> : <Ionicons name="document-outline" size={18} color={PRIMARY} />}
+                <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('createPetFeedPost.saveDraft')}</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               testID="create-pet-feed-post-submit-button"
               className="flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"

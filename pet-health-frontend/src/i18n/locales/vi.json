@@ -393,13 +393,19 @@
       "body": "Sen ơi, nếu bạn muốn tìm thêm những bé thú cưng thì có thể xem ở Pet Feed. Còn nếu bạn muốn tìm nhà mới cho các bé, hãy đăng ký nâng cấp tài khoản thành Breeder rồi chờ admin phê duyệt nhé.",
       "petFeedCta": "Xem Pet Feed",
       "breederCta": "Đăng ký",
-      "pendingCta": "Đang chờ duyệt"
+      "pendingCta": "Đang chờ duyệt",
+      "cancelCta": "Hủy yêu cầu",
+      "cancelTitle": "Hủy đăng ký Breeder?",
+      "cancelBody": "Yêu cầu đang chờ duyệt sẽ được hủy. Sen có thể chỉnh sửa thông tin rồi gửi lại.",
+      "cancelConfirm": "Hủy yêu cầu",
+      "cancelSuccess": "Đã hủy yêu cầu. Sen có thể đăng ký lại sau khi sửa thông tin.",
+      "cancelFailed": "Không thể hủy yêu cầu"
     },
     "senStatus": {
       "title": "Trạng thái Breeder",
       "helper": {
         "unverified": "Bạn có thể gửi thông tin xác thực khi muốn đăng bài tìm nhà mới cho thú cưng.",
-        "pending_review": "Mai sẽ báo khi admin duyệt xong. Bạn vẫn có thể cập nhật thêm thông tin nếu cần.",
+        "pending_review": "Mai sẽ báo khi admin duyệt xong. Nếu gửi nhầm thông tin, Sen hãy bấm Hủy yêu cầu rồi đăng ký lại.",
         "verified": "Tài khoản đã đủ điều kiện dùng các tính năng Breeder.",
         "rejected": "Hãy bổ sung thông tin đáng tin cậy hơn rồi gửi lại để admin xem xét.",
         "suspended": "Quyền Breeder đang tạm khóa. Vui lòng liên hệ admin nếu cần hỗ trợ."
@@ -420,7 +426,11 @@
     },
     "breederPosts": {
       "title": "Bài đăng của tôi",
-      "empty": "Chưa có bài đăng nào. Hãy tạo bài đầu tiên sau khi hồ sơ được xác minh."
+      "empty": "Chưa có bài đăng nào. Hãy tạo bài đầu tiên sau khi hồ sơ được xác minh.",
+      "editDraft": "Chỉnh sửa",
+      "submitDraft": "Gửi duyệt",
+      "submitDraftSuccess": "Đã gửi bản nháp đi duyệt.",
+      "submitDraftFailed": "Không gửi được bản nháp."
     },
     "vetSummary": "Vai trò bác sĩ thú y sẽ dành cho nội dung giáo dục và xem hồ sơ chăm sóc, không đưa ra quyết định y tế trong app.",
     "roleRequiredTitle": "Cần đúng vai trò",
@@ -471,10 +481,17 @@
     },
     "statuses": {
       "all": "Tất cả",
-      "waiting": "Waiting",
-      "approved": "Approved",
-      "rejected": "Rejected / archived",
-      "resolved": "Reviewed / dismissed"
+      "waiting": "Chờ xử lý",
+      "approved": "Đã duyệt",
+      "rejected": "Từ chối / ẩn",
+      "resolved": "Đã xem / bỏ qua"
+    },
+    "verification": {
+      "unverified": "Chưa xác minh",
+      "pending_review": "Chờ duyệt",
+      "verified": "Đã xác minh",
+      "rejected": "Từ chối",
+      "suspended": "Tạm khóa"
     },
     "dates": {
       "newest": "Mới nhất",
@@ -497,9 +514,16 @@
     "untitled": "Breeder chưa có tên",
     "statuses": {
       "all": "Tất cả",
-      "active": "Active",
-      "inactive": "Inactive",
-      "waiting": "Waiting"
+      "active": "Đang hoạt động",
+      "inactive": "Không hoạt động",
+      "waiting": "Chờ duyệt"
+    },
+    "verification": {
+      "unverified": "Chưa xác minh",
+      "pending_review": "Chờ duyệt",
+      "verified": "Đã xác minh",
+      "rejected": "Từ chối",
+      "suspended": "Tạm khóa"
     },
     "species": {
       "all": "Tất cả"
@@ -525,6 +549,16 @@
     "careEnvironment": "Môi trường chăm sóc và thông tin xác thực",
     "commitmentsTitle": "Cam kết minh bạch",
     "phone": "Số điện thoại",
+    "facebook": "Facebook URL",
+    "zalo": "Zalo / số điện thoại",
+    "profileInfoRequiredHint": "Tất cả các mục bên dưới đều bắt buộc.",
+    "errors": {
+      "displayNameRequired": "Vui lòng nhập tên trại / tên người chăm sóc.",
+      "locationRequired": "Vui lòng nhập khu vực.",
+      "phoneRequired": "Vui lòng nhập số điện thoại.",
+      "facebookRequired": "Vui lòng nhập Facebook URL.",
+      "zaloRequired": "Vui lòng nhập Zalo / số điện thoại."
+    },
     "save": "Gửi yêu cầu xác minh",
     "submitSuccessTitle": "Đã gửi yêu cầu",
     "saved": "Đã gửi thông tin Breeder để admin xem xét.",
@@ -573,13 +607,17 @@
     "reviewNote": "Bài đăng sẽ ở trạng thái chờ duyệt. Hãy mô tả minh bạch, tránh cam kết sức khỏe tuyệt đối hoặc nội dung gây hiểu nhầm.",
     "adminReviewNote": "Bài đăng do Admin tạo sẽ được đăng ngay sau khi xác nhận. Hãy kiểm tra ảnh, video và thông tin hiển thị trước khi đăng.",
     "basicInfo": "Thông tin cơ bản",
+    "basicInfoRequiredHint": "Tất cả các mục trong phần này đều bắt buộc.",
     "mediaSection": "Ảnh & video",
-    "mediaHint": "Bài đăng cần ít nhất 1 ảnh rõ và 1 video ngắn để người xem có thêm ngữ cảnh trước khi liên hệ.",
+    "mediaHint": "Cần ít nhất 1 ảnh rõ và 1 video ngắn (≤15 giây). Ảnh tối đa 25MB, video tối đa 50MB — nên chọn video 720p để gửi được.",
     "careInfo": "Chăm sóc & giấy tờ",
     "descriptionAndContact": "Mô tả & liên hệ",
     "postTitle": "Tiêu đề bài đăng",
     "species": "Loài",
     "breed": "Giống",
+    "breedOtherPlaceholder": "Nhập tên giống khác",
+    "selectBreed": "Chọn giống",
+    "selectLocation": "Chọn khu vực",
     "gender": "Giới tính",
     "ageMonths": "Tuổi (tháng)",
     "location": "Khu vực",
@@ -597,13 +635,25 @@
     "review": "Review",
     "edit": "Quay lại chỉnh sửa",
     "publish": "Đăng",
+    "saveDraft": "Lưu nháp",
+    "draftSaved": "Đã lưu bản nháp. Bạn có thể chỉnh sửa hoặc gửi duyệt sau trong mục Bài đăng của tôi.",
     "submit": "Gửi duyệt",
     "submitFailed": "Không thể gửi bài",
     "previewUntitled": "Bài đăng chưa có tiêu đề",
+    "editDraftTitle": "Chỉnh sửa bản nháp",
+    "mediaLockedNote": "Ảnh/video đã lưu cùng bản nháp. Để đổi media, hãy tạo bài mới.",
     "errors": {
       "titleRequired": "Vui lòng nhập tiêu đề bài đăng.",
+      "breedRequired": "Vui lòng chọn giống.",
+      "genderRequired": "Vui lòng chọn giới tính.",
+      "ageRequired": "Vui lòng chọn tuổi.",
+      "locationRequired": "Vui lòng chọn khu vực.",
+      "priceRequired": "Vui lòng nhập giá hoặc ghi chú giá.",
       "photoRequired": "Vui lòng tải ít nhất 1 ảnh rõ của bé.",
-      "videoRequired": "Vui lòng tải 1 video ngắn của bé."
+      "videoRequired": "Vui lòng tải 1 video ngắn của bé.",
+      "photoTooLarge": "Ảnh {{index}} quá lớn ({{size}}). Vui lòng chọn ảnh nhỏ hơn 25MB hoặc để app tự nén lại.",
+      "videoTooLarge": "Video quá lớn ({{size}}). Giới hạn 50MB — hãy chọn clip ≤15 giây ở chất lượng 720p/Medium.",
+      "mediaTooLarge": "File media quá lớn. Ảnh tối đa 25MB, video tối đa 50MB. Hãy chọn video ngắn hơn hoặc chất lượng thấp hơn rồi thử lại."
     },
     "options": {
       "species": {
@@ -625,6 +675,24 @@
       "location": {
         "unspecified": "Chưa chia sẻ khu vực",
         "other": "Khu vực khác"
+      },
+      "breeds": {
+        "meo_ta": "Mèo ta",
+        "meo_muop": "Mèo mướp",
+        "persian": "Persian (Ba Tư)",
+        "british_shorthair": "British Shorthair",
+        "british_longhair": "British Longhair",
+        "scottish_fold": "Scottish Fold",
+        "maine_coon": "Maine Coon",
+        "ragdoll": "Ragdoll",
+        "siamese": "Siamese (Xiêm)",
+        "russian_blue": "Russian Blue",
+        "american_shorthair": "American Shorthair",
+        "bengal": "Bengal",
+        "sphynx": "Sphynx",
+        "exotic_shorthair": "Exotic Shorthair",
+        "mixed": "Mèo lai",
+        "other": "Giống khác"
       },
       "personality": {
         "friendly": "Thân thiện",
@@ -764,11 +832,15 @@
     "verify": "Xác minh",
     "reject": "Từ chối",
     "suspend": "Tạm khóa",
+    "updateSuccess": "Đã cập nhật",
+    "verifySuccess": "Đã xác minh hồ sơ này.",
+    "rejectSuccess": "Đã từ chối hồ sơ này.",
+    "suspendSuccess": "Đã tạm khóa hồ sơ này.",
     "pendingPosts": "Bài chờ duyệt",
     "noPendingPosts": "Không có bài chờ duyệt.",
     "approve": "Duyệt",
     "archive": "Ẩn",
-    "updateFailed": "Không thể cập nhật bài",
+    "updateFailed": "Không thể cập nhật",
     "reports": "Báo cáo bài đăng",
     "noReports": "Chưa có báo cáo mở.",
     "markReviewed": "Đã xem",

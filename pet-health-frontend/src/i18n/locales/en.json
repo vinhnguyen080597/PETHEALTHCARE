@@ -393,13 +393,19 @@
       "body": "Pet parent, if you want to find more pets, Pet Feed is the best place to browse. If you want to help your pets find a new home, register to upgrade your account to Breeder and wait for admin approval.",
       "petFeedCta": "View Pet Feed",
       "breederCta": "Register",
-      "pendingCta": "Pending review"
+      "pendingCta": "Pending review",
+      "cancelCta": "Cancel request",
+      "cancelTitle": "Cancel breeder registration?",
+      "cancelBody": "Your pending request will be withdrawn. You can edit your details and submit again.",
+      "cancelConfirm": "Cancel request",
+      "cancelSuccess": "Request cancelled. You can register again after updating your details.",
+      "cancelFailed": "Could not cancel request"
     },
     "senStatus": {
       "title": "Breeder status",
       "helper": {
         "unverified": "You can submit verification details when you want to create posts for pets looking for a new home.",
-        "pending_review": "Mai will let you know after admin review. You can still update your details if needed.",
+        "pending_review": "Mai will let you know after admin review. If something looks wrong, tap Cancel request and submit again.",
         "verified": "This account is eligible for Breeder features.",
         "rejected": "Add more trustworthy details and submit again for admin review.",
         "suspended": "Breeder access is suspended. Please contact admin if you need support."
@@ -420,7 +426,11 @@
     },
     "breederPosts": {
       "title": "My listings",
-      "empty": "No listings yet. Create your first listing after your profile is verified."
+      "empty": "No listings yet. Create your first listing after your profile is verified.",
+      "editDraft": "Edit",
+      "submitDraft": "Submit for review",
+      "submitDraftSuccess": "Draft submitted for review.",
+      "submitDraftFailed": "Could not submit draft."
     },
     "vetSummary": "Veterinarian features are planned for educational content and care-record review, not medical decisions inside the app.",
     "roleRequiredTitle": "Role required",
@@ -476,6 +486,13 @@
       "rejected": "Rejected / archived",
       "resolved": "Reviewed / dismissed"
     },
+    "verification": {
+      "unverified": "Unverified",
+      "pending_review": "Pending review",
+      "verified": "Verified",
+      "rejected": "Rejected",
+      "suspended": "Suspended"
+    },
     "dates": {
       "newest": "Newest",
       "oldest": "Oldest",
@@ -501,6 +518,13 @@
       "inactive": "Inactive",
       "waiting": "Waiting"
     },
+    "verification": {
+      "unverified": "Unverified",
+      "pending_review": "Pending review",
+      "verified": "Verified",
+      "rejected": "Rejected",
+      "suspended": "Suspended"
+    },
     "species": {
       "all": "All"
     }
@@ -525,6 +549,16 @@
     "careEnvironment": "Care environment and verification details",
     "commitmentsTitle": "Transparency commitments",
     "phone": "Phone number",
+    "facebook": "Facebook URL",
+    "zalo": "Zalo / phone",
+    "profileInfoRequiredHint": "All fields below are required.",
+    "errors": {
+      "displayNameRequired": "Please enter a kennel / caregiver name.",
+      "locationRequired": "Please enter a location.",
+      "phoneRequired": "Please enter a phone number.",
+      "facebookRequired": "Please enter a Facebook URL.",
+      "zaloRequired": "Please enter a Zalo / phone contact."
+    },
     "save": "Submit breeder request",
     "submitSuccessTitle": "Request submitted",
     "saved": "Breeder information submitted for admin review.",
@@ -573,13 +607,17 @@
     "reviewNote": "Listings are submitted for review. Be transparent and avoid absolute health claims or misleading content.",
     "adminReviewNote": "Admin-created listings publish immediately after confirmation. Review photos, video, and listing details before publishing.",
     "basicInfo": "Basic information",
+    "basicInfoRequiredHint": "All fields in this section are required.",
     "mediaSection": "Photos & video",
-    "mediaHint": "Each listing needs at least 1 clear photo and 1 short video so viewers have better context before contacting.",
+    "mediaHint": "Each listing needs at least 1 clear photo and 1 short video (≤15s). Photos max 25MB, videos max 50MB — prefer 720p clips so upload succeeds.",
     "careInfo": "Care & documents",
     "descriptionAndContact": "Description & contact",
     "postTitle": "Listing title",
     "species": "Species",
     "breed": "Breed",
+    "breedOtherPlaceholder": "Enter other breed name",
+    "selectBreed": "Select breed",
+    "selectLocation": "Select location",
     "gender": "Gender",
     "ageMonths": "Age (months)",
     "location": "Location",
@@ -597,13 +635,25 @@
     "review": "Review",
     "edit": "Back to edit",
     "publish": "Publish",
+    "saveDraft": "Save draft",
+    "draftSaved": "Draft saved. You can edit or submit it later from My listings.",
     "submit": "Submit for review",
     "submitFailed": "Could not submit listing",
     "previewUntitled": "Untitled listing",
+    "editDraftTitle": "Edit draft",
+    "mediaLockedNote": "Photos/video are saved with this draft. To change media, create a new listing.",
     "errors": {
       "titleRequired": "Please enter a listing title.",
+      "breedRequired": "Please select a breed.",
+      "genderRequired": "Please select a gender.",
+      "ageRequired": "Please select an age.",
+      "locationRequired": "Please select a location.",
+      "priceRequired": "Please enter a price or price note.",
       "photoRequired": "Please upload at least 1 clear photo.",
-      "videoRequired": "Please upload 1 short video."
+      "videoRequired": "Please upload 1 short video.",
+      "photoTooLarge": "Photo {{index}} is too large ({{size}}). Please choose a photo under 25MB.",
+      "videoTooLarge": "Video is too large ({{size}}). Limit is 50MB — pick a ≤15s clip at 720p/Medium quality.",
+      "mediaTooLarge": "A media file is too large. Photos max 25MB, videos max 50MB. Choose a shorter or lower-quality clip and try again."
     },
     "options": {
       "species": {
@@ -625,6 +675,24 @@
       "location": {
         "unspecified": "Location not shared",
         "other": "Other location"
+      },
+      "breeds": {
+        "meo_ta": "Vietnamese domestic (Mèo ta)",
+        "meo_muop": "Tabby mixed (Mèo mướp)",
+        "persian": "Persian",
+        "british_shorthair": "British Shorthair",
+        "british_longhair": "British Longhair",
+        "scottish_fold": "Scottish Fold",
+        "maine_coon": "Maine Coon",
+        "ragdoll": "Ragdoll",
+        "siamese": "Siamese",
+        "russian_blue": "Russian Blue",
+        "american_shorthair": "American Shorthair",
+        "bengal": "Bengal",
+        "sphynx": "Sphynx",
+        "exotic_shorthair": "Exotic Shorthair",
+        "mixed": "Mixed breed",
+        "other": "Other breed"
       },
       "personality": {
         "friendly": "Friendly",
@@ -764,11 +832,15 @@
     "verify": "Verify",
     "reject": "Reject",
     "suspend": "Suspend",
+    "updateSuccess": "Updated",
+    "verifySuccess": "This breeder profile is now verified.",
+    "rejectSuccess": "This breeder profile was rejected.",
+    "suspendSuccess": "This breeder profile was suspended.",
     "pendingPosts": "Pending listings",
     "noPendingPosts": "No pending listings.",
     "approve": "Approve",
     "archive": "Hide",
-    "updateFailed": "Could not update listing",
+    "updateFailed": "Could not update",
     "reports": "Listing reports",
     "noReports": "No open reports.",
     "markReviewed": "Reviewed",

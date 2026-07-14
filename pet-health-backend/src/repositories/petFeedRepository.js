@@ -421,6 +421,54 @@ export async function upsertMyBreederProfile(userId, payload, accessToken) {
   return toProfile(data);
 }
 
+export async function cancelMyBreederVerificationRequest(userId, accessToken) {
+  const existing = await getMyBreederProfile(userId, accessToken);
+  if (!existing) {
+    const err = new Error('Breeder profile not found.');
+    err.status = 404;
+    err.code = 'BREEDER_PROFILE_NOT_FOUND';
+    throw err;
+  }
+  if (existing.verification_status !== 'pending_review') {
+    const err = new Error('Only pending breeder verification requests can be cancelled.');
+    err.status = 400;
+    err.code = 'BREEDER_CANCEL_NOT_ALLOWED';
+    throw err;
+  }
+  const next = {
+    ...existing,
+    verification_status: 'unverified',
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    const idx = memoryProfiles.findIndex((profile) => profile.user_id === userId);
+    if (idx < 0) {
+      const err = new Error('Breeder profile not found.');
+      err.status = 404;
+      err.code = 'BREEDER_PROFILE_NOT_FOUND';
+      throw err;
+    }
+    memoryProfiles[idx] = { ...memoryProfiles[idx], verification_status: 'unverified', updated_at: next.updated_at };
+    return toProfile(memoryProfiles[idx]);
+  }
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .update({ verification_status: 'unverified', updated_at: next.updated_at })
+    .eq('user_id', userId)
+    .eq('verification_status', 'pending_review')
+    .select('*')
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    const err = new Error('Only pending breeder verification requests can be cancelled.');
+    err.status = 400;
+    err.code = 'BREEDER_CANCEL_NOT_ALLOWED';
+    throw err;
+  }
+  return toProfile(data);
+}
+
 export async function createPetFeedPost(userId, payload, accessToken, _options = {}) {
   const profile = await getMyBreederProfile(userId, accessToken);
   assertVerifiedBreederProfile(profile);

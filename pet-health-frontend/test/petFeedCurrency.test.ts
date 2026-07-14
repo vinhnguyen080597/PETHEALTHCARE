@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   formatPetFeedPrice,
+  formatPetFeedPriceInputDisplay,
   normalizePetFeedPriceInput,
   parsePetFeedPriceToVnd,
+  petFeedPriceInputFromStored,
   petFeedPriceInputUnit,
 } from '../src/utils/petFeedCurrency.ts';
 
@@ -24,6 +26,25 @@ test('normalizes numeric input using active language currency', () => {
 test('keeps free-text price notes unchanged', () => {
   assert.equal(normalizePetFeedPriceInput('Contact breeder', 'en'), 'Contact breeder');
   assert.equal(formatPetFeedPrice('Contact breeder', 'vi'), 'Contact breeder');
+});
+
+test('formats VND input with thousand separators', () => {
+  assert.equal(formatPetFeedPriceInputDisplay('5000000', 'vi'), '5.000.000');
+  assert.equal(formatPetFeedPriceInputDisplay('5.000.000', 'vi'), '5.000.000');
+  assert.equal(formatPetFeedPriceInputDisplay('0123', 'vi'), '123');
+});
+
+test('formats USD input with thousand separators', () => {
+  assert.equal(formatPetFeedPriceInputDisplay('1200', 'en'), '1,200');
+});
+
+test('prefills grouped amount from stored VND note', () => {
+  assert.equal(petFeedPriceInputFromStored('5000000 VND', 'vi'), '5.000.000');
+  assert.equal(petFeedPriceInputFromStored('10160000 VND', 'en'), '400');
+});
+
+test('normalizes grouped VND input', () => {
+  assert.equal(normalizePetFeedPriceInput('5.000.000', 'vi'), '5000000 VND');
 });
 
 test('returns expected input unit by language', () => {

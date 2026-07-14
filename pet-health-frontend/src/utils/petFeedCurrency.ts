@@ -33,6 +33,27 @@ function parseNumberToken(token: string) {
   return Number(compact);
 }
 
+/** Format a typed amount with thousand separators while the user is typing. */
+export function formatPetFeedPriceInputDisplay(value: string, language: string) {
+  const digits = String(value ?? '').replace(/[^\d]/g, '');
+  if (!digits) return '';
+  const normalized = digits.replace(/^0+(?=\d)/, '');
+  const groupSeparator = isEnglish(language) ? ',' : '.';
+  return normalized.replace(/\B(?=(\d{3})+(?!\d))/g, groupSeparator);
+}
+
+/** Prefill price input from a stored price_note like "5000000 VND". */
+export function petFeedPriceInputFromStored(value: string | undefined | null, language: string) {
+  const trimmed = String(value ?? '').trim();
+  if (!trimmed) return '';
+  const parsedVnd = parsePetFeedPriceToVnd(trimmed);
+  if (parsedVnd == null) return trimmed;
+  if (isEnglish(language)) {
+    return formatPetFeedPriceInputDisplay(String(Math.round(parsedVnd / USD_TO_VND)), language);
+  }
+  return formatPetFeedPriceInputDisplay(String(Math.round(parsedVnd)), language);
+}
+
 export function parsePetFeedPriceToVnd(value: string): number | null {
   const normalized = normalizePriceText(value);
   if (!normalized) return null;

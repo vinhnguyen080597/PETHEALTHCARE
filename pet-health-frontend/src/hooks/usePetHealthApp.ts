@@ -25,8 +25,10 @@ import {
   createAdminUserCoreCareRecord,
   createPetFeedPost,
   createPet,
+  cancelMyBreederVerificationRequest,
   deleteAdminUserCoreCareRecord,
   deleteMyAccount,
+  getPetFeedPost,
   verifyAccountUpdateRequest,
   applyAccountUpdate,
   deletePet,
@@ -72,6 +74,7 @@ import {
   updateAdminBreederProfileStatus,
   updateAdminPetFeedPostStatus,
   updateAdminPetFeedReportStatus,
+  updateMyPetFeedPost,
   updatePet,
   unfavoritePetFeedPost,
   upsertMyBreederProfile,
@@ -407,6 +410,9 @@ export function usePetHealthApp() {
   const [adminFeedReports, setAdminFeedReports] = useState<PetFeedReport[]>([]);
   /** After saving pet form opened from profile, return to pet profile instead of home. */
   const [petFormReturnToProfile, setPetFormReturnToProfile] = useState(false);
+  /** Return target after leaving create-pet-feed-post (Account vs registration form). */
+  const [createPetFeedReturnScreen, setCreatePetFeedReturnScreen] = useState<AppScreen>('account');
+  const [editingPetFeedPost, setEditingPetFeedPost] = useState<PetFeedPost | null>(null);
   /** Where to go when closing the results screen opened from history vs profile vs default home. */
   const [resultsReturnScreen, setResultsReturnScreen] = useState<'home' | 'history' | 'pet-profile' | null>(
     null,
@@ -788,6 +794,7 @@ export function usePetHealthApp() {
   const hadActiveSessionRef = useRef(false);
   const adminReviewLoadedRef = useRef(false);
   const adminReviewInFlightRef = useRef<Promise<void> | null>(null);
+  const adminReviewLoadGenRef = useRef(0);
 
   useEffect(() => {
     bindAuthSessionListener((session) => {
@@ -1819,6 +1826,18 @@ export function usePetHealthApp() {
     }
   }
 
+  async function cancelBreederVerificationRequest() {
+    if (!token) return;
+    try {
+      const response = await cancelMyBreederVerificationRequest(token);
+      setBreederProfile(response.data);
+      Alert.alert(i18n.t('common.ok'), i18n.t('account.senIntro.cancelSuccess'));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('account.senIntro.cancelFailed'), message);
+    }
+  }
+
   function openCreatePetFeedPost() {
     if (hasAccountRole('admin')) {
       openCreateAdminPost();
@@ -1828,6 +1847,15 @@ export function usePetHealthApp() {
       Alert.alert(i18n.t('account.roleRequiredTitle'), i18n.t('account.breederOnly'));
       return;
     }
+    setEditingPetFeedPost(null);
+    setCreatePetFeedReturnScreen(screen === 'breeder-profile' ? 'breeder-profile' : 'account');
+    setScreen('create-pet-feed-post');
+  }
+
+  function openEditPetFeedDraft(post: PetFeedPost) {
+    if (!hasAccountRole('breeder') || post.status !== 'draft') return;
+    setEditingPetFeedPost(post);
+    setCreatePetFeedReturnScreen('account');
     setScreen('create-pet-feed-post');
   }
 
@@ -1850,7 +1878,8 @@ export function usePetHealthApp() {
   }
 
   function closeCreatePetFeedPost() {
-    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'breeder-profile');
+    setEditingPetFeedPost(null);
+    setScreen(createPetFeedReturnScreen);
   }
 
   async function submitPetFeedPost(payload: CreatePetFeedPostPayload, media: CreatePetFeedPostMedia) {
@@ -1858,7 +1887,53 @@ export function usePetHealthApp() {
     await createPetFeedPost(token, payload, media);
     const postsRes = await listMyPetFeedPosts(token);
     setMyPetFeedPosts(postsRes.data);
-    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'breeder-profile');
+    setEditingPetFeedPost(null);
+    if (payload.status === 'draft') {
+      Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
+    }
+    setScreen(createPetFeedReturnScreen);
+  }
+
+  async function updatePetFeedDraft(postId: string, payload: CreatePetFeedPostPayload) {
+    if (!token) return;
+    await updateMyPetFeedPost(token, postId, payload);
+    const postsRes = await listMyPetFeedPosts(token);
+    setMyPetFeedPosts(postsRes.data);
+    setEditingPetFeedPost(null);
+    if (payload.status === 'draft') {
+      Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
+    } else if (payload.status === 'pending_review') {
+      Alert.alert(i18n.t('common.ok'), i18n.t('account.breederPosts.submitDraftSuccess'));
+    }
+    setScreen(createPetFeedReturnScreen);
+  }
+
+  async function submitPetFeedDraftForReview(post: PetFeedPost) {
+    if (!token || post.status !== 'draft') return;
+    try {
+      await updateMyPetFeedPost(token, post.id, {
+        title: post.title,
+        species: post.species,
+        breed: post.breed,
+        gender: post.gender,
+        ageMonths: post.age_months,
+        location: post.location,
+        priceNote: post.price_note,
+        description: post.description,
+        personality: post.personality,
+        vaccineStatus: post.vaccine_status,
+        dewormingStatus: post.deworming_status,
+        paperwork: post.paperwork,
+        contact: post.contact ?? {},
+        status: 'pending_review',
+      });
+      const postsRes = await listMyPetFeedPosts(token);
+      setMyPetFeedPosts(postsRes.data);
+      Alert.alert(i18n.t('common.ok'), i18n.t('account.breederPosts.submitDraftSuccess'));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('account.breederPosts.submitDraftFailed'), message);
+    }
   }
 
   async function submitPetFeedReport(post: PetFeedPost, reason: string, note?: string) {
@@ -1871,6 +1946,20 @@ export function usePetHealthApp() {
       Alert.alert(i18n.t('petFeed.reportFailed'), message);
     }
   }
+
+  const fetchPetFeedPostDetail = useCallback(async (postId: string): Promise<PetFeedPost | null> => {
+    if (!token || !postId) return null;
+    try {
+      const response = await getPetFeedPost(token, postId);
+      const post = response.data;
+      setPetFeedPosts((current) =>
+        current.map((item) => (item.id === post.id ? { ...item, is_favorited: post.is_favorited } : item)),
+      );
+      return post;
+    } catch {
+      return null;
+    }
+  }, [token]);
 
   async function submitBreederProfileReport(profile: BreederProfile, reason: string, note?: string) {
     if (!token) return;
@@ -2005,12 +2094,15 @@ export function usePetHealthApp() {
 
   async function loadAdminReview(accessToken: string | null = token) {
     if (!accessToken) return;
+    const loadGen = ++adminReviewLoadGenRef.current;
     const [accountsRes, breedersRes, postsRes, reportsRes] = await Promise.all([
       listAdminAccounts(accessToken),
       listAdminBreederProfiles(accessToken),
       listAdminPetFeedPosts(accessToken, ''),
       listAdminPetFeedReports(accessToken, ''),
     ]);
+    // Ignore out-of-order responses so a slower stale fetch cannot wipe a newer update.
+    if (loadGen !== adminReviewLoadGenRef.current) return;
     setAdminAccounts(accountsRes.data);
     setAdminBreederProfiles(breedersRes.data);
     setAdminFeedPosts(postsRes.data);
@@ -2021,9 +2113,10 @@ export function usePetHealthApp() {
   async function ensureAdminReviewLoaded(accessToken: string | null = token, options?: { force?: boolean }) {
     if (!accessToken) return;
     if (!options?.force && adminReviewLoadedRef.current) return;
+    // Wait out any in-flight load, then re-fetch when force so we never keep stale admin queues.
     if (adminReviewInFlightRef.current) {
       await adminReviewInFlightRef.current;
-      return;
+      if (!options?.force) return;
     }
     const inflight = loadAdminReview(accessToken).finally(() => {
       if (adminReviewInFlightRef.current === inflight) {
@@ -2054,9 +2147,45 @@ export function usePetHealthApp() {
   }
 
   async function updateAdminBreederStatus(userId: string, verificationStatus: string) {
-    if (!token) return;
-    await updateAdminBreederProfileStatus(token, userId, verificationStatus);
-    await ensureAdminReviewLoaded(token, { force: true });
+    if (!token) {
+      throw new Error(i18n.t('adminReview.updateFailed'));
+    }
+    const safeUserId = typeof userId === 'string' ? userId.trim() : '';
+    if (!safeUserId) {
+      throw new Error(i18n.t('adminReview.updateFailed'));
+    }
+    const matchesProfile = (profile: BreederProfile) =>
+      profile.user_id === safeUserId || profile.id === safeUserId;
+
+    setAdminBreederProfiles((profiles) =>
+      profiles.map((profile) =>
+        matchesProfile(profile)
+          ? { ...profile, verification_status: verificationStatus as BreederProfile['verification_status'] }
+          : profile,
+      ),
+    );
+
+    const response = await updateAdminBreederProfileStatus(token, safeUserId, verificationStatus);
+    const updated = response.data;
+    if (updated) {
+      setAdminBreederProfiles((profiles) => {
+        const next = profiles.map((profile) =>
+          matchesProfile(profile) || profile.id === updated.id || profile.user_id === updated.user_id
+            ? { ...profile, ...updated }
+            : profile,
+        );
+        if (!next.some((profile) => profile.id === updated.id || profile.user_id === updated.user_id)) {
+          return [updated, ...next];
+        }
+        return next;
+      });
+    }
+
+    try {
+      await ensureAdminReviewLoaded(token, { force: true });
+    } catch {
+      // Keep the verified (or rejected/suspended) state from the PUT response if refresh fails.
+    }
   }
 
   async function updateAdminPostStatus(postId: string, status: string) {
@@ -2574,6 +2703,7 @@ export function usePetHealthApp() {
     setAnnouncementPosts([]);
     setTopBreederProfiles([]);
     setMyPetFeedPosts([]);
+    setEditingPetFeedPost(null);
     setManagedUser(null);
     setAdminSelectedAccount(null);
     setAdminUserPets([]);
@@ -3355,6 +3485,7 @@ export function usePetHealthApp() {
     openBreederDetail,
     closeBreederDetail,
     togglePetFeedFavorite,
+    fetchPetFeedPostDetail,
     submitBreederProfileReport,
     hideBreederProfile,
     myPetFeedPosts,
@@ -3362,12 +3493,17 @@ export function usePetHealthApp() {
     openBreederProfile,
     closeBreederProfile,
     saveBreederProfile,
+    cancelBreederVerificationRequest,
     openCreatePetFeedPost,
+    openEditPetFeedDraft,
     openCreateAdminPost,
     closeCreateAdminPost,
     submitAnnouncementPost,
     closeCreatePetFeedPost,
     submitPetFeedPost,
+    updatePetFeedDraft,
+    submitPetFeedDraftForReview,
+    editingPetFeedPost,
     submitPetFeedReport,
     adminFeedPosts,
     adminFeedReports,
@@ -3399,6 +3535,7 @@ export function usePetHealthApp() {
     openAdminReview,
     closeAdminReview,
     loadAdminReview,
+    refreshAdminReview: () => ensureAdminReviewLoaded(token, { force: true }),
     createAdminManagedAccount,
     updateAdminManagedAccount,
     updateAdminBreederStatus,

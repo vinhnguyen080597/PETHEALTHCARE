@@ -457,10 +457,21 @@ export async function createAnnouncementPost(token: string, payload: CreateAnnou
   if (media?.videoUri) {
     await appendVideoFileToFormData(formData, 'video', media.videoUri, `announcement-video-${Date.now()}`, 'video/mp4');
   }
-  return requestJson<{ data: PetFeedPost }>('/pet-feed/announcements', {
-    method: 'POST',
+  return requestJson<{ data: PetFeedPost }>(
+    '/pet-feed/announcements',
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    },
+    true,
+    UPLOAD_REQUEST_TIMEOUT_MS,
+  );
+}
+
+export async function getPetFeedPost(token: string, postId: string) {
+  return requestJson<{ data: PetFeedPost }>(`/pet-feed/posts/${encodeURIComponent(postId)}`, {
     headers: authHeaders(token),
-    body: formData,
   });
 }
 
@@ -493,6 +504,17 @@ export async function listMyPetFeedPosts(token: string) {
   });
 }
 
+export async function updateMyPetFeedPost(token: string, postId: string, payload: CreatePetFeedPostPayload) {
+  return requestJson<{ data: PetFeedPost }>(`/pet-feed/posts/${encodeURIComponent(postId)}`, {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getMyBreederProfile(token: string) {
   return requestJson<{ data: BreederProfile | null }>('/pet-feed/breeder-profile/me', {
     headers: authHeaders(token),
@@ -510,6 +532,13 @@ export async function upsertMyBreederProfile(token: string, payload: UpsertBreed
   });
 }
 
+export async function cancelMyBreederVerificationRequest(token: string) {
+  return requestJson<{ data: BreederProfile }>('/pet-feed/breeder-profile/me/cancel', {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+}
+
 export async function createPetFeedPost(token: string, payload: CreatePetFeedPostPayload, media?: CreatePetFeedPostMedia) {
   if (media) {
     const formData = new FormData();
@@ -519,11 +548,16 @@ export async function createPetFeedPost(token: string, payload: CreatePetFeedPos
       await appendImageFileToFormData(formData, 'photos', media.photoUris[i], `pet-feed-photo-${i}-${Date.now()}`, 'image/jpeg');
     }
     await appendVideoFileToFormData(formData, 'video', media.videoUri, `pet-feed-video-${Date.now()}`, 'video/mp4');
-    return requestJson<{ data: PetFeedPost }>('/pet-feed/posts', {
-      method: 'POST',
-      headers: authHeaders(token),
-      body: formData,
-    });
+    return requestJson<{ data: PetFeedPost }>(
+      '/pet-feed/posts',
+      {
+        method: 'POST',
+        headers: authHeaders(token),
+        body: formData,
+      },
+      true,
+      UPLOAD_REQUEST_TIMEOUT_MS,
+    );
   }
   return requestJson<{ data: PetFeedPost }>('/pet-feed/posts', {
     method: 'POST',
