@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Runtime data & generated artifacts (not source)
+data/
+outputs/
+refs/
+prompts/
+
+# Model weights & caches (too large for git)
+model/
+*.pt
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

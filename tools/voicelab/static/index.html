@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoiceLab — TTS tiếng Việt</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🎙️</span>
+      <div>
+        <h1>VoiceLab</h1>
+        <p class="tagline">Text-to-Speech &amp; Voice Cloning · chạy offline trên máy bạn</p>
+      </div>
+    </div>
+    <div id="status" class="status status--loading">Đang kết nối…</div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: generator -->
+    <section class="panel">
+      <div class="tabs" id="modeTabs">
+        <button class="tab active" data-mode="auto">Giọng tự động</button>
+        <button class="tab" data-mode="design">Thiết kế giọng</button>
+        <button class="tab" data-mode="clone">Giọng đã clone</button>
+      </div>
+
+      <label class="field">
+        <span>Văn bản</span>
+        <textarea id="text" rows="6" placeholder="Nhập nội dung cần đọc..."></textarea>
+      </label>
+
+      <!-- design controls -->
+      <div id="designControls" class="design hidden">
+        <div class="grid">
+          <label class="field"><span>Giới tính</span><select id="d_gender"></select></label>
+          <label class="field"><span>Độ tuổi</span><select id="d_age"></select></label>
+          <label class="field"><span>Cao độ</span><select id="d_pitch"></select></label>
+          <label class="field"><span>Chất giọng vùng</span><select id="d_accent"></select></label>
+        </div>
+        <label class="check"><input type="checkbox" id="d_whisper" /> Thì thầm (whisper)</label>
+        <p class="hint">Mô tả giọng: <code id="instructPreview">—</code></p>
+      </div>
+
+      <!-- clone controls -->
+      <div id="cloneControls" class="hidden">
+        <label class="field">
+          <span>Chọn giọng đã clone</span>
+          <select id="cloneVoiceSelect"><option value="">— chưa có giọng nào —</option></select>
+        </label>
+      </div>
+
+      <div class="grid">
+        <label class="field">
+          <span>Ngôn ngữ</span>
+          <select id="language"></select>
+        </label>
+        <label class="field">
+          <span>Tốc độ: <b id="speedVal">1.0</b>×</span>
+          <input type="range" id="speed" min="0.5" max="1.5" step="0.05" value="1.0" />
+        </label>
+        <label class="field">
+          <span>Chất lượng (bước): <b id="stepVal">32</b></span>
+          <input type="range" id="numStep" min="8" max="48" step="4" value="32" />
+        </label>
+      </div>
+
+      <button id="genBtn" class="btn btn--primary">Tạo giọng nói</button>
+
+      <div id="result" class="result hidden">
+        <audio id="player" controls></audio>
+        <div class="result-meta">
+          <span id="resultMeta"></span>
+          <a id="downloadLink" class="btn btn--ghost" download>Tải về</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: library + history -->
+    <aside class="side">
+      <div class="panel">
+        <div class="side-head">
+          <h2>Clone giọng mới</h2>
+        </div>
+        <label class="field"><span>Tên giọng</span><input id="cloneName" placeholder="VD: Giọng của tôi" /></label>
+        <label class="field"><span>Nội dung của audio mẫu (ref text)</span>
+          <textarea id="cloneRefText" rows="2" placeholder="Ghi đúng lời trong file audio mẫu..."></textarea>
+        </label>
+        <label class="field"><span>File audio mẫu (3–10 giây)</span>
+          <input type="file" id="cloneFile" accept="audio/*" />
+        </label>
+        <button id="cloneBtn" class="btn">Tạo giọng clone</button>
+      </div>
+
+      <div class="panel">
+        <div class="side-head">
+          <h2>Thư viện giọng</h2>
+        </div>
+        <ul id="voiceList" class="list"></ul>
+      </div>
+
+      <div class="panel">
+        <div class="side-head">
+          <h2>Lịch sử</h2>
+          <button id="clearHistory" class="btn btn--ghost btn--sm">Xoá hết</button>
+        </div>
+        <ul id="historyList" class="list"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
