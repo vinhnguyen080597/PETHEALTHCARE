@@ -266,6 +266,7 @@ export function BreederDetailScreen({
             onHideBreeder={onHideBreeder}
             showHideBreeder
             autoPlayVideo={false}
+            mediaLoading={detailLoading}
             testID={`breeder-detail-post-${selectedPost.id}`}
           />
         ) : detailLoading ? (

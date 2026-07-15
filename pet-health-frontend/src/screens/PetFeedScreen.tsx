@@ -844,6 +844,7 @@ export function PetFeedScreen({
           onHideBreeder={onHideBreeder}
           showHideBreeder
           autoPlayVideo={false}
+          mediaLoading={detailLoading}
           testID={`pet-feed-detail-post-${selectedPost.id}`}
         />
       ) : detailLoading ? (

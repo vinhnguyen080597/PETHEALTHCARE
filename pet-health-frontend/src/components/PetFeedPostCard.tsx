@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { memo, useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { memo, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { BreederProfile, PetFeedPost } from '../types';
@@ -26,6 +26,8 @@ type PetFeedPostCardProps = {
   showHideBreeder?: boolean;
   variant?: 'compact' | 'full';
   autoPlayVideo?: boolean;
+  /** Detail is still fetching the full media set — hold the gallery until images are ready. */
+  mediaLoading?: boolean;
   onPress?: (post: PetFeedPost) => void;
   testID?: string;
 };
@@ -151,7 +153,7 @@ function AutoPlayVideo({ uri, autoPlay }: { uri: string; autoPlay: boolean }) {
     <VideoView
       player={player}
       nativeControls={!autoPlay}
-      contentFit="cover"
+      contentFit={autoPlay ? 'cover' : 'contain'}
       style={{ height: '100%', width: '100%' }}
     />
   );
@@ -201,6 +203,7 @@ function PetFeedPostCardComponent({
   showHideBreeder = false,
   variant = 'full',
   autoPlayVideo = false,
+  mediaLoading = false,
   onPress,
   testID,
 }: PetFeedPostCardProps) {
@@ -215,9 +218,46 @@ function PetFeedPostCardComponent({
   const mediaItems = mediaItemsForPost(post);
   const selectedMedia = mediaItems[Math.min(selectedMediaIndex, Math.max(mediaItems.length - 1, 0))] ?? null;
 
+  const posterUri =
+    typeof post.metadata?.video_poster_url === 'string' ? post.metadata.video_poster_url.trim() : '';
+  const galleryImageKey = useMemo(() => {
+    const uris = mediaItems.filter((item) => item.type === 'image').map((item) => item.uri);
+    if (posterUri) uris.push(posterUri);
+    return uris.join('|');
+  }, [mediaItems, posterUri]);
+  // Full detail loads media in two phases (slim list → full). Prefetch every image so the
+  // hero + thumbnail strip appear together instead of popping in one by one.
+  const [galleryReady, setGalleryReady] = useState(isCompact);
+
   useEffect(() => {
     setSelectedMediaIndex(0);
   }, [post.id]);
+
+  useEffect(() => {
+    if (isCompact) {
+      setGalleryReady(true);
+      return;
+    }
+    if (mediaLoading) {
+      setGalleryReady(false);
+      return;
+    }
+    const uris = galleryImageKey ? galleryImageKey.split('|') : [];
+    if (uris.length === 0) {
+      setGalleryReady(true);
+      return;
+    }
+    let cancelled = false;
+    setGalleryReady(false);
+    void Promise.all(uris.map((uri) => Image.prefetch(uri).catch(() => false))).then(() => {
+      if (!cancelled) setGalleryReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isCompact, mediaLoading, galleryImageKey]);
+
+  const showMediaSpinner = !isCompact && (mediaLoading || !galleryReady);
 
   function submitReport() {
     onReportPost?.(post, reportReason, reportNote);
@@ -230,19 +270,24 @@ function PetFeedPostCardComponent({
   const petIdentity = [post.breed, speciesLabel === speciesKey ? post.species : speciesLabel].filter(Boolean).join(' · ');
   const ageLabel = post.age_months != null ? t('petFeed.ageMonths', { count: post.age_months }) : '';
   const locationLabel = post.location || t('petFeed.locationUnknown');
-  const healthLabel = post.vaccine_status || t('petFeed.vaccineUnknown');
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
 
   const content = (
     <>
-      <View className="h-48 bg-blue-50">
-        <PetFeedMedia
-          media={selectedMedia}
-          autoPlayVideo={autoPlayVideo}
-          mediaLabel={t('petFeed.accessibility.listingMedia', { title: post.title })}
-        />
+      <View className={`${isCompact ? 'h-64' : 'h-80'} ${isCompact ? 'bg-blue-50' : 'bg-black'}`}>
+        {showMediaSpinner ? (
+          <View className="h-full w-full items-center justify-center">
+            <ActivityIndicator color={PRIMARY} />
+          </View>
+        ) : (
+          <PetFeedMedia
+            media={selectedMedia}
+            autoPlayVideo={autoPlayVideo}
+            mediaLabel={t('petFeed.accessibility.listingMedia', { title: post.title })}
+          />
+        )}
       </View>
-      {mediaItems.length > 1 ? (
+      {!isCompact && galleryReady && mediaItems.length > 1 ? (
         <View className="border-b border-gray-100 bg-white py-2">
           <ScrollView
             horizontal
@@ -323,27 +368,19 @@ function PetFeedPostCardComponent({
               </Text>
             ) : null}
           </View>
-          <View className="mt-2 flex-row items-center gap-1.5">
-            <Ionicons name="calendar-outline" size={14} color="#64748b" />
-            <Text className="min-w-0 flex-1 text-sm text-slate-600" numberOfLines={1}>
-              {[ageLabel, locationLabel].filter(Boolean).join(' · ')}
-            </Text>
-          </View>
-          <View className="mt-3 gap-2 rounded-2xl bg-slate-50 px-3 py-2.5">
-            <View className="flex-row items-center gap-2">
-              <Ionicons name="medical-outline" size={15} color={PRIMARY} />
-              <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-800" numberOfLines={1}>
-                {healthLabel}
-              </Text>
-            </View>
+          <View className="mt-2 flex-row items-center gap-2">
             {post.gender ? (
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="male-female-outline" size={15} color="#64748b" />
-                <Text className="min-w-0 flex-1 text-xs font-medium text-slate-500" numberOfLines={1}>
-                  {post.gender}
-                </Text>
+              <View className="flex-row items-center gap-1.5">
+                <Ionicons name="male-female-outline" size={14} color="#64748b" />
+                <Text className="text-sm text-slate-600" numberOfLines={1}>{post.gender}</Text>
               </View>
             ) : null}
+            <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+              <Ionicons name="calendar-outline" size={14} color="#64748b" />
+              <Text className="min-w-0 flex-1 text-sm text-slate-600" numberOfLines={1}>
+                {[ageLabel, locationLabel].filter(Boolean).join(' · ')}
+              </Text>
+            </View>
           </View>
         </View>
       ) : (
