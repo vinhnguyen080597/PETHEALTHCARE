@@ -9,9 +9,11 @@ const {
   cancelMyBreederVerificationRequest,
   createAnnouncementPost,
   createPetFeedPostComment,
+  deletePetFeedPostComment,
   getPetFeedPost,
   listPetFeedPostComments,
   listPublishedPetFeedPostPage,
+  reportPetFeedComment,
   upsertMyBreederProfile,
 } = await import('../src/repositories/petFeedRepository.js');
 
@@ -127,4 +129,36 @@ test('listPetFeedPostComments returns comments in chronological order', async ()
   assert.equal(comments[0].body, 'First question');
   assert.equal(comments[1].body, 'Thanks for asking');
   assert.equal(comments[0].post_id, post.id);
+});
+
+test('comment replies, delete, report, and list comment_count', async () => {
+  const authorId = `thread-author-${Date.now()}`;
+  const readerId = `thread-reader-${Date.now()}`;
+  const post = await createAnnouncementPost(authorId, {
+    title: 'Threaded comments',
+    description: 'Has replies',
+    category: 'general',
+  }, null);
+
+  const root = await createPetFeedPostComment(readerId, post.id, 'Root question', null);
+  const reply = await createPetFeedPostComment(authorId, post.id, 'Root answer', null, { parentId: root.id });
+  assert.equal(reply.parent_id, root.id);
+
+  await assert.rejects(
+    () => createPetFeedPostComment(readerId, post.id, 'Too deep', null, { parentId: reply.id }),
+    (error) => error?.code === 'PET_FEED_COMMENT_NESTING_UNSUPPORTED',
+  );
+
+  const listed = await listPublishedPetFeedPostPage(readerId, null, { limit: 50, kind: 'announcement' });
+  const listItem = listed.data.find((item) => item.id === post.id);
+  assert.ok(listItem);
+  assert.equal(listItem.comment_count, 2);
+
+  const report = await reportPetFeedComment(authorId, root.id, { reason: 'abusive_content', note: 'spam' }, null);
+  assert.equal(report.target_type, 'comment');
+  assert.equal(report.comment_id, root.id);
+
+  await deletePetFeedPostComment(readerId, root.id, null);
+  const afterDelete = await listPetFeedPostComments(post.id, null);
+  assert.equal(afterDelete.length, 0);
 });

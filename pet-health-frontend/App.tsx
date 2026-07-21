@@ -363,6 +363,9 @@ function AppContent() {
                 onFetchPostDetail={app.fetchPetFeedPostDetail}
                 onFetchPostComments={app.fetchPetFeedPostComments}
                 onSubmitPostComment={app.submitPetFeedComment}
+                onDeletePostComment={app.deletePetFeedComment}
+                onReportPostComment={app.submitPetFeedCommentReport}
+                currentUserId={app.accountProfile?.user_id ?? null}
                 enabledTabs={app.petFeedEnabledTabs}
               />
               </View>
@@ -380,6 +383,9 @@ function AppContent() {
                 onFetchPostDetail={app.fetchPetFeedPostDetail}
                 onFetchPostComments={app.fetchPetFeedPostComments}
                 onSubmitPostComment={app.submitPetFeedComment}
+                onDeletePostComment={app.deletePetFeedComment}
+                onReportPostComment={app.submitPetFeedCommentReport}
+                currentUserId={app.accountProfile?.user_id ?? null}
               />
             ) : null}
 

@@ -8,6 +8,7 @@ import {
   createAnnouncementPost,
   createPetFeedPost,
   createPetFeedPostComment,
+  deletePetFeedPostComment,
   favoritePetFeedPost,
   getMyBreederProfile,
   getPetFeedPost,
@@ -18,6 +19,7 @@ import {
   listPublishedPetFeedPostPage,
   listVerifiedBreederProfiles,
   reportBreederProfile,
+  reportPetFeedComment,
   reportPetFeedPost,
   unblockBreederProfile,
   unfavoritePetFeedPost,
@@ -544,9 +546,46 @@ router.post('/posts/:postId/comments', async (req, res, next) => {
     const postId = cleanId(req.params.postId);
     if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
     const body = typeof req.body?.body === 'string' ? req.body.body : typeof req.body?.text === 'string' ? req.body.text : '';
-    const comment = await createPetFeedPostComment(req.user.id, postId, body, req.accessToken);
-    void recordProductEvent({ userId: req.user.id, event: 'pet_feed_comment_created', metadata: { postId, commentId: comment.id } });
+    const parentId = typeof req.body?.parentId === 'string'
+      ? req.body.parentId
+      : typeof req.body?.parent_id === 'string'
+        ? req.body.parent_id
+        : null;
+    const comment = await createPetFeedPostComment(req.user.id, postId, body, req.accessToken, { parentId });
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'pet_feed_comment_created',
+      metadata: { postId, commentId: comment.id, parentId: comment.parent_id },
+    });
     return res.status(201).json({ data: comment });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.delete('/comments/:commentId', async (req, res, next) => {
+  try {
+    const commentId = cleanId(req.params.commentId);
+    if (!commentId) return res.status(400).json({ error: 'commentId is required', code: 'MISSING_COMMENT_ID' });
+    await deletePetFeedPostComment(req.user.id, commentId, req.accessToken);
+    void recordProductEvent({ userId: req.user.id, event: 'pet_feed_comment_deleted', metadata: { commentId } });
+    return res.status(204).send();
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/comments/:commentId/report', async (req, res, next) => {
+  try {
+    const commentId = cleanId(req.params.commentId);
+    if (!commentId) return res.status(400).json({ error: 'commentId is required', code: 'MISSING_COMMENT_ID' });
+    const report = await reportPetFeedComment(req.user.id, commentId, req.body ?? {}, req.accessToken);
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'pet_feed_comment_reported',
+      metadata: { commentId, reason: report.reason },
+    });
+    return res.status(201).json({ data: report });
   } catch (err) {
     return next(err);
   }

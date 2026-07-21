@@ -25,6 +25,7 @@ import {
   createAdminUserCoreCareRecord,
   createPetFeedPost,
   createPetFeedPostComment,
+  deletePetFeedPostComment,
   createPet,
   cancelMyBreederVerificationRequest,
   deleteAdminUserCoreCareRecord,
@@ -60,6 +61,7 @@ import {
   listPets,
   listVerifiedBreederProfiles,
   reportBreederProfile,
+  reportPetFeedComment,
   reportPetFeedPost,
   requestBreedRecognition,
   requestSignUpOtp,
@@ -1987,15 +1989,60 @@ export function usePetHealthApp() {
     }
   }, [token]);
 
-  const submitPetFeedComment = useCallback(async (postId: string, body: string): Promise<PetFeedComment | null> => {
+  const submitPetFeedComment = useCallback(async (
+    postId: string,
+    body: string,
+    parentId?: string | null,
+  ): Promise<PetFeedComment | null> => {
     if (!token || !postId) return null;
     try {
-      const response = await createPetFeedPostComment(token, postId, body);
-      return response.data ?? null;
+      const response = await createPetFeedPostComment(token, postId, body, parentId);
+      const created = response.data ?? null;
+      if (created) {
+        setPetFeedPosts((current) =>
+          current.map((item) => (
+            item.id === postId
+              ? { ...item, comment_count: (item.comment_count ?? 0) + 1 }
+              : item
+          )),
+        );
+      }
+      return created;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('petFeed.comments.submitFailed'), message);
       return null;
+    }
+  }, [token]);
+
+  const deletePetFeedComment = useCallback(async (comment: PetFeedComment, removedCount = 1): Promise<boolean> => {
+    if (!token || !comment?.id) return false;
+    try {
+      await deletePetFeedPostComment(token, comment.id);
+      const delta = Math.max(1, removedCount);
+      setPetFeedPosts((current) =>
+        current.map((item) => {
+          if (item.id !== comment.post_id) return item;
+          const nextCount = Math.max(0, (item.comment_count ?? delta) - delta);
+          return { ...item, comment_count: nextCount };
+        }),
+      );
+      return true;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.comments.deleteFailed'), message);
+      return false;
+    }
+  }, [token]);
+
+  const submitPetFeedCommentReport = useCallback(async (comment: PetFeedComment, reason: string, note?: string) => {
+    if (!token || !comment?.id) return;
+    try {
+      await reportPetFeedComment(token, comment.id, { reason, note });
+      Alert.alert(i18n.t('common.ok'), i18n.t('petFeed.comments.reportSuccess'));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.comments.reportFailed'), message);
     }
   }, [token]);
 
@@ -3526,6 +3573,8 @@ export function usePetHealthApp() {
     fetchPetFeedPostDetail,
     fetchPetFeedPostComments,
     submitPetFeedComment,
+    deletePetFeedComment,
+    submitPetFeedCommentReport,
     submitBreederProfileReport,
     hideBreederProfile,
     myPetFeedPosts,

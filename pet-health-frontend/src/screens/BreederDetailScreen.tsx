@@ -25,7 +25,10 @@ type BreederDetailScreenProps = {
   onHideBreeder: (profile: BreederProfile) => void;
   onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
   onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
-  onSubmitPostComment?: (postId: string, body: string) => Promise<PetFeedComment | null>;
+  onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
+  onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
+  onReportPostComment?: (comment: PetFeedComment, reason: string, note?: string) => void;
+  currentUserId?: string | null;
 };
 
 type GenderFilter = 'all' | 'male' | 'female' | 'unknown';
@@ -66,6 +69,9 @@ export function BreederDetailScreen({
   onFetchPostDetail,
   onFetchPostComments,
   onSubmitPostComment,
+  onDeletePostComment,
+  onReportPostComment,
+  currentUserId,
 }: BreederDetailScreenProps) {
   const { t } = useTranslation();
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
@@ -77,10 +83,19 @@ export function BreederDetailScreen({
   const [reportNote, setReportNote] = useState('');
   const trust = useMemo(() => computeBreederTrust(profile, posts), [profile, posts]);
   const { selectedPost, detailLoading } = usePetFeedPostDetail(selectedPostId, posts, onFetchPostDetail);
-  const { comments, loading: commentsLoading, submitting: commentSubmitting, addComment } = usePetFeedPostComments(
+  const {
+    threads,
+    loading: commentsLoading,
+    submitting: commentSubmitting,
+    replyTo,
+    setReplyTo,
+    addComment,
+    removeComment,
+  } = usePetFeedPostComments(
     selectedPostId,
     onFetchPostComments,
     onSubmitPostComment,
+    onDeletePostComment,
   );
   const scaleRange = metadataString(profile.metadata, 'scaleRange');
   const breedingPetRange = metadataString(profile.metadata, 'breedingPetRange');
@@ -270,7 +285,12 @@ export function BreederDetailScreen({
         onClose={() => setSelectedPostId(null)}
         footer={
           selectedPost ? (
-            <PetFeedCommentComposer submitting={commentSubmitting} onSubmit={addComment} />
+            <PetFeedCommentComposer
+              submitting={commentSubmitting}
+              replyTo={replyTo}
+              onCancelReply={() => setReplyTo(null)}
+              onSubmit={addComment}
+            />
           ) : undefined
         }
       >
@@ -286,7 +306,14 @@ export function BreederDetailScreen({
               mediaLoading={detailLoading}
               testID={`breeder-detail-post-${selectedPost.id}`}
             />
-            <PetFeedCommentsSection comments={comments} loading={commentsLoading} />
+            <PetFeedCommentsSection
+              threads={threads}
+              loading={commentsLoading}
+              currentUserId={currentUserId}
+              onReply={setReplyTo}
+              onDelete={(comment) => void removeComment(comment)}
+              onReport={onReportPostComment}
+            />
           </>
         ) : detailLoading ? (
           <View className="items-center py-16">

@@ -717,14 +717,37 @@ export async function listPetFeedPostComments(token: string, postId: string) {
   });
 }
 
-export async function createPetFeedPostComment(token: string, postId: string, body: string) {
+export async function createPetFeedPostComment(
+  token: string,
+  postId: string,
+  body: string,
+  parentId?: string | null,
+) {
   return requestJson<{ data: PetFeedComment }>(`/pet-feed/posts/${encodeURIComponent(postId)}/comments`, {
     method: 'POST',
     headers: {
       ...authHeaders(token),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({ body, parentId: parentId || null }),
+  });
+}
+
+export async function deletePetFeedPostComment(token: string, commentId: string) {
+  await requestJson<null>(`/pet-feed/comments/${encodeURIComponent(commentId)}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
+export async function reportPetFeedComment(token: string, commentId: string, payload: { reason: string; note?: string }) {
+  return requestJson<{ data: PetFeedReport }>(`/pet-feed/comments/${encodeURIComponent(commentId)}/report`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
   });
 }
 

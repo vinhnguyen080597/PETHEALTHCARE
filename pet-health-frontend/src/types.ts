@@ -196,6 +196,8 @@ export type PetFeedPost = {
   media_urls: string[];
   /** Present on feed list pages: total photo count before list truncation. */
   media_count?: number;
+  /** Present on feed list/detail: total comments including replies. */
+  comment_count?: number;
   video_url: string | null;
   contact: BreederContact & Record<string, unknown>;
   status: PetFeedPostStatus;
@@ -215,9 +217,10 @@ export type PetFeedPostsPage = {
 export type PetFeedReport = {
   id: string;
   user_id: string;
-  target_type: 'post' | 'breeder_profile';
+  target_type: 'post' | 'breeder_profile' | 'comment';
   post_id: string | null;
   breeder_profile_id: string | null;
+  comment_id?: string | null;
   breeder_profile?: BreederProfile | null;
   reason: string;
   note: string;
@@ -230,6 +233,7 @@ export type PetFeedComment = {
   id: string;
   post_id: string;
   user_id: string;
+  parent_id: string | null;
   body: string;
   author_display_name: string;
   created_at: string;

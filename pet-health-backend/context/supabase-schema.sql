@@ -396,7 +396,7 @@ create table if not exists public.pet_feed_favorites (
 create table if not exists public.pet_feed_reports (
   id uuid primary key default gen_random_uuid(),
   user_id text not null,
-  target_type text not null default 'post' check (target_type in ('post', 'breeder_profile')),
+  target_type text not null default 'post' check (target_type in ('post', 'breeder_profile', 'comment')),
   post_id uuid references public.pet_feed_posts(id) on delete cascade,
   breeder_profile_id uuid references public.breeder_profiles(id) on delete cascade,
   reason text not null,
@@ -409,17 +409,6 @@ create table if not exists public.pet_feed_reports (
 alter table public.pet_feed_reports add column if not exists target_type text not null default 'post';
 alter table public.pet_feed_reports add column if not exists breeder_profile_id uuid references public.breeder_profiles(id) on delete cascade;
 alter table public.pet_feed_reports alter column post_id drop not null;
-alter table public.pet_feed_reports drop constraint if exists pet_feed_reports_target_type_check;
-alter table public.pet_feed_reports
-  add constraint pet_feed_reports_target_type_check
-  check (target_type in ('post', 'breeder_profile'));
-alter table public.pet_feed_reports drop constraint if exists pet_feed_reports_target_required_check;
-alter table public.pet_feed_reports
-  add constraint pet_feed_reports_target_required_check
-  check (
-    (target_type = 'post' and post_id is not null)
-    or (target_type = 'breeder_profile' and breeder_profile_id is not null)
-  );
 
 create table if not exists public.pet_feed_blocked_breeders (
   user_id text not null,
@@ -432,6 +421,7 @@ create table if not exists public.pet_feed_comments (
   id uuid primary key default gen_random_uuid(),
   post_id uuid not null references public.pet_feed_posts(id) on delete cascade,
   user_id text not null,
+  parent_id uuid references public.pet_feed_comments(id) on delete cascade,
   body text not null check (char_length(trim(body)) >= 1),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -445,6 +435,23 @@ create index if not exists idx_pet_feed_reports_status_created on public.pet_fee
 create index if not exists idx_pet_feed_reports_breeder_profile on public.pet_feed_reports(breeder_profile_id);
 create index if not exists idx_pet_feed_blocked_breeders_user on public.pet_feed_blocked_breeders(user_id, created_at desc);
 create index if not exists idx_pet_feed_comments_post_created on public.pet_feed_comments(post_id, created_at asc);
+create index if not exists idx_pet_feed_comments_parent_created on public.pet_feed_comments(parent_id, created_at asc);
+
+-- Comment reports need pet_feed_comments to exist first.
+alter table public.pet_feed_reports add column if not exists comment_id uuid references public.pet_feed_comments(id) on delete cascade;
+alter table public.pet_feed_reports drop constraint if exists pet_feed_reports_target_type_check;
+alter table public.pet_feed_reports
+  add constraint pet_feed_reports_target_type_check
+  check (target_type in ('post', 'breeder_profile', 'comment'));
+alter table public.pet_feed_reports drop constraint if exists pet_feed_reports_target_required_check;
+alter table public.pet_feed_reports
+  add constraint pet_feed_reports_target_required_check
+  check (
+    (target_type = 'post' and post_id is not null and breeder_profile_id is null and comment_id is null)
+    or (target_type = 'breeder_profile' and breeder_profile_id is not null and post_id is null and comment_id is null)
+    or (target_type = 'comment' and comment_id is not null and post_id is not null and breeder_profile_id is null)
+  );
+create index if not exists idx_pet_feed_reports_comment on public.pet_feed_reports(comment_id);
 
 alter table public.breeder_profiles enable row level security;
 alter table public.pet_feed_posts enable row level security;

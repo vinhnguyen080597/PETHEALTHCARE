@@ -381,6 +381,12 @@ function PetFeedPostCardComponent({
                 {[ageLabel, locationLabel].filter(Boolean).join(' · ')}
               </Text>
             </View>
+            {(post.comment_count ?? 0) > 0 ? (
+              <View className="flex-row items-center gap-1">
+                <Ionicons name="chatbubble-outline" size={14} color="#64748b" />
+                <Text className="text-sm font-medium text-slate-600">{post.comment_count}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
       ) : (

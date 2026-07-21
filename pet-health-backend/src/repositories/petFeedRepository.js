@@ -253,9 +253,10 @@ function toReport(row) {
   return {
     id: row.id,
     user_id: row.user_id,
-    target_type: row.target_type ?? (row.breeder_profile_id ? 'breeder_profile' : 'post'),
+    target_type: row.target_type ?? (row.breeder_profile_id ? 'breeder_profile' : row.comment_id ? 'comment' : 'post'),
     post_id: row.post_id ?? null,
     breeder_profile_id: row.breeder_profile_id ?? null,
+    comment_id: row.comment_id ?? null,
     breeder_profile: row.breeder_profile ?? null,
     reason: row.reason,
     note: row.note ?? '',
@@ -271,6 +272,7 @@ function toComment(row, authorDisplayName = '') {
     id: row.id,
     post_id: row.post_id,
     user_id: row.user_id,
+    parent_id: row.parent_id ?? null,
     body: row.body,
     author_display_name: authorDisplayName || 'Pet Health user',
     created_at: row.created_at,
@@ -279,8 +281,8 @@ function toComment(row, authorDisplayName = '') {
 }
 
 const MAX_PET_FEED_COMMENT_LENGTH = 800;
-const DEFAULT_PET_FEED_COMMENTS_LIMIT = 50;
-const MAX_PET_FEED_COMMENTS_LIMIT = 100;
+const DEFAULT_PET_FEED_COMMENTS_LIMIT = 100;
+const MAX_PET_FEED_COMMENTS_LIMIT = 150;
 
 async function authorDisplayNamesForUserIds(userIds) {
   const unique = [...new Set(userIds.filter(Boolean))];
@@ -292,6 +294,30 @@ async function authorDisplayNamesForUserIds(userIds) {
   const { data, error } = await supabase.from('app_user_profiles').select('user_id, display_name').in('user_id', unique);
   if (error) throw error;
   return new Map((data ?? []).map((row) => [row.user_id, trimText(row.display_name, 160) || 'Pet Health user']));
+}
+
+async function commentCountsForPostIds(postIds, accessToken) {
+  const ids = [...new Set((postIds ?? []).filter(Boolean))];
+  const counts = new Map(ids.map((id) => [id, 0]));
+  if (ids.length === 0) return counts;
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    for (const row of memoryComments) {
+      if (counts.has(row.post_id)) counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
+    }
+    return counts;
+  }
+  const { data, error } = await supabase.from('pet_feed_comments').select('post_id').in('post_id', ids);
+  if (error) throw error;
+  for (const row of data ?? []) {
+    counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function withCommentCount(post, counts) {
+  if (!post) return post;
+  return { ...post, comment_count: counts.get(post.id) ?? 0 };
 }
 
 export async function listPetFeedPostComments(postId, accessToken, options = {}) {
@@ -321,9 +347,10 @@ export async function listPetFeedPostComments(postId, accessToken, options = {})
   return (data ?? []).map((row) => toComment(row, names.get(row.user_id)));
 }
 
-export async function createPetFeedPostComment(userId, postId, body, accessToken) {
+export async function createPetFeedPostComment(userId, postId, body, accessToken, options = {}) {
   const safePostId = trimText(postId, 64);
   const trimmedBody = trimText(body, MAX_PET_FEED_COMMENT_LENGTH);
+  const parentId = trimText(options.parentId ?? options.parent_id, 64) || null;
   if (!safePostId) {
     const err = new Error('postId is required');
     err.status = 400;
@@ -343,11 +370,41 @@ export async function createPetFeedPostComment(userId, postId, body, accessToken
     err.code = 'PET_FEED_POST_NOT_FOUND';
     throw err;
   }
+
+  if (parentId) {
+    let parent = null;
+    const supabaseForParent = getFeedSupabase(accessToken);
+    if (!supabaseForParent) {
+      parent = memoryComments.find((row) => row.id === parentId) ?? null;
+    } else {
+      const { data: parentRow, error: parentError } = await supabaseForParent
+        .from('pet_feed_comments')
+        .select('*')
+        .eq('id', parentId)
+        .maybeSingle();
+      if (parentError) throw parentError;
+      parent = parentRow;
+    }
+    if (!parent || parent.post_id !== safePostId) {
+      const err = new Error('Parent comment not found.');
+      err.status = 404;
+      err.code = 'PET_FEED_COMMENT_PARENT_NOT_FOUND';
+      throw err;
+    }
+    if (parent.parent_id) {
+      const err = new Error('Replies to replies are not supported.');
+      err.status = 400;
+      err.code = 'PET_FEED_COMMENT_NESTING_UNSUPPORTED';
+      throw err;
+    }
+  }
+
   const now = new Date().toISOString();
   const row = {
     id: randomUUID(),
     post_id: safePostId,
     user_id: userId,
+    parent_id: parentId,
     body: trimmedBody,
     created_at: now,
     updated_at: now,
@@ -362,6 +419,113 @@ export async function createPetFeedPostComment(userId, postId, body, accessToken
   if (error) throw error;
   const names = await authorDisplayNamesForUserIds([userId]);
   return toComment(data, names.get(userId));
+}
+
+export async function deletePetFeedPostComment(userId, commentId, accessToken) {
+  const safeCommentId = trimText(commentId, 64);
+  if (!safeCommentId) {
+    const err = new Error('commentId is required');
+    err.status = 400;
+    err.code = 'MISSING_COMMENT_ID';
+    throw err;
+  }
+  // Prefer service role for cascade deletes (parent → replies); still enforce ownership in app code.
+  const service = getSupabaseServiceClient();
+  const supabase = service ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    const idx = memoryComments.findIndex((row) => row.id === safeCommentId && row.user_id === userId);
+    if (idx < 0) {
+      const err = new Error('Comment not found');
+      err.status = 404;
+      err.code = 'PET_FEED_COMMENT_NOT_FOUND';
+      throw err;
+    }
+    const removed = memoryComments[idx];
+    memoryComments.splice(idx, 1);
+    for (let i = memoryComments.length - 1; i >= 0; i -= 1) {
+      if (memoryComments[i].parent_id === safeCommentId) memoryComments.splice(i, 1);
+    }
+    return toComment(removed);
+  }
+
+  const { data: existing, error: findError } = await supabase
+    .from('pet_feed_comments')
+    .select('*')
+    .eq('id', safeCommentId)
+    .maybeSingle();
+  if (findError) throw findError;
+  if (!existing) {
+    const err = new Error('Comment not found');
+    err.status = 404;
+    err.code = 'PET_FEED_COMMENT_NOT_FOUND';
+    throw err;
+  }
+  if (existing.user_id !== userId) {
+    const err = new Error('You can only delete your own comment.');
+    err.status = 403;
+    err.code = 'PET_FEED_COMMENT_FORBIDDEN';
+    throw err;
+  }
+
+  // Avoid `.select().maybeSingle()` on DELETE — cascade reply deletes can confuse RETURNING.
+  const { error } = await supabase
+    .from('pet_feed_comments')
+    .delete()
+    .eq('id', safeCommentId)
+    .eq('user_id', userId);
+  if (error) throw error;
+  return toComment(existing);
+}
+
+export async function reportPetFeedComment(userId, commentId, payload, accessToken) {
+  const safeCommentId = trimText(commentId, 64);
+  if (!safeCommentId) {
+    const err = new Error('commentId is required');
+    err.status = 400;
+    err.code = 'MISSING_COMMENT_ID';
+    throw err;
+  }
+  const supabase = getFeedSupabase(accessToken);
+  let comment = null;
+  if (!supabase) {
+    comment = memoryComments.find((row) => row.id === safeCommentId) ?? null;
+  } else {
+    const { data, error } = await supabase.from('pet_feed_comments').select('*').eq('id', safeCommentId).maybeSingle();
+    if (error) throw error;
+    comment = data;
+  }
+  if (!comment) {
+    const err = new Error('Comment not found');
+    err.status = 404;
+    err.code = 'PET_FEED_COMMENT_NOT_FOUND';
+    throw err;
+  }
+  if (comment.user_id === userId) {
+    const err = new Error('You cannot report your own comment.');
+    err.status = 400;
+    err.code = 'PET_FEED_COMMENT_REPORT_OWN';
+    throw err;
+  }
+  const row = {
+    id: randomUUID(),
+    user_id: userId,
+    target_type: 'comment',
+    post_id: comment.post_id,
+    breeder_profile_id: null,
+    comment_id: safeCommentId,
+    reason: trimText(payload.reason, 120) || 'other',
+    note: trimText(payload.note, 1200),
+    status: 'open',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  if (!supabase) {
+    memoryReports.push(row);
+    return toReport(row);
+  }
+  const { data, error } = await supabase.from('pet_feed_reports').insert(row).select('*').single();
+  if (error) throw error;
+  return toReport(data);
 }
 
 function assertVerifiedBreederProfile(profile) {
@@ -428,8 +592,9 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
       limit,
       cursor,
     );
+    const counts = await commentCountsForPostIds(rows.map((post) => post.id), accessToken);
     return {
-      data: rows.map((post) => toListPost(post, favoriteIds, profilesById)),
+      data: rows.map((post) => withCommentCount(toListPost(post, favoriteIds, profilesById), counts)),
       nextCursor,
     };
   }
@@ -456,8 +621,9 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
   if (error) throw error;
   const rows = data ?? [];
   const pageRows = rows.slice(0, limit);
+  const counts = await commentCountsForPostIds(pageRows.map((row) => row.id), accessToken);
   return {
-    data: pageRows.map((row) => toListPost(row, favoriteIds)),
+    data: pageRows.map((row) => withCommentCount(toListPost(row, favoriteIds), counts)),
     nextCursor: rows.length > limit ? encodePetFeedCursor(pageRows[pageRows.length - 1]) : null,
   };
 }
@@ -486,7 +652,10 @@ export async function getPetFeedPost(userId, postId, accessToken) {
   if (!supabase) {
     const favoriteIds = new Set(memoryFavorites.filter((row) => row.user_id === userId).map((row) => row.post_id));
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
-    return toPost(memoryPosts.find((post) => post.id === postId && (post.status === 'published' || post.user_id === userId)), favoriteIds, profilesById);
+    const post = toPost(memoryPosts.find((post) => post.id === postId && (post.status === 'published' || post.user_id === userId)), favoriteIds, profilesById);
+    if (!post) return post;
+    const counts = await commentCountsForPostIds([post.id], accessToken);
+    return withCommentCount(post, counts);
   }
   const favoriteIds = await favoriteIdsForUser(supabase, userId);
   const { data, error } = await supabase
@@ -496,7 +665,10 @@ export async function getPetFeedPost(userId, postId, accessToken) {
     .or(`status.eq.published,user_id.eq.${userId}`)
     .maybeSingle();
   if (error) throw error;
-  return toPost(data, favoriteIds);
+  const post = toPost(data, favoriteIds);
+  if (!post) return post;
+  const counts = await commentCountsForPostIds([post.id], accessToken);
+  return withCommentCount(post, counts);
 }
 
 export async function getMyBreederProfile(userId, accessToken) {
@@ -829,6 +1001,7 @@ export async function reportPetFeedPost(userId, postId, payload, accessToken) {
     target_type: 'post',
     post_id: postId,
     breeder_profile_id: null,
+    comment_id: null,
     reason: trimText(payload.reason, 120) || 'other',
     note: trimText(payload.note, 1200),
     status: 'open',
@@ -852,6 +1025,7 @@ export async function reportBreederProfile(userId, profileId, payload, accessTok
     target_type: 'breeder_profile',
     post_id: null,
     breeder_profile_id: profileId,
+    comment_id: null,
     reason: trimText(payload.reason, 120) || 'other',
     note: trimText(payload.note, 1200),
     status: 'open',

@@ -72,7 +72,10 @@ type PetFeedScreenProps = {
   onOpenBreederDetail: (profileId: string) => void;
   onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
   onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
-  onSubmitPostComment?: (postId: string, body: string) => Promise<PetFeedComment | null>;
+  onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
+  onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
+  onReportPostComment?: (comment: PetFeedComment, reason: string, note?: string) => void;
+  currentUserId?: string | null;
   enabledTabs?: { news: boolean; feed: boolean; breeders: boolean };
 };
 
@@ -194,6 +197,9 @@ export function PetFeedScreen({
   onFetchPostDetail,
   onFetchPostComments,
   onSubmitPostComment,
+  onDeletePostComment,
+  onReportPostComment,
+  currentUserId,
   enabledTabs = { news: true, feed: true, breeders: true },
 }: PetFeedScreenProps) {
   const { t } = useTranslation();
@@ -295,10 +301,19 @@ export function PetFeedScreen({
   }, [searchMatchedAnnouncements, sortDirection]);
 
   const { selectedPost, detailLoading } = usePetFeedPostDetail(selectedPostId, posts, onFetchPostDetail);
-  const { comments, loading: commentsLoading, submitting: commentSubmitting, addComment } = usePetFeedPostComments(
+  const {
+    threads,
+    loading: commentsLoading,
+    submitting: commentSubmitting,
+    replyTo,
+    setReplyTo,
+    addComment,
+    removeComment,
+  } = usePetFeedPostComments(
     selectedPostId,
     onFetchPostComments,
     onSubmitPostComment,
+    onDeletePostComment,
   );
   const selectedAnnouncement = selectedAnnouncementId ? announcementPosts.find((post) => post.id === selectedAnnouncementId) ?? null : null;
   const topBreeders = useMemo<TopBreeder[]>(() => {
@@ -848,7 +863,12 @@ export function PetFeedScreen({
       onClose={() => setSelectedPostId(null)}
       footer={
         selectedPost ? (
-          <PetFeedCommentComposer submitting={commentSubmitting} onSubmit={addComment} />
+          <PetFeedCommentComposer
+            submitting={commentSubmitting}
+            replyTo={replyTo}
+            onCancelReply={() => setReplyTo(null)}
+            onSubmit={addComment}
+          />
         ) : undefined
       }
     >
@@ -864,7 +884,14 @@ export function PetFeedScreen({
             mediaLoading={detailLoading}
             testID={`pet-feed-detail-post-${selectedPost.id}`}
           />
-          <PetFeedCommentsSection comments={comments} loading={commentsLoading} />
+          <PetFeedCommentsSection
+            threads={threads}
+            loading={commentsLoading}
+            currentUserId={currentUserId}
+            onReply={setReplyTo}
+            onDelete={(comment) => void removeComment(comment)}
+            onReport={onReportPostComment}
+          />
         </>
       ) : detailLoading ? (
         <View className="items-center py-16">
