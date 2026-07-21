@@ -3,11 +3,13 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ModalScreenShell } from '../components/ModalScreenShell';
+import { PetFeedCommentComposer, PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { ReportModal } from '../components/ReportModal';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
-import type { BreederProfile, PetFeedPost } from '../types';
+import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
+import type { BreederProfile, PetFeedComment, PetFeedPost } from '../types';
 import { computeBreederTrust, hasBreederContact, metadataArray, metadataString } from '../utils/breederTrust';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 
@@ -22,6 +24,8 @@ type BreederDetailScreenProps = {
   onReportBreeder: (profile: BreederProfile, reason: string, note?: string) => void;
   onHideBreeder: (profile: BreederProfile) => void;
   onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
+  onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
+  onSubmitPostComment?: (postId: string, body: string) => Promise<PetFeedComment | null>;
 };
 
 type GenderFilter = 'all' | 'male' | 'female' | 'unknown';
@@ -60,6 +64,8 @@ export function BreederDetailScreen({
   onReportBreeder,
   onHideBreeder,
   onFetchPostDetail,
+  onFetchPostComments,
+  onSubmitPostComment,
 }: BreederDetailScreenProps) {
   const { t } = useTranslation();
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
@@ -71,6 +77,11 @@ export function BreederDetailScreen({
   const [reportNote, setReportNote] = useState('');
   const trust = useMemo(() => computeBreederTrust(profile, posts), [profile, posts]);
   const { selectedPost, detailLoading } = usePetFeedPostDetail(selectedPostId, posts, onFetchPostDetail);
+  const { comments, loading: commentsLoading, submitting: commentSubmitting, addComment } = usePetFeedPostComments(
+    selectedPostId,
+    onFetchPostComments,
+    onSubmitPostComment,
+  );
   const scaleRange = metadataString(profile.metadata, 'scaleRange');
   const breedingPetRange = metadataString(profile.metadata, 'breedingPetRange');
   const breederType = metadataString(profile.metadata, 'breederType');
@@ -257,18 +268,26 @@ export function BreederDetailScreen({
         closeLabel={t('petFeed.accessibility.closeDetail')}
         closeTestID="breeder-detail-post-back-button"
         onClose={() => setSelectedPostId(null)}
+        footer={
+          selectedPost ? (
+            <PetFeedCommentComposer submitting={commentSubmitting} onSubmit={addComment} />
+          ) : undefined
+        }
       >
         {selectedPost ? (
-          <PetFeedPostCard
-            post={selectedPost}
-            onToggleFavorite={onToggleFavorite}
-            onReportPost={onReportPost}
-            onHideBreeder={onHideBreeder}
-            showHideBreeder
-            autoPlayVideo={false}
-            mediaLoading={detailLoading}
-            testID={`breeder-detail-post-${selectedPost.id}`}
-          />
+          <>
+            <PetFeedPostCard
+              post={selectedPost}
+              onToggleFavorite={onToggleFavorite}
+              onReportPost={onReportPost}
+              onHideBreeder={onHideBreeder}
+              showHideBreeder
+              autoPlayVideo={false}
+              mediaLoading={detailLoading}
+              testID={`breeder-detail-post-${selectedPost.id}`}
+            />
+            <PetFeedCommentsSection comments={comments} loading={commentsLoading} />
+          </>
         ) : detailLoading ? (
           <View className="items-center py-16">
             <ActivityIndicator color={PRIMARY} />

@@ -190,6 +190,15 @@
     "favoriteFailed": "Không thể lưu",
     "reportSuccess": "Cảm ơn Sen. Bài đăng đã được gửi để admin xem xét.",
     "reportFailed": "Không thể báo cáo bài đăng",
+    "comments": {
+      "title": "Bình luận",
+      "empty": "Chưa có bình luận. Hãy là người đầu tiên hỏi breeder nhé.",
+      "placeholder": "Viết bình luận...",
+      "inputLabel": "Nội dung bình luận",
+      "submit": "Gửi bình luận",
+      "submitFailed": "Không thể gửi bình luận",
+      "anonymous": "Người dùng"
+    },
     "reportListing": "Báo cáo bài đăng",
     "reportBody": "Cho admin biết điểm nào trong bài đăng này có vẻ không an toàn, gây hiểu nhầm hoặc không phù hợp.",
     "reportNotePlaceholder": "Ghi chú thêm cho admin nếu cần",

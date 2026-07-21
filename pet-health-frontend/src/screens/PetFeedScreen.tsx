@@ -18,8 +18,9 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminPostCard } from '../components/AdminPostCard';
 import { ModalScreenShell } from '../components/ModalScreenShell';
+import { PetFeedCommentComposer, PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
-import type { BreederProfile, PetFeedPost } from '../types';
+import type { BreederProfile, PetFeedComment, PetFeedPost } from '../types';
 import { computeBreederTrust, metadataString } from '../utils/breederTrust';
 import { ACTIVE_PET_FEED_SPECIES, type ActivePetFeedSpecies } from '../constants/petSpecies';
 import {
@@ -29,6 +30,7 @@ import {
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 import { modalTopInset } from '../utils/modalSafeArea';
 import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
+import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
 
 const PRIMARY = '#1E6FE8';
 const WEB_SEARCH_INPUT_STYLE =
@@ -69,6 +71,8 @@ type PetFeedScreenProps = {
   onHideBreeder: (profile: BreederProfile) => void;
   onOpenBreederDetail: (profileId: string) => void;
   onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
+  onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
+  onSubmitPostComment?: (postId: string, body: string) => Promise<PetFeedComment | null>;
   enabledTabs?: { news: boolean; feed: boolean; breeders: boolean };
 };
 
@@ -188,6 +192,8 @@ export function PetFeedScreen({
   onHideBreeder,
   onOpenBreederDetail,
   onFetchPostDetail,
+  onFetchPostComments,
+  onSubmitPostComment,
   enabledTabs = { news: true, feed: true, breeders: true },
 }: PetFeedScreenProps) {
   const { t } = useTranslation();
@@ -289,6 +295,11 @@ export function PetFeedScreen({
   }, [searchMatchedAnnouncements, sortDirection]);
 
   const { selectedPost, detailLoading } = usePetFeedPostDetail(selectedPostId, posts, onFetchPostDetail);
+  const { comments, loading: commentsLoading, submitting: commentSubmitting, addComment } = usePetFeedPostComments(
+    selectedPostId,
+    onFetchPostComments,
+    onSubmitPostComment,
+  );
   const selectedAnnouncement = selectedAnnouncementId ? announcementPosts.find((post) => post.id === selectedAnnouncementId) ?? null : null;
   const topBreeders = useMemo<TopBreeder[]>(() => {
     const byBreeder = new Map<string, TopBreeder>();
@@ -835,18 +846,26 @@ export function PetFeedScreen({
       closeLabel={t('petFeed.accessibility.closeDetail')}
       closeTestID="pet-feed-detail-back-button"
       onClose={() => setSelectedPostId(null)}
+      footer={
+        selectedPost ? (
+          <PetFeedCommentComposer submitting={commentSubmitting} onSubmit={addComment} />
+        ) : undefined
+      }
     >
       {selectedPost ? (
-        <PetFeedPostCard
-          post={selectedPost}
-          onToggleFavorite={onToggleFavorite}
-          onReportPost={onReportPost}
-          onHideBreeder={onHideBreeder}
-          showHideBreeder
-          autoPlayVideo={false}
-          mediaLoading={detailLoading}
-          testID={`pet-feed-detail-post-${selectedPost.id}`}
-        />
+        <>
+          <PetFeedPostCard
+            post={selectedPost}
+            onToggleFavorite={onToggleFavorite}
+            onReportPost={onReportPost}
+            onHideBreeder={onHideBreeder}
+            showHideBreeder
+            autoPlayVideo={false}
+            mediaLoading={detailLoading}
+            testID={`pet-feed-detail-post-${selectedPost.id}`}
+          />
+          <PetFeedCommentsSection comments={comments} loading={commentsLoading} />
+        </>
       ) : detailLoading ? (
         <View className="items-center py-16">
           <ActivityIndicator color={PRIMARY} />

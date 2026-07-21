@@ -24,6 +24,7 @@ import {
   createCoreCareRecord,
   createAdminUserCoreCareRecord,
   createPetFeedPost,
+  createPetFeedPostComment,
   createPet,
   cancelMyBreederVerificationRequest,
   deleteAdminUserCoreCareRecord,
@@ -54,6 +55,7 @@ import {
   getVaccinationDueSummary,
   listMyAnnouncementPosts,
   listMyPetFeedPosts,
+  listPetFeedPostComments,
   listPetFeedPosts,
   listPets,
   listVerifiedBreederProfiles,
@@ -117,6 +119,7 @@ import type {
   ManagedUser,
   Pet,
   PetFeedPost,
+  PetFeedComment,
   PetFeedReport,
   UpsertBreederProfilePayload,
   UserRole,
@@ -1974,6 +1977,28 @@ export function usePetHealthApp() {
     }
   }, [token]);
 
+  const fetchPetFeedPostComments = useCallback(async (postId: string): Promise<PetFeedComment[]> => {
+    if (!token || !postId) return [];
+    try {
+      const response = await listPetFeedPostComments(token, postId);
+      return response.data ?? [];
+    } catch {
+      return [];
+    }
+  }, [token]);
+
+  const submitPetFeedComment = useCallback(async (postId: string, body: string): Promise<PetFeedComment | null> => {
+    if (!token || !postId) return null;
+    try {
+      const response = await createPetFeedPostComment(token, postId, body);
+      return response.data ?? null;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.comments.submitFailed'), message);
+      return null;
+    }
+  }, [token]);
+
   async function submitBreederProfileReport(profile: BreederProfile, reason: string, note?: string) {
     if (!token) return;
     try {
@@ -3499,6 +3524,8 @@ export function usePetHealthApp() {
     closeBreederDetail,
     togglePetFeedFavorite,
     fetchPetFeedPostDetail,
+    fetchPetFeedPostComments,
+    submitPetFeedComment,
     submitBreederProfileReport,
     hideBreederProfile,
     myPetFeedPosts,

@@ -361,6 +361,8 @@ function AppContent() {
                 onHideBreeder={app.hideBreederProfile}
                 onOpenBreederDetail={app.openBreederDetail}
                 onFetchPostDetail={app.fetchPetFeedPostDetail}
+                onFetchPostComments={app.fetchPetFeedPostComments}
+                onSubmitPostComment={app.submitPetFeedComment}
                 enabledTabs={app.petFeedEnabledTabs}
               />
               </View>
@@ -376,6 +378,8 @@ function AppContent() {
                 onReportBreeder={app.submitBreederProfileReport}
                 onHideBreeder={app.hideBreederProfile}
                 onFetchPostDetail={app.fetchPetFeedPostDetail}
+                onFetchPostComments={app.fetchPetFeedPostComments}
+                onSubmitPostComment={app.submitPetFeedComment}
               />
             ) : null}
 

@@ -8,7 +8,9 @@ delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 const {
   cancelMyBreederVerificationRequest,
   createAnnouncementPost,
+  createPetFeedPostComment,
   getPetFeedPost,
+  listPetFeedPostComments,
   listPublishedPetFeedPostPage,
   upsertMyBreederProfile,
 } = await import('../src/repositories/petFeedRepository.js');
@@ -106,4 +108,23 @@ test('cancelMyBreederVerificationRequest withdraws pending requests only', async
     () => cancelMyBreederVerificationRequest(userId, null),
     (error) => error?.code === 'BREEDER_CANCEL_NOT_ALLOWED',
   );
+});
+
+test('listPetFeedPostComments returns comments in chronological order', async () => {
+  const authorId = `comment-author-${Date.now()}`;
+  const readerId = `comment-reader-${Date.now()}`;
+  const post = await createAnnouncementPost(authorId, {
+    title: 'Commentable post',
+    description: 'Has comments',
+    category: 'general',
+  }, null);
+
+  await createPetFeedPostComment(readerId, post.id, 'First question', null);
+  await createPetFeedPostComment(authorId, post.id, 'Thanks for asking', null);
+
+  const comments = await listPetFeedPostComments(post.id, null);
+  assert.equal(comments.length, 2);
+  assert.equal(comments[0].body, 'First question');
+  assert.equal(comments[1].body, 'Thanks for asking');
+  assert.equal(comments[0].post_id, post.id);
 });

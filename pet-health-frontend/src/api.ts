@@ -30,6 +30,7 @@ import type {
   PetFeedPost,
   PetFeedPostStatus,
   PetFeedPostsPage,
+  PetFeedComment,
   PostKind,
   PetFeedReport,
   UpdatePetPayload,
@@ -707,6 +708,23 @@ export async function reportPetFeedPost(token: string, postId: string, payload: 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
+  });
+}
+
+export async function listPetFeedPostComments(token: string, postId: string) {
+  return requestJson<{ data: PetFeedComment[] }>(`/pet-feed/posts/${encodeURIComponent(postId)}/comments`, {
+    headers: authHeaders(token),
+  });
+}
+
+export async function createPetFeedPostComment(token: string, postId: string, body: string) {
+  return requestJson<{ data: PetFeedComment }>(`/pet-feed/posts/${encodeURIComponent(postId)}/comments`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ body }),
   });
 }
 

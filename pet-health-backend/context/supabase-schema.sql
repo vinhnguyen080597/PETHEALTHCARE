@@ -428,6 +428,15 @@ create table if not exists public.pet_feed_blocked_breeders (
   primary key (user_id, breeder_profile_id)
 );
 
+create table if not exists public.pet_feed_comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.pet_feed_posts(id) on delete cascade,
+  user_id text not null,
+  body text not null check (char_length(trim(body)) >= 1),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists idx_breeder_profiles_user on public.breeder_profiles(user_id);
 create index if not exists idx_pet_feed_posts_status_created on public.pet_feed_posts(status, created_at desc);
 create index if not exists idx_pet_feed_posts_user_created on public.pet_feed_posts(user_id, created_at desc);
@@ -435,12 +444,14 @@ create index if not exists idx_pet_feed_favorites_user on public.pet_feed_favori
 create index if not exists idx_pet_feed_reports_status_created on public.pet_feed_reports(status, created_at desc);
 create index if not exists idx_pet_feed_reports_breeder_profile on public.pet_feed_reports(breeder_profile_id);
 create index if not exists idx_pet_feed_blocked_breeders_user on public.pet_feed_blocked_breeders(user_id, created_at desc);
+create index if not exists idx_pet_feed_comments_post_created on public.pet_feed_comments(post_id, created_at asc);
 
 alter table public.breeder_profiles enable row level security;
 alter table public.pet_feed_posts enable row level security;
 alter table public.pet_feed_favorites enable row level security;
 alter table public.pet_feed_reports enable row level security;
 alter table public.pet_feed_blocked_breeders enable row level security;
+alter table public.pet_feed_comments enable row level security;
 
 drop policy if exists "breeder_profiles_select_visible" on public.breeder_profiles;
 drop policy if exists "breeder_profiles_insert_own" on public.breeder_profiles;
@@ -456,6 +467,9 @@ drop policy if exists "pet_feed_reports_insert_own" on public.pet_feed_reports;
 drop policy if exists "pet_feed_blocked_breeders_select_own" on public.pet_feed_blocked_breeders;
 drop policy if exists "pet_feed_blocked_breeders_insert_own" on public.pet_feed_blocked_breeders;
 drop policy if exists "pet_feed_blocked_breeders_delete_own" on public.pet_feed_blocked_breeders;
+drop policy if exists "pet_feed_comments_select_visible" on public.pet_feed_comments;
+drop policy if exists "pet_feed_comments_insert_own" on public.pet_feed_comments;
+drop policy if exists "pet_feed_comments_delete_own" on public.pet_feed_comments;
 
 create policy "breeder_profiles_select_visible"
 on public.breeder_profiles for select
@@ -525,6 +539,33 @@ with check (auth.uid()::text = user_id);
 
 create policy "pet_feed_blocked_breeders_delete_own"
 on public.pet_feed_blocked_breeders for delete
+to authenticated
+using (auth.uid()::text = user_id);
+
+create policy "pet_feed_comments_select_visible"
+on public.pet_feed_comments for select
+to authenticated
+using (
+  exists (
+    select 1 from public.pet_feed_posts p
+    where p.id = post_id
+      and (p.status = 'published' or p.user_id = auth.uid()::text)
+  )
+);
+
+create policy "pet_feed_comments_insert_own"
+on public.pet_feed_comments for insert
+to authenticated
+with check (
+  auth.uid()::text = user_id
+  and exists (
+    select 1 from public.pet_feed_posts p
+    where p.id = post_id and p.status = 'published'
+  )
+);
+
+create policy "pet_feed_comments_delete_own"
+on public.pet_feed_comments for delete
 to authenticated
 using (auth.uid()::text = user_id);
 

@@ -7,12 +7,14 @@ import {
   countMyPetFeedVideoListingsSince,
   createAnnouncementPost,
   createPetFeedPost,
+  createPetFeedPostComment,
   favoritePetFeedPost,
   getMyBreederProfile,
   getPetFeedPost,
   listFavoritePetFeedPosts,
   listMyAnnouncementPosts,
   listMyPetFeedPosts,
+  listPetFeedPostComments,
   listPublishedPetFeedPostPage,
   listVerifiedBreederProfiles,
   reportBreederProfile,
@@ -521,6 +523,30 @@ router.post('/posts/:postId/favorite', async (req, res, next) => {
     await favoritePetFeedPost(req.user.id, postId, req.accessToken);
     void recordProductEvent({ userId: req.user.id, event: 'pet_feed_post_favorited', metadata: { postId } });
     return res.status(204).send();
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/posts/:postId/comments', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const comments = await listPetFeedPostComments(postId, req.accessToken, { limit: firstQueryValue(req.query.limit) });
+    return res.json({ data: comments });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/posts/:postId/comments', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const body = typeof req.body?.body === 'string' ? req.body.body : typeof req.body?.text === 'string' ? req.body.text : '';
+    const comment = await createPetFeedPostComment(req.user.id, postId, body, req.accessToken);
+    void recordProductEvent({ userId: req.user.id, event: 'pet_feed_comment_created', metadata: { postId, commentId: comment.id } });
+    return res.status(201).json({ data: comment });
   } catch (err) {
     return next(err);
   }

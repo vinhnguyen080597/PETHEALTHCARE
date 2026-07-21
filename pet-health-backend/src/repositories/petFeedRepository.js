@@ -9,6 +9,7 @@ const memoryProfiles = [];
 const memoryPosts = [];
 const memoryFavorites = [];
 const memoryReports = [];
+const memoryComments = [];
 const memoryBlockedBreeders = [];
 const DEFAULT_FEED_PAGE_LIMIT = 12;
 const MAX_FEED_PAGE_LIMIT = 30;
@@ -262,6 +263,105 @@ function toReport(row) {
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
+}
+
+function toComment(row, authorDisplayName = '') {
+  if (!row) return row;
+  return {
+    id: row.id,
+    post_id: row.post_id,
+    user_id: row.user_id,
+    body: row.body,
+    author_display_name: authorDisplayName || 'Pet Health user',
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+const MAX_PET_FEED_COMMENT_LENGTH = 800;
+const DEFAULT_PET_FEED_COMMENTS_LIMIT = 50;
+const MAX_PET_FEED_COMMENTS_LIMIT = 100;
+
+async function authorDisplayNamesForUserIds(userIds) {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  if (unique.length === 0) return new Map();
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    return new Map(unique.map((id) => [id, 'Pet Health user']));
+  }
+  const { data, error } = await supabase.from('app_user_profiles').select('user_id, display_name').in('user_id', unique);
+  if (error) throw error;
+  return new Map((data ?? []).map((row) => [row.user_id, trimText(row.display_name, 160) || 'Pet Health user']));
+}
+
+export async function listPetFeedPostComments(postId, accessToken, options = {}) {
+  const safePostId = trimText(postId, 64);
+  if (!safePostId) return [];
+  const limit = Math.min(
+    Math.max(Number(options.limit) || DEFAULT_PET_FEED_COMMENTS_LIMIT, 1),
+    MAX_PET_FEED_COMMENTS_LIMIT,
+  );
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    const rows = memoryComments
+      .filter((row) => row.post_id === safePostId)
+      .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+      .slice(0, limit);
+    const names = await authorDisplayNamesForUserIds(rows.map((row) => row.user_id));
+    return rows.map((row) => toComment(row, names.get(row.user_id)));
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_comments')
+    .select('*')
+    .eq('post_id', safePostId)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  const names = await authorDisplayNamesForUserIds((data ?? []).map((row) => row.user_id));
+  return (data ?? []).map((row) => toComment(row, names.get(row.user_id)));
+}
+
+export async function createPetFeedPostComment(userId, postId, body, accessToken) {
+  const safePostId = trimText(postId, 64);
+  const trimmedBody = trimText(body, MAX_PET_FEED_COMMENT_LENGTH);
+  if (!safePostId) {
+    const err = new Error('postId is required');
+    err.status = 400;
+    err.code = 'MISSING_POST_ID';
+    throw err;
+  }
+  if (!trimmedBody) {
+    const err = new Error('Comment cannot be empty.');
+    err.status = 400;
+    err.code = 'PET_FEED_COMMENT_EMPTY';
+    throw err;
+  }
+  const post = await getPetFeedPost(userId, safePostId, accessToken);
+  if (!post || post.status !== 'published') {
+    const err = new Error('Pet feed post not found');
+    err.status = 404;
+    err.code = 'PET_FEED_POST_NOT_FOUND';
+    throw err;
+  }
+  const now = new Date().toISOString();
+  const row = {
+    id: randomUUID(),
+    post_id: safePostId,
+    user_id: userId,
+    body: trimmedBody,
+    created_at: now,
+    updated_at: now,
+  };
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    memoryComments.push(row);
+    const names = await authorDisplayNamesForUserIds([userId]);
+    return toComment(row, names.get(userId));
+  }
+  const { data, error } = await supabase.from('pet_feed_comments').insert(row).select('*').single();
+  if (error) throw error;
+  const names = await authorDisplayNamesForUserIds([userId]);
+  return toComment(data, names.get(userId));
 }
 
 function assertVerifiedBreederProfile(profile) {

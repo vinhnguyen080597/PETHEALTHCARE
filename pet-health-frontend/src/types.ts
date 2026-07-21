@@ -226,6 +226,16 @@ export type PetFeedReport = {
   updated_at?: string;
 };
 
+export type PetFeedComment = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  body: string;
+  author_display_name: string;
+  created_at: string;
+  updated_at?: string;
+};
+
 export type UpsertBreederProfilePayload = {
   displayName: string;
   bio?: string;
