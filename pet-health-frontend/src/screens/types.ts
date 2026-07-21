@@ -4,6 +4,8 @@ export type AppScreen =
   | 'signup-otp-verification'
   | 'pet-feed'
   | 'breeder-detail'
+  | 'messages-inbox'
+  | 'message-thread'
   | 'home'
   | 'account'
   | 'update-account'

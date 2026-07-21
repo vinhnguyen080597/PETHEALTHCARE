@@ -204,12 +204,24 @@
       "delete": "Xóa",
       "deleteTitle": "Xóa bình luận?",
       "deleteBody": "Bình luận này và các phản hồi sẽ bị xóa.",
-      "deleteFailed": "Không thể xóa bình luận",
-      "report": "Báo cáo",
-      "reportTitle": "Báo cáo bình luận",
-      "reportBody": "Cho admin biết bình luận này có vấn đề gì.",
-      "reportSuccess": "Cảm ơn Sen. Bình luận đã được gửi để admin xem xét.",
-      "reportFailed": "Không thể báo cáo bình luận"
+      "deleteFailed": "Không thể xóa bình luận"
+    },
+    "messages": {
+      "inboxTitle": "Hộp thư",
+      "inboxSubtitle": "Tin nhắn với breeder về bài đăng Pet Feed",
+      "messageCta": "Nhắn tin",
+      "externalContact": "Liên hệ ngoài",
+      "emptyTitle": "Chưa có cuộc trò chuyện",
+      "emptyBody": "Mở một bài đăng Pet Feed và chọn Nhắn tin để bắt đầu.",
+      "peerFallback": "Người dùng",
+      "listingFallback": "Bài đăng Pet Feed",
+      "noMessagesYet": "Chưa có tin nhắn",
+      "threadEmpty": "Hãy gửi tin nhắn đầu tiên cho đối phương.",
+      "placeholder": "Nhập tin nhắn...",
+      "inputLabel": "Nội dung tin nhắn",
+      "send": "Gửi tin nhắn",
+      "openFailed": "Không thể mở cuộc trò chuyện",
+      "sendFailed": "Không thể gửi tin nhắn"
     },
     "reportListing": "Báo cáo bài đăng",
     "reportBody": "Cho admin biết điểm nào trong bài đăng này có vẻ không an toàn, gây hiểu nhầm hoặc không phù hợp.",
@@ -244,6 +256,7 @@
       "unsaveListing": "Bỏ lưu bài đăng thú cưng",
       "reportListing": "Báo cáo bài đăng {{title}}",
       "contactBreeder": "Liên hệ breeder cho {{title}}",
+      "messageBreeder": "Nhắn tin với breeder về {{title}}",
       "hideBreeder": "Ẩn breeder {{name}}",
       "openBreederProfile": "Mở hồ sơ breeder {{name}}"
     },

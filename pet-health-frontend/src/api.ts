@@ -31,6 +31,8 @@ import type {
   PetFeedPostStatus,
   PetFeedPostsPage,
   PetFeedComment,
+  PetFeedConversation,
+  PetFeedMessage,
   PostKind,
   PetFeedReport,
   UpdatePetPayload,
@@ -740,15 +742,45 @@ export async function deletePetFeedPostComment(token: string, commentId: string)
   });
 }
 
-export async function reportPetFeedComment(token: string, commentId: string, payload: { reason: string; note?: string }) {
-  return requestJson<{ data: PetFeedReport }>(`/pet-feed/comments/${encodeURIComponent(commentId)}/report`, {
+export async function openPetFeedConversation(token: string, postId: string) {
+  return requestJson<{ data: PetFeedConversation }>(`/pet-feed/posts/${encodeURIComponent(postId)}/conversations`, {
     method: 'POST',
-    headers: {
-      ...authHeaders(token),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
+    headers: authHeaders(token),
   });
+}
+
+export async function listPetFeedConversations(token: string) {
+  return requestJson<{ data: PetFeedConversation[] }>('/pet-feed/conversations', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function getPetFeedConversation(token: string, conversationId: string) {
+  return requestJson<{ data: PetFeedConversation }>(
+    `/pet-feed/conversations/${encodeURIComponent(conversationId)}`,
+    { headers: authHeaders(token) },
+  );
+}
+
+export async function listPetFeedConversationMessages(token: string, conversationId: string) {
+  return requestJson<{ data: PetFeedMessage[] }>(
+    `/pet-feed/conversations/${encodeURIComponent(conversationId)}/messages`,
+    { headers: authHeaders(token) },
+  );
+}
+
+export async function sendPetFeedConversationMessage(token: string, conversationId: string, body: string) {
+  return requestJson<{ data: PetFeedMessage }>(
+    `/pet-feed/conversations/${encodeURIComponent(conversationId)}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ body }),
+    },
+  );
 }
 
 export async function reportBreederProfile(token: string, profileId: string, payload: { reason: string; note?: string }) {

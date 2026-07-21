@@ -46,6 +46,8 @@ import {
   HealthCheckScreen,
   HistoryScreen,
   LanguageSelectionScreen,
+  MessagesInboxScreen,
+  MessageThreadScreen,
   OnboardingHealthPromptScreen,
   OnboardingIntroScreen,
   PetBreedRecognitionScreen,
@@ -242,6 +244,7 @@ function AppContent() {
       onOpenAdminHub={app.openAdminHub}
       onOpenUpdateAccount={app.openUpdateAccount}
       onOpenLanguageSelection={app.openLanguageSelection}
+      onOpenMessagesInbox={app.openMessagesInbox}
       onUpdateBreederStatus={app.updateAdminBreederStatus}
       onUpdatePostStatus={app.updateAdminPostStatus}
       onUpdateReportStatus={app.updateAdminReportStatus}
@@ -364,7 +367,7 @@ function AppContent() {
                 onFetchPostComments={app.fetchPetFeedPostComments}
                 onSubmitPostComment={app.submitPetFeedComment}
                 onDeletePostComment={app.deletePetFeedComment}
-                onReportPostComment={app.submitPetFeedCommentReport}
+                onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
                 currentUserId={app.accountProfile?.user_id ?? null}
                 enabledTabs={app.petFeedEnabledTabs}
               />
@@ -384,8 +387,33 @@ function AppContent() {
                 onFetchPostComments={app.fetchPetFeedPostComments}
                 onSubmitPostComment={app.submitPetFeedComment}
                 onDeletePostComment={app.deletePetFeedComment}
-                onReportPostComment={app.submitPetFeedCommentReport}
+                onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
                 currentUserId={app.accountProfile?.user_id ?? null}
+              />
+            ) : null}
+
+            {app.screen === 'messages-inbox' ? (
+              <MessagesInboxScreen
+                conversations={app.petFeedConversations}
+                loading={app.petFeedConversationsLoading}
+                error={app.petFeedConversationsError}
+                onBack={app.closeMessagesInbox}
+                onRefresh={app.refreshPetFeedConversations}
+                onOpenConversation={(conversation) => void app.openMessageThread(conversation)}
+              />
+            ) : null}
+
+            {app.screen === 'message-thread' ? (
+              <MessageThreadScreen
+                conversation={app.selectedPetFeedConversation}
+                messages={app.petFeedMessages}
+                currentUserId={app.accountProfile?.user_id ?? null}
+                loading={app.petFeedMessagesLoading}
+                sending={app.petFeedMessageSending}
+                error={app.petFeedMessagesError}
+                onBack={app.closeMessageThread}
+                onRefresh={() => app.refreshPetFeedMessages()}
+                onSend={app.sendPetFeedMessage}
               />
             ) : null}
 

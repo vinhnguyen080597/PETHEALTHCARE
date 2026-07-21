@@ -2,10 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { PetFeedComment } from '../types';
 import type { PetFeedCommentThread } from '../hooks/usePetFeedPostComments';
-import { ReportModal } from './ReportModal';
 
 const PRIMARY = '#1E6FE8';
 
@@ -39,10 +37,9 @@ type CommentRowProps = {
   isReply?: boolean;
   onReply?: (comment: PetFeedComment) => void;
   onDelete?: (comment: PetFeedComment) => void;
-  onReport?: (comment: PetFeedComment) => void;
 };
 
-function CommentRow({ comment, currentUserId, isReply = false, onReply, onDelete, onReport }: CommentRowProps) {
+function CommentRow({ comment, currentUserId, isReply = false, onReply, onDelete }: CommentRowProps) {
   const { t, i18n } = useTranslation();
   const isOwn = Boolean(
     currentUserId
@@ -87,15 +84,6 @@ function CommentRow({ comment, currentUserId, isReply = false, onReply, onDelete
             <Text className="text-xs font-semibold text-red-600">{t('petFeed.comments.delete')}</Text>
           </Pressable>
         ) : null}
-        {!isOwn && onReport ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('petFeed.comments.report')}
-            onPress={() => onReport(comment)}
-          >
-            <Text className="text-xs font-semibold text-slate-500">{t('petFeed.comments.report')}</Text>
-          </Pressable>
-        ) : null}
       </View>
     </View>
   );
@@ -107,7 +95,6 @@ type PetFeedCommentsSectionProps = {
   currentUserId?: string | null;
   onReply?: (comment: PetFeedComment) => void;
   onDelete?: (comment: PetFeedComment) => void;
-  onReport?: (comment: PetFeedComment, reason: string, note?: string) => void;
 };
 
 export function PetFeedCommentsSection({
@@ -116,74 +103,42 @@ export function PetFeedCommentsSection({
   currentUserId,
   onReply,
   onDelete,
-  onReport,
 }: PetFeedCommentsSectionProps) {
   const { t } = useTranslation();
-  const [reportComment, setReportComment] = useState<PetFeedComment | null>(null);
-  const [reportReason, setReportReason] = useState<PetFeedReportReason>('abusive_content');
-  const [reportNote, setReportNote] = useState('');
-
-  function submitReport() {
-    if (!reportComment || !onReport) return;
-    onReport(reportComment, reportReason, reportNote);
-    setReportComment(null);
-    setReportNote('');
-  }
 
   return (
-    <>
-      <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
-        <Text className="text-base font-bold text-slate-900">{t('petFeed.comments.title')}</Text>
-        {loading ? (
-          <View className="items-center py-6">
-            <ActivityIndicator color={PRIMARY} />
-          </View>
-        ) : threads.length === 0 ? (
-          <Text className="mt-3 text-sm leading-5 text-slate-500">{t('petFeed.comments.empty')}</Text>
-        ) : (
-          <View className="mt-3 gap-3">
-            {threads.map((thread) => (
-              <View key={thread.root.id} className="gap-2">
+    <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
+      <Text className="text-base font-bold text-slate-900">{t('petFeed.comments.title')}</Text>
+      {loading ? (
+        <View className="items-center py-6">
+          <ActivityIndicator color={PRIMARY} />
+        </View>
+      ) : threads.length === 0 ? (
+        <Text className="mt-3 text-sm leading-5 text-slate-500">{t('petFeed.comments.empty')}</Text>
+      ) : (
+        <View className="mt-3 gap-3">
+          {threads.map((thread) => (
+            <View key={thread.root.id} className="gap-2">
+              <CommentRow
+                comment={thread.root}
+                currentUserId={currentUserId}
+                onReply={onReply}
+                onDelete={onDelete}
+              />
+              {thread.replies.map((reply) => (
                 <CommentRow
-                  comment={thread.root}
+                  key={reply.id}
+                  comment={reply}
                   currentUserId={currentUserId}
-                  onReply={onReply}
+                  isReply
                   onDelete={onDelete}
-                  onReport={onReport ? setReportComment : undefined}
                 />
-                {thread.replies.map((reply) => (
-                  <CommentRow
-                    key={reply.id}
-                    comment={reply}
-                    currentUserId={currentUserId}
-                    isReply
-                    onDelete={onDelete}
-                    onReport={onReport ? setReportComment : undefined}
-                  />
-                ))}
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-      <ReportModal
-        visible={reportComment != null}
-        title={t('petFeed.comments.reportTitle')}
-        body={t('petFeed.comments.reportBody')}
-        reason={reportReason}
-        note={reportNote}
-        reasonLabel={(item) => t(`petFeed.reportReasons.${item}`)}
-        notePlaceholder={t('petFeed.reportNotePlaceholder')}
-        submitLabel={t('petFeed.submitReport')}
-        onChangeReason={setReportReason}
-        onChangeNote={setReportNote}
-        onCancel={() => {
-          setReportComment(null);
-          setReportNote('');
-        }}
-        onSubmit={submitReport}
-      />
-    </>
+              ))}
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 

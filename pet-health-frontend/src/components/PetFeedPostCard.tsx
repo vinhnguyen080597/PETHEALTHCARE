@@ -20,6 +20,8 @@ type PetFeedPostCardProps = {
   onToggleFavorite?: (post: PetFeedPost) => void;
   onReportPost?: (post: PetFeedPost, reason: string, note?: string) => void;
   onHideBreeder?: (profile: BreederProfile) => void;
+  onMessageBreeder?: (post: PetFeedPost) => void;
+  currentUserId?: string | null;
   showFavorite?: boolean;
   showContact?: boolean;
   showReport?: boolean;
@@ -76,28 +78,49 @@ function safePhoneUrl(value: string) {
   return cleaned.replace(/\D/g, '').length >= 8 ? `tel:${cleaned}` : '';
 }
 
-function ContactButton({ post }: { post: PetFeedPost }) {
+function ContactButton({
+  post,
+  onMessageBreeder,
+}: {
+  post: PetFeedPost;
+  onMessageBreeder?: (post: PetFeedPost) => void;
+}) {
   const { t } = useTranslation();
   const url = firstContact(post);
   return (
-    <Pressable
-      testID={`pet-feed-contact-button-${post.id}`}
-      accessibilityRole="button"
-      accessibilityLabel={t('petFeed.accessibility.contactBreeder', { title: post.title })}
-      accessibilityState={{ disabled: !url }}
-      className={`min-w-[160px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 ${url ? 'bg-blue-600 active:opacity-90' : 'bg-slate-200'}`}
-      disabled={!url}
-      onPress={() => {
-        if (!url) return;
-        Alert.alert(t('petFeed.contactConfirmTitle'), t('petFeed.contactConfirmBody'), [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('petFeed.contactConfirmOpen'), onPress: () => void Linking.openURL(url) },
-        ]);
-      }}
-    >
-      <Ionicons name="chatbubble-ellipses-outline" size={17} color={url ? '#fff' : '#94a3b8'} />
-      <Text className={`text-sm font-bold ${url ? 'text-white' : 'text-slate-400'}`}>{t('petFeed.contact')}</Text>
-    </Pressable>
+    <View className="min-w-[160px] flex-1 gap-2">
+      <Pressable
+        testID={`pet-feed-message-button-${post.id}`}
+        accessibilityRole="button"
+        accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: post.title })}
+        accessibilityState={{ disabled: !onMessageBreeder }}
+        className={`flex-row items-center justify-center gap-2 rounded-xl py-3 ${onMessageBreeder ? 'bg-blue-600 active:opacity-90' : 'bg-slate-200'}`}
+        disabled={!onMessageBreeder}
+        onPress={() => onMessageBreeder?.(post)}
+      >
+        <Ionicons name="chatbubble-ellipses-outline" size={17} color={onMessageBreeder ? '#fff' : '#94a3b8'} />
+        <Text className={`text-sm font-bold ${onMessageBreeder ? 'text-white' : 'text-slate-400'}`}>
+          {t('petFeed.messages.messageCta')}
+        </Text>
+      </Pressable>
+      {url ? (
+        <Pressable
+          testID={`pet-feed-contact-button-${post.id}`}
+          accessibilityRole="button"
+          accessibilityLabel={t('petFeed.accessibility.contactBreeder', { title: post.title })}
+          className="flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 active:bg-slate-50"
+          onPress={() => {
+            Alert.alert(t('petFeed.contactConfirmTitle'), t('petFeed.contactConfirmBody'), [
+              { text: t('common.cancel'), style: 'cancel' },
+              { text: t('petFeed.contactConfirmOpen'), onPress: () => void Linking.openURL(url) },
+            ]);
+          }}
+        >
+          <Ionicons name="open-outline" size={16} color="#475569" />
+          <Text className="text-sm font-semibold text-slate-700">{t('petFeed.messages.externalContact')}</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -197,6 +220,8 @@ function PetFeedPostCardComponent({
   onToggleFavorite,
   onReportPost,
   onHideBreeder,
+  onMessageBreeder,
+  currentUserId = null,
   showFavorite = true,
   showContact = true,
   showReport = true,
@@ -209,7 +234,11 @@ function PetFeedPostCardComponent({
 }: PetFeedPostCardProps) {
   const { t, i18n } = useTranslation();
   const breeder = post.breeder_profile;
-  const showActions = showContact || showReport || showHideBreeder;
+  const isOwnPost = Boolean(currentUserId && post.user_id === currentUserId);
+  const canShowContact = showContact && !isOwnPost;
+  const canShowReport = showReport && !isOwnPost;
+  const canShowHideBreeder = showHideBreeder && !isOwnPost;
+  const showActions = canShowContact || canShowReport || canShowHideBreeder;
   const isCompact = variant === 'compact';
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
@@ -433,9 +462,9 @@ function PetFeedPostCardComponent({
         {post.description ? <Text className="mt-3 text-sm leading-5 text-slate-700">{post.description}</Text> : null}
         {showActions ? (
           <View className="mt-4 flex-row flex-wrap gap-3">
-            {showContact ? <ContactButton post={post} /> : null}
-            {showHideBreeder ? <HideBreederButton profile={breeder} onHideBreeder={onHideBreeder} /> : null}
-            {showReport ? (
+            {canShowContact ? <ContactButton post={post} onMessageBreeder={onMessageBreeder} /> : null}
+            {canShowHideBreeder ? <HideBreederButton profile={breeder} onHideBreeder={onHideBreeder} /> : null}
+            {canShowReport ? (
               <Pressable
                 testID={`pet-feed-report-button-${post.id}`}
                 accessibilityRole="button"

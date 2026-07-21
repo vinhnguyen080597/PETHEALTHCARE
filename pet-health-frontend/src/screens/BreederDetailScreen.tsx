@@ -27,7 +27,7 @@ type BreederDetailScreenProps = {
   onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
   onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
   onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
-  onReportPostComment?: (comment: PetFeedComment, reason: string, note?: string) => void;
+  onMessageBreeder?: (post: PetFeedPost) => void;
   currentUserId?: string | null;
 };
 
@@ -70,10 +70,11 @@ export function BreederDetailScreen({
   onFetchPostComments,
   onSubmitPostComment,
   onDeletePostComment,
-  onReportPostComment,
+  onMessageBreeder,
   currentUserId,
 }: BreederDetailScreenProps) {
   const { t } = useTranslation();
+  const isOwnProfile = Boolean(currentUserId && profile.user_id === currentUserId);
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -170,24 +171,26 @@ export function BreederDetailScreen({
           </View>
         </View>
 
-        <View className="mt-3 flex-row gap-3">
-          <Pressable
-            accessibilityRole="button"
-            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50"
-            onPress={() => setReportVisible(true)}
-          >
-            <Ionicons name="flag-outline" size={17} color="#64748b" />
-            <Text className="text-sm font-bold text-slate-700">{t('breederDetail.reportProfile')}</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 py-3 active:bg-red-100"
-            onPress={confirmHideBreeder}
-          >
-            <Ionicons name="eye-off-outline" size={17} color="#dc2626" />
-            <Text className="text-sm font-bold text-red-600">{t('breederDetail.hideBreeder')}</Text>
-          </Pressable>
-        </View>
+        {!isOwnProfile ? (
+          <View className="mt-3 flex-row gap-3">
+            <Pressable
+              accessibilityRole="button"
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50"
+              onPress={() => setReportVisible(true)}
+            >
+              <Ionicons name="flag-outline" size={17} color="#64748b" />
+              <Text className="text-sm font-bold text-slate-700">{t('breederDetail.reportProfile')}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 py-3 active:bg-red-100"
+              onPress={confirmHideBreeder}
+            >
+              <Ionicons name="eye-off-outline" size={17} color="#dc2626" />
+              <Text className="text-sm font-bold text-red-600">{t('breederDetail.hideBreeder')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-base font-bold text-slate-900">{t('breederDetail.overview')}</Text>
@@ -301,6 +304,8 @@ export function BreederDetailScreen({
               onToggleFavorite={onToggleFavorite}
               onReportPost={onReportPost}
               onHideBreeder={onHideBreeder}
+              onMessageBreeder={onMessageBreeder}
+              currentUserId={currentUserId}
               showHideBreeder
               autoPlayVideo={false}
               mediaLoading={detailLoading}
@@ -312,7 +317,6 @@ export function BreederDetailScreen({
               currentUserId={currentUserId}
               onReply={setReplyTo}
               onDelete={(comment) => void removeComment(comment)}
-              onReport={onReportPostComment}
             />
           </>
         ) : detailLoading ? (

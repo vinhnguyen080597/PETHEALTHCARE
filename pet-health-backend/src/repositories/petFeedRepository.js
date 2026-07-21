@@ -477,57 +477,6 @@ export async function deletePetFeedPostComment(userId, commentId, accessToken) {
   return toComment(existing);
 }
 
-export async function reportPetFeedComment(userId, commentId, payload, accessToken) {
-  const safeCommentId = trimText(commentId, 64);
-  if (!safeCommentId) {
-    const err = new Error('commentId is required');
-    err.status = 400;
-    err.code = 'MISSING_COMMENT_ID';
-    throw err;
-  }
-  const supabase = getFeedSupabase(accessToken);
-  let comment = null;
-  if (!supabase) {
-    comment = memoryComments.find((row) => row.id === safeCommentId) ?? null;
-  } else {
-    const { data, error } = await supabase.from('pet_feed_comments').select('*').eq('id', safeCommentId).maybeSingle();
-    if (error) throw error;
-    comment = data;
-  }
-  if (!comment) {
-    const err = new Error('Comment not found');
-    err.status = 404;
-    err.code = 'PET_FEED_COMMENT_NOT_FOUND';
-    throw err;
-  }
-  if (comment.user_id === userId) {
-    const err = new Error('You cannot report your own comment.');
-    err.status = 400;
-    err.code = 'PET_FEED_COMMENT_REPORT_OWN';
-    throw err;
-  }
-  const row = {
-    id: randomUUID(),
-    user_id: userId,
-    target_type: 'comment',
-    post_id: comment.post_id,
-    breeder_profile_id: null,
-    comment_id: safeCommentId,
-    reason: trimText(payload.reason, 120) || 'other',
-    note: trimText(payload.note, 1200),
-    status: 'open',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  if (!supabase) {
-    memoryReports.push(row);
-    return toReport(row);
-  }
-  const { data, error } = await supabase.from('pet_feed_reports').insert(row).select('*').single();
-  if (error) throw error;
-  return toReport(data);
-}
-
 function assertVerifiedBreederProfile(profile) {
   if (profile?.verification_status === 'verified') return;
   const err = new Error('Breeder verification is required before creating or managing Pet Feed posts.');

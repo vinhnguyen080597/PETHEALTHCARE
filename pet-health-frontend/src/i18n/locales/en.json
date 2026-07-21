@@ -204,12 +204,24 @@
       "delete": "Delete",
       "deleteTitle": "Delete comment?",
       "deleteBody": "This comment and its replies will be removed.",
-      "deleteFailed": "Could not delete comment",
-      "report": "Report",
-      "reportTitle": "Report comment",
-      "reportBody": "Tell admin what is wrong with this comment.",
-      "reportSuccess": "Thanks. This comment has been sent for admin review.",
-      "reportFailed": "Could not report comment"
+      "deleteFailed": "Could not delete comment"
+    },
+    "messages": {
+      "inboxTitle": "Messages",
+      "inboxSubtitle": "Chats with breeders about Pet Feed listings",
+      "messageCta": "Message",
+      "externalContact": "External contact",
+      "emptyTitle": "No conversations yet",
+      "emptyBody": "Open a Pet Feed listing and tap Message to start.",
+      "peerFallback": "User",
+      "listingFallback": "Pet Feed listing",
+      "noMessagesYet": "No messages yet",
+      "threadEmpty": "Send the first message to start the chat.",
+      "placeholder": "Type a message...",
+      "inputLabel": "Message text",
+      "send": "Send message",
+      "openFailed": "Could not open conversation",
+      "sendFailed": "Could not send message"
     },
     "reportListing": "Report listing",
     "reportBody": "Tell admin what looks unsafe, misleading, or abusive about this listing.",
@@ -244,6 +256,7 @@
       "unsaveListing": "Remove saved pet listing",
       "reportListing": "Report listing {{title}}",
       "contactBreeder": "Contact breeder for {{title}}",
+      "messageBreeder": "Message breeder about {{title}}",
       "hideBreeder": "Hide breeder {{name}}",
       "openBreederProfile": "Open breeder profile {{name}}"
     },

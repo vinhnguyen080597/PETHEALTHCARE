@@ -74,7 +74,7 @@ type PetFeedScreenProps = {
   onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
   onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
   onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
-  onReportPostComment?: (comment: PetFeedComment, reason: string, note?: string) => void;
+  onMessageBreeder?: (post: PetFeedPost) => void;
   currentUserId?: string | null;
   enabledTabs?: { news: boolean; feed: boolean; breeders: boolean };
 };
@@ -198,7 +198,7 @@ export function PetFeedScreen({
   onFetchPostComments,
   onSubmitPostComment,
   onDeletePostComment,
-  onReportPostComment,
+  onMessageBreeder,
   currentUserId,
   enabledTabs = { news: true, feed: true, breeders: true },
 }: PetFeedScreenProps) {
@@ -879,6 +879,8 @@ export function PetFeedScreen({
             onToggleFavorite={onToggleFavorite}
             onReportPost={onReportPost}
             onHideBreeder={onHideBreeder}
+            onMessageBreeder={onMessageBreeder}
+            currentUserId={currentUserId}
             showHideBreeder
             autoPlayVideo={false}
             mediaLoading={detailLoading}
@@ -890,7 +892,6 @@ export function PetFeedScreen({
             currentUserId={currentUserId}
             onReply={setReplyTo}
             onDelete={(comment) => void removeComment(comment)}
-            onReport={onReportPostComment}
           />
         </>
       ) : detailLoading ? (

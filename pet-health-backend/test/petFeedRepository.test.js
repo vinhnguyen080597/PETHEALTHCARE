@@ -13,7 +13,6 @@ const {
   getPetFeedPost,
   listPetFeedPostComments,
   listPublishedPetFeedPostPage,
-  reportPetFeedComment,
   upsertMyBreederProfile,
 } = await import('../src/repositories/petFeedRepository.js');
 
@@ -131,7 +130,7 @@ test('listPetFeedPostComments returns comments in chronological order', async ()
   assert.equal(comments[0].post_id, post.id);
 });
 
-test('comment replies, delete, report, and list comment_count', async () => {
+test('comment replies, delete, and list comment_count', async () => {
   const authorId = `thread-author-${Date.now()}`;
   const readerId = `thread-reader-${Date.now()}`;
   const post = await createAnnouncementPost(authorId, {
@@ -153,10 +152,6 @@ test('comment replies, delete, report, and list comment_count', async () => {
   const listItem = listed.data.find((item) => item.id === post.id);
   assert.ok(listItem);
   assert.equal(listItem.comment_count, 2);
-
-  const report = await reportPetFeedComment(authorId, root.id, { reason: 'abusive_content', note: 'spam' }, null);
-  assert.equal(report.target_type, 'comment');
-  assert.equal(report.comment_id, root.id);
 
   await deletePetFeedPostComment(readerId, root.id, null);
   const afterDelete = await listPetFeedPostComments(post.id, null);

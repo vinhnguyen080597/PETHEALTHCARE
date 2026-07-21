@@ -51,6 +51,8 @@ export const HealthCheckScreen = lazyNamed(() => import('./HealthCheckScreen'), 
 export const HistoryScreen = lazyNamed(() => import('./HistoryScreen'), 'HistoryScreen');
 export const ForgotPasswordScreen = lazyNamed(() => import('./ForgotPasswordScreen'), 'ForgotPasswordScreen');
 export const LanguageSelectionScreen = lazyNamed(() => import('./LanguageSelectionScreen'), 'LanguageSelectionScreen');
+export const MessagesInboxScreen = lazyNamed(() => import('./MessagesInboxScreen'), 'MessagesInboxScreen');
+export const MessageThreadScreen = lazyNamed(() => import('./MessageThreadScreen'), 'MessageThreadScreen');
 export const SignUpOtpVerificationScreen = lazyNamed(
   () => import('./SignUpOtpVerificationScreen'),
   'SignUpOtpVerificationScreen',

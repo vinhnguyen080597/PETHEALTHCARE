@@ -240,6 +240,29 @@ export type PetFeedComment = {
   updated_at?: string;
 };
 
+export type PetFeedConversation = {
+  id: string;
+  post_id: string;
+  sen_user_id: string;
+  breeder_user_id: string;
+  last_message_at: string | null;
+  last_message_preview: string;
+  created_at: string;
+  updated_at?: string;
+  post_title: string;
+  post_thumb_url: string | null;
+  peer_display_name: string;
+  peer_user_id: string | null;
+};
+
+export type PetFeedMessage = {
+  id: string;
+  conversation_id: string;
+  sender_user_id: string;
+  body: string;
+  created_at: string;
+};
+
 export type UpsertBreederProfilePayload = {
   displayName: string;
   bio?: string;

@@ -30,6 +30,7 @@ import {
   cancelMyBreederVerificationRequest,
   deleteAdminUserCoreCareRecord,
   deleteMyAccount,
+  getPetFeedConversation,
   getPetFeedPost,
   verifyAccountUpdateRequest,
   applyAccountUpdate,
@@ -57,12 +58,15 @@ import {
   listMyAnnouncementPosts,
   listMyPetFeedPosts,
   listPetFeedPostComments,
+  listPetFeedConversationMessages,
+  listPetFeedConversations,
   listPetFeedPosts,
   listPets,
   listVerifiedBreederProfiles,
   reportBreederProfile,
-  reportPetFeedComment,
   reportPetFeedPost,
+  openPetFeedConversation,
+  sendPetFeedConversationMessage,
   requestBreedRecognition,
   requestSignUpOtp,
   translateAnalysesDisplay,
@@ -122,6 +126,8 @@ import type {
   Pet,
   PetFeedPost,
   PetFeedComment,
+  PetFeedConversation,
+  PetFeedMessage,
   PetFeedReport,
   UpsertBreederProfilePayload,
   UserRole,
@@ -419,6 +425,16 @@ export function usePetHealthApp() {
   /** Return target after leaving create-pet-feed-post (Account vs registration form). */
   const [createPetFeedReturnScreen, setCreatePetFeedReturnScreen] = useState<AppScreen>('account');
   const [editingPetFeedPost, setEditingPetFeedPost] = useState<PetFeedPost | null>(null);
+  const [petFeedConversations, setPetFeedConversations] = useState<PetFeedConversation[]>([]);
+  const [petFeedConversationsLoading, setPetFeedConversationsLoading] = useState(false);
+  const [petFeedConversationsError, setPetFeedConversationsError] = useState('');
+  const [selectedPetFeedConversation, setSelectedPetFeedConversation] = useState<PetFeedConversation | null>(null);
+  const [petFeedMessages, setPetFeedMessages] = useState<PetFeedMessage[]>([]);
+  const [petFeedMessagesLoading, setPetFeedMessagesLoading] = useState(false);
+  const [petFeedMessagesError, setPetFeedMessagesError] = useState('');
+  const [petFeedMessageSending, setPetFeedMessageSending] = useState(false);
+  /** Back target for inbox (account) or thread (inbox / pet-feed / breeder-detail). */
+  const [messagesReturnScreen, setMessagesReturnScreen] = useState<AppScreen>('account');
   /** Where to go when closing the results screen opened from history vs profile vs default home. */
   const [resultsReturnScreen, setResultsReturnScreen] = useState<'home' | 'history' | 'pet-profile' | null>(
     null,
@@ -2035,16 +2051,133 @@ export function usePetHealthApp() {
     }
   }, [token]);
 
-  const submitPetFeedCommentReport = useCallback(async (comment: PetFeedComment, reason: string, note?: string) => {
-    if (!token || !comment?.id) return;
+  const refreshPetFeedConversations = useCallback(async () => {
+    if (!token) return;
+    setPetFeedConversationsLoading(true);
+    setPetFeedConversationsError('');
     try {
-      await reportPetFeedComment(token, comment.id, { reason, note });
-      Alert.alert(i18n.t('common.ok'), i18n.t('petFeed.comments.reportSuccess'));
+      const response = await listPetFeedConversations(token);
+      setPetFeedConversations(response.data ?? []);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
-      Alert.alert(i18n.t('petFeed.comments.reportFailed'), message);
+      setPetFeedConversationsError(message);
+    } finally {
+      setPetFeedConversationsLoading(false);
     }
   }, [token]);
+
+  const refreshPetFeedMessages = useCallback(async (conversationId?: string) => {
+    const id = conversationId || selectedPetFeedConversation?.id;
+    if (!token || !id) return;
+    setPetFeedMessagesLoading(true);
+    setPetFeedMessagesError('');
+    try {
+      const [messagesRes, conversationRes] = await Promise.all([
+        listPetFeedConversationMessages(token, id),
+        getPetFeedConversation(token, id).catch(() => null),
+      ]);
+      setPetFeedMessages(messagesRes.data ?? []);
+      if (conversationRes?.data) {
+        setSelectedPetFeedConversation(conversationRes.data);
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      setPetFeedMessagesError(message);
+    } finally {
+      setPetFeedMessagesLoading(false);
+    }
+  }, [selectedPetFeedConversation?.id, token]);
+
+  function openMessagesInbox() {
+    setMessagesReturnScreen('account');
+    setScreen('messages-inbox');
+    void refreshPetFeedConversations();
+  }
+
+  function closeMessagesInbox() {
+    setScreen('account');
+  }
+
+  async function openMessageThread(conversation: PetFeedConversation) {
+    setMessagesReturnScreen('messages-inbox');
+    setSelectedPetFeedConversation(conversation);
+    setPetFeedMessages([]);
+    setPetFeedMessagesError('');
+    setScreen('message-thread');
+    await refreshPetFeedMessages(conversation.id);
+  }
+
+  async function openOrCreateConversationFromPost(post: PetFeedPost) {
+    if (!token || !post?.id) return;
+    setLoading(true);
+    try {
+      const response = await openPetFeedConversation(token, post.id);
+      const conversation = response.data;
+      setMessagesReturnScreen(screen === 'breeder-detail' ? 'breeder-detail' : 'pet-feed');
+      setSelectedPetFeedConversation(conversation);
+      setPetFeedMessages([]);
+      setPetFeedMessagesError('');
+      setScreen('message-thread');
+      await refreshPetFeedMessages(conversation.id);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.messages.openFailed'), message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closeMessageThread() {
+    if (messagesReturnScreen === 'messages-inbox') {
+      setScreen('messages-inbox');
+      void refreshPetFeedConversations();
+      return;
+    }
+    setScreen(messagesReturnScreen);
+  }
+
+  async function sendPetFeedMessage(body: string): Promise<boolean> {
+    if (!token || !selectedPetFeedConversation?.id) return false;
+    const trimmed = body.trim();
+    if (!trimmed) return false;
+    setPetFeedMessageSending(true);
+    setPetFeedMessagesError('');
+    try {
+      const response = await sendPetFeedConversationMessage(token, selectedPetFeedConversation.id, trimmed);
+      const created = response.data;
+      if (created) {
+        setPetFeedMessages((current) => [...current, created]);
+        const preview = created.body.slice(0, 160);
+        setSelectedPetFeedConversation((current) => (
+          current
+            ? {
+                ...current,
+                last_message_at: created.created_at,
+                last_message_preview: preview,
+              }
+            : current
+        ));
+        setPetFeedConversations((current) =>
+          current.map((item) => (
+            item.id === created.conversation_id
+              ? {
+                  ...item,
+                  last_message_at: created.created_at,
+                  last_message_preview: preview,
+                }
+              : item
+          )),
+        );
+      }
+      return Boolean(created);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.messages.sendFailed'), message);
+      return false;
+    } finally {
+      setPetFeedMessageSending(false);
+    }
+  }
 
   async function submitBreederProfileReport(profile: BreederProfile, reason: string, note?: string) {
     if (!token) return;
@@ -3574,7 +3707,22 @@ export function usePetHealthApp() {
     fetchPetFeedPostComments,
     submitPetFeedComment,
     deletePetFeedComment,
-    submitPetFeedCommentReport,
+    petFeedConversations,
+    petFeedConversationsLoading,
+    petFeedConversationsError,
+    selectedPetFeedConversation,
+    petFeedMessages,
+    petFeedMessagesLoading,
+    petFeedMessagesError,
+    petFeedMessageSending,
+    openMessagesInbox,
+    closeMessagesInbox,
+    openMessageThread,
+    openOrCreateConversationFromPost,
+    closeMessageThread,
+    refreshPetFeedConversations,
+    refreshPetFeedMessages,
+    sendPetFeedMessage,
     submitBreederProfileReport,
     hideBreederProfile,
     myPetFeedPosts,

@@ -112,6 +112,7 @@ type AccountScreenProps = {
   onOpenAdminHub: () => void;
   onOpenUpdateAccount: () => void;
   onOpenLanguageSelection: () => void;
+  onOpenMessagesInbox: () => void;
   onUpdateBreederStatus: (userId: string, verificationStatus: string) => Promise<void>;
   onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
@@ -178,6 +179,7 @@ export function AccountScreen({
   onOpenAdminHub,
   onOpenUpdateAccount,
   onOpenLanguageSelection,
+  onOpenMessagesInbox,
   onUpdateBreederStatus,
   onUpdatePostStatus,
   onUpdateReportStatus,
@@ -544,6 +546,27 @@ export function AccountScreen({
           </Pressable>
         ))}
       </View>
+
+      {!isAdmin ? (
+        <Pressable
+          testID="account-open-messages-inbox-button"
+          accessibilityRole="button"
+          accessibilityLabel={t('petFeed.messages.inboxTitle')}
+          className="mt-4 flex-row items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3.5 active:bg-slate-50"
+          onPress={onOpenMessagesInbox}
+        >
+          <View className="flex-row items-center gap-3">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-blue-50">
+              <Ionicons name="mail-outline" size={20} color={PRIMARY} />
+            </View>
+            <View>
+              <Text className="text-sm font-bold text-slate-900">{t('petFeed.messages.inboxTitle')}</Text>
+              <Text className="mt-0.5 text-xs text-slate-500">{t('petFeed.messages.inboxSubtitle')}</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+        </Pressable>
+      ) : null}
 
       {isAdmin ? (
         <Pressable

@@ -19,13 +19,19 @@ import {
   listPublishedPetFeedPostPage,
   listVerifiedBreederProfiles,
   reportBreederProfile,
-  reportPetFeedComment,
   reportPetFeedPost,
   unblockBreederProfile,
   unfavoritePetFeedPost,
   updatePetFeedPost,
   upsertMyBreederProfile,
 } from '../repositories/petFeedRepository.js';
+import {
+  getPetFeedConversation,
+  listPetFeedConversationMessages,
+  listPetFeedConversations,
+  openPetFeedConversation,
+  sendPetFeedConversationMessage,
+} from '../repositories/petFeedMessagingRepository.js';
 import {
   PET_FEED_LIST_THUMB_MAX_BYTES,
   PET_FEED_PHOTO_MAX_BYTES,
@@ -575,17 +581,67 @@ router.delete('/comments/:commentId', async (req, res, next) => {
   }
 });
 
-router.post('/comments/:commentId/report', async (req, res, next) => {
+router.post('/posts/:postId/conversations', async (req, res, next) => {
   try {
-    const commentId = cleanId(req.params.commentId);
-    if (!commentId) return res.status(400).json({ error: 'commentId is required', code: 'MISSING_COMMENT_ID' });
-    const report = await reportPetFeedComment(req.user.id, commentId, req.body ?? {}, req.accessToken);
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const conversation = await openPetFeedConversation(req.user.id, postId, req.accessToken);
     void recordProductEvent({
       userId: req.user.id,
-      event: 'pet_feed_comment_reported',
-      metadata: { commentId, reason: report.reason },
+      event: 'pet_feed_conversation_opened',
+      metadata: { postId, conversationId: conversation.id },
     });
-    return res.status(201).json({ data: report });
+    return res.status(201).json({ data: conversation });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/conversations', async (req, res, next) => {
+  try {
+    const conversations = await listPetFeedConversations(req.user.id, req.accessToken);
+    return res.json({ data: conversations });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/conversations/:conversationId', async (req, res, next) => {
+  try {
+    const conversationId = cleanId(req.params.conversationId);
+    if (!conversationId) return res.status(400).json({ error: 'conversationId is required', code: 'MISSING_CONVERSATION_ID' });
+    const conversation = await getPetFeedConversation(req.user.id, conversationId, req.accessToken);
+    return res.json({ data: conversation });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/conversations/:conversationId/messages', async (req, res, next) => {
+  try {
+    const conversationId = cleanId(req.params.conversationId);
+    if (!conversationId) return res.status(400).json({ error: 'conversationId is required', code: 'MISSING_CONVERSATION_ID' });
+    const messages = await listPetFeedConversationMessages(req.user.id, conversationId, req.accessToken, {
+      limit: firstQueryValue(req.query.limit),
+    });
+    return res.json({ data: messages });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/conversations/:conversationId/messages', async (req, res, next) => {
+  try {
+    const conversationId = cleanId(req.params.conversationId);
+    if (!conversationId) return res.status(400).json({ error: 'conversationId is required', code: 'MISSING_CONVERSATION_ID' });
+    const body = typeof req.body?.body === 'string' ? req.body.body : typeof req.body?.text === 'string' ? req.body.text : '';
+    const message = await sendPetFeedConversationMessage(req.user.id, conversationId, body, req.accessToken);
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'pet_feed_message_sent',
+      metadata: { conversationId, messageId: message.id },
+    });
+    return res.status(201).json({ data: message });
   } catch (err) {
     return next(err);
   }
