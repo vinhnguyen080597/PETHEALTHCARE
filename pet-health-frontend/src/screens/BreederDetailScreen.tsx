@@ -1,15 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { ModalScreenShell } from '../components/ModalScreenShell';
-import { PetFeedCommentComposer, PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { ReportModal } from '../components/ReportModal';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
-import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
-import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
-import type { BreederProfile, PetFeedComment, PetFeedPost } from '../types';
+import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, hasBreederContact, metadataArray, metadataString } from '../utils/breederTrust';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 
@@ -19,15 +15,9 @@ type BreederDetailScreenProps = {
   profile: BreederProfile;
   posts: PetFeedPost[];
   onBack: () => void;
-  onToggleFavorite: (post: PetFeedPost) => void;
-  onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
   onReportBreeder: (profile: BreederProfile, reason: string, note?: string) => void;
   onHideBreeder: (profile: BreederProfile) => void;
-  onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
-  onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
-  onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
-  onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
-  onMessageBreeder?: (post: PetFeedPost) => void;
+  onOpenPostDetail: (postId: string) => void;
   currentUserId?: string | null;
 };
 
@@ -60,17 +50,11 @@ function genderGroup(post: PetFeedPost): GenderFilter {
 
 export function BreederDetailScreen({
   profile,
-  posts,
+  posts = [],
   onBack,
-  onToggleFavorite,
-  onReportPost,
   onReportBreeder,
   onHideBreeder,
-  onFetchPostDetail,
-  onFetchPostComments,
-  onSubmitPostComment,
-  onDeletePostComment,
-  onMessageBreeder,
+  onOpenPostDetail,
   currentUserId,
 }: BreederDetailScreenProps) {
   const { t } = useTranslation();
@@ -78,26 +62,13 @@ export function BreederDetailScreen({
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
   const [reportNote, setReportNote] = useState('');
-  const trust = useMemo(() => computeBreederTrust(profile, posts), [profile, posts]);
-  const { selectedPost, detailLoading } = usePetFeedPostDetail(selectedPostId, posts, onFetchPostDetail);
-  const {
-    threads,
-    loading: commentsLoading,
-    submitting: commentSubmitting,
-    replyTo,
-    setReplyTo,
-    addComment,
-    removeComment,
-  } = usePetFeedPostComments(
-    selectedPostId,
-    onFetchPostComments,
-    onSubmitPostComment,
-    onDeletePostComment,
-  );
+  const listingPosts = Array.isArray(posts) ? posts : [];
+  const primarySpecies = Array.isArray(profile.primary_species) ? profile.primary_species : [];
+  const mainBreeds = Array.isArray(profile.main_breeds) ? profile.main_breeds : [];
+  const trust = useMemo(() => computeBreederTrust(profile, listingPosts), [profile, listingPosts]);
   const scaleRange = metadataString(profile.metadata, 'scaleRange');
   const breedingPetRange = metadataString(profile.metadata, 'breedingPetRange');
   const breederType = metadataString(profile.metadata, 'breederType');
@@ -105,16 +76,16 @@ export function BreederDetailScreen({
   const registeredKennelName = metadataString(profile.metadata, 'registeredKennelName');
   const careChecklist = metadataArray(profile.metadata, 'careChecklist');
   const commitments = metadataArray(profile.metadata, 'transparencyCommitments');
-  const species = profile.primary_species.map((value) => translatedOption(t, 'breederProfile.speciesOptions', value)).filter(Boolean).join(', ');
-  const breeds = profile.main_breeds.join(', ');
+  const species = primarySpecies.map((value) => translatedOption(t, 'breederProfile.speciesOptions', value)).filter(Boolean).join(', ');
+  const breeds = mainBreeds.join(', ');
   const filteredPosts = useMemo(() => {
-    const byGender = genderFilter === 'all' ? posts : posts.filter((post) => genderGroup(post) === genderFilter);
+    const byGender = genderFilter === 'all' ? listingPosts : listingPosts.filter((post) => genderGroup(post) === genderFilter);
     return [...byGender].sort((a, b) => {
       if (sortField === 'age') return compareMaybeNumber(a.age_months, b.age_months, sortDirection);
       if (sortField === 'price') return compareMaybeNumber(parsePetFeedPriceToVnd(a.price_note), parsePetFeedPriceToVnd(b.price_note), sortDirection);
       return sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a);
     });
-  }, [genderFilter, posts, sortDirection, sortField]);
+  }, [genderFilter, listingPosts, sortDirection, sortField]);
 
   function toggleSort(field: SortField) {
     if (sortField === field) {
@@ -167,7 +138,7 @@ export function BreederDetailScreen({
           </View>
           <View className="mt-4 flex-row gap-2">
             <MetricCard label={t('petFeed.topBreeders.trustScore')} value={`${trust.score}/100`} light />
-            <MetricCard label={t('petFeed.topBreeders.posts')} value={String(posts.length)} light />
+            <MetricCard label={t('petFeed.topBreeders.posts')} value={String(listingPosts.length)} light />
           </View>
         </View>
 
@@ -275,56 +246,11 @@ export function BreederDetailScreen({
               showFavorite={false}
               showContact={false}
               showReport={false}
-              onPress={(item) => setSelectedPostId(item.id)}
+              onPress={(item) => onOpenPostDetail(item.id)}
             />
           ))}
         </View>
       </ScrollView>
-      <ModalScreenShell
-        visible={selectedPostId != null}
-        title={t('petFeed.detailTitle')}
-        closeLabel={t('petFeed.accessibility.closeDetail')}
-        closeTestID="breeder-detail-post-back-button"
-        onClose={() => setSelectedPostId(null)}
-        footer={
-          selectedPost ? (
-            <PetFeedCommentComposer
-              submitting={commentSubmitting}
-              replyTo={replyTo}
-              onCancelReply={() => setReplyTo(null)}
-              onSubmit={addComment}
-            />
-          ) : undefined
-        }
-      >
-        {selectedPost ? (
-          <>
-            <PetFeedPostCard
-              post={selectedPost}
-              onToggleFavorite={onToggleFavorite}
-              onReportPost={onReportPost}
-              onHideBreeder={onHideBreeder}
-              onMessageBreeder={onMessageBreeder}
-              currentUserId={currentUserId}
-              showHideBreeder
-              autoPlayVideo={false}
-              mediaLoading={detailLoading}
-              testID={`breeder-detail-post-${selectedPost.id}`}
-            />
-            <PetFeedCommentsSection
-              threads={threads}
-              loading={commentsLoading}
-              currentUserId={currentUserId}
-              onReply={setReplyTo}
-              onDelete={(comment) => void removeComment(comment)}
-            />
-          </>
-        ) : detailLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={PRIMARY} />
-          </View>
-        ) : null}
-      </ModalScreenShell>
       <ReportModal
         visible={reportVisible}
         title={t('breederDetail.reportProfile')}

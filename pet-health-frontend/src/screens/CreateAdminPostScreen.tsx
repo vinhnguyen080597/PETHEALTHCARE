@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AdminPostCard } from '../components/AdminPostCard';
 import { ModalScreenShell } from '../components/ModalScreenShell';
@@ -166,7 +166,7 @@ export function CreateAdminPostScreen({ onBack, onSubmit }: CreateAdminPostScree
           <Text className="text-center text-sm font-bold text-slate-700">{t('adminPost.preview')}</Text>
         </Pressable>
         <Pressable className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 active:opacity-90" onPress={() => void publish()} disabled={submitting}>
-          {submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name="cloud-upload-outline" size={18} color="#fff" />}
+          <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
           <Text className="text-sm font-bold text-white">{t('adminPost.publish')}</Text>
         </Pressable>
       </ScrollView>

@@ -3,7 +3,6 @@ import { Image } from 'expo-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
   Linking,
   Modal,
   Pressable,
@@ -573,9 +572,8 @@ export function PetBreedRecognitionScreen({
           className={`mt-2 flex-row items-center justify-center gap-2 rounded-xl py-4 ${canAnalyze && introComplete ? 'active:opacity-90' : 'opacity-45'}`}
           style={{ backgroundColor: PRIMARY }}
           onPress={onAnalyze}
-          disabled={!canAnalyze || !introComplete}
+          disabled={!canAnalyze || !introComplete || loading}
         >
-          {loading ? <ActivityIndicator color="#fff" /> : null}
           <Text className="text-center text-base font-bold text-white">
             {loading ? t('breedRecognition.analyzing') : t('breedRecognition.analyze')}
           </Text>

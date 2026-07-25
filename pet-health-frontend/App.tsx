@@ -47,10 +47,11 @@ import {
   HistoryScreen,
   LanguageSelectionScreen,
   MessagesInboxScreen,
-  MessageThreadScreen,
+  MessageThreadModal,
   OnboardingHealthPromptScreen,
   OnboardingIntroScreen,
   PetBreedRecognitionScreen,
+  PetFeedPostDetailScreen,
   PetProfileScreen,
   ResultsScreen,
   SignUpOtpVerificationScreen,
@@ -295,7 +296,6 @@ function AppContent() {
             ...app.forgotPasswordFieldErrors,
             ...app.forgotPasswordRecoverFieldErrors,
           }}
-          otpLoading={app.forgotPasswordOtpLoading}
           onChangeEmail={app.changeForgotPasswordEmail}
           onChangeOtp={app.changeForgotPasswordOtp}
           onChangeNewPassword={app.setForgotPasswordNewPassword}
@@ -308,9 +308,12 @@ function AppContent() {
       ) : app.screen === 'signup-otp-verification' ? (
         <SignUpOtpVerificationScreen
           email={app.pendingSignUpEmail || app.email}
+          displayName={app.signUpDisplayName}
           otp={app.signUpOtp}
           error={app.signUpOtpError}
+          fieldErrors={app.signUpOtpFieldErrors}
           loading={app.loading}
+          onChangeDisplayName={app.changeSignUpDisplayName}
           onChangeOtp={app.changeSignUpOtp}
           onBack={app.backToSignUpFromOtpVerification}
           onSubmit={app.submitSignUpOtpVerification}
@@ -359,35 +362,38 @@ function AppContent() {
                 onRefresh={app.refreshPetFeed}
                 onLoadMore={app.loadMorePetFeed}
                 onLoadMoreAnnouncements={app.loadMoreAnnouncements}
-                onToggleFavorite={app.togglePetFeedFavorite}
-                onReportPost={app.submitPetFeedReport}
-                onHideBreeder={app.hideBreederProfile}
                 onOpenBreederDetail={app.openBreederDetail}
-                onFetchPostDetail={app.fetchPetFeedPostDetail}
-                onFetchPostComments={app.fetchPetFeedPostComments}
-                onSubmitPostComment={app.submitPetFeedComment}
-                onDeletePostComment={app.deletePetFeedComment}
-                onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
-                currentUserId={app.accountProfile?.user_id ?? null}
+                onOpenPostDetail={app.openPetFeedPostDetail}
                 enabledTabs={app.petFeedEnabledTabs}
               />
               </View>
             )}
+
+            {app.screen === 'pet-feed-detail' && app.selectedPetFeedPostId ? (
+              <PetFeedPostDetailScreen
+                postId={app.selectedPetFeedPostId}
+                listPosts={[...app.petFeedPosts, ...app.selectedBreederPosts]}
+                onBack={app.closePetFeedPostDetail}
+                onToggleFavorite={app.togglePetFeedFavorite}
+                onReportPost={app.submitPetFeedReport}
+                onHideBreeder={app.hideBreederProfile}
+                onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
+                onFetchPostDetail={app.fetchPetFeedPostDetail}
+                onFetchPostComments={app.fetchPetFeedPostComments}
+                onSubmitPostComment={app.submitPetFeedComment}
+                onDeletePostComment={app.deletePetFeedComment}
+                currentUserId={app.accountProfile?.user_id ?? null}
+              />
+            ) : null}
 
             {app.screen === 'breeder-detail' && app.selectedBreederProfile ? (
               <BreederDetailScreen
                 profile={app.selectedBreederProfile}
                 posts={app.selectedBreederPosts}
                 onBack={app.closeBreederDetail}
-                onToggleFavorite={app.togglePetFeedFavorite}
-                onReportPost={app.submitPetFeedReport}
                 onReportBreeder={app.submitBreederProfileReport}
                 onHideBreeder={app.hideBreederProfile}
-                onFetchPostDetail={app.fetchPetFeedPostDetail}
-                onFetchPostComments={app.fetchPetFeedPostComments}
-                onSubmitPostComment={app.submitPetFeedComment}
-                onDeletePostComment={app.deletePetFeedComment}
-                onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
+                onOpenPostDetail={app.openPetFeedPostDetail}
                 currentUserId={app.accountProfile?.user_id ?? null}
               />
             ) : null}
@@ -403,19 +409,18 @@ function AppContent() {
               />
             ) : null}
 
-            {app.screen === 'message-thread' ? (
-              <MessageThreadScreen
-                conversation={app.selectedPetFeedConversation}
-                messages={app.petFeedMessages}
-                currentUserId={app.accountProfile?.user_id ?? null}
-                loading={app.petFeedMessagesLoading}
-                sending={app.petFeedMessageSending}
-                error={app.petFeedMessagesError}
-                onBack={app.closeMessageThread}
-                onRefresh={() => app.refreshPetFeedMessages()}
-                onSend={app.sendPetFeedMessage}
-              />
-            ) : null}
+            <MessageThreadModal
+              visible={app.messageThreadModalVisible}
+              conversation={app.selectedPetFeedConversation}
+              messages={app.petFeedMessages}
+              currentUserId={app.accountProfile?.user_id ?? null}
+              loading={app.petFeedMessagesLoading}
+              sending={app.petFeedMessageSending}
+              error={app.petFeedMessagesError}
+              onClose={app.closeMessageThread}
+              onRefresh={() => app.refreshPetFeedMessages()}
+              onSend={app.sendPetFeedMessage}
+            />
 
             {app.screen === 'account' && !isAdmin ? accountDashboard : null}
 
@@ -455,7 +460,6 @@ function AppContent() {
                 pendingEmail={app.updateAccountPendingNewEmail}
                 otp={app.updateAccountEmailOtp}
                 otpError={app.updateAccountEmailOtpError}
-                otpLoading={app.updateAccountEmailOtpLoading}
                 onChangeValue={app.changeUpdateAccountNewLogin}
                 onChangeCurrentPassword={app.changeUpdateAccountEmailChangePassword}
                 onChangeOtp={app.changeUpdateAccountEmailOtp}
@@ -496,7 +500,6 @@ function AppContent() {
                 confirmPassword={app.updateAccountRecoverConfirmPassword}
                 otpError={app.updateAccountRecoverOtpError}
                 fieldErrors={app.updateAccountRecoverFieldErrors}
-                otpLoading={app.updateAccountRecoverOtpLoading}
                 onBack={app.backToUpdateAccount}
                 onSubmitSendOtp={() => void app.submitUpdateAccountRecoverPassword()}
                 onChangeOtp={app.changeUpdateAccountRecoverOtp}
@@ -522,6 +525,7 @@ function AppContent() {
                 onBack={app.closeCreatePetFeedPost}
                 onSubmit={app.submitPetFeedPost}
                 onUpdate={app.updatePetFeedDraft}
+                onBusyChange={app.setAppLoading}
               />
             )}
 

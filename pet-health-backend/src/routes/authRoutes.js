@@ -55,9 +55,12 @@ router.post('/signup', async (req, res, next) => {
 
 router.post('/signup/verify-otp', async (req, res, next) => {
   try {
-    const { email, otp, password } = req.body ?? {};
+    const { email, otp, password, displayName: displayNameInput } = req.body ?? {};
     if (!email || !otp || !password) {
       return res.status(400).json({ error: 'email, otp and password are required' });
+    }
+    if (typeof displayNameInput !== 'string' || !displayNameInput.trim()) {
+      return res.status(400).json({ error: 'displayName is required', code: 'DISPLAY_NAME_REQUIRED' });
     }
 
     const supabase = getSupabaseAnonClient();
@@ -71,6 +74,11 @@ router.post('/signup/verify-otp', async (req, res, next) => {
     const cleanPassword = String(password);
     if (cleanPassword.length < 6) {
       return res.status(400).json({ error: 'password must be at least 6 characters', code: 'PASSWORD_TOO_SHORT' });
+    }
+
+    const chosenDisplayName = compactText(displayNameInput).slice(0, 160);
+    if (!chosenDisplayName) {
+      return res.status(400).json({ error: 'displayName is required', code: 'DISPLAY_NAME_REQUIRED' });
     }
 
     const { data, error } = await supabase.auth.verifyOtp({
@@ -90,6 +98,10 @@ router.post('/signup/verify-otp', async (req, res, next) => {
     if (data.user?.id) {
       const { error: updatePasswordError } = await admin.auth.admin.updateUserById(data.user.id, {
         password: cleanPassword,
+        user_metadata: {
+          ...(data.user.user_metadata ?? {}),
+          full_name: chosenDisplayName,
+        },
       });
       if (updatePasswordError) throw updatePasswordError;
     }
@@ -106,10 +118,7 @@ router.post('/signup/verify-otp', async (req, res, next) => {
       typeof metadata.login_identifier === 'string' && metadata.login_identifier.trim()
         ? metadata.login_identifier
         : compactText(email);
-    const displayName =
-      typeof metadata.full_name === 'string' && metadata.full_name.trim()
-        ? metadata.full_name
-        : compactText(email);
+    const displayName = chosenDisplayName;
 
     const account = loginData.user?.id
       ? await ensureAccountProfile({

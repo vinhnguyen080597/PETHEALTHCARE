@@ -53,6 +53,10 @@ export const API_BASE_URL = trimTrailingSlash(configuredApiBaseUrl || `${apiOrig
 
 export const API_HEALTH_URL = trimTrailingSlash(configuredApiHealthUrl || `${apiOrigin}/health`);
 
+/** Same project as backend `SUPABASE_URL` / `SUPABASE_ANON_KEY` — used for Pet Feed DM Realtime. */
+export const SUPABASE_URL = publicEnv.EXPO_PUBLIC_SUPABASE_URL?.trim() || '';
+export const SUPABASE_ANON_KEY = publicEnv.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() || '';
+
 export const APP_LINKS = {
   privacyPolicy: resolveAppLink('EXPO_PUBLIC_PRIVACY_POLICY_URL', DEV_APP_LINKS.privacyPolicy, ['https:']),
   termsOfService: resolveAppLink('EXPO_PUBLIC_TERMS_OF_SERVICE_URL', DEV_APP_LINKS.termsOfService, ['https:']),

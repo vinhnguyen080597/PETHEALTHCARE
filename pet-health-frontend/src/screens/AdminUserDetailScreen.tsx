@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { AccountProfile, Pet, UserRole } from '../types';
 
@@ -36,7 +36,7 @@ export function AdminUserDetailScreen({
         </Pressable>
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{account.display_name || account.login_identifier}</Text>
         <Pressable className="w-14 items-center rounded-lg p-2" onPress={onRefresh} disabled={loading}>
-          {loading ? <ActivityIndicator size="small" color="#2563eb" /> : <Ionicons name="refresh-outline" size={22} color="#2563eb" />}
+          <Ionicons name="refresh-outline" size={22} color={loading ? '#93c5fd' : '#2563eb'} />
         </Pressable>
       </View>
 

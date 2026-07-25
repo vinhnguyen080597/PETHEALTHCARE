@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 type UpdateAccountChangePasswordScreenProps = {
@@ -130,11 +130,7 @@ export function UpdateAccountChangePasswordScreen({
           className={`rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
           onPress={onSubmit}
         >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.saveChanges')}</Text>
-          )}
+          <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.saveChanges')}</Text>
         </Pressable>
       </View>
     </ScrollView>

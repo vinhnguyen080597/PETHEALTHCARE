@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -14,17 +15,19 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PetFeedConversation, PetFeedMessage } from '../types';
+import { modalBottomInset, modalTopInset } from '../utils/modalSafeArea';
 
 const PRIMARY = '#1E6FE8';
 
-type MessageThreadScreenProps = {
+export type MessageThreadModalProps = {
+  visible: boolean;
   conversation: PetFeedConversation | null;
   messages: PetFeedMessage[];
   currentUserId: string | null;
   loading: boolean;
   sending: boolean;
   error: string;
-  onBack: () => void;
+  onClose: () => void;
   onRefresh: () => Promise<void> | void;
   onSend: (body: string) => Promise<boolean>;
 };
@@ -38,22 +41,30 @@ function formatMessageTime(value: string, locale: string) {
   });
 }
 
-export function MessageThreadScreen({
+export function MessageThreadView({
   conversation,
   messages,
   currentUserId,
   loading,
   sending,
   error,
-  onBack,
+  onClose,
   onRefresh,
   onSend,
-}: MessageThreadScreenProps) {
+  headerTopInset = 0,
+  composerBottomInset = 10,
+}: Omit<MessageThreadModalProps, 'visible'> & {
+  headerTopInset?: number;
+  composerBottomInset?: number;
+}) {
   const { t, i18n } = useTranslation();
-  const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const listRef = useRef<FlatList<PetFeedMessage>>(null);
+
+  useEffect(() => {
+    if (!conversation) setDraft('');
+  }, [conversation?.id]);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -84,15 +95,18 @@ export function MessageThreadScreen({
       className="flex-1 bg-[#F2F4F8]"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View className="border-b border-gray-200 bg-white px-2 pb-2 pt-2">
+      <View
+        className="border-b border-gray-200 bg-white px-2 pb-2"
+        style={{ paddingTop: headerTopInset + 8 }}
+      >
         <View className="flex-row items-center">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('common.back')}
             className="w-14 rounded-lg p-2 active:bg-slate-100"
-            onPress={onBack}
+            onPress={onClose}
           >
-            <Ionicons name="arrow-back" size={24} color="#1e293b" />
+            <Ionicons name="close" size={24} color="#1e293b" />
           </Pressable>
           <View className="min-w-0 flex-1 items-center">
             <Text className="text-base font-semibold text-slate-900" numberOfLines={1}>
@@ -139,7 +153,7 @@ export function MessageThreadScreen({
         />
       )}
 
-      <View className="border-t border-gray-200 bg-white px-3 pt-2" style={{ paddingBottom: Math.max(insets.bottom, 10) }}>
+      <View className="border-t border-gray-200 bg-white px-3 pt-2" style={{ paddingBottom: composerBottomInset }}>
         {error && messages.length > 0 ? <Text className="mb-2 text-xs text-red-600">{error}</Text> : null}
         <View className="flex-row items-end gap-2">
           <TextInput
@@ -172,5 +186,40 @@ export function MessageThreadScreen({
         </View>
       </View>
     </KeyboardAvoidingView>
+  );
+}
+
+export function MessageThreadModal({
+  visible,
+  conversation,
+  messages,
+  currentUserId,
+  loading,
+  sending,
+  error,
+  onClose,
+  onRefresh,
+  onSend,
+}: MessageThreadModalProps) {
+  const insets = useSafeAreaInsets();
+  const topInset = modalTopInset(insets.top);
+  const bottomInset = modalBottomInset(insets.bottom, 10);
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet">
+      <MessageThreadView
+        conversation={conversation}
+        messages={messages}
+        currentUserId={currentUserId}
+        loading={loading}
+        sending={sending}
+        error={error}
+        onClose={onClose}
+        onRefresh={onRefresh}
+        onSend={onSend}
+        headerTopInset={topInset}
+        composerBottomInset={bottomInset}
+      />
+    </Modal>
   );
 }

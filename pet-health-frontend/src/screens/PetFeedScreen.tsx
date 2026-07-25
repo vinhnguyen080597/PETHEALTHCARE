@@ -18,9 +18,8 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminPostCard } from '../components/AdminPostCard';
 import { ModalScreenShell } from '../components/ModalScreenShell';
-import { PetFeedCommentComposer, PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
-import type { BreederProfile, PetFeedComment, PetFeedPost } from '../types';
+import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, metadataString } from '../utils/breederTrust';
 import { ACTIVE_PET_FEED_SPECIES, type ActivePetFeedSpecies } from '../constants/petSpecies';
 import {
@@ -29,8 +28,6 @@ import {
 } from '../constants/petFeedTabFlags';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 import { modalTopInset } from '../utils/modalSafeArea';
-import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
-import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
 
 const PRIMARY = '#1E6FE8';
 const WEB_SEARCH_INPUT_STYLE =
@@ -66,16 +63,8 @@ type PetFeedScreenProps = {
   onRefresh: () => void;
   onLoadMore: () => void;
   onLoadMoreAnnouncements: () => void;
-  onToggleFavorite: (post: PetFeedPost) => void;
-  onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
-  onHideBreeder: (profile: BreederProfile) => void;
   onOpenBreederDetail: (profileId: string) => void;
-  onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
-  onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
-  onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
-  onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
-  onMessageBreeder?: (post: PetFeedPost) => void;
-  currentUserId?: string | null;
+  onOpenPostDetail: (postId: string) => void;
   enabledTabs?: { news: boolean; feed: boolean; breeders: boolean };
 };
 
@@ -190,16 +179,8 @@ export function PetFeedScreen({
   onRefresh,
   onLoadMore,
   onLoadMoreAnnouncements,
-  onToggleFavorite,
-  onReportPost,
-  onHideBreeder,
   onOpenBreederDetail,
-  onFetchPostDetail,
-  onFetchPostComments,
-  onSubmitPostComment,
-  onDeletePostComment,
-  onMessageBreeder,
-  currentUserId,
+  onOpenPostDetail,
   enabledTabs = { news: true, feed: true, breeders: true },
 }: PetFeedScreenProps) {
   const { t } = useTranslation();
@@ -222,7 +203,6 @@ export function PetFeedScreen({
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filterVisible, setFilterVisible] = useState(false);
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query]);
@@ -300,21 +280,6 @@ export function PetFeedScreen({
     ));
   }, [searchMatchedAnnouncements, sortDirection]);
 
-  const { selectedPost, detailLoading } = usePetFeedPostDetail(selectedPostId, posts, onFetchPostDetail);
-  const {
-    threads,
-    loading: commentsLoading,
-    submitting: commentSubmitting,
-    replyTo,
-    setReplyTo,
-    addComment,
-    removeComment,
-  } = usePetFeedPostComments(
-    selectedPostId,
-    onFetchPostComments,
-    onSubmitPostComment,
-    onDeletePostComment,
-  );
   const selectedAnnouncement = selectedAnnouncementId ? announcementPosts.find((post) => post.id === selectedAnnouncementId) ?? null : null;
   const topBreeders = useMemo<TopBreeder[]>(() => {
     const byBreeder = new Map<string, TopBreeder>();
@@ -378,7 +343,12 @@ export function PetFeedScreen({
   const filterPanelMaxHeight = Math.min(Math.round(windowHeight * 0.58), 480);
   const filterPanelTopOffset = modalTopInset(insets.top) + 112;
   const hasActiveFilters = speciesFilter !== 'all' || genderFilter !== 'all' || sortField !== 'date' || sortDirection !== 'desc';
+  const showListSkeleton =
+    (activeTab === 'feed' && initialLoading)
+    || (activeTab === 'news' && announcementInitialLoading)
+    || (activeTab === 'breeders' && (initialLoading || announcementInitialLoading));
   const listItems = useMemo<FeedListItem[]>(() => {
+    if (showListSkeleton) return [];
     if (activeTab === 'feed') {
       return filteredPosts.map((post) => ({ type: 'post', id: post.id, post }));
     }
@@ -391,10 +361,10 @@ export function PetFeedScreen({
       item,
       rank: index + 1,
     }));
-  }, [activeTab, filteredAnnouncements, filteredPosts, filteredTopBreeders]);
+  }, [activeTab, filteredAnnouncements, filteredPosts, filteredTopBreeders, showListSkeleton]);
   const shouldLoadMore = activeTab === 'feed'
-    ? hasMore && !loadingMore && !loadMoreError && filteredPosts.length > 0
-    : activeTab === 'news' && announcementHasMore && !announcementLoadingMore && !announcementLoadMoreError && filteredAnnouncements.length > 0;
+    ? hasMore && !loadingMore && !loadMoreError && filteredPosts.length > 0 && !showListSkeleton
+    : activeTab === 'news' && announcementHasMore && !announcementLoadingMore && !announcementLoadMoreError && filteredAnnouncements.length > 0 && !showListSkeleton;
 
   const resetFilters = useCallback(() => {
     setSpeciesFilter('all');
@@ -421,15 +391,17 @@ export function PetFeedScreen({
             showFavorite={false}
             showContact={false}
             showReport={false}
-            onPress={(post) => setSelectedPostId(post.id)}
+            onPress={(post) => onOpenPostDetail(post.id)}
           />
         </View>
       );
     }
 
     const profile = item.item.profile;
-    const species = profile.primary_species.length ? profile.primary_species : item.item.species;
-    const breeds = profile.main_breeds.join(', ');
+    const primarySpecies = Array.isArray(profile.primary_species) ? profile.primary_species : [];
+    const mainBreeds = Array.isArray(profile.main_breeds) ? profile.main_breeds : [];
+    const species = primarySpecies.length ? primarySpecies : item.item.species;
+    const breeds = mainBreeds.join(', ');
     const scaleRange = metadataString(profile.metadata, 'scaleRange');
     const breederType = metadataString(profile.metadata, 'breederType');
     const trust = computeBreederTrust(profile, item.item.posts);
@@ -500,8 +472,8 @@ export function PetFeedScreen({
   }, [activeTab, onOpenBreederDetail, t, translatedOption]);
 
   const renderEmptyState = useCallback(() => {
+    if (showListSkeleton) return <PetFeedSkeleton />;
     if (activeTab === 'news') {
-      if (announcementInitialLoading) return <PetFeedSkeleton />;
       if (announcementInitialError) {
         return (
           <View className="px-5">
@@ -536,7 +508,6 @@ export function PetFeedScreen({
         </View>
       );
     }
-    if (initialLoading) return <PetFeedSkeleton />;
     if (initialError) {
       return (
         <View className="px-5">
@@ -593,7 +564,7 @@ export function PetFeedScreen({
         </View>
       </View>
     );
-  }, [activeTab, announcementInitialError, announcementInitialLoading, announcementPosts.length, initialError, initialLoading, onRefresh, posts.length, t, topBreeders.length]);
+  }, [activeTab, announcementInitialError, announcementPosts.length, initialError, onRefresh, posts.length, showListSkeleton, t, topBreeders.length]);
 
   const renderFooter = useCallback(() => {
     const isFeedTab = activeTab === 'feed';
@@ -707,9 +678,9 @@ export function PetFeedScreen({
           <View className="mb-3 border-b border-gray-200 bg-white px-2 pb-2">
             <View className="flex-row rounded-xl border border-blue-100 bg-blue-50/40 p-0.5">
               {([
-                { key: 'news' as const, label: t('petFeed.tabs.news'), count: announcementPosts.length, icon: 'megaphone-outline' as const },
-                { key: 'feed' as const, label: t('petFeed.tabs.feed'), count: posts.length, icon: 'newspaper-outline' as const },
-                { key: 'breeders' as const, label: t('petFeed.tabs.breeders'), count: topBreeders.length, icon: 'ribbon-outline' as const },
+                { key: 'news' as const, label: t('petFeed.tabs.news'), count: showListSkeleton ? undefined : announcementPosts.length, icon: 'megaphone-outline' as const },
+                { key: 'feed' as const, label: t('petFeed.tabs.feed'), count: showListSkeleton ? undefined : posts.length, icon: 'newspaper-outline' as const },
+                { key: 'breeders' as const, label: t('petFeed.tabs.breeders'), count: showListSkeleton ? undefined : topBreeders.length, icon: 'ribbon-outline' as const },
               ]).filter((item) => enabledTabs[item.key]).map((item) => {
                 const active = activeTab === item.key;
                 const compactTabs = windowWidth < 390;
@@ -734,9 +705,11 @@ export function PetFeedScreen({
                       >
                         {item.label}
                       </Text>
-                      <Text className={`font-bold ${compactTabs ? 'text-[9px]' : 'text-[10px]'} ${active ? 'text-blue-100' : 'text-slate-400'}`}>
-                        {item.count}
-                      </Text>
+                      {typeof item.count === 'number' ? (
+                        <Text className={`font-bold ${compactTabs ? 'text-[9px]' : 'text-[10px]'} ${active ? 'text-blue-100' : 'text-slate-400'}`}>
+                          {item.count}
+                        </Text>
+                      ) : null}
                     </View>
                   </Pressable>
                 );
@@ -855,51 +828,6 @@ export function PetFeedScreen({
         </View>
       </View>
     </Modal>
-    <ModalScreenShell
-      visible={selectedPostId != null}
-      title={t('petFeed.detailTitle')}
-      closeLabel={t('petFeed.accessibility.closeDetail')}
-      closeTestID="pet-feed-detail-back-button"
-      onClose={() => setSelectedPostId(null)}
-      footer={
-        selectedPost ? (
-          <PetFeedCommentComposer
-            submitting={commentSubmitting}
-            replyTo={replyTo}
-            onCancelReply={() => setReplyTo(null)}
-            onSubmit={addComment}
-          />
-        ) : undefined
-      }
-    >
-      {selectedPost ? (
-        <>
-          <PetFeedPostCard
-            post={selectedPost}
-            onToggleFavorite={onToggleFavorite}
-            onReportPost={onReportPost}
-            onHideBreeder={onHideBreeder}
-            onMessageBreeder={onMessageBreeder}
-            currentUserId={currentUserId}
-            showHideBreeder
-            autoPlayVideo={false}
-            mediaLoading={detailLoading}
-            testID={`pet-feed-detail-post-${selectedPost.id}`}
-          />
-          <PetFeedCommentsSection
-            threads={threads}
-            loading={commentsLoading}
-            currentUserId={currentUserId}
-            onReply={setReplyTo}
-            onDelete={(comment) => void removeComment(comment)}
-          />
-        </>
-      ) : detailLoading ? (
-        <View className="items-center py-16">
-          <ActivityIndicator color={PRIMARY} />
-        </View>
-      ) : null}
-    </ModalScreenShell>
     <ModalScreenShell
       visible={selectedAnnouncementId != null}
       title={t('petFeed.newsDetailTitle')}

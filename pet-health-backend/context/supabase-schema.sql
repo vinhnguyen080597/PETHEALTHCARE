@@ -650,6 +650,8 @@ with check (
   )
 );
 
+-- Realtime: see migrations/006-pet-feed-messages-realtime.sql (add tables to supabase_realtime publication).
+
 -- --- UI feature visibility toggles (backend service role only; no client RLS policies).
 
 create table if not exists public.app_settings (

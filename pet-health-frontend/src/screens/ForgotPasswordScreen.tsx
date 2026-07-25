@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -32,7 +31,6 @@ type ForgotPasswordScreenProps = {
     newPassword?: string;
     confirmPassword?: string;
   };
-  otpLoading?: boolean;
   onChangeEmail: (value: string) => void;
   onChangeOtp: (value: string) => void;
   onChangeNewPassword: (value: string) => void;
@@ -91,7 +89,6 @@ export function ForgotPasswordScreen({
   confirmPassword = '',
   otpError,
   fieldErrors,
-  otpLoading = false,
   onChangeEmail,
   onChangeOtp,
   onChangeNewPassword,
@@ -160,11 +157,7 @@ export function ForgotPasswordScreen({
                 }`}
                 onPress={onSubmitSendOtp}
               >
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text className="text-center text-base font-semibold text-white">{t('login.forgotPasswordSendOtp')}</Text>
-                )}
+                <Text className="text-center text-base font-semibold text-white">{t('login.forgotPasswordSendOtp')}</Text>
               </Pressable>
 
               <Pressable
@@ -234,17 +227,13 @@ export function ForgotPasswordScreen({
 
               <Pressable
                 testID="forgot-password-otp-verify-button"
-                disabled={otpLoading}
-                className={`rounded-xl py-3 ${otpLoading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
+                disabled={loading}
+                className={`rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
                 onPress={onSubmitRecover}
               >
-                {otpLoading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text className="text-center text-base font-semibold text-white">
-                    {t('account.updateAccount.recoverOtpSubmit')}
-                  </Text>
-                )}
+                <Text className="text-center text-base font-semibold text-white">
+                  {t('account.updateAccount.recoverOtpSubmit')}
+                </Text>
               </Pressable>
               <Pressable
                 testID="forgot-password-otp-cancel-button"

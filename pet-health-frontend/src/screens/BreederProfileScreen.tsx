@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ACTIVE_BREEDER_SPECIES_OPTIONS } from '../constants/petSpecies';
 import type { BreederProfile, UpsertBreederProfilePayload } from '../types';
@@ -353,7 +353,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
           </View>
           {allCommitmentsAccepted ? (
             <Pressable testID="breeder-profile-save-button" className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90" onPress={submit} disabled={submitting}>
-              {submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name="save-outline" size={18} color="#fff" />}
+              <Ionicons name="save-outline" size={18} color="#fff" />
               <Text className="text-sm font-bold text-white">{t('breederProfile.save')}</Text>
             </Pressable>
           ) : (

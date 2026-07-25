@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { modalBottomInset, modalTopInset } from '../utils/modalSafeArea';
 
@@ -35,7 +35,12 @@ export function ModalScreenShell({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 bg-[#F2F4F8]" style={footer ? undefined : { paddingBottom: bottomInset }}>
+      <KeyboardAvoidingView
+        className="flex-1 bg-[#F2F4F8]"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
+        style={footer ? undefined : { paddingBottom: bottomInset }}
+      >
         <View className="flex-row items-center border-b border-gray-200 bg-white px-2 pb-2" style={{ paddingTop: topInset + 8 }}>
           <Pressable
             testID={closeTestID}
@@ -52,6 +57,7 @@ export function ModalScreenShell({
         </View>
         <ScrollView
           className="flex-1"
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             paddingHorizontal: scrollPaddingHorizontal,
             paddingTop: 16,
@@ -65,7 +71,7 @@ export function ModalScreenShell({
             {footer}
           </View>
         ) : null}
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

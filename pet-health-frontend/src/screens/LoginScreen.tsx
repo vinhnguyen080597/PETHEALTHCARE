@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguageToggle } from '../components/LanguageToggle';
@@ -216,13 +216,9 @@ export function LoginScreen({
                 } ${!isSignUp && onForgotPassword ? 'mb-3' : 'mb-6'}`}
                 onPress={onSubmit}
               >
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text className="text-center text-base font-semibold text-white">
-                    {isSignUp ? t('login.signUp') : t('login.signIn')}
-                  </Text>
-                )}
+                <Text className="text-center text-base font-semibold text-white">
+                  {isSignUp ? t('login.signUp') : t('login.signIn')}
+                </Text>
               </Pressable>
 
               {!isSignUp && onForgotPassword ? (

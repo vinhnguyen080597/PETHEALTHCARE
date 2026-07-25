@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
-import { Alert, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, View, ActivityIndicator } from 'react-native';
+import { Alert, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAI_GUIDING } from '../assets/maiAssets';
@@ -1468,13 +1468,9 @@ function AdminActionButton({
       style={{ cursor: disabled || busy ? 'default' : 'pointer' }}
       onPress={onPress}
     >
-      {busy ? (
-        <ActivityIndicator color="#fff" />
-      ) : (
-        <Text pointerEvents="none" className="text-center text-xs font-bold text-white">
-          {label}
-        </Text>
-      )}
+          <Text pointerEvents="none" className="text-center text-xs font-bold text-white">
+        {label}
+      </Text>
     </Pressable>
   );
 }

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 type UpdateAccountRecoverPasswordScreenProps = {
@@ -19,7 +19,6 @@ type UpdateAccountRecoverPasswordScreenProps = {
     newPassword?: string;
     confirmPassword?: string;
   };
-  otpLoading?: boolean;
   onBack: () => void;
   onSubmitSendOtp: () => void;
   onChangeOtp: (value: string) => void;
@@ -76,7 +75,6 @@ export function UpdateAccountRecoverPasswordScreen({
   confirmPassword = '',
   otpError,
   fieldErrors,
-  otpLoading = false,
   onBack,
   onSubmitSendOtp,
   onChangeOtp,
@@ -126,11 +124,7 @@ export function UpdateAccountRecoverPasswordScreen({
             className={`mt-5 rounded-xl py-3 ${loading || !email ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
             onPress={onSubmitSendOtp}
           >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.sendRecoverOtp')}</Text>
-            )}
+            <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.sendRecoverOtp')}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -187,15 +181,11 @@ export function UpdateAccountRecoverPasswordScreen({
 
               <Pressable
                 testID="update-account-recover-otp-verify-button"
-                disabled={otpLoading}
-                className={`rounded-xl py-3 ${otpLoading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
+                disabled={loading}
+                className={`rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
                 onPress={onSubmitRecover}
               >
-                {otpLoading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.recoverOtpSubmit')}</Text>
-                )}
+                <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.recoverOtpSubmit')}</Text>
               </Pressable>
               <Pressable
                 testID="update-account-recover-otp-cancel-button"

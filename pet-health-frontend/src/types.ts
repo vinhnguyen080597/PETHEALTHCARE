@@ -18,6 +18,7 @@ export type VerifySignUpOtpPayload = {
   email: string;
   otp: string;
   password: string;
+  displayName: string;
 };
 
 export type SignUpOtpRequestResponse = {

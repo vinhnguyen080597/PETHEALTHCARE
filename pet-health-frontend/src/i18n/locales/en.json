@@ -78,6 +78,10 @@
   "signupOtp": {
     "title": "Verify OTP",
     "subtitle": "We sent a one-time code to {{email}}.",
+    "displayNameLabel": "Display name",
+    "displayNamePlaceholder": "Name for chat and comments",
+    "displayNameHelper": "This name appears when you message and comment on Pet Feed.",
+    "displayNameRequired": "Please enter a display name.",
     "otpLabel": "OTP code",
     "otpPlaceholder": "Enter 8-digit OTP",
     "otpRequired": "Please enter the OTP code sent to your email.",

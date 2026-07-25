@@ -121,6 +121,7 @@ test.describe('Web feature smoke coverage', () => {
       await page.getByTestId('signup-submit-button').click();
 
       await verify(page, expect(page.getByTestId('signup-otp-input')).toBeVisible());
+      await page.getByTestId('signup-display-name-input').fill("Luna's parent");
       await page.getByTestId('signup-otp-input').fill(MOCK_E2E_OTP);
       await page.getByTestId('signup-otp-verify-button').click();
 

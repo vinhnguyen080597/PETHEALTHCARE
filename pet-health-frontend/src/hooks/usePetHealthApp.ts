@@ -146,9 +146,15 @@ import {
 } from '../utils/vaccinationDuePopupStorage';
 import { postsForBreeder } from '../utils/breederTrust';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
+import {
+  isPetFeedMessagingRealtimeConfigured,
+  subscribePetFeedInboxConversations,
+  subscribePetFeedThreadMessages,
+} from '../services/petFeedMessagingRealtime';
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
 const PET_FEED_PAGE_SIZE = 12;
+const PET_FEED_CACHE_TTL_MS = 45_000;
 const HISTORY_PAGE_SIZE = 20;
 const SIGNUP_OTP_LENGTH = 8;
 const ACCOUNT_UPDATE_OTP_LENGTH = 8;
@@ -283,7 +289,9 @@ export function usePetHealthApp() {
   const [authError, setAuthError] = useState('');
   const [authFieldErrors, setAuthFieldErrors] = useState<AuthFieldErrors>({});
   const [signUpOtp, setSignUpOtp] = useState('');
+  const [signUpDisplayName, setSignUpDisplayName] = useState('');
   const [signUpOtpError, setSignUpOtpError] = useState('');
+  const [signUpOtpFieldErrors, setSignUpOtpFieldErrors] = useState<{ displayName?: string; otp?: string }>({});
   const [isSignUp, setIsSignUp] = useState(false);
   const [pendingSignUpEmail, setPendingSignUpEmail] = useState('');
   const [pendingSignUpPassword, setPendingSignUpPassword] = useState('');
@@ -297,7 +305,6 @@ export function usePetHealthApp() {
   const [forgotPasswordNewPassword, setForgotPasswordNewPassword] = useState('');
   const [forgotPasswordConfirmPassword, setForgotPasswordConfirmPassword] = useState('');
   const [forgotPasswordOtpError, setForgotPasswordOtpError] = useState('');
-  const [forgotPasswordOtpLoading, setForgotPasswordOtpLoading] = useState(false);
   const [forgotPasswordRateLimitUntilMs, setForgotPasswordRateLimitUntilMs] = useState(0);
   const [forgotPasswordRateLimitSeconds, setForgotPasswordRateLimitSeconds] = useState(0);
   const [forgotPasswordRecoverFieldErrors, setForgotPasswordRecoverFieldErrors] = useState<{
@@ -317,7 +324,6 @@ export function usePetHealthApp() {
   const [updateAccountPendingNewEmail, setUpdateAccountPendingNewEmail] = useState('');
   const [updateAccountEmailOtp, setUpdateAccountEmailOtp] = useState('');
   const [updateAccountEmailOtpError, setUpdateAccountEmailOtpError] = useState('');
-  const [updateAccountEmailOtpLoading, setUpdateAccountEmailOtpLoading] = useState(false);
   const [updateAccountCurrentPassword, setUpdateAccountCurrentPassword] = useState('');
   const [updateAccountNewPassword, setUpdateAccountNewPassword] = useState('');
   const [updateAccountConfirmNewPassword, setUpdateAccountConfirmNewPassword] = useState('');
@@ -336,7 +342,6 @@ export function usePetHealthApp() {
   const [updateAccountRecoverNewPassword, setUpdateAccountRecoverNewPassword] = useState('');
   const [updateAccountRecoverConfirmPassword, setUpdateAccountRecoverConfirmPassword] = useState('');
   const [updateAccountRecoverOtpError, setUpdateAccountRecoverOtpError] = useState('');
-  const [updateAccountRecoverOtpLoading, setUpdateAccountRecoverOtpLoading] = useState(false);
   const [updateAccountRecoverFieldErrors, setUpdateAccountRecoverFieldErrors] = useState<{
     otp?: string;
     newPassword?: string;
@@ -395,6 +400,8 @@ export function usePetHealthApp() {
   const [petVaccinationDueCounts, setPetVaccinationDueCounts] = useState<Record<string, number>>({});
   const [vaccinationDuePopupVisible, setVaccinationDuePopupVisible] = useState(false);
   const vaccinationDuePopupOfferedRef = useRef(false);
+  const petFeedFetchedAtRef = useRef(0);
+  const petFeedLoadGenRef = useRef(0);
   const [petFeedPosts, setPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [topBreederProfiles, setTopBreederProfiles] = useState<BreederProfile[]>([]);
   const [petFeedInitialLoading, setPetFeedInitialLoading] = useState(false);
@@ -416,6 +423,8 @@ export function usePetHealthApp() {
   const [adminAddPetForUserId, setAdminAddPetForUserId] = useState<string | null>(null);
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
+  const [selectedPetFeedPostId, setSelectedPetFeedPostId] = useState<string | null>(null);
+  const [petFeedDetailReturnScreen, setPetFeedDetailReturnScreen] = useState<AppScreen>('pet-feed');
   const [adminAccounts, setAdminAccounts] = useState<AccountProfile[]>([]);
   const [adminBreederProfiles, setAdminBreederProfiles] = useState<BreederProfile[]>([]);
   const [adminFeedPosts, setAdminFeedPosts] = useState<PetFeedPost[]>([]);
@@ -433,8 +442,7 @@ export function usePetHealthApp() {
   const [petFeedMessagesLoading, setPetFeedMessagesLoading] = useState(false);
   const [petFeedMessagesError, setPetFeedMessagesError] = useState('');
   const [petFeedMessageSending, setPetFeedMessageSending] = useState(false);
-  /** Back target for inbox (account) or thread (inbox / pet-feed / breeder-detail). */
-  const [messagesReturnScreen, setMessagesReturnScreen] = useState<AppScreen>('account');
+  const [messageThreadModalVisible, setMessageThreadModalVisible] = useState(false);
   /** Where to go when closing the results screen opened from history vs profile vs default home. */
   const [resultsReturnScreen, setResultsReturnScreen] = useState<'home' | 'history' | 'pet-profile' | null>(
     null,
@@ -458,9 +466,33 @@ export function usePetHealthApp() {
     () => selectedBreederProfileId ? postsForBreeder(petFeedPosts, selectedBreederProfileId) : [],
     [petFeedPosts, selectedBreederProfileId],
   );
-  const selectedBreederProfile = selectedBreederPosts[0]?.breeder_profile
-    ?? topBreederProfiles.find((profile) => profile.id === selectedBreederProfileId || profile.user_id === selectedBreederProfileId)
-    ?? null;
+  const selectedBreederProfile = useMemo(() => {
+    if (!selectedBreederProfileId) return null;
+    const fromCatalog = topBreederProfiles.find(
+      (profile) => profile.id === selectedBreederProfileId || profile.user_id === selectedBreederProfileId,
+    );
+    const fromPost = selectedBreederPosts[0]?.breeder_profile ?? null;
+    // Feed list DTO ships a slim breeder_profile; prefer catalog (or merge) so detail screen has arrays.
+    if (fromCatalog && fromPost) {
+      return {
+        ...fromPost,
+        ...fromCatalog,
+        contact: fromCatalog.contact ?? fromPost.contact ?? {},
+        metadata: fromCatalog.metadata ?? fromPost.metadata ?? {},
+        primary_species: fromCatalog.primary_species ?? fromPost.primary_species ?? [],
+        main_breeds: fromCatalog.main_breeds ?? fromPost.main_breeds ?? [],
+      };
+    }
+    if (fromCatalog) return fromCatalog;
+    if (!fromPost) return null;
+    return {
+      ...fromPost,
+      contact: fromPost.contact ?? {},
+      metadata: fromPost.metadata ?? {},
+      primary_species: Array.isArray(fromPost.primary_species) ? fromPost.primary_species : [],
+      main_breeds: Array.isArray(fromPost.main_breeds) ? fromPost.main_breeds : [],
+    };
+  }, [selectedBreederPosts, selectedBreederProfileId, topBreederProfiles]);
 
   const petFormMode = editingPetId ? 'edit' : 'create';
 
@@ -641,6 +673,7 @@ export function usePetHealthApp() {
     accessToken: string,
     options: { showFeedInitialLoading?: boolean; showAnnouncementInitialLoading?: boolean } = {},
   ) => {
+    const loadGen = ++petFeedLoadGenRef.current;
     if (options.showFeedInitialLoading) setPetFeedInitialLoading(true);
     if (options.showAnnouncementInitialLoading) setAnnouncementInitialLoading(true);
     setPetFeedInitialError('');
@@ -652,20 +685,25 @@ export function usePetHealthApp() {
         listAnnouncementPosts(accessToken, { limit: PET_FEED_PAGE_SIZE }),
         listVerifiedBreederProfiles(accessToken),
       ]);
+      if (loadGen !== petFeedLoadGenRef.current) return false;
       setPetFeedPosts(postsResponse.data);
       setPetFeedNextCursor(postsResponse.nextCursor ?? null);
       setAnnouncementPosts(announcementsResponse.data);
       setAnnouncementNextCursor(announcementsResponse.nextCursor ?? null);
       setTopBreederProfiles(breedersResponse.data);
+      petFeedFetchedAtRef.current = Date.now();
       return true;
     } catch (error: unknown) {
+      if (loadGen !== petFeedLoadGenRef.current) return false;
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       if (options.showFeedInitialLoading) setPetFeedInitialError(message);
       if (options.showAnnouncementInitialLoading) setAnnouncementInitialError(message);
       return false;
     } finally {
-      if (options.showFeedInitialLoading) setPetFeedInitialLoading(false);
-      if (options.showAnnouncementInitialLoading) setAnnouncementInitialLoading(false);
+      if (loadGen === petFeedLoadGenRef.current) {
+        if (options.showFeedInitialLoading) setPetFeedInitialLoading(false);
+        if (options.showAnnouncementInitialLoading) setAnnouncementInitialLoading(false);
+      }
     }
   }, []);
 
@@ -673,6 +711,7 @@ export function usePetHealthApp() {
     if (!token) return;
     setRefreshing(true);
     try {
+      // Pull-to-refresh keeps current rows visible (RefreshControl), then swaps once.
       await loadPetFeedFirstPage(token);
     } finally {
       setRefreshing(false);
@@ -813,6 +852,24 @@ export function usePetHealthApp() {
     setHistoryTotalCount(page.totalCount);
   }, []);
 
+  const resetPetFeedState = useCallback(() => {
+    petFeedLoadGenRef.current += 1;
+    petFeedFetchedAtRef.current = 0;
+    setPetFeedPosts([]);
+    setAnnouncementPosts([]);
+    setTopBreederProfiles([]);
+    setPetFeedNextCursor(null);
+    setAnnouncementNextCursor(null);
+    setPetFeedInitialLoading(false);
+    setAnnouncementInitialLoading(false);
+    setPetFeedInitialError('');
+    setAnnouncementInitialError('');
+    setPetFeedLoadMoreError('');
+    setAnnouncementLoadMoreError('');
+    setPetFeedLoadingMore(false);
+    setAnnouncementLoadingMore(false);
+  }, []);
+
   const hadActiveSessionRef = useRef(false);
   const adminReviewLoadedRef = useRef(false);
   const adminReviewInFlightRef = useRef<Promise<void> | null>(null);
@@ -822,6 +879,7 @@ export function usePetHealthApp() {
     bindAuthSessionListener((session) => {
       setToken(session?.access_token ?? null);
       if (hadActiveSessionRef.current && !session) {
+        resetPetFeedState();
         setScreen('login');
       }
       hadActiveSessionRef.current = Boolean(session);
@@ -830,7 +888,7 @@ export function usePetHealthApp() {
       bindAuthSessionListener(null);
       teardownAuthSessionLifecycle();
     };
-  }, []);
+  }, [resetPetFeedState]);
 
   useEffect(() => {
     void initializeApp();
@@ -903,6 +961,7 @@ export function usePetHealthApp() {
     setInitialOnboarding(false);
     vaccinationDuePopupOfferedRef.current = false;
     setVaccinationDuePopupVisible(false);
+    resetPetFeedState();
     setScreen('login');
   }
 
@@ -1046,13 +1105,15 @@ export function usePetHealthApp() {
       if (!session) {
         throw new Error('Missing auth session');
       }
+      // Drop any previous session's feed cache so first Pet Feed open never flashes stale rows.
+      resetPetFeedState();
       await activateAuthSession(session);
       setToken(session.access_token);
       const profile = await fetchAccountProfile(session.access_token);
       await loadAuthenticatedUserData(session.access_token, profile);
       await navigateAfterAuthenticatedSession(options);
     },
-    [fetchAccountProfile, fetchPets, refreshAiCredits],
+    [fetchAccountProfile, fetchPets, refreshAiCredits, resetPetFeedState],
   );
 
   function toggleLoginSignUpMode() {
@@ -1104,6 +1165,25 @@ export function usePetHealthApp() {
     const digits = value.replace(/\D/g, '').slice(0, SIGNUP_OTP_LENGTH);
     setSignUpOtp(digits);
     if (signUpOtpError) setSignUpOtpError('');
+    if (signUpOtpFieldErrors.otp) {
+      setSignUpOtpFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.otp;
+        return next;
+      });
+    }
+  }
+
+  function changeSignUpDisplayName(value: string) {
+    setSignUpDisplayName(value.slice(0, 160));
+    if (signUpOtpError) setSignUpOtpError('');
+    if (signUpOtpFieldErrors.displayName) {
+      setSignUpOtpFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.displayName;
+        return next;
+      });
+    }
   }
 
   async function submitAuth() {
@@ -1144,7 +1224,9 @@ export function usePetHealthApp() {
         setPendingSignUpEmail(signUpEmail);
         setPendingSignUpPassword(password);
         setSignUpOtp('');
+        setSignUpDisplayName('');
         setSignUpOtpError('');
+        setSignUpOtpFieldErrors({});
         setAuthError('');
         setScreen('signup-otp-verification');
         return;
@@ -1171,7 +1253,9 @@ export function usePetHealthApp() {
           setPendingSignUpEmail(signUpEmail);
           setPendingSignUpPassword(password);
           setSignUpOtp('');
+          setSignUpDisplayName('');
           setSignUpOtpError('');
+          setSignUpOtpFieldErrors({});
           setAuthError('');
           setScreen('signup-otp-verification');
           return;
@@ -1200,21 +1284,29 @@ export function usePetHealthApp() {
       setSignUpOtpError(i18n.t('common.somethingWentWrong'));
       return;
     }
-    if (!signUpOtp.trim()) {
-      setSignUpOtpError(i18n.t('signupOtp.otpRequired'));
-      return;
+    const fieldErrors: { displayName?: string; otp?: string } = {};
+    if (!signUpDisplayName.trim()) {
+      fieldErrors.displayName = i18n.t('signupOtp.displayNameRequired');
     }
-    if (signUpOtp.trim().length !== SIGNUP_OTP_LENGTH) {
-      setSignUpOtpError(i18n.t('signupOtp.otpInvalidLength'));
+    if (!signUpOtp.trim()) {
+      fieldErrors.otp = i18n.t('signupOtp.otpRequired');
+    } else if (signUpOtp.trim().length !== SIGNUP_OTP_LENGTH) {
+      fieldErrors.otp = i18n.t('signupOtp.otpInvalidLength');
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      setSignUpOtpFieldErrors(fieldErrors);
+      setSignUpOtpError('');
       return;
     }
     setLoading(true);
     setSignUpOtpError('');
+    setSignUpOtpFieldErrors({});
     try {
       const signUpRes = await verifySignUpOtp({
         email: pendingSignUpEmail,
         otp: signUpOtp.trim(),
         password: pendingSignUpPassword,
+        displayName: signUpDisplayName.trim(),
       });
       const signUpSession = normalizeAuthSession(signUpRes.data.session ?? null);
       if (!signUpSession) {
@@ -1222,13 +1314,20 @@ export function usePetHealthApp() {
         return;
       }
       setSignUpOtp('');
+      setSignUpDisplayName('');
       setSignUpOtpError('');
+      setSignUpOtpFieldErrors({});
       setPendingSignUpEmail('');
       setPendingSignUpPassword('');
       setConfirmPassword('');
       await applySession(signUpSession, { startInitialOnboarding: true });
     } catch (error: unknown) {
-      setSignUpOtpError(resolveSignUpOtpErrorMessage(error));
+      if (error instanceof ApiRequestError && error.code === 'DISPLAY_NAME_REQUIRED') {
+        setSignUpOtpFieldErrors({ displayName: i18n.t('signupOtp.displayNameRequired') });
+        setSignUpOtpError('');
+      } else {
+        setSignUpOtpError(resolveSignUpOtpErrorMessage(error));
+      }
     } finally {
       setLoading(false);
     }
@@ -1236,7 +1335,9 @@ export function usePetHealthApp() {
 
   function backToSignUpFromOtpVerification() {
     setSignUpOtp('');
+    setSignUpDisplayName('');
     setSignUpOtpError('');
+    setSignUpOtpFieldErrors({});
     setAuthError('');
     setScreen('login');
   }
@@ -1251,7 +1352,7 @@ export function usePetHealthApp() {
     setForgotPasswordNewPassword('');
     setForgotPasswordConfirmPassword('');
     setForgotPasswordOtpError('');
-    setForgotPasswordOtpLoading(false);
+    setLoading(false);
     setForgotPasswordRateLimitUntilMs(0);
     setForgotPasswordRateLimitSeconds(0);
     setForgotPasswordRecoverFieldErrors({});
@@ -1302,7 +1403,7 @@ export function usePetHealthApp() {
     setForgotPasswordConfirmPassword('');
     setForgotPasswordOtpError('');
     setForgotPasswordRecoverFieldErrors({});
-    setForgotPasswordOtpLoading(false);
+    setLoading(false);
   }
 
   async function submitForgotPasswordSendOtp() {
@@ -1381,7 +1482,7 @@ export function usePetHealthApp() {
       return;
     }
 
-    setForgotPasswordOtpLoading(true);
+    setLoading(true);
     setForgotPasswordRecoverFieldErrors({});
     setForgotPasswordOtpError('');
     try {
@@ -1407,7 +1508,7 @@ export function usePetHealthApp() {
     } catch (error: unknown) {
       setForgotPasswordOtpError(resolveAccountUpdateErrorMessage(error));
     } finally {
-      setForgotPasswordOtpLoading(false);
+      setLoading(false);
     }
   }
 
@@ -1751,10 +1852,31 @@ export function usePetHealthApp() {
     if (!token) return;
     if (screen === 'pet-feed') return;
     setSelectedBreederProfileId(null);
+    setSelectedPetFeedPostId(null);
+    setMessageThreadModalVisible(false);
+
+    const hasCache =
+      petFeedPosts.length > 0 || announcementPosts.length > 0 || topBreederProfiles.length > 0;
+    const cacheFresh = Date.now() - petFeedFetchedAtRef.current < PET_FEED_CACHE_TTL_MS;
+    if (hasCache && cacheFresh) {
+      setScreen('pet-feed');
+      return;
+    }
+
+    // Arm skeleton BEFORE navigating so the first paint never shows stale/empty then jumps.
+    setPetFeedInitialError('');
+    setAnnouncementInitialError('');
+    setPetFeedInitialLoading(true);
+    setAnnouncementInitialLoading(true);
+    setPetFeedPosts([]);
+    setAnnouncementPosts([]);
+    setTopBreederProfiles([]);
+    petFeedFetchedAtRef.current = 0;
     setScreen('pet-feed');
+
     await loadPetFeedFirstPage(token, {
-      showFeedInitialLoading: petFeedPosts.length === 0,
-      showAnnouncementInitialLoading: announcementPosts.length === 0,
+      showFeedInitialLoading: true,
+      showAnnouncementInitialLoading: true,
     });
   }
 
@@ -1765,6 +1887,22 @@ export function usePetHealthApp() {
 
   function closeBreederDetail() {
     setScreen('pet-feed');
+  }
+
+  function openPetFeedPostDetail(postId: string) {
+    if (!postId) return;
+    setSelectedPetFeedPostId(postId);
+    setPetFeedDetailReturnScreen(screen === 'breeder-detail' ? 'breeder-detail' : 'pet-feed');
+    setScreen('pet-feed-detail');
+  }
+
+  function closePetFeedPostDetail() {
+    const returnTo = petFeedDetailReturnScreen;
+    setSelectedPetFeedPostId(null);
+    setMessageThreadModalVisible(false);
+    setSelectedPetFeedConversation(null);
+    setPetFeedMessages([]);
+    setScreen(returnTo);
   }
 
   async function loadAccountDashboard(accessToken: string, role: UserRole | undefined = accountProfile?.primary_role) {
@@ -1840,11 +1978,16 @@ export function usePetHealthApp() {
 
   async function saveBreederProfile(payload: UpsertBreederProfilePayload) {
     if (!token) return;
-    const response = await upsertMyBreederProfile(token, payload);
-    setBreederProfile(response.data);
-    if (hasAccountRole('breeder', 'admin')) {
-      const postsRes = await listMyPetFeedPosts(token);
-      setMyPetFeedPosts(postsRes.data);
+    setLoading(true);
+    try {
+      const response = await upsertMyBreederProfile(token, payload);
+      setBreederProfile(response.data);
+      if (hasAccountRole('breeder', 'admin')) {
+        const postsRes = await listMyPetFeedPosts(token);
+        setMyPetFeedPosts(postsRes.data);
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -1892,11 +2035,16 @@ export function usePetHealthApp() {
 
   async function submitAnnouncementPost(payload: CreateAnnouncementPostPayload, media: CreateAnnouncementPostMedia) {
     if (!token) return;
-    await createAnnouncementPost(token, payload, media);
-    const postsRes = await listMyAnnouncementPosts(token);
-    setMyPetFeedPosts(postsRes.data);
-    await loadPetFeedFirstPage(token);
-    setScreen('home');
+    setLoading(true);
+    try {
+      await createAnnouncementPost(token, payload, media);
+      const postsRes = await listMyAnnouncementPosts(token);
+      setMyPetFeedPosts(postsRes.data);
+      await loadPetFeedFirstPage(token);
+      setScreen('home');
+    } finally {
+      setLoading(false);
+    }
   }
 
   function closeCreatePetFeedPost() {
@@ -1906,14 +2054,19 @@ export function usePetHealthApp() {
 
   async function submitPetFeedPost(payload: CreatePetFeedPostPayload, media: CreatePetFeedPostMedia) {
     if (!token) return;
-    await createPetFeedPost(token, payload, media);
-    const postsRes = await listMyPetFeedPosts(token);
-    setMyPetFeedPosts(postsRes.data);
-    setEditingPetFeedPost(null);
-    if (payload.status === 'draft') {
-      Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
+    setLoading(true);
+    try {
+      await createPetFeedPost(token, payload, media);
+      const postsRes = await listMyPetFeedPosts(token);
+      setMyPetFeedPosts(postsRes.data);
+      setEditingPetFeedPost(null);
+      if (payload.status === 'draft') {
+        Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
+      }
+      setScreen(createPetFeedReturnScreen);
+    } finally {
+      setLoading(false);
     }
-    setScreen(createPetFeedReturnScreen);
   }
 
   async function updatePetFeedDraft(
@@ -1922,16 +2075,21 @@ export function usePetHealthApp() {
     media?: CreatePetFeedPostMedia,
   ) {
     if (!token) return;
-    await updateMyPetFeedDraft(token, postId, payload, media);
-    const postsRes = await listMyPetFeedPosts(token);
-    setMyPetFeedPosts(postsRes.data);
-    setEditingPetFeedPost(null);
-    if (payload.status === 'draft') {
-      Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
-    } else if (payload.status === 'pending_review') {
-      Alert.alert(i18n.t('common.ok'), i18n.t('account.breederPosts.submitDraftSuccess'));
+    setLoading(true);
+    try {
+      await updateMyPetFeedDraft(token, postId, payload, media);
+      const postsRes = await listMyPetFeedPosts(token);
+      setMyPetFeedPosts(postsRes.data);
+      setEditingPetFeedPost(null);
+      if (payload.status === 'draft') {
+        Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
+      } else if (payload.status === 'pending_review') {
+        Alert.alert(i18n.t('common.ok'), i18n.t('account.breederPosts.submitDraftSuccess'));
+      }
+      setScreen(createPetFeedReturnScreen);
+    } finally {
+      setLoading(false);
     }
-    setScreen(createPetFeedReturnScreen);
   }
 
   async function submitPetFeedDraftForReview(post: PetFeedPost) {
@@ -1944,6 +2102,7 @@ export function usePetHealthApp() {
       );
       return;
     }
+    setLoading(true);
     try {
       await updateMyPetFeedPost(token, post.id, {
         title: post.title,
@@ -1967,6 +2126,8 @@ export function usePetHealthApp() {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('account.breederPosts.submitDraftFailed'), message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -2089,7 +2250,6 @@ export function usePetHealthApp() {
   }, [selectedPetFeedConversation?.id, token]);
 
   function openMessagesInbox() {
-    setMessagesReturnScreen('account');
     setScreen('messages-inbox');
     void refreshPetFeedConversations();
   }
@@ -2099,41 +2259,37 @@ export function usePetHealthApp() {
   }
 
   async function openMessageThread(conversation: PetFeedConversation) {
-    setMessagesReturnScreen('messages-inbox');
     setSelectedPetFeedConversation(conversation);
     setPetFeedMessages([]);
     setPetFeedMessagesError('');
-    setScreen('message-thread');
+    setMessageThreadModalVisible(true);
     await refreshPetFeedMessages(conversation.id);
   }
 
   async function openOrCreateConversationFromPost(post: PetFeedPost) {
     if (!token || !post?.id) return;
-    setLoading(true);
     try {
       const response = await openPetFeedConversation(token, post.id);
       const conversation = response.data;
-      setMessagesReturnScreen(screen === 'breeder-detail' ? 'breeder-detail' : 'pet-feed');
       setSelectedPetFeedConversation(conversation);
       setPetFeedMessages([]);
       setPetFeedMessagesError('');
-      setScreen('message-thread');
+      setMessageThreadModalVisible(true);
       await refreshPetFeedMessages(conversation.id);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('petFeed.messages.openFailed'), message);
-    } finally {
-      setLoading(false);
     }
   }
 
   function closeMessageThread() {
-    if (messagesReturnScreen === 'messages-inbox') {
-      setScreen('messages-inbox');
+    setMessageThreadModalVisible(false);
+    setSelectedPetFeedConversation(null);
+    setPetFeedMessages([]);
+    setPetFeedMessagesError('');
+    if (screen === 'messages-inbox') {
       void refreshPetFeedConversations();
-      return;
     }
-    setScreen(messagesReturnScreen);
   }
 
   async function sendPetFeedMessage(body: string): Promise<boolean> {
@@ -2146,7 +2302,9 @@ export function usePetHealthApp() {
       const response = await sendPetFeedConversationMessage(token, selectedPetFeedConversation.id, trimmed);
       const created = response.data;
       if (created) {
-        setPetFeedMessages((current) => [...current, created]);
+        setPetFeedMessages((current) => (
+          current.some((item) => item.id === created.id) ? current : [...current, created]
+        ));
         const preview = created.body.slice(0, 160);
         setSelectedPetFeedConversation((current) => (
           current
@@ -2179,6 +2337,64 @@ export function usePetHealthApp() {
     }
   }
 
+  useEffect(() => {
+    if (!token || !messageThreadModalVisible || !selectedPetFeedConversation?.id) return undefined;
+    if (!isPetFeedMessagingRealtimeConfigured()) return undefined;
+    const conversationId = selectedPetFeedConversation.id;
+    return subscribePetFeedThreadMessages(token, conversationId, (message) => {
+      setPetFeedMessages((current) => (
+        current.some((item) => item.id === message.id) ? current : [...current, message]
+      ));
+      const preview = message.body.slice(0, 160);
+      setSelectedPetFeedConversation((current) => (
+        current && current.id === message.conversation_id
+          ? {
+              ...current,
+              last_message_at: message.created_at,
+              last_message_preview: preview,
+            }
+          : current
+      ));
+      setPetFeedConversations((current) =>
+        current.map((item) => (
+          item.id === message.conversation_id
+            ? {
+                ...item,
+                last_message_at: message.created_at,
+                last_message_preview: preview,
+              }
+            : item
+        )),
+      );
+    });
+  }, [messageThreadModalVisible, selectedPetFeedConversation?.id, token]);
+
+  useEffect(() => {
+    if (!token || screen !== 'messages-inbox') return undefined;
+    if (!isPetFeedMessagingRealtimeConfigured()) return undefined;
+    return subscribePetFeedInboxConversations(token, (patch, event) => {
+      setPetFeedConversations((current) => {
+        const index = current.findIndex((item) => item.id === patch.id);
+        if (index >= 0) {
+          const next = [...current];
+          next[index] = {
+            ...next[index],
+            ...(patch.last_message_at !== undefined ? { last_message_at: patch.last_message_at ?? null } : {}),
+            ...(patch.last_message_preview !== undefined ? { last_message_preview: patch.last_message_preview } : {}),
+            ...(patch.updated_at !== undefined ? { updated_at: patch.updated_at } : {}),
+          };
+          return next.sort((a, b) =>
+            String(b.last_message_at || b.updated_at || '').localeCompare(String(a.last_message_at || a.updated_at || '')),
+          );
+        }
+        if (event === 'INSERT') {
+          void refreshPetFeedConversations();
+        }
+        return current;
+      });
+    });
+  }, [refreshPetFeedConversations, screen, token]);
+
   async function submitBreederProfileReport(profile: BreederProfile, reason: string, note?: string) {
     if (!token) return;
     try {
@@ -2197,6 +2413,8 @@ export function usePetHealthApp() {
       setPetFeedPosts((posts) => posts.filter((post) => post.breeder_profile_id !== profile.id));
       setTopBreederProfiles((profiles) => profiles.filter((item) => item.id !== profile.id));
       setSelectedBreederProfileId(null);
+      setSelectedPetFeedPostId(null);
+      setMessageThreadModalVisible(false);
       setScreen('pet-feed');
       Alert.alert(i18n.t('common.ok'), i18n.t('petFeed.blockBreederSuccess'));
       await refreshPetFeed();
@@ -2917,9 +3135,7 @@ export function usePetHealthApp() {
     vaccinationDuePopupOfferedRef.current = false;
     setVaccinationDuePopupVisible(false);
     void clearAppIconBadge();
-    setPetFeedPosts([]);
-    setAnnouncementPosts([]);
-    setTopBreederProfiles([]);
+    resetPetFeedState();
     setMyPetFeedPosts([]);
     setEditingPetFeedPost(null);
     setManagedUser(null);
@@ -3097,7 +3313,7 @@ export function usePetHealthApp() {
     setUpdateAccountPendingNewEmail('');
     setUpdateAccountEmailOtp('');
     setUpdateAccountEmailOtpError('');
-    setUpdateAccountEmailOtpLoading(false);
+    setLoading(false);
   }
 
   function openUpdateAccount() {
@@ -3156,7 +3372,7 @@ export function usePetHealthApp() {
     setUpdateAccountRecoverNewPassword('');
     setUpdateAccountRecoverConfirmPassword('');
     setUpdateAccountRecoverOtpError('');
-    setUpdateAccountRecoverOtpLoading(false);
+    setLoading(false);
     setUpdateAccountRecoverFieldErrors({});
   }
 
@@ -3198,7 +3414,7 @@ export function usePetHealthApp() {
     setUpdateAccountEmailOtpOpen(false);
     setUpdateAccountEmailOtp('');
     setUpdateAccountEmailOtpError('');
-    setUpdateAccountEmailOtpLoading(false);
+    setLoading(false);
   }
 
   function resolveCurrentAccountLogin() {
@@ -3281,7 +3497,7 @@ export function usePetHealthApp() {
       return;
     }
 
-    setUpdateAccountEmailOtpLoading(true);
+    setLoading(true);
     setUpdateAccountEmailOtpError('');
     try {
       const { data } = await applyAccountUpdate(token, {
@@ -3300,7 +3516,7 @@ export function usePetHealthApp() {
     } catch (error: unknown) {
       setUpdateAccountEmailOtpError(resolveAccountUpdateErrorMessage(error));
     } finally {
-      setUpdateAccountEmailOtpLoading(false);
+      setLoading(false);
     }
   }
 
@@ -3408,7 +3624,7 @@ export function usePetHealthApp() {
     setUpdateAccountRecoverConfirmPassword('');
     setUpdateAccountRecoverOtpError('');
     setUpdateAccountRecoverFieldErrors({});
-    setUpdateAccountRecoverOtpLoading(false);
+    setLoading(false);
   }
 
   async function submitUpdateAccountRecoverPasswordApply() {
@@ -3433,7 +3649,7 @@ export function usePetHealthApp() {
       return;
     }
 
-    setUpdateAccountRecoverOtpLoading(true);
+    setLoading(true);
     setUpdateAccountRecoverFieldErrors({});
     setUpdateAccountRecoverOtpError('');
     try {
@@ -3448,7 +3664,7 @@ export function usePetHealthApp() {
     } catch (error: unknown) {
       setUpdateAccountRecoverOtpError(resolveAccountUpdateErrorMessage(error));
     } finally {
-      setUpdateAccountRecoverOtpLoading(false);
+      setLoading(false);
     }
   }
 
@@ -3486,6 +3702,7 @@ export function usePetHealthApp() {
     setScreen,
     sessionBootstrapping,
     loading,
+    setAppLoading: setLoading,
     refreshing,
     refreshPets,
     backendHealth,
@@ -3501,7 +3718,10 @@ export function usePetHealthApp() {
     signUpOtp,
     setSignUpOtp,
     changeSignUpOtp,
+    signUpDisplayName,
+    changeSignUpDisplayName,
     signUpOtpError,
+    signUpOtpFieldErrors,
     isSignUp,
     pendingSignUpEmail,
     toggleLoginSignUpMode,
@@ -3591,7 +3811,6 @@ export function usePetHealthApp() {
     forgotPasswordConfirmPassword,
     forgotPasswordOtpError,
     forgotPasswordRecoverFieldErrors,
-    forgotPasswordOtpLoading,
     forgotPasswordRateLimitSeconds,
     submitSignUpOtpVerification,
     backToSignUpFromOtpVerification,
@@ -3652,7 +3871,6 @@ export function usePetHealthApp() {
     updateAccountPendingNewEmail,
     updateAccountEmailOtp,
     updateAccountEmailOtpError,
-    updateAccountEmailOtpLoading,
     changeUpdateAccountEmailOtp,
     closeUpdateAccountEmailOtpModal,
     updateAccountCurrentPassword,
@@ -3673,7 +3891,6 @@ export function usePetHealthApp() {
     updateAccountRecoverConfirmPassword,
     updateAccountRecoverOtpError,
     updateAccountRecoverFieldErrors,
-    updateAccountRecoverOtpLoading,
     changeUpdateAccountRecoverOtp,
     setUpdateAccountRecoverNewPassword,
     setUpdateAccountRecoverConfirmPassword,
@@ -3700,8 +3917,11 @@ export function usePetHealthApp() {
     managedUser,
     selectedBreederProfile,
     selectedBreederPosts,
+    selectedPetFeedPostId,
     openBreederDetail,
     closeBreederDetail,
+    openPetFeedPostDetail,
+    closePetFeedPostDetail,
     togglePetFeedFavorite,
     fetchPetFeedPostDetail,
     fetchPetFeedPostComments,
@@ -3715,6 +3935,7 @@ export function usePetHealthApp() {
     petFeedMessagesLoading,
     petFeedMessagesError,
     petFeedMessageSending,
+    messageThreadModalVisible,
     openMessagesInbox,
     closeMessagesInbox,
     openMessageThread,

@@ -1,13 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+type SignUpOtpFieldErrors = {
+  displayName?: string;
+  otp?: string;
+};
+
 type SignUpOtpVerificationScreenProps = {
   email: string;
+  displayName: string;
   otp: string;
   error?: string;
+  fieldErrors?: SignUpOtpFieldErrors;
   loading?: boolean;
+  onChangeDisplayName: (value: string) => void;
   onChangeOtp: (value: string) => void;
   onBack: () => void;
   onSubmit: () => void;
@@ -15,9 +23,12 @@ type SignUpOtpVerificationScreenProps = {
 
 export function SignUpOtpVerificationScreen({
   email,
+  displayName,
   otp,
   error,
+  fieldErrors,
   loading = false,
+  onChangeDisplayName,
   onChangeOtp,
   onBack,
   onSubmit,
@@ -52,12 +63,39 @@ export function SignUpOtpVerificationScreen({
                 </View>
               ) : null}
 
-              <Text className="mb-2 text-sm text-slate-700">{t('signupOtp.otpLabel')}</Text>
+              <Text className="mb-2 text-sm text-slate-700">
+                {t('signupOtp.displayNameLabel')} <Text className="text-red-500">*</Text>
+              </Text>
+              <TextInput
+                testID="signup-display-name-input"
+                accessibilityLabel={t('signupOtp.displayNameLabel')}
+                className={`rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${
+                  fieldErrors?.displayName ? 'border-red-400' : 'border-gray-300'
+                }`}
+                placeholder={t('signupOtp.displayNamePlaceholder')}
+                placeholderTextColor="#9ca3af"
+                autoCapitalize="words"
+                autoCorrect={false}
+                maxLength={160}
+                value={displayName}
+                onChangeText={onChangeDisplayName}
+              />
+              {fieldErrors?.displayName ? (
+                <Text testID="signup-display-name-error" className="mt-1.5 text-xs font-medium text-red-600">
+                  {fieldErrors.displayName}
+                </Text>
+              ) : (
+                <Text className="mt-2 text-xs text-slate-500">{t('signupOtp.displayNameHelper')}</Text>
+              )}
+
+              <Text className="mb-2 mt-4 text-sm text-slate-700">
+                {t('signupOtp.otpLabel')} <Text className="text-red-500">*</Text>
+              </Text>
               <TextInput
                 testID="signup-otp-input"
                 accessibilityLabel={t('signupOtp.otpLabel')}
                 className={`rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${
-                  error ? 'border-red-400' : 'border-gray-300'
+                  fieldErrors?.otp || error ? 'border-red-400' : 'border-gray-300'
                 }`}
                 placeholder={t('signupOtp.otpPlaceholder')}
                 placeholderTextColor="#9ca3af"
@@ -66,7 +104,13 @@ export function SignUpOtpVerificationScreen({
                 value={otp}
                 onChangeText={onChangeOtp}
               />
-              <Text className="mt-2 text-xs text-slate-500">{t('signupOtp.helper')}</Text>
+              {fieldErrors?.otp ? (
+                <Text testID="signup-otp-field-error" className="mt-1.5 text-xs font-medium text-red-600">
+                  {fieldErrors.otp}
+                </Text>
+              ) : (
+                <Text className="mt-2 text-xs text-slate-500">{t('signupOtp.helper')}</Text>
+              )}
 
               <Pressable
                 testID="signup-otp-verify-button"
@@ -77,11 +121,7 @@ export function SignUpOtpVerificationScreen({
                 }`}
                 onPress={onSubmit}
               >
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text className="text-center text-base font-semibold text-white">{t('signupOtp.verifyButton')}</Text>
-                )}
+                <Text className="text-center text-base font-semibold text-white">{t('signupOtp.verifyButton')}</Text>
               </Pressable>
 
               <Pressable

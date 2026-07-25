@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 
@@ -69,7 +69,7 @@ export function AdminHubScreen({
         </Pressable>
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('adminHub.title')}</Text>
         <Pressable className="w-14 items-center rounded-lg p-2" onPress={onRefresh} disabled={loading}>
-          {loading ? <ActivityIndicator size="small" color="#2563eb" /> : <Ionicons name="refresh-outline" size={22} color="#2563eb" />}
+          <Ionicons name="refresh-outline" size={22} color={loading ? '#93c5fd' : '#2563eb'} />
         </Pressable>
       </View>
 

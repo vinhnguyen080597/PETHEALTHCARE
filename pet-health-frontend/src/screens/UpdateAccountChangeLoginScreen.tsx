@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 type UpdateAccountChangeLoginScreenProps = {
@@ -18,7 +18,6 @@ type UpdateAccountChangeLoginScreenProps = {
   pendingEmail?: string;
   otp?: string;
   otpError?: string;
-  otpLoading?: boolean;
   onChangeValue: (value: string) => void;
   onChangeCurrentPassword: (value: string) => void;
   onChangeOtp: (value: string) => void;
@@ -80,7 +79,6 @@ export function UpdateAccountChangeLoginScreen({
   pendingEmail = '',
   otp = '',
   otpError,
-  otpLoading = false,
   onChangeValue,
   onChangeCurrentPassword,
   onChangeOtp,
@@ -154,11 +152,7 @@ export function UpdateAccountChangeLoginScreen({
             className={`mt-5 rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
             onPress={onSubmit}
           >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.saveChanges')}</Text>
-            )}
+            <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.saveChanges')}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -192,15 +186,11 @@ export function UpdateAccountChangeLoginScreen({
 
             <Pressable
               testID="update-account-email-otp-verify-button"
-              disabled={otpLoading}
-              className={`mt-5 rounded-xl py-3 ${otpLoading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
+              disabled={loading}
+              className={`mt-5 rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
               onPress={onSubmitOtp}
             >
-              {otpLoading ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.emailOtpVerify')}</Text>
-              )}
+              <Text className="text-center text-base font-semibold text-white">{t('account.updateAccount.emailOtpVerify')}</Text>
             </Pressable>
             <Pressable
               testID="update-account-email-otp-cancel-button"

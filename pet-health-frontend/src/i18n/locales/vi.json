@@ -78,6 +78,10 @@
   "signupOtp": {
     "title": "Xác thực OTP",
     "subtitle": "Chúng mình đã gửi mã dùng một lần đến {{email}}.",
+    "displayNameLabel": "Tên hiển thị",
+    "displayNamePlaceholder": "Tên dùng khi chat và bình luận",
+    "displayNameHelper": "Tên này sẽ hiện khi bạn nhắn tin và bình luận trên Pet Feed.",
+    "displayNameRequired": "Vui lòng nhập tên hiển thị.",
     "otpLabel": "Mã OTP",
     "otpPlaceholder": "Nhập mã OTP 8 số",
     "otpRequired": "Vui lòng nhập mã OTP đã gửi về email.",

@@ -282,10 +282,14 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
       if (!isValidOtp(payload.otp)) {
         return json(route, { error: 'Incorrect or expired OTP.', code: 'otp_invalid' }, 400);
       }
+      if (typeof payload.displayName !== 'string' || !String(payload.displayName).trim()) {
+        return json(route, { error: 'displayName is required', code: 'DISPLAY_NAME_REQUIRED' }, 400);
+      }
+      const displayName = String(payload.displayName).trim();
       state.account.primary_role = 'sen';
       state.account.email = email;
       state.account.login_identifier = email;
-      state.account.display_name = email.split('@')[0] || email;
+      state.account.display_name = displayName;
       state.account.updated_at = new Date().toISOString();
       return json(route, {
         data: {

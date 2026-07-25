@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { AccountProfile, AdminCreateAccountPayload, AdminUpdateAccountPayload, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 
@@ -150,7 +150,7 @@ export function AdminReviewScreen({
         <View className="rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-sm leading-5 text-slate-600">{t('adminReview.roleNote')}</Text>
           <Pressable testID="admin-review-load-button" className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90" onPress={load} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Ionicons name="refresh-outline" size={18} color="#fff" />}
+            <Ionicons name="refresh-outline" size={18} color="#fff" />
             <Text className="text-sm font-bold text-white">{t('adminReview.load')}</Text>
           </Pressable>
         </View>

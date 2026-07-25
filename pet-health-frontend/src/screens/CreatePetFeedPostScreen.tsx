@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -52,6 +51,8 @@ type CreatePetFeedPostScreenProps = {
   onBack: () => void;
   onSubmit: (payload: CreatePetFeedPostPayload, media: CreatePetFeedPostMedia) => Promise<void>;
   onUpdate?: (postId: string, payload: CreatePetFeedPostPayload, media?: CreatePetFeedPostMedia) => Promise<void>;
+  /** Drives global LoadingOverlay; call before long upload work. Close review modal first so overlay is visible. */
+  onBusyChange?: (busy: boolean) => void;
   editingPost?: PetFeedPost | null;
   role?: UserRole;
 };
@@ -196,6 +197,7 @@ export function CreatePetFeedPostScreen({
   onBack,
   onSubmit,
   onUpdate,
+  onBusyChange,
   editingPost = null,
   role = 'breeder',
 }: CreatePetFeedPostScreenProps) {
@@ -502,25 +504,26 @@ export function CreatePetFeedPostScreen({
   }
 
   async function submit(status: CreatePetFeedPostPayload['status']) {
-    setSubmitting(true);
-    try {
-      const payload: CreatePetFeedPostPayload = {
-        title,
-        species,
-        breed: selectedBreedLabel,
-        gender: selectedGenderLabel,
-        ageMonths: ageValue != null && Number.isFinite(ageValue) ? ageValue : null,
-        location,
-        priceNote: canonicalPriceNote,
-        description,
-        personality,
-        vaccineStatus: selectedVaccineLabel,
-        dewormingStatus: selectedDewormingLabel,
-        paperwork,
-        contact: { facebook, zalo, phone },
-        status,
-      };
+    if (submitting) return;
 
+    const payload: CreatePetFeedPostPayload = {
+      title,
+      species,
+      breed: selectedBreedLabel,
+      gender: selectedGenderLabel,
+      ageMonths: ageValue != null && Number.isFinite(ageValue) ? ageValue : null,
+      location,
+      priceNote: canonicalPriceNote,
+      description,
+      personality,
+      vaccineStatus: selectedVaccineLabel,
+      dewormingStatus: selectedDewormingLabel,
+      paperwork,
+      contact: { facebook, zalo, phone },
+      status,
+    };
+
+    try {
       if (isEditingDraft && editingPost && onUpdate) {
         const nextStatus = status === 'pending_review' ? 'pending_review' : 'draft';
         if (nextStatus === 'pending_review') {
@@ -532,7 +535,31 @@ export function CreatePetFeedPostScreen({
         } else if (!title.trim()) {
           throw new Error(t('createPetFeedPost.errors.titleRequired'));
         }
+      } else {
+        const isDraft = status === 'draft';
+        if (!isDraft) {
+          const result = validateForReview();
+          if (result.message) {
+            if (result.focusKey) scrollToMissingField(result.focusKey);
+            throw new Error(result.message);
+          }
+        } else if (!title.trim()) {
+          throw new Error(t('createPetFeedPost.errors.titleRequired'));
+        }
+      }
+    } catch (error: unknown) {
+      const failTitle = status === 'draft' ? t('createPetFeedPost.draftSaveFailed') : t('createPetFeedPost.submitFailed');
+      Alert.alert(failTitle, mediaErrorMessage(error));
+      return;
+    }
 
+    // Close review Modal first — native Modal sits above LoadingOverlay.
+    setReviewOpen(false);
+    setSubmitting(true);
+    onBusyChange?.(true);
+    try {
+      if (isEditingDraft && editingPost && onUpdate) {
+        const nextStatus = status === 'pending_review' ? 'pending_review' : 'draft';
         const optimizedPhotos: string[] = [];
         for (const uri of photoUris) {
           optimizedPhotos.push(/^https?:\/\//i.test(uri) || uri.startsWith('memory://') ? uri : await optimizePetFeedPhotoUri(uri));
@@ -570,19 +597,7 @@ export function CreatePetFeedPostScreen({
             listThumbUri,
           },
         );
-        setReviewOpen(false);
         return;
-      }
-
-      const isDraft = status === 'draft';
-      if (!isDraft) {
-        const result = validateForReview();
-        if (result.message) {
-          if (result.focusKey) scrollToMissingField(result.focusKey);
-          throw new Error(result.message);
-        }
-      } else if (!title.trim()) {
-        throw new Error(t('createPetFeedPost.errors.titleRequired'));
       }
 
       const optimizedPhotos: string[] = [];
@@ -616,12 +631,12 @@ export function CreatePetFeedPostScreen({
         videoUri: videoUri || undefined,
         listThumbUri,
       });
-      setReviewOpen(false);
     } catch (error: unknown) {
       const failTitle = status === 'draft' ? t('createPetFeedPost.draftSaveFailed') : t('createPetFeedPost.submitFailed');
       Alert.alert(failTitle, mediaErrorMessage(error));
     } finally {
       setSubmitting(false);
+      onBusyChange?.(false);
     }
   }
 
@@ -861,7 +876,7 @@ export function CreatePetFeedPostScreen({
               onPress={saveDraftFromForm}
               disabled={submitting}
             >
-              {submitting ? <ActivityIndicator color={PRIMARY} /> : <Ionicons name="document-outline" size={18} color={PRIMARY} />}
+              <Ionicons name="document-outline" size={18} color={PRIMARY} />
               <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('createPetFeedPost.saveDraft')}</Text>
             </Pressable>
           ) : null}
@@ -891,7 +906,7 @@ export function CreatePetFeedPostScreen({
                 onPress={() => void submit('draft')}
                 disabled={submitting}
               >
-                {submitting ? <ActivityIndicator color={PRIMARY} /> : <Ionicons name="document-outline" size={18} color={PRIMARY} />}
+                <Ionicons name="document-outline" size={18} color={PRIMARY} />
                 <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('createPetFeedPost.saveDraft')}</Text>
               </Pressable>
             ) : null}
@@ -901,7 +916,7 @@ export function CreatePetFeedPostScreen({
               onPress={() => void submit(isAdmin ? 'published' : 'pending_review')}
               disabled={submitting}
             >
-              {submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name={isAdmin ? 'cloud-upload-outline' : 'send-outline'} size={18} color="#fff" />}
+              <Ionicons name={isAdmin ? 'cloud-upload-outline' : 'send-outline'} size={18} color="#fff" />
               <Text className="text-sm font-bold text-white">{isAdmin ? t('createPetFeedPost.publish') : t('createPetFeedPost.submit')}</Text>
             </Pressable>
           </View>

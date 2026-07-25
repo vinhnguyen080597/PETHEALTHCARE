@@ -52,7 +52,7 @@ export const HistoryScreen = lazyNamed(() => import('./HistoryScreen'), 'History
 export const ForgotPasswordScreen = lazyNamed(() => import('./ForgotPasswordScreen'), 'ForgotPasswordScreen');
 export const LanguageSelectionScreen = lazyNamed(() => import('./LanguageSelectionScreen'), 'LanguageSelectionScreen');
 export const MessagesInboxScreen = lazyNamed(() => import('./MessagesInboxScreen'), 'MessagesInboxScreen');
-export const MessageThreadScreen = lazyNamed(() => import('./MessageThreadScreen'), 'MessageThreadScreen');
+export const MessageThreadModal = lazyNamed(() => import('../components/MessageThreadModal'), 'MessageThreadModal');
 export const SignUpOtpVerificationScreen = lazyNamed(
   () => import('./SignUpOtpVerificationScreen'),
   'SignUpOtpVerificationScreen',
@@ -62,6 +62,7 @@ export const OnboardingHealthPromptScreen = lazyNamed(
   () => import('./OnboardingHealthPromptScreen'),
   'OnboardingHealthPromptScreen',
 );
+export const PetFeedPostDetailScreen = lazyNamed(() => import('./PetFeedPostDetailScreen'), 'PetFeedPostDetailScreen');
 export const PetProfileScreen = lazyNamed(() => import('./PetProfileScreen'), 'PetProfileScreen');
 export const ResultsScreen = lazyNamed(() => import('./ResultsScreen'), 'ResultsScreen');
 export const VetSummaryScreen = lazyNamed(() => import('./VetSummaryScreen'), 'VetSummaryScreen');
