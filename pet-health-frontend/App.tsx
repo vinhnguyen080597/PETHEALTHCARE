@@ -342,8 +342,17 @@ function AppContent() {
               />
             )}
 
-            {app.screen === 'pet-feed' && (
-              <View className="flex-1">
+            {(app.screen === 'pet-feed' || app.screen === 'pet-feed-detail') ? (
+              <View
+                collapsable={false}
+                pointerEvents={app.screen === 'pet-feed' ? 'auto' : 'none'}
+                style={
+                  app.screen === 'pet-feed'
+                    ? { flex: 1 }
+                    : [StyleSheet.absoluteFillObject, { opacity: 0 }]
+                }
+                importantForAccessibility={app.screen === 'pet-feed' ? 'yes' : 'no-hide-descendants'}
+              >
               <PetFeedScreen
                 posts={app.petFeedPosts}
                 announcementPosts={app.announcementPosts}
@@ -364,12 +373,15 @@ function AppContent() {
                 onLoadMoreAnnouncements={app.loadMoreAnnouncements}
                 onOpenBreederDetail={app.openBreederDetail}
                 onOpenPostDetail={app.openPetFeedPostDetail}
+                focusPostId={app.screen === 'pet-feed' ? app.petFeedFocusPostId : null}
+                onFocusPostHandled={app.clearPetFeedFocusPostId}
                 enabledTabs={app.petFeedEnabledTabs}
               />
               </View>
-            )}
+            ) : null}
 
             {app.screen === 'pet-feed-detail' && app.selectedPetFeedPostId ? (
+              <View className="flex-1 bg-[#F2F4F8]">
               <PetFeedPostDetailScreen
                 postId={app.selectedPetFeedPostId}
                 listPosts={[...app.petFeedPosts, ...app.selectedBreederPosts]}
@@ -384,6 +396,7 @@ function AppContent() {
                 onDeletePostComment={app.deletePetFeedComment}
                 currentUserId={app.accountProfile?.user_id ?? null}
               />
+              </View>
             ) : null}
 
             {app.screen === 'breeder-detail' && app.selectedBreederProfile ? (

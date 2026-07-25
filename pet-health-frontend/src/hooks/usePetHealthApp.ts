@@ -424,7 +424,8 @@ export function usePetHealthApp() {
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
   const [selectedPetFeedPostId, setSelectedPetFeedPostId] = useState<string | null>(null);
-  const [petFeedDetailReturnScreen, setPetFeedDetailReturnScreen] = useState<AppScreen>('pet-feed');
+  /** After closing post detail, Pet Feed scrolls to this post on the feed tab. */
+  const [petFeedFocusPostId, setPetFeedFocusPostId] = useState<string | null>(null);
   const [adminAccounts, setAdminAccounts] = useState<AccountProfile[]>([]);
   const [adminBreederProfiles, setAdminBreederProfiles] = useState<BreederProfile[]>([]);
   const [adminFeedPosts, setAdminFeedPosts] = useState<PetFeedPost[]>([]);
@@ -443,6 +444,7 @@ export function usePetHealthApp() {
   const [petFeedMessagesError, setPetFeedMessagesError] = useState('');
   const [petFeedMessageSending, setPetFeedMessageSending] = useState(false);
   const [messageThreadModalVisible, setMessageThreadModalVisible] = useState(false);
+  const messageThreadOpenGenRef = useRef(0);
   /** Where to go when closing the results screen opened from history vs profile vs default home. */
   const [resultsReturnScreen, setResultsReturnScreen] = useState<'home' | 'history' | 'pet-profile' | null>(
     null,
@@ -1892,18 +1894,23 @@ export function usePetHealthApp() {
   function openPetFeedPostDetail(postId: string) {
     if (!postId) return;
     setSelectedPetFeedPostId(postId);
-    setPetFeedDetailReturnScreen(screen === 'breeder-detail' ? 'breeder-detail' : 'pet-feed');
+    setPetFeedFocusPostId(null);
     setScreen('pet-feed-detail');
   }
 
   function closePetFeedPostDetail() {
-    const returnTo = petFeedDetailReturnScreen;
+    const focusPostId = selectedPetFeedPostId;
     setSelectedPetFeedPostId(null);
     setMessageThreadModalVisible(false);
     setSelectedPetFeedConversation(null);
     setPetFeedMessages([]);
-    setScreen(returnTo);
+    if (focusPostId) setPetFeedFocusPostId(focusPostId);
+    setScreen('pet-feed');
   }
+
+  const clearPetFeedFocusPostId = useCallback(() => {
+    setPetFeedFocusPostId(null);
+  }, []);
 
   async function loadAccountDashboard(accessToken: string, role: UserRole | undefined = accountProfile?.primary_role) {
     try {
@@ -2259,34 +2266,89 @@ export function usePetHealthApp() {
   }
 
   async function openMessageThread(conversation: PetFeedConversation) {
+    messageThreadOpenGenRef.current += 1;
+    const gen = messageThreadOpenGenRef.current;
     setSelectedPetFeedConversation(conversation);
     setPetFeedMessages([]);
     setPetFeedMessagesError('');
+    setPetFeedMessagesLoading(true);
     setMessageThreadModalVisible(true);
-    await refreshPetFeedMessages(conversation.id);
+    try {
+      await refreshPetFeedMessages(conversation.id);
+    } finally {
+      if (gen === messageThreadOpenGenRef.current) {
+        setPetFeedMessagesLoading(false);
+      }
+    }
+  }
+
+  function provisionalConversationFromPost(post: PetFeedPost): PetFeedConversation {
+    const media = Array.isArray(post.media_urls) ? post.media_urls.filter(Boolean) : [];
+    const metaThumb =
+      post.metadata && typeof post.metadata.list_thumb_url === 'string' ? post.metadata.list_thumb_url.trim() : '';
+    const peerName = post.breeder_profile?.display_name?.trim() || '';
+    return {
+      id: '',
+      post_id: post.id,
+      sen_user_id: accountProfile?.user_id ?? '',
+      breeder_user_id: post.user_id,
+      last_message_at: null,
+      last_message_preview: '',
+      created_at: new Date().toISOString(),
+      post_title: post.title || '',
+      post_thumb_url: metaThumb || media[0] || null,
+      peer_display_name: peerName || i18n.t('petFeed.messages.peerFallback'),
+      peer_user_id: post.user_id,
+    };
   }
 
   async function openOrCreateConversationFromPost(post: PetFeedPost) {
     if (!token || !post?.id) return;
+
+    const cached = petFeedConversations.find((item) => item.post_id === post.id);
+    if (cached?.id) {
+      void openMessageThread(cached);
+      return;
+    }
+
+    // Open the sheet immediately; resolve conversation id + messages in the background.
+    const gen = ++messageThreadOpenGenRef.current;
+    setSelectedPetFeedConversation(provisionalConversationFromPost(post));
+    setPetFeedMessages([]);
+    setPetFeedMessagesError('');
+    setPetFeedMessagesLoading(true);
+    setMessageThreadModalVisible(true);
+
     try {
       const response = await openPetFeedConversation(token, post.id);
+      if (gen !== messageThreadOpenGenRef.current) return;
       const conversation = response.data;
       setSelectedPetFeedConversation(conversation);
-      setPetFeedMessages([]);
-      setPetFeedMessagesError('');
-      setMessageThreadModalVisible(true);
+      setPetFeedConversations((current) => {
+        if (current.some((item) => item.id === conversation.id)) {
+          return current.map((item) => (item.id === conversation.id ? conversation : item));
+        }
+        return [conversation, ...current];
+      });
       await refreshPetFeedMessages(conversation.id);
     } catch (error: unknown) {
+      if (gen !== messageThreadOpenGenRef.current) return;
+      setMessageThreadModalVisible(false);
+      setSelectedPetFeedConversation(null);
+      setPetFeedMessages([]);
+      setPetFeedMessagesLoading(false);
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('petFeed.messages.openFailed'), message);
     }
   }
 
   function closeMessageThread() {
+    messageThreadOpenGenRef.current += 1;
     setMessageThreadModalVisible(false);
     setSelectedPetFeedConversation(null);
     setPetFeedMessages([]);
     setPetFeedMessagesError('');
+    setPetFeedMessagesLoading(false);
     if (screen === 'messages-inbox') {
       void refreshPetFeedConversations();
     }
@@ -3918,10 +3980,12 @@ export function usePetHealthApp() {
     selectedBreederProfile,
     selectedBreederPosts,
     selectedPetFeedPostId,
+    petFeedFocusPostId,
     openBreederDetail,
     closeBreederDetail,
     openPetFeedPostDetail,
     closePetFeedPostDetail,
+    clearPetFeedFocusPostId,
     togglePetFeedFavorite,
     fetchPetFeedPostDetail,
     fetchPetFeedPostComments,

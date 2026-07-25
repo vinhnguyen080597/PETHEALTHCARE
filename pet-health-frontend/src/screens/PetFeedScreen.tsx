@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -65,6 +65,9 @@ type PetFeedScreenProps = {
   onLoadMoreAnnouncements: () => void;
   onOpenBreederDetail: (profileId: string) => void;
   onOpenPostDetail: (postId: string) => void;
+  /** When set, switch to feed tab and scroll to this post, then call onFocusPostHandled. */
+  focusPostId?: string | null;
+  onFocusPostHandled?: () => void;
   enabledTabs?: { news: boolean; feed: boolean; breeders: boolean };
 };
 
@@ -181,11 +184,14 @@ export function PetFeedScreen({
   onLoadMoreAnnouncements,
   onOpenBreederDetail,
   onOpenPostDetail,
+  focusPostId = null,
+  onFocusPostHandled,
   enabledTabs = { news: true, feed: true, breeders: true },
 }: PetFeedScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const listRef = useRef<FlatList<FeedListItem>>(null);
   const visibleTabs = useMemo(
     () => PET_FEED_TAB_ORDER.filter((tab) => enabledTabs[tab]),
     [enabledTabs],
@@ -365,6 +371,56 @@ export function PetFeedScreen({
   const shouldLoadMore = activeTab === 'feed'
     ? hasMore && !loadingMore && !loadMoreError && filteredPosts.length > 0 && !showListSkeleton
     : activeTab === 'news' && announcementHasMore && !announcementLoadingMore && !announcementLoadMoreError && filteredAnnouncements.length > 0 && !showListSkeleton;
+
+  useEffect(() => {
+    if (!focusPostId || !enabledTabs.feed) return;
+
+    if (activeTab !== 'feed') {
+      setActiveTab('feed');
+      return;
+    }
+
+    // Clear filters that would hide the post so we can scroll to it.
+    const inRawFeed = posts.some((post) => post.id === focusPostId);
+    if (!inRawFeed) {
+      onFocusPostHandled?.();
+      return;
+    }
+    const inFiltered = filteredPosts.some((post) => post.id === focusPostId);
+    if (!inFiltered) {
+      setQuery('');
+      setSpeciesFilter('all');
+      setGenderFilter('all');
+      setSortField('date');
+      setSortDirection('desc');
+      return;
+    }
+
+    const index = listItems.findIndex((item) => item.type === 'post' && item.id === focusPostId);
+    if (index < 0) {
+      onFocusPostHandled?.();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      try {
+        listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.08 });
+      } catch {
+        listRef.current?.scrollToOffset({ offset: 0, animated: false });
+      }
+      onFocusPostHandled?.();
+    }, 80);
+
+    return () => clearTimeout(timer);
+  }, [
+    activeTab,
+    enabledTabs.feed,
+    filteredPosts,
+    focusPostId,
+    listItems,
+    onFocusPostHandled,
+    posts,
+  ]);
 
   const resetFilters = useCallback(() => {
     setSpeciesFilter('all');
@@ -609,6 +665,7 @@ export function PetFeedScreen({
   return (
     <>
     <FlatList
+      ref={listRef}
       testID="pet-feed-screen"
       className="flex-1 bg-[#F2F4F8]"
       data={listItems}
@@ -623,6 +680,15 @@ export function PetFeedScreen({
       maxToRenderPerBatch={6}
       windowSize={7}
       removeClippedSubviews={Platform.OS !== 'web'}
+      onScrollToIndexFailed={(info) => {
+        listRef.current?.scrollToOffset({
+          offset: Math.max(0, info.averageItemLength * info.index),
+          animated: true,
+        });
+        setTimeout(() => {
+          listRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.08 });
+        }, 120);
+      }}
       onEndReached={() => {
         if (!shouldLoadMore) return;
         if (activeTab === 'news') onLoadMoreAnnouncements();

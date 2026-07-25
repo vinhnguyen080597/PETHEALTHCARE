@@ -1,8 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -12,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PetFeedCommentComposer, PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
+import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
 import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
 import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
 import type { BreederProfile, PetFeedComment, PetFeedPost } from '../types';
@@ -51,6 +50,8 @@ export function PetFeedPostDetailScreen({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const bottomInset = modalBottomInset(insets.bottom);
+  const keyboardOverlap = useIosKeyboardOverlap();
+  const composerPad = keyboardOverlap > 0 ? 8 : bottomInset;
 
   const { selectedPost, detailLoading } = usePetFeedPostDetail(postId, listPosts, onFetchPostDetail);
   const {
@@ -69,10 +70,7 @@ export function PetFeedPostDetailScreen({
   );
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-[#F2F4F8]"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View className="flex-1 bg-[#F2F4F8]" style={{ paddingBottom: keyboardOverlap }}>
       <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
         <Pressable
           testID="pet-feed-detail-back-button"
@@ -91,6 +89,7 @@ export function PetFeedPostDetailScreen({
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 }}
       >
         {selectedPost ? (
@@ -127,7 +126,7 @@ export function PetFeedPostDetailScreen({
       </ScrollView>
 
       {selectedPost ? (
-        <View className="border-t border-gray-200 bg-white" style={{ paddingBottom: bottomInset }}>
+        <View className="border-t border-gray-200 bg-white" style={{ paddingBottom: composerPad }}>
           <PetFeedCommentComposer
             submitting={commentSubmitting}
             replyTo={replyTo}
@@ -136,6 +135,6 @@ export function PetFeedPostDetailScreen({
           />
         </View>
       ) : null}
-    </KeyboardAvoidingView>
+    </View>
   );
 }

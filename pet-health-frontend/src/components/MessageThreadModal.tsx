@@ -3,9 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   RefreshControl,
   Text,
@@ -14,6 +12,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
 import type { PetFeedConversation, PetFeedMessage } from '../types';
 import { modalBottomInset, modalTopInset } from '../utils/modalSafeArea';
 
@@ -61,6 +60,7 @@ export function MessageThreadView({
   const [draft, setDraft] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const listRef = useRef<FlatList<PetFeedMessage>>(null);
+  const keyboardOverlap = useIosKeyboardOverlap();
 
   useEffect(() => {
     if (!conversation) setDraft('');
@@ -72,7 +72,7 @@ export function MessageThreadView({
       listRef.current?.scrollToEnd({ animated: true });
     }, 80);
     return () => clearTimeout(timer);
-  }, [messages.length]);
+  }, [messages.length, keyboardOverlap]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -85,38 +85,36 @@ export function MessageThreadView({
 
   async function handleSend() {
     const trimmed = draft.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending || !conversation?.id) return;
     const ok = await onSend(trimmed);
     if (ok) setDraft('');
   }
 
+  const canCompose = Boolean(conversation?.id);
+  const composerPad = keyboardOverlap > 0 ? 8 : composerBottomInset;
+
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-[#F2F4F8]"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View
-        className="border-b border-gray-200 bg-white px-2 pb-2"
-        style={{ paddingTop: headerTopInset + 8 }}
-      >
-        <View className="flex-row items-center">
+    <View className="flex-1 bg-[#F2F4F8]" style={{ paddingBottom: keyboardOverlap }}>
+      <View className="border-b border-gray-200 bg-white" style={{ paddingTop: headerTopInset }}>
+        <View className="flex-row items-center px-1 py-1.5">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('common.back')}
-            className="w-14 rounded-lg p-2 active:bg-slate-100"
+            className="h-9 w-11 items-center justify-center rounded-lg active:bg-slate-100"
+            hitSlop={8}
             onPress={onClose}
           >
-            <Ionicons name="close" size={24} color="#1e293b" />
+            <Ionicons name="close" size={22} color="#1e293b" />
           </Pressable>
-          <View className="min-w-0 flex-1 items-center">
-            <Text className="text-base font-semibold text-slate-900" numberOfLines={1}>
+          <View className="min-w-0 flex-1 items-center px-1">
+            <Text className="text-[15px] font-semibold leading-5 text-slate-900" numberOfLines={1}>
               {conversation?.peer_display_name || t('petFeed.messages.peerFallback')}
             </Text>
-            <Text className="text-xs text-slate-500" numberOfLines={1}>
+            <Text className="text-[11px] leading-4 text-slate-500" numberOfLines={1}>
               {conversation?.post_title || t('petFeed.messages.listingFallback')}
             </Text>
           </View>
-          <View className="w-14" />
+          <View className="w-11" />
         </View>
       </View>
 
@@ -129,6 +127,8 @@ export function MessageThreadView({
           ref={listRef}
           data={messages}
           keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           contentContainerStyle={{ padding: 16, paddingBottom: 12, flexGrow: 1 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={PRIMARY} />}
           ListEmptyComponent={
@@ -153,28 +153,28 @@ export function MessageThreadView({
         />
       )}
 
-      <View className="border-t border-gray-200 bg-white px-3 pt-2" style={{ paddingBottom: composerBottomInset }}>
+      <View className="border-t border-gray-200 bg-white px-3 pt-2" style={{ paddingBottom: composerPad }}>
         {error && messages.length > 0 ? <Text className="mb-2 text-xs text-red-600">{error}</Text> : null}
         <View className="flex-row items-end gap-2">
           <TextInput
             testID="pet-feed-message-input"
             accessibilityLabel={t('petFeed.messages.inputLabel')}
-            className="min-h-[44px] max-h-28 flex-1 rounded-xl border border-gray-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900"
+            className="min-h-[40px] max-h-28 flex-1 rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
             placeholder={t('petFeed.messages.placeholder')}
             placeholderTextColor="#94a3b8"
             value={draft}
             onChangeText={setDraft}
             multiline
             maxLength={2000}
-            editable={!sending}
+            editable={canCompose && !sending}
           />
           <Pressable
             testID="pet-feed-message-send"
             accessibilityRole="button"
             accessibilityLabel={t('petFeed.messages.send')}
-            accessibilityState={{ disabled: sending || !draft.trim() }}
-            className={`h-11 w-11 items-center justify-center rounded-xl ${draft.trim() && !sending ? 'bg-blue-600 active:opacity-90' : 'bg-slate-200'}`}
-            disabled={sending || !draft.trim()}
+            accessibilityState={{ disabled: sending || !draft.trim() || !canCompose }}
+            className={`h-10 w-10 items-center justify-center rounded-xl ${draft.trim() && canCompose && !sending ? 'bg-blue-600 active:opacity-90' : 'bg-slate-200'}`}
+            disabled={sending || !draft.trim() || !canCompose}
             onPress={() => void handleSend()}
           >
             {sending ? (
@@ -185,7 +185,7 @@ export function MessageThreadView({
           </Pressable>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -206,7 +206,7 @@ export function MessageThreadModal({
   const bottomInset = modalBottomInset(insets.bottom, 10);
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <MessageThreadView
         conversation={conversation}
         messages={messages}
