@@ -196,11 +196,13 @@ export function PetFeedScreen({
     () => PET_FEED_TAB_ORDER.filter((tab) => enabledTabs[tab]),
     [enabledTabs],
   );
-  const [activeTab, setActiveTab] = useState<FeedTab>(() => visibleTabs[0] ?? 'feed');
+  const [activeTab, setActiveTab] = useState<FeedTab>(() =>
+    (visibleTabs.includes('feed') ? 'feed' : visibleTabs[0]) ?? 'feed',
+  );
 
   useEffect(() => {
     if (!visibleTabs.includes(activeTab) && visibleTabs.length > 0) {
-      setActiveTab(visibleTabs[0]);
+      setActiveTab(visibleTabs.includes('feed') ? 'feed' : visibleTabs[0]);
     }
   }, [activeTab, visibleTabs]);
   const [query, setQuery] = useState('');

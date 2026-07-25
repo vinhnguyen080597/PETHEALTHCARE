@@ -149,9 +149,9 @@
     "breederFallback": "Breeder",
     "locationUnknown": "Location not shared",
     "tabs": {
-      "feed": "Pet feed",
+      "feed": "New Pets",
       "news": "News",
-      "breeders": "Top breeder"
+      "breeders": "Breeders"
     },
     "newsEmpty": "No news from Pet Health Care yet",
     "topBreeders": {

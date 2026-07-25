@@ -149,9 +149,9 @@
     "breederFallback": "Breeder",
     "locationUnknown": "Chưa chia sẻ khu vực",
     "tabs": {
-      "feed": "Pet feed",
+      "feed": "New Pets",
       "news": "Tin tức",
-      "breeders": "Breeder"
+      "breeders": "Breeders"
     },
     "newsEmpty": "Chưa có tin từ Pet Health Care",
     "topBreeders": {

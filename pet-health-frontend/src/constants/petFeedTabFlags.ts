@@ -22,5 +22,6 @@ export function isPetFeedTabEnabled(flags: AppFeatureFlags | null, tab: PetFeedS
 }
 
 export function firstEnabledPetFeedTab(flags: AppFeatureFlags | null): PetFeedScreenTab {
+  if (isPetFeedTabEnabled(flags, 'feed')) return 'feed';
   return PET_FEED_TAB_ORDER.find((tab) => isPetFeedTabEnabled(flags, tab)) ?? 'feed';
 }
