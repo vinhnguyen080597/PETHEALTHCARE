@@ -1,0 +1,91 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Open in Pet Health Care</title>
+    <meta name="description" content="Open this Pet Feed listing in the Pet Health Care app." />
+    <link rel="stylesheet" href="../../../styles.css" />
+    <script>
+      // Optional: set after App Store listing exists, e.g. 1234567890
+      window.__PHC_IOS_APP_ID__ = "";
+      window.__PHC_IOS_STORE__ = "";
+      window.__PHC_ANDROID_STORE__ = "https://play.google.com/store/apps/details?id=com.pethealthcare.app";
+    </script>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <p class="eyebrow">Pet Health Care</p>
+        <h1>Open this listing</h1>
+        <p class="lead" id="lead">
+          If you already have the app, we will open the post there. Otherwise you can download Pet Health Care from the store.
+        </p>
+        <nav class="nav" aria-label="Open actions">
+          <a class="button" id="open-app" href="#">Open in app</a>
+          <a class="button secondary" id="get-app" href="#">Get the app</a>
+        </nav>
+        <p class="meta" id="status" style="margin-top: 16px"></p>
+      </section>
+    </main>
+    <script>
+      (function () {
+        function qs(name) {
+          return new URLSearchParams(window.location.search).get(name) || "";
+        }
+        function postIdFromPath() {
+          var match = window.location.pathname.match(/\/app\/pet-feed\/posts\/([^/]+)\/?$/i);
+          return match ? decodeURIComponent(match[1]) : "";
+        }
+        var postId = (qs("id") || qs("petFeedPost") || postIdFromPath()).trim();
+        var appUrl = postId ? "pethealthcare://pet-feed/posts/" + encodeURIComponent(postId) : "pethealthcare://";
+        var ua = navigator.userAgent || "";
+        var isIOS = /iPad|iPhone|iPod/.test(ua);
+        var isAndroid = /Android/i.test(ua);
+        var iosStore = window.__PHC_IOS_STORE__ || "";
+        var androidStore = window.__PHC_ANDROID_STORE__ || "https://play.google.com/store/apps/details?id=com.pethealthcare.app";
+        var storeUrl = isIOS ? (iosStore || androidStore) : isAndroid ? androidStore : (iosStore || androidStore);
+        var iosAppId = window.__PHC_IOS_APP_ID__ || "";
+
+        if (iosAppId) {
+          var meta = document.createElement("meta");
+          meta.name = "apple-itunes-app";
+          meta.content = "app-id=" + iosAppId + (postId ? ", app-argument=" + appUrl : "");
+          document.head.appendChild(meta);
+        }
+
+        var openApp = document.getElementById("open-app");
+        var getApp = document.getElementById("get-app");
+        var statusEl = document.getElementById("status");
+        openApp.href = appUrl;
+        getApp.href = storeUrl || "#";
+        if (!storeUrl) {
+          getApp.style.display = "none";
+          statusEl.textContent = "Store listing links will appear here after App Store / Play Console publish.";
+        }
+        if (!postId) {
+          document.getElementById("lead").textContent = "Missing listing id. Ask the sender to share the post again from Pet Health Care.";
+          openApp.style.display = "none";
+          return;
+        }
+
+        function tryOpenApp() {
+          window.location.href = appUrl;
+          window.setTimeout(function () {
+            // Still on this page after the handoff attempt → app likely not installed.
+            if (document.hidden) return;
+            if (storeUrl) window.location.href = storeUrl;
+          }, 1600);
+        }
+
+        openApp.addEventListener("click", function (event) {
+          event.preventDefault();
+          tryOpenApp();
+        });
+
+        // Auto-attempt once for shared links.
+        window.setTimeout(tryOpenApp, 250);
+      })();
+    </script>
+  </body>
+</html>

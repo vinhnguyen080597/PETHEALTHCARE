@@ -1,0 +1,24 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Redirecting…</title>
+    <script>
+      (function () {
+        var path = window.location.pathname || "";
+        var match = path.match(/\/app\/pet-feed\/posts\/([^/]+)\/?$/i);
+        if (match && match[1]) {
+          var base = path.indexOf("/PETHEALTHCARE/") >= 0 ? "/PETHEALTHCARE" : "";
+          window.location.replace(base + "/app/pet-feed/post/?id=" + encodeURIComponent(decodeURIComponent(match[1])));
+          return;
+        }
+        var home = path.indexOf("/PETHEALTHCARE/") >= 0 ? "/PETHEALTHCARE/" : "/";
+        window.location.replace(home);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting…</p>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+﻿{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "APPLE_TEAM_ID.com.pethealthcare.app",
+        "paths": [
+          "/PETHEALTHCARE/app/pet-feed/*"
+        ]
+      }
+    ]
+  }
+}
