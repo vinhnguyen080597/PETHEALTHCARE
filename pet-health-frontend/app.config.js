@@ -15,7 +15,7 @@ const baseConfig = {
   name: 'Pet Health Care',
   slug: 'pet-health-care',
   scheme: 'pethealthcare',
-  version: '1.1.2',
+  version: '1.1.3',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
@@ -28,7 +28,7 @@ const baseConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.pethealthcare.app',
-    buildNumber: '3',
+    buildNumber: '4',
     associatedDomains: ['applinks:pet-marketplace.org', 'applinks:www.pet-marketplace.org'],
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
