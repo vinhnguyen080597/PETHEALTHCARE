@@ -388,8 +388,9 @@ function AppContent() {
                 onBack={app.closePetFeedPostDetail}
                 onToggleFavorite={app.togglePetFeedFavorite}
                 onReportPost={app.submitPetFeedReport}
-                onHideBreeder={app.hideBreederProfile}
                 onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
+                onEditPost={app.openEditPetFeedDraft}
+                onDeletePost={app.deleteOwnPetFeedPost}
                 onFetchPostDetail={app.fetchPetFeedPostDetail}
                 onFetchPostComments={app.fetchPetFeedPostComments}
                 onSubmitPostComment={app.submitPetFeedComment}

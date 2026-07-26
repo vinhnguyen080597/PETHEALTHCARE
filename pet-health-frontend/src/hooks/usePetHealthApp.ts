@@ -11,6 +11,7 @@ import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
 // import { purchasePremiumSubscription } from '../services/iap';
 import { birthDateToAgeMonths, isBirthDateInFuture, petBirthDateForForm } from '../utils/petAge';
 import { debugCheck, debugLog } from '../utils/debugLog';
+import { subscribeToPetFeedDeepLinks, type PetFeedDeepLink } from '../utils/petFeedDeepLinks';
 import {
   AnalyzeRequestError,
   ApiRequestError,
@@ -25,6 +26,7 @@ import {
   createAdminUserCoreCareRecord,
   createPetFeedPost,
   createPetFeedPostComment,
+  deleteMyPetFeedPost,
   deletePetFeedPostComment,
   createPet,
   cancelMyBreederVerificationRequest,
@@ -445,6 +447,7 @@ export function usePetHealthApp() {
   const [petFeedMessageSending, setPetFeedMessageSending] = useState(false);
   const [messageThreadModalVisible, setMessageThreadModalVisible] = useState(false);
   const messageThreadOpenGenRef = useRef(0);
+  const pendingPetFeedDeepLinkRef = useRef<PetFeedDeepLink | null>(null);
   /** Where to go when closing the results screen opened from history vs profile vs default home. */
   const [resultsReturnScreen, setResultsReturnScreen] = useState<'home' | 'history' | 'pet-profile' | null>(
     null,
@@ -1898,6 +1901,29 @@ export function usePetHealthApp() {
     setScreen('pet-feed-detail');
   }
 
+  const deepLinkTokenRef = useRef(token);
+  deepLinkTokenRef.current = token;
+
+  useEffect(() => {
+    return subscribeToPetFeedDeepLinks((link) => {
+      if (link.type !== 'pet-feed-post' || !link.postId) return;
+      if (!deepLinkTokenRef.current) {
+        pendingPetFeedDeepLinkRef.current = link;
+        return;
+      }
+      pendingPetFeedDeepLinkRef.current = null;
+      openPetFeedPostDetail(link.postId);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!token || sessionBootstrapping) return;
+    const pending = pendingPetFeedDeepLinkRef.current;
+    if (!pending?.postId) return;
+    pendingPetFeedDeepLinkRef.current = null;
+    openPetFeedPostDetail(pending.postId);
+  }, [token, sessionBootstrapping]);
+
   function closePetFeedPostDetail() {
     const focusPostId = selectedPetFeedPostId;
     setSelectedPetFeedPostId(null);
@@ -2025,10 +2051,31 @@ export function usePetHealthApp() {
   }
 
   function openEditPetFeedDraft(post: PetFeedPost) {
-    if (!hasAccountRole('breeder') || post.status !== 'draft') return;
+    if (!hasAccountRole('breeder')) return;
+    if (!['draft', 'pending_review', 'published'].includes(post.status)) return;
+    if (accountProfile?.user_id && post.user_id !== accountProfile.user_id) return;
     setEditingPetFeedPost(post);
-    setCreatePetFeedReturnScreen('account');
+    setCreatePetFeedReturnScreen(screen === 'pet-feed-detail' ? 'pet-feed' : 'account');
     setScreen('create-pet-feed-post');
+  }
+
+  async function deleteOwnPetFeedPost(post: PetFeedPost): Promise<boolean> {
+    if (!token || !post?.id) return false;
+    if (accountProfile?.user_id && post.user_id !== accountProfile.user_id) return false;
+    try {
+      await deleteMyPetFeedPost(token, post.id);
+      setPetFeedPosts((current) => current.filter((item) => item.id !== post.id));
+      setMyPetFeedPosts((current) => current.filter((item) => item.id !== post.id));
+      if (selectedPetFeedPostId === post.id) {
+        setSelectedPetFeedPostId(null);
+      }
+      Alert.alert(i18n.t('common.ok'), i18n.t('petFeed.deleteListingSuccess'));
+      return true;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.deleteListingFailed'), message);
+      return false;
+    }
   }
 
   function openCreateAdminPost() {
@@ -2087,6 +2134,7 @@ export function usePetHealthApp() {
       await updateMyPetFeedDraft(token, postId, payload, media);
       const postsRes = await listMyPetFeedPosts(token);
       setMyPetFeedPosts(postsRes.data);
+      await loadPetFeedFirstPage(token);
       setEditingPetFeedPost(null);
       if (payload.status === 'draft') {
         Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
@@ -4028,6 +4076,7 @@ export function usePetHealthApp() {
     cancelBreederVerificationRequest,
     openCreatePetFeedPost,
     openEditPetFeedDraft,
+    deleteOwnPetFeedPost,
     openCreateAdminPost,
     closeCreateAdminPost,
     submitAnnouncementPost,

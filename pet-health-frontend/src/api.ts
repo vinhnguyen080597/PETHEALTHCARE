@@ -520,6 +520,13 @@ export async function updateMyPetFeedPost(token: string, postId: string, payload
   });
 }
 
+export async function deleteMyPetFeedPost(token: string, postId: string) {
+  return requestJson<{ data: PetFeedPost }>(`/pet-feed/posts/${encodeURIComponent(postId)}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
 function isRemotePetFeedMediaUri(uri: string) {
   return /^https?:\/\//i.test(uri) || uri.startsWith('memory://');
 }

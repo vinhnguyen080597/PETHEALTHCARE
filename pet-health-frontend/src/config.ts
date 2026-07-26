@@ -15,7 +15,15 @@ const configuredApiOrigin = publicEnv.EXPO_PUBLIC_API_ORIGIN?.trim();
 const configuredApiBaseUrl = publicEnv.EXPO_PUBLIC_API_BASE_URL?.trim();
 const configuredApiHealthUrl = publicEnv.EXPO_PUBLIC_API_HEALTH_URL?.trim();
 
-const PUBLIC_SITE_ORIGIN = 'https://vinhnguyen080597.github.io/PETHEALTHCARE';
+export const PUBLIC_SITE_ORIGIN = (
+  publicEnv.EXPO_PUBLIC_SITE_ORIGIN?.trim() || 'https://vinhnguyen080597.github.io/PETHEALTHCARE'
+).replace(/\/+$/, '');
+
+/** Filled after App Store / Play Console listing exists — used by share landing fallback. */
+export const IOS_APP_STORE_URL = publicEnv.EXPO_PUBLIC_IOS_APP_STORE_URL?.trim() || '';
+export const ANDROID_PLAY_STORE_URL = publicEnv.EXPO_PUBLIC_ANDROID_PLAY_STORE_URL?.trim() || '';
+/** Numeric App Store ID for Smart App Banner (e.g. 1234567890). */
+export const IOS_APP_STORE_ID = publicEnv.EXPO_PUBLIC_IOS_APP_STORE_ID?.trim() || '';
 
 const DEV_APP_LINKS = {
   privacyPolicy: `${PUBLIC_SITE_ORIGIN}/privacy-policy/`,

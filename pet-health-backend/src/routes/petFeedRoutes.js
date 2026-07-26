@@ -22,6 +22,7 @@ import {
   reportPetFeedPost,
   unblockBreederProfile,
   unfavoritePetFeedPost,
+  archiveMyPetFeedPost,
   updatePetFeedPost,
   upsertMyBreederProfile,
 } from '../repositories/petFeedRepository.js';
@@ -487,7 +488,8 @@ router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) =
     let updatePayload = { ...body };
 
     if (hasClientProvidedMediaReferences(body)) {
-      if (existing.status !== 'draft') {
+      // Owners may re-attach existing/uploaded media URLs when saving draft or re-submitting for review.
+      if (existing.status !== 'draft' && nextStatus !== 'draft' && !submittingForReview) {
         return res.status(400).json({
           error: 'Pet Feed media changes must be uploaded as files for review.',
           code: 'PET_FEED_MEDIA_UPLOAD_REQUIRED',
@@ -518,6 +520,19 @@ router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) =
 
     const post = await updatePetFeedPost(req.user.id, postId, updatePayload, req.accessToken);
     if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
+    return res.json({ data: post });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.delete('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const post = await archiveMyPetFeedPost(req.user.id, postId, req.accessToken);
+    if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
+    void recordProductEvent({ userId: req.user.id, event: 'pet_feed_post_archived', metadata: { postId } });
     return res.json({ data: post });
   } catch (err) {
     return next(err);

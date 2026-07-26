@@ -5,7 +5,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
-import type { BreederProfile, PetFeedPost } from '../types';
+import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import { ReportModal } from './ReportModal';
 
@@ -19,13 +19,14 @@ type PetFeedPostCardProps = {
   post: PetFeedPost;
   onToggleFavorite?: (post: PetFeedPost) => void;
   onReportPost?: (post: PetFeedPost, reason: string, note?: string) => void;
-  onHideBreeder?: (profile: BreederProfile) => void;
   onMessageBreeder?: (post: PetFeedPost) => void;
+  onEditPost?: (post: PetFeedPost) => void;
+  onDeletePost?: (post: PetFeedPost) => void;
+  onSharePost?: (post: PetFeedPost) => void;
   currentUserId?: string | null;
   showFavorite?: boolean;
   showContact?: boolean;
   showReport?: boolean;
-  showHideBreeder?: boolean;
   variant?: 'compact' | 'full';
   autoPlayVideo?: boolean;
   /** Detail is still fetching the full media set — show strip placeholders from media_count. */
@@ -121,26 +122,6 @@ function ContactButton({
         </Pressable>
       ) : null}
     </View>
-  );
-}
-
-function HideBreederButton({ profile, onHideBreeder }: { profile?: BreederProfile | null; onHideBreeder?: (profile: BreederProfile) => void }) {
-  const { t } = useTranslation();
-  if (!profile || !onHideBreeder) return null;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t('petFeed.accessibility.hideBreeder', { name: profile.display_name || t('petFeed.breederFallback') })}
-      className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 active:bg-red-100"
-      onPress={() => {
-        Alert.alert(t('breederDetail.blockTitle'), t('breederDetail.blockBody'), [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('breederDetail.blockConfirm'), style: 'destructive', onPress: () => onHideBreeder(profile) },
-        ]);
-      }}
-    >
-      <Ionicons name="eye-off-outline" size={18} color="#b91c1c" />
-    </Pressable>
   );
 }
 
@@ -252,13 +233,14 @@ function PetFeedPostCardComponent({
   post,
   onToggleFavorite,
   onReportPost,
-  onHideBreeder,
   onMessageBreeder,
+  onEditPost,
+  onDeletePost,
+  onSharePost,
   currentUserId = null,
   showFavorite = true,
   showContact = true,
   showReport = true,
-  showHideBreeder = false,
   variant = 'full',
   autoPlayVideo = false,
   mediaLoading = false,
@@ -270,8 +252,10 @@ function PetFeedPostCardComponent({
   const isOwnPost = Boolean(currentUserId && post.user_id === currentUserId);
   const canShowContact = showContact && !isOwnPost;
   const canShowReport = showReport && !isOwnPost;
-  const canShowHideBreeder = showHideBreeder && !isOwnPost;
-  const showActions = canShowContact || canShowReport || canShowHideBreeder;
+  const canShowEdit = isOwnPost && Boolean(onEditPost);
+  const canShowDelete = isOwnPost && Boolean(onDeletePost);
+  const canShowShare = Boolean(onSharePost);
+  const showActions = canShowContact || canShowReport || canShowEdit || canShowDelete || canShowShare;
   const isCompact = variant === 'compact';
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
@@ -516,8 +500,41 @@ function PetFeedPostCardComponent({
         {post.description ? <Text className="mt-3 text-sm leading-5 text-slate-700">{post.description}</Text> : null}
         {showActions ? (
           <View className="mt-4 flex-row flex-wrap gap-3">
+            {canShowEdit ? (
+              <Pressable
+                testID={`pet-feed-edit-button-${post.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
+                className="min-w-[160px] flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+                onPress={() => onEditPost?.(post)}
+              >
+                <Ionicons name="create-outline" size={17} color="#fff" />
+                <Text className="text-sm font-bold text-white">{t('petFeed.editListing')}</Text>
+              </Pressable>
+            ) : null}
             {canShowContact ? <ContactButton post={post} onMessageBreeder={onMessageBreeder} /> : null}
-            {canShowHideBreeder ? <HideBreederButton profile={breeder} onHideBreeder={onHideBreeder} /> : null}
+            {canShowShare ? (
+              <Pressable
+                testID={`pet-feed-share-button-${post.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={t('petFeed.accessibility.shareListing', { title: post.title })}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-3 active:bg-slate-50"
+                onPress={() => onSharePost?.(post)}
+              >
+                <Ionicons name="share-outline" size={18} color="#475569" />
+              </Pressable>
+            ) : null}
+            {canShowDelete ? (
+              <Pressable
+                testID={`pet-feed-delete-button-${post.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={t('petFeed.accessibility.deleteListing', { title: post.title })}
+                className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 active:bg-red-100"
+                onPress={() => onDeletePost?.(post)}
+              >
+                <Ionicons name="trash-outline" size={18} color="#b91c1c" />
+              </Pressable>
+            ) : null}
             {canShowReport ? (
               <Pressable
                 testID={`pet-feed-report-button-${post.id}`}

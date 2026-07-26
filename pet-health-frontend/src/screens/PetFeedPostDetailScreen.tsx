@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -12,7 +14,8 @@ import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
 import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
 import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
-import type { BreederProfile, PetFeedComment, PetFeedPost } from '../types';
+import type { PetFeedComment, PetFeedPost } from '../types';
+import { sharePetFeedPost } from '../utils/sharePetFeedPost';
 import { modalBottomInset } from '../utils/modalSafeArea';
 
 type PetFeedPostDetailScreenProps = {
@@ -21,8 +24,9 @@ type PetFeedPostDetailScreenProps = {
   onBack: () => void;
   onToggleFavorite: (post: PetFeedPost) => void;
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
-  onHideBreeder: (profile: BreederProfile) => void;
   onMessageBreeder?: (post: PetFeedPost) => void;
+  onEditPost?: (post: PetFeedPost) => void;
+  onDeletePost?: (post: PetFeedPost) => Promise<boolean> | boolean;
   onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
   onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
   onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
@@ -74,8 +78,9 @@ export function PetFeedPostDetailScreen({
   onBack,
   onToggleFavorite,
   onReportPost,
-  onHideBreeder,
   onMessageBreeder,
+  onEditPost,
+  onDeletePost,
   onFetchPostDetail,
   onFetchPostComments,
   onSubmitPostComment,
@@ -103,6 +108,27 @@ export function PetFeedPostDetailScreen({
     onSubmitPostComment,
     onDeletePostComment,
   );
+
+  function confirmDeletePost(post: PetFeedPost) {
+    if (!onDeletePost) return;
+    const runDelete = async () => {
+      const ok = await onDeletePost(post);
+      if (ok) onBack();
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = typeof window !== 'undefined'
+        ? window.confirm(`${t('petFeed.deleteListingTitle')}\n\n${t('petFeed.deleteListingBody')}`)
+        : false;
+      if (confirmed) void runDelete();
+      return;
+    }
+
+    Alert.alert(t('petFeed.deleteListingTitle'), t('petFeed.deleteListingBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('petFeed.deleteListing'), style: 'destructive', onPress: () => void runDelete() },
+    ]);
+  }
 
   return (
     <View className="flex-1 bg-[#F2F4F8]" style={{ paddingBottom: keyboardOverlap }}>
@@ -133,10 +159,11 @@ export function PetFeedPostDetailScreen({
               post={selectedPost}
               onToggleFavorite={onToggleFavorite}
               onReportPost={onReportPost}
-              onHideBreeder={onHideBreeder}
               onMessageBreeder={onMessageBreeder}
+              onEditPost={onEditPost}
+              onDeletePost={confirmDeletePost}
+              onSharePost={(post) => void sharePetFeedPost(post)}
               currentUserId={currentUserId}
-              showHideBreeder
               autoPlayVideo={false}
               mediaLoading={detailLoading}
               testID={`pet-feed-detail-post-${selectedPost.id}`}

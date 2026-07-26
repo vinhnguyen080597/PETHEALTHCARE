@@ -647,7 +647,7 @@ export function CreatePetFeedPostScreen({
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </Pressable>
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">
-          {isEditingDraft ? t('createPetFeedPost.editDraftTitle') : t('createPetFeedPost.title')}
+          {isEditingDraft ? t('createPetFeedPost.editTitle') : t('createPetFeedPost.title')}
         </Text>
         <View className="w-14" />
       </View>

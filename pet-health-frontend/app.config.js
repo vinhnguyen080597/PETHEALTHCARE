@@ -29,6 +29,7 @@ const baseConfig = {
     supportsTablet: false,
     bundleIdentifier: 'com.pethealthcare.app',
     buildNumber: '3',
+    associatedDomains: ['applinks:vinhnguyen080597.github.io'],
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSPhotoLibraryUsageDescription:
@@ -43,6 +44,20 @@ const baseConfig = {
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        category: ['BROWSABLE', 'DEFAULT'],
+        data: [
+          {
+            scheme: 'https',
+            host: 'vinhnguyen080597.github.io',
+            pathPrefix: '/PETHEALTHCARE/app/pet-feed',
+          },
+        ],
+      },
+    ],
   },
   web: {
     favicon: './assets/favicon.png',

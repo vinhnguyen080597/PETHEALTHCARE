@@ -105,7 +105,7 @@ function normalizeVerificationStatus(value) {
 
 function normalizeUserEditablePostStatus(value, existingStatus = 'draft') {
   const status = normalizeStatus(value, existingStatus);
-  if (status === 'pending_review' || status === 'draft') return status;
+  if (status === 'pending_review' || status === 'draft' || status === 'archived') return status;
   return existingStatus === 'published' || existingStatus === 'archived' ? 'pending_review' : existingStatus;
 }
 
@@ -934,6 +934,32 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
   const { data, error } = await supabase
     .from('pet_feed_posts')
     .update(patch)
+    .eq('id', postId)
+    .eq('user_id', userId)
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .maybeSingle();
+  if (error) throw error;
+  return toPost(data);
+}
+
+/** Soft-delete: owner archives their listing so it leaves the public feed. */
+export async function archiveMyPetFeedPost(userId, postId, accessToken) {
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    const idx = memoryPosts.findIndex((post) => post.id === postId && post.user_id === userId);
+    if (idx < 0) return null;
+    memoryPosts[idx] = {
+      ...memoryPosts[idx],
+      status: 'archived',
+      updated_at: new Date().toISOString(),
+    };
+    return toPost(memoryPosts[idx]);
+  }
+  const existing = await getPetFeedPost(userId, postId, accessToken);
+  if (!existing || existing.user_id !== userId) return null;
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .update({ status: 'archived', updated_at: new Date().toISOString() })
     .eq('id', postId)
     .eq('user_id', userId)
     .select('*, breeder_profile:breeder_profiles(*)')
