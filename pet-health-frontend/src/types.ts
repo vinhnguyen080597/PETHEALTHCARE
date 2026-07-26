@@ -199,6 +199,8 @@ export type PetFeedPost = {
   media_count?: number;
   /** Present on feed list/detail: total comments including replies. */
   comment_count?: number;
+  /** Present on feed list/detail: total users who favorited the post. */
+  favorite_count?: number;
   video_url: string | null;
   contact: BreederContact & Record<string, unknown>;
   status: PetFeedPostStatus;

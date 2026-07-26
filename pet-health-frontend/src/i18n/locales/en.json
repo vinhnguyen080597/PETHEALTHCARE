@@ -205,6 +205,8 @@
       "anonymous": "User",
       "reply": "Reply",
       "replyingTo": "Replying to {{name}}",
+      "moreActions": "Comment actions",
+      "actionsTitle": "Actions",
       "delete": "Delete",
       "deleteTitle": "Delete comment?",
       "deleteBody": "This comment and its replies will be removed.",

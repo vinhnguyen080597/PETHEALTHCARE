@@ -315,9 +315,54 @@ async function commentCountsForPostIds(postIds, accessToken) {
   return counts;
 }
 
+/** Counts all favorites; uses service role because favorites RLS is select-own only. */
+async function favoriteCountsForPostIds(postIds) {
+  const ids = [...new Set((postIds ?? []).filter(Boolean))];
+  const counts = new Map(ids.map((id) => [id, 0]));
+  if (ids.length === 0) return counts;
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    for (const row of memoryFavorites) {
+      if (counts.has(row.post_id)) counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
+    }
+    return counts;
+  }
+  const { data, error } = await supabase.from('pet_feed_favorites').select('post_id').in('post_id', ids);
+  if (error) throw error;
+  for (const row of data ?? []) {
+    counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
 function withCommentCount(post, counts) {
   if (!post) return post;
   return { ...post, comment_count: counts.get(post.id) ?? 0 };
+}
+
+function withFavoriteCount(post, counts) {
+  if (!post) return post;
+  return { ...post, favorite_count: counts.get(post.id) ?? 0 };
+}
+
+async function withPostEngagementCounts(post, accessToken) {
+  if (!post) return post;
+  const [commentCounts, favoriteCounts] = await Promise.all([
+    commentCountsForPostIds([post.id], accessToken),
+    favoriteCountsForPostIds([post.id]),
+  ]);
+  return withFavoriteCount(withCommentCount(post, commentCounts), favoriteCounts);
+}
+
+async function withPostsEngagementCounts(posts, accessToken) {
+  const rows = posts ?? [];
+  if (rows.length === 0) return rows;
+  const ids = rows.map((post) => post.id);
+  const [commentCounts, favoriteCounts] = await Promise.all([
+    commentCountsForPostIds(ids, accessToken),
+    favoriteCountsForPostIds(ids),
+  ]);
+  return rows.map((post) => withFavoriteCount(withCommentCount(post, commentCounts), favoriteCounts));
 }
 
 export async function listPetFeedPostComments(postId, accessToken, options = {}) {
@@ -541,9 +586,11 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
       limit,
       cursor,
     );
-    const counts = await commentCountsForPostIds(rows.map((post) => post.id), accessToken);
     return {
-      data: rows.map((post) => withCommentCount(toListPost(post, favoriteIds, profilesById), counts)),
+      data: await withPostsEngagementCounts(
+        rows.map((post) => toListPost(post, favoriteIds, profilesById)),
+        accessToken,
+      ),
       nextCursor,
     };
   }
@@ -570,9 +617,11 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
   if (error) throw error;
   const rows = data ?? [];
   const pageRows = rows.slice(0, limit);
-  const counts = await commentCountsForPostIds(pageRows.map((row) => row.id), accessToken);
   return {
-    data: pageRows.map((row) => withCommentCount(toListPost(row, favoriteIds), counts)),
+    data: await withPostsEngagementCounts(
+      pageRows.map((row) => toListPost(row, favoriteIds)),
+      accessToken,
+    ),
     nextCursor: rows.length > limit ? encodePetFeedCursor(pageRows[pageRows.length - 1]) : null,
   };
 }
@@ -603,8 +652,7 @@ export async function getPetFeedPost(userId, postId, accessToken) {
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     const post = toPost(memoryPosts.find((post) => post.id === postId && (post.status === 'published' || post.user_id === userId)), favoriteIds, profilesById);
     if (!post) return post;
-    const counts = await commentCountsForPostIds([post.id], accessToken);
-    return withCommentCount(post, counts);
+    return withPostEngagementCounts(post, accessToken);
   }
   const favoriteIds = await favoriteIdsForUser(supabase, userId);
   const { data, error } = await supabase
@@ -616,8 +664,7 @@ export async function getPetFeedPost(userId, postId, accessToken) {
   if (error) throw error;
   const post = toPost(data, favoriteIds);
   if (!post) return post;
-  const counts = await commentCountsForPostIds([post.id], accessToken);
-  return withCommentCount(post, counts);
+  return withPostEngagementCounts(post, accessToken);
 }
 
 export async function getMyBreederProfile(userId, accessToken) {

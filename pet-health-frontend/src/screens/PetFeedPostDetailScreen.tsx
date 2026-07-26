@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   Text,
@@ -16,8 +15,6 @@ import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
 import type { BreederProfile, PetFeedComment, PetFeedPost } from '../types';
 import { modalBottomInset } from '../utils/modalSafeArea';
 
-const PRIMARY = '#1E6FE8';
-
 type PetFeedPostDetailScreenProps = {
   postId: string;
   listPosts: PetFeedPost[];
@@ -32,6 +29,44 @@ type PetFeedPostDetailScreenProps = {
   onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
   currentUserId?: string | null;
 };
+
+function Bone({ className }: { className: string }) {
+  return <View className={`bg-slate-200 ${className}`} />;
+}
+
+function PetFeedPostDetailSkeleton() {
+  return (
+    <View className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <Bone className="h-80 w-full" />
+      <View className="border-b border-gray-100 bg-white py-2">
+        <View className="flex-row gap-2 px-3">
+          {[0, 1, 2, 3].map((item) => (
+            <Bone key={item} className="h-12 w-16 rounded-xl" />
+          ))}
+        </View>
+      </View>
+      <View className="gap-3 p-4">
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="min-w-0 flex-1 gap-2">
+            <Bone className="h-5 w-4/5 rounded-full" />
+            <Bone className="h-4 w-2/5 rounded-full" />
+          </View>
+          <Bone className="h-10 w-14 rounded-full" />
+        </View>
+        <View className="flex-row flex-wrap gap-2">
+          <Bone className="h-7 w-28 rounded-full" />
+          <Bone className="h-7 w-24 rounded-full" />
+          <Bone className="h-7 w-20 rounded-full" />
+        </View>
+        <Bone className="h-24 w-full rounded-xl" />
+        <View className="flex-row gap-2">
+          <Bone className="h-11 flex-1 rounded-xl" />
+          <Bone className="h-11 w-11 rounded-xl" />
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export function PetFeedPostDetailScreen({
   postId,
@@ -115,9 +150,10 @@ export function PetFeedPostDetailScreen({
             />
           </>
         ) : detailLoading ? (
-          <View className="items-center py-16">
-            <ActivityIndicator color={PRIMARY} />
-          </View>
+          <>
+            <PetFeedPostDetailSkeleton />
+            <PetFeedCommentsSection threads={[]} loading currentUserId={currentUserId} />
+          </>
         ) : (
           <View className="items-center px-6 py-16">
             <Text className="text-center text-sm text-slate-500">{t('petFeed.loadFailedTitle')}</Text>
@@ -133,6 +169,10 @@ export function PetFeedPostDetailScreen({
             onCancelReply={() => setReplyTo(null)}
             onSubmit={addComment}
           />
+        </View>
+      ) : detailLoading ? (
+        <View className="border-t border-gray-200 bg-white px-4 py-3" style={{ paddingBottom: composerPad }}>
+          <Bone className="h-11 w-full rounded-xl" />
         </View>
       ) : null}
     </View>

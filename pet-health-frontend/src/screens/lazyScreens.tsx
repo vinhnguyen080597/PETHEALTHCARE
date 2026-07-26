@@ -11,7 +11,7 @@ function lazyNamed<TModule, TExport extends keyof TModule>(
   }) as LazyExoticComponent<TModule[TExport] extends ComponentType<any> ? TModule[TExport] : ComponentType<any>>;
 }
 
-/** Screens kept eager: Login, Home, PetFeed, Account (cold-path tabs). */
+/** Screens kept eager: Login, Home, PetFeed, PetFeedPostDetail, Account (hot paths). */
 
 export const AdminReviewScreen = lazyNamed(() => import('./AdminReviewScreen'), 'AdminReviewScreen');
 export const AdminHubScreen = lazyNamed(() => import('./AdminHubScreen'), 'AdminHubScreen');
@@ -62,7 +62,6 @@ export const OnboardingHealthPromptScreen = lazyNamed(
   () => import('./OnboardingHealthPromptScreen'),
   'OnboardingHealthPromptScreen',
 );
-export const PetFeedPostDetailScreen = lazyNamed(() => import('./PetFeedPostDetailScreen'), 'PetFeedPostDetailScreen');
 export const PetProfileScreen = lazyNamed(() => import('./PetProfileScreen'), 'PetProfileScreen');
 export const ResultsScreen = lazyNamed(() => import('./ResultsScreen'), 'ResultsScreen');
 export const VetSummaryScreen = lazyNamed(() => import('./VetSummaryScreen'), 'VetSummaryScreen');

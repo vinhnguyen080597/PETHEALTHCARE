@@ -1,7 +1,7 @@
 import type { PetFeedPost } from '../types';
 
 /**
- * Prefer full detail payload when available; overlay `is_favorited` from the list row
+ * Prefer full detail payload when available; overlay favorite state from the list row
  * so favorite toggles stay in sync while detail is open.
  */
 export function resolvePetFeedPostDetailView(
@@ -12,7 +12,11 @@ export function resolvePetFeedPostDetailView(
   if (!selectedPostId) return null;
   if (detailPost?.id === selectedPostId) {
     if (!listPost) return detailPost;
-    return { ...detailPost, is_favorited: listPost.is_favorited };
+    return {
+      ...detailPost,
+      is_favorited: listPost.is_favorited,
+      favorite_count: listPost.favorite_count ?? detailPost.favorite_count,
+    };
   }
   return listPost;
 }

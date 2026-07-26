@@ -205,6 +205,8 @@
       "anonymous": "Người dùng",
       "reply": "Trả lời",
       "replyingTo": "Đang trả lời {{name}}",
+      "moreActions": "Tùy chọn bình luận",
+      "actionsTitle": "Tùy chọn",
       "delete": "Xóa",
       "deleteTitle": "Xóa bình luận?",
       "deleteBody": "Bình luận này và các phản hồi sẽ bị xóa.",

@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { memo, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { BreederProfile, PetFeedPost } from '../types';
@@ -28,7 +28,7 @@ type PetFeedPostCardProps = {
   showHideBreeder?: boolean;
   variant?: 'compact' | 'full';
   autoPlayVideo?: boolean;
-  /** Detail is still fetching the full media set — hold the gallery until images are ready. */
+  /** Detail is still fetching the full media set — show strip placeholders from media_count. */
   mediaLoading?: boolean;
   onPress?: (post: PetFeedPost) => void;
   testID?: string;
@@ -182,34 +182,67 @@ function AutoPlayVideo({ uri, autoPlay }: { uri: string; autoPlay: boolean }) {
   );
 }
 
+function MediaSkeleton({ className = '' }: { className?: string }) {
+  return <View className={`bg-slate-200 ${className}`} />;
+}
+
+function GalleryImage({
+  uri,
+  loaded,
+  onLoaded,
+  accessibilityLabel,
+  transition = 160,
+}: {
+  uri: string;
+  loaded: boolean;
+  onLoaded: () => void;
+  accessibilityLabel?: string;
+  transition?: number;
+}) {
+  return (
+    <View className="relative h-full w-full overflow-hidden">
+      {!loaded ? <MediaSkeleton className="absolute inset-0" /> : null}
+      <Image
+        source={{ uri }}
+        style={{ height: '100%', width: '100%' }}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={loaded ? transition : 0}
+        onLoad={onLoaded}
+        accessibilityLabel={accessibilityLabel}
+      />
+    </View>
+  );
+}
+
 function PetFeedMedia({
   media,
   autoPlayVideo,
   mediaLabel,
+  imageLoaded,
+  onImageLoaded,
 }: {
   media: PetFeedMediaItem | null;
   autoPlayVideo: boolean;
   mediaLabel: string;
+  imageLoaded: boolean;
+  onImageLoaded: (uri: string) => void;
 }) {
   if (media?.type === 'video') {
     return <AutoPlayVideo uri={media.uri} autoPlay={autoPlayVideo} />;
   }
   if (media?.type === 'image') {
     return (
-      <View className="h-full w-full">
-        <Image
-          source={{ uri: media.uri }}
-          style={{ height: '100%', width: '100%' }}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          transition={160}
-          accessibilityLabel={mediaLabel}
-        />
-      </View>
+      <GalleryImage
+        uri={media.uri}
+        loaded={imageLoaded}
+        onLoaded={() => onImageLoaded(media.uri)}
+        accessibilityLabel={mediaLabel}
+      />
     );
   }
   return (
-    <View className="h-full w-full items-center justify-center">
+    <View className="h-full w-full items-center justify-center bg-slate-100">
       <Ionicons name="paw-outline" size={46} color={PRIMARY} />
     </View>
   );
@@ -244,49 +277,44 @@ function PetFeedPostCardComponent({
   const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
   const [reportNote, setReportNote] = useState('');
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+  const [loadedImageUris, setLoadedImageUris] = useState<Record<string, true>>({});
   const mediaItems = mediaItemsForPost(post);
   const selectedMedia = mediaItems[Math.min(selectedMediaIndex, Math.max(mediaItems.length - 1, 0))] ?? null;
 
   const posterUri =
     typeof post.metadata?.video_poster_url === 'string' ? post.metadata.video_poster_url.trim() : '';
-  const galleryImageKey = useMemo(() => {
+  const galleryImageUris = useMemo(() => {
     const uris = mediaItems.filter((item) => item.type === 'image').map((item) => item.uri);
     if (posterUri) uris.push(posterUri);
-    return uris.join('|');
+    return [...new Set(uris.filter(Boolean))];
   }, [mediaItems, posterUri]);
-  // Full detail loads media in two phases (slim list → full). Prefetch every image so the
-  // hero + thumbnail strip appear together instead of popping in one by one.
-  const [galleryReady, setGalleryReady] = useState(isCompact);
+
+  const expectedStripCount = useMemo(() => {
+    const imageCount = Math.max(
+      post.media_count ?? 0,
+      mediaItems.filter((item) => item.type === 'image').length,
+    );
+    const hasVideo = Boolean(post.video_url) || mediaItems.some((item) => item.type === 'video');
+    return imageCount + (hasVideo ? 1 : 0);
+  }, [mediaItems, post.media_count, post.video_url]);
+
+  const showMediaStrip = !isCompact && expectedStripCount > 1;
+
+  const markImageLoaded = useCallback((uri: string) => {
+    if (!uri) return;
+    setLoadedImageUris((current) => (current[uri] ? current : { ...current, [uri]: true }));
+  }, []);
 
   useEffect(() => {
     setSelectedMediaIndex(0);
+    setLoadedImageUris({});
   }, [post.id]);
 
   useEffect(() => {
-    if (isCompact) {
-      setGalleryReady(true);
-      return;
-    }
-    if (mediaLoading) {
-      setGalleryReady(false);
-      return;
-    }
-    const uris = galleryImageKey ? galleryImageKey.split('|') : [];
-    if (uris.length === 0) {
-      setGalleryReady(true);
-      return;
-    }
-    let cancelled = false;
-    setGalleryReady(false);
-    void Promise.all(uris.map((uri) => Image.prefetch(uri).catch(() => false))).then(() => {
-      if (!cancelled) setGalleryReady(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [isCompact, mediaLoading, galleryImageKey]);
-
-  const showMediaSpinner = !isCompact && (mediaLoading || !galleryReady);
+    if (isCompact || galleryImageUris.length === 0) return;
+    // Warm cache in the background; UI uses per-image skeletons instead of blocking.
+    void Promise.all(galleryImageUris.map((uri) => Image.prefetch(uri).catch(() => false)));
+  }, [galleryImageUris, isCompact]);
 
   function submitReport() {
     onReportPost?.(post, reportReason, reportNote);
@@ -303,32 +331,47 @@ function PetFeedPostCardComponent({
 
   const content = (
     <>
-      <View className={`${isCompact ? 'h-64' : 'h-80'} ${isCompact ? 'bg-blue-50' : 'bg-black'}`}>
-        {showMediaSpinner ? (
-          <View className="h-full w-full items-center justify-center">
-            <ActivityIndicator color={PRIMARY} />
-          </View>
+      <View className={`${isCompact ? 'h-64' : 'h-80'} ${isCompact ? 'bg-blue-50' : 'bg-slate-200'} overflow-hidden`}>
+        {!isCompact && !selectedMedia && (mediaLoading || expectedStripCount > 0) ? (
+          <MediaSkeleton className="h-full w-full" />
         ) : (
           <PetFeedMedia
             media={selectedMedia}
             autoPlayVideo={autoPlayVideo}
             mediaLabel={t('petFeed.accessibility.listingMedia', { title: post.title })}
+            imageLoaded={Boolean(selectedMedia?.type === 'image' && loadedImageUris[selectedMedia.uri])}
+            onImageLoaded={markImageLoaded}
           />
         )}
       </View>
-      {!isCompact && galleryReady && mediaItems.length > 1 ? (
+      {showMediaStrip ? (
         <View className="border-b border-gray-100 bg-white py-2">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 8, paddingHorizontal: 12 }}
           >
-            {mediaItems.map((item, index) => {
-              const active = index === selectedMediaIndex;
+            {Array.from({ length: expectedStripCount }, (_, index) => {
+              const item = mediaItems[index] ?? null;
+              const active = Boolean(item) && index === selectedMediaIndex;
               const posterFromMeta =
                 typeof post.metadata?.video_poster_url === 'string' ? post.metadata.video_poster_url.trim() : '';
-              const posterUri =
-                item.type === 'image' ? item.uri : posterFromMeta || post.media_urls[0];
+              const thumbUri = item
+                ? (item.type === 'image' ? item.uri : posterFromMeta || post.media_urls[0] || '')
+                : '';
+              const thumbLoaded = Boolean(thumbUri && loadedImageUris[thumbUri]);
+
+              if (!item) {
+                return (
+                  <View
+                    key={`media-skeleton-${index}`}
+                    className="h-12 w-16 overflow-hidden rounded-xl border border-gray-200"
+                  >
+                    <MediaSkeleton className="h-full w-full" />
+                  </View>
+                );
+              }
+
               return (
                 <Pressable
                   key={`${item.type}-${item.uri}-${index}`}
@@ -345,12 +388,12 @@ function PetFeedPostCardComponent({
                     setSelectedMediaIndex(index);
                   }}
                 >
-                  {posterUri ? (
-                    <Image
-                      source={{ uri: posterUri }}
-                      style={{ height: '100%', width: '100%' }}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
+                  {thumbUri ? (
+                    <GalleryImage
+                      uri={thumbUri}
+                      loaded={thumbLoaded}
+                      onLoaded={() => markImageLoaded(thumbUri)}
+                      transition={120}
                     />
                   ) : (
                     <View className="h-full w-full items-center justify-center bg-blue-50">
@@ -410,6 +453,14 @@ function PetFeedPostCardComponent({
                 {[ageLabel, locationLabel].filter(Boolean).join(' · ')}
               </Text>
             </View>
+            <View className="flex-row items-center gap-1">
+              <Ionicons
+                name={post.is_favorited ? 'heart' : 'heart-outline'}
+                size={14}
+                color={post.is_favorited ? '#dc2626' : '#64748b'}
+              />
+              <Text className="text-sm font-medium text-slate-600">{post.favorite_count ?? 0}</Text>
+            </View>
             {(post.comment_count ?? 0) > 0 ? (
               <View className="flex-row items-center gap-1">
                 <Ionicons name="chatbubble-outline" size={14} color="#64748b" />
@@ -433,10 +484,13 @@ function PetFeedPostCardComponent({
               accessibilityRole="button"
               accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
               accessibilityState={{ selected: post.is_favorited }}
-              className="rounded-full bg-slate-50 p-2"
+              className="flex-row items-center gap-1 rounded-full bg-slate-50 px-2.5 py-2"
               onPress={() => onToggleFavorite?.(post)}
             >
               <Ionicons name={post.is_favorited ? 'heart' : 'heart-outline'} size={22} color={post.is_favorited ? '#dc2626' : '#64748b'} />
+              <Text className={`text-sm font-semibold ${post.is_favorited ? 'text-red-600' : 'text-slate-500'}`}>
+                {post.favorite_count ?? 0}
+              </Text>
             </Pressable>
           ) : null}
         </View>

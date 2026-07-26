@@ -26,6 +26,7 @@ import { ManagedUserBanner } from './src/components/ManagedUserBanner';
 import { AccountScreen } from './src/screens/AccountScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { PetFeedPostDetailScreen } from './src/screens/PetFeedPostDetailScreen';
 import { PetFeedScreen } from './src/screens/PetFeedScreen';
 import {
   AddPetScreen,
@@ -51,7 +52,6 @@ import {
   OnboardingHealthPromptScreen,
   OnboardingIntroScreen,
   PetBreedRecognitionScreen,
-  PetFeedPostDetailScreen,
   PetProfileScreen,
   ResultsScreen,
   SignUpOtpVerificationScreen,

@@ -2700,8 +2700,14 @@ export function usePetHealthApp() {
 
   async function togglePetFeedFavorite(post: PetFeedPost) {
     if (!token) return;
+    const nextFavorited = !post.is_favorited;
+    const nextCount = Math.max(0, (post.favorite_count ?? 0) + (nextFavorited ? 1 : -1));
     setPetFeedPosts((prev) =>
-      prev.map((item) => (item.id === post.id ? { ...item, is_favorited: !item.is_favorited } : item)),
+      prev.map((item) =>
+        item.id === post.id
+          ? { ...item, is_favorited: nextFavorited, favorite_count: nextCount }
+          : item,
+      ),
     );
     try {
       if (post.is_favorited) {
@@ -2711,7 +2717,11 @@ export function usePetHealthApp() {
       }
     } catch (error: unknown) {
       setPetFeedPosts((prev) =>
-        prev.map((item) => (item.id === post.id ? { ...item, is_favorited: post.is_favorited } : item)),
+        prev.map((item) =>
+          item.id === post.id
+            ? { ...item, is_favorited: post.is_favorited, favorite_count: post.favorite_count }
+            : item,
+        ),
       );
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('petFeed.favoriteFailed'), message);

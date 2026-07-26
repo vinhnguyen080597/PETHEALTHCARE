@@ -1,11 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { PetFeedComment } from '../types';
 import type { PetFeedCommentThread } from '../hooks/usePetFeedPostComments';
-
-const PRIMARY = '#1E6FE8';
 
 function confirmDeleteComment(title: string, body: string, confirmLabel: string, cancelLabel: string): Promise<boolean> {
   if (Platform.OS === 'web') {
@@ -41,50 +39,100 @@ type CommentRowProps = {
 
 function CommentRow({ comment, currentUserId, isReply = false, onReply, onDelete }: CommentRowProps) {
   const { t, i18n } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
   const isOwn = Boolean(
     currentUserId
     && comment.user_id
     && String(currentUserId).trim() === String(comment.user_id).trim(),
   );
+  const canReply = !isReply && Boolean(onReply);
+  const canDelete = isOwn && Boolean(onDelete);
+  const hasActions = canReply || canDelete;
+
+  async function handleDelete() {
+    setMenuOpen(false);
+    const ok = await confirmDeleteComment(
+      t('petFeed.comments.deleteTitle'),
+      t('petFeed.comments.deleteBody'),
+      t('petFeed.comments.delete'),
+      t('common.cancel'),
+    );
+    if (ok) onDelete?.(comment);
+  }
+
+  function handleReply() {
+    setMenuOpen(false);
+    onReply?.(comment);
+  }
 
   return (
     <View className={`rounded-xl bg-slate-50 px-3 py-2.5 ${isReply ? 'ml-5 border-l-2 border-blue-100' : ''}`}>
-      <View className="flex-row items-center justify-between gap-2">
-        <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-800" numberOfLines={1}>
-          {comment.author_display_name || t('petFeed.comments.anonymous')}
-        </Text>
-        <Text className="text-xs text-slate-400">{formatCommentTime(comment.created_at, i18n.language)}</Text>
+      <View className="flex-row items-start gap-2">
+        <View className="min-w-0 flex-1">
+          <Text className="text-sm font-semibold text-slate-800" numberOfLines={1}>
+            {comment.author_display_name || t('petFeed.comments.anonymous')}
+          </Text>
+          <Text className="mt-1 text-sm leading-5 text-slate-700">{comment.body}</Text>
+        </View>
+        <View className="items-end pt-0.5">
+          <Text className="text-xs text-slate-400">{formatCommentTime(comment.created_at, i18n.language)}</Text>
+          {hasActions ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('petFeed.comments.moreActions')}
+              className="mt-1 h-7 w-7 items-center justify-center rounded-full active:bg-slate-200"
+              hitSlop={8}
+              onPress={() => setMenuOpen(true)}
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color="#64748b" />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
-      <Text className="mt-1 text-sm leading-5 text-slate-700">{comment.body}</Text>
-      <View className="mt-2 flex-row flex-wrap items-center gap-3">
-        {!isReply && onReply ? (
+
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable className="flex-1 justify-end bg-black/30" onPress={() => setMenuOpen(false)}>
           <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('petFeed.comments.reply')}
-            onPress={() => onReply(comment)}
+            className="rounded-t-2xl border-t border-gray-200 bg-white px-4 pb-8 pt-2"
+            onPress={(event) => event.stopPropagation()}
           >
-            <Text className="text-xs font-semibold text-blue-600">{t('petFeed.comments.reply')}</Text>
+            <View className="mb-3 items-center">
+              <View className="h-1 w-10 rounded-full bg-slate-300" />
+            </View>
+            <Text className="mb-2 px-1 text-sm font-semibold text-slate-500">{t('petFeed.comments.actionsTitle')}</Text>
+            {canReply ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('petFeed.comments.reply')}
+                className="flex-row items-center gap-3 rounded-xl px-2 py-3.5 active:bg-slate-50"
+                onPress={handleReply}
+              >
+                <Ionicons name="arrow-undo-outline" size={20} color="#2563eb" />
+                <Text className="text-base font-semibold text-blue-600">{t('petFeed.comments.reply')}</Text>
+              </Pressable>
+            ) : null}
+            {canDelete ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('petFeed.comments.delete')}
+                className="flex-row items-center gap-3 rounded-xl px-2 py-3.5 active:bg-red-50"
+                onPress={() => void handleDelete()}
+              >
+                <Ionicons name="trash-outline" size={20} color="#dc2626" />
+                <Text className="text-base font-semibold text-red-600">{t('petFeed.comments.delete')}</Text>
+              </Pressable>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.cancel')}
+              className="mt-1 items-center rounded-xl bg-slate-100 px-2 py-3.5 active:bg-slate-200"
+              onPress={() => setMenuOpen(false)}
+            >
+              <Text className="text-base font-semibold text-slate-700">{t('common.cancel')}</Text>
+            </Pressable>
           </Pressable>
-        ) : null}
-        {isOwn && onDelete ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('petFeed.comments.delete')}
-            onPress={() => {
-              void confirmDeleteComment(
-                t('petFeed.comments.deleteTitle'),
-                t('petFeed.comments.deleteBody'),
-                t('petFeed.comments.delete'),
-                t('common.cancel'),
-              ).then((ok) => {
-                if (ok) onDelete(comment);
-              });
-            }}
-          >
-            <Text className="text-xs font-semibold text-red-600">{t('petFeed.comments.delete')}</Text>
-          </Pressable>
-        ) : null}
-      </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -110,8 +158,22 @@ export function PetFeedCommentsSection({
     <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
       <Text className="text-base font-bold text-slate-900">{t('petFeed.comments.title')}</Text>
       {loading ? (
-        <View className="items-center py-6">
-          <ActivityIndicator color={PRIMARY} />
+        <View className="mt-3 gap-3">
+          {[0, 1, 2].map((item) => (
+            <View key={item} className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <View className="flex-row items-start justify-between gap-2">
+                <View className="min-w-0 flex-1 gap-2">
+                  <View className="h-4 w-1/3 rounded-full bg-slate-200" />
+                  <View className="h-4 w-4/5 rounded-full bg-slate-200" />
+                  <View className="h-4 w-2/5 rounded-full bg-slate-200" />
+                </View>
+                <View className="items-end gap-2">
+                  <View className="h-3 w-14 rounded-full bg-slate-200" />
+                  <View className="h-5 w-5 rounded-full bg-slate-200" />
+                </View>
+              </View>
+            </View>
+          ))}
         </View>
       ) : threads.length === 0 ? (
         <Text className="mt-3 text-sm leading-5 text-slate-500">{t('petFeed.comments.empty')}</Text>

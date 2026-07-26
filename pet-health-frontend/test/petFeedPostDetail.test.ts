@@ -42,15 +42,17 @@ test('falls back to list post while detail has not loaded', () => {
 });
 
 test('uses detail post and overlays is_favorited from list', () => {
-  const listPost = post({ is_favorited: true, media_urls: ['https://cdn.example/first.jpg'] });
+  const listPost = post({ is_favorited: true, favorite_count: 4, media_urls: ['https://cdn.example/first.jpg'] });
   const detailPost = post({
     is_favorited: false,
+    favorite_count: 3,
     media_urls: ['https://cdn.example/first.jpg', 'https://cdn.example/second.jpg'],
     description: 'full description',
   });
   const view = resolvePetFeedPostDetailView('post-1', listPost, detailPost);
   assert.ok(view);
   assert.equal(view.is_favorited, true);
+  assert.equal(view.favorite_count, 4);
   assert.deepEqual(view.media_urls, detailPost.media_urls);
   assert.equal(view.description, 'full description');
 });
