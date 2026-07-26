@@ -7,10 +7,11 @@
     <meta name="description" content="Open this Pet Feed listing in the Pet Health Care app." />
     <link rel="stylesheet" href="../../../styles.css" />
     <script>
-      // Optional: set after App Store listing exists, e.g. 1234567890
-      window.__PHC_IOS_APP_ID__ = "";
-      window.__PHC_IOS_STORE__ = "";
-      window.__PHC_ANDROID_STORE__ = "https://play.google.com/store/apps/details?id=com.pethealthcare.app";
+      // Fill after App Store listing exists.
+      window.__PHC_IOS_APP_ID__ = "6778684107";
+      window.__PHC_IOS_STORE__ = "https://apps.apple.com/app/id6778684107";
+      // Play Store deferred — leave empty while iOS-only.
+      window.__PHC_ANDROID_STORE__ = "";
     </script>
   </head>
   <body>
@@ -19,7 +20,7 @@
         <p class="eyebrow">Pet Health Care</p>
         <h1>Open this listing</h1>
         <p class="lead" id="lead">
-          If you already have the app, we will open the post there. Otherwise you can download Pet Health Care from the store.
+          If you already have the app, we will open the post there. Otherwise you can download Pet Health Care from the App Store.
         </p>
         <nav class="nav" aria-label="Open actions">
           <a class="button" id="open-app" href="#">Open in app</a>
@@ -43,8 +44,9 @@
         var isIOS = /iPad|iPhone|iPod/.test(ua);
         var isAndroid = /Android/i.test(ua);
         var iosStore = window.__PHC_IOS_STORE__ || "";
-        var androidStore = window.__PHC_ANDROID_STORE__ || "https://play.google.com/store/apps/details?id=com.pethealthcare.app";
-        var storeUrl = isIOS ? (iosStore || androidStore) : isAndroid ? androidStore : (iosStore || androidStore);
+        var androidStore = window.__PHC_ANDROID_STORE__ || "";
+        // iOS-only release: never fall back to Play Store.
+        var storeUrl = isIOS ? iosStore : isAndroid ? androidStore : iosStore;
         var iosAppId = window.__PHC_IOS_APP_ID__ || "";
 
         if (iosAppId) {
@@ -59,10 +61,15 @@
         var statusEl = document.getElementById("status");
         openApp.href = appUrl;
         getApp.href = storeUrl || "#";
-        if (!storeUrl) {
+
+        if (isAndroid && !androidStore) {
           getApp.style.display = "none";
-          statusEl.textContent = "Store listing links will appear here after App Store / Play Console publish.";
+          statusEl.textContent = "Pet Health Care is currently available on the App Store (iPhone). Android / Play Store will come later.";
+        } else if (!storeUrl) {
+          getApp.style.display = "none";
+          statusEl.textContent = "App Store link will appear here after the iOS listing is live.";
         }
+
         if (!postId) {
           document.getElementById("lead").textContent = "Missing listing id. Ask the sender to share the post again from Pet Health Care.";
           openApp.style.display = "none";
@@ -72,7 +79,6 @@
         function tryOpenApp() {
           window.location.href = appUrl;
           window.setTimeout(function () {
-            // Still on this page after the handoff attempt → app likely not installed.
             if (document.hidden) return;
             if (storeUrl) window.location.href = storeUrl;
           }, 1600);
@@ -83,9 +89,9 @@
           tryOpenApp();
         });
 
-        // Auto-attempt once for shared links.
         window.setTimeout(tryOpenApp, 250);
       })();
     </script>
   </body>
 </html>
+

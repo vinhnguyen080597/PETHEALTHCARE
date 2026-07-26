@@ -19,11 +19,12 @@ export const PUBLIC_SITE_ORIGIN = (
   publicEnv.EXPO_PUBLIC_SITE_ORIGIN?.trim() || 'https://vinhnguyen080597.github.io/PETHEALTHCARE'
 ).replace(/\/+$/, '');
 
-/** Filled after App Store / Play Console listing exists — used by share landing fallback. */
+/** Filled after App Store listing exists — used by share landing fallback. */
 export const IOS_APP_STORE_URL = publicEnv.EXPO_PUBLIC_IOS_APP_STORE_URL?.trim() || '';
-export const ANDROID_PLAY_STORE_URL = publicEnv.EXPO_PUBLIC_ANDROID_PLAY_STORE_URL?.trim() || '';
 /** Numeric App Store ID for Smart App Banner (e.g. 1234567890). */
 export const IOS_APP_STORE_ID = publicEnv.EXPO_PUBLIC_IOS_APP_STORE_ID?.trim() || '';
+/** Deferred until Play Store release (iOS-only launch ignores this). */
+export const ANDROID_PLAY_STORE_URL = publicEnv.EXPO_PUBLIC_ANDROID_PLAY_STORE_URL?.trim() || '';
 
 const DEV_APP_LINKS = {
   privacyPolicy: `${PUBLIC_SITE_ORIGIN}/privacy-policy/`,

@@ -1,23 +1,33 @@
-﻿# Pet Feed deep links (Universal Links / App Links)
+﻿# Pet Feed deep links (Universal Links)
 
 Share URL format:
 
 `https://vinhnguyen080597.github.io/PETHEALTHCARE/app/pet-feed/posts/{postId}/`
 
+## Current release scope
+
+**iOS / App Store only.** Google Play Store URL, `assetlinks.json` SHA256, and Play Console steps are deferred until an Android store release.
+
 ## Runtime behavior
 
-1. **App installed + Universal/App Link verified** → iOS/Android opens Pet Health Care on that listing.
-2. **App installed but link opens browser** → landing page (`/app/pet-feed/post/`) tries `pethealthcare://…` then falls back to the store.
-3. **App not installed** → landing page / Smart App Banner sends the user to App Store or Play Store.
+1. **App installed + Universal Link verified** → iOS opens Pet Health Care on that listing.
+2. **App installed but link opens browser** → landing page tries `pethealthcare://` then falls back to the App Store (when configured).
+3. **App not installed (iPhone)** → landing / Smart App Banner → App Store.
+4. **Android visitor** → landing explains iOS-only for now (no Play Store redirect).
 
-## Before production
+## Before App Store production
 
-1. Set store env vars in the Expo app:
+1. Set iOS env vars in the Expo app / EAS:
    - `EXPO_PUBLIC_IOS_APP_STORE_URL`
    - `EXPO_PUBLIC_IOS_APP_STORE_ID` (numeric id for Smart App Banner)
-   - `EXPO_PUBLIC_ANDROID_PLAY_STORE_URL`
-2. Replace `APPLE_TEAM_ID` in `apple-app-site-association`.
-3. Replace `REPLACE_WITH_PLAY_APP_SIGNING_SHA256` in `assetlinks.json` with Play App Signing cert fingerprint(s).
+2. Fill the same values in `docs/app/pet-feed/post/index.html` (`__PHC_IOS_APP_ID__`, `__PHC_IOS_STORE__`).
+3. Replace `APPLE_TEAM_ID` in `apple-app-site-association`.
 4. Deploy `docs/` to GitHub Pages.
-5. For GitHub project pages, Apple/Google fetch `/.well-known/*` from the **domain root** (`vinhnguyen080597.github.io`), not only `/PETHEALTHCARE/`. Prefer a custom domain, or also host these files on the user/org Pages root.
-6. Ship a new native build so `associatedDomains` / `intentFilters` from `app.config.js` are included.
+5. Prefer a **custom domain** so Apple can fetch `/.well-known/apple-app-site-association` at the domain root (GitHub project pages often fail verification on `github.io/PETHEALTHCARE/...`).
+6. Ship a new **iOS** native build so `associatedDomains` from `app.config.js` is included.
+
+## Later (Play Store — ignore for now)
+
+- `EXPO_PUBLIC_ANDROID_PLAY_STORE_URL`
+- `docs/.well-known/assetlinks.json` Play signing SHA256
+- Android App Links verification / Play Console
