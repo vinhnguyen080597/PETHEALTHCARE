@@ -8,6 +8,7 @@ import {
 
 test('builds https share URL for a post', () => {
   assert.match(petFeedPostShareUrl('abc_123'), /\/app\/pet-feed\/posts\/abc_123\/$/);
+  assert.match(petFeedPostShareUrl('abc_123'), /^https:\/\/pet-marketplace\.org\//);
 });
 
 test('builds custom scheme URL for landing-page handoff', () => {
@@ -21,7 +22,14 @@ test('parses custom scheme deep link', () => {
   });
 });
 
-test('parses https Universal Link path', () => {
+test('parses https Universal Link path on custom domain', () => {
+  assert.deepEqual(
+    parsePetFeedDeepLink('https://pet-marketplace.org/app/pet-feed/posts/post-42/'),
+    { type: 'pet-feed-post', postId: 'post-42' },
+  );
+});
+
+test('parses legacy GitHub Pages path', () => {
   assert.deepEqual(
     parsePetFeedDeepLink('https://vinhnguyen080597.github.io/PETHEALTHCARE/app/pet-feed/posts/post-42/'),
     { type: 'pet-feed-post', postId: 'post-42' },
@@ -30,7 +38,7 @@ test('parses https Universal Link path', () => {
 
 test('parses legacy query deep link', () => {
   assert.deepEqual(
-    parsePetFeedDeepLink('https://vinhnguyen080597.github.io/PETHEALTHCARE/?petFeedPost=post-42'),
+    parsePetFeedDeepLink('https://pet-marketplace.org/?petFeedPost=post-42'),
     { type: 'pet-feed-post', postId: 'post-42' },
   );
 });

@@ -1,4 +1,4 @@
-const DEFAULT_SITE_ORIGIN = 'https://vinhnguyen080597.github.io/PETHEALTHCARE';
+const DEFAULT_SITE_ORIGIN = 'https://pet-marketplace.org';
 
 const SITE_ORIGIN = (
   (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SITE_ORIGIN?.trim())
@@ -35,7 +35,9 @@ function stripSitePrefix(pathname: string) {
 
 function postIdFromPathname(pathname: string) {
   const path = stripSitePrefix(pathname);
-  const match = path.match(/^\/app\/pet-feed\/posts\/([^/]+)\/?$/i);
+  // Custom domain: /app/pet-feed/posts/:id — legacy GitHub Pages: /PETHEALTHCARE/app/...
+  const match = path.match(/\/(?:PETHEALTHCARE\/)?app\/pet-feed\/posts\/([^/]+)\/?$/i)
+    || path.match(/^\/app\/pet-feed\/posts\/([^/]+)\/?$/i);
   return normalizePostId(match?.[1]);
 }
 

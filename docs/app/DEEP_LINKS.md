@@ -1,33 +1,43 @@
-﻿# Pet Feed deep links (Universal Links)
+# Pet Feed deep links (Universal Links)
 
 Share URL format:
 
-`https://vinhnguyen080597.github.io/PETHEALTHCARE/app/pet-feed/posts/{postId}/`
+`https://pet-marketplace.org/app/pet-feed/posts/{postId}/`
 
 ## Current release scope
 
-**iOS / App Store only.** Google Play Store URL, `assetlinks.json` SHA256, and Play Console steps are deferred until an Android store release.
+**iOS / App Store only.** Google Play steps are deferred.
+
+## Custom domain setup (`pet-marketplace.org`)
+
+1. GitHub → repo **Settings → Pages → Custom domain** → `pet-marketplace.org` → Save (also add `www.pet-marketplace.org` if you use www).
+2. At your DNS provider, add GitHub Pages records:
+
+   **Apex (`pet-marketplace.org`)** — A records to:
+   - `185.199.108.153`
+   - `185.199.109.153`
+   - `185.199.110.153`
+   - `185.199.111.153`
+
+   **Optional www** — CNAME `www` → `vinhnguyen080597.github.io`
+
+3. Wait for DNS + GitHub **Enforce HTTPS** (can take minutes to hours).
+4. Verify:
+   - `https://pet-marketplace.org/`
+   - `https://pet-marketplace.org/.well-known/apple-app-site-association`
+   - `https://pet-marketplace.org/app/pet-feed/post/?id=test`
+
+5. Ship a new **iOS** native build so `associatedDomains` includes `applinks:pet-marketplace.org`.
 
 ## Runtime behavior
 
-1. **App installed + Universal Link verified** → iOS opens Pet Health Care on that listing.
-2. **App installed but link opens browser** → landing page tries `pethealthcare://` then falls back to the App Store (when configured).
-3. **App not installed (iPhone)** → landing / Smart App Banner → App Store.
-4. **Android visitor** → landing explains iOS-only for now (no Play Store redirect).
+1. App installed + Universal Link verified → open listing in app.
+2. Else landing tries `pethealthcare://` → App Store fallback.
+3. Android visitors → iOS-only message (no Play redirect).
 
-## Before App Store production
+## Already configured in repo
 
-1. Set iOS env vars in the Expo app / EAS:
-   - `EXPO_PUBLIC_IOS_APP_STORE_URL`
-   - `EXPO_PUBLIC_IOS_APP_STORE_ID` (numeric id for Smart App Banner)
-2. Fill the same values in `docs/app/pet-feed/post/index.html` (`__PHC_IOS_APP_ID__`, `__PHC_IOS_STORE__`).
-3. Replace `APPLE_TEAM_ID` in `apple-app-site-association`.
-4. Deploy `docs/` to GitHub Pages.
-5. Prefer a **custom domain** so Apple can fetch `/.well-known/apple-app-site-association` at the domain root (GitHub project pages often fail verification on `github.io/PETHEALTHCARE/...`).
-6. Ship a new **iOS** native build so `associatedDomains` from `app.config.js` is included.
-
-## Later (Play Store — ignore for now)
-
-- `EXPO_PUBLIC_ANDROID_PLAY_STORE_URL`
-- `docs/.well-known/assetlinks.json` Play signing SHA256
-- Android App Links verification / Play Console
+- Team ID: `474UAP77X3`
+- App Store ID: `6778684107`
+- `docs/CNAME` → `pet-marketplace.org`
+- AASA paths: `/app/pet-feed/*`

@@ -16,7 +16,7 @@ const configuredApiBaseUrl = publicEnv.EXPO_PUBLIC_API_BASE_URL?.trim();
 const configuredApiHealthUrl = publicEnv.EXPO_PUBLIC_API_HEALTH_URL?.trim();
 
 export const PUBLIC_SITE_ORIGIN = (
-  publicEnv.EXPO_PUBLIC_SITE_ORIGIN?.trim() || 'https://vinhnguyen080597.github.io/PETHEALTHCARE'
+  publicEnv.EXPO_PUBLIC_SITE_ORIGIN?.trim() || 'https://pet-marketplace.org'
 ).replace(/\/+$/, '');
 
 /** Filled after App Store listing exists — used by share landing fallback. */

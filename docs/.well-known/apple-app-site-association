@@ -5,6 +5,7 @@
       {
         "appID": "474UAP77X3.com.pethealthcare.app",
         "paths": [
+          "/app/pet-feed/*",
           "/PETHEALTHCARE/app/pet-feed/*"
         ]
       }

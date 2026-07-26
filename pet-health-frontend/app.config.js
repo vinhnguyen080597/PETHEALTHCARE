@@ -29,7 +29,7 @@ const baseConfig = {
     supportsTablet: false,
     bundleIdentifier: 'com.pethealthcare.app',
     buildNumber: '3',
-    associatedDomains: ['applinks:vinhnguyen080597.github.io'],
+    associatedDomains: ['applinks:pet-marketplace.org', 'applinks:www.pet-marketplace.org'],
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSPhotoLibraryUsageDescription:
@@ -52,8 +52,13 @@ const baseConfig = {
         data: [
           {
             scheme: 'https',
-            host: 'vinhnguyen080597.github.io',
-            pathPrefix: '/PETHEALTHCARE/app/pet-feed',
+            host: 'pet-marketplace.org',
+            pathPrefix: '/app/pet-feed',
+          },
+          {
+            scheme: 'https',
+            host: 'www.pet-marketplace.org',
+            pathPrefix: '/app/pet-feed',
           },
         ],
       },
