@@ -460,6 +460,9 @@ create table if not exists public.pet_feed_conversations (
   breeder_user_id text not null,
   last_message_at timestamptz,
   last_message_preview text not null default '',
+  last_message_sender_user_id text,
+  sen_last_read_at timestamptz,
+  breeder_last_read_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (post_id, sen_user_id)
@@ -627,6 +630,13 @@ with check (
   )
 );
 
+drop policy if exists "pet_feed_conversations_update_participant_read" on public.pet_feed_conversations;
+create policy "pet_feed_conversations_update_participant_read"
+on public.pet_feed_conversations for update
+to authenticated
+using (auth.uid()::text = sen_user_id or auth.uid()::text = breeder_user_id)
+with check (auth.uid()::text = sen_user_id or auth.uid()::text = breeder_user_id);
+
 create policy "pet_feed_messages_select_participant"
 on public.pet_feed_messages for select
 to authenticated
@@ -649,6 +659,23 @@ with check (
       and (c.sen_user_id = auth.uid()::text or c.breeder_user_id = auth.uid()::text)
   )
 );
+
+create table if not exists public.pet_feed_notifications (
+  id uuid primary key default gen_random_uuid(),
+  recipient_user_id text not null,
+  actor_user_id text not null,
+  post_id uuid not null references public.pet_feed_posts(id) on delete cascade,
+  comment_id uuid not null references public.pet_feed_comments(id) on delete cascade,
+  type text not null default 'post_comment' check (type in ('post_comment')),
+  body_preview text not null default '',
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+create unique index if not exists idx_pet_feed_notifications_comment_unique
+  on public.pet_feed_notifications(comment_id);
+create index if not exists idx_pet_feed_notifications_recipient_created
+  on public.pet_feed_notifications(recipient_user_id, created_at desc);
+alter table public.pet_feed_notifications enable row level security;
 
 -- Realtime: see migrations/006-pet-feed-messages-realtime.sql (add tables to supabase_realtime publication).
 

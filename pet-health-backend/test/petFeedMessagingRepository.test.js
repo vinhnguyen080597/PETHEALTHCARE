@@ -74,15 +74,21 @@ test('sen and breeder can exchange messages on a listing', async () => {
   const second = await sendPetFeedConversationMessage(breederId, conversation.id, 'Yes, still available.', null);
   assert.equal(second.sender_user_id, breederId);
 
+  let senInbox = await listPetFeedConversations(senId, null);
+  let breederInbox = await listPetFeedConversations(breederId, null);
+  assert.equal(senInbox.find((item) => item.id === conversation.id)?.has_unread, true);
+  assert.equal(breederInbox.find((item) => item.id === conversation.id)?.has_unread, false);
+
   const messages = await listPetFeedConversationMessages(senId, conversation.id, null);
   assert.equal(messages.length, 2);
   assert.equal(messages[0].body, 'Is this baby still available?');
   assert.equal(messages[1].body, 'Yes, still available.');
 
-  const senInbox = await listPetFeedConversations(senId, null);
-  const breederInbox = await listPetFeedConversations(breederId, null);
+  senInbox = await listPetFeedConversations(senId, null);
+  breederInbox = await listPetFeedConversations(breederId, null);
   assert.ok(senInbox.some((item) => item.id === conversation.id));
   assert.ok(breederInbox.some((item) => item.id === conversation.id));
   const inboxRow = senInbox.find((item) => item.id === conversation.id);
   assert.match(inboxRow.last_message_preview, /available/i);
+  assert.equal(inboxRow.has_unread, false);
 });

@@ -238,6 +238,15 @@
       "openFailed": "Không thể mở cuộc trò chuyện",
       "sendFailed": "Không thể gửi tin nhắn"
     },
+    "notifications": {
+      "inboxTitle": "Thông báo",
+      "emptyTitle": "Chưa có thông báo",
+      "emptyBody": "Khi có người bình luận bài đăng của Sen, thông báo sẽ hiện ở đây.",
+      "actorFallback": "Người dùng",
+      "listingFallback": "bài đăng của bạn",
+      "commentedOn": "đã bình luận vào {{title}}",
+      "noPreview": "Có bình luận mới"
+    },
     "reportListing": "Báo cáo bài đăng",
     "editListing": "Chỉnh sửa",
     "deleteListing": "Xóa",
@@ -271,6 +280,8 @@
       "clearSearch": "Xóa tìm kiếm Pet Feed",
       "openFilters": "Mở bộ lọc Pet Feed",
       "closeFilters": "Đóng bộ lọc Pet Feed",
+      "openMessages": "Mở tin nhắn",
+      "openNotifications": "Mở thông báo",
       "closeDetail": "Đóng chi tiết bài đăng",
       "closeNewsDetail": "Quay lại danh sách tin tức",
       "openListing": "Mở bài đăng {{title}}",

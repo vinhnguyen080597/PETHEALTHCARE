@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { PetFeedComment } from '../types';
@@ -33,13 +33,26 @@ type CommentRowProps = {
   comment: PetFeedComment;
   currentUserId?: string | null;
   isReply?: boolean;
+  highlighted?: boolean;
+  measureRelativeTo?: RefObject<View | null>;
+  onMeasuredOffsetY?: (y: number) => void;
   onReply?: (comment: PetFeedComment) => void;
   onDelete?: (comment: PetFeedComment) => void;
 };
 
-function CommentRow({ comment, currentUserId, isReply = false, onReply, onDelete }: CommentRowProps) {
+function CommentRow({
+  comment,
+  currentUserId,
+  isReply = false,
+  highlighted = false,
+  measureRelativeTo,
+  onMeasuredOffsetY,
+  onReply,
+  onDelete,
+}: CommentRowProps) {
   const { t, i18n } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const rowRef = useRef<View>(null);
   const isOwn = Boolean(
     currentUserId
     && comment.user_id
@@ -48,6 +61,28 @@ function CommentRow({ comment, currentUserId, isReply = false, onReply, onDelete
   const canReply = !isReply && Boolean(onReply);
   const canDelete = isOwn && Boolean(onDelete);
   const hasActions = canReply || canDelete;
+
+  useEffect(() => {
+    if (!highlighted || !onMeasuredOffsetY) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      const row = rowRef.current;
+      const relative = measureRelativeTo?.current;
+      if (!row || !relative || cancelled) return;
+      row.measureLayout(
+        // RN measureLayout accepts a host instance; cast keeps TS quiet across fabric/paper.
+        relative as never,
+        (_x, y) => {
+          if (!cancelled) onMeasuredOffsetY(y);
+        },
+        () => {},
+      );
+    }, 64);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [highlighted, measureRelativeTo, onMeasuredOffsetY]);
 
   async function handleDelete() {
     setMenuOpen(false);
@@ -66,7 +101,15 @@ function CommentRow({ comment, currentUserId, isReply = false, onReply, onDelete
   }
 
   return (
-    <View className={`rounded-xl bg-slate-50 px-3 py-2.5 ${isReply ? 'ml-5 border-l-2 border-blue-100' : ''}`}>
+    <View
+      ref={rowRef}
+      collapsable={false}
+      className={`rounded-xl px-3 py-2.5 ${
+        highlighted
+          ? 'border border-blue-300 bg-blue-50'
+          : `bg-slate-50 ${isReply ? 'ml-5 border-l-2 border-blue-100' : ''}`
+      } ${isReply && highlighted ? 'ml-5' : ''}`}
+    >
       <View className="flex-row items-start gap-2">
         <View className="min-w-0 flex-1">
           <Text className="text-sm font-semibold text-slate-800" numberOfLines={1}>
@@ -141,6 +184,8 @@ type PetFeedCommentsSectionProps = {
   threads: PetFeedCommentThread[];
   loading: boolean;
   currentUserId?: string | null;
+  focusCommentId?: string | null;
+  onFocusCommentOffset?: (offsetY: number) => void;
   onReply?: (comment: PetFeedComment) => void;
   onDelete?: (comment: PetFeedComment) => void;
 };
@@ -149,13 +194,37 @@ export function PetFeedCommentsSection({
   threads,
   loading,
   currentUserId,
+  focusCommentId = null,
+  onFocusCommentOffset,
   onReply,
   onDelete,
 }: PetFeedCommentsSectionProps) {
   const { t } = useTranslation();
+  const sectionRef = useRef<View>(null);
+  const reportedFocusIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    reportedFocusIdRef.current = null;
+  }, [focusCommentId]);
+
+  useEffect(() => {
+    if (!focusCommentId || loading) return;
+    const exists = threads.some(
+      (thread) => thread.root.id === focusCommentId || thread.replies.some((reply) => reply.id === focusCommentId),
+    );
+    if (!exists) {
+      onFocusCommentOffset?.(-1);
+    }
+  }, [focusCommentId, loading, onFocusCommentOffset, threads]);
+
+  function handleMeasuredOffsetY(y: number) {
+    if (!focusCommentId || reportedFocusIdRef.current === focusCommentId) return;
+    reportedFocusIdRef.current = focusCommentId;
+    onFocusCommentOffset?.(y);
+  }
 
   return (
-    <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
+    <View ref={sectionRef} collapsable={false} className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
       <Text className="text-base font-bold text-slate-900">{t('petFeed.comments.title')}</Text>
       {loading ? (
         <View className="mt-3 gap-3">
@@ -184,6 +253,9 @@ export function PetFeedCommentsSection({
               <CommentRow
                 comment={thread.root}
                 currentUserId={currentUserId}
+                highlighted={focusCommentId === thread.root.id}
+                measureRelativeTo={sectionRef}
+                onMeasuredOffsetY={focusCommentId === thread.root.id ? handleMeasuredOffsetY : undefined}
                 onReply={onReply}
                 onDelete={onDelete}
               />
@@ -193,6 +265,9 @@ export function PetFeedCommentsSection({
                   comment={reply}
                   currentUserId={currentUserId}
                   isReply
+                  highlighted={focusCommentId === reply.id}
+                  measureRelativeTo={sectionRef}
+                  onMeasuredOffsetY={focusCommentId === reply.id ? handleMeasuredOffsetY : undefined}
                   onDelete={onDelete}
                 />
               ))}

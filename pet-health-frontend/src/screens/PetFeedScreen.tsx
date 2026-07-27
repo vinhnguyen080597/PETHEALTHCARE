@@ -43,6 +43,7 @@ import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 import { modalTopInset } from '../utils/modalSafeArea';
 
 const PRIMARY = '#1E6FE8';
+const DEFAULT_PET_TYPE_FILTER: SpeciesFilter = 'cat';
 const WEB_SEARCH_INPUT_STYLE =
   Platform.OS === 'web' ? ({ outlineStyle: 'none', boxShadow: 'none' } as unknown as TextStyle) : undefined;
 
@@ -203,7 +204,7 @@ export function PetFeedScreen({
     }
   }, [activeTab, visibleTabs]);
   const [query, setQuery] = useState('');
-  const [petTypeFilter, setPetTypeFilter] = useState<SpeciesFilter>('all');
+  const [petTypeFilter, setPetTypeFilter] = useState<SpeciesFilter>(DEFAULT_PET_TYPE_FILTER);
   const [provinceFilter, setProvinceFilter] = useState<ProvinceFilter>(ALL_PROVINCES_FILTER);
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
@@ -359,7 +360,7 @@ export function PetFeedScreen({
   const filterPanelWidth = Math.min(Math.round(windowWidth * 0.76), 330);
   const filterPanelMaxHeight = Math.min(Math.round(windowHeight * 0.58), 480);
   const filterPanelTopOffset = modalTopInset(insets.top) + 112;
-  const hasActiveFilters = petTypeFilter !== 'all'
+  const hasActiveFilters = petTypeFilter !== DEFAULT_PET_TYPE_FILTER
     || provinceFilter !== ALL_PROVINCES_FILTER
     || genderFilter !== 'all'
     || sortField !== 'date'
@@ -445,7 +446,7 @@ export function PetFeedScreen({
   ]);
 
   const resetFilters = useCallback(() => {
-    setPetTypeFilter('all');
+    setPetTypeFilter(DEFAULT_PET_TYPE_FILTER);
     setProvinceFilter(ALL_PROVINCES_FILTER);
     setGenderFilter('all');
     setSortField('date');

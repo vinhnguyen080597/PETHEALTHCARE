@@ -30,9 +30,16 @@ import {
   getPetFeedConversation,
   listPetFeedConversationMessages,
   listPetFeedConversations,
+  markPetFeedConversationRead,
   openPetFeedConversation,
   sendPetFeedConversationMessage,
 } from '../repositories/petFeedMessagingRepository.js';
+import {
+  countUnreadPetFeedNotifications,
+  createPostCommentNotification,
+  listPetFeedNotifications,
+  markPetFeedNotificationsRead,
+} from '../repositories/petFeedNotificationsRepository.js';
 import {
   PET_FEED_LIST_THUMB_MAX_BYTES,
   PET_FEED_PHOTO_MAX_BYTES,
@@ -573,6 +580,17 @@ router.post('/posts/:postId/comments', async (req, res, next) => {
         ? req.body.parent_id
         : null;
     const comment = await createPetFeedPostComment(req.user.id, postId, body, req.accessToken, { parentId });
+    const post = await getPetFeedPost(req.user.id, postId, req.accessToken).catch(() => null);
+    if (post?.user_id && post.user_id !== req.user.id) {
+      void createPostCommentNotification({
+        recipientUserId: post.user_id,
+        actorUserId: req.user.id,
+        postId,
+        commentId: comment.id,
+        bodyPreview: comment.body,
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
     void recordProductEvent({
       userId: req.user.id,
       event: 'pet_feed_comment_created',
@@ -638,8 +656,20 @@ router.get('/conversations/:conversationId/messages', async (req, res, next) => 
     if (!conversationId) return res.status(400).json({ error: 'conversationId is required', code: 'MISSING_CONVERSATION_ID' });
     const messages = await listPetFeedConversationMessages(req.user.id, conversationId, req.accessToken, {
       limit: firstQueryValue(req.query.limit),
+      markRead: true,
     });
     return res.json({ data: messages });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/conversations/:conversationId/read', async (req, res, next) => {
+  try {
+    const conversationId = cleanId(req.params.conversationId);
+    if (!conversationId) return res.status(400).json({ error: 'conversationId is required', code: 'MISSING_CONVERSATION_ID' });
+    const conversation = await markPetFeedConversationRead(req.user.id, conversationId, req.accessToken);
+    return res.json({ data: conversation });
   } catch (err) {
     return next(err);
   }
@@ -657,6 +687,37 @@ router.post('/conversations/:conversationId/messages', async (req, res, next) =>
       metadata: { conversationId, messageId: message.id },
     });
     return res.status(201).json({ data: message });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/notifications', async (req, res, next) => {
+  try {
+    const [notifications, unreadCount] = await Promise.all([
+      listPetFeedNotifications(req.user.id, req.accessToken, { limit: firstQueryValue(req.query.limit) }),
+      countUnreadPetFeedNotifications(req.user.id, req.accessToken),
+    ]);
+    return res.json({ data: notifications, unread_count: unreadCount });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/notifications/unread-count', async (req, res, next) => {
+  try {
+    const unreadCount = await countUnreadPetFeedNotifications(req.user.id, req.accessToken);
+    return res.json({ data: { unread_count: unreadCount } });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/notifications/read', async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : undefined;
+    const result = await markPetFeedNotificationsRead(req.user.id, req.accessToken, { ids });
+    return res.json({ data: result });
   } catch (err) {
     return next(err);
   }

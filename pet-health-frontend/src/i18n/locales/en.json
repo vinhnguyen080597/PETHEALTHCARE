@@ -238,6 +238,15 @@
       "openFailed": "Could not open conversation",
       "sendFailed": "Could not send message"
     },
+    "notifications": {
+      "inboxTitle": "Notifications",
+      "emptyTitle": "No notifications yet",
+      "emptyBody": "When someone comments on your listing, it will show up here.",
+      "actorFallback": "User",
+      "listingFallback": "your listing",
+      "commentedOn": "commented on {{title}}",
+      "noPreview": "New comment"
+    },
     "editListing": "Edit",
     "deleteListing": "Delete",
     "deleteListingTitle": "Delete this listing?",
@@ -271,6 +280,8 @@
       "clearSearch": "Clear Pet Feed search",
       "openFilters": "Open Pet Feed filters",
       "closeFilters": "Close Pet Feed filters",
+      "openMessages": "Open messages",
+      "openNotifications": "Open notifications",
       "closeDetail": "Close listing details",
       "closeNewsDetail": "Back to news list",
       "openListing": "Open listing {{title}}",

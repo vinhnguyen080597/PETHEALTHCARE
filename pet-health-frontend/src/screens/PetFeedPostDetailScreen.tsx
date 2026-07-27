@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   Alert,
   Platform,
@@ -21,6 +22,8 @@ import { modalBottomInset } from '../utils/modalSafeArea';
 type PetFeedPostDetailScreenProps = {
   postId: string;
   listPosts: PetFeedPost[];
+  focusCommentId?: string | null;
+  onFocusCommentHandled?: () => void;
   onBack: () => void;
   onToggleFavorite: (post: PetFeedPost) => void;
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
@@ -75,6 +78,8 @@ function PetFeedPostDetailSkeleton() {
 export function PetFeedPostDetailScreen({
   postId,
   listPosts,
+  focusCommentId = null,
+  onFocusCommentHandled,
   onBack,
   onToggleFavorite,
   onReportPost,
@@ -92,6 +97,9 @@ export function PetFeedPostDetailScreen({
   const bottomInset = modalBottomInset(insets.bottom);
   const keyboardOverlap = useIosKeyboardOverlap();
   const composerPad = keyboardOverlap > 0 ? 8 : bottomInset;
+  const scrollRef = useRef<ScrollView>(null);
+  const commentsSectionYRef = useRef(0);
+  const scrolledFocusIdRef = useRef<string | null>(null);
 
   const { selectedPost, detailLoading } = usePetFeedPostDetail(postId, listPosts, onFetchPostDetail);
   const {
@@ -108,6 +116,25 @@ export function PetFeedPostDetailScreen({
     onSubmitPostComment,
     onDeletePostComment,
   );
+
+  useEffect(() => {
+    scrolledFocusIdRef.current = null;
+  }, [focusCommentId, postId]);
+
+  const handleFocusCommentOffset = useCallback((offsetInSection: number) => {
+    if (!focusCommentId) return;
+    if (scrolledFocusIdRef.current === focusCommentId) return;
+    scrolledFocusIdRef.current = focusCommentId;
+    if (offsetInSection < 0) {
+      // Comment missing (deleted) — drop focus quietly.
+      onFocusCommentHandled?.();
+      return;
+    }
+    const y = Math.max(0, commentsSectionYRef.current + offsetInSection - 12);
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y, animated: true });
+    });
+  }, [focusCommentId, onFocusCommentHandled]);
 
   function confirmDeletePost(post: PetFeedPost) {
     if (!onDeletePost) return;
@@ -148,6 +175,7 @@ export function PetFeedPostDetailScreen({
       </View>
 
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
@@ -168,13 +196,22 @@ export function PetFeedPostDetailScreen({
               mediaLoading={detailLoading}
               testID={`pet-feed-detail-post-${selectedPost.id}`}
             />
-            <PetFeedCommentsSection
-              threads={threads}
-              loading={commentsLoading}
-              currentUserId={currentUserId}
-              onReply={setReplyTo}
-              onDelete={(comment) => void removeComment(comment)}
-            />
+            <View
+              collapsable={false}
+              onLayout={(event) => {
+                commentsSectionYRef.current = event.nativeEvent.layout.y;
+              }}
+            >
+              <PetFeedCommentsSection
+                threads={threads}
+                loading={commentsLoading}
+                currentUserId={currentUserId}
+                focusCommentId={focusCommentId}
+                onFocusCommentOffset={handleFocusCommentOffset}
+                onReply={setReplyTo}
+                onDelete={(comment) => void removeComment(comment)}
+              />
+            </View>
           </>
         ) : detailLoading ? (
           <>

@@ -6,6 +6,7 @@ export type AppScreen =
   | 'pet-feed-detail'
   | 'breeder-detail'
   | 'messages-inbox'
+  | 'notifications-inbox'
   | 'home'
   | 'account'
   | 'update-account'

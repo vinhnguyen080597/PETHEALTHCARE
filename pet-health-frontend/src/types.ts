@@ -249,6 +249,22 @@ export type PetFeedComment = {
   updated_at?: string;
 };
 
+export type PetFeedNotification = {
+  id: string;
+  recipient_user_id: string;
+  actor_user_id: string;
+  post_id: string;
+  comment_id: string;
+  type: 'post_comment';
+  body_preview: string;
+  created_at: string;
+  read_at: string | null;
+  is_unread: boolean;
+  actor_display_name: string;
+  post_title: string;
+  post_thumb_url: string | null;
+};
+
 export type PetFeedConversation = {
   id: string;
   post_id: string;
@@ -256,12 +272,17 @@ export type PetFeedConversation = {
   breeder_user_id: string;
   last_message_at: string | null;
   last_message_preview: string;
+  last_message_sender_user_id?: string | null;
+  sen_last_read_at?: string | null;
+  breeder_last_read_at?: string | null;
   created_at: string;
   updated_at?: string;
   post_title: string;
   post_thumb_url: string | null;
   peer_display_name: string;
   peer_user_id: string | null;
+  /** True when peer sent the latest message after this viewer's last read. */
+  has_unread?: boolean;
 };
 
 export type PetFeedMessage = {

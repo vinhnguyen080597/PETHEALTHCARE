@@ -33,6 +33,7 @@ import type {
   PetFeedComment,
   PetFeedConversation,
   PetFeedMessage,
+  PetFeedNotification,
   PostKind,
   PetFeedReport,
   UpdatePetPayload,
@@ -746,6 +747,26 @@ export async function deletePetFeedPostComment(token: string, commentId: string)
   await requestJson<null>(`/pet-feed/comments/${encodeURIComponent(commentId)}`, {
     method: 'DELETE',
     headers: authHeaders(token),
+  });
+}
+
+export async function listPetFeedNotifications(token: string) {
+  return requestJson<{ data: PetFeedNotification[]; unread_count: number }>('/pet-feed/notifications', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function getPetFeedNotificationsUnreadCount(token: string) {
+  return requestJson<{ data: { unread_count: number } }>('/pet-feed/notifications/unread-count', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function markPetFeedNotificationsRead(token: string, ids?: string[]) {
+  return requestJson<{ data: { updated: number } }>('/pet-feed/notifications/read', {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(ids?.length ? { ids } : {}),
   });
 }
 

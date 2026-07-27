@@ -23,9 +23,12 @@ import { debugLog } from './src/utils/debugLog';
 // import { initializeRewardedAds } from './src/services/rewardedAd';
 // import { initializeIap } from './src/services/iap';
 import { ManagedUserBanner } from './src/components/ManagedUserBanner';
+import { MessageThreadModal } from './src/components/MessageThreadModal';
 import { AccountScreen } from './src/screens/AccountScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { MessagesInboxScreen } from './src/screens/MessagesInboxScreen';
+import { NotificationsInboxScreen } from './src/screens/NotificationsInboxScreen';
 import { PetFeedPostDetailScreen } from './src/screens/PetFeedPostDetailScreen';
 import { PetFeedScreen } from './src/screens/PetFeedScreen';
 import {
@@ -47,8 +50,6 @@ import {
   HealthCheckScreen,
   HistoryScreen,
   LanguageSelectionScreen,
-  MessagesInboxScreen,
-  MessageThreadModal,
   OnboardingHealthPromptScreen,
   OnboardingIntroScreen,
   PetBreedRecognitionScreen,
@@ -245,7 +246,6 @@ function AppContent() {
       onOpenAdminHub={app.openAdminHub}
       onOpenUpdateAccount={app.openUpdateAccount}
       onOpenLanguageSelection={app.openLanguageSelection}
-      onOpenMessagesInbox={app.openMessagesInbox}
       onUpdateBreederStatus={app.updateAdminBreederStatus}
       onUpdatePostStatus={app.updateAdminPostStatus}
       onUpdateReportStatus={app.updateAdminReportStatus}
@@ -322,7 +322,14 @@ function AppContent() {
         <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right']}>
           <ResponsiveFrame>
             {showBottomTab ? (
-              <AppHeader titleKey={app.screen === 'pet-feed' ? 'petFeed.headerTitle' : 'login.appName'} />
+              <AppHeader
+                titleKey={app.screen === 'pet-feed' ? 'petFeed.headerTitle' : 'login.appName'}
+                variant={app.screen === 'pet-feed' ? 'marketplace' : 'default'}
+                unreadMessageCount={app.unreadPetFeedConversationCount}
+                unreadNotificationCount={app.petFeedNotificationsUnreadCount}
+                onOpenMessages={app.openMessagesInbox}
+                onOpenNotifications={app.openNotificationsInbox}
+              />
             ) : null}
 
             {app.managedUser ? <ManagedUserBanner managedUser={app.managedUser} onExit={app.exitManagedUser} /> : null}
@@ -387,6 +394,8 @@ function AppContent() {
               <PetFeedPostDetailScreen
                 postId={app.selectedPetFeedPostId}
                 listPosts={[...app.petFeedPosts, ...app.selectedBreederPosts]}
+                focusCommentId={app.petFeedFocusCommentId}
+                onFocusCommentHandled={app.clearPetFeedFocusCommentId}
                 onBack={app.closePetFeedPostDetail}
                 onToggleFavorite={app.togglePetFeedFavorite}
                 onReportPost={app.submitPetFeedReport}
@@ -422,6 +431,17 @@ function AppContent() {
                 onBack={app.closeMessagesInbox}
                 onRefresh={app.refreshPetFeedConversations}
                 onOpenConversation={(conversation) => void app.openMessageThread(conversation)}
+              />
+            ) : null}
+
+            {app.screen === 'notifications-inbox' ? (
+              <NotificationsInboxScreen
+                notifications={app.petFeedNotifications}
+                loading={app.petFeedNotificationsLoading}
+                error={app.petFeedNotificationsError}
+                onBack={app.closeNotificationsInbox}
+                onRefresh={app.refreshPetFeedNotifications}
+                onOpenNotification={app.openNotificationItem}
               />
             ) : null}
 

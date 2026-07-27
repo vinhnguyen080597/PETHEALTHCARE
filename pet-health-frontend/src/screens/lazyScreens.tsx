@@ -11,7 +11,7 @@ function lazyNamed<TModule, TExport extends keyof TModule>(
   }) as LazyExoticComponent<TModule[TExport] extends ComponentType<any> ? TModule[TExport] : ComponentType<any>>;
 }
 
-/** Screens kept eager: Login, Home, PetFeed, PetFeedPostDetail, Account (hot paths). */
+/** Screens kept eager: Login, Home, PetFeed, PetFeedPostDetail, Account, Messages/Notifications inbox + MessageThreadModal (header hot paths). */
 
 export const AdminReviewScreen = lazyNamed(() => import('./AdminReviewScreen'), 'AdminReviewScreen');
 export const AdminHubScreen = lazyNamed(() => import('./AdminHubScreen'), 'AdminHubScreen');
@@ -51,8 +51,6 @@ export const HealthCheckScreen = lazyNamed(() => import('./HealthCheckScreen'), 
 export const HistoryScreen = lazyNamed(() => import('./HistoryScreen'), 'HistoryScreen');
 export const ForgotPasswordScreen = lazyNamed(() => import('./ForgotPasswordScreen'), 'ForgotPasswordScreen');
 export const LanguageSelectionScreen = lazyNamed(() => import('./LanguageSelectionScreen'), 'LanguageSelectionScreen');
-export const MessagesInboxScreen = lazyNamed(() => import('./MessagesInboxScreen'), 'MessagesInboxScreen');
-export const MessageThreadModal = lazyNamed(() => import('../components/MessageThreadModal'), 'MessageThreadModal');
 export const SignUpOtpVerificationScreen = lazyNamed(
   () => import('./SignUpOtpVerificationScreen'),
   'SignUpOtpVerificationScreen',

@@ -50,6 +50,20 @@ function conversationPreviewPatch(row: Record<string, unknown>): Partial<PetFeed
     id,
     last_message_at: typeof row.last_message_at === 'string' ? row.last_message_at : row.last_message_at == null ? null : undefined,
     last_message_preview: typeof row.last_message_preview === 'string' ? row.last_message_preview : undefined,
+    last_message_sender_user_id:
+      typeof row.last_message_sender_user_id === 'string'
+        ? row.last_message_sender_user_id
+        : row.last_message_sender_user_id == null
+          ? null
+          : undefined,
+    sen_last_read_at:
+      typeof row.sen_last_read_at === 'string' ? row.sen_last_read_at : row.sen_last_read_at == null ? null : undefined,
+    breeder_last_read_at:
+      typeof row.breeder_last_read_at === 'string'
+        ? row.breeder_last_read_at
+        : row.breeder_last_read_at == null
+          ? null
+          : undefined,
     updated_at: typeof row.updated_at === 'string' ? row.updated_at : undefined,
   };
 }

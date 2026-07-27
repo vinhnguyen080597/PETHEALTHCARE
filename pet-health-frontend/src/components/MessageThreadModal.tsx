@@ -119,8 +119,19 @@ export function MessageThreadView({
       </View>
 
       {loading && messages.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={PRIMARY} />
+        <View className="flex-1 gap-3 px-4 py-5">
+          {[0, 1, 2, 3, 4, 5].map((item) => {
+            const mine = item % 2 === 1;
+            return (
+              <View key={item} className={`max-w-[72%] ${mine ? 'self-end items-end' : 'self-start items-start'}`}>
+                <View
+                  className={`rounded-2xl ${mine ? 'bg-blue-100' : 'bg-slate-200'}`}
+                  style={{ width: mine ? 168 : 196, height: item % 3 === 0 ? 56 : 40 }}
+                />
+                <View className="mt-1 h-2.5 w-10 rounded-full bg-slate-100" />
+              </View>
+            );
+          })}
         </View>
       ) : (
         <FlatList

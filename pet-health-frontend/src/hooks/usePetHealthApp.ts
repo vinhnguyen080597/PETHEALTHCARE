@@ -62,9 +62,12 @@ import {
   listPetFeedPostComments,
   listPetFeedConversationMessages,
   listPetFeedConversations,
+  listPetFeedNotifications,
+  getPetFeedNotificationsUnreadCount,
   listPetFeedPosts,
   listPets,
   listVerifiedBreederProfiles,
+  markPetFeedNotificationsRead,
   reportBreederProfile,
   reportPetFeedPost,
   openPetFeedConversation,
@@ -130,6 +133,7 @@ import type {
   PetFeedComment,
   PetFeedConversation,
   PetFeedMessage,
+  PetFeedNotification,
   PetFeedReport,
   UpsertBreederProfilePayload,
   UserRole,
@@ -429,6 +433,8 @@ export function usePetHealthApp() {
   const [selectedPetFeedPostId, setSelectedPetFeedPostId] = useState<string | null>(null);
   /** After closing post detail, Pet Feed scrolls to this post on the feed tab. */
   const [petFeedFocusPostId, setPetFeedFocusPostId] = useState<string | null>(null);
+  /** When opening post detail from a comment notification, scroll to this comment. */
+  const [petFeedFocusCommentId, setPetFeedFocusCommentId] = useState<string | null>(null);
   const [adminAccounts, setAdminAccounts] = useState<AccountProfile[]>([]);
   const [adminBreederProfiles, setAdminBreederProfiles] = useState<BreederProfile[]>([]);
   const [adminFeedPosts, setAdminFeedPosts] = useState<PetFeedPost[]>([]);
@@ -442,12 +448,18 @@ export function usePetHealthApp() {
   const [petFeedConversationsLoading, setPetFeedConversationsLoading] = useState(false);
   const [petFeedConversationsError, setPetFeedConversationsError] = useState('');
   const [selectedPetFeedConversation, setSelectedPetFeedConversation] = useState<PetFeedConversation | null>(null);
+  const [petFeedNotifications, setPetFeedNotifications] = useState<PetFeedNotification[]>([]);
+  const [petFeedNotificationsLoading, setPetFeedNotificationsLoading] = useState(false);
+  const [petFeedNotificationsError, setPetFeedNotificationsError] = useState('');
+  const [petFeedNotificationsUnreadCount, setPetFeedNotificationsUnreadCount] = useState(0);
   const [petFeedMessages, setPetFeedMessages] = useState<PetFeedMessage[]>([]);
   const [petFeedMessagesLoading, setPetFeedMessagesLoading] = useState(false);
   const [petFeedMessagesError, setPetFeedMessagesError] = useState('');
   const [petFeedMessageSending, setPetFeedMessageSending] = useState(false);
   const [messageThreadModalVisible, setMessageThreadModalVisible] = useState(false);
   const messageThreadOpenGenRef = useRef(0);
+  const messagesInboxReturnScreenRef = useRef<AppScreen>('account');
+  const notificationsInboxReturnScreenRef = useRef<AppScreen>('account');
   const pendingPetFeedDeepLinkRef = useRef<PetFeedDeepLink | null>(null);
   /** Where to go when closing the results screen opened from history vs profile vs default home. */
   const [resultsReturnScreen, setResultsReturnScreen] = useState<'home' | 'history' | 'pet-profile' | null>(
@@ -1914,13 +1926,18 @@ export function usePetHealthApp() {
     setScreen('pet-feed');
   }
 
-  function openPetFeedPostDetail(postId: string) {
+  const markNotificationsReadForPostRef = useRef<(postId: string) => void>(() => {});
+
+  function openPetFeedPostDetail(postId: string, options?: { focusCommentId?: string | null }) {
     if (!postId) return;
     setSelectedPetFeedPostId(postId);
     setPetFeedFocusPostId(null);
+    setPetFeedFocusCommentId(options?.focusCommentId?.trim() || null);
     setScreen('pet-feed-detail');
     // Deep links can land on detail before the feed tab was opened — warm cache in background.
     void ensurePetFeedCached();
+    // Mark comment notifications for this post as read when the post is opened.
+    markNotificationsReadForPostRef.current(postId);
   }
 
   const deepLinkTokenRef = useRef(token);
@@ -1949,6 +1966,7 @@ export function usePetHealthApp() {
   function closePetFeedPostDetail() {
     const focusPostId = selectedPetFeedPostId;
     setSelectedPetFeedPostId(null);
+    setPetFeedFocusCommentId(null);
     setMessageThreadModalVisible(false);
     setSelectedPetFeedConversation(null);
     setPetFeedMessages([]);
@@ -1961,6 +1979,10 @@ export function usePetHealthApp() {
 
   const clearPetFeedFocusPostId = useCallback(() => {
     setPetFeedFocusPostId(null);
+  }, []);
+
+  const clearPetFeedFocusCommentId = useCallback(() => {
+    setPetFeedFocusCommentId(null);
   }, []);
 
   async function loadAccountDashboard(accessToken: string, role: UserRole | undefined = accountProfile?.primary_role) {
@@ -2307,6 +2329,129 @@ export function usePetHealthApp() {
     }
   }, [token]);
 
+  useEffect(() => {
+    if (!token) {
+      setPetFeedConversations([]);
+      setPetFeedConversationsError('');
+      return;
+    }
+    void refreshPetFeedConversations();
+  }, [refreshPetFeedConversations, token]);
+
+  const unreadPetFeedConversationCount = useMemo(
+    () => petFeedConversations.filter((item) => Boolean(item.has_unread)).length,
+    [petFeedConversations],
+  );
+
+  const refreshPetFeedNotifications = useCallback(async () => {
+    if (!token) return;
+    setPetFeedNotificationsLoading(true);
+    setPetFeedNotificationsError('');
+    try {
+      const response = await listPetFeedNotifications(token);
+      setPetFeedNotifications(response.data ?? []);
+      setPetFeedNotificationsUnreadCount(response.unread_count ?? (response.data ?? []).filter((item) => item.is_unread).length);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      setPetFeedNotificationsError(message);
+    } finally {
+      setPetFeedNotificationsLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      setPetFeedNotifications([]);
+      setPetFeedNotificationsUnreadCount(0);
+      setPetFeedNotificationsError('');
+      return;
+    }
+    void refreshPetFeedNotifications();
+  }, [refreshPetFeedNotifications, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void refreshPetFeedConversations();
+        void refreshPetFeedNotifications();
+      }
+    });
+    return () => subscription.remove();
+  }, [token, refreshPetFeedConversations, refreshPetFeedNotifications]);
+
+  // Lightweight foreground poll so bell badge updates without push/realtime.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    const POLL_MS = 30_000;
+
+    const pollUnreadCount = async () => {
+      if (cancelled || AppState.currentState !== 'active') return;
+      try {
+        const response = await getPetFeedNotificationsUnreadCount(token);
+        if (!cancelled) {
+          setPetFeedNotificationsUnreadCount(response.data?.unread_count ?? 0);
+        }
+      } catch {
+        // Ignore transient poll errors; next tick or manual open will refresh.
+      }
+    };
+
+    const id = setInterval(() => {
+      void pollUnreadCount();
+    }, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [token]);
+
+  function captureInboxReturnScreen() {
+    if (screen === 'pet-feed' || screen === 'pet-feed-detail') return 'pet-feed' as AppScreen;
+    if (screen === 'home' || screen === 'account' || screen === 'admin-features') return screen;
+    return 'account' as AppScreen;
+  }
+
+  function markNotificationsReadForPost(postId: string) {
+    if (!token || !postId) return;
+    const unreadIds = petFeedNotifications
+      .filter((item) => item.is_unread && item.post_id === postId)
+      .map((item) => item.id);
+    if (!unreadIds.length) return;
+    const unreadIdSet = new Set(unreadIds);
+    const readAt = new Date().toISOString();
+    setPetFeedNotifications((current) =>
+      current.map((item) =>
+        unreadIdSet.has(item.id) ? { ...item, is_unread: false, read_at: item.read_at || readAt } : item,
+      ),
+    );
+    setPetFeedNotificationsUnreadCount((current) => Math.max(0, current - unreadIds.length));
+    void markPetFeedNotificationsRead(token, unreadIds).catch(() => {
+      void refreshPetFeedNotifications();
+    });
+  }
+
+  markNotificationsReadForPostRef.current = markNotificationsReadForPost;
+
+  function openNotificationsInbox() {
+    if (screen !== 'notifications-inbox') {
+      notificationsInboxReturnScreenRef.current = captureInboxReturnScreen();
+    }
+    setScreen('notifications-inbox');
+    // Do not mark read on open — only when tapping an item or opening the related post.
+    void refreshPetFeedNotifications();
+  }
+
+  function closeNotificationsInbox() {
+    setScreen(notificationsInboxReturnScreenRef.current || 'account');
+  }
+
+  function openNotificationItem(notification: PetFeedNotification) {
+    if (!notification.post_id) return;
+    openPetFeedPostDetail(notification.post_id, { focusCommentId: notification.comment_id });
+  }
+
   const refreshPetFeedMessages = useCallback(async (conversationId?: string) => {
     const id = conversationId || selectedPetFeedConversation?.id;
     if (!token || !id) return;
@@ -2330,18 +2475,30 @@ export function usePetHealthApp() {
   }, [selectedPetFeedConversation?.id, token]);
 
   function openMessagesInbox() {
+    if (screen !== 'messages-inbox') {
+      if (screen === 'pet-feed' || screen === 'pet-feed-detail') {
+        messagesInboxReturnScreenRef.current = 'pet-feed';
+      } else if (screen === 'home' || screen === 'account' || screen === 'admin-features') {
+        messagesInboxReturnScreenRef.current = screen;
+      } else {
+        messagesInboxReturnScreenRef.current = 'account';
+      }
+    }
     setScreen('messages-inbox');
     void refreshPetFeedConversations();
   }
 
   function closeMessagesInbox() {
-    setScreen('account');
+    setScreen(messagesInboxReturnScreenRef.current || 'account');
   }
 
   async function openMessageThread(conversation: PetFeedConversation) {
     messageThreadOpenGenRef.current += 1;
     const gen = messageThreadOpenGenRef.current;
-    setSelectedPetFeedConversation(conversation);
+    setSelectedPetFeedConversation({ ...conversation, has_unread: false });
+    setPetFeedConversations((current) =>
+      current.map((item) => (item.id === conversation.id ? { ...item, has_unread: false } : item)),
+    );
     setPetFeedMessages([]);
     setPetFeedMessagesError('');
     setPetFeedMessagesLoading(true);
@@ -2367,11 +2524,15 @@ export function usePetHealthApp() {
       breeder_user_id: post.user_id,
       last_message_at: null,
       last_message_preview: '',
+      last_message_sender_user_id: null,
+      sen_last_read_at: null,
+      breeder_last_read_at: null,
       created_at: new Date().toISOString(),
       post_title: post.title || '',
       post_thumb_url: metaThumb || media[0] || null,
       peer_display_name: peerName || i18n.t('petFeed.messages.peerFallback'),
       peer_user_id: post.user_id,
+      has_unread: false,
     };
   }
 
@@ -2447,6 +2608,8 @@ export function usePetHealthApp() {
                 ...current,
                 last_message_at: created.created_at,
                 last_message_preview: preview,
+                last_message_sender_user_id: created.sender_user_id,
+                has_unread: false,
               }
             : current
         ));
@@ -2457,6 +2620,8 @@ export function usePetHealthApp() {
                   ...item,
                   last_message_at: created.created_at,
                   last_message_preview: preview,
+                  last_message_sender_user_id: created.sender_user_id,
+                  has_unread: false,
                 }
               : item
           )),
@@ -2476,17 +2641,21 @@ export function usePetHealthApp() {
     if (!token || !messageThreadModalVisible || !selectedPetFeedConversation?.id) return undefined;
     if (!isPetFeedMessagingRealtimeConfigured()) return undefined;
     const conversationId = selectedPetFeedConversation.id;
+    const currentUserId = accountProfile?.user_id ?? null;
     return subscribePetFeedThreadMessages(token, conversationId, (message) => {
       setPetFeedMessages((current) => (
         current.some((item) => item.id === message.id) ? current : [...current, message]
       ));
       const preview = message.body.slice(0, 160);
+      const fromPeer = Boolean(currentUserId && message.sender_user_id !== currentUserId);
       setSelectedPetFeedConversation((current) => (
         current && current.id === message.conversation_id
           ? {
               ...current,
               last_message_at: message.created_at,
               last_message_preview: preview,
+              last_message_sender_user_id: message.sender_user_id,
+              has_unread: false,
             }
           : current
       ));
@@ -2497,27 +2666,50 @@ export function usePetHealthApp() {
                 ...item,
                 last_message_at: message.created_at,
                 last_message_preview: preview,
+                last_message_sender_user_id: message.sender_user_id,
+                // Thread is open — treat as read for badge purposes.
+                has_unread: false,
+                ...(fromPeer || !currentUserId
+                  ? {}
+                  : item.sen_user_id === currentUserId
+                    ? { sen_last_read_at: message.created_at }
+                    : { breeder_last_read_at: message.created_at }),
               }
             : item
         )),
       );
     });
-  }, [messageThreadModalVisible, selectedPetFeedConversation?.id, token]);
+  }, [accountProfile?.user_id, messageThreadModalVisible, selectedPetFeedConversation?.id, token]);
 
   useEffect(() => {
-    if (!token || screen !== 'messages-inbox') return undefined;
+    if (!token) return undefined;
     if (!isPetFeedMessagingRealtimeConfigured()) return undefined;
+    const currentUserId = accountProfile?.user_id ?? null;
+    const openConversationId = messageThreadModalVisible ? selectedPetFeedConversation?.id ?? null : null;
     return subscribePetFeedInboxConversations(token, (patch, event) => {
       setPetFeedConversations((current) => {
         const index = current.findIndex((item) => item.id === patch.id);
         if (index >= 0) {
           const next = [...current];
-          next[index] = {
+          const merged: PetFeedConversation = {
             ...next[index],
             ...(patch.last_message_at !== undefined ? { last_message_at: patch.last_message_at ?? null } : {}),
             ...(patch.last_message_preview !== undefined ? { last_message_preview: patch.last_message_preview } : {}),
+            ...(patch.last_message_sender_user_id !== undefined
+              ? { last_message_sender_user_id: patch.last_message_sender_user_id ?? null }
+              : {}),
+            ...(patch.sen_last_read_at !== undefined ? { sen_last_read_at: patch.sen_last_read_at ?? null } : {}),
+            ...(patch.breeder_last_read_at !== undefined ? { breeder_last_read_at: patch.breeder_last_read_at ?? null } : {}),
             ...(patch.updated_at !== undefined ? { updated_at: patch.updated_at } : {}),
           };
+          const senderId = merged.last_message_sender_user_id ?? null;
+          const viewingThisThread = openConversationId === merged.id;
+          if (viewingThisThread) {
+            merged.has_unread = false;
+          } else if (senderId && currentUserId) {
+            merged.has_unread = senderId !== currentUserId;
+          }
+          next[index] = merged;
           return next.sort((a, b) =>
             String(b.last_message_at || b.updated_at || '').localeCompare(String(a.last_message_at || a.updated_at || '')),
           );
@@ -2528,7 +2720,13 @@ export function usePetHealthApp() {
         return current;
       });
     });
-  }, [refreshPetFeedConversations, screen, token]);
+  }, [
+    accountProfile?.user_id,
+    messageThreadModalVisible,
+    refreshPetFeedConversations,
+    selectedPetFeedConversation?.id,
+    token,
+  ]);
 
   async function submitBreederProfileReport(profile: BreederProfile, reason: string, note?: string) {
     if (!token) return;
@@ -4066,11 +4264,13 @@ export function usePetHealthApp() {
     selectedBreederPosts,
     selectedPetFeedPostId,
     petFeedFocusPostId,
+    petFeedFocusCommentId,
     openBreederDetail,
     closeBreederDetail,
     openPetFeedPostDetail,
     closePetFeedPostDetail,
     clearPetFeedFocusPostId,
+    clearPetFeedFocusCommentId,
     togglePetFeedFavorite,
     fetchPetFeedPostDetail,
     fetchPetFeedPostComments,
@@ -4079,6 +4279,7 @@ export function usePetHealthApp() {
     petFeedConversations,
     petFeedConversationsLoading,
     petFeedConversationsError,
+    unreadPetFeedConversationCount,
     selectedPetFeedConversation,
     petFeedMessages,
     petFeedMessagesLoading,
@@ -4087,6 +4288,14 @@ export function usePetHealthApp() {
     messageThreadModalVisible,
     openMessagesInbox,
     closeMessagesInbox,
+    petFeedNotifications,
+    petFeedNotificationsLoading,
+    petFeedNotificationsError,
+    petFeedNotificationsUnreadCount,
+    openNotificationsInbox,
+    closeNotificationsInbox,
+    openNotificationItem,
+    refreshPetFeedNotifications,
     openMessageThread,
     openOrCreateConversationFromPost,
     closeMessageThread,
