@@ -12,7 +12,7 @@ function withoutMonetizationPlugins(plugins) {
 }
 
 const baseConfig = {
-  name: 'Pet Health Care',
+  name: 'PetCare: Pet Marketplace',
   slug: 'pet-health-care',
   scheme: 'pethealthcare',
   version: '1.1.3',
@@ -31,9 +31,10 @@ const baseConfig = {
     buildNumber: '4',
     associatedDomains: ['applinks:pet-marketplace.org', 'applinks:www.pet-marketplace.org'],
     infoPlist: {
+      CFBundleDisplayName: 'PetCare',
       ITSAppUsesNonExemptEncryption: false,
       NSPhotoLibraryUsageDescription:
-        'Pet Health Care lets you choose photos and videos from your library for pet profiles, wellness screening, breed recognition, and Pet Feed listings.',
+        'PetCare lets you choose photos and videos from your library for pet profiles, wellness screening, breed recognition, and marketplace listings.',
     },
   },
   android: {
