@@ -321,7 +321,9 @@ function AppContent() {
       ) : (
         <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right']}>
           <ResponsiveFrame>
-            {showBottomTab ? <AppHeader /> : null}
+            {showBottomTab ? (
+              <AppHeader titleKey={app.screen === 'pet-feed' ? 'petFeed.headerTitle' : 'login.appName'} />
+            ) : null}
 
             {app.managedUser ? <ManagedUserBanner managedUser={app.managedUser} onExit={app.exitManagedUser} /> : null}
 

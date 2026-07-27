@@ -138,6 +138,7 @@
   },
   "petFeed": {
     "title": "Pet Feed",
+    "headerTitle": "Pet Marketplace",
     "subtitle": "Bài đăng breeder có cấu trúc để Sen dễ so sánh thông tin quan trọng hơn các bài mạng xã hội rời rạc.",
     "disclaimer": "Thông tin do breeder cung cấp. Sen nên tự xác minh danh tính, giấy tờ, vaccine và sắp xếp gặp trực tiếp hoặc kiểm tra thú y trước khi quyết định.",
     "emptyTitle": "Chưa có bài đã duyệt",
@@ -169,10 +170,18 @@
     },
     "searchPlaceholder": "Tìm giống, breeder, tuổi, vị trí...",
     "filtersTitle": "Lọc nhanh",
+    "filterProvinceTitle": "Khu vực",
     "filters": {
       "all": "Tất cả",
+      "allProvinces": "Tất cả tỉnh/thành",
       "cat": "Mèo",
       "dog": "Chó",
+      "bird": "Chim",
+      "fish": "Cá",
+      "mouse": "Chuột",
+      "cow": "Bò",
+      "pig": "Heo",
+      "chicken": "Gà",
       "video": "Có video"
     },
     "sortTitle": "Sắp xếp",
@@ -630,6 +639,12 @@
     "speciesOptions": {
       "dog": "Chó",
       "cat": "Mèo",
+      "bird": "Chim",
+      "fish": "Cá",
+      "mouse": "Chuột",
+      "cow": "Bò",
+      "pig": "Heo",
+      "chicken": "Gà",
       "other": "Khác"
     },
     "scaleOptions": {
@@ -716,7 +731,13 @@
     "options": {
       "species": {
         "cat": "Mèo",
-        "dog": "Chó"
+        "dog": "Chó",
+        "bird": "Chim",
+        "fish": "Cá",
+        "mouse": "Chuột",
+        "cow": "Bò",
+        "pig": "Heo",
+        "chicken": "Gà"
       },
       "gender": {
         "unknown": "Chưa rõ",

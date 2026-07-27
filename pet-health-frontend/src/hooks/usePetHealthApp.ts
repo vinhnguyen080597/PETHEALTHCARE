@@ -404,6 +404,7 @@ export function usePetHealthApp() {
   const vaccinationDuePopupOfferedRef = useRef(false);
   const petFeedFetchedAtRef = useRef(0);
   const petFeedLoadGenRef = useRef(0);
+  const petFeedEnsureLoadingRef = useRef(false);
   const [petFeedPosts, setPetFeedPosts] = useState<PetFeedPost[]>([]);
   const [topBreederProfiles, setTopBreederProfiles] = useState<BreederProfile[]>([]);
   const [petFeedInitialLoading, setPetFeedInitialLoading] = useState(false);
@@ -711,6 +712,25 @@ export function usePetHealthApp() {
       }
     }
   }, []);
+
+  const ensurePetFeedCached = useCallback(async (
+    options: { showInitialLoading?: boolean } = {},
+  ) => {
+    if (!token || petFeedEnsureLoadingRef.current) return;
+    const neverLoaded = petFeedFetchedAtRef.current === 0;
+    const cacheFresh = !neverLoaded && Date.now() - petFeedFetchedAtRef.current < PET_FEED_CACHE_TTL_MS;
+    if (!neverLoaded && cacheFresh) return;
+
+    petFeedEnsureLoadingRef.current = true;
+    try {
+      await loadPetFeedFirstPage(token, {
+        showFeedInitialLoading: options.showInitialLoading ?? false,
+        showAnnouncementInitialLoading: options.showInitialLoading ?? false,
+      });
+    } finally {
+      petFeedEnsureLoadingRef.current = false;
+    }
+  }, [loadPetFeedFirstPage, token]);
 
   const refreshPetFeed = useCallback(async () => {
     if (!token) return;
@@ -1899,6 +1919,8 @@ export function usePetHealthApp() {
     setSelectedPetFeedPostId(postId);
     setPetFeedFocusPostId(null);
     setScreen('pet-feed-detail');
+    // Deep links can land on detail before the feed tab was opened — warm cache in background.
+    void ensurePetFeedCached();
   }
 
   const deepLinkTokenRef = useRef(token);
@@ -1932,6 +1954,9 @@ export function usePetHealthApp() {
     setPetFeedMessages([]);
     if (focusPostId) setPetFeedFocusPostId(focusPostId);
     setScreen('pet-feed');
+    if (petFeedFetchedAtRef.current === 0) {
+      void ensurePetFeedCached({ showInitialLoading: true });
+    }
   }
 
   const clearPetFeedFocusPostId = useCallback(() => {
@@ -2750,13 +2775,13 @@ export function usePetHealthApp() {
     if (!token) return;
     const nextFavorited = !post.is_favorited;
     const nextCount = Math.max(0, (post.favorite_count ?? 0) + (nextFavorited ? 1 : -1));
-    setPetFeedPosts((prev) =>
-      prev.map((item) =>
-        item.id === post.id
-          ? { ...item, is_favorited: nextFavorited, favorite_count: nextCount }
-          : item,
-      ),
-    );
+    const optimistic = { ...post, is_favorited: nextFavorited, favorite_count: nextCount };
+    const applyFavorite = (items: PetFeedPost[]) => {
+      const idx = items.findIndex((item) => item.id === post.id);
+      if (idx < 0) return [optimistic, ...items];
+      return items.map((item) => (item.id === post.id ? optimistic : item));
+    };
+    setPetFeedPosts(applyFavorite);
     try {
       if (post.is_favorited) {
         await unfavoritePetFeedPost(token, post.id);
@@ -2764,13 +2789,15 @@ export function usePetHealthApp() {
         await favoritePetFeedPost(token, post.id);
       }
     } catch (error: unknown) {
-      setPetFeedPosts((prev) =>
-        prev.map((item) =>
+      setPetFeedPosts((prev) => {
+        const idx = prev.findIndex((item) => item.id === post.id);
+        if (idx < 0) return prev.filter((item) => item.id !== post.id);
+        return prev.map((item) =>
           item.id === post.id
             ? { ...item, is_favorited: post.is_favorited, favorite_count: post.favorite_count }
             : item,
-        ),
-      );
+        );
+      });
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('petFeed.favoriteFailed'), message);
     }

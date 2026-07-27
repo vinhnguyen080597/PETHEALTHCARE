@@ -4,7 +4,11 @@ import { useTranslation } from 'react-i18next';
 
 const HEADER_BLUE = '#1E6FE8';
 
-export function AppHeader() {
+type AppHeaderProps = {
+  titleKey?: string;
+};
+
+export function AppHeader({ titleKey = 'login.appName' }: AppHeaderProps) {
   const { t } = useTranslation();
   return (
     <View className="px-5 py-3" style={{ backgroundColor: HEADER_BLUE }}>
@@ -13,7 +17,7 @@ export function AppHeader() {
           <Ionicons name="medkit" size={18} color="#ffffff" />
         </View>
         <Text className="min-w-0 flex-1 text-lg font-bold text-white" numberOfLines={1}>
-          {t('login.appName')}
+          {t(titleKey)}
         </Text>
       </View>
     </View>

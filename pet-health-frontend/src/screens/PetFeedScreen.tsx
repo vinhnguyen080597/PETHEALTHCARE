@@ -19,13 +19,26 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminPostCard } from '../components/AdminPostCard';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
+import { PetTypeFilterRow } from '../components/PetTypeFilterRow';
 import type { BreederProfile, PetFeedPost } from '../types';
+import { ALL_PROVINCES_FILTER, VIETNAM_PROVINCES, type ProvinceFilter } from '../constants/vietnamProvinces';
 import { computeBreederTrust, metadataString } from '../utils/breederTrust';
-import { ACTIVE_PET_FEED_SPECIES, type ActivePetFeedSpecies } from '../constants/petSpecies';
+import {
+  countPostsByGender,
+  postMatchesGender,
+  type GenderFilter,
+} from '../utils/petFeedGender';
+import { breederMatchesProvince, postMatchesProvince } from '../utils/petFeedLocation';
+import { normalizeSearchText } from '../utils/petFeedText';
 import {
   PET_FEED_TAB_ORDER,
   type PetFeedScreenTab,
 } from '../constants/petFeedTabFlags';
+import {
+  breederMatchesPetType,
+  postMatchesPetType,
+  type PetTypeFilter,
+} from '../utils/petType';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 import { modalTopInset } from '../utils/modalSafeArea';
 
@@ -33,8 +46,7 @@ const PRIMARY = '#1E6FE8';
 const WEB_SEARCH_INPUT_STYLE =
   Platform.OS === 'web' ? ({ outlineStyle: 'none', boxShadow: 'none' } as unknown as TextStyle) : undefined;
 
-type SpeciesFilter = 'all' | ActivePetFeedSpecies;
-type GenderFilter = 'all' | 'male' | 'female';
+type SpeciesFilter = PetTypeFilter;
 type SortField = 'date' | 'age' | 'price';
 type SortDirection = 'asc' | 'desc';
 type FeedTab = PetFeedScreenTab;
@@ -70,14 +82,6 @@ type PetFeedScreenProps = {
   onFocusPostHandled?: () => void;
   enabledTabs?: { news: boolean; feed: boolean; breeders: boolean };
 };
-
-function normalizeSearchText(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim();
-}
 
 function searchableText(post: PetFeedPost) {
   return normalizeSearchText([
@@ -119,13 +123,6 @@ function compareMaybeNumber(a: number | null, b: number | null, direction: 'asc'
   if (a == null) return 1;
   if (b == null) return -1;
   return direction === 'asc' ? a - b : b - a;
-}
-
-function genderGroup(post: PetFeedPost): Exclude<GenderFilter, 'all'> | 'unknown' {
-  const value = normalizeSearchText(post.gender);
-  if (value.includes('female') || value.includes('cai')) return 'female';
-  if (value.includes('male') || value.includes('duc')) return 'male';
-  return 'unknown';
 }
 
 type TopBreeder = {
@@ -206,11 +203,13 @@ export function PetFeedScreen({
     }
   }, [activeTab, visibleTabs]);
   const [query, setQuery] = useState('');
-  const [speciesFilter, setSpeciesFilter] = useState<SpeciesFilter>('all');
+  const [petTypeFilter, setPetTypeFilter] = useState<SpeciesFilter>('all');
+  const [provinceFilter, setProvinceFilter] = useState<ProvinceFilter>(ALL_PROVINCES_FILTER);
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filterVisible, setFilterVisible] = useState(false);
+  const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query]);
@@ -224,35 +223,26 @@ export function PetFeedScreen({
     return announcementPosts.filter((post) => searchableAnnouncementText(post).includes(normalizedQuery));
   }, [announcementPosts, normalizedQuery]);
 
-  const speciesFilterItems = useMemo<ChipItem<SpeciesFilter>[]>(() => {
-    return ACTIVE_PET_FEED_SPECIES.map((species) => ({
-      key: species,
-      label: t(`petFeed.filters.${species}`),
-      count: searchMatchedPosts.filter((post) => post.species.toLowerCase() === species).length,
-      icon: 'paw-outline' as const,
-    }));
-  }, [searchMatchedPosts, t]);
-
-  const sortItems = useMemo<ChipItem<SortField>[]>(() => [
-    { key: 'date', label: t('petFeed.sort.date'), icon: 'time-outline' },
-    { key: 'age', label: t('petFeed.sort.age'), icon: 'calendar-outline' },
-    { key: 'price', label: t('petFeed.sort.price'), icon: 'cash-outline' },
-  ], [t]);
-
   const speciesMatchedPosts = useMemo(() => {
-    return speciesFilter === 'all'
+    return petTypeFilter === 'all'
       ? searchMatchedPosts
-      : searchMatchedPosts.filter((post) => post.species.toLowerCase() === speciesFilter);
-  }, [searchMatchedPosts, speciesFilter]);
+      : searchMatchedPosts.filter((post) => postMatchesPetType(post, petTypeFilter));
+  }, [searchMatchedPosts, petTypeFilter]);
 
-  const genderFilterItems = useMemo<ChipItem<GenderFilter>[]>(() => {
-    const maleCount = speciesMatchedPosts.filter((post) => genderGroup(post) === 'male').length;
-    const femaleCount = speciesMatchedPosts.filter((post) => genderGroup(post) === 'female').length;
+  const provinceMatchedPosts = useMemo(() => {
+    return provinceFilter === ALL_PROVINCES_FILTER
+      ? speciesMatchedPosts
+      : speciesMatchedPosts.filter((post) => postMatchesProvince(post, provinceFilter));
+  }, [provinceFilter, speciesMatchedPosts]);
+
+  const genderFilterItems = useMemo<ChipItem<Exclude<GenderFilter, 'all'>>[]>(() => {
+    const maleCount = countPostsByGender(provinceMatchedPosts, 'male');
+    const femaleCount = countPostsByGender(provinceMatchedPosts, 'female');
     return [
       { key: 'male', label: t('gender.male'), count: maleCount, icon: 'male-outline' },
       { key: 'female', label: t('gender.female'), count: femaleCount, icon: 'female-outline' },
     ];
-  }, [speciesMatchedPosts, t]);
+  }, [provinceMatchedPosts, t]);
 
   function toggleSort(field: SortField) {
     if (sortField === field) {
@@ -271,16 +261,22 @@ export function PetFeedScreen({
     return translated === key ? value : translated;
   }, [t]);
 
+  const sortItems = useMemo<ChipItem<SortField>[]>(() => [
+    { key: 'date', label: t('petFeed.sort.date'), icon: 'time-outline' },
+    { key: 'age', label: t('petFeed.sort.age'), icon: 'calendar-outline' },
+    { key: 'price', label: t('petFeed.sort.price'), icon: 'cash-outline' },
+  ], [t]);
+
   const filteredPosts = useMemo(() => {
     const byGender = genderFilter === 'all'
-      ? speciesMatchedPosts
-      : speciesMatchedPosts.filter((post) => genderGroup(post) === genderFilter);
+      ? provinceMatchedPosts
+      : provinceMatchedPosts.filter((post) => postMatchesGender(post, genderFilter));
     return [...byGender].sort((a, b) => {
       if (sortField === 'age') return compareMaybeNumber(a.age_months, b.age_months, sortDirection);
       if (sortField === 'price') return compareMaybeNumber(parsePetFeedPriceToVnd(a.price_note), parsePetFeedPriceToVnd(b.price_note), sortDirection);
       return sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a);
     });
-  }, [genderFilter, sortDirection, sortField, speciesMatchedPosts]);
+  }, [genderFilter, provinceMatchedPosts, sortDirection, sortField]);
 
   const filteredAnnouncements = useMemo(() => {
     return [...searchMatchedAnnouncements].sort((a, b) => (
@@ -331,8 +327,21 @@ export function PetFeedScreen({
   }, [breederProfiles, posts]);
 
   const filteredTopBreeders = useMemo(() => {
-    if (!normalizedQuery) return topBreeders;
-    return topBreeders.filter((item) => {
+    const byPetType = petTypeFilter === 'all'
+      ? topBreeders
+      : topBreeders.filter((item) => breederMatchesPetType(item.profile, petTypeFilter, item.species));
+    const byProvince = provinceFilter === ALL_PROVINCES_FILTER
+      ? byPetType
+      : byPetType.filter((item) => breederMatchesProvince(
+        item.profile,
+        item.posts.map((post) => post.location),
+        provinceFilter,
+      ));
+    const byGender = genderFilter === 'all'
+      ? byProvince
+      : byProvince.filter((item) => item.posts.some((post) => postMatchesGender(post, genderFilter)));
+    if (!normalizedQuery) return byGender;
+    return byGender.filter((item) => {
       const profile = item.profile;
       const searchable = normalizeSearchText([
         profile.display_name,
@@ -346,11 +355,15 @@ export function PetFeedScreen({
       ].filter(Boolean).join(' '));
       return searchable.includes(normalizedQuery);
     });
-  }, [normalizedQuery, topBreeders]);
+  }, [genderFilter, normalizedQuery, petTypeFilter, provinceFilter, topBreeders]);
   const filterPanelWidth = Math.min(Math.round(windowWidth * 0.76), 330);
   const filterPanelMaxHeight = Math.min(Math.round(windowHeight * 0.58), 480);
   const filterPanelTopOffset = modalTopInset(insets.top) + 112;
-  const hasActiveFilters = speciesFilter !== 'all' || genderFilter !== 'all' || sortField !== 'date' || sortDirection !== 'desc';
+  const hasActiveFilters = petTypeFilter !== 'all'
+    || provinceFilter !== ALL_PROVINCES_FILTER
+    || genderFilter !== 'all'
+    || sortField !== 'date'
+    || sortDirection !== 'desc';
   const showListSkeleton =
     (activeTab === 'feed' && initialLoading)
     || (activeTab === 'news' && announcementInitialLoading)
@@ -374,6 +387,12 @@ export function PetFeedScreen({
     ? hasMore && !loadingMore && !loadMoreError && filteredPosts.length > 0 && !showListSkeleton
     : activeTab === 'news' && announcementHasMore && !announcementLoadingMore && !announcementLoadMoreError && filteredAnnouncements.length > 0 && !showListSkeleton;
 
+  const tabCounts = useMemo(() => ({
+    news: filteredAnnouncements.length,
+    feed: filteredPosts.length,
+    breeders: filteredTopBreeders.length,
+  }), [filteredAnnouncements.length, filteredPosts.length, filteredTopBreeders.length]);
+
   useEffect(() => {
     if (!focusPostId || !enabledTabs.feed) return;
 
@@ -391,7 +410,8 @@ export function PetFeedScreen({
     const inFiltered = filteredPosts.some((post) => post.id === focusPostId);
     if (!inFiltered) {
       setQuery('');
-      setSpeciesFilter('all');
+      setPetTypeFilter('all');
+      setProvinceFilter(ALL_PROVINCES_FILTER);
       setGenderFilter('all');
       setSortField('date');
       setSortDirection('desc');
@@ -425,7 +445,8 @@ export function PetFeedScreen({
   ]);
 
   const resetFilters = useCallback(() => {
-    setSpeciesFilter('all');
+    setPetTypeFilter('all');
+    setProvinceFilter(ALL_PROVINCES_FILTER);
     setGenderFilter('all');
     setSortField('date');
     setSortDirection('desc');
@@ -724,7 +745,7 @@ export function PetFeedScreen({
                 </Pressable>
               ) : null}
             </View>
-            {enabledTabs.feed && activeTab === 'feed' ? (
+            {enabledTabs.feed ? (
             <Pressable
               testID="pet-feed-filter-sidebar-button"
               accessibilityRole="button"
@@ -742,13 +763,15 @@ export function PetFeedScreen({
             )}
           </View>
 
+          <PetTypeFilterRow value={petTypeFilter} onChange={setPetTypeFilter} />
+
           {visibleTabs.length > 1 ? (
           <View className="mb-3 border-b border-gray-200 bg-white px-2 pb-2">
             <View className="flex-row rounded-xl border border-blue-100 bg-blue-50/40 p-0.5">
               {([
-                { key: 'news' as const, label: t('petFeed.tabs.news'), count: showListSkeleton ? undefined : announcementPosts.length, icon: 'megaphone-outline' as const },
-                { key: 'feed' as const, label: t('petFeed.tabs.feed'), count: showListSkeleton ? undefined : posts.length, icon: 'newspaper-outline' as const },
-                { key: 'breeders' as const, label: t('petFeed.tabs.breeders'), count: showListSkeleton ? undefined : topBreeders.length, icon: 'ribbon-outline' as const },
+                { key: 'news' as const, label: t('petFeed.tabs.news'), count: showListSkeleton ? undefined : tabCounts.news, icon: 'megaphone-outline' as const },
+                { key: 'feed' as const, label: t('petFeed.tabs.feed'), count: showListSkeleton ? undefined : tabCounts.feed, icon: 'newspaper-outline' as const },
+                { key: 'breeders' as const, label: t('petFeed.tabs.breeders'), count: showListSkeleton ? undefined : tabCounts.breeders, icon: 'ribbon-outline' as const },
               ]).filter((item) => enabledTabs[item.key]).map((item) => {
                 const active = activeTab === item.key;
                 const compactTabs = windowWidth < 390;
@@ -788,9 +811,9 @@ export function PetFeedScreen({
         </>
       )}
     />
-    <Modal visible={filterVisible} transparent animationType="fade" onRequestClose={() => setFilterVisible(false)}>
+    <Modal visible={filterVisible} transparent animationType="fade" onRequestClose={() => { setProvincePickerOpen(false); setFilterVisible(false); }}>
       <View className="flex-1">
-        <Pressable className="absolute inset-0" accessibilityRole="button" accessibilityLabel={t('petFeed.accessibility.closeFilters')} onPress={() => setFilterVisible(false)} />
+        <Pressable className="absolute inset-0" accessibilityRole="button" accessibilityLabel={t('petFeed.accessibility.closeFilters')} onPress={() => { setProvincePickerOpen(false); setFilterVisible(false); }} />
         <View
           className="self-end rounded-3xl border border-gray-200 bg-white p-4 shadow-2xl"
           style={{ marginRight: 20, marginTop: filterPanelTopOffset, maxHeight: filterPanelMaxHeight, width: filterPanelWidth }}
@@ -808,7 +831,7 @@ export function PetFeedScreen({
                   <Text className="text-xs font-black text-blue-700">{t('petFeed.resetFilters')}</Text>
                 </Pressable>
               ) : null}
-              <Pressable accessibilityRole="button" accessibilityLabel={t('petFeed.accessibility.closeFilters')} className="rounded-full bg-slate-100 p-2" onPress={() => setFilterVisible(false)}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('petFeed.accessibility.closeFilters')} className="rounded-full bg-slate-100 p-2" onPress={() => { setProvincePickerOpen(false); setFilterVisible(false); }}>
               <Ionicons name="close" size={18} color="#64748b" />
               </Pressable>
             </View>
@@ -816,28 +839,18 @@ export function PetFeedScreen({
 
           <ScrollView showsVerticalScrollIndicator={false}>
             <View className="rounded-2xl bg-slate-50 p-3">
-              <Text className="mb-2 text-xs font-bold uppercase text-slate-500">{t('petFeed.filtersTitle')}</Text>
-              <View className="flex-row flex-wrap gap-2">
-                {speciesFilterItems.map((item) => {
-                  const active = speciesFilter === item.key;
-                  return (
-                    <Pressable
-                      key={item.key}
-                      accessibilityRole="button"
-                      accessibilityLabel={item.label}
-                      accessibilityState={{ selected: active }}
-                      className={`flex-row items-center gap-1.5 rounded-full border px-3 py-2 ${
-                        active ? 'border-blue-600 bg-blue-600' : 'border-gray-200 bg-white'
-                      }`}
-                      onPress={() => setSpeciesFilter((current) => (current === item.key ? 'all' : item.key))}
-                    >
-                      <Ionicons name={item.icon} size={14} color={active ? '#fff' : '#64748b'} />
-                      <Text className={`text-xs font-black ${active ? 'text-white' : 'text-slate-700'}`}>{item.label}</Text>
-                      <Text className={`text-xs font-black ${active ? 'text-blue-100' : 'text-slate-400'}`}>{item.count}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <Text className="mb-2 text-xs font-bold uppercase text-slate-500">{t('petFeed.filterProvinceTitle')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('petFeed.filterProvinceTitle')}
+                className="flex-row items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2.5"
+                onPress={() => setProvincePickerOpen(true)}
+              >
+                <Text className="min-w-0 flex-1 pr-2 text-sm font-semibold text-slate-900" numberOfLines={1}>
+                  {provinceFilter === ALL_PROVINCES_FILTER ? t('petFeed.filters.allProvinces') : provinceFilter}
+                </Text>
+                <Ionicons name="chevron-down" size={18} color="#64748b" />
+              </Pressable>
             </View>
 
             <View className="mt-3 rounded-2xl bg-slate-50 p-3">
@@ -893,6 +906,50 @@ export function PetFeedScreen({
               </View>
             </View>
           </ScrollView>
+        </View>
+      </View>
+    </Modal>
+    <Modal visible={provincePickerOpen} transparent animationType="fade" onRequestClose={() => setProvincePickerOpen(false)}>
+      <View className="flex-1 justify-end">
+        <Pressable className="absolute inset-0 bg-black/40" accessibilityRole="button" accessibilityLabel={t('common.cancel')} onPress={() => setProvincePickerOpen(false)} />
+        <View className="max-h-[70%] rounded-t-2xl bg-white px-4 pt-2">
+          <View className="mb-2 self-center rounded-full bg-gray-200 px-10 py-1" />
+          <Text className="mb-3 text-center text-sm font-semibold text-slate-500">{t('petFeed.filterProvinceTitle')}</Text>
+          <ScrollView bounces={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 360 }}>
+            <Pressable
+              accessibilityRole="button"
+              className="border-b border-gray-100 py-3.5 active:bg-gray-50"
+              onPress={() => {
+                setProvinceFilter(ALL_PROVINCES_FILTER);
+                setProvincePickerOpen(false);
+              }}
+            >
+              <Text className={`text-center text-base ${provinceFilter === ALL_PROVINCES_FILTER ? 'font-bold text-blue-600' : 'text-slate-900'}`}>
+                {t('petFeed.filters.allProvinces')}
+              </Text>
+            </Pressable>
+            {VIETNAM_PROVINCES.map((province) => {
+              const active = provinceFilter === province;
+              return (
+                <Pressable
+                  key={province}
+                  accessibilityRole="button"
+                  className="border-b border-gray-100 py-3.5 active:bg-gray-50"
+                  onPress={() => {
+                    setProvinceFilter(province);
+                    setProvincePickerOpen(false);
+                  }}
+                >
+                  <Text className={`text-center text-base ${active ? 'font-bold text-blue-600' : 'text-slate-900'}`}>
+                    {province}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <Pressable className="py-3" onPress={() => setProvincePickerOpen(false)}>
+            <Text className="text-center text-base text-blue-600">{t('common.cancel')}</Text>
+          </Pressable>
         </View>
       </View>
     </Modal>

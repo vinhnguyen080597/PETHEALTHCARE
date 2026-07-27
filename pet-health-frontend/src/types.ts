@@ -161,6 +161,8 @@ export type BreederContact = {
   facebook?: string;
 };
 
+export type PetType = 'dog' | 'cat' | 'bird' | 'fish' | 'mouse' | 'cow' | 'pig' | 'chicken';
+
 export type BreederProfile = {
   id: string;
   user_id: string;
@@ -169,6 +171,8 @@ export type BreederProfile = {
   location: string;
   avatar_url: string | null;
   contact: BreederContact & Record<string, unknown>;
+  /** Derived filter field for dog/cat listings. */
+  pet_type?: PetType | null;
   primary_species: string[];
   main_breeds: string[];
   care_environment: string;
@@ -184,6 +188,8 @@ export type PetFeedPost = {
   breeder_profile_id: string | null;
   title: string;
   species: string;
+  /** Derived filter field for dog/cat listings. */
+  pet_type?: PetType | null;
   breed: string;
   gender: string;
   age_months: number | null;

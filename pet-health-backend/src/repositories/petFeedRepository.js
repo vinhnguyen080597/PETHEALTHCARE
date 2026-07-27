@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
+import { resolveBreederPetType, resolvePostPetType } from '../utils/petType.js';
 
 const POST_STATUSES = new Set(['draft', 'pending_review', 'published', 'archived']);
 const POST_KINDS = new Set(['listing', 'announcement']);
@@ -184,6 +185,7 @@ function toProfile(row) {
     care_environment: row.care_environment ?? '',
     verification_status: row.verification_status ?? 'unverified',
     metadata: row.metadata ?? {},
+    pet_type: resolveBreederPetType(row),
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -197,6 +199,7 @@ function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
     breeder_profile_id: row.breeder_profile_id,
     title: row.title,
     species: row.species,
+    pet_type: resolvePostPetType(row.species),
     breed: row.breed,
     gender: row.gender,
     age_months: row.age_months,
