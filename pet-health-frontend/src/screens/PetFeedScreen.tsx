@@ -17,7 +17,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminPostCard } from '../components/AdminPostCard';
-import { MarketplaceDisclaimerBanner } from '../components/MarketplaceLegalNotice';
+import { MarketplaceDisclaimerAlert } from '../components/MarketplaceLegalNotice';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { PetTypeFilterRow } from '../components/PetTypeFilterRow';
@@ -769,7 +769,7 @@ export function PetFeedScreen({
 
           {enabledTabs.feed ? (
             <View className="mx-5 mb-3">
-              <MarketplaceDisclaimerBanner compact />
+              <MarketplaceDisclaimerAlert compact />
             </View>
           ) : null}
 
