@@ -109,6 +109,7 @@ type AccountScreenProps = {
   onOpenCreatePetFeedPost: () => void;
   onEditPetFeedDraft?: (post: PetFeedPost) => void;
   onSubmitPetFeedDraft?: (post: PetFeedPost) => Promise<void>;
+  onDeletePetFeedPost?: (post: PetFeedPost) => Promise<boolean> | boolean;
   onOpenAdminHub: () => void;
   onOpenUpdateAccount: () => void;
   onOpenLanguageSelection: () => void;
@@ -175,6 +176,7 @@ export function AccountScreen({
   onOpenCreatePetFeedPost,
   onEditPetFeedDraft,
   onSubmitPetFeedDraft,
+  onDeletePetFeedPost,
   onOpenAdminHub,
   onOpenUpdateAccount,
   onOpenLanguageSelection,
@@ -202,6 +204,7 @@ export function AccountScreen({
   const [breederDateFilter, setBreederDateFilter] = useState<AdminRequestDateFilter>('newest');
   const [activeBreederDropdown, setActiveBreederDropdown] = useState<'status' | 'species' | 'date' | null>(null);
   const [adminActionBusyKey, setAdminActionBusyKey] = useState<string | null>(null);
+  const [listingMenuPostId, setListingMenuPostId] = useState<string | null>(null);
   const role = account?.primary_role ?? 'sen';
   const breederStatus = breederProfile?.verification_status ?? 'unverified';
   const isAdmin = role === 'admin';
@@ -1143,40 +1146,36 @@ export function AccountScreen({
                 </Text>
               ) : null}
               {myPosts.map((post) => (
-                <View key={post.id} className="rounded-xl bg-slate-50 p-3">
-                  <View className="flex-row items-start justify-between gap-3">
-                    <View className="min-w-0 flex-1">
-                      <Text className="font-bold text-slate-900" numberOfLines={2}>{post.title}</Text>
-                      <Text className="mt-1 text-xs font-semibold uppercase text-slate-500">{t(`petFeed.status.${post.status}`)}</Text>
-                    </View>
-                    <Text className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600">
-                      {post.species || 'pet'}
-                    </Text>
-                  </View>
-                  <Text className="mt-2 text-sm leading-5 text-slate-600" numberOfLines={2}>
-                    {[post.breed, post.location].filter(Boolean).join(' - ') || post.description}
-                  </Text>
-                  {post.status === 'draft' ? (
-                    <View className="mt-3 flex-row flex-wrap gap-2">
-                      <Pressable
-                        className="min-w-[120px] flex-1 rounded-xl border border-blue-200 bg-white py-2.5 active:bg-blue-50"
-                        onPress={() => onEditPetFeedDraft?.(post)}
-                      >
-                        <Text className="text-center text-xs font-bold" style={{ color: PRIMARY }}>
-                          {t('account.breederPosts.editDraft')}
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        className="min-w-[120px] flex-1 rounded-xl bg-blue-600 py-2.5 active:opacity-90"
-                        onPress={() => void onSubmitPetFeedDraft?.(post)}
-                      >
-                        <Text className="text-center text-xs font-bold text-white">
-                          {t('account.breederPosts.submitDraft')}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  ) : null}
-                </View>
+                <MyListingRow
+                  key={post.id}
+                  post={post}
+                  menuOpen={listingMenuPostId === post.id}
+                  onOpenMenu={() => setListingMenuPostId(post.id)}
+                  onCloseMenu={() => setListingMenuPostId(null)}
+                  onEdit={() => onEditPetFeedDraft?.(post)}
+                  onSubmitDraft={
+                    post.status === 'draft' && onSubmitPetFeedDraft
+                      ? () => void onSubmitPetFeedDraft(post)
+                      : undefined
+                  }
+                  onDelete={
+                    onDeletePetFeedPost && post.status !== 'archived'
+                      ? () => {
+                          const runDelete = () => void onDeletePetFeedPost(post);
+                          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                            if (window.confirm(`${t('petFeed.deleteListingTitle')}\n\n${t('petFeed.deleteListingBody')}`)) {
+                              runDelete();
+                            }
+                            return;
+                          }
+                          Alert.alert(t('petFeed.deleteListingTitle'), t('petFeed.deleteListingBody'), [
+                            { text: t('common.cancel'), style: 'cancel' },
+                            { text: t('petFeed.deleteListing'), style: 'destructive', onPress: runDelete },
+                          ]);
+                        }
+                      : undefined
+                  }
+                />
               ))}
             </View>
           </View>
@@ -1297,6 +1296,166 @@ function AccountMenuItem({
       <Ionicons name={icon} size={18} color={destructive ? '#dc2626' : '#334155'} />
       <Text className={`flex-1 text-sm font-semibold ${destructive ? 'text-red-600' : 'text-slate-800'}`}>{label}</Text>
     </Pressable>
+  );
+}
+
+function listingThumbUri(post: PetFeedPost) {
+  const fromMeta =
+    post.metadata && typeof post.metadata.list_thumb_url === 'string'
+      ? post.metadata.list_thumb_url.trim()
+      : '';
+  return fromMeta || post.media_urls[0] || '';
+}
+
+function listingStatusTone(status: PetFeedPost['status']) {
+  if (status === 'published') return { wrap: 'bg-emerald-50', text: 'text-emerald-700' };
+  if (status === 'pending_review') return { wrap: 'bg-amber-50', text: 'text-amber-700' };
+  if (status === 'draft') return { wrap: 'bg-slate-100', text: 'text-slate-600' };
+  return { wrap: 'bg-slate-100', text: 'text-slate-500' };
+}
+
+function MyListingRow({
+  post,
+  menuOpen,
+  onOpenMenu,
+  onCloseMenu,
+  onEdit,
+  onSubmitDraft,
+  onDelete,
+}: {
+  post: PetFeedPost;
+  menuOpen: boolean;
+  onOpenMenu: () => void;
+  onCloseMenu: () => void;
+  onEdit?: () => void;
+  onSubmitDraft?: () => void;
+  onDelete?: () => void;
+}) {
+  const { t } = useTranslation();
+  const thumbUri = listingThumbUri(post);
+  const statusTone = listingStatusTone(post.status);
+  const canEdit = Boolean(onEdit) && ['draft', 'pending_review', 'published'].includes(post.status);
+  const subtitle = [post.breed, post.location].filter(Boolean).join(' · ') || post.description;
+  const hasActions = canEdit || Boolean(onSubmitDraft) || Boolean(onDelete);
+
+  return (
+    <View className="overflow-hidden rounded-xl bg-slate-50">
+      <View className="flex-row items-center gap-3 p-2.5 pr-1">
+        <View className="h-16 w-16 overflow-hidden rounded-lg bg-slate-200">
+          {thumbUri ? (
+            <Image
+              source={{ uri: thumbUri }}
+              style={{ height: '100%', width: '100%' }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={100}
+            />
+          ) : (
+            <View className="h-full w-full items-center justify-center">
+              <Ionicons name="image-outline" size={22} color="#94a3b8" />
+            </View>
+          )}
+        </View>
+
+        <View className="min-w-0 flex-1 py-0.5">
+          <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>
+            {post.title}
+          </Text>
+          <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
+            <Text className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusTone.wrap} ${statusTone.text}`}>
+              {t(`petFeed.status.${post.status}`)}
+            </Text>
+            {post.species ? (
+              <Text className="text-[10px] font-semibold uppercase text-slate-400">{post.species}</Text>
+            ) : null}
+          </View>
+          {subtitle ? (
+            <Text className="mt-1 text-xs leading-4 text-slate-500" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+
+        {hasActions ? (
+          <Pressable
+            testID={`my-listing-menu-${post.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={t('account.breederPosts.openActions', { title: post.title })}
+            hitSlop={8}
+            className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-200"
+            onPress={onOpenMenu}
+          >
+            <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
+          </Pressable>
+        ) : null}
+      </View>
+
+      {menuOpen ? (
+        <Modal visible transparent animationType="fade" onRequestClose={onCloseMenu}>
+          <Pressable className="flex-1 justify-end bg-black/25" onPress={onCloseMenu}>
+            <Pressable
+              className="overflow-hidden rounded-t-3xl border border-gray-200 bg-white pb-6"
+              onPress={() => {}}
+            >
+              <View className="items-center px-4 pb-2 pt-3">
+                <View className="mb-3 h-1 w-10 rounded-full bg-slate-200" />
+                <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>
+                  {post.title}
+                </Text>
+              </View>
+              {canEdit ? (
+                <AccountMenuItem
+                  testID={`my-listing-edit-${post.id}`}
+                  icon="create-outline"
+                  label={t('account.breederPosts.editListing')}
+                  onPress={() => {
+                    onCloseMenu();
+                    onEdit?.();
+                  }}
+                />
+              ) : null}
+              {onSubmitDraft ? (
+                <>
+                  <View className="h-px bg-gray-100" />
+                  <AccountMenuItem
+                    testID={`my-listing-submit-${post.id}`}
+                    icon="send-outline"
+                    label={t('account.breederPosts.submitDraft')}
+                    onPress={() => {
+                      onCloseMenu();
+                      onSubmitDraft();
+                    }}
+                  />
+                </>
+              ) : null}
+              {onDelete ? (
+                <>
+                  <View className="h-px bg-gray-100" />
+                  <AccountMenuItem
+                    testID={`my-listing-delete-${post.id}`}
+                    icon="trash-outline"
+                    label={t('petFeed.deleteListing')}
+                    destructive
+                    onPress={() => {
+                      onCloseMenu();
+                      onDelete();
+                    }}
+                  />
+                </>
+              ) : null}
+              <View className="mx-4 mt-2 border-t border-gray-100 pt-2">
+                <Pressable
+                  className="rounded-xl bg-slate-50 py-3 active:bg-slate-100"
+                  onPress={onCloseMenu}
+                >
+                  <Text className="text-center text-sm font-bold text-slate-600">{t('common.cancel')}</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
+    </View>
   );
 }
 

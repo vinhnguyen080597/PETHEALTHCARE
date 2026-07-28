@@ -243,6 +243,7 @@ function AppContent() {
       onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
       onEditPetFeedDraft={app.openEditPetFeedDraft}
       onSubmitPetFeedDraft={app.submitPetFeedDraftForReview}
+      onDeletePetFeedPost={app.deleteOwnPetFeedPost}
       onOpenAdminHub={app.openAdminHub}
       onOpenUpdateAccount={app.openUpdateAccount}
       onOpenLanguageSelection={app.openLanguageSelection}

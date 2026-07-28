@@ -203,7 +203,10 @@ export function CreatePetFeedPostScreen({
   role = 'breeder',
 }: CreatePetFeedPostScreenProps) {
   const { t, i18n } = useTranslation();
-  const isEditingDraft = Boolean(editingPost?.id);
+  const isEditingPost = Boolean(editingPost?.id);
+  const editingStatus = editingPost?.status;
+  const isPublishedListing = editingStatus === 'published';
+  const canSaveDraft = !isEditingPost || editingStatus === 'draft' || editingStatus === 'pending_review';
   const [title, setTitle] = useState(editingPost?.title ?? '');
   const [species, setSpecies] = useState(editingPost?.species || 'cat');
   const [breed, setBreed] = useState('');
@@ -359,7 +362,7 @@ export function CreatePetFeedPostScreen({
     media_urls: photoUris,
     video_url: videoUri || null,
     contact: { facebook, zalo, phone },
-    status: isAdmin ? 'published' : isEditingDraft ? 'draft' : 'pending_review',
+    status: isAdmin ? 'published' : isEditingPost ? (editingStatus ?? 'draft') : 'pending_review',
     metadata: {},
     breeder_profile: null,
     is_favorited: false,
@@ -506,11 +509,36 @@ export function CreatePetFeedPostScreen({
     return raw || t('common.unknownError');
   }
 
+  function isRemoteMediaUri(uri: string) {
+    return /^https?:\/\//i.test(uri) || uri.startsWith('memory://');
+  }
+
+  function editMediaNeedsUpload() {
+    if (!editingPost) return true;
+    const origPhotos = editingPost.media_urls ?? [];
+    const origVideo = editingPost.video_url ?? '';
+    const hasNewLocal =
+      photoUris.some((uri) => !isRemoteMediaUri(uri))
+      || Boolean(videoUri && !isRemoteMediaUri(videoUri));
+    if (hasNewLocal) return true;
+    if (photoUris.length !== origPhotos.length) return true;
+    if (photoUris.some((uri, index) => uri !== origPhotos[index])) return true;
+    if ((videoUri || '') !== origVideo) return true;
+    return false;
+  }
+
+  function resolveEditNextStatus(submitStatus: CreatePetFeedPostPayload['status']): CreatePetFeedPostPayload['status'] {
+    if (!editingPost) return submitStatus;
+    if (submitStatus === 'draft') return 'draft';
+    if (editingPost.status === 'published' || editingPost.status === 'pending_review') return 'pending_review';
+    return submitStatus === 'pending_review' ? 'pending_review' : 'draft';
+  }
+
   async function submit(status: CreatePetFeedPostPayload['status']) {
     if (submitting) return;
 
-    const isDraft = status === 'draft';
-    if (!isDraft && !marketplaceTermsAccepted) {
+    const isDraftSubmit = status === 'draft';
+    if (!isDraftSubmit && !marketplaceTermsAccepted) {
       Alert.alert(t('createPetFeedPost.submitFailed'), t('createPetFeedPost.errors.marketplaceTermsRequired'));
       return;
     }
@@ -532,9 +560,10 @@ export function CreatePetFeedPostScreen({
       status,
     };
 
+    const nextStatus = isEditingPost && editingPost && onUpdate ? resolveEditNextStatus(status) : status;
+
     try {
-      if (isEditingDraft && editingPost && onUpdate) {
-        const nextStatus = status === 'pending_review' ? 'pending_review' : 'draft';
+      if (isEditingPost && editingPost && onUpdate) {
         if (nextStatus === 'pending_review') {
           const result = validateForReview();
           if (result.message) {
@@ -544,17 +573,14 @@ export function CreatePetFeedPostScreen({
         } else if (!title.trim()) {
           throw new Error(t('createPetFeedPost.errors.titleRequired'));
         }
-      } else {
-        const isDraft = status === 'draft';
-        if (!isDraft) {
-          const result = validateForReview();
-          if (result.message) {
-            if (result.focusKey) scrollToMissingField(result.focusKey);
-            throw new Error(result.message);
-          }
-        } else if (!title.trim()) {
-          throw new Error(t('createPetFeedPost.errors.titleRequired'));
+      } else if (!isDraftSubmit) {
+        const result = validateForReview();
+        if (result.message) {
+          if (result.focusKey) scrollToMissingField(result.focusKey);
+          throw new Error(result.message);
         }
+      } else if (!title.trim()) {
+        throw new Error(t('createPetFeedPost.errors.titleRequired'));
       }
     } catch (error: unknown) {
       const failTitle = status === 'draft' ? t('createPetFeedPost.draftSaveFailed') : t('createPetFeedPost.submitFailed');
@@ -567,44 +593,48 @@ export function CreatePetFeedPostScreen({
     setSubmitting(true);
     onBusyChange?.(true);
     try {
-      if (isEditingDraft && editingPost && onUpdate) {
-        const nextStatus = status === 'pending_review' ? 'pending_review' : 'draft';
-        const optimizedPhotos: string[] = [];
-        for (const uri of photoUris) {
-          optimizedPhotos.push(/^https?:\/\//i.test(uri) || uri.startsWith('memory://') ? uri : await optimizePetFeedPhotoUri(uri));
-        }
-        const localForThumb = optimizedPhotos.find((uri) => !/^https?:\/\//i.test(uri) && !uri.startsWith('memory://'));
-        const listThumbUri = localForThumb
-          ? await optimizePetFeedListThumbUri(localForThumb)
-          : undefined;
-        const oversized = await findOversizedPetFeedMedia({
-          photoUris: optimizedPhotos.filter((uri) => !/^https?:\/\//i.test(uri) && !uri.startsWith('memory://')),
-          videoUri: videoUri && !/^https?:\/\//i.test(videoUri) && !videoUri.startsWith('memory://') ? videoUri : null,
-        });
-        if (oversized?.kind === 'photo') {
-          throw new Error(
-            t('createPetFeedPost.errors.photoTooLarge', {
-              index: oversized.index + 1,
-              size: formatBytesAsMb(oversized.sizeBytes),
-            }),
-          );
-        }
-        if (oversized?.kind === 'video') {
-          throw new Error(
-            t('createPetFeedPost.errors.videoTooLarge', {
-              size: formatBytesAsMb(oversized.sizeBytes),
-            }),
-          );
+      if (isEditingPost && editingPost && onUpdate) {
+        const needsMediaUpload = editMediaNeedsUpload();
+        let mediaPayload: CreatePetFeedPostMedia | undefined;
+        if (needsMediaUpload) {
+          const optimizedPhotos: string[] = [];
+          for (const uri of photoUris) {
+            optimizedPhotos.push(isRemoteMediaUri(uri) ? uri : await optimizePetFeedPhotoUri(uri));
+          }
+          const localForThumb = optimizedPhotos.find((uri) => !isRemoteMediaUri(uri));
+          const listThumbUri = localForThumb
+            ? await optimizePetFeedListThumbUri(localForThumb)
+            : undefined;
+          const oversized = await findOversizedPetFeedMedia({
+            photoUris: optimizedPhotos.filter((uri) => !isRemoteMediaUri(uri)),
+            videoUri: videoUri && !isRemoteMediaUri(videoUri) ? videoUri : null,
+          });
+          if (oversized?.kind === 'photo') {
+            throw new Error(
+              t('createPetFeedPost.errors.photoTooLarge', {
+                index: oversized.index + 1,
+                size: formatBytesAsMb(oversized.sizeBytes),
+              }),
+            );
+          }
+          if (oversized?.kind === 'video') {
+            throw new Error(
+              t('createPetFeedPost.errors.videoTooLarge', {
+                size: formatBytesAsMb(oversized.sizeBytes),
+              }),
+            );
+          }
+          mediaPayload = {
+            photoUris: optimizedPhotos,
+            videoUri: videoUri || undefined,
+            listThumbUri,
+          };
         }
 
         await onUpdate(
           editingPost.id,
           { ...payload, status: nextStatus },
-          {
-            photoUris: optimizedPhotos,
-            videoUri: videoUri || undefined,
-            listThumbUri,
-          },
+          mediaPayload,
         );
         return;
       }
@@ -656,7 +686,7 @@ export function CreatePetFeedPostScreen({
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </Pressable>
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">
-          {isEditingDraft ? t('createPetFeedPost.editTitle') : t('createPetFeedPost.title')}
+          {isEditingPost ? t('createPetFeedPost.editTitle') : t('createPetFeedPost.title')}
         </Text>
         <View className="w-14" />
       </View>
@@ -668,7 +698,11 @@ export function CreatePetFeedPostScreen({
       >
         <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <Text className="text-sm leading-5 text-amber-900">
-            {isAdmin ? t('createPetFeedPost.adminReviewNote') : t('createPetFeedPost.reviewNote')}
+            {isAdmin
+              ? t('createPetFeedPost.adminReviewNote')
+              : isPublishedListing
+                ? t('createPetFeedPost.publishedEditNote')
+                : t('createPetFeedPost.reviewNote')}
           </Text>
         </View>
         <MarketplaceDisclaimerBanner compact className="mt-3" />
@@ -795,7 +829,9 @@ export function CreatePetFeedPostScreen({
           }}
         >
           <Text className="mb-3 text-base font-bold text-slate-900">{t('createPetFeedPost.mediaSection')}</Text>
-          {isEditingDraft ? (
+          {isPublishedListing ? (
+            <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.publishedMediaHint')}</Text>
+          ) : isEditingPost && editingStatus === 'draft' ? (
             <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.draftMediaHint')}</Text>
           ) : (
             <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.mediaHint')}</Text>
@@ -879,7 +915,7 @@ export function CreatePetFeedPostScreen({
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder="Facebook URL" value={facebook} onChangeText={setFacebook} />
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder="Zalo" value={zalo} onChangeText={setZalo} />
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder={t('breederProfile.phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-          {!isAdmin ? (
+          {!isAdmin && canSaveDraft ? (
             <Pressable
               testID="create-pet-feed-post-save-draft-button"
               className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"
@@ -890,7 +926,7 @@ export function CreatePetFeedPostScreen({
               <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('createPetFeedPost.saveDraft')}</Text>
             </Pressable>
           ) : null}
-          <Pressable testID="create-pet-feed-post-review-button" className={`${isAdmin ? 'mt-4' : 'mt-3'} flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90`} onPress={openReview} disabled={submitting}>
+          <Pressable testID="create-pet-feed-post-review-button" className={`${isAdmin || !canSaveDraft ? 'mt-4' : 'mt-3'} flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90`} onPress={openReview} disabled={submitting}>
             <Ionicons name="eye-outline" size={18} color="#fff" />
             <Text className="text-sm font-bold text-white">{t('createPetFeedPost.review')}</Text>
           </Pressable>
@@ -914,7 +950,7 @@ export function CreatePetFeedPostScreen({
             <Pressable className="mb-3 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50" onPress={() => setReviewOpen(false)} disabled={submitting}>
               <Text className="text-center text-sm font-bold text-slate-700">{t('createPetFeedPost.edit')}</Text>
             </Pressable>
-            {!isAdmin ? (
+            {!isAdmin && canSaveDraft ? (
               <Pressable
                 testID="create-pet-feed-post-review-save-draft-button"
                 className="mb-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"

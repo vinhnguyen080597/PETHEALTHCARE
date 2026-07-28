@@ -506,6 +506,9 @@
       "title": "My listings",
       "empty": "No listings yet. Create your first listing after your profile is verified.",
       "editDraft": "Edit",
+      "editListing": "Edit listing",
+      "editListingSuccess": "Changes submitted for review. Your listing will update after approval.",
+      "openActions": "Actions for {{title}}",
       "submitDraft": "Submit for review",
       "submitDraftSuccess": "Draft submitted for review.",
       "submitDraftFailed": "Could not submit draft.",
@@ -730,6 +733,8 @@
     "editTitle": "Edit listing",
     "mediaLockedNote": "Photos/video are saved with this draft. To change media, create a new listing.",
     "draftMediaHint": "You can add or change photos/video while editing this draft. Title is enough to save a draft — photo + video are required only when submitting for review.",
+    "publishedEditNote": "Changes to a published listing are sent for admin review before going live again.",
+    "publishedMediaHint": "You can update photos or video when you submit for review. Text-only changes keep your current media.",
     "errors": {
       "titleRequired": "Please enter a listing title.",
       "breedRequired": "Please select a breed.",

@@ -2102,7 +2102,7 @@ export function usePetHealthApp() {
     if (!['draft', 'pending_review', 'published'].includes(post.status)) return;
     if (accountProfile?.user_id && post.user_id !== accountProfile.user_id) return;
     setEditingPetFeedPost(post);
-    setCreatePetFeedReturnScreen(screen === 'pet-feed-detail' ? 'pet-feed' : 'account');
+    setCreatePetFeedReturnScreen(screen === 'pet-feed-detail' ? 'pet-feed-detail' : screen === 'account' ? 'account' : 'account');
     setScreen('create-pet-feed-post');
   }
 
@@ -2176,6 +2176,7 @@ export function usePetHealthApp() {
     media?: CreatePetFeedPostMedia,
   ) {
     if (!token) return;
+    const wasPublished = editingPetFeedPost?.status === 'published';
     setLoading(true);
     try {
       await updateMyPetFeedDraft(token, postId, payload, media);
@@ -2186,7 +2187,10 @@ export function usePetHealthApp() {
       if (payload.status === 'draft') {
         Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
       } else if (payload.status === 'pending_review') {
-        Alert.alert(i18n.t('common.ok'), i18n.t('account.breederPosts.submitDraftSuccess'));
+        Alert.alert(
+          i18n.t('common.ok'),
+          i18n.t(wasPublished ? 'account.breederPosts.editListingSuccess' : 'account.breederPosts.submitDraftSuccess'),
+        );
       }
       setScreen(createPetFeedReturnScreen);
     } finally {

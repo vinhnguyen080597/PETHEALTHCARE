@@ -506,6 +506,9 @@
       "title": "Bài đăng của tôi",
       "empty": "Chưa có bài đăng nào. Hãy tạo bài đầu tiên sau khi hồ sơ được xác minh.",
       "editDraft": "Chỉnh sửa",
+      "editListing": "Chỉnh sửa bài đăng",
+      "editListingSuccess": "Đã gửi thay đổi đi duyệt. Bài đăng sẽ cập nhật sau khi được phê duyệt.",
+      "openActions": "Thao tác cho {{title}}",
       "submitDraft": "Gửi duyệt",
       "submitDraftSuccess": "Đã gửi bản nháp đi duyệt.",
       "submitDraftFailed": "Không gửi được bản nháp.",
@@ -730,6 +733,8 @@
     "editTitle": "Chỉnh sửa bài đăng",
     "mediaLockedNote": "Ảnh/video đã lưu cùng bản nháp. Để đổi media, hãy tạo bài mới.",
     "draftMediaHint": "Bạn có thể bổ sung hoặc đổi ảnh/video khi chỉnh bản nháp. Chỉ cần tiêu đề để Lưu nháp — đủ ảnh + video khi Gửi duyệt.",
+    "publishedEditNote": "Thay đổi bài đăng đã xuất bản sẽ được gửi duyệt lại trước khi hiển thị công khai.",
+    "publishedMediaHint": "Bạn có thể cập nhật ảnh hoặc video khi gửi duyệt. Nếu chỉ sửa nội dung, media hiện tại sẽ được giữ nguyên.",
     "errors": {
       "titleRequired": "Vui lòng nhập tiêu đề bài đăng.",
       "breedRequired": "Vui lòng chọn giống.",
