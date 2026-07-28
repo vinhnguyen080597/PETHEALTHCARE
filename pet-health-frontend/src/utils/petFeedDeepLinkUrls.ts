@@ -44,6 +44,14 @@ function postIdFromPathname(pathname: string) {
 /** HTTPS share URL (landing page + Universal / App Link target). */
 export function petFeedPostShareUrl(postId: string) {
   const id = normalizePostId(postId);
+  // Use the existing landing page (HTTP 200) so crawlers can read Open Graph tags.
+  // Path form `/posts/:id/` remains supported for Universal Links + legacy shares.
+  return `${SITE_ORIGIN}/app/pet-feed/post/?id=${encodeURIComponent(id)}`;
+}
+
+/** Canonical Universal Link path (also used as og:url when available). */
+export function petFeedPostUniversalLinkUrl(postId: string) {
+  const id = normalizePostId(postId);
   return `${SITE_ORIGIN}/app/pet-feed/posts/${encodeURIComponent(id)}/`;
 }
 

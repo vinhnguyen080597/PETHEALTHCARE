@@ -41,3 +41,8 @@ Share URL format:
 - App Store ID: `6778684107`
 - `docs/CNAME` → `pet-marketplace.org`
 - AASA paths: `/app/pet-feed/*`
+
+## Share link previews
+
+See [SHARE_PREVIEWS.md](./SHARE_PREVIEWS.md) for Open Graph / Zalo / Messenger setup.
+

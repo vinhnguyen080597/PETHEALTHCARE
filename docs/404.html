@@ -1,24 +1,34 @@
-﻿<!doctype html>
-<html lang="en">
+<!doctype html>
+<html lang="vi">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Redirecting…</title>
+    <title>Pet Marketplace</title>
+    <meta name="description" content="Xem tin đăng thú cưng trên Pet Marketplace." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Pet Marketplace" />
+    <meta property="og:title" content="Pet Marketplace" />
+    <meta property="og:description" content="Xem tin đăng thú cưng trên Pet Marketplace và mở bằng ứng dụng." />
+    <meta property="og:image" content="https://pet-marketplace.org/og-share.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pet Marketplace" />
+    <meta name="twitter:description" content="Xem tin đăng thú cưng trên Pet Marketplace." />
+    <meta name="twitter:image" content="https://pet-marketplace.org/og-share.png" />
     <script>
       (function () {
-        var path = window.location.pathname || "";
+        var path = window.location.pathname || '';
         var match = path.match(/\/app\/pet-feed\/posts\/([^/]+)\/?$/i);
         if (match && match[1]) {
-          var base = path.indexOf("/PETHEALTHCARE/") >= 0 ? "/PETHEALTHCARE" : "";
-          window.location.replace(base + "/app/pet-feed/post/?id=" + encodeURIComponent(decodeURIComponent(match[1])));
+          var base = path.indexOf('/PETHEALTHCARE/') >= 0 ? '/PETHEALTHCARE' : '';
+          window.location.replace(base + '/app/pet-feed/post/?id=' + encodeURIComponent(decodeURIComponent(match[1])));
           return;
         }
-        var home = path.indexOf("/PETHEALTHCARE/") >= 0 ? "/PETHEALTHCARE/" : "/";
+        var home = path.indexOf('/PETHEALTHCARE/') >= 0 ? '/PETHEALTHCARE/' : '/';
         window.location.replace(home);
       })();
     </script>
   </head>
   <body>
-    <p>Redirecting…</p>
+    <p>Redirecting to Pet Marketplace...</p>
   </body>
 </html>

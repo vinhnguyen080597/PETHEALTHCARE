@@ -670,6 +670,57 @@ export async function getPetFeedPost(userId, postId, accessToken) {
   return withPostEngagementCounts(post, accessToken);
 }
 
+/** Public share/OG card for published listings only (no auth, no contact/private fields). */
+export async function getPublishedPetFeedShareCard(postId) {
+  const safePostId = trimText(postId, 80);
+  if (!safePostId) return null;
+
+  const supabase = getSupabaseServiceClient();
+  let row = null;
+  if (!supabase) {
+    row = memoryPosts.find((post) => post.id === safePostId && post.status === 'published') ?? null;
+  } else {
+    const { data, error } = await supabase
+      .from('pet_feed_posts')
+      .select('id, title, description, species, breed, location, price_note, media_urls, metadata, status, post_kind, created_at')
+      .eq('id', safePostId)
+      .eq('status', 'published')
+      .maybeSingle();
+    if (error) {
+      // Invalid UUID / not found → treat as missing for public share cards.
+      if (error.code === '22P02' || error.code === 'PGRST116') return null;
+      throw error;
+    }
+    row = data;
+  }
+  if (!row) return null;
+
+  const media = Array.isArray(row.media_urls) ? row.media_urls.filter(Boolean) : [];
+  const listThumb =
+    row.metadata && typeof row.metadata.list_thumb_url === 'string' ? row.metadata.list_thumb_url.trim() : '';
+  const imageUrl = listThumb || media[0] || '';
+  const title = trimText(row.title, 120) || 'Pet Marketplace listing';
+  const description = trimText(
+    [row.breed, row.location, row.price_note].filter(Boolean).join(' · ')
+      || row.description
+      || 'Xem tin đăng thú cưng trên Pet Marketplace.',
+    200,
+  );
+
+  return {
+    id: row.id,
+    title,
+    description,
+    imageUrl,
+    species: trimText(row.species, 40),
+    breed: trimText(row.breed, 80),
+    location: trimText(row.location, 80),
+    priceNote: trimText(row.price_note, 80),
+    postKind: normalizePostKind(row.post_kind, 'listing'),
+    createdAt: row.created_at ?? null,
+  };
+}
+
 export async function getMyBreederProfile(userId, accessToken) {
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) return toProfile(memoryProfiles.find((profile) => profile.user_id === userId) ?? null);

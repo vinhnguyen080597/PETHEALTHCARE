@@ -7,8 +7,10 @@ import {
 } from '../src/utils/petFeedDeepLinkUrls.ts';
 
 test('builds https share URL for a post', () => {
-  assert.match(petFeedPostShareUrl('abc_123'), /\/app\/pet-feed\/posts\/abc_123\/$/);
-  assert.match(petFeedPostShareUrl('abc_123'), /^https:\/\/pet-marketplace\.org\//);
+  assert.equal(
+    petFeedPostShareUrl('abc_123'),
+    'https://pet-marketplace.org/app/pet-feed/post/?id=abc_123',
+  );
 });
 
 test('builds custom scheme URL for landing-page handoff', () => {
@@ -25,6 +27,13 @@ test('parses custom scheme deep link', () => {
 test('parses https Universal Link path on custom domain', () => {
   assert.deepEqual(
     parsePetFeedDeepLink('https://pet-marketplace.org/app/pet-feed/posts/post-42/'),
+    { type: 'pet-feed-post', postId: 'post-42' },
+  );
+});
+
+test('parses https share landing query on custom domain', () => {
+  assert.deepEqual(
+    parsePetFeedDeepLink('https://pet-marketplace.org/app/pet-feed/post/?id=post-42'),
     { type: 'pet-feed-post', postId: 'post-42' },
   );
 });
