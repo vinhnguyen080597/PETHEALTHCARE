@@ -29,6 +29,7 @@ export const ANDROID_PLAY_STORE_URL = publicEnv.EXPO_PUBLIC_ANDROID_PLAY_STORE_U
 const DEV_APP_LINKS = {
   privacyPolicy: `${PUBLIC_SITE_ORIGIN}/privacy-policy/`,
   termsOfService: `${PUBLIC_SITE_ORIGIN}/terms-of-service/`,
+  marketplaceGuidelines: `${PUBLIC_SITE_ORIGIN}/marketplace-guidelines/`,
   support: `${PUBLIC_SITE_ORIGIN}/support/`,
 };
 
@@ -69,5 +70,10 @@ export const SUPABASE_ANON_KEY = publicEnv.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim()
 export const APP_LINKS = {
   privacyPolicy: resolveAppLink('EXPO_PUBLIC_PRIVACY_POLICY_URL', DEV_APP_LINKS.privacyPolicy, ['https:']),
   termsOfService: resolveAppLink('EXPO_PUBLIC_TERMS_OF_SERVICE_URL', DEV_APP_LINKS.termsOfService, ['https:']),
+  marketplaceGuidelines: resolveAppLink(
+    'EXPO_PUBLIC_MARKETPLACE_GUIDELINES_URL',
+    DEV_APP_LINKS.marketplaceGuidelines,
+    ['https:'],
+  ),
   support: resolveAppLink('EXPO_PUBLIC_SUPPORT_URL', DEV_APP_LINKS.support, ['https:', 'mailto:']),
 };

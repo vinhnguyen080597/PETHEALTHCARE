@@ -1187,6 +1187,7 @@ export function AccountScreen({
           <View className="mt-3 gap-2">
             <LegalLinkButton label={t('legal.privacy')} url={APP_LINKS.privacyPolicy} />
             <LegalLinkButton label={t('legal.terms')} url={APP_LINKS.termsOfService} />
+            <LegalLinkButton label={t('legal.marketplaceGuidelines')} url={APP_LINKS.marketplaceGuidelines} />
             <LegalLinkButton label={t('legal.support')} url={APP_LINKS.support} />
           </View>
         </View>

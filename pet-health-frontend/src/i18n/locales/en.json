@@ -98,10 +98,14 @@
   },
   "legal": {
     "title": "Support and policies",
-    "body": "Read how Pet Health Care handles privacy, community terms, and support requests.",
+    "body": "Read how Pet Health Care handles privacy, community terms, marketplace rules, and support requests.",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
-    "support": "Contact Support"
+    "marketplaceGuidelines": "Marketplace Guidelines",
+    "support": "Contact Support",
+    "marketplaceDisclaimer": "Listings are posted by users. Pet Health Care is not the seller, does not process payments, and does not guarantee pets, health claims, or transactions. Verify in person and read our <guidelines>Marketplace Guidelines</guidelines> before deciding.",
+    "marketplaceListingTermsLabel": "Marketplace listing responsibility",
+    "marketplaceListingTermsBody": "I confirm this listing is lawful, does not involve wild, protected, or illegally traded animals, and the information is truthful. I accept full responsibility for the content and any transaction. I have read the <guidelines>Marketplace Guidelines</guidelines>."
   },
   "tabs": {
     "petFeed": "Pet Feed",
@@ -737,7 +741,8 @@
       "photoTooLarge": "Photo {{index}} is too large ({{size}}). Please choose a photo under 8MB (the app will compress when possible).",
       "videoTooLarge": "Video is too large ({{size}}). Limit is 50MB — pick a ≤3 min clip at 720p.",
       "videoTooLong": "Video is longer than {{seconds}} seconds (max 3 minutes).",
-      "mediaTooLarge": "A media file is too large for storage. Photos max 8MB after compress, videos max 50MB. Choose a shorter clip or lower quality and try again."
+      "mediaTooLarge": "A media file is too large for storage. Photos max 8MB after compress, videos max 50MB. Choose a shorter clip or lower quality and try again.",
+      "marketplaceTermsRequired": "Please confirm the marketplace responsibility statement before submitting."
     },
     "options": {
       "species": {

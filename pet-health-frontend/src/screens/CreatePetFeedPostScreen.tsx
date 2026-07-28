@@ -14,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ModalScreenShell } from '../components/ModalScreenShell';
+import { MarketplaceDisclaimerBanner, MarketplaceListingTermsCheckbox } from '../components/MarketplaceLegalNotice';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { ApiRequestError } from '../api';
 import type { CreatePetFeedPostMedia, CreatePetFeedPostPayload, PetFeedPost, UserRole } from '../types';
@@ -228,6 +229,7 @@ export function CreatePetFeedPostScreen({
     Partial<Record<'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video', string>>
   >({});
   const [submitting, setSubmitting] = useState(false);
+  const [marketplaceTermsAccepted, setMarketplaceTermsAccepted] = useState(false);
   const isAdmin = role === 'admin';
   const scrollRef = useRef<ScrollView>(null);
   const basicSectionYRef = useRef(0);
@@ -467,6 +469,7 @@ export function CreatePetFeedPostScreen({
       if (result.focusKey) scrollToMissingField(result.focusKey);
       return;
     }
+    setMarketplaceTermsAccepted(false);
     setReviewOpen(true);
   }
 
@@ -505,6 +508,12 @@ export function CreatePetFeedPostScreen({
 
   async function submit(status: CreatePetFeedPostPayload['status']) {
     if (submitting) return;
+
+    const isDraft = status === 'draft';
+    if (!isDraft && !marketplaceTermsAccepted) {
+      Alert.alert(t('createPetFeedPost.submitFailed'), t('createPetFeedPost.errors.marketplaceTermsRequired'));
+      return;
+    }
 
     const payload: CreatePetFeedPostPayload = {
       title,
@@ -662,6 +671,7 @@ export function CreatePetFeedPostScreen({
             {isAdmin ? t('createPetFeedPost.adminReviewNote') : t('createPetFeedPost.reviewNote')}
           </Text>
         </View>
+        <MarketplaceDisclaimerBanner compact className="mt-3" />
 
         <View
           className="mt-4 rounded-2xl border border-gray-200 bg-white p-4"
@@ -896,6 +906,11 @@ export function CreatePetFeedPostScreen({
         scrollPaddingBottom={160}
         footer={(
           <View className="px-4 pt-4">
+            <MarketplaceListingTermsCheckbox
+              checked={marketplaceTermsAccepted}
+              onToggle={() => setMarketplaceTermsAccepted((current) => !current)}
+              disabled={submitting}
+            />
             <Pressable className="mb-3 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50" onPress={() => setReviewOpen(false)} disabled={submitting}>
               <Text className="text-center text-sm font-bold text-slate-700">{t('createPetFeedPost.edit')}</Text>
             </Pressable>
@@ -912,9 +927,11 @@ export function CreatePetFeedPostScreen({
             ) : null}
             <Pressable
               testID="create-pet-feed-post-submit-button"
-              className="flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+              className={`flex-row items-center justify-center gap-2 rounded-xl py-3 active:opacity-90 ${
+                marketplaceTermsAccepted && !submitting ? 'bg-blue-600' : 'bg-slate-300'
+              }`}
               onPress={() => void submit(isAdmin ? 'published' : 'pending_review')}
-              disabled={submitting}
+              disabled={submitting || !marketplaceTermsAccepted}
             >
               <Ionicons name={isAdmin ? 'cloud-upload-outline' : 'send-outline'} size={18} color="#fff" />
               <Text className="text-sm font-bold text-white">{isAdmin ? t('createPetFeedPost.publish') : t('createPetFeedPost.submit')}</Text>

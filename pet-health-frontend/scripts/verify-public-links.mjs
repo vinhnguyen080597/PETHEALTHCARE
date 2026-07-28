@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const SUPPORT_EMAIL = 'cattieshealthcare@gmail.com';
-const SITE_ORIGIN = (process.env.EXPO_PUBLIC_SITE_ORIGIN || 'https://vinhnguyen080597.github.io/PETHEALTHCARE').replace(
+const SITE_ORIGIN = (process.env.EXPO_PUBLIC_SITE_ORIGIN || 'https://pet-marketplace.org').replace(
   /\/+$/,
   '',
 );
@@ -21,6 +21,11 @@ const PAGES = [
     name: 'Terms of Service',
     url: `${SITE_ORIGIN}/terms-of-service/`,
     mustContain: [SUPPORT_EMAIL, 'Terms of Service', '16. Contact'],
+  },
+  {
+    name: 'Marketplace Guidelines',
+    url: `${SITE_ORIGIN}/marketplace-guidelines/`,
+    mustContain: [SUPPORT_EMAIL, 'Marketplace Guidelines'],
   },
   {
     name: 'Support',

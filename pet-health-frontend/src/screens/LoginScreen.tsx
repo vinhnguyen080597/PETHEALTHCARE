@@ -260,6 +260,10 @@ export function LoginScreen({
               {t('legal.privacy')}
             </Text>
             {'. '}
+            <Text className="font-bold underline" onPress={() => void Linking.openURL(APP_LINKS.marketplaceGuidelines)}>
+              {t('legal.marketplaceGuidelines')}
+            </Text>
+            {'. '}
             <Text className="font-bold underline" onPress={() => void Linking.openURL(APP_LINKS.support)}>
               {t('legal.support')}
             </Text>

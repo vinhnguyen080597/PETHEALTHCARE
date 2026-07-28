@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PetFeedCommentComposer, PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
+import { MarketplaceDisclaimerBanner } from '../components/MarketplaceLegalNotice';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
 import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
@@ -181,6 +182,7 @@ export function PetFeedPostDetailScreen({
         keyboardDismissMode="interactive"
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 }}
       >
+        <MarketplaceDisclaimerBanner compact className="mb-4" />
         {selectedPost ? (
           <>
             <PetFeedPostCard
