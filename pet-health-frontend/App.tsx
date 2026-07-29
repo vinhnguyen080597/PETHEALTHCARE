@@ -457,6 +457,10 @@ function AppContent() {
               onClose={app.closeMessageThread}
               onRefresh={() => app.refreshPetFeedMessages()}
               onSend={app.sendPetFeedMessage}
+              onOpenListing={(postId) => {
+                app.closeMessageThread();
+                app.openPetFeedPostDetail(postId);
+              }}
             />
 
             {app.screen === 'account' && !isAdmin ? accountDashboard : null}

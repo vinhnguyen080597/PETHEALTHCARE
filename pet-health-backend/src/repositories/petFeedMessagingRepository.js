@@ -27,6 +27,20 @@ function listThumbFromPost(post) {
   return media[0] || null;
 }
 
+function postSummaryFromPost(post) {
+  if (!post) return null;
+  return {
+    id: post.id,
+    title: trimText(post.title, 120) || '',
+    thumb_url: listThumbFromPost(post),
+    price_note: trimText(post.price_note, 80),
+    species: trimText(post.species, 40),
+    breed: trimText(post.breed, 80),
+    location: trimText(post.location, 80),
+    status: post.status ?? 'published',
+  };
+}
+
 async function authorDisplayNamesForUserIds(userIds) {
   const unique = [...new Set(userIds.filter(Boolean))];
   if (unique.length === 0) return new Map();
@@ -98,6 +112,7 @@ function toConversation(row, extras = {}) {
     updated_at: row.updated_at,
     post_title: extras.post_title ?? '',
     post_thumb_url: extras.post_thumb_url ?? null,
+    post_summary: extras.post_summary ?? null,
     peer_display_name: extras.peer_display_name ?? 'Pet Health user',
     peer_user_id: extras.peer_user_id ?? null,
     has_unread: viewerUserId ? conversationHasUnread(row, viewerUserId) : false,
@@ -112,6 +127,7 @@ async function enrichConversation(row, viewerUserId, accessToken) {
     viewer_user_id: viewerUserId,
     post_title: post?.title ?? '',
     post_thumb_url: listThumbFromPost(post),
+    post_summary: postSummaryFromPost(post),
     peer_display_name: names.get(peerUserId) || 'Pet Health user',
     peer_user_id: peerUserId,
   });

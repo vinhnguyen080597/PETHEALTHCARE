@@ -65,6 +65,10 @@ test('sen and breeder can exchange messages on a listing', async () => {
   assert.equal(conversation.sen_user_id, senId);
   assert.equal(conversation.breeder_user_id, breederId);
   assert.ok(conversation.post_title);
+  assert.ok(conversation.post_summary);
+  assert.equal(conversation.post_summary.id, published.id);
+  assert.equal(conversation.post_summary.breed, 'British');
+  assert.ok(conversation.post_summary.thumb_url);
 
   const again = await openPetFeedConversation(senId, post.id, null);
   assert.equal(again.id, conversation.id);

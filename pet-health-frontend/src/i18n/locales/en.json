@@ -241,7 +241,11 @@
       "inputLabel": "Message text",
       "send": "Send message",
       "openFailed": "Could not open conversation",
-      "sendFailed": "Could not send message"
+      "sendFailed": "Could not send message",
+      "contextCardTitle": "Listing you're asking about",
+      "contextCardTitleBreeder": "About this listing",
+      "openListing": "View listing {{title}}",
+      "listingUnavailable": "This listing is no longer public"
     },
     "notifications": {
       "inboxTitle": "Notifications",

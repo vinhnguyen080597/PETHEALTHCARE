@@ -265,6 +265,17 @@ export type PetFeedNotification = {
   post_thumb_url: string | null;
 };
 
+export type PetFeedConversationPostSummary = {
+  id: string;
+  title: string;
+  thumb_url: string | null;
+  price_note: string;
+  species: string;
+  breed: string;
+  location: string;
+  status: PetFeedPostStatus;
+};
+
 export type PetFeedConversation = {
   id: string;
   post_id: string;
@@ -279,6 +290,7 @@ export type PetFeedConversation = {
   updated_at?: string;
   post_title: string;
   post_thumb_url: string | null;
+  post_summary?: PetFeedConversationPostSummary | null;
   peer_display_name: string;
   peer_user_id: string | null;
   /** True when peer sent the latest message after this viewer's last read. */

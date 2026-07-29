@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
 import type { PetFeedConversation, PetFeedMessage } from '../types';
 import { modalBottomInset, modalTopInset } from '../utils/modalSafeArea';
+import { MessageListingContextCard } from './MessageListingContextCard';
 
 const PRIMARY = '#1E6FE8';
 
@@ -29,6 +30,7 @@ export type MessageThreadModalProps = {
   onClose: () => void;
   onRefresh: () => Promise<void> | void;
   onSend: (body: string) => Promise<boolean>;
+  onOpenListing?: (postId: string) => void;
 };
 
 function formatMessageTime(value: string, locale: string) {
@@ -50,6 +52,7 @@ export function MessageThreadView({
   onClose,
   onRefresh,
   onSend,
+  onOpenListing,
   headerTopInset = 0,
   composerBottomInset = 10,
 }: Omit<MessageThreadModalProps, 'visible'> & {
@@ -117,6 +120,12 @@ export function MessageThreadView({
           <View className="w-11" />
         </View>
       </View>
+
+      <MessageListingContextCard
+        conversation={conversation}
+        currentUserId={currentUserId}
+        onOpenListing={onOpenListing}
+      />
 
       {loading && messages.length === 0 ? (
         <View className="flex-1 gap-3 px-4 py-5">
@@ -211,6 +220,7 @@ export function MessageThreadModal({
   onClose,
   onRefresh,
   onSend,
+  onOpenListing,
 }: MessageThreadModalProps) {
   const insets = useSafeAreaInsets();
   const topInset = modalTopInset(insets.top);
@@ -228,6 +238,7 @@ export function MessageThreadModal({
         onClose={onClose}
         onRefresh={onRefresh}
         onSend={onSend}
+        onOpenListing={onOpenListing}
         headerTopInset={topInset}
         composerBottomInset={bottomInset}
       />

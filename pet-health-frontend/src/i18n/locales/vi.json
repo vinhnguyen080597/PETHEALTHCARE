@@ -241,7 +241,11 @@
       "inputLabel": "Nội dung tin nhắn",
       "send": "Gửi tin nhắn",
       "openFailed": "Không thể mở cuộc trò chuyện",
-      "sendFailed": "Không thể gửi tin nhắn"
+      "sendFailed": "Không thể gửi tin nhắn",
+      "contextCardTitle": "Thông tin bạn đang hỏi",
+      "contextCardTitleBreeder": "Thông tin bài đăng",
+      "openListing": "Xem bài đăng {{title}}",
+      "listingUnavailable": "Bài đăng không còn hiển thị công khai"
     },
     "notifications": {
       "inboxTitle": "Thông báo",
