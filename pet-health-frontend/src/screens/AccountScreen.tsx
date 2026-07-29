@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAI_GUIDING } from '../assets/maiAssets';
 import { APP_LINKS } from '../config';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
+import { PetFeedPostTimeMeta } from '../components/PetFeedPostTimeMeta';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import { modalTopInset } from '../utils/modalSafeArea';
 
@@ -1374,6 +1375,7 @@ function MyListingRow({
               {subtitle}
             </Text>
           ) : null}
+          <PetFeedPostTimeMeta post={post} className="mt-1 text-[11px] leading-4 text-slate-400" numberOfLines={2} />
         </View>
 
         {hasActions ? (

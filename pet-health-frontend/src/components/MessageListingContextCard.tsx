@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { PetFeedConversation, PetFeedConversationPostSummary } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
+import { formatPetFeedPostTimeLabel } from '../utils/petFeedPostTime';
 
 const PRIMARY = '#1E6FE8';
 
@@ -22,6 +23,8 @@ export function resolveConversationPostSummary(
     breed: '',
     location: '',
     status: 'published',
+    created_at: null,
+    updated_at: null,
   };
 }
 
@@ -48,6 +51,7 @@ export function MessageListingContextCard({
   const speciesLabel = summary.species ? t(speciesKey) : '';
   const resolvedSpecies = speciesLabel === speciesKey ? summary.species : speciesLabel;
   const detailLine = [summary.breed || resolvedSpecies, summary.location, priceLabel].filter(Boolean).join(' · ');
+  const timeLabel = formatPetFeedPostTimeLabel(summary, t, i18n.language);
 
   const content = (
     <View className="mx-4 mt-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm shadow-slate-200/60">
@@ -75,6 +79,11 @@ export function MessageListingContextCard({
           {detailLine ? (
             <Text className="mt-1 text-xs leading-4 text-slate-500" numberOfLines={2}>
               {detailLine}
+            </Text>
+          ) : null}
+          {timeLabel ? (
+            <Text className="mt-1 text-[11px] leading-4 text-slate-400" numberOfLines={2}>
+              {timeLabel}
             </Text>
           ) : null}
           {unavailable ? (

@@ -154,6 +154,8 @@
     "newsDetailTitle": "News details",
     "breederFallback": "Breeder",
     "locationUnknown": "Location not shared",
+    "postedAt": "Posted {{time}}",
+    "updatedAt": "Updated {{time}}",
     "tabs": {
       "feed": "New Pets",
       "news": "News",

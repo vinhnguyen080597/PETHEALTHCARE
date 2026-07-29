@@ -2543,6 +2543,8 @@ export function usePetHealthApp() {
         breed: post.breed || '',
         location: post.location || '',
         status: post.status,
+        created_at: post.created_at,
+        updated_at: post.updated_at ?? null,
       },
       peer_display_name: peerName || i18n.t('petFeed.messages.peerFallback'),
       peer_user_id: post.user_id,

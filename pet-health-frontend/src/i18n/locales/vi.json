@@ -154,6 +154,8 @@
     "newsDetailTitle": "Chi tiết tin tức",
     "breederFallback": "Breeder",
     "locationUnknown": "Chưa chia sẻ khu vực",
+    "postedAt": "Đăng {{time}}",
+    "updatedAt": "Cập nhật {{time}}",
     "tabs": {
       "feed": "New Pets",
       "news": "Tin tức",

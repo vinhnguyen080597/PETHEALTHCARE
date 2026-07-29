@@ -38,6 +38,8 @@ function postSummaryFromPost(post) {
     breed: trimText(post.breed, 80),
     location: trimText(post.location, 80),
     status: post.status ?? 'published',
+    created_at: post.created_at ?? null,
+    updated_at: post.updated_at ?? null,
   };
 }
 

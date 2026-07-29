@@ -8,6 +8,7 @@ import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import { ReportModal } from './ReportModal';
+import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
 
 const PRIMARY = '#1E6FE8';
 
@@ -414,6 +415,7 @@ function PetFeedPostCardComponent({
               </>
             ) : null}
           </View>
+          <PetFeedPostTimeMeta post={post} className="mt-1.5 text-xs text-slate-400" />
           <View className="mt-2 flex-row flex-wrap items-center gap-2">
             <Text className="text-sm font-semibold text-slate-800" numberOfLines={1}>
               {petIdentity}
@@ -461,6 +463,7 @@ function PetFeedPostCardComponent({
             <Text className="mt-1 text-sm text-slate-500" numberOfLines={1}>
               {breeder?.display_name ?? t('petFeed.breederFallback')} · {post.location || t('petFeed.locationUnknown')}
             </Text>
+            <PetFeedPostTimeMeta post={post} className="mt-1 text-xs text-slate-400" />
           </View>
           {showFavorite ? (
             <Pressable

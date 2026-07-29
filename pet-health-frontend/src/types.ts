@@ -274,6 +274,8 @@ export type PetFeedConversationPostSummary = {
   breed: string;
   location: string;
   status: PetFeedPostStatus;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type PetFeedConversation = {
