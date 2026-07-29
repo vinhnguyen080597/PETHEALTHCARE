@@ -13,6 +13,7 @@ import {
   getMyBreederProfile,
   getPetFeedPost,
   listFavoritePetFeedPosts,
+  countMyPetFeedPostStats,
   listMyAnnouncementPosts,
   listMyPetFeedPosts,
   listPetFeedPostComments,
@@ -165,6 +166,12 @@ function cleanId(value) {
 function firstQueryValue(value) {
   if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : undefined;
   return typeof value === 'string' ? value : undefined;
+}
+
+function parsePositiveInt(value, max = 50) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+  return Math.min(parsed, max);
 }
 
 function hasClientProvidedMediaReferences(payload) {
@@ -473,7 +480,12 @@ router.get('/my-announcements', requireAnyRole('admin'), async (req, res, next) 
 
 router.get('/my-posts', requireAnyRole('breeder'), async (req, res, next) => {
   try {
-    const posts = await listMyPetFeedPosts(req.user.id, req.accessToken);
+    const limit = parsePositiveInt(firstQueryValue(req.query.limit));
+    const posts = await listMyPetFeedPosts(req.user.id, req.accessToken, { limit });
+    if (limit) {
+      const meta = await countMyPetFeedPostStats(req.user.id, req.accessToken);
+      return res.json({ data: posts, meta });
+    }
     return res.json({ data: posts });
   } catch (err) {
     return next(err);

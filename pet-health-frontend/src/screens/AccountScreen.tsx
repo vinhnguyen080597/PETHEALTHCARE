@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
-import { Alert, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Alert, InteractionManager, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAI_GUIDING } from '../assets/maiAssets';
@@ -19,6 +19,29 @@ function notifyUser(title: string, message: string) {
     return;
   }
   Alert.alert(title, message);
+}
+
+function confirmDeleteListing(onConfirm: () => void, t: (key: string) => string, afterOverlayDismiss = false) {
+  const showConfirm = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.confirm(`${t('petFeed.deleteListingTitle')}\n\n${t('petFeed.deleteListingBody')}`)) {
+        onConfirm();
+      }
+      return;
+    }
+    Alert.alert(t('petFeed.deleteListingTitle'), t('petFeed.deleteListingBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('petFeed.deleteListing'), style: 'destructive', onPress: onConfirm },
+    ]);
+  };
+
+  if (afterOverlayDismiss) {
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(showConfirm, 280);
+    });
+    return;
+  }
+  showConfirm();
 }
 
 const REQUEST_TYPE_FILTERS: Array<{ key: AdminRequestTypeFilter; labelKey: string }> = [
@@ -93,6 +116,8 @@ type AccountScreenProps = {
   petCount: number;
   savedPostCount: number;
   myPostCount: number;
+  publishedMyPostCount?: number;
+  pendingMyPostCount?: number;
   myPosts: PetFeedPost[];
   adminBreederProfiles: BreederProfile[];
   adminFeedPosts: PetFeedPost[];
@@ -160,6 +185,8 @@ export function AccountScreen({
   petCount,
   savedPostCount,
   myPostCount,
+  publishedMyPostCount: publishedMyPostCountProp,
+  pendingMyPostCount: pendingMyPostCountProp,
   myPosts,
   adminBreederProfiles,
   adminFeedPosts,
@@ -212,8 +239,8 @@ export function AccountScreen({
   const isSen = role === 'sen';
   const isBreeder = role === 'breeder';
   const breederRequestPending = breederStatus === 'pending_review';
-  const publishedMyPostCount = myPosts.filter((post) => post.status === 'published').length;
-  const pendingMyPostCount = myPosts.filter((post) => post.status === 'pending_review').length;
+  const publishedMyPostCount = publishedMyPostCountProp ?? myPosts.filter((post) => post.status === 'published').length;
+  const pendingMyPostCount = pendingMyPostCountProp ?? myPosts.filter((post) => post.status === 'pending_review').length;
   const pendingReportCount = adminFeedReports.filter((report) => report.status === 'open').length;
   const pendingRequestCount = adminPendingBreederRequestCount + adminPendingPostCount + pendingReportCount;
   const breederApplicationSummary = (profile: BreederProfile) => {
@@ -1162,17 +1189,8 @@ export function AccountScreen({
                   onDelete={
                     onDeletePetFeedPost && post.status !== 'archived'
                       ? () => {
-                          const runDelete = () => void onDeletePetFeedPost(post);
-                          if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                            if (window.confirm(`${t('petFeed.deleteListingTitle')}\n\n${t('petFeed.deleteListingBody')}`)) {
-                              runDelete();
-                            }
-                            return;
-                          }
-                          Alert.alert(t('petFeed.deleteListingTitle'), t('petFeed.deleteListingBody'), [
-                            { text: t('common.cancel'), style: 'cancel' },
-                            { text: t('petFeed.deleteListing'), style: 'destructive', onPress: runDelete },
-                          ]);
+                          setListingMenuPostId(null);
+                          confirmDeleteListing(() => void onDeletePetFeedPost(post), t, true);
                         }
                       : undefined
                   }
@@ -1439,8 +1457,7 @@ function MyListingRow({
                     label={t('petFeed.deleteListing')}
                     destructive
                     onPress={() => {
-                      onCloseMenu();
-                      onDelete();
+                      onDelete?.();
                     }}
                   />
                 </>

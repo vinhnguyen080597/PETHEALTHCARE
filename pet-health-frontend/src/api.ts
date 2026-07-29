@@ -504,10 +504,26 @@ export async function listVerifiedBreederProfiles(token: string) {
   });
 }
 
-export async function listMyPetFeedPosts(token: string) {
-  return requestJson<{ data: PetFeedPost[] }>('/pet-feed/my-posts', {
-    headers: authHeaders(token),
-  });
+export const MY_PET_FEED_LISTINGS_PREVIEW_LIMIT = 3;
+
+export type MyPetFeedPostStats = {
+  total: number;
+  published: number;
+  pending: number;
+};
+
+export async function listMyPetFeedPosts(token: string, options?: { limit?: number }) {
+  const params = new URLSearchParams();
+  if (options?.limit && options.limit > 0) {
+    params.set('limit', String(options.limit));
+  }
+  const query = params.toString();
+  return requestJson<{ data: PetFeedPost[]; meta?: MyPetFeedPostStats }>(
+    `/pet-feed/my-posts${query ? `?${query}` : ''}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
 }
 
 export async function updateMyPetFeedPost(token: string, postId: string, payload: CreatePetFeedPostPayload) {

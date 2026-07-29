@@ -59,6 +59,8 @@ import {
   getVaccinationDueSummary,
   listMyAnnouncementPosts,
   listMyPetFeedPosts,
+  MY_PET_FEED_LISTINGS_PREVIEW_LIMIT,
+  type MyPetFeedPostStats,
   listPetFeedPostComments,
   listPetFeedConversationMessages,
   listPetFeedConversations,
@@ -423,6 +425,8 @@ export function usePetHealthApp() {
   const [announcementNextCursor, setAnnouncementNextCursor] = useState<string | null>(null);
   const [announcementLoadMoreError, setAnnouncementLoadMoreError] = useState('');
   const [myPetFeedPosts, setMyPetFeedPosts] = useState<PetFeedPost[]>([]);
+  const emptyMyPetFeedPostStats: MyPetFeedPostStats = { total: 0, published: 0, pending: 0 };
+  const [myPetFeedPostStats, setMyPetFeedPostStats] = useState<MyPetFeedPostStats>(emptyMyPetFeedPostStats);
   const [managedUser, setManagedUser] = useState<ManagedUser | null>(null);
   const [adminSelectedAccount, setAdminSelectedAccount] = useState<AccountProfile | null>(null);
   const [adminUserPets, setAdminUserPets] = useState<Pet[]>([]);
@@ -1985,6 +1989,24 @@ export function usePetHealthApp() {
     setPetFeedFocusCommentId(null);
   }, []);
 
+  function applyMyPetFeedPostsResponse(postsRes: { data: PetFeedPost[]; meta?: MyPetFeedPostStats }) {
+    setMyPetFeedPosts(postsRes.data);
+    if (postsRes.meta) {
+      setMyPetFeedPostStats(postsRes.meta);
+      return;
+    }
+    setMyPetFeedPostStats({
+      total: postsRes.data.length,
+      published: postsRes.data.filter((post) => post.status === 'published').length,
+      pending: postsRes.data.filter((post) => post.status === 'pending_review').length,
+    });
+  }
+
+  async function refreshMyPetFeedPosts(accessToken: string) {
+    const postsRes = await listMyPetFeedPosts(accessToken, { limit: MY_PET_FEED_LISTINGS_PREVIEW_LIMIT });
+    applyMyPetFeedPostsResponse(postsRes);
+  }
+
   async function loadAccountDashboard(accessToken: string, role: UserRole | undefined = accountProfile?.primary_role) {
     try {
       const profileRes = await getMyBreederProfile(accessToken);
@@ -1999,8 +2021,7 @@ export function usePetHealthApp() {
           setMyPetFeedPosts(postsRes.data);
           // Admin review catalogs load lazily when Home/Admin screens need them.
         } else {
-          const postsRes = await listMyPetFeedPosts(accessToken);
-          setMyPetFeedPosts(postsRes.data);
+          await refreshMyPetFeedPosts(accessToken);
         }
       } catch {
         // Account dashboard can still render with the data already in memory.
@@ -2037,11 +2058,11 @@ export function usePetHealthApp() {
     try {
       const profileRes = await getMyBreederProfile(token);
       setBreederProfile(profileRes.data);
-      if (hasAccountRole('breeder', 'admin')) {
-        const postsRes = await listMyPetFeedPosts(token);
-        setMyPetFeedPosts(postsRes.data);
+      if (hasAccountRole('breeder')) {
+        await refreshMyPetFeedPosts(token);
       } else {
         setMyPetFeedPosts([]);
+        setMyPetFeedPostStats(emptyMyPetFeedPostStats);
       }
       setScreen('breeder-profile');
     } catch (error: unknown) {
@@ -2062,9 +2083,8 @@ export function usePetHealthApp() {
     try {
       const response = await upsertMyBreederProfile(token, payload);
       setBreederProfile(response.data);
-      if (hasAccountRole('breeder', 'admin')) {
-        const postsRes = await listMyPetFeedPosts(token);
-        setMyPetFeedPosts(postsRes.data);
+      if (hasAccountRole('breeder')) {
+        await refreshMyPetFeedPosts(token);
       }
     } finally {
       setLoading(false);
@@ -2108,11 +2128,11 @@ export function usePetHealthApp() {
 
   async function deleteOwnPetFeedPost(post: PetFeedPost): Promise<boolean> {
     if (!token || !post?.id) return false;
-    if (accountProfile?.user_id && post.user_id !== accountProfile.user_id) return false;
+    if (accountProfile?.user_id && post.user_id && post.user_id !== accountProfile.user_id) return false;
     try {
       await deleteMyPetFeedPost(token, post.id);
       setPetFeedPosts((current) => current.filter((item) => item.id !== post.id));
-      setMyPetFeedPosts((current) => current.filter((item) => item.id !== post.id));
+      await refreshMyPetFeedPosts(token);
       if (selectedPetFeedPostId === post.id) {
         setSelectedPetFeedPostId(null);
       }
@@ -2158,8 +2178,7 @@ export function usePetHealthApp() {
     setLoading(true);
     try {
       await createPetFeedPost(token, payload, media);
-      const postsRes = await listMyPetFeedPosts(token);
-      setMyPetFeedPosts(postsRes.data);
+      await refreshMyPetFeedPosts(token);
       setEditingPetFeedPost(null);
       if (payload.status === 'draft') {
         Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
@@ -2180,8 +2199,7 @@ export function usePetHealthApp() {
     setLoading(true);
     try {
       await updateMyPetFeedDraft(token, postId, payload, media);
-      const postsRes = await listMyPetFeedPosts(token);
-      setMyPetFeedPosts(postsRes.data);
+      await refreshMyPetFeedPosts(token);
       await loadPetFeedFirstPage(token);
       setEditingPetFeedPost(null);
       if (payload.status === 'draft') {
@@ -2226,8 +2244,7 @@ export function usePetHealthApp() {
         contact: post.contact ?? {},
         status: 'pending_review',
       });
-      const postsRes = await listMyPetFeedPosts(token);
-      setMyPetFeedPosts(postsRes.data);
+      await refreshMyPetFeedPosts(token);
       Alert.alert(i18n.t('common.ok'), i18n.t('account.breederPosts.submitDraftSuccess'));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
@@ -3498,6 +3515,7 @@ export function usePetHealthApp() {
     void clearAppIconBadge();
     resetPetFeedState();
     setMyPetFeedPosts([]);
+    setMyPetFeedPostStats(emptyMyPetFeedPostStats);
     setEditingPetFeedPost(null);
     setManagedUser(null);
     setAdminSelectedAccount(null);
@@ -4321,6 +4339,7 @@ export function usePetHealthApp() {
     submitBreederProfileReport,
     hideBreederProfile,
     myPetFeedPosts,
+    myPetFeedPostStats,
     breederProfile,
     openBreederProfile,
     closeBreederProfile,

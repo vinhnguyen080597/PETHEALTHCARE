@@ -1052,22 +1052,54 @@ export async function listFavoritePetFeedPosts(userId, accessToken) {
   return posts.filter((post) => post.is_favorited);
 }
 
-export async function listMyPetFeedPosts(userId, accessToken) {
+export async function listMyPetFeedPosts(userId, accessToken, options = {}) {
+  const limit = Number.isFinite(options.limit) && options.limit > 0 ? Math.floor(options.limit) : undefined;
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) {
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
-    return memoryPosts
-      .filter((post) => post.user_id === userId)
-      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-      .map((post) => toPost(post, new Set(), profilesById));
+    const rows = memoryPosts
+      .filter((post) => post.user_id === userId && post.status !== 'archived')
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    const slice = limit ? rows.slice(0, limit) : rows;
+    return slice.map((post) => toPost(post, new Set(), profilesById));
   }
-  const { data, error } = await supabase
+  let query = supabase
     .from('pet_feed_posts')
     .select('*, breeder_profile:breeder_profiles(*)')
     .eq('user_id', userId)
+    .neq('status', 'archived')
     .order('created_at', { ascending: false });
+  if (limit) query = query.limit(limit);
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map((row) => toPost(row));
+}
+
+export async function countMyPetFeedPostStats(userId, accessToken) {
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    const mine = memoryPosts.filter((post) => post.user_id === userId && post.status !== 'archived');
+    return {
+      total: mine.length,
+      published: mine.filter((post) => post.status === 'published').length,
+      pending: mine.filter((post) => post.status === 'pending_review').length,
+    };
+  }
+  const base = () =>
+    supabase.from('pet_feed_posts').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('status', 'archived');
+  const [totalRes, publishedRes, pendingRes] = await Promise.all([
+    base(),
+    base().eq('status', 'published'),
+    base().eq('status', 'pending_review'),
+  ]);
+  if (totalRes.error) throw totalRes.error;
+  if (publishedRes.error) throw publishedRes.error;
+  if (pendingRes.error) throw pendingRes.error;
+  return {
+    total: totalRes.count ?? 0,
+    published: publishedRes.count ?? 0,
+    pending: pendingRes.count ?? 0,
+  };
 }
 
 export async function reportPetFeedPost(userId, postId, payload, accessToken) {

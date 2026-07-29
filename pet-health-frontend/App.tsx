@@ -225,7 +225,17 @@ function AppContent() {
       breederProfile={app.breederProfile}
       petCount={app.pets.length}
       savedPostCount={app.petFeedPosts.filter((post) => post.is_favorited).length}
-      myPostCount={app.myPetFeedPosts.length}
+      myPostCount={
+        app.accountProfile?.primary_role === 'admin'
+          ? app.myPetFeedPosts.length
+          : app.myPetFeedPostStats.total
+      }
+      publishedMyPostCount={
+        app.accountProfile?.primary_role === 'breeder' ? app.myPetFeedPostStats.published : undefined
+      }
+      pendingMyPostCount={
+        app.accountProfile?.primary_role === 'breeder' ? app.myPetFeedPostStats.pending : undefined
+      }
       myPosts={app.myPetFeedPosts}
       adminBreederProfiles={app.adminBreederProfiles}
       adminFeedPosts={app.adminFeedPosts}
