@@ -100,6 +100,7 @@ import { preloadMaiOnboardingImages } from '../assets/maiOnboardingAssets';
 import { preloadServicesOnboardingImages } from '../assets/servicesOnboardingAssets';
 import { clearAppIconBadge, setAppIconBadgeCount } from '../services/appIconBadge';
 import { PENDING_INITIAL_ONBOARDING_KEY } from '../constants/auth';
+import { DEFAULT_TEMPLATE_ID, isBreederTemplateId } from '../constants/breederTemplates';
 import { isBreedRecognitionSpecies, type BreedRecognitionSlot } from '../constants/petBreedRecognitionSlots';
 import { normalizeAuthSession } from '../utils/authSession';
 import {
@@ -434,6 +435,7 @@ export function usePetHealthApp() {
   const [adminAddPetForUserId, setAdminAddPetForUserId] = useState<string | null>(null);
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
+  const [breederDetailReturnScreen, setBreederDetailReturnScreen] = useState<AppScreen>('pet-feed');
   const [selectedPetFeedPostId, setSelectedPetFeedPostId] = useState<string | null>(null);
   /** After closing post detail, Pet Feed scrolls to this post on the feed tab. */
   const [petFeedFocusPostId, setPetFeedFocusPostId] = useState<string | null>(null);
@@ -484,28 +486,42 @@ export function usePetHealthApp() {
     'health-check' | 'onboarding-health-check' | 'onboarding-health-prompt' | 'pet-profile' | null
   >(null);
   const selectedPet = useMemo(() => pets.find((pet) => pet.id === selectedPetId) ?? null, [pets, selectedPetId]);
-  const selectedBreederPosts = useMemo(
-    () => selectedBreederProfileId ? postsForBreeder(petFeedPosts, selectedBreederProfileId) : [],
-    [petFeedPosts, selectedBreederProfileId],
-  );
+  const selectedBreederPosts = useMemo(() => {
+    if (!selectedBreederProfileId) return [];
+    const fromFeed = postsForBreeder(petFeedPosts, selectedBreederProfileId);
+    const isOwn =
+      Boolean(breederProfile) &&
+      (breederProfile!.id === selectedBreederProfileId || breederProfile!.user_id === selectedBreederProfileId);
+    if (!isOwn) return fromFeed;
+    const fromMine = postsForBreeder(myPetFeedPosts, selectedBreederProfileId);
+    if (fromMine.length === 0) return fromFeed;
+    const seen = new Set(fromFeed.map((post) => post.id));
+    return [...fromFeed, ...fromMine.filter((post) => !seen.has(post.id))];
+  }, [breederProfile, myPetFeedPosts, petFeedPosts, selectedBreederProfileId]);
   const selectedBreederProfile = useMemo(() => {
     if (!selectedBreederProfileId) return null;
+    const ownMatch =
+      breederProfile &&
+      (breederProfile.id === selectedBreederProfileId || breederProfile.user_id === selectedBreederProfileId)
+        ? breederProfile
+        : null;
     const fromCatalog = topBreederProfiles.find(
       (profile) => profile.id === selectedBreederProfileId || profile.user_id === selectedBreederProfileId,
     );
     const fromPost = selectedBreederPosts[0]?.breeder_profile ?? null;
-    // Feed list DTO ships a slim breeder_profile; prefer catalog (or merge) so detail screen has arrays.
-    if (fromCatalog && fromPost) {
+    // Feed list DTO ships a slim breeder_profile; prefer catalog/own (or merge) so detail screen has arrays.
+    const prefer = ownMatch ?? fromCatalog;
+    if (prefer && fromPost) {
       return {
         ...fromPost,
-        ...fromCatalog,
-        contact: fromCatalog.contact ?? fromPost.contact ?? {},
-        metadata: fromCatalog.metadata ?? fromPost.metadata ?? {},
-        primary_species: fromCatalog.primary_species ?? fromPost.primary_species ?? [],
-        main_breeds: fromCatalog.main_breeds ?? fromPost.main_breeds ?? [],
+        ...prefer,
+        contact: prefer.contact ?? fromPost.contact ?? {},
+        metadata: prefer.metadata ?? fromPost.metadata ?? {},
+        primary_species: prefer.primary_species ?? fromPost.primary_species ?? [],
+        main_breeds: prefer.main_breeds ?? fromPost.main_breeds ?? [],
       };
     }
-    if (fromCatalog) return fromCatalog;
+    if (prefer) return prefer;
     if (!fromPost) return null;
     return {
       ...fromPost,
@@ -514,7 +530,7 @@ export function usePetHealthApp() {
       primary_species: Array.isArray(fromPost.primary_species) ? fromPost.primary_species : [],
       main_breeds: Array.isArray(fromPost.main_breeds) ? fromPost.main_breeds : [],
     };
-  }, [selectedBreederPosts, selectedBreederProfileId, topBreederProfiles]);
+  }, [breederProfile, selectedBreederPosts, selectedBreederProfileId, topBreederProfiles]);
 
   const petFormMode = editingPetId ? 'edit' : 'create';
 
@@ -1922,12 +1938,74 @@ export function usePetHealthApp() {
   }
 
   function openBreederDetail(profileId: string) {
+    setBreederDetailReturnScreen('pet-feed');
     setSelectedBreederProfileId(profileId);
     setScreen('breeder-detail');
   }
 
+  function openOwnBreederFarmProfile() {
+    if (!breederProfile?.id) return;
+    const status = breederProfile.verification_status;
+    if (status !== 'verified' && status !== 'pending_review') return;
+    setBreederDetailReturnScreen('account');
+    setSelectedBreederProfileId(breederProfile.id);
+    setScreen('breeder-detail');
+  }
+
   function closeBreederDetail() {
-    setScreen('pet-feed');
+    setScreen(breederDetailReturnScreen || 'pet-feed');
+  }
+
+  function openFarmHealth() {
+    if (!selectedBreederProfileId) return;
+    setScreen('farm-health');
+  }
+
+  function closeFarmHealth() {
+    setScreen('breeder-detail');
+  }
+
+  function openTemplatePicker() {
+    if (!selectedBreederProfileId) return;
+    setScreen('breeder-template');
+  }
+
+  function closeTemplatePicker() {
+    setScreen('breeder-detail');
+  }
+
+  async function applyBreederTemplate(templateId: string) {
+    if (!token || !breederProfile) return;
+    setLoading(true);
+    try {
+      const response = await upsertMyBreederProfile(token, {
+        displayName: breederProfile.display_name,
+        bio: breederProfile.bio || undefined,
+        location: breederProfile.location || undefined,
+        contact: {
+          phone: typeof breederProfile.contact?.phone === 'string' ? breederProfile.contact.phone : undefined,
+          zalo: typeof breederProfile.contact?.zalo === 'string' ? breederProfile.contact.zalo : undefined,
+          facebook: typeof breederProfile.contact?.facebook === 'string' ? breederProfile.contact.facebook : undefined,
+        },
+        primarySpecies: Array.isArray(breederProfile.primary_species) ? breederProfile.primary_species : [],
+        mainBreeds: Array.isArray(breederProfile.main_breeds) ? breederProfile.main_breeds : [],
+        careEnvironment: breederProfile.care_environment || undefined,
+        metadata: {
+          ...(breederProfile.metadata ?? {}),
+          templateId,
+        },
+      });
+      setBreederProfile(response.data);
+      setTopBreederProfiles((profiles) =>
+        profiles.map((profile) => (profile.id === response.data.id ? { ...profile, ...response.data } : profile)),
+      );
+      setScreen('breeder-detail');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('breederTemplates.pickerTitle'), message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const markNotificationsReadForPostRef = useRef<(postId: string) => void>(() => {});
@@ -2081,7 +2159,15 @@ export function usePetHealthApp() {
     if (!token) return;
     setLoading(true);
     try {
-      const response = await upsertMyBreederProfile(token, payload);
+      const existingMeta = breederProfile?.metadata ?? {};
+      const nextMeta = { ...existingMeta, ...(payload.metadata ?? {}) };
+      if (!isBreederTemplateId(nextMeta.templateId)) {
+        nextMeta.templateId = DEFAULT_TEMPLATE_ID;
+      }
+      const response = await upsertMyBreederProfile(token, {
+        ...payload,
+        metadata: nextMeta,
+      });
       setBreederProfile(response.data);
       if (hasAccountRole('breeder')) {
         await refreshMyPetFeedPosts(token);
@@ -4300,7 +4386,13 @@ export function usePetHealthApp() {
     petFeedFocusPostId,
     petFeedFocusCommentId,
     openBreederDetail,
+    openOwnBreederFarmProfile,
     closeBreederDetail,
+    openFarmHealth,
+    closeFarmHealth,
+    openTemplatePicker,
+    closeTemplatePicker,
+    applyBreederTemplate,
     openPetFeedPostDetail,
     closePetFeedPostDetail,
     clearPetFeedFocusPostId,

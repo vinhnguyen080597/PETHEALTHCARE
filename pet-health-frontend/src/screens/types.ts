@@ -5,6 +5,8 @@ export type AppScreen =
   | 'pet-feed'
   | 'pet-feed-detail'
   | 'breeder-detail'
+  | 'farm-health'
+  | 'breeder-template'
   | 'messages-inbox'
   | 'notifications-inbox'
   | 'home'

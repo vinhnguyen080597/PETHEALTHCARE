@@ -17,6 +17,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminPostCard } from '../components/AdminPostCard';
+import { TopBreederCard } from '../components/breeder/TopBreederCard';
 import { MarketplaceDisclaimerAlert } from '../components/MarketplaceLegalNotice';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
@@ -480,74 +481,32 @@ export function PetFeedScreen({
 
     const profile = item.item.profile;
     const primarySpecies = Array.isArray(profile.primary_species) ? profile.primary_species : [];
-    const mainBreeds = Array.isArray(profile.main_breeds) ? profile.main_breeds : [];
     const species = primarySpecies.length ? primarySpecies : item.item.species;
-    const breeds = mainBreeds.join(', ');
     const scaleRange = metadataString(profile.metadata, 'scaleRange');
     const breederType = metadataString(profile.metadata, 'breederType');
     const trust = computeBreederTrust(profile, item.item.posts);
     const speciesLabel = species.map((value) => translatedOption('breederProfile.speciesOptions', value)).filter(Boolean).join(', ');
     const scaleLabel = scaleRange ? t(`breederProfile.scaleOptions.${scaleRange}`) : t('petFeed.topBreeders.notUpdated');
-    const breederTypeLabel = breederType ? t(`breederProfile.breederTypes.${breederType}`) : '';
+    const breederTypeLabel = breederType ? t(`breederProfile.breederTypes.${breederType}`) : t('petFeed.topBreeders.notUpdated');
+    const name = profile.display_name || t('petFeed.breederFallback');
 
     return (
       <View className="px-5">
-        <View className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <View className="flex-row items-start gap-3">
-            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-blue-50">
-              <Text className="text-base font-black text-blue-700">#{item.rank}</Text>
-            </View>
-            <View className="min-w-0 flex-1">
-              <View className="flex-row flex-wrap items-center gap-2">
-                <Text className="text-base font-bold text-slate-900" numberOfLines={2}>
-                  {profile.display_name || t('petFeed.breederFallback')}
-                </Text>
-                <Text className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                  {t('petFeed.topBreeders.verified')}
-                </Text>
-              </View>
-              <Text className="mt-1 text-sm text-slate-500" numberOfLines={2}>
-                {[profile.location, speciesLabel].filter(Boolean).join(' - ') || t('petFeed.locationUnknown')}
-              </Text>
-            </View>
-          </View>
-          {profile.bio || profile.care_environment || breeds ? (
-            <Text className="mt-3 text-sm leading-5 text-slate-700" numberOfLines={3}>
-              {profile.bio || profile.care_environment || breeds}
-            </Text>
-          ) : null}
-          <View className="mt-4 flex-row gap-2">
-            <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
-              <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.trustScore')}</Text>
-              <Text className="mt-1 text-base font-bold text-slate-900">{trust.score}/100</Text>
-            </View>
-            <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
-              <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.scale')}</Text>
-              <Text className="mt-1 text-sm font-bold text-slate-900" numberOfLines={1}>{scaleLabel}</Text>
-            </View>
-          </View>
-          <View className="mt-2 flex-row gap-2">
-            <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
-              <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.posts')}</Text>
-              <Text className="mt-1 text-base font-bold text-slate-900">{item.item.postCount}</Text>
-            </View>
-            <View className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
-              <Text className="text-xs font-bold uppercase text-slate-500">{t('petFeed.topBreeders.type')}</Text>
-              <Text className="mt-1 text-sm font-bold text-slate-900" numberOfLines={1}>
-                {breederTypeLabel || t('petFeed.topBreeders.notUpdated')}
-              </Text>
-            </View>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('petFeed.accessibility.openBreederProfile', { name: profile.display_name || t('petFeed.breederFallback') })}
-            className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
-            onPress={() => onOpenBreederDetail(profile.id || profile.user_id)}
-          >
-            <Ionicons name="storefront-outline" size={17} color={PRIMARY} />
-            <Text className="text-sm font-bold text-blue-700">{t('petFeed.topBreeders.viewProfile')}</Text>
-          </Pressable>
-        </View>
+        <TopBreederCard
+          data={{
+            name,
+            location: profile.location || t('petFeed.locationUnknown'),
+            speciesLabel,
+            score: trust.score,
+            scaleLabel,
+            listingsCount: item.item.postCount,
+            typeLabel: breederTypeLabel,
+            verified: profile.verification_status === 'verified',
+            rank: item.rank,
+          }}
+          accessibilityLabel={t('petFeed.accessibility.openBreederProfile', { name })}
+          onPress={() => onOpenBreederDetail(profile.id || profile.user_id)}
+        />
       </View>
     );
   }, [activeTab, onOpenBreederDetail, t, translatedOption]);

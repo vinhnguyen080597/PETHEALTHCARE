@@ -172,6 +172,7 @@
       "notUpdated": "Not updated",
       "viewPosts": "View listings",
       "viewProfile": "View breeder profile",
+      "viewProfileCta": "View farm profile →",
       "emptyTitle": "No top breeders yet",
       "emptyBody": "After approved listings are available, active breeders will be summarized here."
     },
@@ -318,21 +319,39 @@
     }
   },
   "breederDetail": {
-    "title": "Breeder profile",
+    "title": "Farm profile",
+    "tabOverview": "Overview",
+    "tabListings": "Listings ({{count}})",
+    "listingsCount": "{{count}} posts",
     "overview": "Basic information",
+    "farmInfo": "Farm information",
+    "area": "Area",
     "breedingPets": "Breeding pets",
     "mainBreeds": "Main breeds",
     "contact": "Contact",
     "contactAvailable": "Contact details provided",
     "contactMissing": "Contact details missing",
     "trustTitle": "Trust level",
+    "trustSignalsTitle": "Trust signals",
     "trustBody": "This score is an in-app reference based on profile transparency and listing activity.",
-    "profileInfo": "About the breeder",
+    "profileInfo": "About the farm",
     "registration": "Verification details",
     "careChecklist": "Care and health",
-    "commitments": "Transparency commitments",
+    "commitments": "Commitments",
     "listings": "Breeder listings",
     "emptyListings": "No listings match the current filters.",
+    "openFarmHealth": "Farm health",
+    "changeTemplate": "Change template",
+    "disclaimer": "Listings are posted by users. Pet Health Care is not the seller, does not process payments, and does not guarantee pet health.",
+    "registeredKennelBanner": "Officially registered kennel — {{name}}",
+    "registeredKennelBannerDefault": "Officially registered kennel",
+    "typeShort": {
+      "registered_kennel": "Registered kennel",
+      "home_breeder": "Home breeder",
+      "rescue_foster": "Rescue",
+      "rehoming": "Rehoming",
+      "other": "Other"
+    },
     "reportProfile": "Report profile",
     "hideBreeder": "Hide breeder",
     "reportBody": "Tell admin what looks unsafe, misleading, or abusive about this breeder profile.",
@@ -361,6 +380,76 @@
       "contact": "Contact details provided",
       "careEnvironment": "Care environment described",
       "activeListings": "Active listings available"
+    }
+  },
+  "breederTrustLevel": {
+    "L3": "Outstanding partner",
+    "L2": "Trustworthy",
+    "L1": "Building",
+    "L0": "Getting started"
+  },
+  "farmHealth": {
+    "title": "Farm health",
+    "eyebrow": "Farm Health",
+    "subtitle": "Reference signals for profile transparency.",
+    "yourHealth": "Your farm health",
+    "improveHint": "Complete more details to raise your score and reach more pet parents.",
+    "trustShort": "Trust",
+    "level": "Level",
+    "levelSub": "Trust level",
+    "trustScoreSub": "Trust score",
+    "reports": "Reports",
+    "reportsSub": "No reports yet",
+    "listingsSub": "Active listings",
+    "dealsSuccess": "Successful deals",
+    "dealsFailed": "Failed deals",
+    "comingSoon": "Coming soon",
+    "signalDetails": "Signal details",
+    "tipsTitle": "Improve your score",
+    "tipChecklist": "Complete the care checklist (+15)",
+    "tipPhotos": "Add care-environment photos",
+    "tipListings": "Post more active listings",
+    "footnote": "Trust score is a reference signal, not a credit score or transaction guarantee."
+  },
+  "breederTemplates": {
+    "pickerTitle": "Choose template",
+    "pickerIntro": "Choose how your farm page looks. Profile content stays the same when you change templates.",
+    "apply": "Apply — {{name}}",
+    "confirmTitle": "Apply {{name}}?",
+    "confirmBody": "You can change this later in farm settings. Profile content (name, bio…) stays the same.",
+    "confirmApply": "Confirm apply",
+    "inUse": "In use",
+    "fitLabel": "Best for:",
+    "T1": {
+      "name": "Trust Minimal",
+      "nameEn": "Trust Minimal",
+      "desc": "Clean metrics with trust score front and center",
+      "fit": "Home breeders, first setup"
+    },
+    "T2": {
+      "name": "Cover Farm",
+      "nameEn": "Cover Farm",
+      "desc": "Full-bleed environment photo with strong visual impact",
+      "fit": "Kennels with photos"
+    },
+    "T3": {
+      "name": "Listings First",
+      "nameEn": "Listings First",
+      "desc": "Compact hero so listings appear immediately",
+      "fit": "Breeders with many listings"
+    },
+    "T4": {
+      "name": "Rescue Soft",
+      "nameEn": "Rescue Soft",
+      "desc": "Warm layout focused on commitments and story",
+      "fit": "Rescue, foster",
+      "badge": "Rescue / Foster"
+    },
+    "T5": {
+      "name": "Registered Kennel",
+      "nameEn": "Registered Kennel",
+      "desc": "Professional look with credentials up front",
+      "fit": "Registered kennels"
     }
   },
   "account": {
@@ -506,7 +595,8 @@
       "missingInfo": "Location or main species is missing",
       "note": "Transparent details help listings get reviewed faster.",
       "updateProfile": "Update verification profile",
-      "editProfile": "Edit Breeder profile"
+      "editProfile": "Edit Breeder profile",
+      "viewFarmProfile": "View farm profile"
     },
     "breederPosts": {
       "title": "My listings",

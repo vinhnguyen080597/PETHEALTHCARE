@@ -130,6 +130,7 @@ type AccountScreenProps = {
   activeBreederCount: number;
   inactiveBreederCount: number;
   onOpenBreederProfile: () => void;
+  onOpenOwnFarmProfile?: () => void;
   onCancelBreederRequest?: () => void;
   onOpenPetFeed: () => void;
   onOpenCreatePetFeedPost: () => void;
@@ -199,6 +200,7 @@ export function AccountScreen({
   activeBreederCount,
   inactiveBreederCount,
   onOpenBreederProfile,
+  onOpenOwnFarmProfile,
   onCancelBreederRequest,
   onOpenPetFeed,
   onOpenCreatePetFeedPost,
@@ -1091,6 +1093,18 @@ export function AccountScreen({
 
       {isBreeder ? (
         <View className="mt-5 gap-3">
+          {breederProfile && (breederStatus === 'verified' || breederStatus === 'pending_review') && onOpenOwnFarmProfile ? (
+            <Pressable
+              testID="account-view-farm-profile-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('account.breederTrust.viewFarmProfile')}
+              className="flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-3.5 active:bg-blue-50"
+              onPress={onOpenOwnFarmProfile}
+            >
+              <Ionicons name="storefront-outline" size={19} color={PRIMARY} />
+              <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('account.breederTrust.viewFarmProfile')}</Text>
+            </Pressable>
+          ) : null}
           {breederStatus === 'verified' ? (
             <Pressable
               testID="account-create-post-button"

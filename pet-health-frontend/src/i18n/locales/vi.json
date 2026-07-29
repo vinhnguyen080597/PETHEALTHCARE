@@ -164,7 +164,7 @@
     "newsEmpty": "Chưa có tin từ Pet Health Care",
     "topBreeders": {
       "verified": "Đã xác minh",
-      "posts": "Bài đăng",
+      "posts": "Tin đăng",
       "species": "Loài chính",
       "scale": "Quy mô",
       "type": "Loại hình",
@@ -172,6 +172,7 @@
       "notUpdated": "Chưa cập nhật",
       "viewPosts": "Xem bài đăng",
       "viewProfile": "Xem hồ sơ trại",
+      "viewProfileCta": "Xem hồ sơ trại →",
       "emptyTitle": "Chưa có breeder nổi bật",
       "emptyBody": "Khi có bài đăng đã duyệt, những breeder hoạt động tốt sẽ được tổng hợp ở đây."
     },
@@ -319,20 +320,38 @@
   },
   "breederDetail": {
     "title": "Hồ sơ trại",
+    "tabOverview": "Tổng quan",
+    "tabListings": "Tin đăng ({{count}})",
+    "listingsCount": "{{count}} bài",
     "overview": "Thông tin cơ bản",
+    "farmInfo": "Thông tin trại",
+    "area": "Khu vực",
     "breedingPets": "Số bé sinh sản",
     "mainBreeds": "Giống chính",
     "contact": "Liên hệ",
     "contactAvailable": "Đã bổ sung thông tin liên hệ",
     "contactMissing": "Chưa bổ sung liên hệ",
     "trustTitle": "Độ tin cậy",
+    "trustSignalsTitle": "Tín hiệu tin cậy",
     "trustBody": "Điểm này là tín hiệu tham khảo trong Pet Health Care, dựa trên mức độ minh bạch hồ sơ và bài đăng.",
     "profileInfo": "Về trại",
     "registration": "Thông tin xác thực",
     "careChecklist": "Chăm sóc & sức khỏe",
-    "commitments": "Cam kết minh bạch",
+    "commitments": "Cam kết",
     "listings": "Bài đăng của trại",
     "emptyListings": "Không có bài đăng phù hợp với bộ lọc hiện tại.",
+    "openFarmHealth": "Sức khỏe trại",
+    "changeTemplate": "Đổi template",
+    "disclaimer": "Tin đăng do người dùng đăng. Pet Health Care không phải bên bán, không xử lý thanh toán và không bảo lãnh sức khoẻ thú.",
+    "registeredKennelBanner": "Trại đăng ký chính thức — {{name}}",
+    "registeredKennelBannerDefault": "Trại đăng ký chính thức",
+    "typeShort": {
+      "registered_kennel": "Trại đăng ký",
+      "home_breeder": "Hộ gia đình",
+      "rescue_foster": "Cứu hộ",
+      "rehoming": "Tìm nhà mới",
+      "other": "Khác"
+    },
     "reportProfile": "Báo cáo hồ sơ",
     "hideBreeder": "Ẩn breeder",
     "reportBody": "Cho admin biết điểm nào trong hồ sơ breeder này có vẻ không an toàn, gây hiểu nhầm hoặc không phù hợp.",
@@ -361,6 +380,76 @@
       "contact": "Có thông tin liên hệ",
       "careEnvironment": "Có mô tả môi trường chăm sóc",
       "activeListings": "Có bài đăng đang hoạt động"
+    }
+  },
+  "breederTrustLevel": {
+    "L3": "Đối tác nổi bật",
+    "L2": "Đáng tin cậy",
+    "L1": "Đang xây dựng",
+    "L0": "Mới bắt đầu"
+  },
+  "farmHealth": {
+    "title": "Sức khỏe trại",
+    "eyebrow": "Farm Health",
+    "subtitle": "Tín hiệu tham khảo về mức độ minh bạch hồ sơ.",
+    "yourHealth": "Sức khoẻ trại của bạn",
+    "improveHint": "Hoàn thiện thêm để tăng điểm và hiện với nhiều sen hơn.",
+    "trustShort": "Tin cậy",
+    "level": "Cấp độ",
+    "levelSub": "Trust level",
+    "trustScoreSub": "Trust score",
+    "reports": "Báo cáo",
+    "reportsSub": "Chưa có báo cáo",
+    "listingsSub": "Active listings",
+    "dealsSuccess": "Giao dịch thành công",
+    "dealsFailed": "Giao dịch thất bại",
+    "comingSoon": "Sắp có",
+    "signalDetails": "Chi tiết tín hiệu",
+    "tipsTitle": "Cải thiện điểm",
+    "tipChecklist": "Hoàn thiện checklist chăm sóc (+15)",
+    "tipPhotos": "Thêm ảnh môi trường nuôi",
+    "tipListings": "Đăng thêm tin đang bán",
+    "footnote": "Điểm tin cậy là chỉ số tham khảo, không phải điểm tín dụng hay bảo đảm giao dịch."
+  },
+  "breederTemplates": {
+    "pickerTitle": "Chọn giao diện",
+    "pickerIntro": "Chọn giao diện trang trại của bạn. Nội dung hồ sơ không thay đổi khi đổi template.",
+    "apply": "Áp dụng — {{name}}",
+    "confirmTitle": "Áp dụng {{name}}?",
+    "confirmBody": "Có thể đổi lại sau trong cài đặt trang trại. Nội dung hồ sơ (tên, bio…) giữ nguyên.",
+    "confirmApply": "Xác nhận áp dụng",
+    "inUse": "Đang dùng",
+    "fitLabel": "Phù hợp:",
+    "T1": {
+      "name": "Tối giản tin cậy",
+      "nameEn": "Trust Minimal",
+      "desc": "Gọn, metric rõ, tập trung vào điểm tin cậy",
+      "fit": "Hộ gia đình, lần đầu"
+    },
+    "T2": {
+      "name": "Trại có ảnh bìa",
+      "nameEn": "Cover Farm",
+      "desc": "Ảnh môi trường full-bleed, ấn tượng trực quan",
+      "fit": "Kennel có ảnh"
+    },
+    "T3": {
+      "name": "Ưu tiên tin đăng",
+      "nameEn": "Listings First",
+      "desc": "Hero compact, tin đăng hiện ngay",
+      "fit": "Breeder nhiều tin"
+    },
+    "T4": {
+      "name": "Cứu hộ / Foster",
+      "nameEn": "Rescue Soft",
+      "desc": "Ấm, nhấn cam kết và câu chuyện",
+      "fit": "Rescue, foster",
+      "badge": "Cứu hộ / Foster"
+    },
+    "T5": {
+      "name": "Kennel đăng ký",
+      "nameEn": "Registered Kennel",
+      "desc": "Chuyên nghiệp, credentials nổi bật",
+      "fit": "Trại đăng ký"
     }
   },
   "account": {
@@ -506,7 +595,8 @@
       "missingInfo": "Chưa bổ sung khu vực hoặc loài chính",
       "note": "Thông tin minh bạch giúp bài đăng được duyệt nhanh hơn.",
       "updateProfile": "Cập nhật hồ sơ xác minh",
-      "editProfile": "Chỉnh sửa hồ sơ Breeder"
+      "editProfile": "Chỉnh sửa hồ sơ Breeder",
+      "viewFarmProfile": "Xem hồ sơ trại"
     },
     "breederPosts": {
       "title": "Bài đăng của tôi",

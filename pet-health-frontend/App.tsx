@@ -24,6 +24,7 @@ import { debugLog } from './src/utils/debugLog';
 // import { initializeIap } from './src/services/iap';
 import { ManagedUserBanner } from './src/components/ManagedUserBanner';
 import { MessageThreadModal } from './src/components/MessageThreadModal';
+import { getBreederTemplateId } from './src/constants/breederTemplates';
 import { AccountScreen } from './src/screens/AccountScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
@@ -42,6 +43,7 @@ import {
   BreedRecognitionResultScreen,
   BreederDetailScreen,
   BreederProfileScreen,
+  FarmHealthScreen,
   CoreCareInfoScreen,
   CoreCareScreen,
   CreateAdminPostScreen,
@@ -56,6 +58,7 @@ import {
   PetProfileScreen,
   ResultsScreen,
   SignUpOtpVerificationScreen,
+  TemplatePickerScreen,
   UpdateAccountChangeLoginScreen,
   UpdateAccountChangePasswordScreen,
   UpdateAccountRecoverPasswordScreen,
@@ -248,6 +251,7 @@ function AppContent() {
       activeBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'verified').length}
       inactiveBreederCount={app.adminBreederProfiles.filter((profile) => profile.verification_status === 'rejected' || profile.verification_status === 'suspended').length}
       onOpenBreederProfile={app.openBreederProfile}
+      onOpenOwnFarmProfile={app.openOwnBreederFarmProfile}
       onCancelBreederRequest={app.cancelBreederVerificationRequest}
       onOpenPetFeed={app.openPetFeed}
       onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
@@ -430,7 +434,25 @@ function AppContent() {
                 onReportBreeder={app.submitBreederProfileReport}
                 onHideBreeder={app.hideBreederProfile}
                 onOpenPostDetail={app.openPetFeedPostDetail}
+                onOpenFarmHealth={app.openFarmHealth}
+                onOpenTemplatePicker={app.openTemplatePicker}
                 currentUserId={app.accountProfile?.user_id ?? null}
+              />
+            ) : null}
+
+            {app.screen === 'farm-health' && app.selectedBreederProfile ? (
+              <FarmHealthScreen
+                profile={app.selectedBreederProfile}
+                posts={app.selectedBreederPosts}
+                onBack={app.closeFarmHealth}
+              />
+            ) : null}
+
+            {app.screen === 'breeder-template' && app.breederProfile ? (
+              <TemplatePickerScreen
+                selectedTemplateId={getBreederTemplateId(app.breederProfile.metadata)}
+                onBack={app.closeTemplatePicker}
+                onApply={app.applyBreederTemplate}
               />
             ) : null}
 

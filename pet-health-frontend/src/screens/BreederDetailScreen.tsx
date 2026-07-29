@@ -1,15 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { BreederHero, type BreederHeroData } from '../components/breeder/BreederHero';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { ReportModal } from '../components/ReportModal';
+import { getBreederTemplateId, templateAccent, type BreederTemplateId } from '../constants/breederTemplates';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, hasBreederContact, metadataArray, metadataString } from '../utils/breederTrust';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
-
-const PRIMARY = '#1E6FE8';
 
 type BreederDetailScreenProps = {
   profile: BreederProfile;
@@ -18,12 +18,15 @@ type BreederDetailScreenProps = {
   onReportBreeder: (profile: BreederProfile, reason: string, note?: string) => void;
   onHideBreeder: (profile: BreederProfile) => void;
   onOpenPostDetail: (postId: string) => void;
+  onOpenFarmHealth?: () => void;
+  onOpenTemplatePicker?: () => void;
   currentUserId?: string | null;
 };
 
 type GenderFilter = 'all' | 'male' | 'female' | 'unknown';
 type SortField = 'date' | 'age' | 'price';
 type SortDirection = 'asc' | 'desc';
+type DetailTab = 'overview' | 'listings';
 
 function normalizeSearchText(value: string) {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -48,6 +51,14 @@ function genderGroup(post: PetFeedPost): GenderFilter {
   return 'unknown';
 }
 
+function shortBreederTypeLabel(t: (key: string) => string, breederType: string) {
+  if (!breederType) return '';
+  const shortKey = `breederDetail.typeShort.${breederType}`;
+  const short = t(shortKey);
+  if (short !== shortKey) return short;
+  return t(`breederProfile.breederTypes.${breederType}`);
+}
+
 export function BreederDetailScreen({
   profile,
   posts = [],
@@ -55,10 +66,13 @@ export function BreederDetailScreen({
   onReportBreeder,
   onHideBreeder,
   onOpenPostDetail,
+  onOpenFarmHealth,
+  onOpenTemplatePicker,
   currentUserId,
 }: BreederDetailScreenProps) {
   const { t } = useTranslation();
   const isOwnProfile = Boolean(currentUserId && profile.user_id === currentUserId);
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -69,6 +83,7 @@ export function BreederDetailScreen({
   const primarySpecies = Array.isArray(profile.primary_species) ? profile.primary_species : [];
   const mainBreeds = Array.isArray(profile.main_breeds) ? profile.main_breeds : [];
   const trust = useMemo(() => computeBreederTrust(profile, listingPosts), [profile, listingPosts]);
+  const templateId = getBreederTemplateId(profile.metadata);
   const scaleRange = metadataString(profile.metadata, 'scaleRange');
   const breedingPetRange = metadataString(profile.metadata, 'breedingPetRange');
   const breederType = metadataString(profile.metadata, 'breederType');
@@ -76,8 +91,35 @@ export function BreederDetailScreen({
   const registeredKennelName = metadataString(profile.metadata, 'registeredKennelName');
   const careChecklist = metadataArray(profile.metadata, 'careChecklist');
   const commitments = metadataArray(profile.metadata, 'transparencyCommitments');
+  const coverImageUrl = metadataString(profile.metadata, 'coverImageUrl') || profile.avatar_url;
   const species = primarySpecies.map((value) => translatedOption(t, 'breederProfile.speciesOptions', value)).filter(Boolean).join(', ');
   const breeds = mainBreeds.join(', ');
+  const scaleLabel = scaleRange ? t(`breederProfile.scaleOptions.${scaleRange}`) : t('petFeed.topBreeders.notUpdated');
+  const typeFullLabel = breederType ? t(`breederProfile.breederTypes.${breederType}`) : t('petFeed.topBreeders.notUpdated');
+  const typeShortLabel = shortBreederTypeLabel(t, breederType) || typeFullLabel;
+  const isT5 = templateId === 'T5';
+  const accent = templateAccent(templateId);
+  const tabBg = isT5 ? '#0F172A' : '#fff';
+  const tabText = isT5 ? '#94A3B8' : '#64748B';
+  const screenBg = isT5 ? '#0F172A' : '#F2F4F8';
+  const headerBg = headerBackground(templateId);
+  const headerText = headerTextColor(templateId);
+
+  const heroData: BreederHeroData = {
+    name: profile.display_name || t('petFeed.breederFallback'),
+    location: profile.location || '',
+    speciesLabel: species,
+    breedsLabel: breeds,
+    typeShortLabel,
+    typeFullLabel,
+    scaleLabel,
+    score: trust.score,
+    listingsCount: listingPosts.length,
+    verified: profile.verification_status === 'verified',
+    coverImageUrl,
+    registeredKennelName,
+  };
+
   const filteredPosts = useMemo(() => {
     const byGender = genderFilter === 'all' ? listingPosts : listingPosts.filter((post) => genderGroup(post) === genderFilter);
     return [...byGender].sort((a, b) => {
@@ -89,7 +131,7 @@ export function BreederDetailScreen({
 
   function toggleSort(field: SortField) {
     if (sortField === field) {
-      setSortDirection((current) => current === 'asc' ? 'desc' : 'asc');
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
       return;
     }
     setSortField(field);
@@ -110,147 +152,304 @@ export function BreederDetailScreen({
   }
 
   return (
-    <View testID="breeder-detail-screen" className="flex-1 bg-[#F2F4F8]">
-      <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
-        <Pressable className="w-14 rounded-lg p-2" onPress={onBack}>
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
+    <View testID="breeder-detail-screen" style={{ flex: 1, backgroundColor: screenBg }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: headerBg, paddingHorizontal: 8, paddingVertical: 8 }}>
+        <Pressable
+          className="w-14 rounded-lg p-2"
+          onPress={onBack}
+          style={{
+            backgroundColor:
+              templateId === 'T3' || templateId === 'T4' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.18)',
+            borderRadius: 10,
+            marginLeft: 4,
+          }}
+        >
+          <Ionicons name="arrow-back" size={22} color={headerText} />
         </Pressable>
-        <Text className="flex-1 text-center text-lg font-semibold text-slate-900" numberOfLines={1}>
+        <Text style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800', color: headerText }} numberOfLines={1}>
           {t('breederDetail.title')}
         </Text>
         <View className="w-14" />
       </View>
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <View className="rounded-3xl bg-blue-600 p-5">
-          <View className="flex-row items-start gap-3">
-            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
-              <Ionicons name="storefront-outline" size={26} color="#fff" />
-            </View>
-            <View className="min-w-0 flex-1">
-              <View className="flex-row flex-wrap items-center gap-2">
-                <Text className="text-xl font-black text-white" numberOfLines={2}>{profile.display_name || t('petFeed.breederFallback')}</Text>
-                <Text className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-bold text-white">{t('petFeed.topBreeders.verified')}</Text>
-              </View>
-              <Text className="mt-2 text-sm leading-5 text-blue-50">
-                {[profile.location, species].filter(Boolean).join(' - ') || t('petFeed.locationUnknown')}
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <BreederHero data={heroData} templateId={templateId} />
+
+        {isOwnProfile ? (
+          <View
+            style={{
+              paddingHorizontal: 20,
+              paddingVertical: 14,
+              flexDirection: 'row',
+              gap: 10,
+              backgroundColor: isT5 ? '#0F172A' : '#fff',
+              borderBottomWidth: 1,
+              borderBottomColor: '#F1F5F9',
+            }}
+          >
+            <Pressable
+              accessibilityRole="button"
+              onPress={onOpenFarmHealth}
+              style={{
+                flex: 1,
+                paddingVertical: 11,
+                backgroundColor: accent,
+                borderRadius: 12,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{t('breederDetail.openFarmHealth')}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onOpenTemplatePicker}
+              style={{
+                flex: 1,
+                paddingVertical: 11,
+                backgroundColor: isT5 ? 'rgba(255,255,255,0.08)' : '#fff',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: isT5 ? 'rgba(255,255,255,0.12)' : '#E2E8F0',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: isT5 ? '#E2E8F0' : '#0F172A', fontWeight: '600', fontSize: 13 }}>
+                {t('breederDetail.changeTemplate')}
               </Text>
-            </View>
+            </Pressable>
           </View>
-          <View className="mt-4 flex-row gap-2">
-            <MetricCard label={t('petFeed.topBreeders.trustScore')} value={`${trust.score}/100`} light />
-            <MetricCard label={t('petFeed.topBreeders.posts')} value={String(listingPosts.length)} light />
-          </View>
-        </View>
-
-        {!isOwnProfile ? (
-          <View className="mt-3 flex-row gap-3">
+        ) : (
+          <View
+            style={{
+              paddingHorizontal: 20,
+              paddingVertical: 14,
+              flexDirection: 'row',
+              gap: 10,
+              backgroundColor: isT5 ? '#0F172A' : '#fff',
+              borderBottomWidth: 1,
+              borderBottomColor: '#F1F5F9',
+            }}
+          >
             <Pressable
               accessibilityRole="button"
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50"
               onPress={() => setReportVisible(true)}
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                paddingVertical: 11,
+                backgroundColor: '#fff',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+              }}
             >
-              <Ionicons name="flag-outline" size={17} color="#64748b" />
-              <Text className="text-sm font-bold text-slate-700">{t('breederDetail.reportProfile')}</Text>
+              <Ionicons name="flag-outline" size={16} color="#64748b" />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>{t('breederDetail.reportProfile')}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 py-3 active:bg-red-100"
               onPress={confirmHideBreeder}
+              style={{
+                width: 46,
+                height: 42,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#FEF2F2',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#FECACA',
+              }}
             >
-              <Ionicons name="eye-off-outline" size={17} color="#dc2626" />
-              <Text className="text-sm font-bold text-red-600">{t('breederDetail.hideBreeder')}</Text>
+              <Ionicons name="eye-off-outline" size={18} color="#DC2626" />
             </Pressable>
           </View>
-        ) : null}
+        )}
 
-        <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-          <Text className="text-base font-bold text-slate-900">{t('breederDetail.overview')}</Text>
-          <View className="mt-3 gap-2">
-            <InfoRow label={t('petFeed.topBreeders.type')} value={breederType ? t(`breederProfile.breederTypes.${breederType}`) : t('petFeed.topBreeders.notUpdated')} />
-            <InfoRow label={t('petFeed.topBreeders.scale')} value={scaleRange ? t(`breederProfile.scaleOptions.${scaleRange}`) : t('petFeed.topBreeders.notUpdated')} />
-            <InfoRow label={t('breederDetail.breedingPets')} value={breedingPetRange ? t(`breederProfile.breedingPetOptions.${breedingPetRange}`) : t('petFeed.topBreeders.notUpdated')} />
-            <InfoRow label={t('petFeed.topBreeders.species')} value={species || t('petFeed.topBreeders.notUpdated')} />
-            <InfoRow label={t('breederDetail.mainBreeds')} value={breeds || t('petFeed.topBreeders.notUpdated')} />
-            <InfoRow label={t('breederDetail.contact')} value={hasBreederContact(profile) ? t('breederDetail.contactAvailable') : t('breederDetail.contactMissing')} />
-          </View>
-        </View>
-
-        <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-          <Text className="text-base font-bold text-slate-900">{t('breederDetail.trustTitle')}</Text>
-          <Text className="mt-1 text-sm leading-5 text-slate-500">{t('breederDetail.trustBody')}</Text>
-          <View className="mt-3 gap-2">
-            {trust.signals.map((signal) => (
-              <View key={signal.key} className="flex-row items-center gap-3 rounded-xl bg-slate-50 p-3">
-                <Ionicons name={signal.passed ? 'checkmark-circle' : 'alert-circle-outline'} size={19} color={signal.passed ? '#059669' : '#d97706'} />
-                <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-700">{t(`breederDetail.trustSignals.${signal.key}`)}</Text>
-                <Text className="text-xs font-bold text-slate-500">{Math.round(signal.value)}/{signal.max}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {profile.bio || profile.care_environment ? (
-          <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-            <Text className="text-base font-bold text-slate-900">{t('breederDetail.profileInfo')}</Text>
-            {profile.bio ? <Text className="mt-3 text-sm leading-5 text-slate-700">{profile.bio}</Text> : null}
-            {profile.care_environment ? (
-              <Text className="mt-3 rounded-xl bg-slate-50 p-3 text-sm leading-5 text-slate-700">{profile.care_environment}</Text>
-            ) : null}
-          </View>
-        ) : null}
-
-        {registeredAt || registeredKennelName || careChecklist.length || commitments.length ? (
-          <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-            <Text className="text-base font-bold text-slate-900">{t('breederDetail.registration')}</Text>
-            <View className="mt-3 gap-2">
-              {registeredAt ? <InfoRow label={t('breederProfile.registeredAt')} value={registeredAt} /> : null}
-              {registeredKennelName ? <InfoRow label={t('breederProfile.registeredKennelName')} value={registeredKennelName} /> : null}
-              {careChecklist.length ? <InfoRow label={t('breederDetail.careChecklist')} value={careChecklist.map((item) => t(`breederProfile.careChecklist.${item}`)).join(', ')} /> : null}
-              {commitments.length ? <InfoRow label={t('breederDetail.commitments')} value={commitments.map((item) => t(`breederProfile.commitments.${item}`)).join(', ')} /> : null}
-            </View>
-          </View>
-        ) : null}
-
-        <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-          <Text className="text-base font-bold text-slate-900">{t('breederDetail.listings')}</Text>
-          <View className="mt-3">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                {(['all', 'male', 'female', 'unknown'] as GenderFilter[]).map((item) => (
-                  <FilterChip key={item} label={t(`breederDetail.gender.${item}`)} active={genderFilter === item} onPress={() => setGenderFilter(item)} />
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-          <View className="mt-3">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                {(['date', 'age', 'price'] as SortField[]).map((item) => (
-                  <FilterChip key={item} label={t(`petFeed.sort.${item}`)} active={sortField === item} onPress={() => toggleSort(item)} />
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-
-        <View className="mt-4 gap-4">
-          {filteredPosts.length === 0 ? (
-            <Text className="rounded-2xl border border-gray-200 bg-white p-4 text-sm leading-5 text-slate-500">{t('breederDetail.emptyListings')}</Text>
-          ) : null}
-          {filteredPosts.map((post) => (
-            <PetFeedPostCard
-              key={post.id}
-              post={post}
-              variant="compact"
-              autoPlayVideo={false}
-              showFavorite={false}
-              showContact={false}
-              showReport={false}
-              onPress={(item) => onOpenPostDetail(item.id)}
-            />
+        <View style={{ flexDirection: 'row', backgroundColor: tabBg, borderBottomWidth: 1, borderBottomColor: isT5 ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }}>
+          {([
+            { id: 'overview' as const, label: t('breederDetail.tabOverview') },
+            { id: 'listings' as const, label: t('breederDetail.tabListings', { count: listingPosts.length }) },
+          ]).map((tab) => (
+            <Pressable
+              key={tab.id}
+              accessibilityRole="button"
+              onPress={() => setActiveTab(tab.id)}
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                borderBottomWidth: 2,
+                borderBottomColor: activeTab === tab.id ? accent : 'transparent',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: activeTab === tab.id ? '700' : '500', color: activeTab === tab.id ? accent : tabText }}>
+                {tab.label}
+              </Text>
+            </Pressable>
           ))}
         </View>
+
+        {activeTab === 'overview' ? (
+          <View style={{ paddingHorizontal: 16, paddingTop: 14, gap: 12 }}>
+            <SectionCard title={t('breederDetail.farmInfo')} dark={isT5}>
+              <InfoRow icon="🏠" label={t('petFeed.topBreeders.type')} value={typeFullLabel} dark={isT5} />
+              <InfoRow icon="📍" label={t('breederDetail.area')} value={profile.location || t('petFeed.topBreeders.notUpdated')} dark={isT5} />
+              <InfoRow icon="🐾" label={t('breederDetail.mainBreeds')} value={breeds || t('petFeed.topBreeders.notUpdated')} dark={isT5} />
+              <InfoRow icon="📊" label={t('petFeed.topBreeders.scale')} value={scaleLabel} dark={isT5} />
+              <InfoRow
+                icon="🐕"
+                label={t('breederDetail.breedingPets')}
+                value={breedingPetRange ? t(`breederProfile.breedingPetOptions.${breedingPetRange}`) : t('petFeed.topBreeders.notUpdated')}
+                dark={isT5}
+              />
+              <InfoRow
+                icon="📞"
+                label={t('breederDetail.contact')}
+                value={hasBreederContact(profile) ? t('breederDetail.contactAvailable') : t('breederDetail.contactMissing')}
+                dark={isT5}
+              />
+            </SectionCard>
+
+            <SectionCard title={t('breederDetail.trustSignalsTitle')} dark={isT5}>
+              {trust.signals.map((signal) => (
+                <View key={signal.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8 }}>
+                  <View
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      backgroundColor: signal.passed ? '#D1FAE5' : '#FEF3C7',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, color: signal.passed ? '#059669' : '#D97706' }}>{signal.passed ? '✓' : '!'}</Text>
+                  </View>
+                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: isT5 ? '#E2E8F0' : '#0F172A' }}>
+                    {t(`breederDetail.trustSignals.${signal.key}`)}
+                  </Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: signal.passed ? '#059669' : '#D97706' }}>
+                    {Math.round(signal.value)}/{signal.max}
+                  </Text>
+                </View>
+              ))}
+            </SectionCard>
+
+            {profile.bio || profile.care_environment ? (
+              <SectionCard title={t('breederDetail.profileInfo')} dark={isT5}>
+                {profile.bio ? (
+                  <Text style={{ fontSize: 13, color: isT5 ? '#CBD5E1' : '#334155', lineHeight: 20 }}>{profile.bio}</Text>
+                ) : null}
+                {profile.care_environment ? (
+                  <Text
+                    style={{
+                      marginTop: profile.bio ? 10 : 0,
+                      fontSize: 13,
+                      color: isT5 ? '#CBD5E1' : '#334155',
+                      lineHeight: 20,
+                      backgroundColor: isT5 ? 'rgba(255,255,255,0.05)' : '#F8FAFC',
+                      borderRadius: 10,
+                      padding: 10,
+                    }}
+                  >
+                    {profile.care_environment}
+                  </Text>
+                ) : null}
+              </SectionCard>
+            ) : null}
+
+            {registeredAt || registeredKennelName || careChecklist.length || commitments.length ? (
+              <SectionCard title={t('breederDetail.registration')} dark={isT5}>
+                {registeredAt ? <InfoRow icon="📅" label={t('breederProfile.registeredAt')} value={registeredAt} dark={isT5} /> : null}
+                {registeredKennelName ? (
+                  <InfoRow icon="🏅" label={t('breederProfile.registeredKennelName')} value={registeredKennelName} dark={isT5} />
+                ) : null}
+                {careChecklist.length ? (
+                  <InfoRow
+                    icon="✅"
+                    label={t('breederDetail.careChecklist')}
+                    value={careChecklist.map((item) => t(`breederProfile.careChecklist.${item}`)).join(', ')}
+                    dark={isT5}
+                  />
+                ) : null}
+                {commitments.length ? (
+                  <InfoRow
+                    icon="🤝"
+                    label={t('breederDetail.commitments')}
+                    value={commitments.map((item) => t(`breederProfile.commitments.${item}`)).join(', ')}
+                    dark={isT5}
+                  />
+                ) : null}
+              </SectionCard>
+            ) : null}
+
+            <DisclaimerBanner />
+          </View>
+        ) : (
+          <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {(['all', 'male', 'female', 'unknown'] as GenderFilter[]).map((item) => (
+                  <FilterChip
+                    key={item}
+                    label={t(`breederDetail.gender.${item}`)}
+                    active={genderFilter === item}
+                    accent={accent}
+                    onPress={() => setGenderFilter(item)}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {(['date', 'age', 'price'] as SortField[]).map((item) => (
+                  <FilterChip
+                    key={item}
+                    label={t(`petFeed.sort.${item}`)}
+                    active={sortField === item}
+                    accent={accent}
+                    onPress={() => toggleSort(item)}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+            <View style={{ gap: 10 }}>
+              {filteredPosts.length === 0 ? (
+                <Text
+                  style={{
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                    backgroundColor: '#fff',
+                    padding: 16,
+                    fontSize: 13,
+                    color: '#64748B',
+                    lineHeight: 20,
+                  }}
+                >
+                  {t('breederDetail.emptyListings')}
+                </Text>
+              ) : null}
+              {filteredPosts.map((post) => (
+                <PetFeedPostCard
+                  key={post.id}
+                  post={post}
+                  variant="compact"
+                  autoPlayVideo={false}
+                  showFavorite={false}
+                  showContact={false}
+                  showReport={false}
+                  onPress={(item) => onOpenPostDetail(item.id)}
+                />
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
+
       <ReportModal
         visible={reportVisible}
         title={t('breederDetail.reportProfile')}
@@ -269,6 +468,20 @@ export function BreederDetailScreen({
   );
 }
 
+function headerBackground(templateId: BreederTemplateId) {
+  if (templateId === 'T1') return '#1E6FE8';
+  if (templateId === 'T2') return '#0F172A';
+  if (templateId === 'T3') return '#fff';
+  if (templateId === 'T4') return '#ECFDF5';
+  return '#0F172A';
+}
+
+function headerTextColor(templateId: BreederTemplateId) {
+  if (templateId === 'T3') return '#0F172A';
+  if (templateId === 'T4') return '#064E3B';
+  return '#fff';
+}
+
 function translatedOption(t: (key: string) => string, namespace: string, value: string) {
   const normalized = value.trim().toLowerCase();
   if (!normalized) return '';
@@ -277,32 +490,80 @@ function translatedOption(t: (key: string) => string, namespace: string, value: 
   return translated === key ? value : translated;
 }
 
-function MetricCard({ label, value, light = false }: { label: string; value: string; light?: boolean }) {
+function SectionCard({ title, children, dark = false }: { title: string; children: ReactNode; dark?: boolean }) {
   return (
-    <View className={`flex-1 rounded-2xl px-3 py-3 ${light ? 'bg-white/15' : 'bg-slate-50'}`}>
-      <Text className={`text-xs font-bold uppercase ${light ? 'text-blue-50' : 'text-slate-500'}`}>{label}</Text>
-      <Text className={`mt-1 text-lg font-black ${light ? 'text-white' : 'text-slate-900'}`}>{value}</Text>
+    <View
+      style={{
+        backgroundColor: dark ? 'rgba(255,255,255,0.05)' : '#fff',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: dark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+      }}
+    >
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: dark ? 'rgba(255,255,255,0.08)' : '#F1F5F9' }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: dark ? '#F8FAFC' : '#0F172A' }}>{title}</Text>
+      </View>
+      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 }}>{children}</View>
     </View>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ icon, label, value, dark = false }: { icon: string; label: string; value: string; dark?: boolean }) {
   return (
-    <View className="rounded-xl bg-slate-50 px-3 py-2.5">
-      <Text className="text-xs font-bold uppercase text-slate-500">{label}</Text>
-      <Text className="mt-1 text-sm font-semibold leading-5 text-slate-800">{value}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 6 }}>
+      <Text style={{ fontSize: 14 }}>{icon}</Text>
+      <Text style={{ fontSize: 12, color: dark ? '#64748B' : '#94A3B8', width: 72, flexShrink: 0 }}>{label}</Text>
+      <Text style={{ flex: 1, fontSize: 13, color: dark ? '#E2E8F0' : '#0F172A', fontWeight: '500' }}>{value}</Text>
     </View>
   );
 }
 
-function FilterChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function FilterChip({
+  label,
+  active,
+  accent,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  accent: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
-      className={`rounded-full border px-3 py-2 ${active ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-slate-50'}`}
       onPress={onPress}
+      style={{
+        borderRadius: 999,
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        backgroundColor: active ? accent : '#fff',
+        borderWidth: active ? 0 : 1,
+        borderColor: '#E2E8F0',
+      }}
     >
-      <Text className={`text-xs font-bold ${active ? 'text-blue-700' : 'text-slate-700'}`}>{label}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : '#64748B' }}>{label}</Text>
     </Pressable>
+  );
+}
+
+function DisclaimerBanner() {
+  const { t } = useTranslation();
+  return (
+    <View
+      style={{
+        backgroundColor: '#FFFBEB',
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        flexDirection: 'row',
+        gap: 8,
+      }}
+    >
+      <Text style={{ fontSize: 14 }}>⚠️</Text>
+      <Text style={{ flex: 1, fontSize: 11, color: '#92400E', lineHeight: 16 }}>{t('breederDetail.disclaimer')}</Text>
+    </View>
   );
 }

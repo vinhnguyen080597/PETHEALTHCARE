@@ -1,0 +1,10 @@
+{
+  "description": "Streamlines app development by enabling users to build and customize specific app components efficiently, enhancing productivity and design precision.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
