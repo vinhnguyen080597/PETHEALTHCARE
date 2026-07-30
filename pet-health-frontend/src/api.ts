@@ -655,12 +655,24 @@ async function uploadPetFeedDraftMediaUrls(
       ? media.listThumbUri
       : await uploadPetFeedMediaViaApi(token, 'thumb', media.listThumbUri, 'image/jpeg');
   }
+  const healthEvidenceUrls: string[] = [];
+  for (const uri of media.healthEvidenceUris ?? []) {
+    if (!uri?.trim()) continue;
+    if (isRemotePetFeedMediaUri(uri)) {
+      healthEvidenceUrls.push(uri);
+    } else {
+      healthEvidenceUrls.push(await uploadPetFeedMediaViaApi(token, 'photo', uri, 'image/jpeg'));
+    }
+  }
   const metadata: Record<string, unknown> = {};
   if (listThumbUrl) {
     metadata.list_thumb_url = listThumbUrl;
     metadata.video_poster_url = listThumbUrl;
   } else if (mediaUrls[0]) {
     metadata.video_poster_url = mediaUrls[0];
+  }
+  if (Array.isArray(media.healthEvidenceUris)) {
+    metadata.health_evidence_urls = healthEvidenceUrls;
   }
   return { mediaUrls, videoUrl, metadata };
 }

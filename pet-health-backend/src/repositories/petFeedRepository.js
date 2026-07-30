@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
+import { assertHealthEvidenceForReview } from '../utils/petFeedHealthEvidence.js';
 import { resolveBreederPetType, resolvePostPetType } from '../utils/petType.js';
+
+const DEFAULT_VIOLATION_PENALTY_POINTS = 10;
 
 const POST_STATUSES = new Set(['draft', 'pending_review', 'published', 'archived']);
 const POST_KINDS = new Set(['listing', 'announcement']);
@@ -796,6 +799,7 @@ export async function cancelMyBreederVerificationRequest(userId, accessToken) {
 export async function createPetFeedPost(userId, payload, accessToken, _options = {}) {
   const profile = await getMyBreederProfile(userId, accessToken);
   assertVerifiedBreederProfile(profile);
+  assertHealthEvidenceForReview(payload);
   const row = {
     ...normalizePostPayload(userId, { ...payload, breederProfileId: profile?.id, postKind: 'listing' }),
     post_kind: 'listing',
@@ -969,11 +973,18 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
     if (idx < 0) return null;
     const profile = await getMyBreederProfile(userId, accessToken);
     assertVerifiedBreederProfile(profile);
-    memoryPosts[idx] = {
+    const nextRow = {
       ...memoryPosts[idx],
       ...normalizePostPayload(userId, payload, memoryPosts[idx]),
       status: normalizeUserEditablePostStatus(payload.status, memoryPosts[idx].status),
     };
+    assertHealthEvidenceForReview({
+      ...payload,
+      status: nextRow.status,
+      vaccineStatus: nextRow.vaccine_status,
+      metadata: nextRow.metadata,
+    });
+    memoryPosts[idx] = nextRow;
     return toPost(memoryPosts[idx]);
   }
   const existing = await getPetFeedPost(userId, postId, accessToken);
@@ -984,6 +995,12 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
     ...normalizePostPayload(userId, payload, existing),
     status: normalizeUserEditablePostStatus(payload.status, existing.status),
   };
+  assertHealthEvidenceForReview({
+    ...payload,
+    status: updates.status,
+    vaccineStatus: updates.vaccine_status,
+    metadata: updates.metadata,
+  });
   const { id: _id, user_id: _userId, ...patch } = updates;
   const { data, error } = await supabase
     .from('pet_feed_posts')
@@ -1280,6 +1297,95 @@ export async function adminUpdateBreederProfileStatus(userId, verificationStatus
   return toProfile(data);
 }
 
+async function findBreederProfileRowForPenalty({ breederProfileId, postId }) {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    if (breederProfileId) {
+      return memoryProfiles.find((profile) => profile.id === breederProfileId) ?? null;
+    }
+    if (postId) {
+      const post = memoryPosts.find((item) => item.id === postId);
+      if (!post) return null;
+      if (post.breeder_profile_id) {
+        return memoryProfiles.find((profile) => profile.id === post.breeder_profile_id) ?? null;
+      }
+      return memoryProfiles.find((profile) => profile.user_id === post.user_id) ?? null;
+    }
+    return null;
+  }
+
+  if (breederProfileId) {
+    const { data, error } = await supabase.from('breeder_profiles').select('*').eq('id', breederProfileId).maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+  if (!postId) return null;
+  const { data: post, error: postError } = await supabase
+    .from('pet_feed_posts')
+    .select('user_id, breeder_profile_id')
+    .eq('id', postId)
+    .maybeSingle();
+  if (postError) throw postError;
+  if (!post) return null;
+  if (post.breeder_profile_id) {
+    const { data, error } = await supabase.from('breeder_profiles').select('*').eq('id', post.breeder_profile_id).maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+  const { data, error } = await supabase.from('breeder_profiles').select('*').eq('user_id', post.user_id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+async function appendBreederViolationFromReport(report) {
+  const profileRow = await findBreederProfileRowForPenalty({
+    breederProfileId: report.breeder_profile_id,
+    postId: report.post_id,
+  });
+  if (!profileRow?.id) return;
+
+  const metadata = profileRow.metadata && typeof profileRow.metadata === 'object' ? { ...profileRow.metadata } : {};
+  const existingViolations = Array.isArray(metadata.violations) ? [...metadata.violations] : [];
+  if (existingViolations.some((item) => item && item.reportId === report.id)) {
+    return;
+  }
+
+  const points = DEFAULT_VIOLATION_PENALTY_POINTS;
+  existingViolations.push({
+    id: randomUUID(),
+    reportId: report.id,
+    reason: trimText(report.reason, 120) || 'report_upheld',
+    points,
+    createdAt: new Date().toISOString(),
+    status: 'active',
+  });
+  const penaltyPoints = existingViolations
+    .filter((item) => item && item.status === 'active')
+    .reduce((sum, item) => sum + (Number.isFinite(Number(item.points)) ? Math.max(0, Math.floor(Number(item.points))) : 0), 0);
+
+  metadata.violations = existingViolations;
+  metadata.penaltyPoints = penaltyPoints;
+  const updatedAt = new Date().toISOString();
+
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const idx = memoryProfiles.findIndex((profile) => profile.id === profileRow.id);
+    if (idx < 0) return;
+    memoryProfiles[idx] = {
+      ...memoryProfiles[idx],
+      metadata,
+      updated_at: updatedAt,
+    };
+    return;
+  }
+
+  const { error } = await supabase
+    .from('breeder_profiles')
+    .update({ metadata, updated_at: updatedAt })
+    .eq('id', profileRow.id);
+  if (error) throw error;
+}
+
 export async function adminUpdatePetFeedReportStatus(reportId, status) {
   const safeStatus = ['open', 'reviewed', 'dismissed'].includes(trimText(status, 32).toLowerCase())
     ? trimText(status, 32).toLowerCase()
@@ -1288,9 +1394,21 @@ export async function adminUpdatePetFeedReportStatus(reportId, status) {
   if (!supabase) {
     const idx = memoryReports.findIndex((report) => report.id === reportId);
     if (idx < 0) return null;
-    memoryReports[idx] = { ...memoryReports[idx], status: safeStatus, updated_at: new Date().toISOString() };
+    const previous = memoryReports[idx];
+    memoryReports[idx] = { ...previous, status: safeStatus, updated_at: new Date().toISOString() };
+    if (safeStatus === 'reviewed' && previous.status !== 'reviewed') {
+      await appendBreederViolationFromReport(memoryReports[idx]);
+    }
     return toReport(memoryReports[idx]);
   }
+  const { data: existing, error: existingError } = await supabase
+    .from('pet_feed_reports')
+    .select('*')
+    .eq('id', reportId)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) return null;
+
   const { data, error } = await supabase
     .from('pet_feed_reports')
     .update({ status: safeStatus, updated_at: new Date().toISOString() })
@@ -1298,5 +1416,8 @@ export async function adminUpdatePetFeedReportStatus(reportId, status) {
     .select('*')
     .maybeSingle();
   if (error) throw error;
+  if (safeStatus === 'reviewed' && existing.status !== 'reviewed') {
+    await appendBreederViolationFromReport(data);
+  }
   return toReport(data);
 }

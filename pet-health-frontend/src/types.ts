@@ -342,6 +342,8 @@ export type CreatePetFeedPostMedia = {
   photoUris: string[];
   videoUri?: string;
   listThumbUri?: string;
+  /** Vaccine book / health certificate photos (required when claiming vaccinated). */
+  healthEvidenceUris?: string[];
 };
 
 export type CreateAnnouncementPostPayload = {

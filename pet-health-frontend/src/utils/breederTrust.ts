@@ -1,4 +1,4 @@
-import type { BreederProfile, PetFeedPost } from '../types';
+import type { BreederProfile, PetFeedPost } from '../types.ts';
 
 export type TrustSignalKey =
   | 'verified'

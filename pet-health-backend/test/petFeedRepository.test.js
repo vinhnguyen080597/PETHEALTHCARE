@@ -6,13 +6,17 @@ delete process.env.SUPABASE_ANON_KEY;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const {
+  adminUpdateBreederProfileStatus,
+  adminUpdatePetFeedReportStatus,
   cancelMyBreederVerificationRequest,
   createAnnouncementPost,
   createPetFeedPostComment,
   deletePetFeedPostComment,
+  getMyBreederProfile,
   getPetFeedPost,
   listPetFeedPostComments,
   listPublishedPetFeedPostPage,
+  reportBreederProfile,
   upsertMyBreederProfile,
 } = await import('../src/repositories/petFeedRepository.js');
 
@@ -156,4 +160,34 @@ test('comment replies, delete, and list comment_count', async () => {
   await deletePetFeedPostComment(readerId, root.id, null);
   const afterDelete = await listPetFeedPostComments(post.id, null);
   assert.equal(afterDelete.length, 0);
+});
+
+test('admin reviewed report appends breeder violation once; dismiss does not', async () => {
+  const breederId = `penalty-breeder-${Date.now()}`;
+  const reporterId = `penalty-reporter-${Date.now()}`;
+  const created = await upsertMyBreederProfile(breederId, {
+    displayName: 'Penalty Farm',
+    location: 'Hà Nội',
+    contact: { phone: '0901111222' },
+  }, null);
+  await adminUpdateBreederProfileStatus(breederId, 'verified');
+
+  const openReport = await reportBreederProfile(reporterId, created.id, { reason: 'misleading', note: 'fake vaccine' }, null);
+  const dismissed = await reportBreederProfile(reporterId, created.id, { reason: 'spam', note: 'noise' }, null);
+
+  await adminUpdatePetFeedReportStatus(dismissed.id, 'dismissed');
+  let profile = await getMyBreederProfile(breederId, null);
+  assert.equal(profile.metadata?.penaltyPoints ?? 0, 0);
+  assert.equal(Array.isArray(profile.metadata?.violations) ? profile.metadata.violations.length : 0, 0);
+
+  await adminUpdatePetFeedReportStatus(openReport.id, 'reviewed');
+  profile = await getMyBreederProfile(breederId, null);
+  assert.equal(profile.metadata.penaltyPoints, 10);
+  assert.equal(profile.metadata.violations.length, 1);
+  assert.equal(profile.metadata.violations[0].reportId, openReport.id);
+
+  await adminUpdatePetFeedReportStatus(openReport.id, 'reviewed');
+  profile = await getMyBreederProfile(breederId, null);
+  assert.equal(profile.metadata.violations.length, 1);
+  assert.equal(profile.metadata.penaltyPoints, 10);
 });

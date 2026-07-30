@@ -4,6 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { ScoreRing } from '../components/breeder/ScoreRing';
 import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
 import type { BreederProfile, PetFeedPost } from '../types';
+import {
+  effectiveTrustScore,
+  getActiveBreederViolations,
+  getBreederPenaltyPoints,
+} from '../utils/breederQualityIndex';
 import { computeBreederTrust } from '../utils/breederTrust';
 import { scoreColor, trustLevelFromScore } from '../utils/breederTrustLevel';
 
@@ -16,9 +21,12 @@ type FarmHealthScreenProps = {
 export function FarmHealthScreen({ profile, posts, onBack }: FarmHealthScreenProps) {
   const { t } = useTranslation();
   const listingPosts = Array.isArray(posts) ? posts : [];
+  const score = effectiveTrustScore(profile, listingPosts);
+  const penaltyPoints = getBreederPenaltyPoints(profile);
+  const violations = getActiveBreederViolations(profile);
   const trust = computeBreederTrust(profile, listingPosts);
-  const level = trustLevelFromScore(trust.score);
-  const color = scoreColor(trust.score);
+  const level = trustLevelFromScore(score);
+  const color = scoreColor(score);
 
   return (
     <View testID="farm-health-screen" style={{ flex: 1, backgroundColor: '#F2F4F8' }}>
@@ -56,19 +64,29 @@ export function FarmHealthScreen({ profile, posts, onBack }: FarmHealthScreenPro
             <TrustLevelChip level={level.level} label={t(level.labelKey)} />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-            <ScoreRing score={trust.score} size={80} color={color} trackColor="#F1F5F9" textColor={color} />
+            <ScoreRing score={score} size={80} color={color} trackColor="#F1F5F9" textColor={color} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 6 }}>{t('farmHealth.yourHealth')}</Text>
               <Text style={{ fontSize: 12, color: '#64748B' }}>{t('farmHealth.improveHint')}</Text>
+              {penaltyPoints > 0 ? (
+                <Text style={{ fontSize: 11, color: '#B45309', marginTop: 6 }}>
+                  {t('farmHealth.penaltyApplied', { points: penaltyPoints })}
+                </Text>
+              ) : null}
             </View>
           </View>
         </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16, paddingTop: 12 }}>
           {[
-            { label: t('petFeed.topBreeders.trustScore'), value: `${trust.score}/100`, sub: t('farmHealth.trustScoreSub'), color },
+            { label: t('petFeed.topBreeders.trustScore'), value: `${score}/100`, sub: t('farmHealth.trustScoreSub'), color },
             { label: t('farmHealth.level'), value: t(level.labelKey), sub: t('farmHealth.levelSub'), color: '#1E6FE8' },
-            { label: t('farmHealth.reports'), value: '0', sub: t('farmHealth.reportsSub'), color: '#059669' },
+            {
+              label: t('farmHealth.reports'),
+              value: String(violations.length),
+              sub: violations.length > 0 ? t('farmHealth.reportsActiveSub') : t('farmHealth.reportsSub'),
+              color: violations.length > 0 ? '#DC2626' : '#059669',
+            },
             { label: t('petFeed.topBreeders.posts'), value: String(listingPosts.length), sub: t('farmHealth.listingsSub'), color: '#7C3AED' },
           ].map((item) => (
             <View
@@ -94,6 +112,89 @@ export function FarmHealthScreen({ profile, posts, onBack }: FarmHealthScreenPro
               <Text style={{ fontSize: 11, color: '#94A3B8' }}>{item.sub}</Text>
             </View>
           ))}
+        </View>
+
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginTop: 12,
+            backgroundColor: '#fff',
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#E2E8F0',
+            overflow: 'hidden',
+          }}
+        >
+          <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>{t('farmHealth.violationsTitle')}</Text>
+          </View>
+          {violations.length === 0 ? (
+            <View style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
+              <Text style={{ fontSize: 13, color: '#64748B' }}>{t('farmHealth.violationsEmpty')}</Text>
+            </View>
+          ) : (
+            <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 }}>
+              {violations.map((violation) => (
+                <View
+                  key={violation.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    paddingBottom: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#F8FAFC',
+                    marginBottom: 8,
+                  }}
+                >
+                  <View
+                    style={{
+                      marginTop: 2,
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      backgroundColor: '#FEE2E2',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '700' }}>!</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>
+                      {t(`petFeed.reportReasons.${violation.reason}`, { defaultValue: violation.reason })}
+                    </Text>
+                    {violation.createdAt ? (
+                      <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                        {new Date(violation.createdAt).toLocaleDateString()}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#DC2626' }}>
+                    −{violation.points}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+          <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
+            <Pressable
+              disabled
+              style={{
+                borderRadius: 12,
+                backgroundColor: '#F1F5F9',
+                paddingVertical: 12,
+                opacity: 0.75,
+              }}
+            >
+              <Text style={{ textAlign: 'center', fontSize: 13, fontWeight: '700', color: '#94A3B8' }}>
+                {t('farmHealth.stakeRemediationCta')}
+              </Text>
+              <Text style={{ textAlign: 'center', fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                {t('farmHealth.comingSoon')}
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10 }}>
@@ -178,7 +279,7 @@ export function FarmHealthScreen({ profile, posts, onBack }: FarmHealthScreenPro
             paddingVertical: 14,
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E40AF', marginBottom: 10 }}>💡 {t('farmHealth.tipsTitle')}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E40AF', marginBottom: 10 }}>{t('farmHealth.tipsTitle')}</Text>
           {[t('farmHealth.tipChecklist'), t('farmHealth.tipPhotos'), t('farmHealth.tipListings')].map((tip) => (
             <View key={tip} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#1E6FE8', flexShrink: 0 }} />

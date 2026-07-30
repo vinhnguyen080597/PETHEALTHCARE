@@ -37,11 +37,16 @@ import {
   PET_FEED_VIDEO_MAX_DURATION_SECONDS,
   PET_FEED_VIDEO_MAX_BYTES,
 } from '../utils/petFeedMedia';
+import {
+  healthEvidenceUrlsFromMetadata,
+  vaccineStatusRequiresHealthEvidence,
+} from '../utils/petFeedHealthEvidence';
 
 const PRIMARY = '#1E6FE8';
 const MAX_PHOTOS = 6;
+const MAX_HEALTH_EVIDENCE = 3;
 
-type BasicFieldKey = 'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video';
+type BasicFieldKey = 'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video' | 'healthEvidence';
 
 type Option = {
   value: string;
@@ -226,10 +231,13 @@ export function CreatePetFeedPostScreen({
   const [zalo, setZalo] = useState(editingPost?.contact?.zalo ?? '');
   const [phone, setPhone] = useState(editingPost?.contact?.phone ?? '');
   const [photoUris, setPhotoUris] = useState<string[]>(editingPost?.media_urls ?? []);
+  const [healthEvidenceUris, setHealthEvidenceUris] = useState<string[]>(
+    () => healthEvidenceUrlsFromMetadata(editingPost?.metadata),
+  );
   const [videoUri, setVideoUri] = useState(editingPost?.video_url ?? '');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video', string>>
+    Partial<Record<'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video' | 'healthEvidence', string>>
   >({});
   const [submitting, setSubmitting] = useState(false);
   const [marketplaceTermsAccepted, setMarketplaceTermsAccepted] = useState(false);
@@ -308,6 +316,7 @@ export function CreatePetFeedPostScreen({
     setGender(matchOptionValue(genderOptions, editingPost.gender, 'male'));
     setVaccineStatus(matchOptionValue(vaccineOptions, editingPost.vaccine_status, 'unknown'));
     setDewormingStatus(matchOptionValue(dewormingOptions, editingPost.deworming_status, 'unknown'));
+    setHealthEvidenceUris(healthEvidenceUrlsFromMetadata(editingPost.metadata));
     if (editingPost.age_months != null && ageOptions.some((option) => option.value === String(editingPost.age_months))) {
       setAgeMonths(String(editingPost.age_months));
     }
@@ -368,6 +377,27 @@ export function CreatePetFeedPostScreen({
     is_favorited: false,
     created_at: new Date().toISOString(),
   };
+
+  async function pickHealthEvidence() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t('alerts.permissionGallery.title'), t('alerts.permissionGallery.message'));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_HEALTH_EVIDENCE,
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    const newUris: string[] = [];
+    for (const asset of result.assets) {
+      newUris.push(await optimizePetFeedPhotoUri(asset.uri));
+    }
+    setHealthEvidenceUris((current) => [...current, ...newUris].slice(0, MAX_HEALTH_EVIDENCE));
+    clearFieldError('healthEvidence');
+  }
 
   async function pickPhotos() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -456,8 +486,11 @@ export function CreatePetFeedPostScreen({
     }
     if (photoUris.length === 0) nextErrors.photos = t('createPetFeedPost.errors.photoRequired');
     if (!videoUri) nextErrors.video = t('createPetFeedPost.errors.videoRequired');
+    if (vaccineStatusRequiresHealthEvidence(selectedVaccineLabel) && healthEvidenceUris.length === 0) {
+      nextErrors.healthEvidence = t('createPetFeedPost.errors.healthEvidenceRequired');
+    }
     setFieldErrors(nextErrors);
-    const fieldOrder: BasicFieldKey[] = ['title', 'breed', 'gender', 'ageMonths', 'location', 'priceNote', 'photos', 'video'];
+    const fieldOrder: BasicFieldKey[] = ['title', 'breed', 'gender', 'ageMonths', 'location', 'priceNote', 'photos', 'video', 'healthEvidence'];
     for (const key of fieldOrder) {
       if (nextErrors[key]) {
         return { message: nextErrors[key]!, focusKey: key };
@@ -506,6 +539,9 @@ export function CreatePetFeedPostScreen({
     ) {
       return t('createPetFeedPost.errors.mediaTooLarge');
     }
+    if (code === 'PET_FEED_HEALTH_EVIDENCE_REQUIRED') {
+      return t('createPetFeedPost.errors.healthEvidenceRequired');
+    }
     return raw || t('common.unknownError');
   }
 
@@ -519,11 +555,15 @@ export function CreatePetFeedPostScreen({
     const origVideo = editingPost.video_url ?? '';
     const hasNewLocal =
       photoUris.some((uri) => !isRemoteMediaUri(uri))
-      || Boolean(videoUri && !isRemoteMediaUri(videoUri));
+      || Boolean(videoUri && !isRemoteMediaUri(videoUri))
+      || healthEvidenceUris.some((uri) => !isRemoteMediaUri(uri));
     if (hasNewLocal) return true;
     if (photoUris.length !== origPhotos.length) return true;
     if (photoUris.some((uri, index) => uri !== origPhotos[index])) return true;
     if ((videoUri || '') !== origVideo) return true;
+    const origEvidence = healthEvidenceUrlsFromMetadata(editingPost.metadata);
+    if (healthEvidenceUris.length !== origEvidence.length) return true;
+    if (healthEvidenceUris.some((uri, index) => uri !== origEvidence[index])) return true;
     return false;
   }
 
@@ -558,6 +598,10 @@ export function CreatePetFeedPostScreen({
       paperwork,
       contact: { facebook, zalo, phone },
       status,
+      metadata: {
+        ...(editingPost?.metadata ?? {}),
+        health_evidence_urls: healthEvidenceUris.filter((uri) => isRemoteMediaUri(uri)),
+      },
     };
 
     const nextStatus = isEditingPost && editingPost && onUpdate ? resolveEditNextStatus(status) : status;
@@ -628,6 +672,7 @@ export function CreatePetFeedPostScreen({
             photoUris: optimizedPhotos,
             videoUri: videoUri || undefined,
             listThumbUri,
+            healthEvidenceUris,
           };
         }
 
@@ -669,6 +714,7 @@ export function CreatePetFeedPostScreen({
         photoUris: optimizedPhotos,
         videoUri: videoUri || undefined,
         listThumbUri,
+        healthEvidenceUris,
       });
     } catch (error: unknown) {
       const failTitle = status === 'draft' ? t('createPetFeedPost.draftSaveFailed') : t('createPetFeedPost.submitFailed');
@@ -897,7 +943,43 @@ export function CreatePetFeedPostScreen({
         <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="mb-3 text-base font-bold text-slate-900">{t('createPetFeedPost.careInfo')}</Text>
           <ChipMultiSelect label={t('createPetFeedPost.personality')} values={personality} options={personalityOptions} onChange={setPersonality} />
-          <SelectField label={t('createPetFeedPost.vaccineStatus')} value={vaccineStatus} options={vaccineOptions} onChange={setVaccineStatus} />
+          <SelectField label={t('createPetFeedPost.vaccineStatus')} value={vaccineStatus} options={vaccineOptions} onChange={(value) => { setVaccineStatus(value); clearFieldError('healthEvidence'); }} />
+          {vaccineStatusRequiresHealthEvidence(selectedVaccineLabel) ? (
+            <View className="mt-3">
+              <Text className="mb-1 text-sm font-semibold text-slate-700">{t('createPetFeedPost.healthEvidence')}</Text>
+              <Text className="mb-2 text-xs leading-4 text-slate-500">{t('createPetFeedPost.healthEvidenceHint')}</Text>
+              <Pressable
+                className={`rounded-xl border px-3 py-3 ${fieldErrors.healthEvidence ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-slate-50'}`}
+                onPress={() => void pickHealthEvidence()}
+              >
+                <Text className={`text-sm font-bold ${fieldErrors.healthEvidence ? 'text-red-600' : 'text-blue-700'}`}>
+                  {healthEvidenceUris.length > 0
+                    ? t('createPetFeedPost.healthEvidenceSelected', { count: healthEvidenceUris.length })
+                    : t('createPetFeedPost.pickHealthEvidence')}
+                </Text>
+              </Pressable>
+              {fieldErrors.healthEvidence ? (
+                <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.healthEvidence}</Text>
+              ) : null}
+              {healthEvidenceUris.length > 0 ? (
+                <ScrollView horizontal className="mt-2" showsHorizontalScrollIndicator={false}>
+                  <View className="flex-row gap-2">
+                    {healthEvidenceUris.map((uri) => (
+                      <View key={uri} className="relative">
+                        <Image source={{ uri }} className="h-16 w-16 rounded-lg bg-slate-200" />
+                        <Pressable
+                          className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full bg-red-600"
+                          onPress={() => setHealthEvidenceUris((current) => current.filter((item) => item !== uri))}
+                        >
+                          <Ionicons name="close" size={12} color="#fff" />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              ) : null}
+            </View>
+          ) : null}
           <SelectField label={t('createPetFeedPost.dewormingStatus')} value={dewormingStatus} options={dewormingOptions} onChange={setDewormingStatus} />
           <ChipMultiSelect label={t('createPetFeedPost.paperwork')} values={paperwork} options={paperworkOptions} onChange={setPaperwork} />
         </View>

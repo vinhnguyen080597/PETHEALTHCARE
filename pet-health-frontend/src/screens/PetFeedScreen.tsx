@@ -25,6 +25,7 @@ import { PetTypeFilterRow } from '../components/PetTypeFilterRow';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { ALL_PROVINCES_FILTER, VIETNAM_PROVINCES, type ProvinceFilter } from '../constants/vietnamProvinces';
 import { computeBreederTrust, metadataString } from '../utils/breederTrust';
+import { rankBreedersWithHomeQuota } from '../utils/breederQualityIndex';
 import {
   countPostsByGender,
   postMatchesGender,
@@ -323,10 +324,7 @@ export function PetFeedScreen({
       current.species = Array.from(new Set([...current.species, ...species]));
       current.posts = [...current.posts, post];
     });
-    return Array.from(byBreeder.values()).sort((a, b) => {
-      if (b.postCount !== a.postCount) return b.postCount - a.postCount;
-      return b.latestPostAt - a.latestPostAt;
-    });
+    return rankBreedersWithHomeQuota(Array.from(byBreeder.values())).map(({ qualityIndex: _qi, ...item }) => item);
   }, [breederProfiles, posts]);
 
   const filteredTopBreeders = useMemo(() => {
