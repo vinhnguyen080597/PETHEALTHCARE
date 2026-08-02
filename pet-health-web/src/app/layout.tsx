@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -13,13 +13,19 @@ const inter = Inter({
   display: "swap",
 });
 
+const fraunces = Fraunces({
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "Pet Marketplace",
     template: "%s · Pet Marketplace",
   },
   description:
-    "Structured pet marketplace — find breeder listings, compare info, contact safely.",
+    "Find healthy pets from trusted breeders — clear profiles, vaccine records, and safer in-app contact.",
 };
 
 export default async function RootLayout({
@@ -42,7 +48,9 @@ export default async function RootLayout({
 
   return (
     <html lang={lang === "VI" ? "vi" : "en"}>
-      <body className={`${inter.variable} font-sans antialiased bg-[#F2F4F8] text-slate-900`}>
+      <body
+        className={`${inter.variable} ${fraunces.variable} font-sans antialiased bg-[#FDFBF7] text-stone-900`}
+      >
         <SiteHeader
           lang={lang}
           isAdmin={session.isAdmin}

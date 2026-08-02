@@ -37,15 +37,15 @@ export function SiteHeader({
   const navCls = (href: string) =>
     `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
       isActive(href)
-        ? "bg-blue-50 text-[#1E6FE8]"
-        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+        ? "bg-amber-50 text-amber-800"
+        : "text-stone-600 hover:bg-amber-50/60 hover:text-stone-900"
     }`;
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-[#F0E6D8]">
       <div className="max-w-[1200px] mx-auto px-5 lg:px-8 h-16 flex items-center gap-3">
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-[#1E6FE8] rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-[#D97706] rounded-lg flex items-center justify-center shadow-sm shadow-amber-200/50">
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path
                 d="M9 2C5.13 2 2 5.13 2 9c0 3.87 3.13 7 7 7s7-3.13 7-7c0-3.87-3.13-7-7-7Z"
@@ -63,11 +63,11 @@ export function SiteHeader({
             </svg>
           </div>
           <div className="hidden sm:block">
-            <span className="font-bold text-slate-900 text-sm">
+            <span className="font-bold text-stone-900 text-sm tracking-tight">
               {t(lang, "nav.brand")}
             </span>
             {isAdmin && (
-              <span className="ml-1.5 text-[10px] font-semibold text-[#1E6FE8] bg-blue-50 px-1.5 py-0.5 rounded">
+              <span className="ml-1.5 text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded">
                 Admin
               </span>
             )}
@@ -86,7 +86,7 @@ export function SiteHeader({
         <div className="hidden lg:flex flex-1 max-w-xs">
           <form action="/app/pet-feed" className="w-full relative">
             <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
               width="14"
               height="14"
               viewBox="0 0 14 14"
@@ -101,7 +101,7 @@ export function SiteHeader({
               name="q"
               type="text"
               placeholder={t(lang, "nav.search")}
-              className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/20 focus:border-[#1E6FE8] transition-all"
+              className="w-full pl-8 pr-3 py-2 bg-white/80 border border-[#F0E6D8] rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 transition-all"
             />
           </form>
         </div>
@@ -109,7 +109,7 @@ export function SiteHeader({
         <div className="flex items-center gap-1 ml-auto md:ml-0">
           <Link
             href="/app/messages"
-            className="relative w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+            className="relative w-9 h-9 rounded-lg flex items-center justify-center text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors"
             aria-label={t(lang, "nav.messages")}
           >
             <svg
@@ -132,7 +132,7 @@ export function SiteHeader({
           <button
             type="button"
             onClick={toggleLang}
-            className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors border border-slate-200"
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors border border-[#F0E6D8]"
           >
             {lang === "VI" ? "EN" : "VI"}
           </button>
@@ -140,7 +140,7 @@ export function SiteHeader({
           {isAdmin && (
             <Link
               href="/app/admin"
-              className="hidden md:flex items-center gap-2 ml-1 px-3.5 py-1.5 bg-slate-900 text-white text-sm font-medium rounded-full hover:bg-slate-800 transition-colors"
+              className="hidden md:flex items-center gap-2 ml-1 px-3.5 py-1.5 bg-stone-900 text-white text-sm font-medium rounded-full hover:bg-stone-800 transition-colors"
             >
               {t(lang, "nav.admin")}
             </Link>
@@ -149,14 +149,14 @@ export function SiteHeader({
           {isLoggedIn ? (
             <Link
               href="/app/account"
-              className="hidden md:flex items-center gap-2 ml-1 px-3.5 py-1.5 bg-[#1E6FE8] text-white text-sm font-medium rounded-full hover:bg-[#1D4ED8] transition-colors"
+              className="hidden md:flex items-center gap-2 ml-1 px-3.5 py-1.5 bg-[#D97706] text-white text-sm font-medium rounded-full hover:bg-[#B45309] transition-colors shadow-sm shadow-amber-200/60"
             >
               {t(lang, "nav.account")}
             </Link>
           ) : (
             <Link
               href="/login"
-              className="hidden md:flex items-center gap-2 ml-1 px-3.5 py-1.5 bg-[#1E6FE8] text-white text-sm font-medium rounded-full hover:bg-[#1D4ED8] transition-colors"
+              className="hidden md:flex items-center gap-2 ml-1 px-3.5 py-1.5 bg-[#D97706] text-white text-sm font-medium rounded-full hover:bg-[#B45309] transition-colors shadow-sm shadow-amber-200/60"
             >
               {t(lang, "nav.login")}
             </Link>
@@ -164,7 +164,7 @@ export function SiteHeader({
 
           <button
             type="button"
-            className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-50"
+            className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center text-stone-500 hover:bg-amber-50"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Menu"
           >
@@ -183,32 +183,32 @@ export function SiteHeader({
       </div>
 
       {menuOpen && (
-        <div className="md:hidden border-t border-slate-100 bg-white px-5 py-3 flex flex-col gap-1">
+        <div className="md:hidden border-t border-[#F0E6D8] bg-[#FDFBF7] px-5 py-3 flex flex-col gap-1">
           <Link
             href="/app/pet-feed"
             onClick={() => setMenuOpen(false)}
-            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
           >
             {t(lang, "nav.browse")}
           </Link>
           <Link
             href="/app/breeders"
             onClick={() => setMenuOpen(false)}
-            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
           >
             {t(lang, "nav.breeders")}
           </Link>
           <Link
             href="/app/messages"
             onClick={() => setMenuOpen(false)}
-            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
           >
             {t(lang, "nav.messages")}
           </Link>
           <Link
             href={isLoggedIn ? "/app/account" : "/login"}
             onClick={() => setMenuOpen(false)}
-            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-[#1E6FE8] hover:bg-blue-50"
+            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-amber-800 hover:bg-amber-50"
           >
             {isLoggedIn ? t(lang, "nav.account") : t(lang, "nav.login")}
           </Link>
@@ -216,7 +216,7 @@ export function SiteHeader({
             <Link
               href="/app/admin"
               onClick={() => setMenuOpen(false)}
-              className="text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
             >
               {t(lang, "nav.admin")}
             </Link>

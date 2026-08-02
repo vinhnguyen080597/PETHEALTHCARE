@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f2f4f8;
-  --foreground: #0f172a;
-  --primary: #1e6fe8;
-  --primary-hover: #1d4ed8;
+  --background: #fdfbf7;
+  --foreground: #1c1917;
+  --primary: #d97706;
+  --primary-hover: #b45309;
+  --primary-soft: #fff7ed;
+  --surface: #fffefb;
+  --border-warm: #f0e6d8;
+  --ink-muted: #78716c;
 }
 
 @theme inline {
@@ -12,6 +16,7 @@
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --font-sans: var(--font-inter);
+  --font-display: var(--font-fraunces);
 }
 
 body {
@@ -20,7 +25,51 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
-/* Utility helpers used by marketplace UI */
+.font-display {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.hero-rise {
+  animation: hero-rise 0.7s ease-out both;
+}
+
+.hero-rise-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.hero-rise-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.hero-rise-delay-3 {
+  animation-delay: 0.24s;
+}
+
+.hero-float {
+  animation: hero-float 6s ease-in-out infinite;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

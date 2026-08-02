@@ -7,7 +7,26 @@ import { ListingCard } from "@/components/marketplace/ListingCard";
 import { AppDownloadBanner } from "@/components/marketplace/AppDownloadBanner";
 import { SiteFooter } from "@/components/marketplace/SiteFooter";
 import { VerifiedBadge } from "@/components/marketplace/Badges";
+import { HomeValueProps } from "@/components/marketplace/HomeValueProps";
 import { VIETNAM_PROVINCES } from "@/constants/vietnamProvinces";
+
+const HERO_IMAGES = [
+  {
+    src: "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800&h=1000&fit=crop&auto=format",
+    alt: "Golden kitten",
+    className: "col-span-2 row-span-2 min-h-[280px] lg:min-h-[360px]",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&h=700&fit=crop&auto=format",
+    alt: "Golden Retriever",
+    className: "min-h-[160px] lg:min-h-[200px] hero-float",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&h=700&fit=crop&auto=format",
+    alt: "Happy puppy",
+    className: "min-h-[160px] lg:min-h-[200px]",
+  },
+] as const;
 
 export default async function HomePage() {
   const jar = await cookies();
@@ -27,207 +46,170 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <section className="relative bg-white overflow-hidden">
+    <div className="min-h-screen bg-[#FDFBF7]">
+      <section className="relative overflow-hidden">
         <div
-          className="absolute inset-0 opacity-40"
+          className="pointer-events-none absolute inset-0"
+          aria-hidden
           style={{
             backgroundImage:
-              "radial-gradient(circle at 70% 50%, #dbeafe 0%, transparent 60%), radial-gradient(circle at 20% 80%, #ede9fe 0%, transparent 50%)",
+              "radial-gradient(ellipse 70% 55% at 78% 28%, rgba(217,119,6,0.18) 0%, transparent 55%), radial-gradient(ellipse 50% 40% at 12% 80%, rgba(245,158,11,0.10) 0%, transparent 50%), radial-gradient(ellipse 40% 30% at 40% 10%, rgba(253,230,138,0.35) 0%, transparent 60%)",
           }}
         />
-        <div className="relative max-w-[1200px] mx-auto px-5 lg:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28 flex flex-col lg:flex-row items-center gap-12">
-          <div className="flex-1 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-blue-50 text-[#1E6FE8] text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-              <span className="w-1.5 h-1.5 bg-[#1E6FE8] rounded-full animate-pulse" />
+        <div className="relative max-w-[1200px] mx-auto px-5 lg:px-8 pt-14 pb-16 lg:pt-20 lg:pb-24 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="text-center lg:text-left">
+            <p className="hero-rise inline-flex items-center gap-2 bg-amber-50 text-amber-800 text-xs font-semibold tracking-wide px-3.5 py-1.5 rounded-full mb-6 border border-amber-100">
               {t(lang, "landing.badge")}
-            </div>
-            <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 leading-tight mb-5">
-              {t(lang, "landing.hero.line1")}
-              <br />
-              <span className="text-[#1E6FE8]">
+            </p>
+            <h1 className="hero-rise hero-rise-delay-1 font-display text-4xl sm:text-5xl lg:text-[3.35rem] font-semibold text-stone-900 leading-[1.12] tracking-tight mb-5">
+              {t(lang, "landing.hero.line1")}{" "}
+              <span className="text-[#D97706]">
                 {t(lang, "landing.hero.line2")}
               </span>
               <br />
-              {t(lang, "landing.hero.line3")}
+              <span className="text-stone-700 font-medium text-[0.92em]">
+                {t(lang, "landing.hero.line3")}
+              </span>
             </h1>
-            <p className="text-slate-500 text-lg mb-8 max-w-md mx-auto lg:mx-0 leading-relaxed">
+            <p className="hero-rise hero-rise-delay-2 text-stone-500 text-base lg:text-lg mb-8 max-w-md mx-auto lg:mx-0 leading-relaxed">
               {t(lang, "landing.sub")}
             </p>
+
             <form
               action="/app/pet-feed"
-              className="flex flex-col gap-2 max-w-xl mx-auto lg:mx-0"
+              className="hero-rise hero-rise-delay-3 max-w-xl mx-auto lg:mx-0"
             >
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 relative">
-                  <svg
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
+              <div className="rounded-2xl bg-white/90 border border-[#F0E6D8] shadow-[0_12px_40px_-18px_rgba(180,83,9,0.35)] p-2 sm:p-2.5">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1 relative">
+                    <svg
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-700/70"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <circle cx="7" cy="7" r="4.5" />
+                      <path d="m11 11 2.5 2.5" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      name="q"
+                      type="text"
+                      placeholder={t(lang, "landing.searchPlaceholder")}
+                      className="w-full pl-10 pr-3 py-3 bg-transparent text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-[#D97706] text-white text-sm font-semibold rounded-xl hover:bg-[#B45309] transition-colors shadow-md shadow-amber-200/70 whitespace-nowrap"
                   >
-                    <circle cx="7" cy="7" r="4.5" />
-                    <path d="m11 11 2.5 2.5" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    name="q"
-                    type="text"
-                    placeholder={t(lang, "landing.searchPlaceholder")}
-                    className="w-full pl-10 pr-4 py-3.5 bg-white border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/30 focus:border-[#1E6FE8] shadow-sm transition-all"
-                  />
+                    {t(lang, "landing.search")}
+                  </button>
                 </div>
-                <button
-                  type="submit"
-                  className="px-6 py-3.5 bg-[#1E6FE8] text-white text-sm font-semibold rounded-full hover:bg-[#1D4ED8] transition-colors shadow-md shadow-blue-200 whitespace-nowrap"
-                >
-                  {t(lang, "landing.search")}
-                </button>
+                <div className="mt-2 pt-2 border-t border-[#F5EDE3] grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className="sr-only" htmlFor="hero-species">
+                    {t(lang, "landing.species")}
+                  </label>
+                  <select
+                    id="hero-species"
+                    name="species"
+                    defaultValue=""
+                    className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#F0E6D8] rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500"
+                  >
+                    <option value="">{t(lang, "landing.species.all")}</option>
+                    <option value="cat">{t(lang, "landing.species.cat")}</option>
+                    <option value="dog">{t(lang, "landing.species.dog")}</option>
+                  </select>
+                  <label className="sr-only" htmlFor="hero-province">
+                    {t(lang, "landing.province")}
+                  </label>
+                  <select
+                    id="hero-province"
+                    name="province"
+                    defaultValue=""
+                    className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#F0E6D8] rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500"
+                  >
+                    <option value="">{t(lang, "landing.province.all")}</option>
+                    {VIETNAM_PROVINCES.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <label className="sr-only" htmlFor="hero-species">
-                  {t(lang, "landing.species")}
-                </label>
-                <select
-                  id="hero-species"
-                  name="species"
-                  defaultValue=""
-                  className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-full text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/30 focus:border-[#1E6FE8] shadow-sm"
-                >
-                  <option value="">{t(lang, "landing.species.all")}</option>
-                  <option value="cat">{t(lang, "landing.species.cat")}</option>
-                  <option value="dog">{t(lang, "landing.species.dog")}</option>
-                </select>
-                <label className="sr-only" htmlFor="hero-province">
-                  {t(lang, "landing.province")}
-                </label>
-                <select
-                  id="hero-province"
-                  name="province"
-                  defaultValue=""
-                  className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-full text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/30 focus:border-[#1E6FE8] shadow-sm"
-                >
-                  <option value="">{t(lang, "landing.province.all")}</option>
-                  {VIETNAM_PROVINCES.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap gap-2 mt-4 justify-center lg:justify-start">
+                {(
+                  [
+                    ["cat", lang === "VI" ? "Mèo" : "Cat"],
+                    ["dog", lang === "VI" ? "Chó" : "Dog"],
+                    ["bird", lang === "VI" ? "Chim" : "Bird"],
+                  ] as const
+                ).map(([q, label]) => (
+                  <Link
+                    key={q}
+                    href={`/app/pet-feed?species=${q}`}
+                    className="px-3.5 py-1.5 bg-white/70 border border-[#F0E6D8] hover:border-amber-300 hover:text-amber-800 text-stone-600 text-xs font-medium rounded-full transition-colors"
+                  >
+                    {label}
+                  </Link>
+                ))}
               </div>
             </form>
-            <div className="flex flex-wrap gap-2 mt-4 justify-center lg:justify-start">
-              {[
-                { q: "cat", label: "🐱 Mèo / Cat" },
-                { q: "dog", label: "🐶 Chó / Dog" },
-                { q: "bird", label: "🦜 Chim / Bird" },
-              ].map((tag) => (
-                <Link
-                  key={tag.q}
-                  href={`/app/pet-feed?species=${tag.q}`}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-[#1E6FE8] text-slate-600 text-xs font-medium rounded-full transition-colors"
+          </div>
+
+          <div className="relative w-full max-w-lg mx-auto lg:max-w-none">
+            <div
+              className="absolute -inset-6 rounded-[2rem] opacity-70 blur-2xl"
+              style={{
+                background:
+                  "radial-gradient(circle at 50% 40%, rgba(217,119,6,0.28), transparent 65%)",
+              }}
+              aria-hidden
+            />
+            <div className="relative grid grid-cols-2 gap-3 auto-rows-fr">
+              {HERO_IMAGES.map((img) => (
+                <div
+                  key={img.src}
+                  className={`relative overflow-hidden rounded-[1.35rem] bg-amber-50/40 ${img.className}`}
                 >
-                  {tag.label}
-                </Link>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.src}
+                    alt={img.alt}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </div>
               ))}
             </div>
           </div>
-          <div className="flex-1 relative w-full max-w-md lg:max-w-none">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-3">
-                <div className="rounded-2xl overflow-hidden h-48 bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="https://images.unsplash.com/photo-1533743983669-94fa5c4338ec?w=400&h=400&fit=crop&auto=format"
-                    alt="British Shorthair"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="rounded-2xl overflow-hidden h-32 bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="https://images.unsplash.com/photo-1601979031925-424e53b6caaa?w=400&h=300&fit=crop&auto=format"
-                    alt="Golden Retriever"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-              <div className="space-y-3 mt-6">
-                <div className="rounded-2xl overflow-hidden h-32 bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=300&fit=crop&auto=format"
-                    alt="Scottish Fold"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="rounded-2xl overflow-hidden h-48 bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400&h=400&fit=crop&auto=format"
-                    alt="Corgi"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
-      <section className="max-w-[1200px] mx-auto px-5 lg:px-8 py-16">
-        <h2 className="text-2xl font-bold text-slate-900 text-center mb-3">
-          {t(lang, "landing.why")}
-        </h2>
-        <p className="text-slate-500 text-center mb-10 text-sm">
-          {t(lang, "landing.whySub")}
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(
-            [
-              ["landing.value1.title", "landing.value1.desc", "📋"],
-              ["landing.value2.title", "landing.value2.desc", "✅"],
-              ["landing.value3.title", "landing.value3.desc", "💬"],
-            ] as const
-          ).map(([titleKey, descKey, icon]) => (
-            <div
-              key={titleKey}
-              className="bg-white rounded-xl p-6 border border-slate-100 hover:border-blue-100 hover:shadow-sm transition-all"
-            >
-              <div className="text-3xl mb-4">{icon}</div>
-              <h3 className="font-semibold text-slate-900 mb-2">
-                {t(lang, titleKey)}
-              </h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                {t(lang, descKey)}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <HomeValueProps lang={lang} />
 
       <section className="max-w-[1200px] mx-auto px-5 lg:px-8 pb-16">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-900">
+          <h2 className="font-display text-xl lg:text-2xl font-semibold text-[#2B1E19] tracking-tight">
             {t(lang, "landing.latest")}
           </h2>
           <Link
             href="/app/pet-feed"
-            className="text-sm text-[#1E6FE8] font-medium hover:text-[#1D4ED8] transition-colors"
+            className="text-sm text-[#D97706] font-medium hover:text-[#B45309] transition-colors"
           >
             {t(lang, "landing.viewAll")}
           </Link>
         </div>
         {listings.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {listings.slice(0, 3).map((l) => (
               <ListingCard key={l.id} listing={l} lang={lang} />
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-400 text-center py-8">
+          <p className="text-sm text-stone-400 text-center py-8">
             {t(lang, "feed.empty")}
           </p>
         )}
@@ -235,12 +217,12 @@ export default async function HomePage() {
 
       <section className="max-w-[1200px] mx-auto px-5 lg:px-8 pb-16">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-900">
+          <h2 className="font-display text-xl lg:text-2xl font-semibold text-stone-900 tracking-tight">
             {t(lang, "landing.featuredBreeders")}
           </h2>
           <Link
             href="/app/breeders"
-            className="text-sm text-[#1E6FE8] font-medium hover:text-[#1D4ED8] transition-colors"
+            className="text-sm text-amber-800 font-medium hover:text-[#B45309] transition-colors"
           >
             {t(lang, "landing.viewAll")}
           </Link>
@@ -250,25 +232,25 @@ export default async function HomePage() {
             <Link
               key={b.id}
               href={`/app/breeders/${b.id}`}
-              className="bg-white rounded-xl border border-slate-100 p-4 text-left hover:shadow-sm hover:border-blue-100 transition-all"
+              className="bg-white/80 rounded-2xl border border-[#F0E6D8] p-4 text-left hover:shadow-[0_10px_30px_-18px_rgba(180,83,9,0.35)] hover:border-amber-200 transition-all"
             >
               <div className="flex items-center gap-3 mb-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={b.avatar}
                   alt={b.name}
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-50"
                 />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 truncate">
+                  <p className="text-sm font-semibold text-stone-900 truncate">
                     {b.name}
                   </p>
-                  <p className="text-xs text-slate-400 truncate">{b.location}</p>
+                  <p className="text-xs text-stone-400 truncate">{b.location}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {b.verified && <VerifiedBadge size="xs" />}
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-stone-400">
                   {b.trustScore}/100
                 </span>
               </div>
@@ -281,7 +263,7 @@ export default async function HomePage() {
         <AppDownloadBanner lang={lang} />
       </section>
 
-      <section className="bg-slate-900 text-white">
+      <section className="bg-[#1C1917] text-white">
         <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-12 grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
           {(
             [
@@ -292,8 +274,10 @@ export default async function HomePage() {
             ] as const
           ).map(([num, key]) => (
             <div key={num}>
-              <p className="text-3xl font-bold text-white mb-1">{num}</p>
-              <p className="text-sm text-slate-300">{t(lang, key)}</p>
+              <p className="font-display text-3xl font-semibold text-amber-300 mb-1">
+                {num}
+              </p>
+              <p className="text-sm text-stone-400">{t(lang, key)}</p>
             </div>
           ))}
         </div>
