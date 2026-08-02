@@ -533,6 +533,7 @@
     "adminMetrics": {
       "requests": "Requests",
       "breeders": "Breeders",
+      "listings": "Tin chờ duyệt",
       "myPosts": "My posts"
     },
     "adminSections": {
@@ -552,11 +553,11 @@
         "waiting": "Waiting review"
       },
       "posts": {
-        "title": "My posts",
-        "body": "Các bài viết do tài khoản admin tạo và trạng thái review chung của feed.",
-        "mine": "My admin posts",
-        "published": "Published listings",
-        "waiting": "Waiting review"
+        "title": "Tin đăng",
+        "body": "Toàn bộ tin marketplace để duyệt, ẩn, và kiểm tra bằng chứng vaccine.",
+        "mine": "Tin trên sàn",
+        "published": "Tin đã đăng",
+        "waiting": "Chờ duyệt"
       }
     },
     "communitySafety": "Bài đăng cộng đồng cần minh bạch và tôn trọng. Pet Health Care không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
@@ -653,8 +654,10 @@
     "empty": "Không có request phù hợp.",
     "untitledBreeder": "Breeder chưa có tên",
     "untitledPost": "Bài đăng chưa có tiêu đề",
-    "report": "Report bài đăng",
+    "report": "Báo cáo",
     "postId": "Post ID",
+    "commentTarget": "Báo cáo bình luận",
+    "unknownTarget": "Không rõ đối tượng",
     "breederChecklistCount": "{{count}} mục chăm sóc",
     "types": {
       "all": "Tất cả",
@@ -684,7 +687,7 @@
     },
     "reportStatus": {
       "open": "Đang mở",
-      "reviewed": "Đã review",
+      "reviewed": "Đã xác nhận vi phạm",
       "dismissed": "Đã bỏ qua"
     }
   },
@@ -1051,7 +1054,16 @@
     "reports": "Báo cáo bài đăng",
     "noReports": "Chưa có báo cáo mở.",
     "markReviewed": "Xác nhận vi phạm (trừ điểm)",
-    "dismiss": "Bỏ qua"
+    "dismiss": "Bỏ qua",
+    "confirmViolationSuccess": "Đã xác nhận vi phạm. Điểm trừ đã ghi vào Farm Health của breeder.",
+    "dismissSuccess": "Đã bỏ qua báo cáo. Không trừ điểm tin cậy.",
+    "confirmViolationTitle": "Xác nhận vi phạm?",
+    "confirmViolationBody": "Thao tác này sẽ trừ điểm tin cậy trên Farm Health của breeder. Chỉ xác nhận khi báo cáo đúng.",
+    "confirmSuspendTitle": "Tạm khóa breeder này?",
+    "confirmSuspendBody": "Breeder sẽ mất quyền đăng tin cho đến khi admin khôi phục xác minh.",
+    "penaltyBadge": "−{{points}} điểm · {{count}} vi phạm",
+    "healthEvidence": "Bằng chứng vaccine",
+    "healthEvidenceHint": "Tin khai đã tiêm — hãy xem ảnh sổ/tem trước khi duyệt."
   },
   "petTypes": {
     "dog": "Chó",

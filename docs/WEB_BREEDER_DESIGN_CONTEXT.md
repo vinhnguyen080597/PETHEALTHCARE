@@ -4,9 +4,10 @@
 **Nền tảng:** Responsive **web** trên **pet-marketplace.org** (desktop-first marketing/marketplace + tablet; mobile web ≤640)  
 **Phạm vi:** Chỉ bề mặt **Breeder** trong Pet Marketplace web — không thiết kế Pet Care AI / health check / Mai core UX  
 **Ngôn ngữ UI:** **Tiếng Việt ưu tiên**; song ngữ VI/EN trên frame khi hữu ích (component name, screen name, a11y label)  
-**Ngày brief:** 2026-07-30  
+**Ngày brief:** 2026-07-30 · **Cập nhật Phase Now:** 2026-08-02  
 **Trạng thái:** Design context — Cursor **không** thay designer; document này là input cho Figma  
-**Parity:** Song song với brief mobile [`docs/MOBILE_BREEDER_DESIGN_CONTEXT.md`](./MOBILE_BREEDER_DESIGN_CONTEXT.md) — **cùng data fields, trust formula, template IDs T1–T5**; khác layout/IA/chrome web
+**Parity:** Song song với brief mobile [`docs/MOBILE_BREEDER_DESIGN_CONTEXT.md`](./MOBILE_BREEDER_DESIGN_CONTEXT.md) — **cùng data fields, trust formula, template IDs T1–T5**; khác layout/IA/chrome web  
+**Canonical economy:** [`docs/BREEDER_COMPETITION_ECONOMY_DESIGN_CONTEXT.md`](./BREEDER_COMPETITION_ECONOMY_DESIGN_CONTEXT.md) · Admin web: [`docs/WEB_ADMIN_DESIGN_CONTEXT.md`](./WEB_ADMIN_DESIGN_CONTEXT.md)
 
 ---
 
@@ -30,9 +31,31 @@
 | `pet-health-frontend/src/screens/BreederDetailScreen.tsx` | Hồ sơ trại public |
 | `pet-health-frontend/src/screens/BreederProfileScreen.tsx` | Đăng ký / sửa hồ sơ |
 | `pet-health-frontend/src/utils/breederTrust.ts` | Công thức điểm tin cậy 0–100 |
+| `pet-health-frontend/src/utils/breederQualityIndex.ts` | **Phase Now:** Quality Index + Home Breeder quota + `effectiveTrustScore` |
+| `pet-health-frontend/src/utils/petFeedHealthEvidence.ts` | **Phase Now:** vaccine evidence khi khai đã tiêm |
+| `pet-health-frontend/src/screens/FarmHealthScreen.tsx` | Farm Health: violations + penalty + stake “Sắp có” |
 | `docs/MOBILE_BREEDER_DESIGN_CONTEXT.md` | Brief mobile — **parity bắt buộc** |
 | `docs/WEB_DESIGN_CONTEXT.md` | Brief web marketplace tổng (landing, feed, messages…) |
+| `docs/WEB_ADMIN_DESIGN_CONTEXT.md` | Brief **Admin console web** |
 | Share listing (đã có) | `https://pet-marketplace.org/app/pet-feed/posts/{postId}/` |
+
+
+---
+
+## 0.1 Phase Now sync (app đã ship — web Figma cần cập nhật)
+
+Đối chiếu **BREEDER_COMPETITION_ECONOMY Phase Now** (đã có trên mobile/API). Web brief cũ (07-30) chưa phản ánh đủ — cập nhật artboard theo bảng dưới. **PetCoin / Boost / Escrow / Stake flow thật = Phase A+** — vẫn **OUT** khỏi MVP Breeder web (chỉ empty “Sắp có” nếu đã vẽ).
+
+| Surface | Trước (brief 07-30) | Phase Now (bắt buộc parity) | Tag Figma |
+|---------|---------------------|-----------------------------|-----------|
+| **Top Breeders sort** | Optional sort điểm / số tin / mới | Sort theo **Quality Index**: `0.40×Trust + 0.30×ListingQuality + 0.20×Freshness + 0.10×Completeness`; soft **Home Breeder quota ~25%** (`home_breeder` hoặc scale `1_3`, Trust ≥ 40) | `SHIPPED` logic · layout web `NEW` |
+| **Top Breeders card** | Rank # optional, post count nổi | **Không** “#1 pay-to-win”; post count chỉ meta phụ; chip “Hộ gia đình” optional | `SHIPPED` |
+| **Create / edit listing** | Vaccine status tự do | Vaccine ≠ unknown / “chưa tiêm” → **≥1 ảnh bằng chứng** (sổ/tem) → `metadata.health_evidence_urls` | `SHIPPED` gate · web form `NEW` |
+| **Farm Health** | Reports = DATA LATER | **Violations** + `penaltyPoints` (Admin uphold only); empty “Chưa có báo cáo được xác nhận”; **effective trust** = max(0, trust − penalty) | `SHIPPED` |
+| **Farm Health CTA** | Improve score | CTA disabled **“Ký quỹ khôi phục”** + “Sắp có” (Phase C) — không fake flow | `DESIGN NOW / DATA LATER` |
+| **Deals / coin** | Coming soon | Giữ “Sắp có” — **không** vẽ nạp tiền / PSP trong brief Breeder | `OUT OF SCOPE MVP` |
+| **Admin console** | “Phase khác” | [`WEB_ADMIN_DESIGN_CONTEXT.md`](./WEB_ADMIN_DESIGN_CONTEXT.md) | — |
+
 
 ---
 
@@ -245,12 +268,12 @@ OG / link Zalo·FB → Farm public (web) → [Login] Message / Save
 | **Mục đích** | Sen khám phá breeder đã verified, có tin hoạt động |
 | **Entry** | SiteHeader **Breeders** · tab **Breeders** trên Pet Feed · landing teaser |
 | **Chrome** | SiteHeader + MarketplaceDisclaimerBanner + SearchBar |
-| **Desktop (≥1024)** | **Filter sidebar** trái (species, province, breeder type) **hoặc** sticky top filter bar; main = **grid 2–3 cột** TopBreederCard; optional sort (điểm / số tin / mới) |
+| **Desktop (≥1024)** | **Filter sidebar** trái (species, province, breeder type) **hoặc** sticky top filter bar; main = **grid 2–3 cột** TopBreederCard; default sort = **Quality Index** (không raw postCount); optional sort phụ (mới / tên) — **không** Boost trong organic |
 | **Tablet (768)** | Grid 2 cột; filter drawer hoặc sticky chips |
 | **Mobile web (≤640)** | 1 cột; filter chips horizontal (gần mobile app) |
 | **Card (TopBreederCard)** | Rank optional (#1…); avatar/storefront; display name; VerifiedBadge; location · species; metric mini: Điểm tin cậy, Quy mô, Số bài, Loại hình; CTA **Xem hồ sơ trại** (hover: elevation nhẹ + focus ring) |
 | **States** | Skeleton grid; empty; empty filtered; error + retry |
-| **Hiện trạng** | App lọc `verification_status === 'verified'` + aggregate posts — giữ thông tin cốt lõi |
+| **Hiện trạng** | App: verified-only + **Quality Index** + Home quota (~25%); web cùng logic, khác chrome/grid |
 
 **Nội dung mẫu:** Cattery Miu House · TP.HCM · Mèo · `78/100` · `4-10 bé` · `6` tin · Hộ gia đình nuôi sinh sản nhỏ  
 
@@ -284,10 +307,10 @@ OG / link Zalo·FB → Farm public (web) → [Login] Message / Save
 
 | | |
 |--|--|
-| **Mục đích** | Owner xem uy tín trại: điểm, cấp, tín hiệu, (tương lai) report & giao dịch |
+| **Mục đích** | Owner xem uy tín trại: **effective trust**, cấp, tín hiệu, **vi phạm đã xác nhận**, (tương lai) deals / stake |
 | **Audience** | **Chỉ owner** — route account; không index SEO full dashboard |
 | **Desktop** | ScoreHero rộng; **metric tiles** hàng 4–6 cột; checklist 2 cột; vùng **charts-friendly** (placeholder card “Biểu đồ — sắp có” — **OUT OF SCOPE** data chart thật, chỉ reserve layout) |
-| **Hierarchy** | Giống mobile: ScoreHero → Snapshot tiles → Signal checklist → Activity/Risk future → Improve CTAs → disclaimer |
+| **Hierarchy** | Giống mobile: ScoreHero (effective trust) → Snapshot → **Violations / penalty** → Signal checklist → Deals “Sắp có” → Improve → Stake CTA disabled → disclaimer |
 | **CTA** | Cải thiện điểm → anchor profile edit; Xem tin đăng; Nội quy Marketplace |
 
 ### 5.5 Breeder profile edit / registration — `Web / BreederProfile` **[SHIPPED · polish]**
@@ -356,12 +379,13 @@ Breeder hiểu vị trí uy tín và việc cần làm — **không** xếp hạ
 
 ```
 [1] Header: Sức khỏe trại
-[2] ScoreHero: điểm /100 + TrustLevel + 1 câu giải thích
+[2] ScoreHero: effective trust /100 + TrustLevel + penalty note
 [3] SnapshotRow: metric tiles (rộng trên desktop)
-[4] SignalChecklist: tín hiệu đạt/chưa (2 cột desktop)
-[5] Activity / Risk (future-ready / empty)
-[6] How to improve
-[7] Disclaimer điểm tham khảo
+[4] Violations / penalty (SHIPPED) + Stake CTA disabled
+[5] SignalChecklist: tín hiệu đạt/chưa (2 cột desktop)
+[6] Deals “Sắp có”
+[7] How to improve
+[8] Disclaimer điểm tham khảo
 [+ optional] Chart placeholder panel — layout only, OUT OF SCOPE data
 ```
 
@@ -375,7 +399,8 @@ Gắn badge Figma: `SHIPPED` | `DESIGN NOW / DATA LATER` | `OUT OF SCOPE MVP`
 | **Verification** | Trạng thái xác minh | `verification_status` | **SHIPPED** | Có (badge) | “Chưa xác minh” |
 | **Trust signals breakdown** | Chi tiết tín hiệu | verified 30 · checklist 15 · commitments 15 · contact 15 · care env 15 · listings 10 | **SHIPPED** | Teaser / optional | Amber + 0/max |
 | **Active listings** | Tin đang hiển thị | Count published | **SHIPPED** | Có | `0` + CTA tạo tin |
-| **Reports received** | Số báo cáo | Report API (backend có; product wire) | **DESIGN NOW / DATA LATER** | Không (hoặc rất thận trọng) | “Chưa có báo cáo” |
+| **Active violations / penalty** | Vi phạm / điểm lỗi | `metadata.violations` + `penaltyPoints` (Admin uphold only) | **SHIPPED** | Không (owner only) | “Chưa có báo cáo được xác nhận” |
+| **Reports received (raw open)** | Báo cáo chưa xác nhận | Report create | **Không hiện raw** — chỉ violation sau Admin | Không | — |
 | **Trust level** | Cấp tin cậy | Derive score + verification | **DESIGN NOW** (UI); có thể client-side | Có (tên cấp) | Cấp thấp khi 0 |
 | **Successful transactions** | Giao dịch thành công | Chưa có payment / deal tracking | **DESIGN NOW / DATA LATER** | Thường không | “Chưa ghi nhận — MVP chưa theo dõi giao dịch trong app” |
 | **Failed / disputed transactions** | Giao dịch thất bại / tranh chấp | Future | **DESIGN NOW / DATA LATER** | Không | `—` / ẩn tới feature flag |
@@ -396,10 +421,13 @@ Chip slate→blue→emerald; **không** 5 sao review-spam.
 ### 7.5 ScoreHero / snapshot / empty
 
 - Body: “Điểm này là tín hiệu tham khảo… dựa trên mức độ minh bạch hồ sơ và bài đăng.”  
-- Hàng 1 tiles: Điểm · Cấp · Báo cáo · Tin đăng  
-- Hàng 2 (dim + “Sắp có”): Giao dịch thành công · thất bại  
+- ScoreHero dùng **effective trust** (= trust − penalty, floor 0); penalty > 0 → “−N từ vi phạm đã xác nhận”  
+- Hàng 1 tiles: Điểm (effective) · Cấp · Số vi phạm active · Tin đăng  
+- Section **Vi phạm / điểm lỗi**: list reason + ngày + −points, hoặc empty state  
+- CTA **Ký quỹ khôi phục** disabled + “Sắp có” (Phase C)  
+- Hàng deals (dim + “Sắp có”): Giao dịch thành công · thất bại  
 - Score 0 → slate + checklist, **không** đỏ danger  
-- Pending → banner amber; Rejected/suspended → banner đỏ nhẹ, không đổi template hoa mỹ  
+- Pending → banner amber; Rejected/suspended → banner đỏ nhẹ  
 
 ### 7.6 Trust score formula (không invent)
 
@@ -568,8 +596,8 @@ Dùng nhất quán trên mọi frame:
 | Tag | Nghĩa |
 |-----|--------|
 | `SHIPPED` | Đã có trên mobile/API — web redesign layout, giữ field |
-| `NEW` | Chưa có UI (Template picker, Farm Health dashboard, web sticky rail, OG farm) |
-| `DESIGN NOW / DATA LATER` | Vẽ UI + empty/coming-soon; data deals/reports đầy đủ chưa chốt |
+| `NEW` | Chưa có UI web (Template picker, Farm Health layout web, sticky rail, OG farm, listing evidence upload web) |
+| `DESIGN NOW / DATA LATER` | Vẽ UI + empty/coming-soon; deals/stake/PetCoin chưa ship |
 | `OUT OF SCOPE MVP` | Không vẽ sâu (charts thật, payment, response time, profile views) |
 
 ---
@@ -581,8 +609,8 @@ Dùng nhất quán trên mọi frame:
 | Pet Care Home, health check, results, core care, vet summary, breed recognition | Mobile Pet Care only |
 | Mai onboarding / Mai trên public farm | Marketplace sạch |
 | Native app chrome, bottom tabs, Expo safe-area | Brief này = **web** |
-| Admin review console | Phase khác |
-| In-app payment, checkout, escrow, ví | Không MVP |
+| Admin review console | Brief riêng: [`WEB_ADMIN_DESIGN_CONTEXT.md`](./WEB_ADMIN_DESIGN_CONTEXT.md) |
+| In-app payment, checkout, escrow, ví, nạp PetCoin qua PSP | Phase A+ Economy — không MVP Breeder |
 | Theme builder / upload font | Preset T1–T5 only |
 | Leaderboard gamification nặng | Top Breeders = browse, không đấu hạng |
 | Analytics charts phức tạp (views over time) | OUT — chỉ placeholder layout nếu cần |
@@ -599,7 +627,9 @@ Dùng nhất quán trên mọi frame:
 - [ ] Top Breeders: 1280 + 768 + 390  
 - [ ] Farm detail: **5 templates** desktop; ít nhất T1 trên 768 + 390  
 - [ ] Template picker (large preview ± compare)  
-- [ ] Farm Health owner dashboard (tiles + coming-soon deals)  
+- [ ] Farm Health owner dashboard (effective trust + violations + coming-soon deals/stake)  
+- [ ] Create listing: vaccine evidence gate (web form)  
+- [ ] Top Breeders: Quality Index order (không postCount-only)  
 - [ ] Profile edit polish + entries Template / Farm Health  
 - [ ] OG / share preview farm URL  
 - [ ] Flows S1, B1, B2, V1  
@@ -644,7 +674,7 @@ Cùng 4 câu với index / mobile — **chốt trước khi khóa Figma**:
 - [ ] Top Breeders: skeleton, empty, filtered empty, error  
 - [ ] Detail: own vs other; unverified không vào Top nhưng mở từ URL trực tiếp? (annotate)  
 - [ ] Template: default T1; selecting; just applied  
-- [ ] Farm Health: score 0; pending; high score; reports > 0 (mock); transactions coming soon  
+- [ ] Farm Health: score 0; pending; high score; **violations empty vs active**; stake/deals coming soon  
 - [ ] Profile: validation; success; rejected banner  
 - [ ] Long name; missing avatar/cover; missing bio  
 - [ ] Hover/focus/keyboard trên grid & sticky rail  

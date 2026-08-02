@@ -8,7 +8,14 @@ import { MAI_GUIDING } from '../assets/maiAssets';
 import { APP_LINKS } from '../config';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 import { PetFeedPostTimeMeta } from '../components/PetFeedPostTimeMeta';
+import { AdminHealthEvidencePreview } from '../components/AdminHealthEvidencePreview';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
+import {
+  adminBreederPenaltySummary,
+  adminReportReasonLabel,
+  adminReportTargetSubtitle,
+} from '../utils/adminModerationDisplay';
+import { confirmAdminModeration } from '../utils/adminConfirmModeration';
 import { modalTopInset } from '../utils/modalSafeArea';
 
 const PRIMARY = '#1E6FE8';
@@ -138,6 +145,7 @@ type AccountScreenProps = {
   onSubmitPetFeedDraft?: (post: PetFeedPost) => Promise<void>;
   onDeletePetFeedPost?: (post: PetFeedPost) => Promise<boolean> | boolean;
   onOpenAdminHub: () => void;
+  onOpenAdminReview?: () => void;
   onOpenUpdateAccount: () => void;
   onOpenLanguageSelection: () => void;
   onUpdateBreederStatus: (userId: string, verificationStatus: string) => Promise<void>;
@@ -208,6 +216,7 @@ export function AccountScreen({
   onSubmitPetFeedDraft,
   onDeletePetFeedPost,
   onOpenAdminHub,
+  onOpenAdminReview,
   onOpenUpdateAccount,
   onOpenLanguageSelection,
   onUpdateBreederStatus,
@@ -284,10 +293,8 @@ export function AccountScreen({
       type: 'report',
       status: report.status,
       createdAt: report.created_at,
-      title: report.reason || t('adminRequests.report'),
-      subtitle: report.target_type === 'breeder_profile'
-        ? `${t('adminRequests.types.breeder')}: ${report.breeder_profile?.display_name ?? report.breeder_profile_id ?? ''}`
-        : `${t('adminRequests.postId')}: ${report.post_id ?? ''}`,
+      title: adminReportReasonLabel(t, report.reason),
+      subtitle: adminReportTargetSubtitle(t, report, adminFeedPosts),
       body: report.note || (report.target_type === 'breeder_profile' ? report.breeder_profile?.bio ?? '' : ''),
       report,
     }));
@@ -353,7 +360,7 @@ export function AccountScreen({
     ? [
         { key: 'requests' as const, label: t('account.adminMetrics.requests'), value: pendingRequestCount },
         { key: 'breeders' as const, label: t('account.adminMetrics.breeders'), value: activeBreederCount },
-        { key: 'posts' as const, label: t('account.adminMetrics.myPosts'), value: myPostCount },
+        { key: 'posts' as const, label: t('account.adminMetrics.listings'), value: adminPendingPostCount },
       ]
     : isBreeder
       ? [
@@ -602,6 +609,17 @@ export function AccountScreen({
         </Pressable>
       ) : null}
 
+      {isAdmin && onOpenAdminReview ? (
+        <Pressable
+          testID="account-open-admin-review-button"
+          className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3.5 active:bg-slate-50"
+          onPress={onOpenAdminReview}
+        >
+          <Ionicons name="shield-checkmark-outline" size={19} color="#334155" />
+          <Text className="text-sm font-bold text-slate-700">{t('account.openAdminReview')}</Text>
+        </Pressable>
+      ) : null}
+
       {isAdmin && adminSection === 'requests' ? (
         <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-sm font-bold text-slate-900">{t('adminRequests.filters')}</Text>
@@ -776,9 +794,22 @@ export function AccountScreen({
                 <Text className="mt-3 text-base font-bold text-slate-900" numberOfLines={2}>{item.title}</Text>
                 {item.subtitle ? <Text className="mt-1 text-sm text-slate-500" numberOfLines={2}>{item.subtitle}</Text> : null}
                 {item.body ? <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>{item.body}</Text> : null}
-                {item.type === 'post' ? <AdminPostMediaPreview post={item.post} /> : null}
+                {item.type === 'post' ? (
+                  <>
+                    <AdminPostMediaPreview post={item.post} />
+                    <AdminHealthEvidencePreview post={item.post} />
+                  </>
+                ) : null}
                 {item.type === 'breeder' ? (
                   <View className="mt-4 flex-row flex-wrap gap-2">
+                    {adminBreederPenaltySummary(item.profile).points > 0 ? (
+                      <Text className="mb-1 w-full text-xs font-semibold text-red-700">
+                        {t('adminReview.penaltyBadge', {
+                          points: adminBreederPenaltySummary(item.profile).points,
+                          count: adminBreederPenaltySummary(item.profile).violations,
+                        })}
+                      </Text>
+                    ) : null}
                     {item.profile.verification_status !== 'verified' ? (
                       <AdminActionButton
                         testID={`admin-breeder-verify-${item.profile.id}`}
@@ -819,11 +850,13 @@ export function AccountScreen({
                         busy={adminActionBusyKey === `breeder-suspend-${item.profile.id}`}
                         disabled={Boolean(adminActionBusyKey)}
                         onPress={() =>
-                          void runAdminAction(
-                            `breeder-suspend-${item.profile.id}`,
-                            () => onUpdateBreederStatus(item.profile.user_id, 'suspended'),
-                            t('adminReview.suspendSuccess'),
-                          )
+                          confirmAdminModeration('suspend', t, () => {
+                            void runAdminAction(
+                              `breeder-suspend-${item.profile.id}`,
+                              () => onUpdateBreederStatus(item.profile.user_id, 'suspended'),
+                              t('adminReview.suspendSuccess'),
+                            );
+                          })
                         }
                       />
                     ) : null}
@@ -861,50 +894,66 @@ export function AccountScreen({
                 ) : null}
                 {item.type === 'report' ? (
                   <View className="mt-4 gap-2">
-                    {item.report.post_id ? (
-                      <View className="flex-row flex-wrap gap-2">
-                        <AdminActionButton
-                          label={t('adminReview.archive')}
-                          variant="warning"
-                          busy={adminActionBusyKey === `report-archive-post-${item.report.id}`}
-                          disabled={Boolean(adminActionBusyKey)}
-                          onPress={() =>
-                            void runAdminAction(
-                              `report-archive-post-${item.report.id}`,
-                              () => onUpdatePostStatus(item.report.post_id!, 'archived'),
-                              t('adminReview.updateSuccess'),
-                            )
-                          }
-                        />
-                        <AdminActionButton
-                          label={t('adminReview.markReviewed')}
-                          variant="primary"
-                          busy={adminActionBusyKey === `report-reviewed-${item.report.id}`}
-                          disabled={Boolean(adminActionBusyKey)}
-                          onPress={() =>
-                            void runAdminAction(
-                              `report-reviewed-${item.report.id}`,
-                              () => onUpdateReportStatus(item.report.id, 'reviewed'),
-                              t('adminReview.updateSuccess'),
-                            )
-                          }
-                        />
-                      </View>
-                    ) : null}
-                    {item.report.breeder_profile?.user_id ? (
+                    {item.report.status !== 'open' ? (
+                      <Text className="text-xs font-semibold text-slate-500">
+                        {t(`adminRequests.reportStatus.${item.report.status}`)}
+                      </Text>
+                    ) : (
+                      <>
+                        {item.report.post_id ? (
+                          <View className="flex-row flex-wrap gap-2">
+                            <AdminActionButton
+                              label={t('adminReview.archive')}
+                              variant="warning"
+                              busy={adminActionBusyKey === `report-archive-post-${item.report.id}`}
+                              disabled={Boolean(adminActionBusyKey)}
+                              onPress={() =>
+                                void runAdminAction(
+                                  `report-archive-post-${item.report.id}`,
+                                  () => onUpdatePostStatus(item.report.post_id!, 'archived'),
+                                  t('adminReview.updateSuccess'),
+                                )
+                              }
+                            />
+                            <AdminActionButton
+                              label={t('adminReview.markReviewed')}
+                              variant="primary"
+                              busy={adminActionBusyKey === `report-reviewed-${item.report.id}`}
+                              disabled={Boolean(adminActionBusyKey)}
+                              onPress={() =>
+                                confirmAdminModeration('violation', t, () => {
+                                  void runAdminAction(
+                                    `report-reviewed-${item.report.id}`,
+                                    () => onUpdateReportStatus(item.report.id, 'reviewed'),
+                                    t('adminReview.confirmViolationSuccess'),
+                                  );
+                                })
+                              }
+                            />
+                          </View>
+                        ) : null}
+                    {item.report.breeder_profile?.user_id
+                    || adminBreederProfiles.find((profile) => profile.id === item.report.breeder_profile_id)?.user_id
+                      ? (
                       <View className="flex-row flex-wrap gap-2">
                         <AdminActionButton
                           label={t('adminReview.suspend')}
                           variant="warning"
                           busy={adminActionBusyKey === `report-suspend-${item.report.id}`}
                           disabled={Boolean(adminActionBusyKey)}
-                          onPress={() =>
-                            void runAdminAction(
-                              `report-suspend-${item.report.id}`,
-                              () => onUpdateBreederStatus(item.report.breeder_profile!.user_id, 'suspended'),
-                              t('adminReview.suspendSuccess'),
-                            )
-                          }
+                          onPress={() => {
+                            const userId =
+                              item.report.breeder_profile?.user_id
+                              || adminBreederProfiles.find((profile) => profile.id === item.report.breeder_profile_id)?.user_id;
+                            if (!userId) return;
+                            confirmAdminModeration('suspend', t, () => {
+                              void runAdminAction(
+                                `report-suspend-${item.report.id}`,
+                                () => onUpdateBreederStatus(userId, 'suspended'),
+                                t('adminReview.suspendSuccess'),
+                              );
+                            });
+                          }}
                         />
                         <AdminActionButton
                           label={t('adminReview.markReviewed')}
@@ -912,60 +961,68 @@ export function AccountScreen({
                           busy={adminActionBusyKey === `report-reviewed-breeder-${item.report.id}`}
                           disabled={Boolean(adminActionBusyKey)}
                           onPress={() =>
-                            void runAdminAction(
-                              `report-reviewed-breeder-${item.report.id}`,
-                              () => onUpdateReportStatus(item.report.id, 'reviewed'),
-                              t('adminReview.updateSuccess'),
-                            )
+                            confirmAdminModeration('violation', t, () => {
+                              void runAdminAction(
+                                `report-reviewed-breeder-${item.report.id}`,
+                                () => onUpdateReportStatus(item.report.id, 'reviewed'),
+                                t('adminReview.confirmViolationSuccess'),
+                              );
+                            })
                           }
                         />
                       </View>
                     ) : null}
-                    {!item.report.post_id && !item.report.breeder_profile?.user_id ? (
-                      <View className="flex-row flex-wrap gap-2">
-                        <AdminActionButton
-                          label={t('adminReview.markReviewed')}
-                          variant="primary"
-                          busy={adminActionBusyKey === `report-reviewed-only-${item.report.id}`}
-                          disabled={Boolean(adminActionBusyKey)}
-                          onPress={() =>
-                            void runAdminAction(
-                              `report-reviewed-only-${item.report.id}`,
-                              () => onUpdateReportStatus(item.report.id, 'reviewed'),
-                              t('adminReview.updateSuccess'),
-                            )
-                          }
-                        />
-                        <AdminActionButton
-                          label={t('adminReview.dismiss')}
-                          variant="neutral"
-                          busy={adminActionBusyKey === `report-dismiss-${item.report.id}`}
-                          disabled={Boolean(adminActionBusyKey)}
-                          onPress={() =>
-                            void runAdminAction(
-                              `report-dismiss-${item.report.id}`,
-                              () => onUpdateReportStatus(item.report.id, 'dismissed'),
-                              t('adminReview.updateSuccess'),
-                            )
-                          }
-                        />
-                      </View>
-                    ) : (
-                      <View className="flex-row flex-wrap gap-2">
-                        <AdminActionButton
-                          label={t('adminReview.dismiss')}
-                          variant="neutral"
-                          busy={adminActionBusyKey === `report-dismiss-extra-${item.report.id}`}
-                          disabled={Boolean(adminActionBusyKey)}
-                          onPress={() =>
-                            void runAdminAction(
-                              `report-dismiss-extra-${item.report.id}`,
-                              () => onUpdateReportStatus(item.report.id, 'dismissed'),
-                              t('adminReview.updateSuccess'),
-                            )
-                          }
-                        />
-                      </View>
+                        {!item.report.post_id
+                        && !item.report.breeder_profile?.user_id
+                        && !item.report.breeder_profile_id ? (
+                          <View className="flex-row flex-wrap gap-2">
+                            <AdminActionButton
+                              label={t('adminReview.markReviewed')}
+                              variant="primary"
+                              busy={adminActionBusyKey === `report-reviewed-only-${item.report.id}`}
+                              disabled={Boolean(adminActionBusyKey)}
+                              onPress={() =>
+                                confirmAdminModeration('violation', t, () => {
+                                  void runAdminAction(
+                                    `report-reviewed-only-${item.report.id}`,
+                                    () => onUpdateReportStatus(item.report.id, 'reviewed'),
+                                    t('adminReview.confirmViolationSuccess'),
+                                  );
+                                })
+                              }
+                            />
+                            <AdminActionButton
+                              label={t('adminReview.dismiss')}
+                              variant="neutral"
+                              busy={adminActionBusyKey === `report-dismiss-${item.report.id}`}
+                              disabled={Boolean(adminActionBusyKey)}
+                              onPress={() =>
+                                void runAdminAction(
+                                  `report-dismiss-${item.report.id}`,
+                                  () => onUpdateReportStatus(item.report.id, 'dismissed'),
+                                  t('adminReview.dismissSuccess'),
+                                )
+                              }
+                            />
+                          </View>
+                        ) : (
+                          <View className="flex-row flex-wrap gap-2">
+                            <AdminActionButton
+                              label={t('adminReview.dismiss')}
+                              variant="neutral"
+                              busy={adminActionBusyKey === `report-dismiss-extra-${item.report.id}`}
+                              disabled={Boolean(adminActionBusyKey)}
+                              onPress={() =>
+                                void runAdminAction(
+                                  `report-dismiss-extra-${item.report.id}`,
+                                  () => onUpdateReportStatus(item.report.id, 'dismissed'),
+                                  t('adminReview.dismissSuccess'),
+                                )
+                              }
+                            />
+                          </View>
+                        )}
+                      </>
                     )}
                   </View>
                 ) : null}
@@ -974,7 +1031,12 @@ export function AccountScreen({
           </View>
         ) : adminSection === 'posts' ? (
           <View className="mt-5 gap-3">
-            {myPosts.map((post) => (
+            {adminFeedPosts.length === 0 ? (
+              <Text className="rounded-2xl border border-gray-200 bg-white p-4 text-sm leading-5 text-slate-500">
+                {t('adminReview.noPendingPosts')}
+              </Text>
+            ) : null}
+            {adminFeedPosts.map((post) => (
               <View key={post.id} className="rounded-2xl border border-gray-200 bg-white p-4">
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="min-w-0 flex-1">
@@ -988,7 +1050,45 @@ export function AccountScreen({
                 <Text className="mt-2 text-sm leading-5 text-slate-600" numberOfLines={3}>
                   {post.description || [post.breed, post.location].filter(Boolean).join(' - ')}
                 </Text>
+                {post.breeder_profile?.display_name ? (
+                  <Text className="mt-1 text-xs font-semibold text-slate-500">
+                    {t('adminRequests.types.breeder')}: {post.breeder_profile.display_name}
+                  </Text>
+                ) : null}
                 <AdminPostMediaPreview post={post} />
+                <AdminHealthEvidencePreview post={post} />
+                {post.status === 'pending_review' || post.status === 'published' ? (
+                  <View className="mt-4 flex-row flex-wrap gap-2">
+                    {post.status === 'pending_review' ? (
+                      <AdminActionButton
+                        label={t('adminReview.approve')}
+                        variant="success"
+                        busy={adminActionBusyKey === `feed-post-approve-${post.id}`}
+                        disabled={Boolean(adminActionBusyKey)}
+                        onPress={() =>
+                          void runAdminAction(
+                            `feed-post-approve-${post.id}`,
+                            () => onUpdatePostStatus(post.id, 'published'),
+                            t('adminReview.updateSuccess'),
+                          )
+                        }
+                      />
+                    ) : null}
+                    <AdminActionButton
+                      label={t('adminReview.archive')}
+                      variant="neutral"
+                      busy={adminActionBusyKey === `feed-post-archive-${post.id}`}
+                      disabled={Boolean(adminActionBusyKey)}
+                      onPress={() =>
+                        void runAdminAction(
+                          `feed-post-archive-${post.id}`,
+                          () => onUpdatePostStatus(post.id, 'archived'),
+                          t('adminReview.updateSuccess'),
+                        )
+                      }
+                    />
+                  </View>
+                ) : null}
               </View>
             ))}
           </View>
@@ -1002,6 +1102,7 @@ export function AccountScreen({
             {filteredBreederProfiles.map((profile) => {
               const species = profile.primary_species.join(', ');
               const breeds = profile.main_breeds.join(', ');
+              const penalty = adminBreederPenaltySummary(profile);
               return (
                 <View key={profile.id} className="rounded-2xl border border-gray-200 bg-white p-4">
                   <View className="gap-2">
@@ -1020,6 +1121,11 @@ export function AccountScreen({
                       {species ? (
                         <Text className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{species}</Text>
                       ) : null}
+                      {penalty.points > 0 ? (
+                        <Text className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">
+                          {t('adminReview.penaltyBadge', { points: penalty.points, count: penalty.violations })}
+                        </Text>
+                      ) : null}
                     </View>
                     <Text className="text-xs font-semibold text-slate-400">{formatRequestDate(profile.created_at)}</Text>
                   </View>
@@ -1029,7 +1135,11 @@ export function AccountScreen({
                   <Text className="mt-1 text-sm text-slate-500" numberOfLines={2}>
                     {[profile.location, breeds].filter(Boolean).join(' - ')}
                   </Text>
-                  {profile.care_environment || profile.bio ? (
+                  {breederApplicationSummary(profile) ? (
+                    <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>
+                      {breederApplicationSummary(profile)}
+                    </Text>
+                  ) : profile.care_environment || profile.bio ? (
                     <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>
                       {profile.care_environment || profile.bio}
                     </Text>
@@ -1075,11 +1185,13 @@ export function AccountScreen({
                         busy={adminActionBusyKey === `breeder-list-suspend-${profile.id}`}
                         disabled={Boolean(adminActionBusyKey)}
                         onPress={() =>
-                          void runAdminAction(
-                            `breeder-list-suspend-${profile.id}`,
-                            () => onUpdateBreederStatus(profile.user_id, 'suspended'),
-                            t('adminReview.suspendSuccess'),
-                          )
+                          confirmAdminModeration('suspend', t, () => {
+                            void runAdminAction(
+                              `breeder-list-suspend-${profile.id}`,
+                              () => onUpdateBreederStatus(profile.user_id, 'suspended'),
+                              t('adminReview.suspendSuccess'),
+                            );
+                          })
                         }
                       />
                     ) : null}

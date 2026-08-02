@@ -1,8 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { AdminHealthEvidencePreview } from '../components/AdminHealthEvidencePreview';
 import type { AccountProfile, AdminCreateAccountPayload, AdminUpdateAccountPayload, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
+import {
+  adminBreederPenaltySummary,
+  adminReportReasonLabel,
+  adminReportTargetSubtitle,
+} from '../utils/adminModerationDisplay';
+import { confirmAdminModeration } from '../utils/adminConfirmModeration';
 
 type AdminReviewScreenProps = {
   accounts: AccountProfile[];
@@ -48,6 +55,14 @@ export function AdminReviewScreen({
   const [newPassword, setNewPassword] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('sen');
+  const pendingPosts = useMemo(
+    () => posts.filter((post) => post.status === 'pending_review'),
+    [posts],
+  );
+  const openReports = useMemo(
+    () => reports.filter((report) => report.status === 'open'),
+    [reports],
+  );
   const breederGroups = BREEDER_REVIEW_STATUSES.map((status) => ({
     status,
     profiles: breederProfiles.filter((profile) => profile.verification_status === status),
@@ -92,43 +107,65 @@ export function AdminReviewScreen({
     }
   }
 
-  async function updateBreederStatus(userId: string, status: string) {
-    setLoading(true);
-    try {
-      await onUpdateBreederStatus(userId, status);
-      const successKey =
-        status === 'verified'
-          ? 'adminReview.verifySuccess'
-          : status === 'rejected'
-            ? 'adminReview.rejectSuccess'
-            : status === 'suspended'
-              ? 'adminReview.suspendSuccess'
-              : 'adminReview.updateSuccess';
-      notifyUser(t('adminReview.updateSuccess'), t(successKey));
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('common.unknownError');
-      notifyUser(t('adminReview.updateFailed'), message);
-    } finally {
-      setLoading(false);
+  async function updateReportStatus(reportId: string, status: string) {
+    const run = async () => {
+      setLoading(true);
+      try {
+        await onUpdateReportStatus(reportId, status);
+        notifyUser(
+          t('adminReview.updateSuccess'),
+          status === 'reviewed' ? t('adminReview.confirmViolationSuccess') : t('adminReview.dismissSuccess'),
+        );
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : t('common.unknownError');
+        notifyUser(t('adminReview.updateFailed'), message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (status === 'reviewed') {
+      confirmAdminModeration('violation', t, () => {
+        void run();
+      });
+      return;
     }
+    await run();
+  }
+
+  async function updateBreederStatus(userId: string, status: string) {
+    const run = async () => {
+      setLoading(true);
+      try {
+        await onUpdateBreederStatus(userId, status);
+        const successKey =
+          status === 'verified'
+            ? 'adminReview.verifySuccess'
+            : status === 'rejected'
+              ? 'adminReview.rejectSuccess'
+              : status === 'suspended'
+                ? 'adminReview.suspendSuccess'
+                : 'adminReview.updateSuccess';
+        notifyUser(t('adminReview.updateSuccess'), t(successKey));
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : t('common.unknownError');
+        notifyUser(t('adminReview.updateFailed'), message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (status === 'suspended') {
+      confirmAdminModeration('suspend', t, () => {
+        void run();
+      });
+      return;
+    }
+    await run();
   }
 
   async function updatePostStatus(postId: string, status: string) {
     setLoading(true);
     try {
       await onUpdateStatus(postId, status);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('common.unknownError');
-      notifyUser(t('adminReview.updateFailed'), message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function updateReportStatus(reportId: string, status: string) {
-    setLoading(true);
-    try {
-      await onUpdateReportStatus(reportId, status);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
       notifyUser(t('adminReview.updateFailed'), message);
@@ -195,10 +232,17 @@ export function AdminReviewScreen({
           {breederGroups.map((group) => (
             <View key={group.status} className="gap-3">
               <Text className="text-xs font-bold uppercase text-slate-500">{t(`account.breederRequestStatus.${group.status}`)}</Text>
-              {group.profiles.map((profile) => (
+              {group.profiles.map((profile) => {
+                const penalty = adminBreederPenaltySummary(profile);
+                return (
             <View key={profile.id} className="rounded-2xl border border-gray-200 bg-white p-4">
               <Text className="font-bold text-slate-900">{profile.display_name}</Text>
               <Text className="mt-1 text-xs text-slate-500">{[profile.location, t(`account.breederRequestStatus.${profile.verification_status}`)].filter(Boolean).join(' • ')}</Text>
+              {penalty.points > 0 ? (
+                <Text className="mt-1 text-xs font-semibold text-red-700">
+                  {t('adminReview.penaltyBadge', { points: penalty.points, count: penalty.violations })}
+                </Text>
+              ) : null}
               <Text className="mt-2 text-sm leading-5 text-slate-700">{profile.bio}</Text>
               <View className="mt-3 flex-row flex-wrap gap-2">
                 <Pressable
@@ -227,19 +271,24 @@ export function AdminReviewScreen({
                 </Pressable>
               </View>
             </View>
-              ))}
+                );
+              })}
             </View>
           ))}
         </View>
 
         <Text className="mt-5 text-base font-bold text-slate-900">{t('adminReview.pendingPosts')}</Text>
         <View className="mt-3 gap-3">
-          {posts.length === 0 ? <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">{t('adminReview.noPendingPosts')}</Text> : null}
-          {posts.map((post) => (
+          {pendingPosts.length === 0 ? <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">{t('adminReview.noPendingPosts')}</Text> : null}
+          {pendingPosts.map((post) => (
             <View key={post.id} className="rounded-2xl border border-gray-200 bg-white p-4">
               <Text className="text-base font-bold text-slate-900">{post.title}</Text>
               <Text className="mt-1 text-sm text-slate-600">{[post.species, post.breed, post.location].filter(Boolean).join(' • ')}</Text>
               <Text className="mt-2 text-sm leading-5 text-slate-700">{post.description}</Text>
+              {post.vaccine_status ? (
+                <Text className="mt-1 text-xs text-slate-500">{t('createPetFeedPost.vaccineStatus')}: {post.vaccine_status}</Text>
+              ) : null}
+              <AdminHealthEvidencePreview post={post} />
               <View className="mt-3 flex-row flex-wrap gap-2">
                 <Pressable className="min-w-[120px] flex-1 rounded-xl bg-emerald-600 py-3" onPress={() => updatePostStatus(post.id, 'published')}>
                   <Text className="text-center text-xs font-bold text-white">{t('adminReview.approve')}</Text>
@@ -254,11 +303,11 @@ export function AdminReviewScreen({
 
         <Text className="mt-5 text-base font-bold text-slate-900">{t('adminReview.reports')}</Text>
         <View className="mt-3 gap-3">
-          {reports.length === 0 ? <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">{t('adminReview.noReports')}</Text> : null}
-          {reports.map((report) => (
+          {openReports.length === 0 ? <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">{t('adminReview.noReports')}</Text> : null}
+          {openReports.map((report) => (
             <View key={report.id} className="rounded-2xl border border-red-100 bg-white p-4">
-              <Text className="text-sm font-bold text-slate-900">{report.reason}</Text>
-              <Text className="mt-1 text-xs text-slate-500">{report.post_id}</Text>
+              <Text className="text-sm font-bold text-slate-900">{adminReportReasonLabel(t, report.reason)}</Text>
+              <Text className="mt-1 text-xs text-slate-500">{adminReportTargetSubtitle(t, report, posts)}</Text>
               {report.note ? <Text className="mt-2 text-sm leading-5 text-slate-700">{report.note}</Text> : null}
               <View className="mt-3 flex-row flex-wrap gap-2">
                 <Pressable className="min-w-[120px] flex-1 rounded-xl bg-blue-600 py-3" onPress={() => updateReportStatus(report.id, 'reviewed')}>

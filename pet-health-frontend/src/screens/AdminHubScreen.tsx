@@ -1,8 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { AdminHealthEvidencePreview } from '../components/AdminHealthEvidencePreview';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
+import {
+  adminBreederPenaltySummary,
+  adminReportReasonLabel,
+  adminReportTargetSubtitle,
+} from '../utils/adminModerationDisplay';
+import { confirmAdminModeration } from '../utils/adminConfirmModeration';
 
 const ROLE_OPTIONS: UserRole[] = ['sen', 'breeder', 'admin'];
 
@@ -20,6 +27,14 @@ type AdminHubScreenProps = {
   onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
 };
+
+function notifyUser(title: string, message: string) {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.alert(message ? `${title}\n\n${message}` : title);
+    return;
+  }
+  Alert.alert(title, message);
+}
 
 export function AdminHubScreen({
   accounts,
@@ -42,12 +57,26 @@ export function AdminHubScreen({
   const [newDisplayName, setNewDisplayName] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('sen');
+  const [busyKey, setBusyKey] = useState<string | null>(null);
 
   const filteredAccounts = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return accounts;
     return accounts.filter((account) => [account.display_name, account.email, account.login_identifier, account.primary_role].some((v) => String(v ?? '').toLowerCase().includes(q)));
   }, [accounts, search]);
+
+  const pendingPosts = useMemo(
+    () => posts.filter((post) => post.status === 'pending_review'),
+    [posts],
+  );
+  const openReports = useMemo(
+    () => reports.filter((report) => report.status === 'open'),
+    [reports],
+  );
+  const pendingBreeders = useMemo(
+    () => breederProfiles.filter((profile) => profile.verification_status === 'pending_review'),
+    [breederProfiles],
+  );
 
   async function handleCreateAccount() {
     await onCreateAccount({
@@ -59,6 +88,20 @@ export function AdminHubScreen({
     setNewEmail('');
     setNewDisplayName('');
     setNewPassword('');
+  }
+
+  async function runAction(key: string, action: () => Promise<void>, successMessage: string) {
+    if (busyKey) return;
+    setBusyKey(key);
+    try {
+      await action();
+      notifyUser(t('adminReview.updateSuccess'), successMessage);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t('common.unknownError');
+      notifyUser(t('adminReview.updateFailed'), message);
+    } finally {
+      setBusyKey(null);
+    }
   }
 
   return (
@@ -122,16 +165,28 @@ export function AdminHubScreen({
           <>
             <Text className="text-base font-bold text-slate-900">{t('adminReview.pendingPosts')}</Text>
             <View className="mt-3 gap-3">
-              {posts.length === 0 ? <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">{t('adminReview.noPendingPosts')}</Text> : null}
-              {posts.map((post) => (
+              {pendingPosts.length === 0 ? <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">{t('adminReview.noPendingPosts')}</Text> : null}
+              {pendingPosts.map((post) => (
                 <View key={post.id} className="rounded-2xl border border-gray-200 bg-white p-4">
                   <Text className="text-base font-bold text-slate-900">{post.title}</Text>
                   <Text className="mt-1 text-sm text-slate-600">{[post.species, post.breed, post.location].filter(Boolean).join(' • ')}</Text>
+                  {post.vaccine_status ? (
+                    <Text className="mt-1 text-xs text-slate-500">{t('createPetFeedPost.vaccineStatus')}: {post.vaccine_status}</Text>
+                  ) : null}
+                  <AdminHealthEvidencePreview post={post} />
                   <View className="mt-3 flex-row gap-2">
-                    <Pressable className="flex-1 rounded-xl bg-emerald-600 py-3" onPress={() => void onUpdatePostStatus(post.id, 'published')}>
+                    <Pressable
+                      className="flex-1 rounded-xl bg-emerald-600 py-3"
+                      disabled={Boolean(busyKey)}
+                      onPress={() => void runAction(`post-approve-${post.id}`, () => onUpdatePostStatus(post.id, 'published'), t('adminReview.updateSuccess'))}
+                    >
                       <Text className="text-center text-xs font-bold text-white">{t('adminReview.approve')}</Text>
                     </Pressable>
-                    <Pressable className="flex-1 rounded-xl bg-slate-700 py-3" onPress={() => void onUpdatePostStatus(post.id, 'archived')}>
+                    <Pressable
+                      className="flex-1 rounded-xl bg-slate-700 py-3"
+                      disabled={Boolean(busyKey)}
+                      onPress={() => void runAction(`post-archive-${post.id}`, () => onUpdatePostStatus(post.id, 'archived'), t('adminReview.updateSuccess'))}
+                    >
                       <Text className="text-center text-xs font-bold text-white">{t('adminReview.archive')}</Text>
                     </Pressable>
                   </View>
@@ -141,41 +196,65 @@ export function AdminHubScreen({
 
             <Text className="mt-5 text-base font-bold text-slate-900">{t('adminReview.breeders')}</Text>
             <View className="mt-3 gap-3">
-              {breederProfiles.filter((p) => p.verification_status === 'pending_review').map((profile) => (
-                <View key={profile.id} className="rounded-2xl border border-gray-200 bg-white p-4">
-                  <Text className="font-bold text-slate-900">{profile.display_name}</Text>
-              <View className="mt-3 flex-row flex-wrap gap-2">
-                <Pressable
-                  accessibilityRole="button"
-                  className="min-w-[96px] flex-1 rounded-xl bg-emerald-600 py-3 active:opacity-90"
-                  style={{ cursor: 'pointer' }}
-                  onPress={() => void onUpdateBreederStatus(profile.user_id, 'verified')}
-                >
-                  <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.verify')}</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  className="min-w-[96px] flex-1 rounded-xl bg-amber-600 py-3 active:opacity-90"
-                  style={{ cursor: 'pointer' }}
-                  onPress={() => void onUpdateBreederStatus(profile.user_id, 'rejected')}
-                >
-                  <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
-                </Pressable>
-              </View>
-                </View>
-              ))}
+              {pendingBreeders.length === 0 ? <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">{t('adminReview.noBreeders')}</Text> : null}
+              {pendingBreeders.map((profile) => {
+                const penalty = adminBreederPenaltySummary(profile);
+                return (
+                  <View key={profile.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+                    <Text className="font-bold text-slate-900">{profile.display_name}</Text>
+                    {penalty.points > 0 ? (
+                      <Text className="mt-1 text-xs font-semibold text-red-700">
+                        {t('adminReview.penaltyBadge', { points: penalty.points, count: penalty.violations })}
+                      </Text>
+                    ) : null}
+                    <View className="mt-3 flex-row flex-wrap gap-2">
+                      <Pressable
+                        accessibilityRole="button"
+                        className="min-w-[96px] flex-1 rounded-xl bg-emerald-600 py-3 active:opacity-90"
+                        disabled={Boolean(busyKey)}
+                        onPress={() => void runAction(`breeder-verify-${profile.id}`, () => onUpdateBreederStatus(profile.user_id, 'verified'), t('adminReview.verifySuccess'))}
+                      >
+                        <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.verify')}</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        className="min-w-[96px] flex-1 rounded-xl bg-amber-600 py-3 active:opacity-90"
+                        disabled={Boolean(busyKey)}
+                        onPress={() => void runAction(`breeder-reject-${profile.id}`, () => onUpdateBreederStatus(profile.user_id, 'rejected'), t('adminReview.rejectSuccess'))}
+                      >
+                        <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
 
             <Text className="mt-5 text-base font-bold text-slate-900">{t('adminReview.reports')}</Text>
             <View className="mt-3 gap-3">
-              {reports.map((report) => (
+              {openReports.length === 0 ? <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">{t('adminReview.noReports')}</Text> : null}
+              {openReports.map((report) => (
                 <View key={report.id} className="rounded-2xl border border-red-100 bg-white p-4">
-                  <Text className="text-sm font-bold text-slate-900">{report.reason}</Text>
+                  <Text className="text-sm font-bold text-slate-900">{adminReportReasonLabel(t, report.reason)}</Text>
+                  <Text className="mt-1 text-xs text-slate-500">{adminReportTargetSubtitle(t, report, posts)}</Text>
+                  {report.note ? <Text className="mt-2 text-sm leading-5 text-slate-700">{report.note}</Text> : null}
                   <View className="mt-3 flex-row gap-2">
-                    <Pressable className="flex-1 rounded-xl bg-blue-600 py-3" onPress={() => void onUpdateReportStatus(report.id, 'reviewed')}>
+                    <Pressable
+                      className="flex-1 rounded-xl bg-blue-600 py-3"
+                      disabled={Boolean(busyKey)}
+                      onPress={() =>
+                        confirmAdminModeration('violation', t, () => {
+                          void runAction(`report-reviewed-${report.id}`, () => onUpdateReportStatus(report.id, 'reviewed'), t('adminReview.confirmViolationSuccess'));
+                        })
+                      }
+                    >
                       <Text className="text-center text-xs font-bold text-white">{t('adminReview.markReviewed')}</Text>
                     </Pressable>
-                    <Pressable className="flex-1 rounded-xl bg-slate-700 py-3" onPress={() => void onUpdateReportStatus(report.id, 'dismissed')}>
+                    <Pressable
+                      className="flex-1 rounded-xl bg-slate-700 py-3"
+                      disabled={Boolean(busyKey)}
+                      onPress={() => void runAction(`report-dismiss-${report.id}`, () => onUpdateReportStatus(report.id, 'dismissed'), t('adminReview.dismissSuccess'))}
+                    >
                       <Text className="text-center text-xs font-bold text-white">{t('adminReview.dismiss')}</Text>
                     </Pressable>
                   </View>

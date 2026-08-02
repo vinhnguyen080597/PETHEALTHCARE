@@ -259,6 +259,7 @@ function AppContent() {
       onSubmitPetFeedDraft={app.submitPetFeedDraftForReview}
       onDeletePetFeedPost={app.deleteOwnPetFeedPost}
       onOpenAdminHub={app.openAdminHub}
+      onOpenAdminReview={app.openAdminReview}
       onOpenUpdateAccount={app.openUpdateAccount}
       onOpenLanguageSelection={app.openLanguageSelection}
       onUpdateBreederStatus={app.updateAdminBreederStatus}

@@ -10,6 +10,7 @@ const {
   adminUpdatePetFeedReportStatus,
   cancelMyBreederVerificationRequest,
   createAnnouncementPost,
+  createPetFeedPost,
   createPetFeedPostComment,
   deletePetFeedPostComment,
   getMyBreederProfile,
@@ -17,6 +18,7 @@ const {
   listPetFeedPostComments,
   listPublishedPetFeedPostPage,
   reportBreederProfile,
+  reportPetFeedPost,
   upsertMyBreederProfile,
 } = await import('../src/repositories/petFeedRepository.js');
 
@@ -190,4 +192,40 @@ test('admin reviewed report appends breeder violation once; dismiss does not', a
   profile = await getMyBreederProfile(breederId, null);
   assert.equal(profile.metadata.violations.length, 1);
   assert.equal(profile.metadata.penaltyPoints, 10);
+});
+
+test('admin reviewed post report applies penalty to listing owner breeder', async () => {
+  const breederId = `post-penalty-breeder-${Date.now()}`;
+  const reporterId = `post-penalty-reporter-${Date.now()}`;
+  const created = await upsertMyBreederProfile(breederId, {
+    displayName: 'Listing Farm',
+    location: 'Đà Nẵng',
+    contact: { phone: '0903333444' },
+  }, null);
+  await adminUpdateBreederProfileStatus(breederId, 'verified');
+
+  const post = await createPetFeedPost(breederId, {
+    title: 'Kitten for review',
+    species: 'cat',
+    breed: 'Persian',
+    gender: 'female',
+    ageMonths: 3,
+    location: 'Đà Nẵng',
+    priceNote: '5tr',
+    description: 'Healthy kitten with clear photos and care notes for a new home.',
+    vaccineStatus: 'unknown',
+    mediaUrls: ['https://cdn.example/pet-feed/photo.jpg'],
+    videoUrl: 'https://cdn.example/pet-feed/video.mp4',
+    status: 'published',
+    metadata: {},
+  }, null);
+  assert.equal(post.breeder_profile_id, created.id);
+
+  const report = await reportPetFeedPost(reporterId, post.id, { reason: 'misleading_health_claims', note: 'fake papers' }, null);
+  await adminUpdatePetFeedReportStatus(report.id, 'reviewed');
+
+  const profile = await getMyBreederProfile(breederId, null);
+  assert.equal(profile.metadata.penaltyPoints, 10);
+  assert.equal(profile.metadata.violations.length, 1);
+  assert.equal(profile.metadata.violations[0].reportId, report.id);
 });

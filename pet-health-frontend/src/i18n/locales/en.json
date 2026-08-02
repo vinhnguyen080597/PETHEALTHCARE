@@ -533,6 +533,7 @@
     "adminMetrics": {
       "requests": "Requests",
       "breeders": "Breeders",
+      "listings": "Pending listings",
       "myPosts": "My posts"
     },
     "adminSections": {
@@ -552,9 +553,9 @@
         "waiting": "Waiting review"
       },
       "posts": {
-        "title": "My posts",
-        "body": "Listings created by the admin account plus review status across the feed.",
-        "mine": "My admin posts",
+        "title": "Listings",
+        "body": "All marketplace listings for approve, archive, and vaccine-evidence review.",
+        "mine": "Platform listings",
         "published": "Published listings",
         "waiting": "Waiting review"
       }
@@ -653,8 +654,10 @@
     "empty": "No matching requests.",
     "untitledBreeder": "Unnamed breeder",
     "untitledPost": "Untitled listing",
-    "report": "Post report",
+    "report": "Report",
     "postId": "Post ID",
+    "commentTarget": "Comment report",
+    "unknownTarget": "Unknown target",
     "breederChecklistCount": "{{count}} care items",
     "types": {
       "all": "All",
@@ -684,7 +687,7 @@
     },
     "reportStatus": {
       "open": "Open",
-      "reviewed": "Reviewed",
+      "reviewed": "Violation confirmed",
       "dismissed": "Dismissed"
     }
   },
@@ -1051,7 +1054,16 @@
     "reports": "Listing reports",
     "noReports": "No open reports.",
     "markReviewed": "Confirm violation (−points)",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "confirmViolationSuccess": "Report upheld. Trust penalty points were added to the breeder Farm Health record.",
+    "dismissSuccess": "Report dismissed. No trust penalty applied.",
+    "confirmViolationTitle": "Confirm violation?",
+    "confirmViolationBody": "This adds trust penalty points on the breeder Farm Health record. Only confirm when the report is valid.",
+    "confirmSuspendTitle": "Suspend this breeder?",
+    "confirmSuspendBody": "The breeder will lose posting access until an admin restores verification.",
+    "penaltyBadge": "−{{points}} pts · {{count}} violation(s)",
+    "healthEvidence": "Vaccine evidence",
+    "healthEvidenceHint": "Listing claims vaccination — review book/stamp photos before approving."
   },
   "petTypes": {
     "dog": "Dog",

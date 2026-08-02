@@ -166,13 +166,19 @@ export function rankBreedersWithHomeQuota<T extends BreederRankCandidate>(
   });
 
   if (scored.length <= 1) {
-    return scored.map(({ trust: _trust, ...rest }) => rest);
+    return scored.map((item) => {
+      const { trust: _trust, ...rest } = item;
+      return rest as T & { qualityIndex: number };
+    });
   }
 
   const quotaSlots = Math.max(1, Math.floor(scored.length * HOME_BREEDER_QUOTA));
   const homeEligible = scored.filter((item) => isHomeBreederEligible(item.profile, item.trust));
   if (homeEligible.length === 0) {
-    return scored.map(({ trust: _trust, ...rest }) => rest);
+    return scored.map((item) => {
+      const { trust: _trust, ...rest } = item;
+      return rest as T & { qualityIndex: number };
+    });
   }
 
   const result: Array<T & { qualityIndex: number; trust: number }> = [];
@@ -204,5 +210,8 @@ export function rankBreedersWithHomeQuota<T extends BreederRankCandidate>(
     organicPtr += 1;
   }
 
-  return result.map(({ trust: _trust, ...rest }) => rest);
+  return result.map((item) => {
+    const { trust: _trust, ...rest } = item;
+    return rest as T & { qualityIndex: number };
+  });
 }
