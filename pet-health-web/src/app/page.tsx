@@ -8,7 +8,7 @@ import { AppDownloadBanner } from "@/components/marketplace/AppDownloadBanner";
 import { SiteFooter } from "@/components/marketplace/SiteFooter";
 import { VerifiedBadge } from "@/components/marketplace/Badges";
 import { HomeValueProps } from "@/components/marketplace/HomeValueProps";
-import { VIETNAM_PROVINCES } from "@/constants/vietnamProvinces";
+import { HomeSearchSection } from "@/components/marketplace/HomeSearchSection";
 
 const HERO_IMAGES = [
   {
@@ -75,89 +75,7 @@ export default async function HomePage() {
               {t(lang, "landing.sub")}
             </p>
 
-            <form
-              action="/app/pet-feed"
-              className="hero-rise hero-rise-delay-3 max-w-xl mx-auto lg:mx-0"
-            >
-              <div className="rounded-2xl bg-white/90 border border-[#F0E6D8] shadow-[0_12px_40px_-18px_rgba(180,83,9,0.35)] p-2 sm:p-2.5">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="flex-1 relative">
-                    <svg
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-700/70"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    >
-                      <circle cx="7" cy="7" r="4.5" />
-                      <path d="m11 11 2.5 2.5" strokeLinecap="round" />
-                    </svg>
-                    <input
-                      name="q"
-                      type="text"
-                      placeholder={t(lang, "landing.searchPlaceholder")}
-                      className="w-full pl-10 pr-3 py-3 bg-transparent text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-[#D97706] text-white text-sm font-semibold rounded-xl hover:bg-[#B45309] transition-colors shadow-md shadow-amber-200/70 whitespace-nowrap"
-                  >
-                    {t(lang, "landing.search")}
-                  </button>
-                </div>
-                <div className="mt-2 pt-2 border-t border-[#F5EDE3] grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <label className="sr-only" htmlFor="hero-species">
-                    {t(lang, "landing.species")}
-                  </label>
-                  <select
-                    id="hero-species"
-                    name="species"
-                    defaultValue=""
-                    className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#F0E6D8] rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500"
-                  >
-                    <option value="">{t(lang, "landing.species.all")}</option>
-                    <option value="cat">{t(lang, "landing.species.cat")}</option>
-                    <option value="dog">{t(lang, "landing.species.dog")}</option>
-                  </select>
-                  <label className="sr-only" htmlFor="hero-province">
-                    {t(lang, "landing.province")}
-                  </label>
-                  <select
-                    id="hero-province"
-                    name="province"
-                    defaultValue=""
-                    className="w-full px-3 py-2.5 bg-[#FDFBF7] border border-[#F0E6D8] rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500"
-                  >
-                    <option value="">{t(lang, "landing.province.all")}</option>
-                    {VIETNAM_PROVINCES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-4 justify-center lg:justify-start">
-                {(
-                  [
-                    ["cat", lang === "VI" ? "Mèo" : "Cat"],
-                    ["dog", lang === "VI" ? "Chó" : "Dog"],
-                    ["bird", lang === "VI" ? "Chim" : "Bird"],
-                  ] as const
-                ).map(([q, label]) => (
-                  <Link
-                    key={q}
-                    href={`/app/pet-feed?species=${q}`}
-                    className="px-3.5 py-1.5 bg-white/70 border border-[#F0E6D8] hover:border-amber-300 hover:text-amber-800 text-stone-600 text-xs font-medium rounded-full transition-colors"
-                  >
-                    {label}
-                  </Link>
-                ))}
-              </div>
-            </form>
+            <HomeSearchSection lang={lang} />
           </div>
 
           <div className="relative w-full max-w-lg mx-auto lg:max-w-none">

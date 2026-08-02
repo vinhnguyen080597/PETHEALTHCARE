@@ -6,9 +6,9 @@ import { t } from "@/i18n";
 import { parsePriceVnd } from "@/lib/formatPrice";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { ListingCard } from "./ListingCard";
+import { MarketplaceSearchBar } from "./MarketplaceSearchBar";
 
 type PriceFilter = "all" | "under5" | "5to15" | "over15";
-type VaccineFilter = "all" | "vaccinated" | "unknown";
 
 function matchesPrice(listing: Listing, filter: PriceFilter): boolean {
   if (filter === "all") return true;
@@ -20,26 +20,8 @@ function matchesPrice(listing: Listing, filter: PriceFilter): boolean {
   return true;
 }
 
-function isVaccinatedStatus(status: string): boolean {
-  const s = status.trim().toLowerCase();
-  if (!s || s === "—" || s === "-" || s === "unknown" || s === "chưa rõ") return false;
-  if (
-    s.includes("chưa") ||
-    s.includes("not") ||
-    s.includes("none") ||
-    s.includes("unvacc")
-  ) {
-    return false;
-  }
-  return (
-    s.includes("đã") ||
-    s.includes("tiêm") ||
-    s.includes("vaccin") ||
-    s.includes("fvrcp") ||
-    s.includes("dhppl") ||
-    /\d/.test(s)
-  );
-}
+const filterSelectCls =
+  "px-3 py-2 bg-white border border-[#F3E2C8] rounded-xl text-sm text-[#2B1E19] focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-[#D97706]";
 
 export function FeedView({
   lang,
@@ -55,30 +37,27 @@ export function FeedView({
   initialQ?: string;
   initialProvince?: string;
 }) {
-  const [activeSpecies, setActiveSpecies] = useState(initialSpecies || "all");
+  const [activeSpecies, setActiveSpecies] = useState(
+    initialSpecies && initialSpecies !== "" ? initialSpecies : "all",
+  );
   const [activeGender, setActiveGender] = useState("all");
   const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
-  const [vaccineFilter, setVaccineFilter] = useState<VaccineFilter>("all");
+  const [escrowOnly, setEscrowOnly] = useState(false);
   const [sortBy, setSortBy] = useState("date");
   const [q, setQ] = useState(initialQ);
+  const [province, setProvince] = useState(initialProvince);
 
   const filtered = useMemo(() => {
     let rows = listings.filter((l) => {
       if (activeSpecies !== "all" && l.species !== activeSpecies) return false;
       if (activeGender !== "all" && l.gender !== activeGender) return false;
-      if (initialProvince) {
-        if (!l.location.toLowerCase().includes(initialProvince.toLowerCase())) {
+      if (province) {
+        if (!l.location.toLowerCase().includes(province.toLowerCase())) {
           return false;
         }
       }
       if (!matchesPrice(l, priceFilter)) return false;
-      if (vaccineFilter === "vaccinated" && !isVaccinatedStatus(l.vaccineStatus)) {
-        return false;
-      }
-      if (vaccineFilter === "unknown") {
-        const s = l.vaccineStatus.trim();
-        if (s && isVaccinatedStatus(s)) return false;
-      }
+      if (escrowOnly && !l.escrowEnabled) return false;
       if (q.trim()) {
         const needle = q.trim().toLowerCase();
         const hay =
@@ -93,8 +72,10 @@ export function FeedView({
         const pb = parsePriceVnd(b.price) ?? Number.POSITIVE_INFINITY;
         return pa - pb;
       });
-    } else if (sortBy === "age") {
-      rows = [...rows].sort((a, b) => a.ageMonths - b.ageMonths);
+    } else if (sortBy === "trust") {
+      rows = [...rows].sort(
+        (a, b) => (b.breeder.trustScore || 0) - (a.breeder.trustScore || 0),
+      );
     }
     return rows;
   }, [
@@ -102,160 +83,114 @@ export function FeedView({
     activeSpecies,
     activeGender,
     priceFilter,
-    vaccineFilter,
+    escrowOnly,
     sortBy,
     q,
-    initialProvince,
+    province,
   ]);
 
   return (
-    <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6">
-      <div className="mb-5">
-        <DisclaimerBanner lang={lang} />
-      </div>
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex-1 relative">
-          <svg
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-            width="15"
-            height="15"
-            viewBox="0 0 15 15"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          >
-            <circle cx="6.5" cy="6.5" r="4.5" />
-            <path d="m10.5 10.5 3 3" strokeLinecap="round" />
-          </svg>
-          <input
-            type="text"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t(lang, "feed.search")}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/20 focus:border-[#1E6FE8] transition-all"
+    <div className="min-h-screen bg-[#FDFBF7]">
+      <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6">
+        <div className="mb-5">
+          <DisclaimerBanner lang={lang} />
+        </div>
+
+        <div className="mb-5 w-full">
+          <MarketplaceSearchBar
+            lang={lang}
+            variant="feed"
+            controlled
+            q={q}
+            species={activeSpecies}
+            province={province}
+            onQChange={setQ}
+            onSpeciesChange={setActiveSpecies}
+            onProvinceChange={setProvince}
           />
         </div>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/20"
-        >
-          <option value="date">{t(lang, "feed.sort.newest")}</option>
-          <option value="price">{t(lang, "feed.sort.price")}</option>
-          <option value="age">{t(lang, "feed.sort.age")}</option>
-        </select>
-      </div>
-      <div className="flex flex-wrap gap-2 mb-3">
-        <span className="text-xs text-slate-400 font-medium py-1.5 mr-1">
-          {t(lang, "feed.filter")}
-        </span>
-        {(
-          [
-            ["all", "feed.all"],
-            ["cat", "feed.cat"],
-            ["dog", "feed.dog"],
-            ["bird", "feed.bird"],
-          ] as const
-        ).map(([key, labelKey]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setActiveSpecies(key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeSpecies === key
-                ? "bg-[#1E6FE8] text-white"
-                : "bg-white border border-slate-200 text-slate-600 hover:border-[#1E6FE8] hover:text-[#1E6FE8]"
-            }`}
-          >
-            {t(lang, labelKey)}
-          </button>
-        ))}
-        {(
-          [
-            ["all", "feed.all"],
-            ["male", "feed.male"],
-            ["female", "feed.female"],
-          ] as const
-        ).map(([key, labelKey]) => (
-          <button
-            key={`g-${key}`}
-            type="button"
-            onClick={() => setActiveGender(key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeGender === key
-                ? "bg-[#1E6FE8] text-white"
-                : "bg-white border border-slate-200 text-slate-600 hover:border-[#1E6FE8] hover:text-[#1E6FE8]"
-            }`}
-          >
-            {t(lang, labelKey)}
-          </button>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-2 mb-6">
-        <span className="text-xs text-slate-400 font-medium py-1.5 mr-1">
-          {t(lang, "feed.price")}
-        </span>
-        {(
-          [
-            ["all", "feed.price.all"],
-            ["under5", "feed.price.under5"],
-            ["5to15", "feed.price.5to15"],
-            ["over15", "feed.price.over15"],
-          ] as const
-        ).map(([key, labelKey]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setPriceFilter(key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              priceFilter === key
-                ? "bg-[#1E6FE8] text-white"
-                : "bg-white border border-slate-200 text-slate-600 hover:border-[#1E6FE8] hover:text-[#1E6FE8]"
-            }`}
-          >
-            {t(lang, labelKey)}
-          </button>
-        ))}
-        <span className="text-xs text-slate-400 font-medium py-1.5 mr-1 ml-2">
-          {t(lang, "feed.vaccine")}
-        </span>
-        {(
-          [
-            ["all", "feed.vaccine.all"],
-            ["vaccinated", "feed.vaccine.yes"],
-            ["unknown", "feed.vaccine.unknown"],
-          ] as const
-        ).map(([key, labelKey]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setVaccineFilter(key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              vaccineFilter === key
-                ? "bg-[#1E6FE8] text-white"
-                : "bg-white border border-slate-200 text-slate-600 hover:border-[#1E6FE8] hover:text-[#1E6FE8]"
-            }`}
-          >
-            {t(lang, labelKey)}
-          </button>
-        ))}
-      </div>
 
-      <p className="text-xs text-slate-400 mb-4">
-        {filtered.length} {t(lang, "feed.results")}
-      </p>
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {filtered.map((l) => (
-            <ListingCard key={l.id} listing={l} lang={lang} />
-          ))}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
+          <p className="text-sm text-[#6E5A51] shrink-0">
+            {t(lang, "feed.showingPrefix")}{" "}
+            <span className="font-semibold text-[#2B1E19]">
+              {filtered.length}
+            </span>{" "}
+            {t(lang, "feed.showingSuffix")}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={activeGender}
+              onChange={(e) => setActiveGender(e.target.value)}
+              className={filterSelectCls}
+              aria-label={t(lang, "feed.gender")}
+            >
+              <option value="all">
+                {t(lang, "feed.gender")}: {t(lang, "feed.all")}
+              </option>
+              <option value="male">
+                {t(lang, "feed.gender")}: {t(lang, "feed.male")}
+              </option>
+              <option value="female">
+                {t(lang, "feed.gender")}: {t(lang, "feed.female")}
+              </option>
+            </select>
+            <select
+              value={priceFilter}
+              onChange={(e) => setPriceFilter(e.target.value as PriceFilter)}
+              className={filterSelectCls}
+              aria-label={t(lang, "feed.price")}
+            >
+              <option value="all">{t(lang, "feed.price.all")}</option>
+              <option value="under5">{t(lang, "feed.price.under5")}</option>
+              <option value="5to15">{t(lang, "feed.price.5to15")}</option>
+              <option value="over15">{t(lang, "feed.price.over15")}</option>
+            </select>
+            <select
+              value={escrowOnly ? "escrow" : "all"}
+              onChange={(e) => setEscrowOnly(e.target.value === "escrow")}
+              className={filterSelectCls}
+              aria-label={t(lang, "feed.perks")}
+            >
+              <option value="all">
+                {t(lang, "feed.perks")}: {t(lang, "feed.all")}
+              </option>
+              <option value="escrow">🛡️ {t(lang, "feed.escrow")}</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className={filterSelectCls}
+              aria-label={t(lang, "feed.sortLabel")}
+            >
+              <option value="date">
+                {t(lang, "feed.sortLabel")} {t(lang, "feed.sort.newest")}
+              </option>
+              <option value="price">
+                {t(lang, "feed.sortLabel")} {t(lang, "feed.sort.priceAsc")}
+              </option>
+              <option value="trust">
+                {t(lang, "feed.sortLabel")} {t(lang, "feed.sort.trust")}
+              </option>
+            </select>
+          </div>
         </div>
-      ) : (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-4">🐾</p>
-          <p className="font-semibold text-slate-700">{t(lang, "feed.empty")}</p>
-        </div>
-      )}
+
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 feed-results-enter">
+            {filtered.map((l) => (
+              <ListingCard key={l.id} listing={l} lang={lang} showFavorite />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <p className="text-4xl mb-4">🐾</p>
+            <p className="font-semibold text-[#2B1E19]">
+              {t(lang, "feed.empty")}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

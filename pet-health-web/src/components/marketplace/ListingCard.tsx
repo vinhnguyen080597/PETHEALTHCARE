@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, type MouseEvent } from "react";
 import Link from "next/link";
 import type { Lang, Listing } from "@/lib/types";
 import { genderLabel, t } from "@/i18n";
@@ -13,18 +16,33 @@ function depositLabel(price: string, lang: Lang): string | null {
   const n = parsePriceVnd(price);
   if (n == null || n <= 0) return null;
   const deposit = Math.round(n * 0.2);
+  if (lang === "VI") {
+    if (deposit >= 1_000_000) {
+      const mil = deposit / 1_000_000;
+      const text =
+        Number.isInteger(mil) ? String(mil) : mil.toFixed(1).replace(/\.0$/, "");
+      return `(Cọc Escrow: ${text}tr)`;
+    }
+    if (deposit >= 1000) {
+      return `(Cọc Escrow: ${Math.round(deposit / 1000)}k)`;
+    }
+    return `(Cọc Escrow: ${deposit}đ)`;
+  }
   const formatted = formatPriceVnd(deposit);
-  if (!formatted) return null;
-  return lang === "VI" ? `(Cọc: ${formatted.replace(" VNĐ", "đ")})` : `(Deposit: ${formatted})`;
+  return formatted ? `(Escrow: ${formatted})` : null;
 }
 
 export function ListingCard({
   listing,
   lang,
+  showFavorite = false,
 }: {
   listing: Listing;
   lang: Lang;
+  showFavorite?: boolean;
 }) {
+  const [saved, setSaved] = useState(Boolean(listing.saved));
+  const [favBusy, setFavBusy] = useState(false);
   const title = lang === "VI" ? listing.titleVI : listing.title;
   const speciesLabel =
     listing.species === "cat"
@@ -40,42 +58,91 @@ export function ListingCard({
   const deposit = listing.escrowEnabled ? depositLabel(listing.price, lang) : null;
   const vaccine = listing.vaccineStatus?.trim();
   const rating = ratingFromTrust(listing.breeder.trustScore);
+  const genderEmoji =
+    listing.gender === "male" ? "♂️" : listing.gender === "female" ? "♀️" : "";
   const ageGender = [
+    genderEmoji,
     listing.ageMonths > 0
       ? `${listing.ageMonths} ${lang === "VI" ? "tháng" : t(lang, "common.mo")}`
       : "",
-    genderLabel(lang, listing.gender),
+    !genderEmoji ? genderLabel(lang, listing.gender) : "",
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(" ");
+
+  const toggleFavorite = async (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (favBusy) return;
+    const next = !saved;
+    setSaved(next);
+    setFavBusy(true);
+    try {
+      const res = await fetch(`/api/listings/${listing.id}/favorite`, {
+        method: next ? "POST" : "DELETE",
+      });
+      if (res.status === 401) {
+        setSaved(!next);
+        window.location.href = `/login?next=/app/pet-feed/posts/${listing.id}`;
+        return;
+      }
+      if (!res.ok && res.status !== 204) {
+        setSaved(!next);
+      }
+    } catch {
+      setSaved(!next);
+    } finally {
+      setFavBusy(false);
+    }
+  };
 
   return (
-    <Link
-      href={`/app/pet-feed/posts/${listing.id}`}
-      className="bg-white rounded-2xl overflow-hidden border border-[#F3E2C8] hover:shadow-[0_16px_40px_-22px_rgba(217,119,6,0.4)] hover:-translate-y-0.5 transition-all duration-200 group block"
-    >
+    <article className="bg-white rounded-2xl overflow-hidden border border-[#F3E2C8] hover:shadow-[0_16px_40px_-22px_rgba(217,119,6,0.4)] hover:-translate-y-0.5 transition-all duration-200 group">
       <div className="relative overflow-hidden h-48 bg-amber-50/40">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={listing.mediaUrl}
-          alt={listing.breed || title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#2B1E19] text-xs font-medium px-2.5 py-1 rounded-full border border-[#F3E2C8]/80">
-          {listing.species === "cat"
-            ? "🐱"
-            : listing.species === "dog"
-              ? "🐶"
-              : "🐾"}{" "}
-          {speciesLabel}
-        </span>
-        {listing.escrowEnabled ? (
-          <span className="absolute top-3 right-3 bg-emerald-50/95 text-emerald-800 text-[10px] font-semibold px-2 py-1 rounded-full border border-emerald-200 shadow-sm">
-            🛡️ {lang === "VI" ? "Cọc Bảo Chứng" : "Escrow"}
+        <Link href={`/app/pet-feed/posts/${listing.id}`} className="absolute inset-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={listing.mediaUrl}
+            alt={listing.breed || title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </Link>
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
+          <span className="bg-white/95 backdrop-blur-sm text-[#2B1E19] text-xs font-medium px-2.5 py-1 rounded-full border border-[#F3E2C8]/80 w-fit">
+            {listing.species === "cat"
+              ? "🐱"
+              : listing.species === "dog"
+                ? "🐶"
+                : "🐾"}{" "}
+            {speciesLabel}
           </span>
+          {listing.escrowEnabled ? (
+            <span className="bg-[#FEF3C7]/95 text-[#92400E] text-[10px] font-semibold px-2 py-1 rounded-full border border-amber-300 shadow-sm w-fit">
+              🛡️ {lang === "VI" ? "Cọc Bảo Chứng" : "Escrow"}
+            </span>
+          ) : null}
+        </div>
+        {showFavorite ? (
+          <button
+            type="button"
+            onClick={toggleFavorite}
+            disabled={favBusy}
+            className={`absolute top-3 right-3 z-10 w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
+              saved
+                ? "bg-rose-50 border-rose-200 text-rose-600"
+                : "bg-white/95 border-[#F3E2C8] text-[#6E5A51] hover:text-rose-500"
+            }`}
+            aria-label={t(lang, "detail.save")}
+          >
+            {saved ? "♥" : "♡"}
+          </button>
         ) : null}
       </div>
-      <div className="p-4">
+
+      <Link
+        href={`/app/pet-feed/posts/${listing.id}`}
+        className="block p-4"
+      >
         <h3 className="font-semibold text-[#2B1E19] text-sm leading-snug mb-2 line-clamp-2">
           {title}
         </h3>
@@ -93,19 +160,7 @@ export function ListingCard({
         <div className="flex flex-wrap gap-1.5 mb-3">
           {listing.location ? (
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 11 11"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden
-              >
-                <path d="M5.5 1a3 3 0 0 1 3 3C8.5 7 5.5 10 5.5 10S2.5 7 2.5 4a3 3 0 0 1 3-3Z" />
-                <circle cx="5.5" cy="4" r=".8" />
-              </svg>
-              {listing.location}
+              📍 {listing.location}
             </span>
           ) : null}
           {vaccine && vaccine !== "—" ? (
@@ -135,7 +190,7 @@ export function ListingCard({
             ⭐ {rating}
           </span>
         </div>
-      </div>
-    </Link>
+      </Link>
+    </article>
   );
 }
