@@ -724,6 +724,205 @@ export async function getPublishedPetFeedShareCard(postId) {
   };
 }
 
+function stripContactFromProfile(profile) {
+  if (!profile) return null;
+  const { contact: _contact, ...rest } = profile;
+  return rest;
+}
+
+/** Public list card: slim media, no contact fields. */
+function toPublicListPost(row) {
+  const post = toListPost(row, new Set());
+  if (!post) return post;
+  return {
+    ...post,
+    contact: {},
+    is_favorited: false,
+    breeder_profile: stripContactFromProfile(post.breeder_profile),
+  };
+}
+
+/** Public detail: full media/description; contact kept for marketplace outreach. */
+function toPublicDetailPost(row) {
+  const post = toPost(row, new Set());
+  if (!post) return post;
+  return {
+    ...post,
+    is_favorited: false,
+    breeder_profile: post.breeder_profile
+      ? {
+          ...post.breeder_profile,
+          contact: post.breeder_profile.contact ?? {},
+        }
+      : null,
+  };
+}
+
+function toPublicBreeder(profile, { includeContact = false } = {}) {
+  const mapped = toProfile(profile);
+  if (!mapped) return mapped;
+  if (includeContact) return mapped;
+  return stripContactFromProfile(mapped);
+}
+
+/** Public SEO feed page (published only, no auth / no block filters). */
+export async function listPublicPetFeedPostPage(options = {}) {
+  const limit = normalizePetFeedPageLimit(options.limit);
+  const cursor = decodePetFeedCursor(options.cursor);
+  const kind = options.kind ? normalizePostKind(options.kind, 'listing') : 'listing';
+  const supabase = getSupabaseServiceClient();
+
+  if (!supabase) {
+    const { rows, nextCursor } = paginateFeedRows(
+      memoryPosts.filter(
+        (post) => post.status === 'published' && normalizePostKind(post.post_kind, 'listing') === kind,
+      ),
+      limit,
+      cursor,
+    );
+    const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
+    const data = await withPostsEngagementCounts(
+      rows.map((post) => toPublicListPost({ ...post, breeder_profile: profilesById.get(post.breeder_profile_id) ?? null })),
+      null,
+    );
+    return { data, nextCursor };
+  }
+
+  let query = supabase
+    .from('pet_feed_posts')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .eq('status', 'published')
+    .eq('post_kind', kind)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(limit + 1);
+
+  if (cursor) {
+    query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  const rows = data ?? [];
+  const pageRows = rows.slice(0, limit);
+  return {
+    data: await withPostsEngagementCounts(pageRows.map((row) => toPublicListPost(row)), null),
+    nextCursor: rows.length > limit ? encodePetFeedCursor(pageRows[pageRows.length - 1]) : null,
+  };
+}
+
+/** Public SEO post detail (published only). */
+export async function getPublicPetFeedPost(postId) {
+  const safePostId = trimText(postId, 80);
+  if (!safePostId) return null;
+  const supabase = getSupabaseServiceClient();
+
+  if (!supabase) {
+    const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
+    const row = memoryPosts.find((post) => post.id === safePostId && post.status === 'published');
+    if (!row) return null;
+    const post = toPublicDetailPost({ ...row, breeder_profile: profilesById.get(row.breeder_profile_id) ?? null });
+    return withPostEngagementCounts(post, null);
+  }
+
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .eq('id', safePostId)
+    .eq('status', 'published')
+    .maybeSingle();
+  if (error) {
+    if (error.code === '22P02' || error.code === 'PGRST116') return null;
+    throw error;
+  }
+  if (!data) return null;
+  return withPostEngagementCounts(toPublicDetailPost(data), null);
+}
+
+/** Public verified breeders directory. */
+export async function listPublicVerifiedBreederProfiles(options = {}) {
+  const limit = normalizePetFeedPageLimit(options.limit ?? 24);
+  const supabase = getSupabaseServiceClient();
+
+  if (!supabase) {
+    const rows = memoryProfiles
+      .filter((profile) => profile.verification_status === 'verified')
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .slice(0, limit)
+      .map((profile) => toPublicBreeder(profile, { includeContact: false }));
+    return { data: rows, nextCursor: null };
+  }
+
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .select('*')
+    .eq('verification_status', 'verified')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return {
+    data: (data ?? []).map((profile) => toPublicBreeder(profile, { includeContact: false })),
+    nextCursor: null,
+  };
+}
+
+/** Public verified breeder profile + published listings. */
+export async function getPublicBreederProfile(profileId) {
+  const safeId = trimText(profileId, 80);
+  if (!safeId) return null;
+  const supabase = getSupabaseServiceClient();
+
+  let profile = null;
+  if (!supabase) {
+    profile = memoryProfiles.find(
+      (row) => row.id === safeId && row.verification_status === 'verified',
+    ) ?? null;
+  } else {
+    const { data, error } = await supabase
+      .from('breeder_profiles')
+      .select('*')
+      .eq('id', safeId)
+      .eq('verification_status', 'verified')
+      .maybeSingle();
+    if (error) {
+      if (error.code === '22P02' || error.code === 'PGRST116') return null;
+      throw error;
+    }
+    profile = data;
+  }
+  if (!profile) return null;
+
+  const publicProfile = toPublicBreeder(profile, { includeContact: true });
+  let listings = [];
+  if (!supabase) {
+    listings = memoryPosts
+      .filter(
+        (post) =>
+          post.breeder_profile_id === safeId
+          && post.status === 'published'
+          && normalizePostKind(post.post_kind, 'listing') === 'listing',
+      )
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .map((post) => toPublicListPost({ ...post, breeder_profile: publicProfile }));
+  } else {
+    const { data, error } = await supabase
+      .from('pet_feed_posts')
+      .select('*, breeder_profile:breeder_profiles(*)')
+      .eq('breeder_profile_id', safeId)
+      .eq('status', 'published')
+      .eq('post_kind', 'listing')
+      .order('created_at', { ascending: false })
+      .limit(48);
+    if (error) throw error;
+    listings = (data ?? []).map((row) => toPublicListPost(row));
+  }
+
+  return {
+    profile: publicProfile,
+    listings: await withPostsEngagementCounts(listings, null),
+  };
+}
+
 export async function getMyBreederProfile(userId, accessToken) {
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) return toProfile(memoryProfiles.find((profile) => profile.user_id === userId) ?? null);
