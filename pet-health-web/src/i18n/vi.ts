@@ -64,10 +64,32 @@ const vi: Record<EnKey, string> = {
   "feed.tab.pets": "Tin mới",
   "feed.tab.news": "Tin tức",
   "feed.tab.breeders": "Breeder",
+  "feed.price": "Giá:",
+  "feed.price.all": "Mọi mức giá",
+  "feed.price.under5": "Dưới 5 triệu",
+  "feed.price.5to15": "5–15 triệu",
+  "feed.price.over15": "Trên 15 triệu",
+  "feed.vaccine": "Tiêm phòng:",
+  "feed.vaccine.all": "Tất cả",
+  "feed.vaccine.yes": "Đã tiêm",
+  "feed.vaccine.unknown": "Chưa rõ / chưa tiêm",
   "feed.results": "kết quả",
   "feed.empty": "Không có kết quả",
   "feed.loadMore": "Tải thêm",
   "feed.activeListings": "tin đang đăng",
+
+  "escrow.card.title": "Cọc Đảm Bảo qua PetCoin Escrow",
+  "escrow.card.body":
+    "Giữ cọc 7 ngày, hoàn tiền 100% nếu pet bệnh/sai mô tả (theo điều khoản escrow của người bán).",
+  "escrow.card.cta": "Yêu cầu đặt cọc",
+  "escrow.card.soon": "Escrow sắp ra mắt",
+
+  "landing.species": "Loài",
+  "landing.species.all": "Mọi loài",
+  "landing.species.cat": "Mèo",
+  "landing.species.dog": "Chó",
+  "landing.province": "Tỉnh / Thành",
+  "landing.province.all": "Toàn quốc",
 
   "detail.back": "Quay lại",
   "detail.breed": "Giống",
@@ -83,6 +105,9 @@ const vi: Record<EnKey, string> = {
   "detail.writeComment": "Viết bình luận…",
   "detail.send": "Gửi",
   "detail.evidence": "Bằng chứng vaccine",
+  "detail.save": "Lưu tin",
+  "detail.loginToComment": "Đăng nhập để bình luận…",
+  "detail.reportSuccess": "Đã gửi báo cáo. Cảm ơn bạn.",
 
   "app.banner.need": "Cần theo dõi sức khỏe thú cưng?",
   "app.banner.desc":
@@ -114,6 +139,7 @@ const vi: Record<EnKey, string> = {
   "listing.new.terms":
     "Tôi đồng ý với Nội quy Marketplace và xác nhận thông tin tin đăng là chính xác.",
   "listing.new.photos": "Ảnh",
+  "listing.new.video": "Video ngắn (bắt buộc)",
 
   "messages.title": "Tin nhắn",
   "messages.empty": "Chưa có hội thoại",

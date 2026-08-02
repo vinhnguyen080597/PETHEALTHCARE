@@ -9,6 +9,7 @@ import {
   type VerificationStatus,
   isTemplateId,
 } from "./types";
+import { formatPriceVnd } from "./formatPrice";
 
 const PLACEHOLDER_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23E2E8F0' width='120' height='120'/%3E%3C/svg%3E";
@@ -58,14 +59,7 @@ function normalizeBreederType(value: unknown): BreederType {
 
 function parseChecklist(meta: Record<string, unknown>): ChecklistItem[] {
   const raw = meta.checklist ?? meta.care_checklist;
-  if (!Array.isArray(raw)) {
-    return [
-      { label: "Tiêm phòng định kỳ", done: false },
-      { label: "Tẩy giun", done: false },
-      { label: "Vệ sinh chuồng trại", done: false },
-      { label: "Chế độ ăn phù hợp", done: false },
-    ];
-  }
+  if (!Array.isArray(raw)) return [];
   return raw.map((item) => {
     if (typeof item === "string") return { label: item, done: true };
     const obj = asRecord(item);
@@ -93,6 +87,32 @@ function parsePenalty(meta: Record<string, unknown>): number {
   return 0;
 }
 
+function parseVerificationTier(
+  meta: Record<string, unknown>,
+  verificationStatus: VerificationStatus,
+  trustScore: number,
+): 1 | 2 | 3 {
+  const raw = meta.verification_tier ?? meta.verificationTier ?? meta.tier;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (n === 1 || n === 2 || n === 3) return n;
+  if (verificationStatus !== "verified") return 1;
+  if (trustScore >= 90 || meta.elite === true || meta.stake_active === true) return 3;
+  if (meta.environment_verified === true || meta.farm_verified === true || trustScore >= 70) {
+    return 2;
+  }
+  return 1;
+}
+
+function parseEscrowEnabled(meta: Record<string, unknown>): boolean {
+  return Boolean(
+    meta.escrow_enabled ??
+      meta.escrowEnabled ??
+      meta.accept_escrow ??
+      meta.acceptEscrow ??
+      meta.petcoin_escrow,
+  );
+}
+
 export function mapApiBreeder(
   profile: ApiBreederProfile | null | undefined,
   options?: { activeListings?: number },
@@ -110,6 +130,8 @@ export function mapApiBreeder(
       : typeof meta.coverUrl === "string"
         ? meta.coverUrl
         : undefined;
+  const trustScore = parseTrustScore(meta, verified);
+  const scaleRaw = String(meta.scale || "").trim();
 
   return {
     id: profile?.id || "unknown",
@@ -126,7 +148,7 @@ export function mapApiBreeder(
     coverUrl,
     bio,
     bioVI: bio,
-    trustScore: parseTrustScore(meta, verified),
+    trustScore,
     penaltyPoints: parsePenalty(meta),
     violations: Array.isArray(meta.violations)
       ? (meta.violations as Array<Record<string, unknown>>).map((v, i) => ({
@@ -144,10 +166,11 @@ export function mapApiBreeder(
       phone: contact.phone,
       facebook: contact.facebook,
     },
-    scale: String(meta.scale || "—"),
+    scale: scaleRaw === "—" || scaleRaw === "-" ? "" : scaleRaw,
     careEnvironment: profile?.care_environment || "",
     commitments: asStringArray(meta.commitments),
     checklist: parseChecklist(meta),
+    verificationTier: parseVerificationTier(meta, verificationStatus, trustScore),
   };
 }
 
@@ -170,6 +193,8 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
       : "published";
 
   const breeder = mapApiBreeder(post.breeder_profile);
+  const rawPrice = post.price_note || "";
+  const formatted = formatPriceVnd(rawPrice);
 
   return {
     id: post.id,
@@ -180,13 +205,13 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     gender: (post.gender || "").toLowerCase(),
     ageMonths: Number(post.age_months) || 0,
     location: post.location || "",
-    price: post.price_note || "—",
+    price: formatted || rawPrice,
     description,
     descriptionVI: description,
     personality,
     personalityVI: personality,
-    vaccineStatus: post.vaccine_status || "—",
-    dewormingStatus: post.deworming_status || "—",
+    vaccineStatus: post.vaccine_status || "",
+    dewormingStatus: post.deworming_status || "",
     mediaUrl: media[0] || PLACEHOLDER_MEDIA,
     mediaUrls: media.length ? media : [PLACEHOLDER_MEDIA],
     evidenceUrls: evidence.length ? evidence : undefined,
@@ -194,6 +219,7 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     breeder,
     saved: Boolean(post.is_favorited),
     postKind: post.post_kind,
+    escrowEnabled: parseEscrowEnabled(meta),
   };
 }
 

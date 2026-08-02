@@ -7,7 +7,12 @@ import { MessagesClient } from "@/components/messages/MessagesClient";
 
 export const metadata = { title: "Messages" };
 
-export default async function MessagesPage() {
+export default async function MessagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ c?: string }>;
+}) {
+  const sp = await searchParams;
   const jar = await cookies();
   const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
   const session = await getSessionUser();
@@ -39,6 +44,10 @@ export default async function MessagesPage() {
   }
 
   return (
-    <MessagesClient lang={lang} initialConversations={conversations} />
+    <MessagesClient
+      lang={lang}
+      initialConversations={conversations}
+      initialConversationId={sp.c || null}
+    />
   );
 }

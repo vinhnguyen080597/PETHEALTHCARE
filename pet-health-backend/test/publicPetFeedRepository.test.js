@@ -10,8 +10,10 @@ const {
   adminUpdatePetFeedPostStatus,
   createAnnouncementPost,
   createPetFeedPost,
+  createPetFeedPostComment,
   getPublicBreederProfile,
   getPublicPetFeedPost,
+  listPetFeedPostComments,
   listPublicPetFeedPostPage,
   listPublicVerifiedBreederProfiles,
   upsertMyBreederProfile,
@@ -107,4 +109,22 @@ test('public breeder directory and profile include only verified breeders', asyn
   for (const post of detail.listings) {
     assert.deepEqual(post.contact, {});
   }
+});
+
+test('public published posts expose comments without auth token', async () => {
+  const userId = `public-comments-${Date.now()}`;
+  const created = await createAnnouncementPost(userId, {
+    title: 'News with comments',
+    description: 'D'.repeat(320),
+    category: 'general',
+    mediaUrls: ['https://cdn.example/news.jpg'],
+  }, null);
+  assert.ok(created?.id);
+
+  await createPetFeedPostComment(userId, created.id, 'Public-safe question', null);
+  const published = await getPublicPetFeedPost(created.id);
+  assert.ok(published);
+
+  const comments = await listPetFeedPostComments(created.id, null);
+  assert.ok(comments.some((row) => row.body === 'Public-safe question'));
 });

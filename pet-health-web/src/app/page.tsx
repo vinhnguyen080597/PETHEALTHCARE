@@ -7,6 +7,7 @@ import { ListingCard } from "@/components/marketplace/ListingCard";
 import { AppDownloadBanner } from "@/components/marketplace/AppDownloadBanner";
 import { SiteFooter } from "@/components/marketplace/SiteFooter";
 import { VerifiedBadge } from "@/components/marketplace/Badges";
+import { VIETNAM_PROVINCES } from "@/constants/vietnamProvinces";
 
 export default async function HomePage() {
   const jar = await cookies();
@@ -42,61 +43,80 @@ export default async function HomePage() {
               {t(lang, "landing.badge")}
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 leading-tight mb-5">
-              {lang === "VI" ? (
-                <>
-                  {t(lang, "landing.hero.line1")}
-                  <br />
-                  <span className="text-[#1E6FE8]">
-                    {t(lang, "landing.hero.line2")}
-                  </span>
-                  <br />
-                  {t(lang, "landing.hero.line3")}
-                </>
-              ) : (
-                <>
-                  {t(lang, "landing.hero.line1")}
-                  <br />
-                  <span className="text-[#1E6FE8]">
-                    {t(lang, "landing.hero.line2")}
-                  </span>
-                  <br />
-                  {t(lang, "landing.hero.line3")}
-                </>
-              )}
+              {t(lang, "landing.hero.line1")}
+              <br />
+              <span className="text-[#1E6FE8]">
+                {t(lang, "landing.hero.line2")}
+              </span>
+              <br />
+              {t(lang, "landing.hero.line3")}
             </h1>
             <p className="text-slate-500 text-lg mb-8 max-w-md mx-auto lg:mx-0 leading-relaxed">
               {t(lang, "landing.sub")}
             </p>
             <form
               action="/app/pet-feed"
-              className="flex flex-col sm:flex-row gap-2 max-w-lg mx-auto lg:mx-0"
+              className="flex flex-col gap-2 max-w-xl mx-auto lg:mx-0"
             >
-              <div className="flex-1 relative">
-                <svg
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 relative">
+                  <svg
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <circle cx="7" cy="7" r="4.5" />
+                    <path d="m11 11 2.5 2.5" strokeLinecap="round" />
+                  </svg>
+                  <input
+                    name="q"
+                    type="text"
+                    placeholder={t(lang, "landing.searchPlaceholder")}
+                    className="w-full pl-10 pr-4 py-3.5 bg-white border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/30 focus:border-[#1E6FE8] shadow-sm transition-all"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-6 py-3.5 bg-[#1E6FE8] text-white text-sm font-semibold rounded-full hover:bg-[#1D4ED8] transition-colors shadow-md shadow-blue-200 whitespace-nowrap"
                 >
-                  <circle cx="7" cy="7" r="4.5" />
-                  <path d="m11 11 2.5 2.5" strokeLinecap="round" />
-                </svg>
-                <input
-                  name="q"
-                  type="text"
-                  placeholder={t(lang, "landing.searchPlaceholder")}
-                  className="w-full pl-10 pr-4 py-3.5 bg-white border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/30 focus:border-[#1E6FE8] shadow-sm transition-all"
-                />
+                  {t(lang, "landing.search")}
+                </button>
               </div>
-              <button
-                type="submit"
-                className="px-6 py-3.5 bg-[#1E6FE8] text-white text-sm font-semibold rounded-full hover:bg-[#1D4ED8] transition-colors shadow-md shadow-blue-200 whitespace-nowrap"
-              >
-                {t(lang, "landing.search")}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <label className="sr-only" htmlFor="hero-species">
+                  {t(lang, "landing.species")}
+                </label>
+                <select
+                  id="hero-species"
+                  name="species"
+                  defaultValue=""
+                  className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-full text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/30 focus:border-[#1E6FE8] shadow-sm"
+                >
+                  <option value="">{t(lang, "landing.species.all")}</option>
+                  <option value="cat">{t(lang, "landing.species.cat")}</option>
+                  <option value="dog">{t(lang, "landing.species.dog")}</option>
+                </select>
+                <label className="sr-only" htmlFor="hero-province">
+                  {t(lang, "landing.province")}
+                </label>
+                <select
+                  id="hero-province"
+                  name="province"
+                  defaultValue=""
+                  className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-full text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/30 focus:border-[#1E6FE8] shadow-sm"
+                >
+                  <option value="">{t(lang, "landing.province.all")}</option>
+                  {VIETNAM_PROVINCES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </form>
             <div className="flex flex-wrap gap-2 mt-4 justify-center lg:justify-start">
               {[
@@ -261,8 +281,8 @@ export default async function HomePage() {
         <AppDownloadBanner lang={lang} />
       </section>
 
-      <section className="bg-white border-y border-slate-100">
-        <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-10 grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+      <section className="bg-slate-900 text-white">
+        <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-12 grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
           {(
             [
               ["2,400+", "landing.stat.listings"],
@@ -272,8 +292,8 @@ export default async function HomePage() {
             ] as const
           ).map(([num, key]) => (
             <div key={num}>
-              <p className="text-3xl font-bold text-[#1E6FE8] mb-1">{num}</p>
-              <p className="text-sm text-slate-500">{t(lang, key)}</p>
+              <p className="text-3xl font-bold text-white mb-1">{num}</p>
+              <p className="text-sm text-slate-300">{t(lang, key)}</p>
             </div>
           ))}
         </div>

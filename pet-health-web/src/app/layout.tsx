@@ -5,6 +5,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getLang } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
+import { getUnreadNotificationCount } from "@/lib/api/petFeed";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -29,6 +30,15 @@ export default async function RootLayout({
   const jar = await cookies();
   const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
   const session = await getSessionUser();
+  let unreadCount = 0;
+  if (session.token) {
+    try {
+      const unread = await getUnreadNotificationCount(session.token);
+      unreadCount = Number(unread?.data?.unread_count) || 0;
+    } catch {
+      unreadCount = 0;
+    }
+  }
 
   return (
     <html lang={lang === "VI" ? "vi" : "en"}>
@@ -37,6 +47,7 @@ export default async function RootLayout({
           lang={lang}
           isAdmin={session.isAdmin}
           isLoggedIn={session.isLoggedIn}
+          unreadCount={unreadCount}
         />
         {children}
       </body>

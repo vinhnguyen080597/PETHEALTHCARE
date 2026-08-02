@@ -18,6 +18,9 @@ export type VerificationStatus =
 
 export type TrustLevel = "L0" | "L1" | "L2" | "L3";
 
+/** Verification tier shown on public breeder cards (product Phase 1+). */
+export type VerificationTier = 1 | 2 | 3;
+
 export type AdminSection =
   | "home"
   | "requests"
@@ -69,6 +72,8 @@ export interface BreederProfile {
   careEnvironment: string;
   commitments: string[];
   checklist: ChecklistItem[];
+  /** Public badge T1/T2/T3 — never expose template id. */
+  verificationTier: VerificationTier;
 }
 
 export interface Listing {
@@ -94,6 +99,8 @@ export interface Listing {
   breeder: BreederProfile;
   saved: boolean;
   postKind?: string;
+  /** Listing accepts PetCare escrow deposit (Phase B UI). */
+  escrowEnabled: boolean;
 }
 
 /** Raw API shapes (snake_case from backend). */

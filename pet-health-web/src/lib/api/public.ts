@@ -38,6 +38,32 @@ export async function getPublicPostDetail(postId: string): Promise<Listing | nul
   }
 }
 
+export type PublicComment = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  parent_id: string | null;
+  body: string;
+  author_display_name: string;
+  created_at: string;
+};
+
+export async function listPublicPostComments(
+  postId: string,
+): Promise<PublicComment[]> {
+  try {
+    const res = await fetchJson<{ data: PublicComment[] }>(
+      `/public/pet-feed/posts/${encodeURIComponent(postId)}/comments`,
+      { next: { revalidate: 30 } },
+    );
+    return Array.isArray(res?.data) ? res.data : [];
+  } catch (err) {
+    const status = (err as { status?: number })?.status;
+    if (status === 404) return [];
+    throw err;
+  }
+}
+
 export async function listPublicBreeders(options?: {
   limit?: number;
 }): Promise<BreederProfile[]> {

@@ -1,32 +1,64 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import type { BreederProfile, Lang, Listing } from "@/lib/types";
+import type { Lang, Listing } from "@/lib/types";
 import { t } from "@/i18n";
+import { parsePriceVnd } from "@/lib/formatPrice";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { ListingCard } from "./ListingCard";
-import { TrustLevelChip, VerifiedBadge } from "./Badges";
-import { getTrustLevel } from "@/lib/types";
+
+type PriceFilter = "all" | "under5" | "5to15" | "over15";
+type VaccineFilter = "all" | "vaccinated" | "unknown";
+
+function matchesPrice(listing: Listing, filter: PriceFilter): boolean {
+  if (filter === "all") return true;
+  const n = parsePriceVnd(listing.price);
+  if (n == null) return true;
+  if (filter === "under5") return n < 5_000_000;
+  if (filter === "5to15") return n >= 5_000_000 && n <= 15_000_000;
+  if (filter === "over15") return n > 15_000_000;
+  return true;
+}
+
+function isVaccinatedStatus(status: string): boolean {
+  const s = status.trim().toLowerCase();
+  if (!s || s === "—" || s === "-" || s === "unknown" || s === "chưa rõ") return false;
+  if (
+    s.includes("chưa") ||
+    s.includes("not") ||
+    s.includes("none") ||
+    s.includes("unvacc")
+  ) {
+    return false;
+  }
+  return (
+    s.includes("đã") ||
+    s.includes("tiêm") ||
+    s.includes("vaccin") ||
+    s.includes("fvrcp") ||
+    s.includes("dhppl") ||
+    /\d/.test(s)
+  );
+}
 
 export function FeedView({
   lang,
   listings,
-  breeders,
   initialSpecies = "all",
   initialQ = "",
+  initialProvince = "",
 }: {
   lang: Lang;
   listings: Listing[];
-  breeders: BreederProfile[];
+  breeders?: unknown;
   initialSpecies?: string;
   initialQ?: string;
+  initialProvince?: string;
 }) {
-  const [activeTab, setActiveTab] = useState<"pets" | "news" | "breeders">(
-    "pets",
-  );
   const [activeSpecies, setActiveSpecies] = useState(initialSpecies || "all");
   const [activeGender, setActiveGender] = useState("all");
+  const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
+  const [vaccineFilter, setVaccineFilter] = useState<VaccineFilter>("all");
   const [sortBy, setSortBy] = useState("date");
   const [q, setQ] = useState(initialQ);
 
@@ -34,20 +66,47 @@ export function FeedView({
     let rows = listings.filter((l) => {
       if (activeSpecies !== "all" && l.species !== activeSpecies) return false;
       if (activeGender !== "all" && l.gender !== activeGender) return false;
+      if (initialProvince) {
+        if (!l.location.toLowerCase().includes(initialProvince.toLowerCase())) {
+          return false;
+        }
+      }
+      if (!matchesPrice(l, priceFilter)) return false;
+      if (vaccineFilter === "vaccinated" && !isVaccinatedStatus(l.vaccineStatus)) {
+        return false;
+      }
+      if (vaccineFilter === "unknown") {
+        const s = l.vaccineStatus.trim();
+        if (s && isVaccinatedStatus(s)) return false;
+      }
       if (q.trim()) {
         const needle = q.trim().toLowerCase();
-        const hay = `${l.title} ${l.breed} ${l.location} ${l.breeder.name}`.toLowerCase();
+        const hay =
+          `${l.title} ${l.breed} ${l.location} ${l.breeder.name}`.toLowerCase();
         if (!hay.includes(needle)) return false;
       }
       return true;
     });
     if (sortBy === "price") {
-      rows = [...rows].sort((a, b) => a.price.localeCompare(b.price));
+      rows = [...rows].sort((a, b) => {
+        const pa = parsePriceVnd(a.price) ?? Number.POSITIVE_INFINITY;
+        const pb = parsePriceVnd(b.price) ?? Number.POSITIVE_INFINITY;
+        return pa - pb;
+      });
     } else if (sortBy === "age") {
       rows = [...rows].sort((a, b) => a.ageMonths - b.ageMonths);
     }
     return rows;
-  }, [listings, activeSpecies, activeGender, sortBy, q]);
+  }, [
+    listings,
+    activeSpecies,
+    activeGender,
+    priceFilter,
+    vaccineFilter,
+    sortBy,
+    q,
+    initialProvince,
+  ]);
 
   return (
     <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6">
@@ -86,7 +145,7 @@ export function FeedView({
           <option value="age">{t(lang, "feed.sort.age")}</option>
         </select>
       </div>
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="flex flex-wrap gap-2 mb-3">
         <span className="text-xs text-slate-400 font-medium py-1.5 mr-1">
           {t(lang, "feed.filter")}
         </span>
@@ -132,22 +191,49 @@ export function FeedView({
           </button>
         ))}
       </div>
-      <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-6 w-fit">
+      <div className="flex flex-wrap gap-2 mb-6">
+        <span className="text-xs text-slate-400 font-medium py-1.5 mr-1">
+          {t(lang, "feed.price")}
+        </span>
         {(
           [
-            ["pets", "feed.tab.pets"],
-            ["news", "feed.tab.news"],
-            ["breeders", "feed.tab.breeders"],
+            ["all", "feed.price.all"],
+            ["under5", "feed.price.under5"],
+            ["5to15", "feed.price.5to15"],
+            ["over15", "feed.price.over15"],
           ] as const
         ).map(([key, labelKey]) => (
           <button
             key={key}
             type="button"
-            onClick={() => setActiveTab(key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === key
-                ? "bg-[#1E6FE8] text-white shadow-sm"
-                : "text-slate-500 hover:text-slate-900"
+            onClick={() => setPriceFilter(key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              priceFilter === key
+                ? "bg-[#1E6FE8] text-white"
+                : "bg-white border border-slate-200 text-slate-600 hover:border-[#1E6FE8] hover:text-[#1E6FE8]"
+            }`}
+          >
+            {t(lang, labelKey)}
+          </button>
+        ))}
+        <span className="text-xs text-slate-400 font-medium py-1.5 mr-1 ml-2">
+          {t(lang, "feed.vaccine")}
+        </span>
+        {(
+          [
+            ["all", "feed.vaccine.all"],
+            ["vaccinated", "feed.vaccine.yes"],
+            ["unknown", "feed.vaccine.unknown"],
+          ] as const
+        ).map(([key, labelKey]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setVaccineFilter(key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              vaccineFilter === key
+                ? "bg-[#1E6FE8] text-white"
+                : "bg-white border border-slate-200 text-slate-600 hover:border-[#1E6FE8] hover:text-[#1E6FE8]"
             }`}
           >
             {t(lang, labelKey)}
@@ -155,108 +241,19 @@ export function FeedView({
         ))}
       </div>
 
-      {activeTab === "pets" && (
-        <>
-          <p className="text-xs text-slate-400 mb-4">
-            {filtered.length} {t(lang, "feed.results")}
-          </p>
-          {filtered.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-              {filtered.map((l) => (
-                <ListingCard key={l.id} listing={l} lang={lang} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-4xl mb-4">🐾</p>
-              <p className="font-semibold text-slate-700">
-                {t(lang, "feed.empty")}
-              </p>
-            </div>
-          )}
-        </>
-      )}
-
-      {activeTab === "news" && (
-        <div className="space-y-4">
-          {[
-            {
-              title:
-                lang === "VI"
-                  ? "Cách chọn thức ăn cho mèo con đúng cách"
-                  : "How to choose the right food for your kitten",
-              date: "24/07/2026",
-              img: "https://images.unsplash.com/photo-1533743983669-94fa5c4338ec?w=400&h=200&fit=crop&auto=format",
-            },
-            {
-              title:
-                lang === "VI"
-                  ? "Tải app Pet Health Care để theo dõi sức khỏe thú cưng"
-                  : "Download Pet Health Care to track your pet's health",
-              date: "10/07/2026",
-              img: "https://images.unsplash.com/photo-1601979031925-424e53b6caaa?w=400&h=200&fit=crop&auto=format",
-            },
-          ].map((n) => (
-            <div
-              key={n.title}
-              className="bg-white rounded-xl border border-slate-100 overflow-hidden flex hover:shadow-sm transition-all"
-            >
-              <div className="w-32 h-24 flex-shrink-0 bg-slate-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={n.img} alt="" className="w-full h-full object-cover" />
-              </div>
-              <div className="p-4 flex flex-col justify-center">
-                <p className="font-semibold text-slate-900 text-sm mb-1">
-                  {n.title}
-                </p>
-                <p className="text-xs text-slate-400">{n.date}</p>
-              </div>
-            </div>
+      <p className="text-xs text-slate-400 mb-4">
+        {filtered.length} {t(lang, "feed.results")}
+      </p>
+      {filtered.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {filtered.map((l) => (
+            <ListingCard key={l.id} listing={l} lang={lang} />
           ))}
         </div>
-      )}
-
-      {activeTab === "breeders" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {breeders.map((b) => {
-            const trust = getTrustLevel(b.trustScore, b.verified);
-            return (
-              <Link
-                key={b.id}
-                href={`/app/breeders/${b.id}`}
-                className="bg-white rounded-xl p-5 border border-slate-100 hover:shadow-sm hover:border-blue-100 transition-all"
-              >
-                <div className="flex items-start gap-3 mb-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={b.avatar}
-                    alt={b.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-slate-900 text-sm">
-                        {b.name}
-                      </h3>
-                      {b.verified && <VerifiedBadge size="xs" />}
-                    </div>
-                    <p className="text-xs text-slate-400">{b.location}</p>
-                    <div className="mt-1">
-                      <TrustLevelChip level={trust.level} label={trust.label} />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>
-                    {b.activeListings} {t(lang, "feed.activeListings")}
-                  </span>
-                  <span className="text-[#1E6FE8] font-medium">
-                    {b.trustScore}/100
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+      ) : (
+        <div className="text-center py-16">
+          <p className="text-4xl mb-4">🐾</p>
+          <p className="font-semibold text-slate-700">{t(lang, "feed.empty")}</p>
         </div>
       )}
     </div>

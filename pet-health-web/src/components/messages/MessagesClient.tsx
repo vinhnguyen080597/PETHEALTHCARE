@@ -23,13 +23,15 @@ type Message = {
 export function MessagesClient({
   lang,
   initialConversations,
+  initialConversationId = null,
 }: {
   lang: Lang;
   initialConversations: Conversation[];
+  initialConversationId?: string | null;
 }) {
   const [conversations] = useState(initialConversations);
   const [activeId, setActiveId] = useState<string | null>(
-    conversations[0]?.id || null,
+    () => initialConversationId || conversations[0]?.id || null,
   );
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");

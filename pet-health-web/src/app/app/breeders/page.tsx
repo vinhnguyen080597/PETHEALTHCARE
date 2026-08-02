@@ -3,10 +3,17 @@ import { cookies } from "next/headers";
 import { getLang, t } from "@/i18n";
 import { COOKIE_LANG } from "@/lib/session";
 import { listPublicBreeders } from "@/lib/api/public";
-import { VerifiedBadge, TrustLevelChip } from "@/components/marketplace/Badges";
+import {
+  VerifiedBadge,
+  TrustLevelChip,
+  VerificationTierBadge,
+} from "@/components/marketplace/Badges";
 import { getTrustLevel } from "@/lib/types";
 
 export const metadata = { title: "Breeders" };
+
+const FALLBACK_COVER =
+  "https://images.unsplash.com/photo-1601979031925-424e53b6caaa?w=800&h=320&fit=crop&auto=format";
 
 export default async function BreedersPage() {
   const jar = await cookies();
@@ -28,42 +35,57 @@ export default async function BreedersPage() {
           ? "Danh bạ breeder đã xác minh"
           : "Verified breeder directory"}
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {breeders.map((b) => {
           const trust = getTrustLevel(b.trustScore, b.verified);
+          const cover = b.coverUrl || FALLBACK_COVER;
           return (
             <Link
               key={b.id}
               href={`/app/breeders/${b.id}`}
-              className="bg-white rounded-xl p-5 border border-slate-100 hover:shadow-sm hover:border-blue-100 transition-all"
+              className="group bg-white rounded-xl border border-slate-100 overflow-hidden hover:shadow-md hover:border-blue-100 transition-all"
             >
-              <div className="flex items-start gap-3 mb-3">
+              <div className="relative h-24 bg-slate-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={cover}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={b.avatar}
                   alt={b.name}
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="absolute -bottom-6 left-4 w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm bg-white"
                 />
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-slate-900 text-sm">
-                      {b.name}
-                    </h3>
-                    {b.verified && <VerifiedBadge size="xs" />}
-                  </div>
-                  <p className="text-xs text-slate-400">{b.location}</p>
-                  <div className="mt-1">
-                    <TrustLevelChip level={trust.level} label={trust.label} />
-                  </div>
-                </div>
               </div>
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>
-                  {b.activeListings} {t(lang, "feed.activeListings")}
-                </span>
-                <span className="text-[#1E6FE8] font-medium">
-                  {b.trustScore}/100
-                </span>
+              <div className="pt-8 px-4 pb-4">
+                <div className="flex items-center gap-2 mb-1 min-w-0">
+                  <h3 className="font-semibold text-slate-900 text-sm truncate group-hover:text-[#1E6FE8] transition-colors">
+                    {b.name}
+                  </h3>
+                  {b.verified && <VerifiedBadge size="xs" />}
+                </div>
+                <p className="text-xs text-slate-400 mb-2 truncate">
+                  {b.location}
+                </p>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  <VerificationTierBadge
+                    tier={b.verificationTier}
+                    lang={lang}
+                    size="xs"
+                  />
+                  <TrustLevelChip level={trust.level} label={trust.label} />
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>
+                    {b.activeListings} {t(lang, "feed.activeListings")}
+                  </span>
+                  <span className="text-[#1E6FE8] font-medium">
+                    {b.trustScore}/100
+                  </span>
+                </div>
               </div>
             </Link>
           );
@@ -71,7 +93,9 @@ export default async function BreedersPage() {
       </div>
       {breeders.length === 0 && (
         <p className="text-center text-slate-400 py-16">
-          {lang === "VI" ? "Chưa có breeder công khai" : "No public breeders yet"}
+          {lang === "VI"
+            ? "Chưa có breeder công khai"
+            : "No public breeders yet"}
         </p>
       )}
     </div>

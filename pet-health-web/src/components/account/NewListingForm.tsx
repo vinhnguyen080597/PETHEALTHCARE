@@ -90,8 +90,21 @@ export function NewListingForm({ lang }: { lang: Lang }) {
           <input
             name="photos"
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             multiple
+            required
+            className="w-full text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">
+            {t(lang, "listing.new.video")}
+          </label>
+          <input
+            name="video"
+            type="file"
+            accept="video/mp4,video/quicktime,video/webm,video/3gpp"
+            required
             className="w-full text-sm"
           />
         </div>

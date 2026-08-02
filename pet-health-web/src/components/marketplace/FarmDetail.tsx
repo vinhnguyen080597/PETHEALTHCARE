@@ -2,15 +2,26 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { BreederProfile, Lang, Listing, TemplateId } from "@/lib/types";
+import { getEffectiveTrust, getTrustLevel } from "@/lib/types";
+import { isBlankDisplayValue } from "@/lib/formatPrice";
 import {
-  getEffectiveTrust,
-  getTrustLevel,
-  templateMeta,
-} from "@/lib/types";
-import { VerifiedBadge, PendingBadge, TrustLevelChip } from "./Badges";
+  VerifiedBadge,
+  PendingBadge,
+  TrustLevelChip,
+  VerificationTierBadge,
+} from "./Badges";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { ListingCard } from "./ListingCard";
+
+const BREEDER_REPORT_REASONS = [
+  "scam",
+  "misleading_health_claims",
+  "abusive_content",
+  "fake_contact",
+  "unsafe_transaction",
+] as const;
 
 function HeroT1({ breeder }: { breeder: BreederProfile }) {
   const eff = getEffectiveTrust(breeder.trustScore, breeder.penaltyPoints);
@@ -210,17 +221,101 @@ export function FarmDetail({
   breeder,
   lang,
   isOwner = false,
+  isLoggedIn = false,
   listings,
 }: {
   breeder: BreederProfile;
   lang: Lang;
   isOwner?: boolean;
+  isLoggedIn?: boolean;
   listings: Listing[];
 }) {
+  const router = useRouter();
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<string>(
+    BREEDER_REPORT_REASONS[0],
+  );
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const [reportDone, setReportDone] = useState(false);
+  const [messageBusy, setMessageBusy] = useState(false);
   const eff = getEffectiveTrust(breeder.trustScore, breeder.penaltyPoints);
   const { level, label } = getTrustLevel(eff, breeder.verified);
-  const tmeta = templateMeta[breeder.template];
+
+  const reasonLabels: Record<string, string> = {
+    scam: lang === "VI" ? "Lừa đảo / đáng ngờ" : "Scam or suspicious",
+    misleading_health_claims:
+      lang === "VI"
+        ? "Thông tin sức khỏe sai lệch"
+        : "Misleading health claims",
+    abusive_content:
+      lang === "VI" ? "Nội dung không phù hợp" : "Abusive content",
+    fake_contact:
+      lang === "VI" ? "Liên hệ giả / không liên lạc được" : "Fake contact",
+    unsafe_transaction:
+      lang === "VI" ? "Giao dịch không an toàn" : "Unsafe transaction",
+  };
+
+  const requireLogin = () => {
+    router.push(`/login?next=/app/breeders/${breeder.id}`);
+  };
+
+  const messageBreeder = async () => {
+    if (!isLoggedIn) {
+      requireLogin();
+      return;
+    }
+    const listingId = listings[0]?.id;
+    if (!listingId) {
+      router.push("/app/messages");
+      return;
+    }
+    setMessageBusy(true);
+    try {
+      const res = await fetch(`/api/listings/${listingId}/conversations`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed");
+      const conversationId = data?.data?.id;
+      router.push(
+        conversationId
+          ? `/app/messages?c=${encodeURIComponent(conversationId)}`
+          : "/app/messages",
+      );
+    } catch {
+      router.push("/app/messages");
+    } finally {
+      setMessageBusy(false);
+    }
+  };
+
+  const submitReport = async () => {
+    if (!isLoggedIn) {
+      requireLogin();
+      return;
+    }
+    setReportBusy(true);
+    setReportError("");
+    try {
+      const res = await fetch(`/api/breeders/${breeder.id}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reportReason }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setReportDone(true);
+      setTimeout(() => {
+        setReportOpen(false);
+        setReportDone(false);
+      }, 1200);
+    } catch (err) {
+      setReportError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setReportBusy(false);
+    }
+  };
 
   const typeLabels: Record<string, string> = {
     registered_kennel: "Trại đăng ký chính thức",
@@ -229,6 +324,26 @@ export function FarmDetail({
     rehoming: "Cá nhân tìm nhà mới",
     other: "Khác",
   };
+
+  const infoRows = [
+    {
+      label: "Loại hình",
+      value: typeLabels[breeder.breederType] || breeder.breederType,
+    },
+    { label: "Quy mô", value: breeder.scale },
+    { label: "Khu vực", value: breeder.location },
+    {
+      label: "Loài",
+      value: breeder.primarySpecies
+        .map((s) => (s === "cat" ? "Mèo" : s === "dog" ? "Chó" : s))
+        .join(", "),
+    },
+    { label: "Giống", value: breeder.mainBreeds.join(", ") },
+  ].filter((item) => !isBlankDisplayValue(item.value));
+
+  const bioText = (lang === "VI" ? breeder.bioVI : breeder.bio).trim();
+  const hasCare =
+    !isBlankDisplayValue(breeder.careEnvironment) || breeder.checklist.length > 0;
 
   return (
     <div className="min-h-screen">
@@ -264,61 +379,56 @@ export function FarmDetail({
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-1 min-w-0">
             <div className="bg-white rounded-xl border border-slate-100 p-6 mb-5">
-              <h2 className="font-semibold text-slate-900 mb-4">
-                Thông tin trại
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-5">
-                {[
-                  {
-                    label: "Loại hình",
-                    value: typeLabels[breeder.breederType] || breeder.breederType,
-                  },
-                  { label: "Quy mô", value: breeder.scale },
-                  { label: "Khu vực", value: breeder.location },
-                  {
-                    label: "Loài",
-                    value: breeder.primarySpecies
-                      .map((s) =>
-                        s === "cat" ? "Mèo" : s === "dog" ? "Chó" : s,
-                      )
-                      .join(", "),
-                  },
-                  { label: "Giống", value: breeder.mainBreeds.join(", ") },
-                  {
-                    label: "Template",
-                    value: `${breeder.template} — ${tmeta.nameVI}`,
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="bg-slate-50 rounded-lg px-3 py-2.5"
-                  >
-                    <p className="text-[10px] text-slate-400 font-medium mb-0.5">
-                      {item.label}
-                    </p>
-                    <p className="text-xs font-semibold text-slate-800 line-clamp-2">
-                      {item.value || "—"}
-                    </p>
-                  </div>
-                ))}
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <h2 className="font-semibold text-slate-900">Thông tin trại</h2>
+                {breeder.verified && (
+                  <VerificationTierBadge
+                    tier={breeder.verificationTier}
+                    lang={lang}
+                    size="xs"
+                  />
+                )}
               </div>
-              <div>
-                <p className="text-xs text-slate-400 font-medium mb-1">
-                  Giới thiệu
-                </p>
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  {lang === "VI" ? breeder.bioVI : breeder.bio}
-                </p>
-              </div>
+              {infoRows.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-5">
+                  {infoRows.map((item) => (
+                    <div
+                      key={item.label}
+                      className="bg-slate-50 rounded-lg px-3 py-2.5"
+                    >
+                      <p className="text-[10px] text-slate-400 font-medium mb-0.5">
+                        {item.label}
+                      </p>
+                      <p className="text-xs font-semibold text-slate-800 line-clamp-2">
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!isBlankDisplayValue(bioText) && (
+                <div>
+                  <p className="text-xs text-slate-400 font-medium mb-1">
+                    Giới thiệu
+                  </p>
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    {bioText}
+                  </p>
+                </div>
+              )}
             </div>
 
+            {hasCare && (
             <div className="bg-white rounded-xl border border-slate-100 p-6 mb-5">
               <h2 className="font-semibold text-slate-900 mb-3">
                 Môi trường chăm sóc
               </h2>
-              <p className="text-sm text-slate-600 leading-relaxed mb-4">
-                {breeder.careEnvironment || "—"}
-              </p>
+              {!isBlankDisplayValue(breeder.careEnvironment) && (
+                <p className="text-sm text-slate-600 leading-relaxed mb-4">
+                  {breeder.careEnvironment}
+                </p>
+              )}
+              {breeder.checklist.length > 0 && (
               <div>
                 <p className="text-xs text-slate-400 font-medium mb-2">
                   Chăm sóc checklist
@@ -345,7 +455,9 @@ export function FarmDetail({
                   ))}
                 </div>
               </div>
+              )}
             </div>
+            )}
 
             {breeder.breederType === "rescue_foster" &&
               breeder.commitments.length > 0 && (
@@ -372,14 +484,6 @@ export function FarmDetail({
                 <h2 className="font-semibold text-slate-900">
                   Tin đăng ({listings.length})
                 </h2>
-                {!isOwner && (
-                  <Link
-                    href={`/app/breeders/${breeder.id}/health`}
-                    className="text-xs text-[#1E6FE8] font-medium"
-                  >
-                    Farm Health →
-                  </Link>
-                )}
               </div>
               {listings.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -419,15 +523,23 @@ export function FarmDetail({
 
               {!isOwner && (
                 <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-2">
-                  <Link
-                    href="/app/messages"
-                    className="block w-full py-3 bg-[#1E6FE8] text-white text-sm font-semibold rounded-full hover:bg-[#1D4ED8] transition-colors text-center"
-                  >
-                    💬 {lang === "VI" ? "Nhắn tin" : "Message"}
-                  </Link>
                   <button
                     type="button"
-                    onClick={() => setReportOpen(true)}
+                    onClick={() => void messageBreeder()}
+                    disabled={messageBusy}
+                    className="block w-full py-3 bg-[#1E6FE8] text-white text-sm font-semibold rounded-full hover:bg-[#1D4ED8] transition-colors text-center disabled:opacity-60"
+                  >
+                    💬 {lang === "VI" ? "Nhắn tin" : "Message"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        requireLogin();
+                        return;
+                      }
+                      setReportOpen(true);
+                    }}
                     className="w-full py-2 border border-slate-200 text-slate-500 text-xs font-medium rounded-full hover:border-red-200 hover:text-red-500 transition-colors"
                   >
                     Báo cáo
@@ -452,23 +564,34 @@ export function FarmDetail({
             <h2 className="font-bold text-slate-900 mb-4">
               Báo cáo hồ sơ trại
             </h2>
-            <div className="space-y-2 mb-5">
-              {[
-                "Thông tin sai lệch",
-                "Thông tin vaccine không chính xác",
-                "Lừa đảo / gian lận",
-                "Nội dung không phù hợp",
-                "Khác",
-              ].map((r) => (
-                <label
-                  key={r}
-                  className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 cursor-pointer text-sm text-slate-700"
-                >
-                  <input type="radio" name="reason" className="accent-[#1E6FE8]" />{" "}
-                  {r}
-                </label>
-              ))}
-            </div>
+            {reportDone ? (
+              <p className="text-sm text-emerald-700 mb-4">
+                {lang === "VI"
+                  ? "Đã gửi báo cáo. Cảm ơn bạn."
+                  : "Report submitted. Thank you."}
+              </p>
+            ) : (
+              <div className="space-y-2 mb-5">
+                {BREEDER_REPORT_REASONS.map((r) => (
+                  <label
+                    key={r}
+                    className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 cursor-pointer text-sm text-slate-700"
+                  >
+                    <input
+                      type="radio"
+                      name="reason"
+                      className="accent-[#1E6FE8]"
+                      checked={reportReason === r}
+                      onChange={() => setReportReason(r)}
+                    />{" "}
+                    {reasonLabels[r]}
+                  </label>
+                ))}
+              </div>
+            )}
+            {reportError ? (
+              <p className="text-xs text-red-600 mb-3">{reportError}</p>
+            ) : null}
             <div className="flex gap-2">
               <button
                 type="button"
@@ -477,13 +600,16 @@ export function FarmDetail({
               >
                 Huỷ
               </button>
-              <button
-                type="button"
-                onClick={() => setReportOpen(false)}
-                className="flex-1 py-2.5 bg-red-600 text-white text-sm font-medium rounded-full hover:bg-red-700 transition-colors"
-              >
-                Gửi báo cáo
-              </button>
+              {!reportDone && (
+                <button
+                  type="button"
+                  onClick={() => void submitReport()}
+                  disabled={reportBusy}
+                  className="flex-1 py-2.5 bg-red-600 text-white text-sm font-medium rounded-full hover:bg-red-700 transition-colors disabled:opacity-60"
+                >
+                  Gửi báo cáo
+                </button>
+              )}
             </div>
           </div>
         </div>

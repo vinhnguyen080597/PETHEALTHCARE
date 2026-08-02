@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getLang } from "@/i18n";
-import { COOKIE_LANG } from "@/lib/session";
-import { getPublicPostDetail } from "@/lib/api/public";
+import { COOKIE_LANG, getSessionUser } from "@/lib/session";
+import {
+  getPublicPostDetail,
+  listPublicPostComments,
+} from "@/lib/api/public";
 import { ListingDetail } from "@/components/marketplace/ListingDetail";
 import { SITE_ORIGIN } from "@/lib/config";
 
@@ -33,7 +36,16 @@ export default async function PostDetailPage({ params }: Props) {
   const { postId } = await params;
   const jar = await cookies();
   const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
+  const session = await getSessionUser();
   const listing = await getPublicPostDetail(postId).catch(() => null);
   if (!listing) notFound();
-  return <ListingDetail listing={listing} lang={lang} />;
+  const comments = await listPublicPostComments(postId).catch(() => []);
+  return (
+    <ListingDetail
+      listing={listing}
+      lang={lang}
+      isLoggedIn={session.isLoggedIn}
+      initialComments={comments}
+    />
+  );
 }

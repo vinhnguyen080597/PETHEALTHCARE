@@ -38,6 +38,11 @@ export async function POST(req: Request) {
       }
     }
 
+    const video = incoming.get("video");
+    if (video instanceof File && video.size > 0) {
+      formData.set("video", video);
+    }
+
     const result = await createListingPost(token, formData);
     return NextResponse.json(result);
   } catch (err) {

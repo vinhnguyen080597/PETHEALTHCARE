@@ -85,12 +85,46 @@ export async function sendMessage(
 }
 
 export async function startConversation(token: string, postId: string) {
-  return fetchJson(
+  return fetchJson<{ data: { id: string } }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/conversations`,
     {
       method: "POST",
       token,
     },
+  );
+}
+
+export async function reportPost(
+  token: string,
+  postId: string,
+  payload: { reason: string; note?: string },
+) {
+  return fetchJson(`/pet-feed/posts/${encodeURIComponent(postId)}/report`, {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export async function reportBreeder(
+  token: string,
+  profileId: string,
+  payload: { reason: string; note?: string },
+) {
+  return fetchJson(
+    `/pet-feed/breeders/${encodeURIComponent(profileId)}/report`,
+    {
+      method: "POST",
+      token,
+      body: payload,
+    },
+  );
+}
+
+export async function getUnreadNotificationCount(token: string) {
+  return fetchJson<{ data: { unread_count: number } }>(
+    "/pet-feed/notifications/unread-count",
+    { token, cache: "no-store" },
   );
 }
 

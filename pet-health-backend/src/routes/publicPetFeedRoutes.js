@@ -3,6 +3,7 @@ import {
   getPublicBreederProfile,
   getPublicPetFeedPost,
   getPublishedPetFeedShareCard,
+  listPetFeedPostComments,
   listPublicPetFeedPostPage,
   listPublicVerifiedBreederProfiles,
 } from '../repositories/petFeedRepository.js';
@@ -72,6 +73,27 @@ router.get('/posts/:postId/detail', async (req, res, next) => {
       return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
     }
     return res.json({ data: detail });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/** Public comments for a published listing (no auth). */
+router.get('/posts/:postId/comments', async (req, res, next) => {
+  try {
+    setPublicCache(res);
+    const postId = cleanId(req.params.postId);
+    if (!postId || !/^[a-zA-Z0-9_-]+$/.test(postId)) {
+      return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    }
+    const detail = await getPublicPetFeedPost(postId);
+    if (!detail) {
+      return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
+    }
+    const comments = await listPetFeedPostComments(postId, null, {
+      limit: req.query.limit,
+    });
+    return res.json({ data: comments });
   } catch (err) {
     return next(err);
   }

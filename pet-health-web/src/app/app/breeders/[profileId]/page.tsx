@@ -47,6 +47,7 @@ export default async function BreederDetailPage({ params }: Props) {
       lang={lang}
       listings={data.listings}
       isOwner={isOwner}
+      isLoggedIn={session.isLoggedIn}
     />
   );
 }

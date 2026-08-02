@@ -62,10 +62,32 @@ const en = {
   "feed.tab.pets": "New Pets",
   "feed.tab.news": "News",
   "feed.tab.breeders": "Breeders",
+  "feed.price": "Price:",
+  "feed.price.all": "Any price",
+  "feed.price.under5": "Under 5M",
+  "feed.price.5to15": "5–15M",
+  "feed.price.over15": "Over 15M",
+  "feed.vaccine": "Vaccines:",
+  "feed.vaccine.all": "Any",
+  "feed.vaccine.yes": "Vaccinated",
+  "feed.vaccine.unknown": "Unknown / none",
   "feed.results": "results",
   "feed.empty": "No listings found",
   "feed.loadMore": "Load more",
   "feed.activeListings": "active listings",
+
+  "escrow.card.title": "Deposit via PetCoin Escrow",
+  "escrow.card.body":
+    "Hold deposit for 7 days. 100% refund if the pet is sick or not as described (per seller escrow terms).",
+  "escrow.card.cta": "Request escrow deposit",
+  "escrow.card.soon": "Escrow coming soon",
+
+  "landing.species": "Species",
+  "landing.species.all": "All species",
+  "landing.species.cat": "Cat",
+  "landing.species.dog": "Dog",
+  "landing.province": "Province / City",
+  "landing.province.all": "All provinces",
 
   "detail.back": "Back",
   "detail.breed": "Breed",
@@ -81,6 +103,9 @@ const en = {
   "detail.writeComment": "Write a comment…",
   "detail.send": "Send",
   "detail.evidence": "Vaccine evidence",
+  "detail.save": "Save listing",
+  "detail.loginToComment": "Log in to comment…",
+  "detail.reportSuccess": "Report submitted. Thank you.",
 
   "app.banner.need": "Need to track your pet's health?",
   "app.banner.desc":
@@ -112,6 +137,7 @@ const en = {
   "listing.new.terms":
     "I agree to the Marketplace Guidelines and confirm listing information is accurate.",
   "listing.new.photos": "Photos",
+  "listing.new.video": "Short video (required)",
 
   "messages.title": "Messages",
   "messages.empty": "No conversations yet",

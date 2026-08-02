@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Lang, Listing } from "@/lib/types";
 import { genderLabel, t } from "@/i18n";
-import { VerifiedBadge } from "./Badges";
+import { formatPriceVnd } from "@/lib/formatPrice";
+import { EscrowBadge, VerifiedBadge } from "./Badges";
 
 export function ListingCard({
   listing,
@@ -21,6 +22,7 @@ export function ListingCard({
           ? "Chó"
           : "Dog"
         : listing.species;
+  const price = formatPriceVnd(listing.price) || listing.price;
 
   return (
     <Link
@@ -42,12 +44,19 @@ export function ListingCard({
               : "🐾"}{" "}
           {speciesLabel}
         </span>
+        {listing.escrowEnabled ? (
+          <span className="absolute top-3 right-3">
+            <EscrowBadge lang={lang} size="xs" />
+          </span>
+        ) : null}
       </div>
       <div className="p-4">
         <h3 className="font-semibold text-slate-900 text-sm leading-tight mb-1 line-clamp-2">
           {title}
         </h3>
-        <p className="text-[#1E6FE8] font-bold text-base mb-2">{listing.price}</p>
+        {price ? (
+          <p className="text-[#1E6FE8] font-bold text-base mb-2">{price}</p>
+        ) : null}
         <div className="flex items-center gap-1 text-slate-500 text-xs mb-3">
           <svg
             width="11"
