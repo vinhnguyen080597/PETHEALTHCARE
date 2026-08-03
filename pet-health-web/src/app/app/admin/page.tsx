@@ -14,10 +14,10 @@ export default async function AdminPage() {
   if (!session.isLoggedIn) {
     return (
       <div className="max-w-md mx-auto px-5 py-16 text-center">
-        <p className="text-slate-600 mb-4">{t(lang, "account.notLoggedIn")}</p>
+        <p className="text-[#5C4A3A] mb-4">{t(lang, "account.notLoggedIn")}</p>
         <Link
           href="/login?next=/app/admin"
-          className="inline-block px-6 py-2.5 bg-[#1E6FE8] text-white text-sm font-semibold rounded-full"
+          className="inline-block px-6 py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full"
         >
           {t(lang, "auth.login")}
         </Link>
@@ -28,12 +28,8 @@ export default async function AdminPage() {
   if (!session.isAdmin) {
     return (
       <div className="max-w-md mx-auto px-5 py-16 text-center">
-        <p className="text-slate-600 mb-4">
-          {lang === "VI"
-            ? "Bạn không có quyền truy cập Admin."
-            : "You do not have admin access."}
-        </p>
-        <Link href="/" className="text-[#1E6FE8] text-sm font-medium">
+        <p className="text-[#5C4A3A] mb-4">{t(lang, "admin.forbidden")}</p>
+        <Link href="/" className="text-[#D97706] text-sm font-medium">
           ← {t(lang, "admin.back")}
         </Link>
       </div>
