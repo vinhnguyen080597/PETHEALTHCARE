@@ -118,7 +118,7 @@ export function ListingCard({
           </span>
           {listing.escrowEnabled ? (
             <span className="bg-[#FEF3C7]/95 text-[#92400E] text-[10px] font-semibold px-2 py-1 rounded-full border border-amber-300 shadow-sm w-fit">
-              🛡️ {lang === "VI" ? "Cọc Bảo Chứng" : "Escrow"}
+              🛡️ {lang === "VI" ? "Cọc Escrow" : "Escrow"}
             </span>
           ) : null}
         </div>

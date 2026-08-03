@@ -57,14 +57,17 @@ export function HomeValueProps({ lang }: { lang: Lang }) {
     {
       titleKey: "landing.value1.title" as const,
       descKey: "landing.value1.desc" as const,
+      comingSoon: true,
     },
     {
       titleKey: "landing.value2.title" as const,
       descKey: "landing.value2.desc" as const,
+      comingSoon: false,
     },
     {
       titleKey: "landing.value3.title" as const,
       descKey: "landing.value3.desc" as const,
+      comingSoon: true,
     },
   ];
 
@@ -82,8 +85,13 @@ export function HomeValueProps({ lang }: { lang: Lang }) {
           return (
             <article
               key={item.titleKey}
-              className="group bg-white border border-[#F3E2C8] rounded-2xl p-6 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-24px_rgba(217,119,6,0.45)] transition-all duration-300"
+              className="relative group bg-white border border-[#F3E2C8] rounded-2xl p-6 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-24px_rgba(217,119,6,0.45)] transition-all duration-300"
             >
+              {item.comingSoon && (
+                <span className="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309] text-[10px] font-semibold border border-[#FDE68A]">
+                  {t(lang, "landing.value.comingSoon")}
+                </span>
+              )}
               <div className="w-11 h-11 rounded-xl bg-amber-50 text-[#D97706] flex items-center justify-center mb-4 border border-amber-100 group-hover:bg-[#D97706] group-hover:text-white transition-colors">
                 <Icon />
               </div>

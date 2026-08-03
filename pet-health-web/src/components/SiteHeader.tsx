@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
+import { loginHref } from "@/lib/loginHref";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function SiteHeader({
   lang,
@@ -19,20 +21,17 @@ export function SiteHeader({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
+  const isAuthRoute =
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname.startsWith("/login/") ||
+    pathname.startsWith("/signup/");
+
+  const browseHref = isLoggedIn ? "/app/pet-feed" : loginHref("/app/pet-feed");
+  const breedersHref = isLoggedIn ? "/app/breeders" : loginHref("/app/breeders");
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
-
-  const toggleLang = async () => {
-    const next = lang === "VI" ? "EN" : "VI";
-    await fetch("/api/lang", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lang: next }),
-    });
-    router.refresh();
-  };
 
   const navCls = (href: string) =>
     `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -74,68 +73,46 @@ export function SiteHeader({
           </div>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1 flex-1">
-          <Link href="/app/pet-feed" className={navCls("/app/pet-feed")}>
-            {t(lang, "nav.browse")}
-          </Link>
-          <Link href="/app/breeders" className={navCls("/app/breeders")}>
-            {t(lang, "nav.breeders")}
-          </Link>
-        </nav>
+        {!isAuthRoute && (
+          <nav className="hidden md:flex items-center gap-1 flex-1">
+            <Link href={browseHref} className={navCls("/app/pet-feed")}>
+              {t(lang, "nav.browse")}
+            </Link>
+            <Link href={breedersHref} className={navCls("/app/breeders")}>
+              {t(lang, "nav.breeders")}
+            </Link>
+          </nav>
+        )}
+        {isAuthRoute && <div className="flex-1" />}
 
-        <div className="hidden lg:flex flex-1 max-w-xs">
-          <form action="/app/pet-feed" className="w-full relative">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
+        <div className="flex items-center gap-1 ml-auto">
+          {isLoggedIn && (
+            <Link
+              href="/app/messages"
+              className="relative w-9 h-9 rounded-lg flex items-center justify-center text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors"
+              aria-label={t(lang, "nav.messages")}
             >
-              <circle cx="6" cy="6" r="4" />
-              <path d="m9.5 9.5 2.5 2.5" strokeLinecap="round" />
-            </svg>
-            <input
-              name="q"
-              type="text"
-              placeholder={t(lang, "nav.search")}
-              className="w-full pl-8 pr-3 py-2 bg-white/80 border border-[#F0E6D8] rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 transition-all"
-            />
-          </form>
-        </div>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+              >
+                <path d="M15.5 11.5c0 .83-.67 1.5-1.5 1.5H5.5L2.5 15.5v-12C2.5 2.67 3.17 2 4 2h10c.83 0 1.5.67 1.5 1.5v8Z" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#EF4444] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
 
-        <div className="flex items-center gap-1 ml-auto md:ml-0">
-          <Link
-            href="/app/messages"
-            className="relative w-9 h-9 rounded-lg flex items-center justify-center text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors"
-            aria-label={t(lang, "nav.messages")}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 18 18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-            >
-              <path d="M15.5 11.5c0 .83-.67 1.5-1.5 1.5H5.5L2.5 15.5v-12C2.5 2.67 3.17 2 4 2h10c.83 0 1.5.67 1.5 1.5v8Z" />
-            </svg>
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#EF4444] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
-          </Link>
-
-          <button
-            type="button"
-            onClick={toggleLang}
-            className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors border border-[#F0E6D8]"
-          >
-            {lang === "VI" ? "EN" : "VI"}
-          </button>
+          <div className="hidden sm:block">
+            <LanguageSwitcher lang={lang} />
+          </div>
 
           {isAdmin && (
             <Link
@@ -184,27 +161,33 @@ export function SiteHeader({
 
       {menuOpen && (
         <div className="md:hidden border-t border-[#F0E6D8] bg-[#FDFBF7] px-5 py-3 flex flex-col gap-1">
-          <Link
-            href="/app/pet-feed"
-            onClick={() => setMenuOpen(false)}
-            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
-          >
-            {t(lang, "nav.browse")}
-          </Link>
-          <Link
-            href="/app/breeders"
-            onClick={() => setMenuOpen(false)}
-            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
-          >
-            {t(lang, "nav.breeders")}
-          </Link>
-          <Link
-            href="/app/messages"
-            onClick={() => setMenuOpen(false)}
-            className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
-          >
-            {t(lang, "nav.messages")}
-          </Link>
+          {!isAuthRoute && (
+            <>
+              <Link
+                href={browseHref}
+                onClick={() => setMenuOpen(false)}
+                className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
+              >
+                {t(lang, "nav.browse")}
+              </Link>
+              <Link
+                href={breedersHref}
+                onClick={() => setMenuOpen(false)}
+                className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
+              >
+                {t(lang, "nav.breeders")}
+              </Link>
+            </>
+          )}
+          {isLoggedIn && (
+            <Link
+              href="/app/messages"
+              onClick={() => setMenuOpen(false)}
+              className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
+            >
+              {t(lang, "nav.messages")}
+            </Link>
+          )}
           <Link
             href={isLoggedIn ? "/app/account" : "/login"}
             onClick={() => setMenuOpen(false)}
@@ -221,6 +204,7 @@ export function SiteHeader({
               {t(lang, "nav.admin")}
             </Link>
           )}
+          <LanguageSwitcher lang={lang} compact />
         </div>
       )}
     </header>

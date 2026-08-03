@@ -62,7 +62,7 @@ const TIER_STYLES: Record<VerificationTier, string> = {
 const TIER_LABEL: Record<VerificationTier, { vi: string; en: string }> = {
   1: { vi: "Tier 1 · Danh tính", en: "Tier 1 · Identity" },
   2: { vi: "Tier 2 · Trại đã xác minh", en: "Tier 2 · Kennel verified" },
-  3: { vi: "Tier 3 · Bảo chứng", en: "Tier 3 · Elite" },
+  3: { vi: "Tier 3 · Ưu tú", en: "Tier 3 · Elite" },
 };
 
 export function VerificationTierBadge({
@@ -100,7 +100,7 @@ export function EscrowBadge({
     size === "sm" ? "text-xs px-2.5 py-1" : "text-[10px] px-1.5 py-0.5";
   const label =
     lang === "VI"
-      ? `Cọc đảm bảo · ${days} ngày`
+      ? `Cọc Escrow · ${days} ngày`
       : `Escrow · ${days} days`;
   return (
     <span

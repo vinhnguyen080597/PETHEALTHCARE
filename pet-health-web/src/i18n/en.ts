@@ -1,32 +1,33 @@
 const en = {
-  "nav.browse": "Browse",
+  "nav.browse": "Pets",
   "nav.breeders": "Breeders",
   "nav.messages": "Messages",
   "nav.account": "Account",
   "nav.admin": "Admin",
   "nav.login": "Log in",
-  "nav.search": "Search…",
   "nav.brand": "Pet Marketplace",
+  "nav.language": "Language",
 
   "landing.badge": "✨ Welcome your new family member",
   "landing.hero.line1": "Find",
   "landing.hero.line2": "Healthy Pets",
   "landing.hero.line3": "from trusted breeders",
   "landing.sub":
-    "Connect directly with dedicated breeders. Full vaccine records, health commitments, and transaction protection.",
+    "Connect directly with dedicated breeders. Clear vaccine records, strong health commitments, and more transparent deal support.",
   "landing.searchPlaceholder": "Looking for a kitten or puppy?",
   "landing.search": "Search",
   "landing.why": "Peace of mind when welcoming a new pet",
-  "landing.whySub": "Escrow deposit. Verified breeders. Transparent delivery.",
-  "landing.value1.title": "100% Escrow deposit protection",
+  "landing.whySub": "Terms-based deposit. Verified breeders. Transparent delivery.",
+  "landing.value1.title": "Escrow deposit (terms-based hold)",
   "landing.value1.desc":
-    "Hold deposit securely for 7 days. Refund per seller escrow terms if the pet is not as described.",
+    "We work to hold the deposit for the agreed period. Refund/release follows seller escrow terms if the pet is not as described.",
   "landing.value2.title": "Verified kennels & health profiles",
   "landing.value2.desc":
     "Admin-reviewed breeders with vaccine records and clear farm profiles before you message.",
   "landing.value3.title": "Transparent shipping",
   "landing.value3.desc":
-    "See delivery details and media upfront — fewer surprises after you decide.",
+    "We aim for clear delivery details and media upfront — fewer surprises after you decide.",
+  "landing.value.comingSoon": "Coming soon",
   "landing.latest": "New Pets",
   "landing.viewAll": "View all →",
   "landing.featuredBreeders": "Featured Breeders",
@@ -37,9 +38,9 @@ const en = {
   "landing.stat.provinces": "Provinces",
   "landing.stat.owners": "Happy pet owners",
   "landing.footer.blurb":
-    "Premium pet marketplace — find healthy pets from trusted breeders, compare details, contact safely.",
+    "Pet marketplace — find a good match from trusted breeders, compare details, and contact more transparently.",
   "landing.footer.legal": "Legal",
-  "landing.footer.browse": "Browse listings",
+  "landing.footer.browse": "Pets",
   "landing.footer.create": "Create listing",
   "landing.footer.disclaimer":
     "Listings posted by users. Pet Health Care does not process payments.",
@@ -61,7 +62,7 @@ const en = {
   "feed.province": "Province",
   "feed.province.all": "Nationwide",
   "feed.perks": "Perks",
-  "feed.escrow": "Escrow deposit",
+  "feed.escrow": "Escrow deposit (terms-based)",
   "feed.showingPrefix": "Showing",
   "feed.showingSuffix": "matching pets",
   "feed.all": "All",
@@ -90,7 +91,7 @@ const en = {
   "breeders.title": "Breeders",
   "breeders.subtitle": "Verified breeder directory",
   "breeders.empty": "No public breeders yet",
-  "breeders.card.escrowBadge": "Guaranteed kennel",
+  "breeders.card.escrowBadge": "Kennel accepts escrow deposit",
   "breeders.card.reviews": "reviews",
   "breeders.card.sold": "pets rehomed",
   "breeders.card.trustIndex": "Trust score",
@@ -99,9 +100,9 @@ const en = {
 
   "farm.badge.inspected": "Inspected kennel",
   "farm.badge.idVerified": "ID verified",
-  "farm.escrow.title": "Secure deposit via Escrow:",
+  "farm.escrow.title": "Place a deposit via Escrow:",
   "farm.escrow.body":
-    "Your deposit is held safely for 7 days. You only pay when you receive a healthy pet.",
+    "Your deposit is held for the hold period. Release/refund follows the kennel’s stated terms — we help track the process.",
   "farm.tab.listings": "Pets for sale",
   "farm.tab.reviews": "Buyer reviews",
   "farm.tab.facility": "Farm facilities",
@@ -127,7 +128,7 @@ const en = {
 
   "escrow.card.title": "Deposit via PetCoin Escrow",
   "escrow.card.body":
-    "Hold deposit for 7 days. 100% refund if the pet is sick or not as described (per seller escrow terms).",
+    "Hold deposit for the hold period; refund/release per seller terms. Not a platform illness guarantee.",
   "escrow.card.cta": "Request escrow deposit",
   "escrow.card.soon": "Escrow coming soon",
 
@@ -170,8 +171,23 @@ const en = {
   "auth.noAccount": "No account?",
   "auth.hasAccount": "Already have an account?",
   "auth.loginError": "Login failed",
+  "auth.signupError": "Sign up failed",
+  "auth.otpError": "OTP verification failed",
   "auth.signupOk": "OTP sent. Check your email.",
   "auth.logout": "Log out",
+  "auth.heroTitle": "Welcome a new family member home with peace of mind",
+  "auth.heroSub":
+    "Connect with trusted breeders, clear health profiles, and more transparent contact.",
+  "auth.escrowBadge": "Escrow deposit · Terms-based hold",
+  "auth.continueGoogle": "Continue with Google",
+  "auth.continueApple": "Continue with Apple",
+  "auth.orEmail": "or continue with Email",
+  "auth.privacyNote":
+    "We work to protect your personal information under our privacy policy",
+  "auth.socialSoon": "Social login is coming soon. Please use email for now.",
+  "auth.showPassword": "Show password",
+  "auth.hidePassword": "Hide password",
+  "auth.back": "Back",
 
   "account.title": "Account",
   "account.saved": "Saved listings",

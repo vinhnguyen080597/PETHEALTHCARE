@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
 import { VIETNAM_PROVINCES } from "@/constants/vietnamProvinces";
+import { loginHref } from "@/lib/loginHref";
 
 export const SEARCH_MORPH_KEY = "phc-search-morph";
 
@@ -55,6 +56,8 @@ type Props = {
   onProvinceChange?: (value: string) => void;
   /** Controlled mode for feed (no navigate on submit). */
   controlled?: boolean;
+  /** Guests on homepage: submit → /login?next=feed url. */
+  requireLogin?: boolean;
 };
 
 export function MarketplaceSearchBar({
@@ -67,6 +70,7 @@ export function MarketplaceSearchBar({
   onSpeciesChange,
   onProvinceChange,
   controlled = false,
+  requireLogin = false,
 }: Props) {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -136,9 +140,13 @@ export function MarketplaceSearchBar({
   };
 
   const navigateWithMorph = () => {
+    const url = buildUrl();
+    if (requireLogin) {
+      router.push(loginHref(url));
+      return;
+    }
     saveSearchMorph(panelRef.current);
     setMorphing(true);
-    const url = buildUrl();
     const go = () => router.push(url);
     const doc = document as Document & {
       startViewTransition?: (cb: () => void) => void;

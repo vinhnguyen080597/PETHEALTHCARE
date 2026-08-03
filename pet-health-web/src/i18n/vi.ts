@@ -1,34 +1,35 @@
 import type { EnKey } from "./en";
 
 const vi: Record<EnKey, string> = {
-  "nav.browse": "Duyệt tin",
+  "nav.browse": "Bé cưng",
   "nav.breeders": "Breeder",
   "nav.messages": "Tin nhắn",
   "nav.account": "Tài khoản",
   "nav.admin": "Admin",
   "nav.login": "Đăng nhập",
-  "nav.search": "Tìm kiếm…",
   "nav.brand": "Pet Marketplace",
+  "nav.language": "Ngôn ngữ",
 
   "landing.badge": "✨ An tâm đón thành viên mới",
   "landing.hero.line1": "Tìm",
   "landing.hero.line2": "thú cưng khỏe mạnh",
   "landing.hero.line3": "từ trại giống uy tín",
   "landing.sub":
-    "Kết nối trực tiếp với các Breeder tâm huyết. Đầy đủ sổ tiêm, cam kết sức khỏe và bảo vệ giao dịch toàn diện.",
+    "Kết nối trực tiếp với các Breeder tâm huyết. Hồ sơ tiêm chủng rõ ràng, cam kết tối đa về sức khỏe và đồng hành giao dịch minh bạch hơn.",
   "landing.searchPlaceholder": "Bạn đang tìm bé mèo, bé chó nào?",
   "landing.search": "Tìm kiếm",
   "landing.why": "Đặc Quyền An Tâm Khi Đón Bé Cưng",
-  "landing.whySub": "Cọc bảo trợ. Trại xác minh. Vận chuyển minh bạch.",
-  "landing.value1.title": "Cọc Bảo Trợ Escrow 100%",
+  "landing.whySub": "Cọc theo điều khoản. Trại xác minh. Vận chuyển minh bạch.",
+  "landing.value1.title": "Đặt cọc Escrow theo điều khoản",
   "landing.value1.desc":
-    "Giữ cọc an toàn trong 7 ngày. Hoàn tiền theo điều khoản escrow nếu pet không đúng mô tả.",
+    "Nỗ lực giữ cọc trong thời gian hold. Hoàn/giải ngân theo điều khoản escrow của người bán nếu pet không đúng mô tả.",
   "landing.value2.title": "Trại Giống & Hồ Sơ Xác Minh",
   "landing.value2.desc":
     "Breeder được admin duyệt, có sổ tiêm và hồ sơ trại rõ ràng trước khi bạn nhắn tin.",
   "landing.value3.title": "Minh Bạch Vận Chuyển",
   "landing.value3.desc":
-    "Thông tin giao nhận và media rõ từ đầu — ít bất ngờ sau khi quyết định.",
+    "Hướng tới thông tin giao nhận và media rõ từ đầu — giảm bất ngờ sau khi quyết định.",
+  "landing.value.comingSoon": "Sắp ra mắt",
   "landing.latest": "Thú Cưng Mới",
   "landing.viewAll": "Xem tất cả →",
   "landing.featuredBreeders": "Breeder nổi bật",
@@ -39,9 +40,9 @@ const vi: Record<EnKey, string> = {
   "landing.stat.provinces": "Tỉnh thành",
   "landing.stat.owners": "Sen đã dùng",
   "landing.footer.blurb":
-    "Marketplace thú cưng cao cấp — tìm thú cưng khỏe mạnh từ breeder uy tín, so sánh thông tin, liên hệ an toàn.",
+    "Marketplace thú cưng — đồng hành tìm bé phù hợp từ breeder uy tín, so sánh thông tin, liên hệ minh bạch hơn.",
   "landing.footer.legal": "Pháp lý",
-  "landing.footer.browse": "Duyệt tin",
+  "landing.footer.browse": "Bé cưng",
   "landing.footer.create": "Đăng tin",
   "landing.footer.disclaimer":
     "Tin đăng do người dùng đăng. Pet Health Care không xử lý thanh toán.",
@@ -63,7 +64,7 @@ const vi: Record<EnKey, string> = {
   "feed.province": "Khu vực",
   "feed.province.all": "Toàn quốc",
   "feed.perks": "Đặc quyền",
-  "feed.escrow": "Cọc Bảo Chứng (Escrow)",
+  "feed.escrow": "Cọc Escrow (theo điều khoản)",
   "feed.showingPrefix": "Hiển thị",
   "feed.showingSuffix": "bé cưng phù hợp",
   "feed.all": "Tất cả",
@@ -92,7 +93,7 @@ const vi: Record<EnKey, string> = {
   "breeders.title": "Breeder",
   "breeders.subtitle": "Danh bạ breeder đã xác minh",
   "breeders.empty": "Chưa có breeder công khai",
-  "breeders.card.escrowBadge": "Trại Giống Bảo Chứng",
+  "breeders.card.escrowBadge": "Trại chấp nhận đặt cọc",
   "breeders.card.reviews": "đánh giá",
   "breeders.card.sold": "Bé đã có nhà",
   "breeders.card.trustIndex": "Chỉ số uy tín",
@@ -101,9 +102,9 @@ const vi: Record<EnKey, string> = {
 
   "farm.badge.inspected": "Trại Giống Kiểm Định",
   "farm.badge.idVerified": "Đã Xác Minh ID",
-  "farm.escrow.title": "Đặt Cọc An Tâm Qua Escrow:",
+  "farm.escrow.title": "Đặt cọc an tâm qua Escrow:",
   "farm.escrow.body":
-    "Khoản cọc được giữ an toàn 7 ngày. Bạn chỉ thanh toán khi nhận bé cưng khỏe mạnh.",
+    "Khoản cọc được giữ trong thời gian hold. Giải ngân/hoàn theo điều khoản cam kết của trại — chúng tôi đồng hành theo dõi quy trình.",
   "farm.tab.listings": "Bé cưng đang bán",
   "farm.tab.reviews": "Đánh giá từ khách",
   "farm.tab.facility": "Cơ sở trang trại",
@@ -127,9 +128,9 @@ const vi: Record<EnKey, string> = {
   "farm.owner.template": "Đổi template",
   "farm.owner.health": "Sức khỏe trại",
 
-  "escrow.card.title": "Cọc Đảm Bảo qua PetCoin Escrow",
+  "escrow.card.title": "Đặt cọc qua PetCoin Escrow",
   "escrow.card.body":
-    "Giữ cọc 7 ngày, hoàn tiền 100% nếu pet bệnh/sai mô tả (theo điều khoản escrow của người bán).",
+    "Giữ cọc theo thời gian hold; hoàn/giải ngân theo điều khoản của người bán. Không phải bảo lãnh bệnh từ nền tảng.",
   "escrow.card.cta": "Yêu cầu đặt cọc",
   "escrow.card.soon": "Escrow sắp ra mắt",
 
@@ -172,8 +173,23 @@ const vi: Record<EnKey, string> = {
   "auth.noAccount": "Chưa có tài khoản?",
   "auth.hasAccount": "Đã có tài khoản?",
   "auth.loginError": "Đăng nhập thất bại",
+  "auth.signupError": "Đăng ký thất bại",
+  "auth.otpError": "Xác minh OTP thất bại",
   "auth.signupOk": "Đã gửi OTP. Vui lòng kiểm tra email.",
   "auth.logout": "Đăng xuất",
+  "auth.heroTitle": "An tâm đón thành viên mới về nhà",
+  "auth.heroSub":
+    "Đồng hành kết nối với breeder uy tín, hồ sơ rõ ràng và giao dịch minh bạch hơn.",
+  "auth.escrowBadge": "Đặt cọc Escrow · Theo dõi theo điều khoản",
+  "auth.continueGoogle": "Tiếp tục với Google",
+  "auth.continueApple": "Tiếp tục với Apple",
+  "auth.orEmail": "hoặc với Email",
+  "auth.privacyNote":
+    "Chúng tôi nỗ lực bảo vệ thông tin cá nhân theo chính sách bảo mật",
+  "auth.socialSoon": "Đăng nhập mạng xã hội sắp ra mắt. Vui lòng dùng email.",
+  "auth.showPassword": "Hiện mật khẩu",
+  "auth.hidePassword": "Ẩn mật khẩu",
+  "auth.back": "Quay lại",
 
   "account.title": "Tài khoản",
   "account.saved": "Tin đã lưu",
