@@ -15,7 +15,7 @@ export async function listPublicPosts(options?: {
   const qs = params.toString();
   const page = await fetchJson<PageResult<ApiPetFeedPost>>(
     `/public/pet-feed/posts${qs ? `?${qs}` : ""}`,
-    { next: { revalidate: 60 } },
+    { next: { revalidate: 0 }, timeoutMs: 25_000 },
   );
   return {
     listings: mapApiPosts(page.data || []),
@@ -72,7 +72,7 @@ export async function listPublicBreeders(options?: {
   const qs = params.toString();
   const page = await fetchJson<PageResult<ApiBreederProfile>>(
     `/public/pet-feed/breeders${qs ? `?${qs}` : ""}`,
-    { next: { revalidate: 60 } },
+    { next: { revalidate: 0 }, timeoutMs: 25_000 },
   );
   return (page.data || []).map((p) => mapApiBreeder(p));
 }

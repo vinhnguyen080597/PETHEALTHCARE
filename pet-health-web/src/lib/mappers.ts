@@ -113,6 +113,32 @@ function parseEscrowEnabled(meta: Record<string, unknown>): boolean {
   );
 }
 
+function normalizeGender(value?: string): string {
+  const g = (value || "").trim().toLowerCase();
+  if (!g) return "";
+  if (
+    g === "male" ||
+    g === "m" ||
+    g === "đực" ||
+    g === "duc" ||
+    g.includes("male") ||
+    g.includes("đực")
+  ) {
+    return "male";
+  }
+  if (
+    g === "female" ||
+    g === "f" ||
+    g === "cái" ||
+    g === "cai" ||
+    g.includes("female") ||
+    g.includes("cái")
+  ) {
+    return "female";
+  }
+  return g;
+}
+
 export function mapApiBreeder(
   profile: ApiBreederProfile | null | undefined,
   options?: { activeListings?: number },
@@ -202,7 +228,7 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     titleVI: title,
     species: (post.species || "other").toLowerCase(),
     breed: post.breed || "",
-    gender: (post.gender || "").toLowerCase(),
+    gender: normalizeGender(post.gender),
     ageMonths: Number(post.age_months) || 0,
     location: post.location || "",
     price: formatted || rawPrice,

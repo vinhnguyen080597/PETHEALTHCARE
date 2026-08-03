@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.pethealthcare.app",
+        "paths": [
+          "/app/pet-feed/*",
+          "/app/pet-feed/posts/*",
+          "/app/pet-feed/post/*"
+        ]
+      }
+    ]
+  }
+}

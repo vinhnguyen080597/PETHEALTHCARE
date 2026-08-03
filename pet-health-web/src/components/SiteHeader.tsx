@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
-import { loginHref } from "@/lib/loginHref";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function SiteHeader({
@@ -27,8 +26,8 @@ export function SiteHeader({
     pathname.startsWith("/login/") ||
     pathname.startsWith("/signup/");
 
-  const browseHref = isLoggedIn ? "/app/pet-feed" : loginHref("/app/pet-feed");
-  const breedersHref = isLoggedIn ? "/app/breeders" : loginHref("/app/breeders");
+  const browseHref = "/app/pet-feed";
+  const breedersHref = "/app/breeders";
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
