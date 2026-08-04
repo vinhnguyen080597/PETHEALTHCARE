@@ -50,7 +50,11 @@ async function resolveAccountForRequest(user) {
     userId: user.id,
     email: user.email ?? null,
     loginIdentifier: typeof metadata.login_identifier === 'string' ? metadata.login_identifier : user.email ?? '',
-    displayName: typeof metadata.full_name === 'string' ? metadata.full_name : user.email ?? '',
+    displayName:
+      (typeof metadata.full_name === 'string' && metadata.full_name.trim())
+      || (typeof metadata.name === 'string' && metadata.name.trim())
+      || user.email
+      || '',
     primaryRole: 'sen',
     metadata: {
       auth_mode: metadata.auth_mode,

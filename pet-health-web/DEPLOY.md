@@ -24,10 +24,22 @@ API: Render backend `https://pet-health-backend-serb.onrender.com`
 |----------|--------|
 | `NEXT_PUBLIC_API_ORIGIN` | `https://pet-health-backend-serb.onrender.com` |
 | `NEXT_PUBLIC_SITE_ORIGIN` | `https://pet-marketplace.org` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Same `SUPABASE_URL` as Render backend |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same `SUPABASE_ANON_KEY` as Render backend (public) |
 | `NEXT_PUBLIC_IOS_APP_STORE_URL` | `https://apps.apple.com/app/id6778684107` |
 | `NEXT_PUBLIC_IOS_APP_STORE_ID` | `6778684107` |
 
-**Preview** (optional): đặt `NEXT_PUBLIC_SITE_ORIGIN` = URL `*.vercel.app`, và thêm origin đó vào `CORS_ORIGINS` trên Render.
+**Preview** (optional): đặt `NEXT_PUBLIC_SITE_ORIGIN` = URL `*.vercel.app`, và thêm origin đó vào `CORS_ORIGINS` trên Render. Thêm luôn `https://*.vercel.app/api/auth/oauth/callback` (hoặc URL preview cụ thể) vào Supabase Redirect URLs.
+
+### Social login (Google / Facebook)
+
+1. Supabase Dashboard → **Authentication → Providers** → bật **Google** và **Facebook**, dán Client ID/Secret từ Google Cloud / Meta.
+2. Google Cloud → OAuth client → **Authorized redirect URIs** = `https://<project-ref>.supabase.co/auth/v1/callback` (không phải domain marketplace).
+3. Meta App → Facebook Login → Valid OAuth Redirect URIs = cùng URL Supabase callback ở trên.
+4. Supabase → **URL Configuration** → Redirect URLs:
+   - `http://localhost:3001/api/auth/oauth/callback`
+   - `https://pet-marketplace.org/api/auth/oauth/callback`
+5. Web gọi `/api/auth/oauth/callback` (PKCE) → set cookie session → gọi `/auth/me` để tạo account profile (`sen`) nếu chưa có.
 
 ---
 

@@ -4,8 +4,10 @@ import type { ApiAccount } from "../types";
 export type AuthSessionPayload = {
   access_token?: string;
   refresh_token?: string;
+  session?: { access_token?: string; refresh_token?: string };
   user?: { id?: string; email?: string; user_metadata?: Record<string, unknown> };
   account?: ApiAccount | null;
+  success?: boolean;
 };
 
 export async function loginRequest(email: string, password: string) {
@@ -15,23 +17,40 @@ export async function loginRequest(email: string, password: string) {
   });
 }
 
-export async function signupRequest(payload: {
-  email: string;
-  password: string;
-  displayName?: string;
-}) {
+/** Step 1: request signup OTP (email + password only — matches mobile). */
+export async function signupRequest(payload: { email: string; password: string }) {
   return fetchJson<{ data: unknown }>("/auth/signup", {
     method: "POST",
     body: payload,
   });
 }
 
+/** Step 2: verify OTP + set display name (required by backend). */
 export async function verifyOtpRequest(payload: {
   email: string;
-  token: string;
-  password?: string;
+  otp: string;
+  password: string;
+  displayName: string;
 }) {
   return fetchJson<{ data: AuthSessionPayload }>("/auth/signup/verify-otp", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function forgotPasswordRequest(email: string) {
+  return fetchJson<{ data: { sent?: boolean; email?: string } }>("/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export async function applyForgotPasswordRequest(payload: {
+  email: string;
+  otp: string;
+  newPassword: string;
+}) {
+  return fetchJson<{ data: AuthSessionPayload }>("/auth/forgot-password/apply", {
     method: "POST",
     body: payload,
   });

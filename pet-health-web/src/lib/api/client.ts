@@ -69,12 +69,18 @@ export async function fetchJson<T>(
 
     const res = await fetch(url, init);
     const text = await res.text();
+    const looksLikeHtml =
+      /^\s*<!DOCTYPE html/i.test(text) || /^\s*<html[\s>]/i.test(text);
     let parsed: unknown = null;
     if (text) {
       try {
         parsed = JSON.parse(text);
       } catch {
-        parsed = { error: text };
+        parsed = {
+          error: looksLikeHtml
+            ? `API returned HTML instead of JSON (${res.status}). Check NEXT_PUBLIC_API_ORIGIN (got ${url}).`
+            : text.slice(0, 280),
+        };
       }
     }
 
@@ -84,6 +90,15 @@ export async function fetchJson<T>(
         obj.error || obj.message || `Request failed (${res.status})`,
         res.status,
         obj.code,
+        parsed,
+      );
+    }
+
+    if (looksLikeHtml || parsed === null || typeof parsed !== "object") {
+      throw new ApiError(
+        `API returned a non-JSON response. Check NEXT_PUBLIC_API_ORIGIN (got ${url}).`,
+        res.status || 502,
+        "INVALID_API_RESPONSE",
         parsed,
       );
     }
