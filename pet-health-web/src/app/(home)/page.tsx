@@ -19,19 +19,21 @@ import type { Lang } from "@/lib/types";
 
 const HERO_IMAGES = [
   {
-    src: "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800&h=1000&fit=crop&auto=format",
+    src: "/images/hero-cat.jpg?v=4",
     alt: "Golden kitten",
-    className: "col-span-2 row-span-2 min-h-[280px] lg:min-h-[360px]",
+    // Was 3/2; +15% height total → 3/2.3
+    className: "col-span-2 aspect-[30/23]",
   },
   {
-    src: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&h=700&fit=crop&auto=format",
+    src: "/images/hero-dog.jpg?v=4",
     alt: "Golden Retriever",
-    className: "min-h-[160px] lg:min-h-[200px] hero-float",
+    // Was square; −15% height total → 20/17
+    className: "aspect-[20/17] hero-float",
   },
   {
-    src: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&h=700&fit=crop&auto=format",
-    alt: "Happy puppy",
-    className: "min-h-[160px] lg:min-h-[200px]",
+    src: "/images/hero-pig.jpg",
+    alt: "Piglet",
+    className: "aspect-[20/17]",
   },
 ] as const;
 
@@ -150,7 +152,7 @@ export default async function HomePage() {
                 }}
                 aria-hidden
               />
-              <div className="relative grid grid-cols-2 gap-3 auto-rows-fr">
+              <div className="relative grid grid-cols-2 gap-3">
                 {HERO_IMAGES.map((img) => (
                   <div
                     key={img.src}
@@ -160,7 +162,9 @@ export default async function HomePage() {
                     <img
                       src={img.src}
                       alt={img.alt}
-                      className="absolute inset-0 w-full h-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover object-center"
+                      decoding="async"
+                      loading="eager"
                     />
                   </div>
                 ))}

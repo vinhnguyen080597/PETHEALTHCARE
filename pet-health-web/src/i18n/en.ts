@@ -16,6 +16,16 @@ const en = {
   "breadcrumb.detail": "Detail",
   "breadcrumb.signup": "Sign up",
 
+  "notFound.title": "Page not found",
+  "notFound.body":
+    "This link may be broken or the page was moved. Try going home or browse New Pets.",
+  "notFound.listing.title": "Listing unavailable",
+  "notFound.listing.body":
+    "This listing may have been removed, archived, or the link is incorrect.",
+  "notFound.breeder.title": "Breeder profile not found",
+  "notFound.breeder.body":
+    "This farm profile may have been removed or the link is incorrect.",
+
   "landing.badge": "✨ Welcome your new family member",
   "landing.hero.line1": "Find",
   "landing.hero.line2": "Healthy Pets",
@@ -263,6 +273,14 @@ const en = {
 
   "account.title": "Account",
   "account.subtitle": "Manage saved listings, messages, and your marketplace profile.",
+  "account.deleteAccount.menu": "Delete account",
+  "account.deleteAccount.cardTitle": "Delete account",
+  "account.deleteAccount.cardBody":
+    "Permanently delete your account, profile, pets, listings, and saved items. This cannot be undone.",
+  "account.deleteAccount.cta": "Delete account",
+  "account.deleteAccount.confirm": "Yes, delete my account",
+  "account.deleteAccount.failed": "Could not delete account",
+  "account.deleteAccount.busy": "Deleting…",
   "account.adminSubtitle":
     "Open the Admin Console to review breeders, listings, and reports.",
   "account.breederSubtitle":

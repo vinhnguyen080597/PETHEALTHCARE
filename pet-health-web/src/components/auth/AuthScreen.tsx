@@ -16,8 +16,7 @@ import {
   resolveOtpError,
 } from "@/lib/authErrors";
 
-const AUTH_HERO =
-  "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=1400&h=1800&fit=crop&auto=format";
+const AUTH_HERO = "/images/auth-dog-cat.jpg";
 
 type AuthTab = "login" | "register";
 type AuthStep = "form" | "otp" | "forgot" | "forgot-apply";
@@ -453,12 +452,18 @@ export function AuthScreen({
   const brandPanel = (
     <aside className="relative hidden lg:flex min-h-full overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={AUTH_HERO} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <img
+        src={AUTH_HERO}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: "center center" }}
+      />
+      {/* Soft bottom scrim only — keep photo colors natural */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(165deg, rgba(120,53,15,0.35) 0%, rgba(146,64,14,0.55) 45%, rgba(43,30,25,0.78) 100%)",
+            "linear-gradient(to top, rgba(43,30,25,0.72) 0%, rgba(43,30,25,0.35) 28%, rgba(43,30,25,0.08) 48%, transparent 62%)",
         }}
       />
       <div className="relative z-10 flex flex-col justify-end gap-6 p-10 xl:p-12 w-full">
@@ -466,11 +471,11 @@ export function AuthScreen({
           <h1 className="font-display text-3xl xl:text-4xl font-semibold text-white leading-[1.15] tracking-tight max-w-md drop-shadow-sm">
             {t(lang, "auth.heroTitle")}
           </h1>
-          <p className="mt-4 text-amber-50/85 text-sm xl:text-base max-w-sm leading-relaxed">
+          <p className="mt-4 text-white/90 text-sm xl:text-base max-w-sm leading-relaxed">
             {t(lang, "auth.heroSub")}
           </p>
         </div>
-        <div className="backdrop-blur-md bg-white/15 border border-white/25 rounded-2xl px-4 py-3.5 shadow-lg shadow-amber-950/20 max-w-sm">
+        <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-2xl px-4 py-3.5 shadow-lg shadow-stone-900/15 max-w-sm">
           <p className="text-white text-sm font-medium leading-snug">
             {t(lang, "auth.escrowBadge")}
           </p>
@@ -489,8 +494,13 @@ export function AuthScreen({
             <div className="w-full max-w-[420px] mx-auto">
               <div className="lg:hidden mb-6 rounded-2xl overflow-hidden relative h-36">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={AUTH_HERO} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#2B1E19]/80 via-[#92400E]/40 to-transparent" />
+                <img
+                  src={AUTH_HERO}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ objectPosition: "center center" }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2B1E19]/75 via-[#2B1E19]/25 to-transparent" />
                 <p className="absolute bottom-3 left-4 right-4 font-display text-lg font-semibold text-white leading-snug">
                   {t(lang, "auth.heroTitle")}
                 </p>
@@ -535,7 +545,7 @@ export function AuthScreen({
                       })}
                     </div>
 
-                    <h2 className="font-display text-xl font-semibold text-[#2B1E19] mb-4">
+                    <h2 className="font-display text-xl font-semibold text-[#2B1E19] mb-4 text-center">
                       {tab === "login"
                         ? t(lang, "auth.welcomeBack")
                         : t(lang, "auth.createAccount")}

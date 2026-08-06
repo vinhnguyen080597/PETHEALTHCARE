@@ -20,8 +20,8 @@ export function getLang(input?: {
 }
 
 export function t(lang: Lang, key: EnKey): string {
-  if (lang === "EN") return en[key] ?? key;
-  return vi[key] ?? en[key] ?? key;
+  const dict = lang === "EN" ? en : vi;
+  return dict[key] ?? en[key] ?? key;
 }
 
 export function genderLabel(lang: Lang, gender: string): string {

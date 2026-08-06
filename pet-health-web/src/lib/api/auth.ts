@@ -63,6 +63,14 @@ export async function meRequest(token: string) {
   });
 }
 
+/** Hard-delete account via backend DELETE /auth/me (same as mobile). */
+export async function deleteMyAccount(token: string) {
+  await fetchJson<null>("/auth/me", {
+    method: "DELETE",
+    token,
+  });
+}
+
 export async function refreshRequest(refreshToken: string) {
   return fetchJson<{ data: AuthSessionPayload }>("/auth/refresh", {
     method: "POST",

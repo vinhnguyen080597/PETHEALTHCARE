@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
 import { getLang } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import {
@@ -10,6 +9,7 @@ import {
 } from "@/lib/api/public";
 import { ListingDetail } from "@/components/marketplace/ListingDetail";
 import { ListingDetailSkeleton } from "@/components/ui/Skeleton";
+import { ResourceNotFound } from "@/components/ResourceNotFound";
 import { SITE_ORIGIN } from "@/lib/config";
 import type { Lang } from "@/lib/types";
 
@@ -44,7 +44,19 @@ async function PostDetailData({
 }) {
   const session = await getSessionUser();
   const listing = await getPublicPostDetail(postId).catch(() => null);
-  if (!listing) notFound();
+  if (!listing) {
+    return (
+      <ResourceNotFound
+        lang={lang}
+        titleKey="notFound.listing.title"
+        bodyKey="notFound.listing.body"
+        primaryHref="/app/pet-feed"
+        primaryLabelKey="nav.browse"
+        secondaryHref="/app/breeders"
+        secondaryLabelKey="nav.breeders"
+      />
+    );
+  }
   const comments = await listPublicPostComments(postId).catch(() => []);
   return (
     <ListingDetail

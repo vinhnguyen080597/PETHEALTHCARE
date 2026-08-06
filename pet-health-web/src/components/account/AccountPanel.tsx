@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { CancelBreederButton } from "./CancelBreederButton";
@@ -92,6 +93,10 @@ export function AccountPanel({
   breeder: AccountBreederInfo | null;
 }) {
   const router = useRouter();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const isSen = role === "sen" || (!isAdmin && role !== "breeder" && role !== "vet");
   const isBreeder = role === "breeder";
   const breederStatus = breeder?.verificationStatus || "unverified";
@@ -108,6 +113,27 @@ export function AccountPanel({
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/");
     router.refresh();
+  };
+
+  const deleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch("/api/auth/me", { method: "DELETE" });
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        setDeleteError(json.error || t(lang, "account.deleteAccount.failed"));
+        return;
+      }
+      router.push("/");
+      router.refresh();
+    } catch {
+      setDeleteError(t(lang, "account.deleteAccount.failed"));
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -430,6 +456,54 @@ export function AccountPanel({
             >
               {t(lang, "auth.logout")}
             </button>
+
+            <section className="rounded-2xl border border-red-100 bg-red-50/80 p-5">
+              <h2 className="text-base font-bold text-red-900">
+                {t(lang, "account.deleteAccount.cardTitle")}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-red-800">
+                {t(lang, "account.deleteAccount.cardBody")}
+              </p>
+              {!deleteOpen ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteError(null);
+                    setDeleteOpen(true);
+                  }}
+                  className="mt-4 w-full rounded-xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700"
+                >
+                  {t(lang, "account.deleteAccount.cta")}
+                </button>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => void deleteAccount()}
+                    className="w-full rounded-xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {deleting
+                      ? t(lang, "account.deleteAccount.busy")
+                      : t(lang, "account.deleteAccount.confirm")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => {
+                      setDeleteOpen(false);
+                      setDeleteError(null);
+                    }}
+                    className="w-full rounded-xl border border-red-200 bg-white py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                  >
+                    {t(lang, "common.cancel")}
+                  </button>
+                </div>
+              )}
+              {deleteError ? (
+                <p className="mt-2 text-xs text-red-700">{deleteError}</p>
+              ) : null}
+            </section>
           </aside>
         </div>
       </div>

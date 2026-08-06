@@ -18,6 +18,16 @@ const vi: Record<EnKey, string> = {
   "breadcrumb.detail": "Chi tiết",
   "breadcrumb.signup": "Đăng ký",
 
+  "notFound.title": "Không tìm thấy trang",
+  "notFound.body":
+    "Liên kết có thể bị sai hoặc trang đã được chuyển. Hãy về trang chủ hoặc xem New Pets.",
+  "notFound.listing.title": "Không tìm thấy tin đăng",
+  "notFound.listing.body":
+    "Tin này có thể đã bị gỡ, ẩn, hoặc đường dẫn không đúng.",
+  "notFound.breeder.title": "Không tìm thấy hồ sơ trại",
+  "notFound.breeder.body":
+    "Hồ sơ trại có thể đã bị gỡ hoặc đường dẫn không đúng.",
+
   "landing.badge": "✨ An tâm đón thành viên mới",
   "landing.hero.line1": "Tìm",
   "landing.hero.line2": "thú cưng khỏe mạnh",
@@ -265,6 +275,14 @@ const vi: Record<EnKey, string> = {
   "account.title": "Tài khoản",
   "account.subtitle":
     "Quản lý tin đã lưu, tin nhắn và hồ sơ trên marketplace.",
+  "account.deleteAccount.menu": "Xóa tài khoản",
+  "account.deleteAccount.cardTitle": "Xóa tài khoản",
+  "account.deleteAccount.cardBody":
+    "Xóa vĩnh viễn tài khoản, hồ sơ, thú cưng, tin đăng và tin đã lưu. Không thể khôi phục.",
+  "account.deleteAccount.cta": "Xóa tài khoản",
+  "account.deleteAccount.confirm": "Đúng, xóa tài khoản của tôi",
+  "account.deleteAccount.failed": "Không xóa được tài khoản",
+  "account.deleteAccount.busy": "Đang xóa…",
   "account.adminSubtitle":
     "Mở Admin Console để duyệt breeder, tin đăng và báo cáo.",
   "account.breederSubtitle":

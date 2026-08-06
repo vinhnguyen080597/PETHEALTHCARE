@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
 import { getLang } from "@/i18n";
 import { COOKIE_LANG } from "@/lib/session";
 import { getPublicBreeder } from "@/lib/api/public";
 import { FarmHealth } from "@/components/marketplace/FarmHealth";
 import { FarmHealthSkeleton } from "@/components/ui/Skeleton";
+import { ResourceNotFound } from "@/components/ResourceNotFound";
 import type { Lang } from "@/lib/types";
 
 type Props = { params: Promise<{ profileId: string }> };
@@ -20,7 +20,19 @@ async function FarmHealthData({
   lang: Lang;
 }) {
   const data = await getPublicBreeder(profileId).catch(() => null);
-  if (!data) notFound();
+  if (!data) {
+    return (
+      <ResourceNotFound
+        lang={lang}
+        titleKey="notFound.breeder.title"
+        bodyKey="notFound.breeder.body"
+        primaryHref="/app/breeders"
+        primaryLabelKey="nav.breeders"
+        secondaryHref="/app/pet-feed"
+        secondaryLabelKey="nav.browse"
+      />
+    );
+  }
   return <FarmHealth breeder={data.profile} lang={lang} />;
 }
 
