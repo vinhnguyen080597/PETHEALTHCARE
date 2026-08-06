@@ -150,6 +150,16 @@ export async function upsertMyBreederProfile(
   });
 }
 
+export async function cancelMyBreederVerificationRequest(token: string) {
+  return fetchJson<{ data: ApiBreederProfile }>(
+    "/pet-feed/breeder-profile/me/cancel",
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
 /** Admin helpers */
 export async function adminListPosts(token: string, status?: string) {
   const qs = status ? `?status=${encodeURIComponent(status)}` : "";

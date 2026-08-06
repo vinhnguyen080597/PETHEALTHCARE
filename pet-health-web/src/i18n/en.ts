@@ -1,6 +1,6 @@
 const en = {
-  "nav.browse": "Pets",
-  "nav.breeders": "Breeders",
+  "nav.browse": "New Pets",
+  "nav.breeders": "Top Breeders",
   "nav.messages": "Messages",
   "nav.account": "Account",
   "nav.admin": "Admin",
@@ -254,12 +254,92 @@ const en = {
   "auth.backToSignUp": "Back to sign up",
 
   "account.title": "Account",
+  "account.subtitle": "Manage your role, saved posts, and session.",
+  "account.adminSubtitle":
+    "Manage requests, breeders, listings, and community safety.",
+  "account.breederSubtitle":
+    "Manage your trust profile, Pet Feed listings, and review status.",
   "account.saved": "Saved listings",
+  "account.savedPosts": "Saved",
   "account.myListings": "My listings",
+  "account.myPosts": "My posts",
   "account.newListing": "Create listing",
+  "account.createPost": "Create listing",
   "account.breederProfile": "Breeder profile",
   "account.template": "Farm template",
   "account.notLoggedIn": "Please log in to manage your account.",
+  "account.myRole": "Roles in Pet Marketplace",
+  "account.openAdminReview": "Open Admin Console",
+  "account.communitySafety":
+    "Community posts should stay transparent and respectful. Pet Marketplace does not handle payments or replace direct breeder/veterinary verification.",
+  "account.breederSafety":
+    "Posts should include clear photos, a short video, vaccine/deworming details, and transparent adoption conditions. Avoid absolute health claims without veterinary confirmation.",
+  "account.vetSummary":
+    "Veterinarian features are planned for educational content and care-record review, not medical decisions inside the app.",
+  "account.breederMetrics.total": "Total posts",
+  "account.breederMetrics.published": "Published",
+  "account.breederMetrics.pending": "Pending",
+  "account.adminMetrics.requests": "Requests",
+  "account.adminMetrics.breeders": "Breeders",
+  "account.adminMetrics.listings": "Pending listings",
+  "account.senIntro.title": "Mai's note",
+  "account.senIntro.body":
+    "Pet parent, if you want to find more pets, Pet Feed is the best place to browse. If you want to help your pets find a new home, register to upgrade your account to Breeder and wait for admin approval.",
+  "account.senIntro.petFeedCta": "View Pet Feed",
+  "account.senIntro.breederCta": "Register",
+  "account.senIntro.cancelCta": "Cancel request",
+  "account.senIntro.cancelTitle": "Cancel breeder registration?",
+  "account.senIntro.cancelBody":
+    "Your pending request will be withdrawn. You can edit your details and submit again.",
+  "account.senIntro.cancelFailed": "Could not cancel request",
+  "account.senStatus.title": "Breeder status",
+  "account.senStatus.helper.unverified":
+    "You can submit verification details when you want to create posts for pets looking for a new home.",
+  "account.senStatus.helper.pending_review":
+    "Mai will let you know after admin review. If something looks wrong, tap Cancel request and submit again.",
+  "account.senStatus.helper.verified":
+    "This account is eligible for Breeder features.",
+  "account.senStatus.helper.rejected":
+    "Add more trustworthy details and submit again for admin review.",
+  "account.senStatus.helper.suspended":
+    "Breeder access is suspended. Please contact admin if you need support.",
+  "account.senQuickActions.title": "Your activity",
+  "account.senQuickActions.savedPosts": "Saved Pet Feed posts",
+  "account.breederTrust.untitled": "Unnamed breeder",
+  "account.breederTrust.missingInfo": "Location or main species is missing",
+  "account.breederTrust.note":
+    "Transparent details help listings get reviewed faster.",
+  "account.breederTrust.updateProfile": "Update verification profile",
+  "account.breederTrust.editProfile": "Edit Breeder profile",
+  "account.breederTrust.viewFarmProfile": "View farm profile",
+  "account.breederPosts.title": "My listings",
+  "account.breederPosts.empty":
+    "No listings yet. Create your first listing after your profile is verified.",
+  "account.breederRequestStatus.unverified":
+    "No breeder verification request yet.",
+  "account.breederRequestStatus.pending_review":
+    "Breeder request is pending admin review.",
+  "account.breederRequestStatus.verified": "Breeder profile is verified.",
+  "account.breederRequestStatus.rejected":
+    "Breeder request was rejected. You can update your information and submit again.",
+  "account.breederRequestStatus.suspended": "Breeder access is suspended.",
+  "account.roles.sen.title": "Pet parent",
+  "account.roles.sen.body":
+    "Browse structured posts, save pets, and keep Care Passport records after bringing a pet home.",
+  "account.roles.breeder.title": "Breeder",
+  "account.roles.breeder.body":
+    "Create a trustworthy profile and structured pet posts for admin review.",
+  "account.roles.admin.title": "Admin",
+  "account.roles.admin.body":
+    "Manage accounts, breeder verification, listing review, and community reports.",
+  "account.roles.vet.title": "Veterinarian",
+  "account.roles.vet.body":
+    "Future role for educational content and record review, not medical decisions inside the app.",
+
+  "listing.status.draft": "Draft",
+  "listing.status.pending_review": "Pending review",
+  "listing.status.published": "Published",
+  "listing.status.archived": "Archived",
 
   "listing.new.title": "Create listing",
   "listing.new.submit": "Submit for review",
@@ -387,6 +467,9 @@ const en = {
   "admin.verification.suspended": "Suspended",
   "admin.forbidden": "You do not have admin access.",
 
+  "legal.title": "Support and policies",
+  "legal.body":
+    "Read how Pet Marketplace handles privacy, community terms, marketplace rules, and support requests.",
   "legal.privacy": "Privacy Policy",
   "legal.terms": "Terms of Service",
   "legal.guidelines": "Marketplace Guidelines",

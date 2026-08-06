@@ -85,13 +85,22 @@ export async function fetchJson<T>(
     }
 
     if (!res.ok) {
-      const obj = (parsed || {}) as { error?: string; code?: string; message?: string };
+      const obj = (parsed || {}) as {
+        error?: string;
+        code?: string;
+        message?: string;
+      };
       throw new ApiError(
         obj.error || obj.message || `Request failed (${res.status})`,
         res.status,
         obj.code,
         parsed,
       );
+    }
+
+    // Favorite / unfavorite and similar endpoints return 204 No Content.
+    if (res.status === 204 || res.status === 205) {
+      return undefined as T;
     }
 
     if (looksLikeHtml || parsed === null || typeof parsed !== "object") {

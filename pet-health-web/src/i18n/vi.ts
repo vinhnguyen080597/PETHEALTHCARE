@@ -1,8 +1,8 @@
 import type { EnKey } from "./en";
 
 const vi: Record<EnKey, string> = {
-  "nav.browse": "Bé cưng",
-  "nav.breeders": "Breeder",
+  "nav.browse": "New Pets",
+  "nav.breeders": "Top Breeders",
   "nav.messages": "Tin nhắn",
   "nav.account": "Tài khoản",
   "nav.admin": "Admin",
@@ -255,12 +255,92 @@ const vi: Record<EnKey, string> = {
   "auth.backToSignUp": "Quay lại đăng ký",
 
   "account.title": "Tài khoản",
+  "account.subtitle": "Quản lý vai trò, bài đã lưu và phiên đăng nhập.",
+  "account.adminSubtitle":
+    "Quản lý request, breeder, bài đăng và an toàn cộng đồng.",
+  "account.breederSubtitle":
+    "Quản lý hồ sơ uy tín, bài đăng Pet Feed và trạng thái duyệt.",
   "account.saved": "Tin đã lưu",
+  "account.savedPosts": "Đã lưu",
   "account.myListings": "Tin của tôi",
+  "account.myPosts": "Bài của tôi",
   "account.newListing": "Đăng tin mới",
+  "account.createPost": "Tạo bài đăng",
   "account.breederProfile": "Hồ sơ breeder",
   "account.template": "Giao diện trang trại",
   "account.notLoggedIn": "Vui lòng đăng nhập để quản lý tài khoản.",
+  "account.myRole": "Vai trò trong Pet Marketplace",
+  "account.openAdminReview": "Mở Admin Console",
+  "account.communitySafety":
+    "Bài đăng cộng đồng cần minh bạch và tôn trọng. Pet Marketplace không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
+  "account.breederSafety":
+    "Bài đăng cần có ảnh rõ, video ngắn, thông tin vaccine/tẩy giun và điều kiện nhận bé minh bạch. Không cam kết sức khỏe tuyệt đối nếu chưa có xác nhận thú y.",
+  "account.vetSummary":
+    "Vai trò bác sĩ thú y sẽ dành cho nội dung giáo dục và xem hồ sơ chăm sóc, không đưa ra quyết định y tế trong app.",
+  "account.breederMetrics.total": "Tổng bài",
+  "account.breederMetrics.published": "Đã duyệt",
+  "account.breederMetrics.pending": "Chờ duyệt",
+  "account.adminMetrics.requests": "Requests",
+  "account.adminMetrics.breeders": "Breeders",
+  "account.adminMetrics.listings": "Tin chờ duyệt",
+  "account.senIntro.title": "Mai nhắn Sen",
+  "account.senIntro.body":
+    "Sen ơi, nếu bạn muốn tìm thêm những bé thú cưng thì có thể xem ở Pet Feed. Còn nếu bạn muốn tìm nhà mới cho các bé, hãy đăng ký nâng cấp tài khoản thành Breeder rồi chờ admin phê duyệt nhé.",
+  "account.senIntro.petFeedCta": "Xem Pet Feed",
+  "account.senIntro.breederCta": "Đăng ký",
+  "account.senIntro.cancelCta": "Hủy yêu cầu",
+  "account.senIntro.cancelTitle": "Hủy đăng ký Breeder?",
+  "account.senIntro.cancelBody":
+    "Yêu cầu đang chờ duyệt sẽ được hủy. Sen có thể chỉnh sửa thông tin rồi gửi lại.",
+  "account.senIntro.cancelFailed": "Không thể hủy yêu cầu",
+  "account.senStatus.title": "Trạng thái Breeder",
+  "account.senStatus.helper.unverified":
+    "Bạn có thể gửi thông tin xác thực khi muốn đăng bài tìm nhà mới cho thú cưng.",
+  "account.senStatus.helper.pending_review":
+    "Mai sẽ báo khi admin duyệt xong. Nếu gửi nhầm thông tin, Sen hãy bấm Hủy yêu cầu rồi đăng ký lại.",
+  "account.senStatus.helper.verified":
+    "Tài khoản đã đủ điều kiện dùng các tính năng Breeder.",
+  "account.senStatus.helper.rejected":
+    "Hãy bổ sung thông tin đáng tin cậy hơn rồi gửi lại để admin xem xét.",
+  "account.senStatus.helper.suspended":
+    "Quyền Breeder đang tạm khóa. Vui lòng liên hệ admin nếu cần hỗ trợ.",
+  "account.senQuickActions.title": "Hoạt động của Sen",
+  "account.senQuickActions.savedPosts": "Bài Pet Feed đã lưu",
+  "account.breederTrust.untitled": "Breeder chưa có tên",
+  "account.breederTrust.missingInfo": "Chưa bổ sung khu vực hoặc loài chính",
+  "account.breederTrust.note":
+    "Thông tin minh bạch giúp bài đăng được duyệt nhanh hơn.",
+  "account.breederTrust.updateProfile": "Cập nhật hồ sơ xác minh",
+  "account.breederTrust.editProfile": "Chỉnh sửa hồ sơ Breeder",
+  "account.breederTrust.viewFarmProfile": "Xem hồ sơ trại",
+  "account.breederPosts.title": "Bài đăng của tôi",
+  "account.breederPosts.empty":
+    "Chưa có bài đăng nào. Hãy tạo bài đầu tiên sau khi hồ sơ được xác minh.",
+  "account.breederRequestStatus.unverified":
+    "Chưa có yêu cầu xác minh Breeder.",
+  "account.breederRequestStatus.pending_review":
+    "Yêu cầu Breeder đang chờ admin duyệt.",
+  "account.breederRequestStatus.verified": "Hồ sơ Breeder đã được xác minh.",
+  "account.breederRequestStatus.rejected":
+    "Yêu cầu Breeder bị từ chối. Bạn có thể cập nhật thông tin và gửi lại.",
+  "account.breederRequestStatus.suspended": "Quyền Breeder đang tạm khóa.",
+  "account.roles.sen.title": "Sen (chủ nuôi)",
+  "account.roles.sen.body":
+    "Xem bài có cấu trúc, lưu thú cưng và giữ Care Passport sau khi nhận bé về nhà.",
+  "account.roles.breeder.title": "Breeder",
+  "account.roles.breeder.body":
+    "Tạo hồ sơ uy tín và bài đăng thú cưng có cấu trúc để admin duyệt.",
+  "account.roles.admin.title": "Admin",
+  "account.roles.admin.body":
+    "Quản lý tài khoản, xác minh breeder, duyệt tin và báo cáo cộng đồng.",
+  "account.roles.vet.title": "Bác sĩ thú y",
+  "account.roles.vet.body":
+    "Vai trò tương lai cho nội dung giáo dục và xem hồ sơ, không đưa quyết định y tế trong app.",
+
+  "listing.status.draft": "Bản nháp",
+  "listing.status.pending_review": "Chờ duyệt",
+  "listing.status.published": "Đã đăng",
+  "listing.status.archived": "Đã ẩn",
 
   "listing.new.title": "Đăng tin mới",
   "listing.new.submit": "Gửi duyệt",
@@ -388,6 +468,9 @@ const vi: Record<EnKey, string> = {
   "admin.verification.suspended": "Tạm khóa",
   "admin.forbidden": "Bạn không có quyền truy cập Admin.",
 
+  "legal.title": "Hỗ trợ và chính sách",
+  "legal.body":
+    "Đọc cách Pet Marketplace xử lý bảo mật, điều khoản cộng đồng, nội quy marketplace và yêu cầu hỗ trợ.",
   "legal.privacy": "Chính sách bảo mật",
   "legal.terms": "Điều khoản dịch vụ",
   "legal.guidelines": "Nội quy Marketplace",
