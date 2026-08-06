@@ -41,15 +41,30 @@ export async function fetchJson<T>(
   } = options;
 
   const url = path.startsWith("http") ? path : `${API_V1}${path.startsWith("/") ? "" : "/"}${path}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  // Next.js Data Cache skips fetches that use AbortSignal. Only attach a
+  // timeout signal for uncached / authenticated / mutating requests.
+  const wantsDataCache =
+    method.toUpperCase() === "GET" &&
+    !token &&
+    !formData &&
+    !cache &&
+    typeof next?.revalidate === "number" &&
+    next.revalidate > 0;
+
+  const controller = wantsDataCache ? null : new AbortController();
+  const timer = setTimeout(() => controller?.abort(), timeoutMs);
 
   try {
     const init: RequestInit = {
       method,
-      signal: controller.signal,
-      cache,
-      next,
+      ...(controller ? { signal: controller.signal } : {}),
+      cache: wantsDataCache ? undefined : cache,
+      next: wantsDataCache
+        ? next
+        : next?.revalidate === 0
+          ? { revalidate: 0 }
+          : next,
       headers: {
         ...headers,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -67,7 +82,17 @@ export async function fetchJson<T>(
       init.body = JSON.stringify(body);
     }
 
-    const res = await fetch(url, init);
+    const fetchPromise = fetch(url, init);
+    const res = wantsDataCache
+      ? await Promise.race([
+          fetchPromise,
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new ApiError("Request timed out", 408, "REQUEST_TIMEOUT"));
+            }, timeoutMs);
+          }),
+        ])
+      : await fetchPromise;
     const text = await res.text();
     const looksLikeHtml =
       /^\s*<!DOCTYPE html/i.test(text) || /^\s*<html[\s>]/i.test(text);

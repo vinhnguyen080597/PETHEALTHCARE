@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
@@ -10,6 +11,11 @@ import { VerifiedBadge } from "@/components/marketplace/Badges";
 import { HomeValueProps } from "@/components/marketplace/HomeValueProps";
 import { HomeSearchSection } from "@/components/marketplace/HomeSearchSection";
 import { HomeGuestGate } from "@/components/marketplace/HomeGuestGate";
+import {
+  HomeBreederRowSkeleton,
+  ListingGridSkeleton,
+} from "@/components/ui/Skeleton";
+import type { Lang } from "@/lib/types";
 
 const HERO_IMAGES = [
   {
@@ -29,24 +35,77 @@ const HERO_IMAGES = [
   },
 ] as const;
 
+async function HomeLatestListings({ lang }: { lang: Lang }) {
+  let listings: Awaited<ReturnType<typeof listPublicPosts>>["listings"] = [];
+  try {
+    const postsPage = await listPublicPosts({ limit: 6 });
+    listings = postsPage.listings;
+  } catch {
+    // API may be offline
+  }
+
+  if (listings.length === 0) {
+    return (
+      <p className="text-sm text-stone-400 text-center py-8">
+        {t(lang, "feed.empty")}
+      </p>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {listings.slice(0, 3).map((l) => (
+        <ListingCard key={l.id} listing={l} lang={lang} />
+      ))}
+    </div>
+  );
+}
+
+async function HomeFeaturedBreeders({ lang }: { lang: Lang }) {
+  let breeders: Awaited<ReturnType<typeof listPublicBreeders>> = [];
+  try {
+    breeders = await listPublicBreeders({ limit: 4 });
+  } catch {
+    // API may be offline
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {breeders.map((b) => (
+        <Link
+          key={b.id}
+          href={`/app/breeders/${b.id}`}
+          className="bg-white/80 rounded-2xl border border-[#F0E6D8] p-4 text-left hover:shadow-[0_10px_30px_-18px_rgba(180,83,9,0.35)] hover:border-amber-200 transition-all"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={b.avatar}
+              alt={b.name}
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-50"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-stone-900 truncate">
+                {b.name}
+              </p>
+              <p className="text-xs text-stone-400 truncate">{b.location}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {b.verified && <VerifiedBadge size="xs" />}
+            <span className="text-xs text-stone-400">{b.trustScore}/100</span>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default async function HomePage() {
   const jar = await cookies();
   const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
   const session = await getSessionUser();
   const requireLogin = !session.isLoggedIn;
-
-  let listings: Awaited<ReturnType<typeof listPublicPosts>>["listings"] = [];
-  let breeders: Awaited<ReturnType<typeof listPublicBreeders>> = [];
-  try {
-    const [postsPage, breedersPage] = await Promise.all([
-      listPublicPosts({ limit: 6 }),
-      listPublicBreeders({ limit: 4 }),
-    ]);
-    listings = postsPage.listings;
-    breeders = breedersPage;
-  } catch {
-    // API may be offline during local build/dev
-  }
 
   return (
     <HomeGuestGate isLoggedIn={session.isLoggedIn}>
@@ -124,17 +183,9 @@ export default async function HomePage() {
               {t(lang, "landing.viewAll")}
             </Link>
           </div>
-          {listings.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {listings.slice(0, 3).map((l) => (
-                <ListingCard key={l.id} listing={l} lang={lang} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-stone-400 text-center py-8">
-              {t(lang, "feed.empty")}
-            </p>
-          )}
+          <Suspense fallback={<ListingGridSkeleton count={3} />}>
+            <HomeLatestListings lang={lang} />
+          </Suspense>
         </section>
 
         <section className="max-w-[1200px] mx-auto px-5 lg:px-8 pb-16">
@@ -149,36 +200,9 @@ export default async function HomePage() {
               {t(lang, "landing.viewAll")}
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {breeders.map((b) => (
-              <Link
-                key={b.id}
-                href={`/app/breeders/${b.id}`}
-                className="bg-white/80 rounded-2xl border border-[#F0E6D8] p-4 text-left hover:shadow-[0_10px_30px_-18px_rgba(180,83,9,0.35)] hover:border-amber-200 transition-all"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={b.avatar}
-                    alt={b.name}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-50"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-stone-900 truncate">
-                      {b.name}
-                    </p>
-                    <p className="text-xs text-stone-400 truncate">{b.location}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {b.verified && <VerifiedBadge size="xs" />}
-                  <span className="text-xs text-stone-400">
-                    {b.trustScore}/100
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <Suspense fallback={<HomeBreederRowSkeleton />}>
+            <HomeFeaturedBreeders lang={lang} />
+          </Suspense>
         </section>
 
         <section className="max-w-[1200px] mx-auto px-5 lg:px-8 pb-16">

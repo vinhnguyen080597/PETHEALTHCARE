@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
@@ -6,15 +7,14 @@ import {
   listFavorites,
   listMyPosts,
   getMyBreederProfile,
-  adminListPosts,
-  adminListBreeders,
 } from "@/lib/api/petFeed";
 import {
   AccountPanel,
   type AccountListingItem,
   type AccountBreederInfo,
 } from "@/components/account/AccountPanel";
-import type { ApiPetFeedPost } from "@/lib/types";
+import { AccountDataSkeleton } from "@/components/ui/Skeleton";
+import type { ApiPetFeedPost, Lang } from "@/lib/types";
 
 export const metadata = { title: "Account" };
 
@@ -45,38 +45,24 @@ function toListingItem(post: ApiPetFeedPost): AccountListingItem {
   };
 }
 
-export default async function AccountPage() {
-  const jar = await cookies();
-  const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
-  const session = await getSessionUser();
-
-  if (!session.isLoggedIn || !session.token) {
-    return (
-      <div className="max-w-md mx-auto px-5 py-16 text-center">
-        <p className="text-[#5C4A3A] mb-4">{t(lang, "account.notLoggedIn")}</p>
-        <Link
-          href="/login?next=/app/account"
-          className="inline-block px-6 py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full"
-        >
-          {t(lang, "auth.login")}
-        </Link>
-      </div>
-    );
-  }
-
-  const token = session.token;
-  const role = (session.account?.primary_role || "sen").toLowerCase();
-
+async function AccountData({
+  lang,
+  token,
+  displayName,
+  email,
+  role,
+  isAdmin,
+}: {
+  lang: Lang;
+  token: string;
+  displayName?: string;
+  email?: string;
+  role: string;
+  isAdmin: boolean;
+}) {
   let savedCount = 0;
   let myListings: AccountListingItem[] = [];
   let breeder: AccountBreederInfo | null = null;
-  let adminMetrics:
-    | {
-        pendingRequests: number;
-        activeBreeders: number;
-        pendingListings: number;
-      }
-    | undefined;
 
   try {
     const [favs, mine, profile] = await Promise.all([
@@ -105,50 +91,61 @@ export default async function AccountPage() {
     // keep defaults
   }
 
-  if (session.isAdmin) {
-    try {
-      const [pendingPosts, pendingBreeders, verifiedBreeders] =
-        await Promise.all([
-          adminListPosts(token, "pending_review").catch(() => ({ data: [] })),
-          adminListBreeders(token, "pending_review").catch(() => ({
-            data: [],
-          })),
-          adminListBreeders(token, "verified").catch(() => ({ data: [] })),
-        ]);
-      const pendingListings = Array.isArray(pendingPosts.data)
-        ? pendingPosts.data.length
-        : 0;
-      const pendingBreederCount = Array.isArray(pendingBreeders.data)
-        ? pendingBreeders.data.length
-        : 0;
-      const activeBreeders = Array.isArray(verifiedBreeders.data)
-        ? verifiedBreeders.data.length
-        : 0;
-      adminMetrics = {
-        pendingRequests: pendingBreederCount + pendingListings,
-        activeBreeders,
-        pendingListings,
-      };
-    } catch {
-      adminMetrics = {
-        pendingRequests: 0,
-        activeBreeders: 0,
-        pendingListings: 0,
-      };
-    }
-  }
-
   return (
     <AccountPanel
       lang={lang}
-      displayName={session.account?.display_name}
-      email={session.account?.email}
+      displayName={displayName}
+      email={email}
       role={role}
-      isAdmin={session.isAdmin}
+      isAdmin={isAdmin}
       savedCount={savedCount}
       myListings={myListings}
       breeder={breeder}
-      adminMetrics={adminMetrics}
     />
+  );
+}
+
+export default async function AccountPage() {
+  const jar = await cookies();
+  const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
+  const session = await getSessionUser();
+
+  if (!session.isLoggedIn || !session.token) {
+    return (
+      <div className="max-w-md mx-auto px-5 py-16 text-center">
+        <p className="text-[#5C4A3A] mb-4">{t(lang, "account.notLoggedIn")}</p>
+        <Link
+          href="/login?next=/app/account"
+          className="inline-block px-6 py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full"
+        >
+          {t(lang, "auth.login")}
+        </Link>
+      </div>
+    );
+  }
+
+  const role = (session.account?.primary_role || "sen").toLowerCase();
+
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-5xl mx-auto px-5 lg:px-8 py-10">
+          <div className="mb-6 space-y-2">
+            <div className="h-3 w-24 animate-pulse rounded bg-[#F0E6D8]" />
+            <div className="h-8 w-40 animate-pulse rounded bg-[#F0E6D8]" />
+          </div>
+          <AccountDataSkeleton />
+        </div>
+      }
+    >
+      <AccountData
+        lang={lang}
+        token={session.token}
+        displayName={session.account?.display_name}
+        email={session.account?.email}
+        role={role}
+        isAdmin={session.isAdmin}
+      />
+    </Suspense>
   );
 }

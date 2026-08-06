@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { AdminSection, Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
+import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 
 type FeatureFlags = {
   breed_recognition: boolean;
@@ -724,7 +725,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
 
   const renderSection = () => {
     if (loading) {
-      return <p className="text-sm text-[#8B7355]">{t(lang, "common.loading")}</p>;
+      return <AdminSectionSkeleton />;
     }
 
     switch (section) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
+import { MessageThreadSkeleton } from "@/components/ui/Skeleton";
 
 type Conversation = {
   id: string;
@@ -117,9 +118,9 @@ export function MessagesClient({
           ) : (
             <>
               <div className="flex-1 p-4 space-y-3 overflow-y-auto max-h-[420px]">
-                {loading && (
-                  <p className="text-xs text-slate-400">{t(lang, "common.loading")}</p>
-                )}
+                {loading && messages.length === 0 ? (
+                  <MessageThreadSkeleton />
+                ) : null}
                 {messages.map((m) => (
                   <div
                     key={m.id}

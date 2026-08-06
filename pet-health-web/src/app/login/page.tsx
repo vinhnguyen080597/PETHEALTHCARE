@@ -10,13 +10,7 @@ export default async function LoginPage() {
   const jar = await cookies();
   const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center text-stone-400 text-sm">
-          …
-        </div>
-      }
-    >
+    <Suspense fallback={null}>
       <AuthScreen lang={lang} initialTab="login" />
     </Suspense>
   );

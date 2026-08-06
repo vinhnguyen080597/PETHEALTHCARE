@@ -38,9 +38,7 @@ function statusTone(status: string) {
 
 function listingStatusKey(status: string): EnKey {
   const known = ["draft", "pending_review", "published", "archived"] as const;
-  const s = (known as readonly string[]).includes(status)
-    ? status
-    : "draft";
+  const s = (known as readonly string[]).includes(status) ? status : "draft";
   return `listing.status.${s}` as EnKey;
 }
 
@@ -74,12 +72,6 @@ function roleTitleKey(role: string): EnKey {
   return `account.roles.${r}.title` as EnKey;
 }
 
-function roleBodyKey(role: string): EnKey {
-  const known = ["sen", "breeder", "admin", "vet"];
-  const r = known.includes(role) ? role : "sen";
-  return `account.roles.${r}.body` as EnKey;
-}
-
 export function AccountPanel({
   lang,
   displayName,
@@ -89,7 +81,6 @@ export function AccountPanel({
   savedCount,
   myListings,
   breeder,
-  adminMetrics,
 }: {
   lang: Lang;
   displayName?: string;
@@ -99,28 +90,19 @@ export function AccountPanel({
   savedCount: number;
   myListings: AccountListingItem[];
   breeder: AccountBreederInfo | null;
-  adminMetrics?: {
-    pendingRequests: number;
-    activeBreeders: number;
-    pendingListings: number;
-  };
 }) {
   const router = useRouter();
-  const isSen = role === "sen";
+  const isSen = role === "sen" || (!isAdmin && role !== "breeder" && role !== "vet");
   const isBreeder = role === "breeder";
   const breederStatus = breeder?.verificationStatus || "unverified";
   const pendingRequest = breederStatus === "pending_review";
+  const verifiedBreeder = isBreeder && breederStatus === "verified";
+  const canManageListings = verifiedBreeder || isAdmin;
 
   const publishedCount = myListings.filter((p) => p.status === "published").length;
   const pendingCount = myListings.filter(
     (p) => p.status === "pending_review",
   ).length;
-
-  const subtitle = isAdmin
-    ? t(lang, "account.adminSubtitle")
-    : isBreeder
-      ? t(lang, "account.breederSubtitle")
-      : t(lang, "account.subtitle");
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -128,456 +110,329 @@ export function AccountPanel({
     router.refresh();
   };
 
-  const metrics = isAdmin
-    ? [
-        {
-          key: "requests",
-          label: t(lang, "account.adminMetrics.requests"),
-          value: adminMetrics?.pendingRequests ?? 0,
-          href: "/app/admin",
-        },
-        {
-          key: "breeders",
-          label: t(lang, "account.adminMetrics.breeders"),
-          value: adminMetrics?.activeBreeders ?? 0,
-          href: "/app/admin",
-        },
-        {
-          key: "listings",
-          label: t(lang, "account.adminMetrics.listings"),
-          value: adminMetrics?.pendingListings ?? 0,
-          href: "/app/admin",
-        },
-      ]
-    : isBreeder
-      ? [
-          {
-            key: "total",
-            label: t(lang, "account.breederMetrics.total"),
-            value: myListings.length,
-          },
-          {
-            key: "published",
-            label: t(lang, "account.breederMetrics.published"),
-            value: publishedCount,
-          },
-          {
-            key: "pending",
-            label: t(lang, "account.breederMetrics.pending"),
-            value: pendingCount,
-          },
-        ]
-      : [
-          {
-            key: "saved",
-            label: t(lang, "account.savedPosts"),
-            value: savedCount,
-          },
-          {
-            key: "posts",
-            label: t(lang, "account.myPosts"),
-            value: myListings.length,
-          },
-        ];
-
   return (
-    <div className="max-w-2xl mx-auto px-5 py-10">
-      <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#D97706] mb-1">
-          {t(lang, roleTitleKey(role))}
-        </p>
-        <h1 className="text-2xl font-bold text-[#2B1E19]">
-          {t(lang, "account.title")}
-        </h1>
-        {!isSen ? (
-          <p className="mt-1 text-sm leading-relaxed text-[#5C4A3A]">
-            {subtitle}
+    <div className="min-h-screen bg-[#FDFBF7]">
+      <div className="max-w-5xl mx-auto px-5 lg:px-8 py-10">
+        <header className="mb-8">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#D97706] mb-1">
+            {t(lang, roleTitleKey(isAdmin ? "admin" : role))}
           </p>
-        ) : null}
-        <p className="mt-2 text-sm text-stone-500">
-          {displayName || email || "—"}
-          {email && displayName ? (
-            <span className="text-stone-400"> · {email}</span>
-          ) : null}
-        </p>
-      </div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-[#2B1E19]">
+            {t(lang, "account.title")}
+          </h1>
+          <p className="mt-1 text-sm text-[#5C4A3A]">
+            {isAdmin
+              ? t(lang, "account.adminSubtitle")
+              : isBreeder
+                ? t(lang, "account.breederSubtitle")
+                : t(lang, "account.subtitle")}
+          </p>
+          <p className="mt-2 text-sm text-stone-500">
+            {displayName || email || "—"}
+            {email && displayName ? (
+              <span className="text-stone-400"> · {email}</span>
+            ) : null}
+          </p>
+        </header>
 
-      {isSen ? (
-        <section className="mb-5 overflow-hidden rounded-2xl border border-amber-100 bg-white p-4 shadow-sm shadow-amber-100/40">
-          <div className="flex items-start gap-3">
-            <div className="h-28 w-20 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-amber-100 to-orange-50 flex items-center justify-center">
-              <span className="text-3xl font-bold text-[#D97706]/70">M</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold text-[#2B1E19]">
-                {t(lang, "account.senIntro.title")}
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-[#5C4A3A]">
-                {t(lang, "account.senIntro.body")}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/app/pet-feed"
-              className="min-w-[150px] flex-1 flex items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 py-3 text-sm font-bold text-[#B45309] hover:bg-amber-100"
-            >
-              {t(lang, "account.senIntro.petFeedCta")}
-            </Link>
-            {pendingRequest ? (
-              <CancelBreederButton lang={lang} />
-            ) : (
-              <Link
-                href="/app/account/breeder/template"
-                className="min-w-[150px] flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#D97706] py-3 text-sm font-bold text-white hover:bg-[#B45309] shadow-sm shadow-amber-200/60"
-              >
-                {t(lang, "account.senIntro.breederCta")}
-              </Link>
-            )}
-          </div>
-        </section>
-      ) : null}
-
-      {isBreeder ? (
-        <section className="mb-5 rounded-2xl border border-amber-100 bg-white p-4 shadow-sm shadow-amber-100/40">
-          <div className="flex items-start gap-3">
-            <div className="h-11 w-11 shrink-0 flex items-center justify-center rounded-full bg-amber-50 text-[#D97706]">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M12 3l2.2 4.5 5 .7-3.6 3.5.9 5L12 14.8 7.5 16.7l.9-5L4.8 8.2l5-.7L12 3z"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
+          <div className="space-y-5">
+            {isSen && !isAdmin ? (
+              <section className="rounded-2xl border border-amber-100 bg-white p-5 shadow-sm shadow-amber-100/40">
                 <h2 className="text-base font-bold text-[#2B1E19]">
-                  {breeder?.displayName ||
-                    displayName ||
-                    t(lang, "account.breederTrust.untitled")}
+                  {t(lang, "account.senIntro.title")}
                 </h2>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusTone(breederStatus)}`}
+                <p className="mt-2 text-sm leading-relaxed text-[#5C4A3A]">
+                  {t(lang, "account.senIntro.body")}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href="/app/pet-feed"
+                    className="min-w-[140px] flex-1 text-center rounded-xl border border-amber-100 bg-amber-50 py-3 text-sm font-bold text-[#B45309] hover:bg-amber-100"
+                  >
+                    {t(lang, "account.senIntro.petFeedCta")}
+                  </Link>
+                  {pendingRequest ? (
+                    <CancelBreederButton lang={lang} />
+                  ) : (
+                    <Link
+                      href="/app/account/breeder"
+                      className="min-w-[140px] flex-1 text-center rounded-xl bg-[#D97706] py-3 text-sm font-bold text-white hover:bg-[#B45309] shadow-sm shadow-amber-200/60"
+                    >
+                      {breederStatus === "rejected" ||
+                      breederStatus === "unverified"
+                        ? t(lang, "account.senIntro.breederCta")
+                        : t(lang, "account.breederTrust.editProfile")}
+                    </Link>
+                  )}
+                </div>
+              </section>
+            ) : null}
+
+            {isBreeder ? (
+              <section className="rounded-2xl border border-amber-100 bg-white p-5 shadow-sm shadow-amber-100/40">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-bold text-[#2B1E19]">
+                    {breeder?.displayName ||
+                      displayName ||
+                      t(lang, "account.breederTrust.untitled")}
+                  </h2>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusTone(breederStatus)}`}
+                  >
+                    {t(lang, breederStatusKey(breederStatus))}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-[#5C4A3A]">
+                  {[
+                    breeder?.location,
+                    breeder?.primarySpecies?.filter(Boolean).join(", "),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || t(lang, "account.breederTrust.missingInfo")}
+                </p>
+                <p className="mt-2 text-xs text-stone-500">
+                  {t(lang, "account.breederTrust.note")}
+                </p>
+
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-[#FDFBF7] border border-[#F0E6D8] p-3 text-center">
+                    <p className="text-lg font-bold text-[#2B1E19]">
+                      {myListings.length}
+                    </p>
+                    <p className="text-[10px] font-semibold uppercase text-stone-500">
+                      {t(lang, "account.breederMetrics.total")}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-[#FDFBF7] border border-[#F0E6D8] p-3 text-center">
+                    <p className="text-lg font-bold text-[#2B1E19]">
+                      {publishedCount}
+                    </p>
+                    <p className="text-[10px] font-semibold uppercase text-stone-500">
+                      {t(lang, "account.breederMetrics.published")}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-[#FDFBF7] border border-[#F0E6D8] p-3 text-center">
+                    <p className="text-lg font-bold text-[#2B1E19]">
+                      {pendingCount}
+                    </p>
+                    <p className="text-[10px] font-semibold uppercase text-stone-500">
+                      {t(lang, "account.breederMetrics.pending")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2">
+                  {breeder?.id ? (
+                    <Link
+                      href={`/app/breeders/${breeder.id}`}
+                      className="text-center rounded-xl border border-amber-200 bg-white py-3 text-sm font-bold text-[#B45309] hover:bg-amber-50"
+                    >
+                      {t(lang, "account.breederTrust.viewFarmProfile")}
+                    </Link>
+                  ) : null}
+                  {verifiedBreeder ? (
+                    <Link
+                      href="/app/account/listings/new"
+                      className="text-center rounded-xl bg-[#D97706] py-3 text-sm font-bold text-white hover:bg-[#B45309]"
+                    >
+                      {t(lang, "account.createPost")}
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/app/account/breeder"
+                      className="text-center rounded-xl bg-[#D97706] py-3 text-sm font-bold text-white hover:bg-[#B45309]"
+                    >
+                      {t(lang, "account.breederTrust.updateProfile")}
+                    </Link>
+                  )}
+                  <Link
+                    href="/app/account/breeder"
+                    className="text-center rounded-xl border border-amber-100 bg-amber-50 py-2.5 text-sm font-bold text-[#B45309] hover:bg-amber-100"
+                  >
+                    {t(lang, "account.breederTrust.editProfile")}
+                  </Link>
+                  {breeder?.id ? (
+                    <Link
+                      href="/app/account/breeder/template"
+                      className="text-center rounded-xl border border-[#F0E6D8] py-2.5 text-sm font-medium text-[#2B1E19] hover:bg-[#FDFBF7]"
+                    >
+                      {t(lang, "account.template")}
+                    </Link>
+                  ) : null}
+                </div>
+
+                <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-900">
+                  {t(lang, "account.breederSafety")}
+                </p>
+              </section>
+            ) : null}
+
+            {isAdmin ? (
+              <section className="rounded-2xl border border-amber-100 bg-white p-5">
+                <h2 className="text-base font-bold text-[#2B1E19]">
+                  {t(lang, "account.roles.admin.title")}
+                </h2>
+                <p className="mt-1 text-sm text-[#5C4A3A]">
+                  {t(lang, "account.adminSubtitle")}
+                </p>
+                <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                  <Link
+                    href="/app/admin"
+                    className="flex-1 text-center rounded-xl bg-[#D97706] py-3 text-sm font-bold text-white hover:bg-[#B45309]"
+                  >
+                    {t(lang, "account.openAdminReview")}
+                  </Link>
+                  <Link
+                    href="/app/account/listings/new"
+                    className="flex-1 text-center rounded-xl border border-amber-200 py-3 text-sm font-bold text-[#B45309] hover:bg-amber-50"
+                  >
+                    {t(lang, "account.createPost")}
+                  </Link>
+                </div>
+              </section>
+            ) : null}
+
+            {isSen && !isAdmin ? (
+              <section className="rounded-2xl border border-amber-200 bg-white p-5">
+                <h2 className="text-base font-bold text-amber-950">
+                  {t(lang, "account.senStatus.title")}
+                </h2>
+                <div className="mt-3 rounded-xl bg-amber-50 p-3">
+                  <p className="text-sm font-semibold text-amber-950">
+                    {t(lang, breederStatusKey(breederStatus))}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-900">
+                    {t(lang, senHelperKey(breederStatus))}
+                  </p>
+                </div>
+              </section>
+            ) : null}
+
+            {canManageListings ? (
+              <section className="rounded-2xl border border-[#F0E6D8] bg-white p-5">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h2 className="text-base font-bold text-[#2B1E19]">
+                    {t(lang, "account.breederPosts.title")}
+                  </h2>
+                  {verifiedBreeder || isAdmin ? (
+                    <Link
+                      href="/app/account/listings/new"
+                      className="text-xs font-semibold text-[#D97706] hover:text-[#B45309]"
+                    >
+                      + {t(lang, "account.newListing")}
+                    </Link>
+                  ) : null}
+                </div>
+                {myListings.length === 0 ? (
+                  <p className="rounded-xl bg-[#FDFBF7] p-3 text-sm text-stone-500">
+                    {t(lang, "account.breederPosts.empty")}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {myListings.map((post) => (
+                      <Link
+                        key={post.id}
+                        href={`/app/pet-feed/posts/${post.id}`}
+                        className="flex items-center gap-3 rounded-xl bg-[#FDFBF7] p-2.5 hover:bg-amber-50/80"
+                      >
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-200">
+                          {post.thumbUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={post.thumbUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-[#2B1E19]">
+                            {post.title || "—"}
+                          </p>
+                          <span
+                            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone(post.status)}`}
+                          >
+                            {t(lang, listingStatusKey(post.status))}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ) : null}
+          </div>
+
+          <aside className="space-y-5">
+            <section className="rounded-2xl border border-[#F0E6D8] bg-white p-5">
+              <h2 className="text-base font-bold text-[#2B1E19] mb-3">
+                {t(lang, "account.shortcuts")}
+              </h2>
+              <div className="space-y-2">
+                <Link
+                  href="/app/account/saved"
+                  className="flex items-center justify-between rounded-xl bg-[#FDFBF7] px-3 py-3 text-sm hover:bg-amber-50"
                 >
-                  {t(lang, breederStatusKey(breederStatus))}
-                </span>
-              </div>
-              <p className="mt-1 text-sm leading-relaxed text-[#5C4A3A]">
-                {[
-                  breeder?.location,
-                  breeder?.primarySpecies?.filter(Boolean).join(", "),
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || t(lang, "account.breederTrust.missingInfo")}
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-stone-500">
-                {t(lang, "account.breederTrust.note")}
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {!isAdmin && !isSen && !isBreeder ? (
-        <section className="mb-5 rounded-2xl border border-[#F0E6D8] bg-white p-4">
-          <h2 className="text-base font-bold text-[#2B1E19]">
-            {t(lang, "account.myRole")}
-          </h2>
-          <div className="mt-3 rounded-xl bg-[#FDFBF7] p-3">
-            <p className="font-bold text-[#2B1E19]">
-              {t(lang, roleTitleKey(role))}
-            </p>
-            <p className="mt-1 text-sm leading-relaxed text-[#5C4A3A]">
-              {t(lang, roleBodyKey(role))}
-            </p>
-          </div>
-        </section>
-      ) : null}
-
-      <div className="mb-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {metrics.map((item) => {
-          const inner = (
-            <>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">
-                {item.label}
-              </p>
-              <p className="mt-1 text-2xl font-bold text-[#2B1E19]">
-                {item.value}
-              </p>
-            </>
-          );
-          if ("href" in item && item.href) {
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className="rounded-2xl border border-[#F0E6D8] bg-white p-4 hover:border-amber-300 transition-colors"
-              >
-                {inner}
-              </Link>
-            );
-          }
-          return (
-            <div
-              key={item.key}
-              className="rounded-2xl border border-[#F0E6D8] bg-white p-4"
-            >
-              {inner}
-            </div>
-          );
-        })}
-      </div>
-
-      {isAdmin ? (
-        <div className="mb-5 flex flex-col gap-3">
-          <Link
-            href="/app/account/listings/new"
-            className="flex items-center justify-center gap-2 rounded-xl bg-[#D97706] py-3.5 text-sm font-bold text-white hover:bg-[#B45309] shadow-sm shadow-amber-200/60"
-          >
-            {t(lang, "account.createPost")}
-          </Link>
-          <Link
-            href="/app/admin"
-            className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-white py-3.5 text-sm font-bold text-[#B45309] hover:bg-amber-50"
-          >
-            {t(lang, "account.openAdminReview")}
-          </Link>
-        </div>
-      ) : null}
-
-      {isBreeder ? (
-        <div className="mb-5 flex flex-col gap-3">
-          {breeder &&
-          (breederStatus === "verified" ||
-            breederStatus === "pending_review") ? (
-            <Link
-              href={`/app/breeders/${breeder.id}`}
-              className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-white py-3.5 text-sm font-bold text-[#B45309] hover:bg-amber-50"
-            >
-              {t(lang, "account.breederTrust.viewFarmProfile")}
-            </Link>
-          ) : null}
-          {breederStatus === "verified" ? (
-            <Link
-              href="/app/account/listings/new"
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#D97706] py-3.5 text-sm font-bold text-white hover:bg-[#B45309] shadow-sm shadow-amber-200/60"
-            >
-              {t(lang, "account.createPost")}
-            </Link>
-          ) : (
-            <Link
-              href="/app/account/breeder/template"
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#D97706] py-3.5 text-sm font-bold text-white hover:bg-[#B45309] shadow-sm shadow-amber-200/60"
-            >
-              {t(lang, "account.breederTrust.updateProfile")}
-            </Link>
-          )}
-          <Link
-            href="/app/account/breeder/template"
-            className="flex items-center justify-center gap-2 rounded-xl border border-amber-100 bg-amber-50 py-3 text-sm font-bold text-[#B45309] hover:bg-amber-100"
-          >
-            {t(lang, "account.breederTrust.editProfile")}
-          </Link>
-        </div>
-      ) : null}
-
-      {isBreeder ? (
-        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm leading-relaxed text-amber-900">
-            {t(lang, "account.breederSafety")}
-          </p>
-        </div>
-      ) : null}
-
-      {!isAdmin && !isSen && !isBreeder ? (
-        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm leading-relaxed text-amber-900">
-            {t(lang, "account.communitySafety")}
-          </p>
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-4">
-        {isSen ? (
-          <>
-            <section className="rounded-2xl border border-amber-200 bg-white p-4">
-              <h2 className="text-base font-bold text-amber-950">
-                {t(lang, "account.senStatus.title")}
-              </h2>
-              <div className="mt-3 rounded-xl bg-amber-50 p-3">
-                <p className="text-sm font-semibold text-amber-950">
-                  {t(lang, breederStatusKey(breederStatus))}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-amber-900">
-                  {t(lang, senHelperKey(breederStatus))}
-                </p>
-              </div>
-            </section>
-            <section className="rounded-2xl border border-[#F0E6D8] bg-white p-4">
-              <h2 className="text-base font-bold text-[#2B1E19]">
-                {t(lang, "account.senQuickActions.title")}
-              </h2>
-              <ul className="mt-3 space-y-2">
-                <li className="flex items-center justify-between rounded-xl bg-[#FDFBF7] px-3 py-2.5 text-sm">
                   <span className="text-[#5C4A3A]">
                     {t(lang, "account.senQuickActions.savedPosts")}
                   </span>
                   <span className="font-bold text-[#2B1E19]">{savedCount}</span>
-                </li>
-                <li className="flex items-center justify-between rounded-xl bg-[#FDFBF7] px-3 py-2.5 text-sm">
+                </Link>
+                <Link
+                  href="/app/messages"
+                  className="flex items-center justify-between rounded-xl bg-[#FDFBF7] px-3 py-3 text-sm hover:bg-amber-50"
+                >
                   <span className="text-[#5C4A3A]">
-                    {t(lang, "account.myPosts")}
+                    {t(lang, "messages.title")}
                   </span>
-                  <span className="font-bold text-[#2B1E19]">
-                    {myListings.length}
-                  </span>
-                </li>
-                <li>
+                  <span className="text-[#D97706] font-semibold">→</span>
+                </Link>
+                {isAdmin ? (
                   <Link
-                    href="/app/messages"
-                    className="flex items-center justify-between rounded-xl bg-[#FDFBF7] px-3 py-2.5 text-sm hover:bg-amber-50"
+                    href="/app/admin"
+                    className="flex items-center justify-between rounded-xl bg-[#FDFBF7] px-3 py-3 text-sm hover:bg-amber-50"
                   >
                     <span className="text-[#5C4A3A]">
-                      {t(lang, "messages.title")}
+                      {t(lang, "nav.admin")}
                     </span>
                     <span className="text-[#D97706] font-semibold">→</span>
                   </Link>
-                </li>
-              </ul>
+                ) : null}
+              </div>
             </section>
-          </>
-        ) : null}
 
-        {role === "vet" ? (
-          <section className="rounded-2xl border border-[#F0E6D8] bg-white p-4">
-            <p className="text-sm leading-relaxed text-[#5C4A3A]">
-              {t(lang, "account.vetSummary")}
-            </p>
-          </section>
-        ) : null}
-
-        {isBreeder || isAdmin ? (
-          <section className="rounded-2xl border border-[#F0E6D8] bg-white p-4">
-            <h2 className="text-base font-bold text-[#2B1E19]">
-              {t(lang, "account.breederPosts.title")}
-            </h2>
-            <div className="mt-3 space-y-3">
-              {myListings.length === 0 ? (
-                <p className="rounded-xl bg-[#FDFBF7] p-3 text-sm leading-relaxed text-stone-500">
-                  {t(lang, "account.breederPosts.empty")}
-                </p>
-              ) : (
-                myListings.map((post) => {
-                  const subtitleParts = [post.breed, post.location]
-                    .filter(Boolean)
-                    .join(" · ");
-                  return (
-                    <Link
-                      key={post.id}
-                      href={`/app/pet-feed/posts/${post.id}`}
-                      className="flex items-center gap-3 rounded-xl bg-[#FDFBF7] p-2.5 hover:bg-amber-50/80 transition-colors"
-                    >
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-stone-200">
-                        {post.thumbUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={post.thumbUrl}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-[#2B1E19]">
-                          {post.title || "—"}
-                        </p>
-                        {subtitleParts ? (
-                          <p className="mt-0.5 truncate text-xs text-stone-500">
-                            {subtitleParts}
-                          </p>
-                        ) : null}
-                        <span
-                          className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone(post.status)}`}
-                        >
-                          {t(lang, listingStatusKey(post.status))}
-                        </span>
-                      </div>
-                    </Link>
-                  );
-                })
-              )}
-            </div>
-          </section>
-        ) : null}
-
-        <section className="rounded-2xl border border-[#F0E6D8] bg-white p-4">
-          <h2 className="text-base font-bold text-[#2B1E19]">
-            {t(lang, "legal.title")}
-          </h2>
-          <p className="mt-1 text-sm leading-relaxed text-stone-500">
-            {t(lang, "legal.body")}
-          </p>
-          <div className="mt-3 space-y-1">
-            {(
-              [
-                ["legal.privacy", "/privacy-policy"],
-                ["legal.terms", "/terms-of-service"],
-                ["legal.guidelines", "/marketplace-guidelines"],
-                ["legal.support", "/support"],
-              ] as const
-            ).map(([key, href]) => (
+            <section className="rounded-2xl border border-[#F0E6D8] bg-white p-5">
+              <h2 className="text-base font-bold text-[#2B1E19]">
+                {t(lang, "legal.title")}
+              </h2>
+              <p className="mt-1 text-xs text-stone-500 mb-3">
+                {t(lang, "legal.body")}
+              </p>
               <Link
-                key={href}
-                href={href}
-                className="block rounded-lg px-3 py-2.5 text-sm font-medium text-[#2B1E19] hover:bg-amber-50"
+                href="/marketplace-guidelines"
+                className="block text-sm font-medium text-[#D97706] hover:text-[#B45309]"
               >
-                {t(lang, key)}
+                {t(lang, "legal.guidelines")} →
               </Link>
-            ))}
-          </div>
-        </section>
+              <Link
+                href="/support"
+                className="mt-2 block text-sm font-medium text-[#D97706] hover:text-[#B45309]"
+              >
+                {t(lang, "legal.support")} →
+              </Link>
+            </section>
 
-        <section className="rounded-2xl border border-[#F0E6D8] bg-white divide-y divide-[#F0E6D8]">
-          {!isBreeder && !isAdmin ? (
-            <Link
-              href="/app/account/listings/new"
-              className="block px-5 py-4 text-sm font-medium text-[#2B1E19] hover:bg-amber-50/60"
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="w-full py-3 border border-[#F0E6D8] text-[#5C4A3A] text-sm font-medium rounded-full hover:bg-white"
             >
-              + {t(lang, "account.newListing")}
-            </Link>
-          ) : null}
-          {breeder?.id && !isBreeder ? (
-            <Link
-              href={`/app/breeders/${breeder.id}`}
-              className="block px-5 py-4 text-sm font-medium text-[#2B1E19] hover:bg-amber-50/60"
-            >
-              {t(lang, "account.breederProfile")}
-            </Link>
-          ) : null}
-          <Link
-            href="/app/account/breeder/template"
-            className="block px-5 py-4 text-sm font-medium text-[#2B1E19] hover:bg-amber-50/60"
-          >
-            {t(lang, "account.template")}
-          </Link>
-          <Link
-            href="/app/messages"
-            className="block px-5 py-4 text-sm font-medium text-[#2B1E19] hover:bg-amber-50/60"
-          >
-            {t(lang, "messages.title")}
-          </Link>
-        </section>
+              {t(lang, "auth.logout")}
+            </button>
+          </aside>
+        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={() => void logout()}
-        className="mt-8 w-full py-3 border border-[#F0E6D8] text-[#5C4A3A] text-sm font-medium rounded-full hover:bg-white"
-      >
-        {t(lang, "auth.logout")}
-      </button>
     </div>
   );
 }

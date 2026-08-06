@@ -29,6 +29,7 @@ export function FeedView({
   initialSpecies = "all",
   initialQ = "",
   initialProvince = "",
+  hideDisclaimer = false,
 }: {
   lang: Lang;
   listings: Listing[];
@@ -36,6 +37,7 @@ export function FeedView({
   initialSpecies?: string;
   initialQ?: string;
   initialProvince?: string;
+  hideDisclaimer?: boolean;
 }) {
   const [activeSpecies, setActiveSpecies] = useState(
     initialSpecies && initialSpecies !== "" ? initialSpecies : "all",
@@ -90,11 +92,13 @@ export function FeedView({
   ]);
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7]">
-      <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6">
-        <div className="mb-5">
-          <DisclaimerBanner lang={lang} />
-        </div>
+    <div className={hideDisclaimer ? undefined : "min-h-screen bg-[#FDFBF7]"}>
+      <div className={hideDisclaimer ? undefined : "max-w-[1200px] mx-auto px-5 lg:px-8 py-6"}>
+        {!hideDisclaimer ? (
+          <div className="mb-5">
+            <DisclaimerBanner lang={lang} />
+          </div>
+        ) : null}
 
         <div className="mb-5 w-full">
           <MarketplaceSearchBar

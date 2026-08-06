@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Fraunces, Inter } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
+import { HeaderWithSession } from "@/components/HeaderWithSession";
+import { SiteBreadcrumbs } from "@/components/SiteBreadcrumbs";
 import { getLang } from "@/i18n";
-import { COOKIE_LANG, getSessionUser } from "@/lib/session";
-import { getUnreadNotificationCount } from "@/lib/api/petFeed";
+import { COOKIE_LANG } from "@/lib/session";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -35,28 +37,25 @@ export default async function RootLayout({
 }>) {
   const jar = await cookies();
   const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
-  const session = await getSessionUser();
-  let unreadCount = 0;
-  if (session.token) {
-    try {
-      const unread = await getUnreadNotificationCount(session.token);
-      unreadCount = Number(unread?.data?.unread_count) || 0;
-    } catch {
-      unreadCount = 0;
-    }
-  }
 
   return (
     <html lang={lang === "VI" ? "vi" : "en"}>
       <body
         className={`${inter.variable} ${fraunces.variable} font-sans antialiased bg-[#FDFBF7] text-stone-900`}
       >
-        <SiteHeader
-          lang={lang}
-          isAdmin={session.isAdmin}
-          isLoggedIn={session.isLoggedIn}
-          unreadCount={unreadCount}
-        />
+        <Suspense
+          fallback={
+            <SiteHeader
+              lang={lang}
+              isAdmin={false}
+              isLoggedIn={false}
+              unreadCount={0}
+            />
+          }
+        >
+          <HeaderWithSession lang={lang} />
+        </Suspense>
+        <SiteBreadcrumbs lang={lang} />
         {children}
       </body>
     </html>
