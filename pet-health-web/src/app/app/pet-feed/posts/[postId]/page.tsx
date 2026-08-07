@@ -11,7 +11,7 @@ import { ListingDetail } from "@/components/marketplace/ListingDetail";
 import { ListingDetailSkeleton } from "@/components/ui/Skeleton";
 import { ResourceNotFound } from "@/components/ResourceNotFound";
 import { listingShareUrl } from "@/lib/config";
-import { buildListingOgCopy } from "@/lib/listingOg";
+import { buildListingOgCopy, listingOgPhotoUrl } from "@/lib/listingOg";
 import type { Lang } from "@/lib/types";
 
 type Props = { params: Promise<{ postId: string }> };
@@ -29,6 +29,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 
     const { title, description } = buildListingOgCopy(listing);
+    const photo = listingOgPhotoUrl(listing);
+    const images = photo
+      ? [
+          {
+            url: photo,
+            width: 1200,
+            height: 630,
+            alt: listing.breed || listing.title || "Pet Marketplace listing",
+          },
+        ]
+      : undefined;
 
     return {
       title,
@@ -41,11 +52,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         description,
         url: canonical,
         locale: "vi_VN",
+        ...(images ? { images } : {}),
       },
       twitter: {
         card: "summary_large_image",
         title,
         description,
+        ...(images ? { images: [photo!] } : {}),
       },
     };
   } catch {
