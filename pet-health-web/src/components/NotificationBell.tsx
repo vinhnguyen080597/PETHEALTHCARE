@@ -2,13 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { formatNotificationBadge } from "@/lib/notifications/badge";
 
 const POLL_MS = 30_000;
-
-function formatBadge(count: number) {
-  if (count > 99) return "99+";
-  return String(count);
-}
 
 /** Bell next to chat — polls unread count every 30s like mobile. */
 export function NotificationBell({
@@ -91,7 +87,7 @@ export function NotificationBell({
       </svg>
       {count > 0 ? (
         <span className="absolute top-1 right-1 min-w-4 h-4 px-1 bg-[#EF4444] text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
-          {formatBadge(count)}
+          {formatNotificationBadge(count)}
         </span>
       ) : null}
     </Link>

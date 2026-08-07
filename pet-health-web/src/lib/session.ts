@@ -7,18 +7,18 @@ import {
 import type { Lang } from "./types";
 import { meRequest } from "./api/auth";
 import type { ApiAccount } from "./types";
-
-const TOKEN_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+import {
+  langCookieOptions,
+  parseLang,
+  sessionCookieOptions,
+} from "./sessionOptions";
 
 export type SessionTokens = {
   accessToken: string | null;
   refreshToken: string | null;
 };
 
-export function parseLang(value: string | null | undefined): Lang {
-  const v = (value || "").toUpperCase();
-  return v === "EN" ? "EN" : "VI";
-}
+export { parseLang, sessionCookieOptions, langCookieOptions };
 
 export async function getSessionTokens(): Promise<SessionTokens> {
   const jar = await cookies();
@@ -31,26 +31,6 @@ export async function getSessionTokens(): Promise<SessionTokens> {
 export async function getAccessToken(): Promise<string | null> {
   const { accessToken } = await getSessionTokens();
   return accessToken;
-}
-
-export function sessionCookieOptions(maxAge = TOKEN_MAX_AGE) {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge,
-  };
-}
-
-export function langCookieOptions(maxAge = TOKEN_MAX_AGE) {
-  return {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge,
-  };
 }
 
 /** For Route Handlers that set cookies on a NextResponse. */

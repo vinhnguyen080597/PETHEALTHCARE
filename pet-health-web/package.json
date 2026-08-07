@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --import ./test/ts-resolve-register.mjs --test --experimental-strip-types \"test/**/*.test.ts\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

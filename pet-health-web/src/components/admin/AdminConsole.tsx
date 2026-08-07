@@ -6,6 +6,16 @@ import { useSearchParams } from "next/navigation";
 import type { AdminSection, Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
+import {
+  HISTORY_ACTION_FILTERS,
+  breederGroup,
+  passesDateFilter,
+  requestStatusGroup,
+  sortByDate,
+  type DateFilter,
+  type BreederGroup,
+  type RequestStatus,
+} from "@/lib/admin/filters";
 
 type FeatureFlags = {
   breed_recognition: boolean;
@@ -88,31 +98,7 @@ type ActionLogRow = {
   metadata?: Record<string, unknown>;
 };
 
-const HISTORY_ACTION_FILTERS = [
-  "all",
-  "breeder.verify",
-  "breeder.reject",
-  "breeder.suspend",
-  "post.approve",
-  "post.archive",
-  "report.review",
-  "report.dismiss",
-  "account.create",
-  "account.update",
-  "feature_flags.update",
-  "announcement.create",
-  "announcement.update",
-  "pet.create",
-  "pet.update",
-  "care_record.create",
-  "care_record.update",
-  "care_record.delete",
-] as const;
-
 type RequestType = "all" | "breeder" | "post" | "report";
-type RequestStatus = "all" | "waiting" | "approved" | "rejected" | "resolved";
-type DateFilter = "newest" | "oldest" | "today" | "week";
-type BreederGroup = "all" | "active" | "inactive" | "waiting";
 type AnnouncementCategory = "app_update" | "health_tip" | "community" | "general";
 
 type RequestItem = {
@@ -193,55 +179,11 @@ function healthEvidenceUrls(post: PostRow): string[] {
   return raw.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
-function requestStatusGroup(item: RequestItem): Exclude<RequestStatus, "all"> {
-  if (item.type === "report") return item.status === "open" ? "waiting" : "resolved";
-  if (item.type === "breeder") {
-    if (item.status === "verified") return "approved";
-    if (item.status === "rejected" || item.status === "suspended") return "rejected";
-    return "waiting";
-  }
-  if (item.status === "published") return "approved";
-  if (item.status === "archived") return "rejected";
-  return "waiting";
-}
-
-function breederGroup(profile: BreederRow): Exclude<BreederGroup, "all"> {
-  if (profile.verification_status === "verified") return "active";
-  if (
-    profile.verification_status === "rejected" ||
-    profile.verification_status === "suspended"
-  ) {
-    return "inactive";
-  }
-  return "waiting";
-}
-
 function formatDate(value?: string) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString();
-}
-
-function passesDateFilter(createdAt: string | undefined, filter: DateFilter) {
-  if (filter === "newest" || filter === "oldest") return true;
-  const createdMs = new Date(createdAt || "").getTime();
-  if (!Number.isFinite(createdMs)) return false;
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  if (filter === "today") return createdMs >= startOfToday.getTime();
-  return createdMs >= Date.now() - 7 * 24 * 60 * 60 * 1000;
-}
-
-function sortByDate<T extends { createdAt?: string; created_at?: string }>(
-  items: T[],
-  filter: DateFilter,
-) {
-  return [...items].sort((a, b) => {
-    const aMs = new Date(a.createdAt || a.created_at || "").getTime() || 0;
-    const bMs = new Date(b.createdAt || b.created_at || "").getTime() || 0;
-    return filter === "oldest" ? aMs - bMs : bMs - aMs;
-  });
 }
 
 async function adminFetch(path: string, init?: RequestInit) {
