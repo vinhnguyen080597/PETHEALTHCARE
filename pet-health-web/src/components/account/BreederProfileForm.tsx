@@ -30,6 +30,9 @@ const COMMITMENTS = [
 
 const inputCls =
   "w-full px-4 py-2.5 bg-white border border-[#F0E6D8] rounded-xl text-sm text-[#2B1E19] focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-[#D97706]";
+/** Extra right padding so the native chevron isn’t flush with the border */
+const selectCls =
+  "appearance-none w-full pl-4 pr-11 py-2.5 bg-white border border-[#F0E6D8] rounded-xl text-sm text-[#2B1E19] focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-[#D97706]";
 const labelCls = "block text-xs font-medium text-[#6E5A51] mb-1.5";
 
 function metaString(meta: Record<string, unknown> | undefined, key: string) {
@@ -263,7 +266,7 @@ export function BreederProfileForm({
         <div>
           <label className={labelCls}>{t(lang, "breederForm.breederType")}</label>
           <select
-            className={inputCls}
+            className={selectCls}
             value={breederType}
             onChange={(e) => setBreederType(e.target.value)}
           >
@@ -338,7 +341,7 @@ export function BreederProfileForm({
           <div>
             <label className={labelCls}>{t(lang, "breederForm.scale")}</label>
             <select
-              className={inputCls}
+              className={selectCls}
               value={scaleRange}
               onChange={(e) => setScaleRange(e.target.value)}
             >
@@ -354,7 +357,7 @@ export function BreederProfileForm({
               {t(lang, "breederForm.breedingPets")}
             </label>
             <select
-              className={inputCls}
+              className={selectCls}
               value={breedingPetRange}
               onChange={(e) => setBreedingPetRange(e.target.value)}
             >

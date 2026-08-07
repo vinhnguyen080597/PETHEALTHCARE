@@ -232,7 +232,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#2B1E19] outline-none focus:border-[#D97706]"
+        className="appearance-none rounded-xl border border-[#E8DFD0] bg-white pl-3 pr-10 py-2 text-sm text-[#2B1E19] outline-none focus:border-[#D97706]"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -1215,7 +1215,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value as (typeof ROLES)[number])}
-                  className="rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+                  className="appearance-none rounded-xl border border-[#E8DFD0] pl-3 pr-10 py-2 text-sm outline-none focus:border-[#D97706]"
                 >
                   {ROLES.map((role) => (
                     <option key={role} value={role}>
@@ -1259,7 +1259,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                           value={u.primary_role || "sen"}
                           disabled={busyKey !== null}
                           onChange={(e) => void updateAccountRole(userId, e.target.value)}
-                          className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs text-[#2B1E19]"
+                          className="appearance-none rounded-lg border border-[#E8DFD0] pl-2 pr-8 py-1 text-xs text-[#2B1E19]"
                         >
                           {ROLES.map((role) => (
                             <option key={role} value={role}>
@@ -1400,7 +1400,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   onChange={(e) =>
                     setNewsCategory(e.target.value as AnnouncementCategory)
                   }
-                  className="mt-1 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+                  className="appearance-none mt-1 w-full rounded-xl border border-[#E8DFD0] pl-3 pr-10 py-2 text-sm outline-none focus:border-[#D97706]"
                 >
                   {(
                     [

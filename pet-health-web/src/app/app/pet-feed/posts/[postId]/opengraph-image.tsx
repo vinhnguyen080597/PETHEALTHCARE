@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { getPublicPostDetail } from "@/lib/api/public";
 import { absoluteMediaUrl } from "@/lib/config";
@@ -5,37 +7,74 @@ import { buildListingOgCopy } from "@/lib/listingOg";
 import { formatPriceVnd } from "@/lib/formatPrice";
 
 export const alt = "Pet Marketplace listing";
-export const size = { width: 1200, height: 630 };
+/** 2× Facebook’s 1200×630 so text/photos stay sharp after social compression */
+export const size = { width: 2400, height: 1260 };
 export const contentType = "image/png";
 export const runtime = "nodejs";
 
 type Props = { params: Promise<{ postId: string }> };
 
+async function loadFont(file: string): Promise<ArrayBuffer> {
+  const buf = await readFile(join(process.cwd(), "public/fonts", file));
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+}
+
+async function loadInterFonts() {
+  const [semi, bold] = await Promise.all([
+    loadFont("Inter-SemiBold.ttf"),
+    loadFont("Inter-Bold.ttf"),
+  ]);
+  return [
+    { name: "Inter", data: semi, style: "normal" as const, weight: 600 as const },
+    { name: "Inter", data: bold, style: "normal" as const, weight: 700 as const },
+  ];
+}
+
+/** Prefer full photos over feed-card thumbs (720px) so OG isn’t soft. */
+function listingOgPhotoUrl(listing: {
+  mediaUrl: string;
+  mediaUrls: string[];
+}): string | undefined {
+  const candidates = [listing.mediaUrl, ...(listing.mediaUrls || [])];
+  const full = candidates.find(
+    (u) => u && !u.startsWith("data:") && !/\/thumbs\//i.test(u),
+  );
+  return absoluteMediaUrl(
+    full || candidates.find((u) => u && !u.startsWith("data:")),
+  );
+}
+
+function fallbackCard() {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#FDFBF7",
+        color: "#2B1E19",
+        fontSize: 84,
+        fontWeight: 700,
+        fontFamily: "Inter",
+      }}
+    >
+      Pet Marketplace
+    </div>
+  );
+}
+
 export default async function OgImage({ params }: Props) {
   const { postId } = await params;
   const listing = await getPublicPostDetail(postId).catch(() => null);
+  const fonts = await loadInterFonts();
+
+  const brand = "Pet Marketplace";
+  const domain = "pet-marketplace.org";
 
   if (!listing) {
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#FDFBF7",
-            color: "#2B1E19",
-            fontSize: 42,
-            fontWeight: 600,
-          }}
-        >
-          Pet Marketplace
-        </div>
-      ),
-      { ...size },
-    );
+    return new ImageResponse(fallbackCard(), { ...size, fonts });
   }
 
   const { title } = buildListingOgCopy(listing);
@@ -43,7 +82,8 @@ export default async function OgImage({ params }: Props) {
     formatPriceVnd(listing.price) ||
     (listing.price && listing.price !== "—" ? listing.price : "");
   const subtitle = [listing.breed, listing.location].filter(Boolean).join(" · ");
-  const photo = absoluteMediaUrl(listing.mediaUrl);
+  const displayTitle = title.length > 48 ? `${title.slice(0, 46)}…` : title;
+  const photo = listingOgPhotoUrl(listing);
 
   return new ImageResponse(
     (
@@ -53,15 +93,14 @@ export default async function OgImage({ params }: Props) {
           height: "100%",
           display: "flex",
           background: "#2B1E19",
-          fontFamily: "sans-serif",
+          fontFamily: "Inter",
         }}
       >
         <div
           style={{
-            width: "58%",
-            height: "100%",
+            width: 1392,
+            height: 1260,
             display: "flex",
-            position: "relative",
             overflow: "hidden",
             background: "#44403c",
           }}
@@ -71,11 +110,11 @@ export default async function OgImage({ params }: Props) {
             <img
               src={photo}
               alt=""
-              width={700}
-              height={630}
+              width={1392}
+              height={1260}
               style={{
-                width: "100%",
-                height: "100%",
+                width: 1392,
+                height: 1260,
                 objectFit: "cover",
               }}
             />
@@ -88,7 +127,8 @@ export default async function OgImage({ params }: Props) {
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#a8a29e",
-                fontSize: 28,
+                fontSize: 56,
+                fontWeight: 700,
               }}
             >
               Pet Marketplace
@@ -98,12 +138,12 @@ export default async function OgImage({ params }: Props) {
 
         <div
           style={{
-            width: "42%",
-            height: "100%",
+            width: 1008,
+            height: 1260,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            padding: "48px 44px",
+            padding: "96px 88px",
             background: "#FDFBF7",
           }}
         >
@@ -111,41 +151,40 @@ export default async function OgImage({ params }: Props) {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 14,
+              gap: 28,
             }}
           >
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
-                gap: 10,
                 color: "#D97706",
-                fontSize: 22,
+                fontSize: 44,
                 fontWeight: 700,
-                letterSpacing: 0.3,
+                letterSpacing: 0.5,
               }}
             >
-              Pet Marketplace
+              {brand}
             </div>
             <div
               style={{
                 display: "flex",
                 color: "#2B1E19",
-                fontSize: 40,
+                fontSize: 78,
                 fontWeight: 700,
-                lineHeight: 1.2,
-                maxHeight: 160,
+                lineHeight: 1.15,
+                maxHeight: 280,
                 overflow: "hidden",
               }}
             >
-              {title.length > 56 ? `${title.slice(0, 54)}…` : title}
+              {displayTitle}
             </div>
             {subtitle ? (
               <div
                 style={{
                   display: "flex",
                   color: "#78716c",
-                  fontSize: 24,
+                  fontSize: 42,
+                  fontWeight: 600,
                   lineHeight: 1.35,
                 }}
               >
@@ -154,13 +193,13 @@ export default async function OgImage({ params }: Props) {
             ) : null}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {price ? (
               <div
                 style={{
                   display: "flex",
                   color: "#B45309",
-                  fontSize: 34,
+                  fontSize: 64,
                   fontWeight: 700,
                 }}
               >
@@ -171,15 +210,16 @@ export default async function OgImage({ params }: Props) {
               style={{
                 display: "flex",
                 color: "#a8a29e",
-                fontSize: 18,
+                fontSize: 34,
+                fontWeight: 600,
               }}
             >
-              pet-marketplace.org
+              {domain}
             </div>
           </div>
         </div>
       </div>
     ),
-    { ...size },
+    { ...size, fonts },
   );
 }

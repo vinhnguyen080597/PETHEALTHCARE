@@ -66,8 +66,8 @@ export function LanguageSwitcher({
         aria-label={t(lang, "nav.language")}
         className={
           compact
-            ? "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
-            : "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors border border-[#F0E6D8]"
+            ? "w-full flex items-center justify-between gap-2 pl-3 pr-3.5 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
+            : "flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-full text-xs font-semibold text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors border border-[#F0E6D8]"
         }
       >
         <span className="inline-flex items-center gap-1.5">
@@ -92,7 +92,7 @@ export function LanguageSwitcher({
           fill="none"
           stroke="currentColor"
           strokeWidth="1.6"
-          className={`opacity-60 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 opacity-60 transition-transform ${open ? "rotate-180" : ""}`}
           aria-hidden
         >
           <path d="M3 4.5 6 7.5 9 4.5" strokeLinecap="round" strokeLinejoin="round" />
