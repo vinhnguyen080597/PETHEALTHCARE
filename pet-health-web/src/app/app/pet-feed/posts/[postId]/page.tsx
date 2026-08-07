@@ -10,7 +10,8 @@ import {
 import { ListingDetail } from "@/components/marketplace/ListingDetail";
 import { ListingDetailSkeleton } from "@/components/ui/Skeleton";
 import { ResourceNotFound } from "@/components/ResourceNotFound";
-import { absoluteMediaUrl, listingShareUrl } from "@/lib/config";
+import { listingShareUrl } from "@/lib/config";
+import { buildListingOgCopy } from "@/lib/listingOg";
 import type { Lang } from "@/lib/types";
 
 type Props = { params: Promise<{ postId: string }> };
@@ -27,16 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       };
     }
 
-    const title = listing.title || "Pet listing";
-    const description = (
-      listing.description?.trim() ||
-      [listing.breed, listing.location, listing.price].filter(Boolean).join(" · ") ||
-      "Pet listing on Pet Marketplace"
-    ).slice(0, 160);
-
-    const image =
-      absoluteMediaUrl(listing.mediaUrl) ||
-      absoluteMediaUrl(listing.mediaUrls?.[0]);
+    const { title, description } = buildListingOgCopy(listing);
 
     return {
       title,
@@ -49,22 +41,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         description,
         url: canonical,
         locale: "vi_VN",
-        images: image
-          ? [
-              {
-                url: image,
-                width: 1200,
-                height: 630,
-                alt: title,
-              },
-            ]
-          : undefined,
       },
       twitter: {
         card: "summary_large_image",
         title,
         description,
-        images: image ? [image] : undefined,
       },
     };
   } catch {
