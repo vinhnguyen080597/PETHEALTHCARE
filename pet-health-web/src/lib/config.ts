@@ -6,6 +6,30 @@ export const SITE_ORIGIN =
   process.env.NEXT_PUBLIC_SITE_ORIGIN?.replace(/\/$/, "") ||
   "http://localhost:3001";
 
+/** Public origin for share / Open Graph — crawlers cannot reach localhost. */
+export const SHARE_ORIGIN = (() => {
+  const origin = SITE_ORIGIN;
+  if (!origin || /localhost|127\.0\.0\.1/i.test(origin)) {
+    return "https://pet-marketplace.org";
+  }
+  return origin;
+})();
+
+export function listingShareUrl(postId: string): string {
+  return `${SHARE_ORIGIN}/app/pet-feed/posts/${encodeURIComponent(postId)}`;
+}
+
+/** Absolute https URL for OG images; skips data: placeholders. */
+export function absoluteMediaUrl(
+  url: string | null | undefined,
+): string | undefined {
+  if (!url || url.startsWith("data:")) return undefined;
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("//")) return `https:${url}`;
+  if (url.startsWith("/")) return `${SHARE_ORIGIN}${url}`;
+  return undefined;
+}
+
 export const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") || "";
 

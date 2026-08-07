@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Lang, Listing } from "@/lib/types";
 import { genderLabel, t } from "@/i18n";
 import { formatPriceVnd, isBlankDisplayValue } from "@/lib/formatPrice";
+import { listingShareUrl } from "@/lib/config";
 import type { PublicComment } from "@/lib/api/public";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { EscrowBadge, VerifiedBadge } from "./Badges";
@@ -101,6 +102,7 @@ export function ListingDetail({
   const [saved, setSaved] = useState(Boolean(listing.saved));
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const [shareNotice, setShareNotice] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<string>(REPORT_REASONS[0]);
   const [reportNote, setReportNote] = useState("");
@@ -271,20 +273,66 @@ export function ListingDetail({
   };
 
   const shareListing = async () => {
-    const url =
-      typeof window !== "undefined" ? window.location.href : "";
+    const url = listingShareUrl(listing.id);
+    const shareTitle = title || "Pet Marketplace";
+    const shareData: ShareData = {
+      title: shareTitle,
+      text: shareTitle,
+      url,
+    };
+
+    setShareNotice("");
+    setActionError("");
+
+    const preferNativeShare =
+      typeof navigator !== "undefined" &&
+      typeof navigator.share === "function" &&
+      (navigator.maxTouchPoints > 0 ||
+        /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent));
+
+    if (preferNativeShare) {
+      try {
+        if (!navigator.canShare || navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          return;
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // Fall through to clipboard on desktop/share errors.
+      }
+    }
+
     try {
-      if (navigator.share) {
-        await navigator.share({ title, url });
-      } else if (navigator.clipboard) {
+      if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
-        setActionError(
-          lang === "VI" ? "Đã sao chép link" : "Link copied",
-        );
+        setShareNotice(t(lang, "detail.shareCopied"));
+        window.setTimeout(() => setShareNotice(""), 2500);
+        return;
       }
     } catch {
-      // user cancelled share
+      // Fall through to legacy copy.
     }
+
+    try {
+      const input = document.createElement("textarea");
+      input.value = url;
+      input.setAttribute("readonly", "");
+      input.style.position = "fixed";
+      input.style.left = "-9999px";
+      document.body.appendChild(input);
+      input.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(input);
+      if (ok) {
+        setShareNotice(t(lang, "detail.shareCopied"));
+        window.setTimeout(() => setShareNotice(""), 2500);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    setActionError(t(lang, "detail.shareFailed"));
   };
 
   return (
@@ -510,10 +558,14 @@ export function ListingDetail({
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={shareListing}
-                  className="py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-full hover:border-slate-300 transition-colors"
+                  onClick={() => void shareListing()}
+                  className={`py-2.5 border text-sm font-medium rounded-full transition-colors ${
+                    shareNotice
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border-slate-200 text-slate-700 hover:border-slate-300"
+                  }`}
                 >
-                  {t(lang, "detail.share")}
+                  {shareNotice || t(lang, "detail.share")}
                 </button>
                 <button
                   type="button"

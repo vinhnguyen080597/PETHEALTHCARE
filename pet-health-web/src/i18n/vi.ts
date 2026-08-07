@@ -170,6 +170,8 @@ const vi: Record<EnKey, string> = {
   "detail.deworming": "Tẩy giun",
   "detail.message": "Nhắn tin",
   "detail.share": "Chia sẻ",
+  "detail.shareCopied": "Đã sao chép!",
+  "detail.shareFailed": "Không chia sẻ được. Hãy sao chép URL trên thanh địa chỉ.",
   "detail.report": "Báo cáo",
   "detail.comments": "Bình luận",
   "detail.writeComment": "Viết bình luận…",

@@ -8,6 +8,7 @@ import { HeaderWithSession } from "@/components/HeaderWithSession";
 import { SiteBreadcrumbs } from "@/components/SiteBreadcrumbs";
 import { getLang } from "@/i18n";
 import { COOKIE_LANG } from "@/lib/session";
+import { SHARE_ORIGIN } from "@/lib/config";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -22,12 +23,21 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SHARE_ORIGIN),
   title: {
     default: "Pet Marketplace",
     template: "%s · Pet Marketplace",
   },
   description:
     "Find healthy pets from trusted breeders — clear profiles, vaccine records, and safer in-app contact.",
+  openGraph: {
+    type: "website",
+    siteName: "Pet Marketplace",
+    locale: "vi_VN",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default async function RootLayout({

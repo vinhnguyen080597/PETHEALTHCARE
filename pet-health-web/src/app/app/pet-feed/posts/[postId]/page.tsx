@@ -10,28 +10,69 @@ import {
 import { ListingDetail } from "@/components/marketplace/ListingDetail";
 import { ListingDetailSkeleton } from "@/components/ui/Skeleton";
 import { ResourceNotFound } from "@/components/ResourceNotFound";
-import { SITE_ORIGIN } from "@/lib/config";
+import { absoluteMediaUrl, listingShareUrl } from "@/lib/config";
 import type { Lang } from "@/lib/types";
 
 type Props = { params: Promise<{ postId: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { postId } = await params;
+  const canonical = listingShareUrl(postId);
   try {
     const listing = await getPublicPostDetail(postId);
-    if (!listing) return { title: "Listing not found" };
+    if (!listing) {
+      return {
+        title: "Listing not found",
+        robots: { index: false, follow: false },
+      };
+    }
+
+    const title = listing.title || "Pet listing";
+    const description = (
+      listing.description?.trim() ||
+      [listing.breed, listing.location, listing.price].filter(Boolean).join(" · ") ||
+      "Pet listing on Pet Marketplace"
+    ).slice(0, 160);
+
+    const image =
+      absoluteMediaUrl(listing.mediaUrl) ||
+      absoluteMediaUrl(listing.mediaUrls?.[0]);
+
     return {
-      title: listing.title,
-      description: listing.description?.slice(0, 160) || listing.price,
+      title,
+      description,
+      alternates: { canonical },
       openGraph: {
-        title: listing.title,
-        description: listing.description?.slice(0, 160),
-        images: listing.mediaUrl ? [listing.mediaUrl] : [],
-        url: `${SITE_ORIGIN}/app/pet-feed/posts/${postId}`,
+        type: "article",
+        siteName: "Pet Marketplace",
+        title,
+        description,
+        url: canonical,
+        locale: "vi_VN",
+        images: image
+          ? [
+              {
+                url: image,
+                width: 1200,
+                height: 630,
+                alt: title,
+              },
+            ]
+          : undefined,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: image ? [image] : undefined,
       },
     };
   } catch {
-    return { title: "Pet listing" };
+    return {
+      title: "Pet listing",
+      alternates: { canonical },
+      openGraph: { url: canonical, siteName: "Pet Marketplace" },
+    };
   }
 }
 

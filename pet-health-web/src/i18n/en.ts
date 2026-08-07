@@ -168,6 +168,8 @@ const en = {
   "detail.deworming": "Deworming",
   "detail.message": "Message",
   "detail.share": "Share",
+  "detail.shareCopied": "Copied!",
+  "detail.shareFailed": "Could not share. Copy the URL from the address bar.",
   "detail.report": "Report",
   "detail.comments": "Comments",
   "detail.writeComment": "Write a comment…",
