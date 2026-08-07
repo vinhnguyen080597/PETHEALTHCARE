@@ -21,7 +21,7 @@ export async function HeaderWithSession({ lang }: { lang: Lang }) {
       lang={lang}
       isAdmin={session.isAdmin}
       isLoggedIn={session.isLoggedIn}
-      unreadCount={unreadCount}
+      unreadNotificationCount={unreadCount}
     />
   );
 }

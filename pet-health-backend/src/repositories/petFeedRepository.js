@@ -1423,6 +1423,57 @@ export async function listAdminPetFeedPosts(status = 'pending_review') {
   return (data ?? []).map((row) => toPost(row));
 }
 
+export async function getAdminPetFeedPostById(postId) {
+  const safeId = trimText(postId, 64);
+  if (!safeId) return null;
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const row = memoryPosts.find((post) => post.id === safeId) ?? null;
+    return row ? toPost(row) : null;
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .eq('id', safeId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toPost(data) : null;
+}
+
+export async function getAdminPetFeedReportById(reportId) {
+  const safeId = trimText(reportId, 64);
+  if (!safeId) return null;
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const row = memoryReports.find((report) => report.id === safeId) ?? null;
+    return row ? toReport(row) : null;
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_reports')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .eq('id', safeId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toReport(data) : null;
+}
+
+export async function getAdminBreederProfileByUserId(userId) {
+  const safeId = trimText(userId, 64);
+  if (!safeId) return null;
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const row = memoryProfiles.find((profile) => profile.user_id === safeId) ?? null;
+    return row ? toProfile(row) : null;
+  }
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .select('*')
+    .eq('user_id', safeId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toProfile(data) : null;
+}
+
 export async function adminUpdatePetFeedPostStatus(postId, status) {
   const safeStatus = normalizeStatus(status, '');
   if (!safeStatus) {
@@ -1477,18 +1528,75 @@ export async function listAdminBreederProfiles(status = '') {
   return (data ?? []).map(toProfile);
 }
 
-export async function adminUpdateBreederProfileStatus(userId, verificationStatus) {
+export async function adminUpdateBreederProfileStatus(userId, verificationStatus, options = {}) {
   const safeStatus = normalizeVerificationStatus(verificationStatus);
+  const rejectionReason = trimText(options.rejectionReason ?? options.rejection_reason, 500);
+  const adminNote = trimText(options.adminNote ?? options.admin_note, 500);
+  const adminAction = trimText(options.adminAction ?? options.admin_action, 300);
+  const now = new Date().toISOString();
+
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
     const idx = memoryProfiles.findIndex((profile) => profile.user_id === userId);
     if (idx < 0) return null;
-    memoryProfiles[idx] = { ...memoryProfiles[idx], verification_status: safeStatus, updated_at: new Date().toISOString() };
+    const existing = memoryProfiles[idx];
+    const metadata = { ...(existing.metadata ?? {}) };
+    if (safeStatus === 'rejected') {
+      metadata.rejection_reason = rejectionReason || metadata.rejection_reason || '';
+      if (adminNote) metadata.admin_note = adminNote;
+      else delete metadata.admin_note;
+      if (adminAction) metadata.admin_action = adminAction;
+      else delete metadata.admin_action;
+      metadata.rejected_at = now;
+      delete metadata.verified_at;
+    } else if (safeStatus === 'verified') {
+      delete metadata.rejection_reason;
+      delete metadata.admin_note;
+      delete metadata.admin_action;
+      delete metadata.rejected_at;
+      metadata.verified_at = now;
+    }
+    memoryProfiles[idx] = {
+      ...existing,
+      verification_status: safeStatus,
+      metadata,
+      updated_at: now,
+    };
     return toProfile(memoryProfiles[idx]);
   }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('breeder_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) return null;
+
+  const metadata = { ...(existing.metadata ?? {}) };
+  if (safeStatus === 'rejected') {
+    metadata.rejection_reason = rejectionReason || '';
+    if (adminNote) metadata.admin_note = adminNote;
+    else delete metadata.admin_note;
+    if (adminAction) metadata.admin_action = adminAction;
+    else delete metadata.admin_action;
+    metadata.rejected_at = now;
+    delete metadata.verified_at;
+  } else if (safeStatus === 'verified') {
+    delete metadata.rejection_reason;
+    delete metadata.admin_note;
+    delete metadata.admin_action;
+    delete metadata.rejected_at;
+    metadata.verified_at = now;
+  }
+
   const { data, error } = await supabase
     .from('breeder_profiles')
-    .update({ verification_status: safeStatus, updated_at: new Date().toISOString() })
+    .update({
+      verification_status: safeStatus,
+      metadata,
+      updated_at: now,
+    })
     .eq('user_id', userId)
     .select('*')
     .maybeSingle();

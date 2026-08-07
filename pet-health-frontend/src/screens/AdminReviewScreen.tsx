@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AdminHealthEvidencePreview } from '../components/AdminHealthEvidencePreview';
+import { AdminRejectBreederModal } from '../components/AdminRejectBreederModal';
 import type { AccountProfile, AdminCreateAccountPayload, AdminUpdateAccountPayload, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 import {
   adminBreederPenaltySummary,
@@ -10,6 +11,12 @@ import {
   adminReportTargetSubtitle,
 } from '../utils/adminModerationDisplay';
 import { confirmAdminModeration } from '../utils/adminConfirmModeration';
+
+type BreederStatusOptions = {
+  rejectionReason?: string;
+  adminAction?: string;
+  adminNote?: string;
+};
 
 type AdminReviewScreenProps = {
   accounts: AccountProfile[];
@@ -20,7 +27,11 @@ type AdminReviewScreenProps = {
   onLoad: () => Promise<void>;
   onCreateAccount: (payload: AdminCreateAccountPayload) => Promise<void>;
   onUpdateAccount: (userId: string, payload: AdminUpdateAccountPayload) => Promise<void>;
-  onUpdateBreederStatus: (userId: string, verificationStatus: string) => Promise<void>;
+  onUpdateBreederStatus: (
+    userId: string,
+    verificationStatus: string,
+    options?: BreederStatusOptions,
+  ) => Promise<void>;
   onUpdateStatus: (postId: string, status: string) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
 };
@@ -51,6 +62,7 @@ export function AdminReviewScreen({
 }: AdminReviewScreenProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [rejectUserId, setRejectUserId] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
@@ -132,11 +144,11 @@ export function AdminReviewScreen({
     await run();
   }
 
-  async function updateBreederStatus(userId: string, status: string) {
+  async function updateBreederStatus(userId: string, status: string, options?: BreederStatusOptions) {
     const run = async () => {
       setLoading(true);
       try {
-        await onUpdateBreederStatus(userId, status);
+        await onUpdateBreederStatus(userId, status, options);
         const successKey =
           status === 'verified'
             ? 'adminReview.verifySuccess'
@@ -257,7 +269,7 @@ export function AdminReviewScreen({
                   accessibilityRole="button"
                   className="min-w-[96px] flex-1 rounded-xl bg-amber-600 py-3 active:opacity-90"
                   style={{ cursor: 'pointer' }}
-                  onPress={() => updateBreederStatus(profile.user_id, 'rejected')}
+                  onPress={() => setRejectUserId(profile.user_id)}
                 >
                   <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
                 </Pressable>
@@ -321,6 +333,17 @@ export function AdminReviewScreen({
           ))}
         </View>
       </ScrollView>
+      <AdminRejectBreederModal
+        visible={Boolean(rejectUserId)}
+        submitting={loading}
+        onClose={() => setRejectUserId(null)}
+        onSubmit={async (payload) => {
+          if (!rejectUserId) return;
+          const userId = rejectUserId;
+          setRejectUserId(null);
+          await updateBreederStatus(userId, 'rejected', payload);
+        }}
+      />
     </View>
   );
 }

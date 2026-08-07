@@ -9,6 +9,7 @@ import { APP_LINKS } from '../config';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 import { PetFeedPostTimeMeta } from '../components/PetFeedPostTimeMeta';
 import { AdminHealthEvidencePreview } from '../components/AdminHealthEvidencePreview';
+import { AdminRejectBreederModal } from '../components/AdminRejectBreederModal';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
   adminBreederPenaltySummary,
@@ -148,7 +149,11 @@ type AccountScreenProps = {
   onOpenAdminReview?: () => void;
   onOpenUpdateAccount: () => void;
   onOpenLanguageSelection: () => void;
-  onUpdateBreederStatus: (userId: string, verificationStatus: string) => Promise<void>;
+  onUpdateBreederStatus: (
+    userId: string,
+    verificationStatus: string,
+    options?: { rejectionReason?: string; adminAction?: string; adminNote?: string },
+  ) => Promise<void>;
   onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
   onRefreshAdmin?: () => Promise<void>;
@@ -243,6 +248,7 @@ export function AccountScreen({
   const [breederDateFilter, setBreederDateFilter] = useState<AdminRequestDateFilter>('newest');
   const [activeBreederDropdown, setActiveBreederDropdown] = useState<'status' | 'species' | 'date' | null>(null);
   const [adminActionBusyKey, setAdminActionBusyKey] = useState<string | null>(null);
+  const [rejectUserId, setRejectUserId] = useState<string | null>(null);
   const [listingMenuPostId, setListingMenuPostId] = useState<string | null>(null);
   const role = account?.primary_role ?? 'sen';
   const breederStatus = breederProfile?.verification_status ?? 'unverified';
@@ -833,13 +839,7 @@ export function AccountScreen({
                         variant="warning"
                         busy={adminActionBusyKey === `breeder-reject-${item.profile.id}`}
                         disabled={Boolean(adminActionBusyKey)}
-                        onPress={() =>
-                          void runAdminAction(
-                            `breeder-reject-${item.profile.id}`,
-                            () => onUpdateBreederStatus(item.profile.user_id, 'rejected'),
-                            t('adminReview.rejectSuccess'),
-                          )
-                        }
+                        onPress={() => setRejectUserId(item.profile.user_id)}
                       />
                     ) : null}
                     {item.profile.verification_status !== 'suspended' ? (
@@ -1168,13 +1168,7 @@ export function AccountScreen({
                         variant="warning"
                         busy={adminActionBusyKey === `breeder-list-reject-${profile.id}`}
                         disabled={Boolean(adminActionBusyKey)}
-                        onPress={() =>
-                          void runAdminAction(
-                            `breeder-list-reject-${profile.id}`,
-                            () => onUpdateBreederStatus(profile.user_id, 'rejected'),
-                            t('adminReview.rejectSuccess'),
-                          )
-                        }
+                        onPress={() => setRejectUserId(profile.user_id)}
                       />
                     ) : null}
                     {profile.verification_status !== 'suspended' ? (
@@ -1414,6 +1408,21 @@ export function AccountScreen({
       </Pressable>
     </Modal>
     ) : null}
+    <AdminRejectBreederModal
+      visible={Boolean(rejectUserId)}
+      submitting={Boolean(adminActionBusyKey)}
+      onClose={() => setRejectUserId(null)}
+      onSubmit={async (payload) => {
+        if (!rejectUserId) return;
+        const userId = rejectUserId;
+        setRejectUserId(null);
+        await runAdminAction(
+          `breeder-reject-${userId}`,
+          () => onUpdateBreederStatus(userId, 'rejected', payload),
+          t('adminReview.rejectSuccess'),
+        );
+      }}
+    />
     </>
   );
 }

@@ -238,6 +238,21 @@ export type PetFeedReport = {
   updated_at?: string;
 };
 
+export type AdminActionLog = {
+  id: string;
+  created_at: string;
+  actor_user_id: string | null;
+  actor_via_secret: boolean;
+  actor_display_name: string | null;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  target_user_id: string | null;
+  before_state: Record<string, unknown>;
+  after_state: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+};
+
 export type PetFeedComment = {
   id: string;
   post_id: string;
@@ -253,9 +268,10 @@ export type PetFeedNotification = {
   id: string;
   recipient_user_id: string;
   actor_user_id: string;
-  post_id: string;
-  comment_id: string;
-  type: 'post_comment';
+  post_id?: string | null;
+  comment_id?: string | null;
+  breeder_profile_id?: string | null;
+  type: 'post_comment' | 'breeder_verified' | 'breeder_rejected' | 'admin_breeder_pending' | 'admin_listing_pending' | 'admin_report_open' | string;
   body_preview: string;
   created_at: string;
   read_at: string | null;
@@ -263,6 +279,18 @@ export type PetFeedNotification = {
   actor_display_name: string;
   post_title: string;
   post_thumb_url: string | null;
+  breeder_display_name?: string;
+  cta_label?: string;
+  rejection_reason?: string;
+  admin_action?: string;
+  admin_note?: string;
+  metadata?: {
+    cta_label?: string;
+    cta_href?: string;
+    rejection_reason?: string;
+    admin_action?: string;
+    admin_note?: string;
+  };
 };
 
 export type PetFeedConversationPostSummary = {

@@ -27,6 +27,7 @@ export type AdminSection =
   | "listings"
   | "breeders"
   | "reports"
+  | "history"
   | "users"
   | "features"
   | "news";

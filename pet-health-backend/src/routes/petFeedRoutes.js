@@ -37,10 +37,12 @@ import {
 } from '../repositories/petFeedMessagingRepository.js';
 import {
   countUnreadPetFeedNotifications,
+  createAdminRequestNotifications,
   createPostCommentNotification,
   listPetFeedNotifications,
   markPetFeedNotificationsRead,
 } from '../repositories/petFeedNotificationsRepository.js';
+import { recordAdminAction } from '../repositories/adminActionLogRepository.js';
 import {
   PET_FEED_LIST_THUMB_MAX_BYTES,
   PET_FEED_PHOTO_MAX_BYTES,
@@ -163,6 +165,13 @@ function cleanId(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function notifyPreview(value, max = 80) {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
 function firstQueryValue(value) {
   if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : undefined;
   return typeof value === 'string' ? value : undefined;
@@ -244,6 +253,18 @@ router.post('/breeders/:profileId/report', async (req, res, next) => {
       event: 'breeder_profile_reported',
       metadata: { profileId, reason: report.reason },
     });
+    void createAdminRequestNotifications({
+      actorUserId: req.user.id,
+      type: 'admin_report_open',
+      bodyPreview: `Báo cáo hồ sơ trại mới (${report.reason || 'other'}).`,
+      breederProfileId: profileId,
+      metadata: {
+        title: 'Báo cáo hồ sơ trại',
+        report_id: report.id,
+        reason: report.reason,
+      },
+      accessToken: req.accessToken,
+    }).catch(() => null);
     return res.status(201).json({ data: report });
   } catch (err) {
     return next(err);
@@ -430,6 +451,20 @@ router.post('/posts', requireAnyRole('breeder'), petFeedUpload.fields([
       event: 'pet_feed_post_created',
       metadata: { status: post.status, species: post.species, breed: post.breed },
     });
+    if (post.status === 'pending_review') {
+      void createAdminRequestNotifications({
+        actorUserId: req.user.id,
+        type: 'admin_listing_pending',
+        bodyPreview: `Bài đăng "${notifyPreview(post.title)}" chờ duyệt.`,
+        postId: post.id,
+        breederProfileId: post.breeder_profile_id || null,
+        metadata: {
+          title: post.title || '',
+          thumb_url: Array.isArray(post.media_urls) ? post.media_urls[0] : null,
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
     return res.status(201).json({ data: post });
   } catch (err) {
     return next(err);
@@ -463,6 +498,23 @@ router.post('/announcements', requireAnyRole('admin'), petFeedUpload.fields([
       event: 'announcement_post_created',
       metadata: { category: post.metadata?.category },
     });
+    void recordAdminAction({
+      actorUserId: req.user?.id || null,
+      viaSecret: false,
+      action: 'announcement.create',
+      targetType: 'announcement',
+      targetId: post.id,
+      targetUserId: req.user?.id || null,
+      beforeState: {},
+      afterState: {
+        title: post.title || null,
+        status: post.status || null,
+        category: post.metadata?.category || null,
+        media_count: Array.isArray(post.media_urls) ? post.media_urls.length : 0,
+        has_video: Boolean(post.video_url),
+      },
+      metadata: {},
+    }).catch(() => null);
     return res.status(201).json({ data: post });
   } catch (err) {
     return next(err);
@@ -539,6 +591,20 @@ router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) =
 
     const post = await updatePetFeedPost(req.user.id, postId, updatePayload, req.accessToken);
     if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
+    if (post.status === 'pending_review' && existing.status !== 'pending_review') {
+      void createAdminRequestNotifications({
+        actorUserId: req.user.id,
+        type: 'admin_listing_pending',
+        bodyPreview: `Bài đăng "${notifyPreview(post.title)}" chờ duyệt.`,
+        postId: post.id,
+        breederProfileId: post.breeder_profile_id || null,
+        metadata: {
+          title: post.title || '',
+          thumb_url: Array.isArray(post.media_urls) ? post.media_urls[0] : null,
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
     return res.json({ data: post });
   } catch (err) {
     return next(err);
@@ -741,6 +807,18 @@ router.post('/posts/:postId/report', async (req, res, next) => {
     if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
     const report = await reportPetFeedPost(req.user.id, postId, req.body ?? {}, req.accessToken);
     void recordProductEvent({ userId: req.user.id, event: 'pet_feed_post_reported', metadata: { postId, reason: report.reason } });
+    void createAdminRequestNotifications({
+      actorUserId: req.user.id,
+      type: 'admin_report_open',
+      bodyPreview: `Báo cáo bài đăng mới (${report.reason || 'other'}).`,
+      postId,
+      metadata: {
+        title: 'Báo cáo bài đăng',
+        report_id: report.id,
+        reason: report.reason,
+      },
+      accessToken: req.accessToken,
+    }).catch(() => null);
     return res.status(201).json({ data: report });
   } catch (err) {
     return next(err);
@@ -778,8 +856,25 @@ router.get('/breeder-profile/me', async (req, res, next) => {
 
 router.put('/breeder-profile/me', async (req, res, next) => {
   try {
+    const before = await getMyBreederProfile(req.user.id, req.accessToken);
     const profile = await upsertMyBreederProfile(req.user.id, req.body ?? {}, req.accessToken);
     void recordProductEvent({ userId: req.user.id, event: 'breeder_profile_upserted', metadata: { status: profile.verification_status } });
+    if (
+      profile.verification_status === 'pending_review'
+      && before?.verification_status !== 'pending_review'
+    ) {
+      void createAdminRequestNotifications({
+        actorUserId: req.user.id,
+        type: 'admin_breeder_pending',
+        bodyPreview: `${notifyPreview(profile.display_name) || 'Người dùng'} gửi yêu cầu xác minh Breeder.`,
+        breederProfileId: profile.id,
+        metadata: {
+          title: profile.display_name || '',
+          thumb_url: profile.avatar_url || null,
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
     return res.json({ data: profile });
   } catch (err) {
     return next(err);

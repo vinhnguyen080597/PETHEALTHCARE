@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { AdminConsole } from "@/components/admin/AdminConsole";
+import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 
 export const metadata = { title: "Admin" };
 
@@ -36,5 +38,9 @@ export default async function AdminPage() {
     );
   }
 
-  return <AdminConsole lang={lang} />;
+  return (
+    <Suspense fallback={<AdminSectionSkeleton />}>
+      <AdminConsole lang={lang} />
+    </Suspense>
+  );
 }

@@ -18,6 +18,7 @@ const SEGMENT_LABEL: Record<string, EnKey> = {
   listings: "account.myListings",
   new: "account.newListing",
   messages: "nav.messages",
+  notifications: "nav.notifications",
   admin: "nav.admin",
   login: "nav.login",
   signup: "breadcrumb.signup",

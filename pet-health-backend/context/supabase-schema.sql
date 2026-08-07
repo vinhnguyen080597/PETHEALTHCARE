@@ -664,18 +664,55 @@ create table if not exists public.pet_feed_notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_user_id text not null,
   actor_user_id text not null,
-  post_id uuid not null references public.pet_feed_posts(id) on delete cascade,
-  comment_id uuid not null references public.pet_feed_comments(id) on delete cascade,
-  type text not null default 'post_comment' check (type in ('post_comment')),
+  post_id uuid references public.pet_feed_posts(id) on delete cascade,
+  comment_id uuid references public.pet_feed_comments(id) on delete cascade,
+  breeder_profile_id uuid references public.breeder_profiles(id) on delete set null,
+  type text not null default 'post_comment' check (type in (
+    'post_comment',
+    'breeder_verified',
+    'breeder_rejected',
+    'admin_breeder_pending',
+    'admin_listing_pending',
+    'admin_report_open'
+  )),
   body_preview text not null default '',
+  metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   read_at timestamptz
 );
 create unique index if not exists idx_pet_feed_notifications_comment_unique
-  on public.pet_feed_notifications(comment_id);
+  on public.pet_feed_notifications(comment_id)
+  where comment_id is not null;
 create index if not exists idx_pet_feed_notifications_recipient_created
   on public.pet_feed_notifications(recipient_user_id, created_at desc);
+create index if not exists idx_pet_feed_notifications_breeder_profile
+  on public.pet_feed_notifications(breeder_profile_id)
+  where breeder_profile_id is not null;
 alter table public.pet_feed_notifications enable row level security;
+
+-- Admin action audit trail (service-role writes; no client policies).
+create table if not exists public.admin_action_logs (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  actor_user_id text null,
+  actor_via_secret boolean not null default false,
+  action text not null,
+  target_type text not null,
+  target_id text null,
+  target_user_id text null,
+  before_state jsonb not null default '{}'::jsonb,
+  after_state jsonb not null default '{}'::jsonb,
+  metadata jsonb not null default '{}'::jsonb
+);
+create index if not exists idx_admin_action_logs_created
+  on public.admin_action_logs (created_at desc);
+create index if not exists idx_admin_action_logs_action_created
+  on public.admin_action_logs (action, created_at desc);
+create index if not exists idx_admin_action_logs_actor_created
+  on public.admin_action_logs (actor_user_id, created_at desc);
+create index if not exists idx_admin_action_logs_target
+  on public.admin_action_logs (target_type, target_id, created_at desc);
+alter table public.admin_action_logs enable row level security;
 
 -- Realtime: see migrations/006-pet-feed-messages-realtime.sql (add tables to supabase_realtime publication).
 

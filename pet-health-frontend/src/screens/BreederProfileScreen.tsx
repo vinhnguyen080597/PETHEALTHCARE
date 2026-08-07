@@ -64,7 +64,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [location, setLocation] = useState(profile?.location ?? '');
   const [primarySpecies, setPrimarySpecies] = useState<string[]>(
-    profile?.primary_species?.length ? profile.primary_species : [...ACTIVE_BREEDER_SPECIES_OPTIONS],
+    profile?.primary_species?.length ? profile.primary_species : [],
   );
   const [mainBreeds, setMainBreeds] = useState((profile?.main_breeds ?? []).join(', '));
   const [facebook, setFacebook] = useState(String(profile?.contact?.facebook ?? ''));
@@ -86,7 +86,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
     const nextMetadata = profile?.metadata ?? {};
     setDisplayName(profile?.display_name ?? '');
     setLocation(profile?.location ?? '');
-    setPrimarySpecies(profile?.primary_species?.length ? profile.primary_species : [...ACTIVE_BREEDER_SPECIES_OPTIONS]);
+    setPrimarySpecies(profile?.primary_species?.length ? profile.primary_species : []);
     setMainBreeds((profile?.main_breeds ?? []).join(', '));
     setFacebook(String(profile?.contact?.facebook ?? ''));
     setZalo(String(profile?.contact?.zalo ?? ''));
@@ -149,6 +149,14 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
       scrollToRegistrationFields();
       return;
     }
+    if (!primarySpecies.length) {
+      setSubmitDialog({
+        type: 'error',
+        title: t('breederProfile.saveFailed'),
+        message: t('breederProfile.errors.speciesRequired'),
+      });
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -157,7 +165,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
         bio: profile?.bio ?? '',
         location: location.trim(),
         contact: { facebook: facebook.trim(), zalo: zalo.trim(), phone: phone.trim() },
-        primarySpecies: primarySpecies.length ? primarySpecies : [...ACTIVE_BREEDER_SPECIES_OPTIONS],
+        primarySpecies,
         mainBreeds: splitList(mainBreeds),
         careEnvironment: profile?.care_environment ?? '',
         metadata: {
@@ -232,6 +240,32 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
           <Text className="mt-1 text-xs leading-5 text-slate-500">{t('breederProfile.profileInfoRequiredHint')}</Text>
           {profile?.verification_status ? (
             <Text className="mt-2 text-sm font-semibold text-slate-600">{t(`account.breederRequestStatus.${profile.verification_status}`)}</Text>
+          ) : null}
+          {profile?.verification_status === 'rejected' &&
+          (metadataString(metadata, 'rejection_reason') ||
+            metadataString(metadata, 'admin_action') ||
+            metadataString(metadata, 'admin_note')) ? (
+            <View className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
+              <Text className="text-sm font-bold text-red-900">{t('breederProfile.rejectionBannerTitle')}</Text>
+              {metadataString(metadata, 'rejection_reason') ? (
+                <Text className="mt-2 text-sm leading-5 text-red-900">
+                  <Text className="font-semibold">{t('breederProfile.rejectionReason')}: </Text>
+                  {metadataString(metadata, 'rejection_reason')}
+                </Text>
+              ) : null}
+              {metadataString(metadata, 'admin_action') ? (
+                <Text className="mt-1.5 text-sm leading-5 text-red-900">
+                  <Text className="font-semibold">{t('breederProfile.rejectionAction')}: </Text>
+                  {metadataString(metadata, 'admin_action')}
+                </Text>
+              ) : null}
+              {metadataString(metadata, 'admin_note') ? (
+                <Text className="mt-1.5 text-sm leading-5 text-red-900">
+                  <Text className="font-semibold">{t('breederProfile.rejectionNote')}: </Text>
+                  {metadataString(metadata, 'admin_note')}
+                </Text>
+              ) : null}
+            </View>
           ) : null}
           <TextInput
             ref={displayNameRef}

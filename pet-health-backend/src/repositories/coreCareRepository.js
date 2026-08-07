@@ -108,6 +108,25 @@ export async function listCoreCareRecords(userId, petId, accessToken, options = 
   return (data ?? []).map(toApiRecord);
 }
 
+export async function getCoreCareRecordById(userId, recordId, accessToken) {
+  const safeUserId = trimText(userId, 64);
+  const safeRecordId = trimText(recordId, 64);
+  if (!safeUserId || !safeRecordId) return null;
+  const supabase = getCoreCareSupabase(accessToken);
+  if (!supabase) {
+    const row = memoryRecords.find((item) => item.user_id === safeUserId && item.id === safeRecordId) ?? null;
+    return row ? toApiRecord(row) : null;
+  }
+  const { data, error } = await supabase
+    .from('pet_care_records')
+    .select('*')
+    .eq('user_id', safeUserId)
+    .eq('id', safeRecordId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toApiRecord(data) : null;
+}
+
 export async function createCoreCareRecord(userId, petId, payload, accessToken) {
   const row = normalizePayload(userId, petId, payload);
   const supabase = getCoreCareSupabase(accessToken);
@@ -238,4 +257,9 @@ export async function listVaccinationDueCountsByUser(userId, accessToken) {
     counts[row.pet_id] = (counts[row.pet_id] ?? 0) + 1;
   }
   return counts;
+}
+
+/** Test-only: clear in-memory care records when Supabase is not configured. */
+export function __resetCoreCareMemoryForTests() {
+  memoryRecords.length = 0;
 }

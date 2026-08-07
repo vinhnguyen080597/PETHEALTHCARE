@@ -2554,9 +2554,49 @@ export function usePetHealthApp() {
     setScreen(notificationsInboxReturnScreenRef.current || 'account');
   }
 
+  function markNotificationsReadByIds(ids: string[]) {
+    if (!token || !ids.length) return;
+    const unreadIdSet = new Set(ids);
+    const readAt = new Date().toISOString();
+    setPetFeedNotifications((current) =>
+      current.map((item) =>
+        unreadIdSet.has(item.id) ? { ...item, is_unread: false, read_at: item.read_at || readAt } : item,
+      ),
+    );
+    setPetFeedNotificationsUnreadCount((current) => Math.max(0, current - ids.length));
+    void markPetFeedNotificationsRead(token, ids).catch(() => {
+      void refreshPetFeedNotifications();
+    });
+  }
+
   function openNotificationItem(notification: PetFeedNotification) {
+    const type = notification.type || 'post_comment';
+    if (notification.is_unread) {
+      markNotificationsReadByIds([notification.id]);
+    }
+
+    if (
+      type === 'admin_breeder_pending' ||
+      type === 'admin_listing_pending' ||
+      type === 'admin_report_open'
+    ) {
+      void openAdminHub();
+      return;
+    }
+
+    if (type === 'breeder_verified' && notification.breeder_profile_id) {
+      setBreederDetailReturnScreen('notifications-inbox');
+      setSelectedBreederProfileId(notification.breeder_profile_id);
+      setScreen('breeder-detail');
+      return;
+    }
+    if (type === 'breeder_rejected') {
+      return;
+    }
     if (!notification.post_id) return;
-    openPetFeedPostDetail(notification.post_id, { focusCommentId: notification.comment_id });
+    openPetFeedPostDetail(notification.post_id, {
+      focusCommentId: notification.comment_id || undefined,
+    });
   }
 
   const refreshPetFeedMessages = useCallback(async (conversationId?: string) => {
@@ -3034,7 +3074,15 @@ export function usePetHealthApp() {
     await ensureAdminReviewLoaded(token, { force: true });
   }
 
-  async function updateAdminBreederStatus(userId: string, verificationStatus: string) {
+  async function updateAdminBreederStatus(
+    userId: string,
+    verificationStatus: string,
+    options?: {
+      rejectionReason?: string;
+      adminAction?: string;
+      adminNote?: string;
+    },
+  ) {
     if (!token) {
       throw new Error(i18n.t('adminReview.updateFailed'));
     }
@@ -3053,7 +3101,7 @@ export function usePetHealthApp() {
       ),
     );
 
-    const response = await updateAdminBreederProfileStatus(token, safeUserId, verificationStatus);
+    const response = await updateAdminBreederProfileStatus(token, safeUserId, verificationStatus, options);
     const updated = response.data;
     if (updated) {
       setAdminBreederProfiles((profiles) => {

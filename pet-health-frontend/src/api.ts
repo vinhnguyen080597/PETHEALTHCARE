@@ -8,6 +8,7 @@ import type {
   AiEconomicsConfig,
   AccountProfile,
   AppFeatureFlags,
+  AdminActionLog,
   AdminCreateAccountPayload,
   AdminUpdateAccountPayload,
   AnalyzeResponse,
@@ -871,6 +872,20 @@ export async function listAdminAccounts(token: string, search: string = '') {
   });
 }
 
+export async function listAdminActionLogs(
+  token: string,
+  options: { action?: string; cursor?: string | null; limit?: number } = {},
+) {
+  const params = new URLSearchParams();
+  if (options.action) params.set('action', options.action);
+  if (options.cursor) params.set('cursor', options.cursor);
+  if (options.limit) params.set('limit', String(options.limit));
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return requestJson<{ data: AdminActionLog[]; next_cursor: string | null }>(`/admin/action-logs${qs}`, {
+    headers: authHeaders(token),
+  });
+}
+
 export async function fetchFeatureFlags(token: string) {
   return requestJson<{ data: AppFeatureFlags }>('/feature-flags', {
     headers: authHeaders(token),
@@ -917,14 +932,28 @@ export async function listAdminBreederProfiles(token: string, status: string = '
   });
 }
 
-export async function updateAdminBreederProfileStatus(token: string, userId: string, verificationStatus: string) {
+export async function updateAdminBreederProfileStatus(
+  token: string,
+  userId: string,
+  verificationStatus: string,
+  options?: {
+    rejectionReason?: string;
+    adminAction?: string;
+    adminNote?: string;
+  },
+) {
   return requestJson<{ data: BreederProfile }>(`/admin/breeder-profiles/${encodeURIComponent(userId)}/status`, {
     method: 'PUT',
     headers: {
       ...authHeaders(token),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ verificationStatus }),
+    body: JSON.stringify({
+      verificationStatus,
+      ...(options?.rejectionReason ? { rejectionReason: options.rejectionReason } : {}),
+      ...(options?.adminAction ? { adminAction: options.adminAction } : {}),
+      ...(options?.adminNote ? { adminNote: options.adminNote } : {}),
+    }),
   });
 }
 

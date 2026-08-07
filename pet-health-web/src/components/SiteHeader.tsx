@@ -6,17 +6,18 @@ import { usePathname } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export function SiteHeader({
   lang,
   isAdmin = false,
   isLoggedIn = false,
-  unreadCount = 0,
+  unreadNotificationCount = 0,
 }: {
   lang: Lang;
   isAdmin?: boolean;
   isLoggedIn?: boolean;
-  unreadCount?: number;
+  unreadNotificationCount?: number;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -86,27 +87,28 @@ export function SiteHeader({
 
         <div className="flex items-center gap-1 ml-auto">
           {isLoggedIn && (
-            <Link
-              href="/app/messages"
-              className="relative w-9 h-9 rounded-lg flex items-center justify-center text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors"
-              aria-label={t(lang, "nav.messages")}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 18 18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
+            <>
+              <Link
+                href="/app/messages"
+                className="relative w-9 h-9 rounded-lg flex items-center justify-center text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors"
+                aria-label={t(lang, "nav.messages")}
               >
-                <path d="M15.5 11.5c0 .83-.67 1.5-1.5 1.5H5.5L2.5 15.5v-12C2.5 2.67 3.17 2 4 2h10c.83 0 1.5.67 1.5 1.5v8Z" />
-              </svg>
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#EF4444] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
-            </Link>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                >
+                  <path d="M15.5 11.5c0 .83-.67 1.5-1.5 1.5H5.5L2.5 15.5v-12C2.5 2.67 3.17 2 4 2h10c.83 0 1.5.67 1.5 1.5v8Z" />
+                </svg>
+              </Link>
+              <NotificationBell
+                initialCount={unreadNotificationCount}
+                label={t(lang, "nav.notifications")}
+              />
+            </>
           )}
 
           <div className="hidden sm:block">
@@ -179,13 +181,22 @@ export function SiteHeader({
             </>
           )}
           {isLoggedIn && (
-            <Link
-              href="/app/messages"
-              onClick={() => setMenuOpen(false)}
-              className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
-            >
-              {t(lang, "nav.messages")}
-            </Link>
+            <>
+              <Link
+                href="/app/messages"
+                onClick={() => setMenuOpen(false)}
+                className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
+              >
+                {t(lang, "nav.messages")}
+              </Link>
+              <Link
+                href="/app/notifications"
+                onClick={() => setMenuOpen(false)}
+                className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
+              >
+                {t(lang, "nav.notifications")}
+              </Link>
+            </>
           )}
           <Link
             href={isLoggedIn ? "/app/account" : "/login"}

@@ -13,7 +13,16 @@ const BREEDER_TYPES = [
   "rehoming",
   "other",
 ] as const;
-const SPECIES_OPTIONS = ["dog", "cat"] as const;
+const SPECIES_OPTIONS = [
+  "dog",
+  "cat",
+  "bird",
+  "fish",
+  "mouse",
+  "cow",
+  "pig",
+  "chicken",
+] as const;
 const SCALE_OPTIONS = ["1_3", "4_10", "11_20", "20_plus"] as const;
 const BREEDING_PET_OPTIONS = ["none", "1_3", "4_10", "10_plus"] as const;
 const CARE_CHECKLIST = [
@@ -33,7 +42,27 @@ const inputCls =
 /** Extra right padding so the native chevron isn’t flush with the border */
 const selectCls =
   "appearance-none w-full pl-4 pr-11 py-2.5 bg-white border border-[#F0E6D8] rounded-xl text-sm text-[#2B1E19] focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-[#D97706]";
+const inputErrorCls =
+  "border-red-400 focus:border-red-400 focus:ring-red-500/10";
 const labelCls = "block text-xs font-medium text-[#6E5A51] mb-1.5";
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="mt-1.5 text-xs font-medium text-red-600" role="alert">
+      {message}
+    </p>
+  );
+}
+
+function RequiredMark() {
+  return (
+    <span className="text-red-500 font-semibold" aria-hidden>
+      {" "}
+      *
+    </span>
+  );
+}
 
 function metaString(meta: Record<string, unknown> | undefined, key: string) {
   const v = meta?.[key];
@@ -104,9 +133,7 @@ export function BreederProfileForm({
       "none",
   );
   const [primarySpecies, setPrimarySpecies] = useState<string[]>(
-    initial?.primary_species?.length
-      ? initial.primary_species
-      : ["dog", "cat"],
+    initial?.primary_species?.length ? initial.primary_species : [],
   );
   const [mainBreeds, setMainBreeds] = useState(
     (initial?.main_breeds || []).join(", "),
@@ -124,9 +151,29 @@ export function BreederProfileForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{
+    displayName?: string;
+    location?: string;
+    phone?: string;
+    facebook?: string;
+    zalo?: string;
+    species?: string;
+  }>({});
 
   const status = initial?.verification_status || "unverified";
   const isEdit = Boolean(initial?.id);
+  const rejectionReason = metaString(meta, "rejection_reason");
+  const rejectionAction = metaString(meta, "admin_action");
+  const rejectionNote = metaString(meta, "admin_note");
+
+  const clearFieldError = (key: keyof typeof fieldErrors) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
 
   const title = useMemo(() => {
     if (isEdit) return t(lang, "breederForm.editTitle");
@@ -137,6 +184,30 @@ export function BreederProfileForm({
     e.preventDefault();
     setError("");
     setOk("");
+    const nextErrors: typeof fieldErrors = {};
+    if (!displayName.trim()) {
+      nextErrors.displayName = t(lang, "breederForm.field.displayNameRequired");
+    }
+    if (!location.trim()) {
+      nextErrors.location = t(lang, "breederForm.field.locationRequired");
+    }
+    if (!phone.trim()) {
+      nextErrors.phone = t(lang, "breederForm.field.phoneRequired");
+    }
+    if (!facebook.trim()) {
+      nextErrors.facebook = t(lang, "breederForm.field.facebookRequired");
+    }
+    if (!zalo.trim()) {
+      nextErrors.zalo = t(lang, "breederForm.field.zaloRequired");
+    }
+    if (primarySpecies.length === 0) {
+      nextErrors.species = t(lang, "breederForm.field.speciesRequired");
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      return;
+    }
+    setFieldErrors({});
     if (
       !commitments.includes("accurate_information") ||
       !commitments.includes("app_only_verification")
@@ -213,53 +284,111 @@ export function BreederProfileForm({
           {t(lang, breederStatusLabel(status))}
         </p>
       ) : null}
+      {status === "rejected" && (rejectionReason || rejectionAction || rejectionNote) ? (
+        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-900">
+          <p className="font-semibold">{t(lang, "breederForm.rejectionBannerTitle")}</p>
+          {rejectionReason ? (
+            <p className="mt-2">
+              <span className="font-medium">{t(lang, "breederForm.rejectionReason")}: </span>
+              {rejectionReason}
+            </p>
+          ) : null}
+          {rejectionAction ? (
+            <p className="mt-1.5">
+              <span className="font-medium">{t(lang, "breederForm.rejectionAction")}: </span>
+              {rejectionAction}
+            </p>
+          ) : null}
+          {rejectionNote ? (
+            <p className="mt-1.5">
+              <span className="font-medium">{t(lang, "breederForm.rejectionNote")}: </span>
+              {rejectionNote}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-5">
+      <form onSubmit={onSubmit} noValidate className="mt-6 space-y-5">
         <div>
-          <label className={labelCls}>{t(lang, "breederForm.displayName")}</label>
+          <label className={labelCls}>
+            {t(lang, "breederForm.displayName")}
+            <RequiredMark />
+          </label>
           <input
-            className={inputCls}
+            className={`${inputCls} ${fieldErrors.displayName ? inputErrorCls : ""}`}
             value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            required
+            onChange={(e) => {
+              setDisplayName(e.target.value);
+              clearFieldError("displayName");
+            }}
+            aria-invalid={Boolean(fieldErrors.displayName)}
           />
+          <FieldError message={fieldErrors.displayName} />
         </div>
         <div>
-          <label className={labelCls}>{t(lang, "breederForm.location")}</label>
+          <label className={labelCls}>
+            {t(lang, "breederForm.location")}
+            <RequiredMark />
+          </label>
           <input
-            className={inputCls}
+            className={`${inputCls} ${fieldErrors.location ? inputErrorCls : ""}`}
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            required
+            onChange={(e) => {
+              setLocation(e.target.value);
+              clearFieldError("location");
+            }}
+            aria-invalid={Boolean(fieldErrors.location)}
           />
+          <FieldError message={fieldErrors.location} />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className={labelCls}>{t(lang, "breederForm.phone")}</label>
+            <label className={labelCls}>
+              {t(lang, "breederForm.phone")}
+              <RequiredMark />
+            </label>
             <input
-              className={inputCls}
+              className={`${inputCls} ${fieldErrors.phone ? inputErrorCls : ""}`}
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
+              onChange={(e) => {
+                setPhone(e.target.value);
+                clearFieldError("phone");
+              }}
+              aria-invalid={Boolean(fieldErrors.phone)}
             />
+            <FieldError message={fieldErrors.phone} />
           </div>
           <div>
-            <label className={labelCls}>{t(lang, "breederForm.facebook")}</label>
+            <label className={labelCls}>
+              {t(lang, "breederForm.facebook")}
+              <RequiredMark />
+            </label>
             <input
-              className={inputCls}
+              className={`${inputCls} ${fieldErrors.facebook ? inputErrorCls : ""}`}
               value={facebook}
-              onChange={(e) => setFacebook(e.target.value)}
-              required
+              onChange={(e) => {
+                setFacebook(e.target.value);
+                clearFieldError("facebook");
+              }}
+              aria-invalid={Boolean(fieldErrors.facebook)}
             />
+            <FieldError message={fieldErrors.facebook} />
           </div>
           <div>
-            <label className={labelCls}>{t(lang, "breederForm.zalo")}</label>
+            <label className={labelCls}>
+              {t(lang, "breederForm.zalo")}
+              <RequiredMark />
+            </label>
             <input
-              className={inputCls}
+              className={`${inputCls} ${fieldErrors.zalo ? inputErrorCls : ""}`}
               value={zalo}
-              onChange={(e) => setZalo(e.target.value)}
-              required
+              onChange={(e) => {
+                setZalo(e.target.value);
+                clearFieldError("zalo");
+              }}
+              aria-invalid={Boolean(fieldErrors.zalo)}
             />
+            <FieldError message={fieldErrors.zalo} />
           </div>
         </div>
 
@@ -305,7 +434,10 @@ export function BreederProfileForm({
         ) : null}
 
         <div>
-          <p className={labelCls}>{t(lang, "breederForm.species")}</p>
+          <p className={labelCls}>
+            {t(lang, "breederForm.species")}
+            <RequiredMark />
+          </p>
           <div className="flex flex-wrap gap-2">
             {SPECIES_OPTIONS.map((sp) => {
               const on = primarySpecies.includes(sp);
@@ -313,7 +445,10 @@ export function BreederProfileForm({
                 <button
                   key={sp}
                   type="button"
-                  onClick={() => setPrimarySpecies(toggle(primarySpecies, sp))}
+                  onClick={() => {
+                    setPrimarySpecies(toggle(primarySpecies, sp));
+                    clearFieldError("species");
+                  }}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
                     on
                       ? "bg-[#D97706] text-white border-[#D97706]"
@@ -325,6 +460,7 @@ export function BreederProfileForm({
               );
             })}
           </div>
+          <FieldError message={fieldErrors.species} />
         </div>
 
         <div>

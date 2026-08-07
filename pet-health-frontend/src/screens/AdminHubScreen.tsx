@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { listAdminActionLogs } from '../api';
 import { AdminHealthEvidencePreview } from '../components/AdminHealthEvidencePreview';
-import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
+import { AdminRejectBreederModal } from '../components/AdminRejectBreederModal';
+import type { AccountProfile, AdminActionLog, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 import {
   adminBreederPenaltySummary,
   adminReportReasonLabel,
@@ -13,7 +15,35 @@ import { confirmAdminModeration } from '../utils/adminConfirmModeration';
 
 const ROLE_OPTIONS: UserRole[] = ['sen', 'breeder', 'admin'];
 
+const HISTORY_ACTION_FILTERS = [
+  'all',
+  'breeder.verify',
+  'breeder.reject',
+  'breeder.suspend',
+  'post.approve',
+  'post.archive',
+  'report.review',
+  'report.dismiss',
+  'account.create',
+  'account.update',
+  'feature_flags.update',
+  'announcement.create',
+  'announcement.update',
+  'pet.create',
+  'pet.update',
+  'care_record.create',
+  'care_record.update',
+  'care_record.delete',
+] as const;
+
+type BreederStatusOptions = {
+  rejectionReason?: string;
+  adminAction?: string;
+  adminNote?: string;
+};
+
 type AdminHubScreenProps = {
+  token: string | null;
   accounts: AccountProfile[];
   breederProfiles: BreederProfile[];
   posts: PetFeedPost[];
@@ -23,7 +53,7 @@ type AdminHubScreenProps = {
   onRefresh: () => void;
   onCreateAccount: (payload: { email: string; password: string; displayName: string; primaryRole: UserRole }) => Promise<void>;
   onOpenUser: (account: AccountProfile) => void;
-  onUpdateBreederStatus: (userId: string, status: string) => Promise<void>;
+  onUpdateBreederStatus: (userId: string, status: string, options?: BreederStatusOptions) => Promise<void>;
   onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
 };
@@ -36,7 +66,14 @@ function notifyUser(title: string, message: string) {
   Alert.alert(title, message);
 }
 
+function formatLogTime(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
 export function AdminHubScreen({
+  token,
   accounts,
   breederProfiles,
   posts,
@@ -51,13 +88,20 @@ export function AdminHubScreen({
   onUpdateReportStatus,
 }: AdminHubScreenProps) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<'users' | 'moderation'>('users');
+  const [tab, setTab] = useState<'users' | 'moderation' | 'history'>('users');
   const [search, setSearch] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('sen');
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [rejectUserId, setRejectUserId] = useState<string | null>(null);
+  const [actionLogs, setActionLogs] = useState<AdminActionLog[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<(typeof HISTORY_ACTION_FILTERS)[number]>('all');
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyCursor, setHistoryCursor] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState('');
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   const filteredAccounts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -77,6 +121,48 @@ export function AdminHubScreen({
     () => breederProfiles.filter((profile) => profile.verification_status === 'pending_review'),
     [breederProfiles],
   );
+
+  const actionLabel = useCallback(
+    (action: string) => {
+      const key = `adminHub.history.actions.${action}`;
+      const translated = t(key);
+      return translated === key ? action : translated;
+    },
+    [t],
+  );
+
+  const loadHistory = useCallback(
+    async (options: { append?: boolean; cursor?: string | null } = {}) => {
+      if (!token) {
+        setHistoryError(t('adminHub.history.missingToken'));
+        return;
+      }
+      setHistoryLoading(true);
+      setHistoryError('');
+      try {
+        const response = await listAdminActionLogs(token, {
+          action: historyFilter === 'all' ? undefined : historyFilter,
+          cursor: options.cursor ?? null,
+          limit: 30,
+        });
+        const rows = Array.isArray(response.data) ? response.data : [];
+        setActionLogs((prev) => (options.append ? [...prev, ...rows] : rows));
+        setHistoryCursor(response.next_cursor ?? null);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : t('common.unknownError');
+        setHistoryError(message);
+        if (!options.append) setActionLogs([]);
+      } finally {
+        setHistoryLoading(false);
+      }
+    },
+    [historyFilter, t, token],
+  );
+
+  useEffect(() => {
+    if (tab !== 'history') return;
+    void loadHistory();
+  }, [tab, historyFilter, loadHistory]);
 
   async function handleCreateAccount() {
     await onCreateAccount({
@@ -111,13 +197,23 @@ export function AdminHubScreen({
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </Pressable>
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('adminHub.title')}</Text>
-        <Pressable className="w-14 items-center rounded-lg p-2" onPress={onRefresh} disabled={loading}>
-          <Ionicons name="refresh-outline" size={22} color={loading ? '#93c5fd' : '#2563eb'} />
+        <Pressable
+          className="w-14 items-center rounded-lg p-2"
+          onPress={() => {
+            if (tab === 'history') {
+              void loadHistory();
+              return;
+            }
+            onRefresh();
+          }}
+          disabled={loading || historyLoading}
+        >
+          <Ionicons name="refresh-outline" size={22} color={loading || historyLoading ? '#93c5fd' : '#2563eb'} />
         </Pressable>
       </View>
 
       <View className="mx-5 mt-4 flex-row rounded-xl border border-gray-200 bg-white p-1">
-        {(['users', 'moderation'] as const).map((key) => (
+        {(['users', 'moderation', 'history'] as const).map((key) => (
           <Pressable key={key} className={`flex-1 rounded-lg py-2.5 ${tab === key ? 'bg-blue-600' : ''}`} onPress={() => setTab(key)}>
             <Text className={`text-center text-xs font-bold ${tab === key ? 'text-white' : 'text-slate-600'}`}>{t(`adminHub.tabs.${key}`)}</Text>
           </Pressable>
@@ -161,7 +257,9 @@ export function AdminHubScreen({
               ))}
             </View>
           </>
-        ) : (
+        ) : null}
+
+        {tab === 'moderation' ? (
           <>
             <Text className="text-base font-bold text-slate-900">{t('adminReview.pendingPosts')}</Text>
             <View className="mt-3 gap-3">
@@ -220,7 +318,7 @@ export function AdminHubScreen({
                         accessibilityRole="button"
                         className="min-w-[96px] flex-1 rounded-xl bg-amber-600 py-3 active:opacity-90"
                         disabled={Boolean(busyKey)}
-                        onPress={() => void runAction(`breeder-reject-${profile.id}`, () => onUpdateBreederStatus(profile.user_id, 'rejected'), t('adminReview.rejectSuccess'))}
+                        onPress={() => setRejectUserId(profile.user_id)}
                       >
                         <Text pointerEvents="none" className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
                       </Pressable>
@@ -262,8 +360,110 @@ export function AdminHubScreen({
               ))}
             </View>
           </>
-        )}
+        ) : null}
+
+        {tab === 'history' ? (
+          <>
+            <Text className="text-base font-bold text-slate-900">{t('adminHub.history.title')}</Text>
+            <Text className="mt-1 text-sm text-slate-500">{t('adminHub.history.subtitle')}</Text>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3" contentContainerStyle={{ gap: 8 }}>
+              {HISTORY_ACTION_FILTERS.map((value) => (
+                <Pressable
+                  key={value}
+                  className={`rounded-full px-3 py-2 ${historyFilter === value ? 'bg-blue-600' : 'bg-white border border-gray-200'}`}
+                  onPress={() => setHistoryFilter(value)}
+                >
+                  <Text className={`text-xs font-bold ${historyFilter === value ? 'text-white' : 'text-slate-700'}`}>
+                    {value === 'all' ? t('adminHub.history.filterAll') : actionLabel(value)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {historyError ? (
+              <Text className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{historyError}</Text>
+            ) : null}
+
+            <View className="mt-3 gap-3">
+              {!historyLoading && actionLogs.length === 0 ? (
+                <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">{t('adminHub.history.empty')}</Text>
+              ) : null}
+              {actionLogs.map((log) => {
+                const open = expandedLogId === log.id;
+                return (
+                  <Pressable
+                    key={log.id}
+                    className="rounded-2xl border border-gray-200 bg-white p-4"
+                    onPress={() => setExpandedLogId(open ? null : log.id)}
+                  >
+                    <Text className="text-sm font-bold text-slate-900">{actionLabel(log.action)}</Text>
+                    <Text className="mt-1 text-xs text-slate-500">
+                      {log.actor_display_name ||
+                        (log.actor_via_secret ? t('adminHub.history.viaSecret') : t('adminHub.history.unknownActor'))}
+                      {' · '}
+                      {formatLogTime(log.created_at)}
+                    </Text>
+                    {log.target_id ? (
+                      <Text className="mt-1 text-xs text-slate-500">
+                        {t('adminHub.history.target')}: {log.target_type}/{log.target_id}
+                      </Text>
+                    ) : null}
+                    {open ? (
+                      <View className="mt-3 gap-2">
+                        <Text className="text-xs font-semibold uppercase text-slate-500">{t('adminHub.history.before')}</Text>
+                        <Text className="rounded-xl bg-slate-50 p-2 font-mono text-[11px] text-slate-700">
+                          {JSON.stringify(log.before_state || {}, null, 2)}
+                        </Text>
+                        <Text className="text-xs font-semibold uppercase text-slate-500">{t('adminHub.history.after')}</Text>
+                        <Text className="rounded-xl bg-slate-50 p-2 font-mono text-[11px] text-slate-700">
+                          {JSON.stringify(log.after_state || {}, null, 2)}
+                        </Text>
+                        {Object.keys(log.metadata || {}).length > 0 ? (
+                          <>
+                            <Text className="text-xs font-semibold uppercase text-slate-500">{t('adminHub.history.metadata')}</Text>
+                            <Text className="rounded-xl bg-slate-50 p-2 font-mono text-[11px] text-slate-700">
+                              {JSON.stringify(log.metadata || {}, null, 2)}
+                            </Text>
+                          </>
+                        ) : null}
+                      </View>
+                    ) : (
+                      <Text className="mt-2 text-xs font-semibold text-blue-600">{t('adminHub.history.showDetails')}</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {historyLoading ? <Text className="mt-3 text-center text-sm text-slate-500">{t('adminHub.history.loading')}</Text> : null}
+            {historyCursor ? (
+              <Pressable
+                className="mt-3 rounded-xl border border-blue-200 bg-white py-3"
+                disabled={historyLoading}
+                onPress={() => void loadHistory({ append: true, cursor: historyCursor })}
+              >
+                <Text className="text-center text-sm font-bold text-blue-600">{t('adminHub.history.loadMore')}</Text>
+              </Pressable>
+            ) : null}
+          </>
+        ) : null}
       </ScrollView>
+      <AdminRejectBreederModal
+        visible={Boolean(rejectUserId)}
+        submitting={Boolean(busyKey)}
+        onClose={() => setRejectUserId(null)}
+        onSubmit={async (payload) => {
+          if (!rejectUserId) return;
+          const userId = rejectUserId;
+          setRejectUserId(null);
+          await runAction(
+            `breeder-reject-${userId}`,
+            () => onUpdateBreederStatus(userId, 'rejected', payload),
+            t('adminReview.rejectSuccess'),
+          );
+        }}
+      />
     </View>
   );
 }

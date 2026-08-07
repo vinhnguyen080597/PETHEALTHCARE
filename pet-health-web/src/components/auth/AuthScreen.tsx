@@ -15,6 +15,7 @@ import {
   resolveForgotError,
   resolveOtpError,
 } from "@/lib/authErrors";
+import { LoadingPopup } from "@/components/ui/LoadingPopup";
 
 const AUTH_HERO = "/images/auth-dog-cat.jpg";
 
@@ -66,7 +67,20 @@ function EyeIcon({ open }: { open: boolean }) {
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1.5 text-xs font-medium text-red-600">{message}</p>;
+  return (
+    <p className="mt-1.5 text-xs font-medium text-red-600" role="alert">
+      {message}
+    </p>
+  );
+}
+
+function RequiredMark() {
+  return (
+    <span className="text-red-500 font-semibold" aria-hidden>
+      {" "}
+      *
+    </span>
+  );
 }
 
 function mapOAuthQueryError(lang: Lang, raw: string) {
@@ -135,6 +149,8 @@ export function AuthScreen({
     newPassword?: string;
   }>({});
   const [loading, setLoading] = useState(false);
+  /** Modal popup while auth API runs; stays until soft-nav leaves this page. */
+  const [authBusyPopup, setAuthBusyPopup] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingPassword, setPendingPassword] = useState("");
 
@@ -178,17 +194,17 @@ export function AuthScreen({
       return;
     }
     setOauthBusy(provider);
+    setAuthBusyPopup(true);
     setError("");
     setSuccess("");
     try {
       window.location.assign(
         `/api/auth/oauth/start?provider=${provider}&next=${encodeURIComponent(next)}`,
       );
-      return;
     } catch (err) {
-      setError(err instanceof Error ? err.message : t(lang, "auth.oauth.failed"));
-    } finally {
+      setAuthBusyPopup(false);
       setOauthBusy(null);
+      setError(err instanceof Error ? err.message : t(lang, "auth.oauth.failed"));
     }
   };
 
@@ -203,10 +219,26 @@ export function AuthScreen({
     setStep("otp");
   };
 
+  const clearFieldError = (key: keyof typeof fieldErrors) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
   const onLoginOrSignup = async (e: FormEvent) => {
     e.preventDefault();
     const nextFieldErrors: typeof fieldErrors = {};
-    if (!email.trim()) nextFieldErrors.email = t(lang, "auth.field.emailRequired");
+    if (!email.trim()) {
+      nextFieldErrors.email = t(
+        lang,
+        tab === "login" ? "auth.field.emailOrLoginRequired" : "auth.field.emailRequired",
+      );
+    } else if (tab === "register" && !isValidEmail(email)) {
+      nextFieldErrors.email = t(lang, "auth.field.emailInvalid");
+    }
     if (!password) nextFieldErrors.password = t(lang, "auth.field.passwordRequired");
     if (tab === "register") {
       if (!confirmPassword) {
@@ -228,16 +260,12 @@ export function AuthScreen({
       setError("");
       return;
     }
-    if (tab === "register" && !isValidEmail(email)) {
-      setFieldErrors({});
-      setError(t(lang, "auth.errors.invalidEmailFormat"));
-      return;
-    }
 
     setLoading(true);
     setError("");
     setSuccess("");
     setFieldErrors({});
+    if (tab === "login") setAuthBusyPopup(true);
     try {
       if (tab === "register") {
         const signUpEmail = email.trim();
@@ -273,11 +301,13 @@ export function AuthScreen({
           });
           const resendData = await readJson(resend);
           if (!resend.ok) {
+            setAuthBusyPopup(false);
             setError(
               resolveAuthError(lang, true, resendData, resend.status),
             );
             return;
           }
+          setAuthBusyPopup(false);
           goToOtp(email.trim(), password);
           return;
         }
@@ -287,9 +317,11 @@ export function AuthScreen({
           payload: data,
         });
       }
+      setAuthBusyPopup(true);
       router.push(next);
       router.refresh();
     } catch (err) {
+      setAuthBusyPopup(false);
       const payload =
         err && typeof err === "object" && "payload" in err
           ? (err as { payload: { error?: string; code?: string; message?: string } }).payload
@@ -322,6 +354,7 @@ export function AuthScreen({
     }
 
     setLoading(true);
+    setAuthBusyPopup(true);
     setError("");
     setFieldErrors({});
     try {
@@ -337,12 +370,14 @@ export function AuthScreen({
       });
       const data = await readJson(res);
       if (!res.ok) {
+        setAuthBusyPopup(false);
         setError(resolveOtpError(lang, data));
         return;
       }
       router.push(next);
       router.refresh();
     } catch (err) {
+      setAuthBusyPopup(false);
       setError(err instanceof Error ? err.message : t(lang, "auth.otpError"));
     } finally {
       setLoading(false);
@@ -357,8 +392,8 @@ export function AuthScreen({
       return;
     }
     if (!isValidEmail(email)) {
-      setError(t(lang, "auth.errors.invalidEmailFormat"));
-      setFieldErrors({});
+      setFieldErrors({ email: t(lang, "auth.field.emailInvalid") });
+      setError("");
       return;
     }
     setLoading(true);
@@ -430,6 +465,7 @@ export function AuthScreen({
         return;
       }
       if (data.data?.hasSession) {
+        setAuthBusyPopup(true);
         router.push(next);
         router.refresh();
         return;
@@ -486,6 +522,9 @@ export function AuthScreen({
 
   return (
     <div className="bg-[#FDFBF7] text-[#2B1E19]">
+      {authBusyPopup ? (
+        <LoadingPopup label={t(lang, "common.loading")} />
+      ) : null}
       <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6 lg:py-8">
         <div className="lg:grid lg:grid-cols-2 lg:min-h-[calc(100vh-7.5rem)] lg:rounded-2xl lg:overflow-hidden lg:border lg:border-[#F0E6D8] lg:bg-white/40 lg:shadow-[0_20px_50px_-28px_rgba(180,83,9,0.35)]">
           {brandPanel}
@@ -599,19 +638,24 @@ export function AuthScreen({
                       <div className="flex-1 h-px bg-[#F0E6D8]" />
                     </div>
 
-                    <form onSubmit={onLoginOrSignup} className="space-y-4">
+                    <form onSubmit={onLoginOrSignup} noValidate className="space-y-4">
                       <div>
                         <label className="block text-xs font-medium text-[#6E5A51] mb-1.5">
                           {tab === "login"
                             ? t(lang, "auth.emailOrLogin")
                             : t(lang, "auth.email")}
+                          <RequiredMark />
                         </label>
                         <input
                           type={tab === "register" ? "email" : "text"}
                           autoCapitalize="none"
                           autoComplete={tab === "register" ? "email" : "username"}
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            clearFieldError("email");
+                          }}
+                          aria-invalid={Boolean(fieldErrors.email)}
                           className={`${inputCls} ${fieldErrors.email ? inputErrorCls : ""}`}
                           placeholder={
                             tab === "login"
@@ -625,12 +669,17 @@ export function AuthScreen({
                       <div>
                         <label className="block text-xs font-medium text-[#6E5A51] mb-1.5">
                           {t(lang, "auth.password")}
+                          <RequiredMark />
                         </label>
                         <div className="relative">
                           <input
                             type={showPassword ? "text" : "password"}
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={(e) => {
+                              setPassword(e.target.value);
+                              clearFieldError("password");
+                            }}
+                            aria-invalid={Boolean(fieldErrors.password)}
                             className={`${inputCls} pr-11 ${fieldErrors.password ? inputErrorCls : ""}`}
                             autoComplete={
                               tab === "login" ? "current-password" : "new-password"
@@ -662,12 +711,17 @@ export function AuthScreen({
                         <div>
                           <label className="block text-xs font-medium text-[#6E5A51] mb-1.5">
                             {t(lang, "auth.confirmPassword")}
+                            <RequiredMark />
                           </label>
                           <div className="relative">
                             <input
                               type={showConfirmPassword ? "text" : "password"}
                               value={confirmPassword}
-                              onChange={(e) => setConfirmPassword(e.target.value)}
+                              onChange={(e) => {
+                                setConfirmPassword(e.target.value);
+                                clearFieldError("confirmPassword");
+                              }}
+                              aria-invalid={Boolean(fieldErrors.confirmPassword)}
                               className={`${inputCls} pr-11 ${fieldErrors.confirmPassword ? inputErrorCls : ""}`}
                               autoComplete="new-password"
                             />
@@ -738,6 +792,7 @@ export function AuthScreen({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     onSubmit={onVerifyOtp}
+                    noValidate
                     className="space-y-4"
                   >
                     <h2 className="font-display text-2xl font-semibold text-[#2B1E19]">
@@ -759,12 +814,17 @@ export function AuthScreen({
 
                     <div>
                       <label className="block text-xs font-medium text-[#6E5A51] mb-1.5">
-                        {t(lang, "auth.displayName")} *
+                        {t(lang, "auth.displayName")}
+                        <RequiredMark />
                       </label>
                       <input
                         value={displayName}
                         maxLength={160}
-                        onChange={(e) => setDisplayName(e.target.value)}
+                        onChange={(e) => {
+                          setDisplayName(e.target.value);
+                          clearFieldError("displayName");
+                        }}
+                        aria-invalid={Boolean(fieldErrors.displayName)}
                         className={`${inputCls} ${fieldErrors.displayName ? inputErrorCls : ""}`}
                         placeholder={t(lang, "auth.displayNamePlaceholder")}
                         autoComplete="name"
@@ -780,15 +840,18 @@ export function AuthScreen({
 
                     <div>
                       <label className="block text-xs font-medium text-[#6E5A51] mb-1.5">
-                        {t(lang, "auth.otp")} *
+                        {t(lang, "auth.otp")}
+                        <RequiredMark />
                       </label>
                       <input
                         inputMode="numeric"
                         maxLength={SIGNUP_OTP_LENGTH}
                         value={otp}
-                        onChange={(e) =>
-                          setOtp(e.target.value.replace(/\D/g, "").slice(0, SIGNUP_OTP_LENGTH))
-                        }
+                        onChange={(e) => {
+                          setOtp(e.target.value.replace(/\D/g, "").slice(0, SIGNUP_OTP_LENGTH));
+                          clearFieldError("otp");
+                        }}
+                        aria-invalid={Boolean(fieldErrors.otp)}
                         className={`${inputCls} ${fieldErrors.otp ? inputErrorCls : ""}`}
                         placeholder={t(lang, "auth.otpPlaceholder")}
                         autoComplete="one-time-code"
@@ -832,6 +895,7 @@ export function AuthScreen({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     onSubmit={onForgotSend}
+                    noValidate
                     className="space-y-4"
                   >
                     <h2 className="font-display text-2xl font-semibold text-[#2B1E19]">
@@ -846,11 +910,16 @@ export function AuthScreen({
                     <div>
                       <label className="block text-xs font-medium text-[#6E5A51] mb-1.5">
                         {t(lang, "auth.email")}
+                        <RequiredMark />
                       </label>
                       <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          clearFieldError("email");
+                        }}
+                        aria-invalid={Boolean(fieldErrors.email)}
                         className={`${inputCls} ${fieldErrors.email ? inputErrorCls : ""}`}
                         autoComplete="email"
                       />
@@ -885,6 +954,7 @@ export function AuthScreen({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     onSubmit={onForgotApply}
+                    noValidate
                     className="space-y-4"
                   >
                     <h2 className="font-display text-2xl font-semibold text-[#2B1E19]">
@@ -907,14 +977,17 @@ export function AuthScreen({
                     <div>
                       <label className="block text-xs font-medium text-[#6E5A51] mb-1.5">
                         {t(lang, "auth.otp")}
+                        <RequiredMark />
                       </label>
                       <input
                         inputMode="numeric"
                         maxLength={SIGNUP_OTP_LENGTH}
                         value={otp}
-                        onChange={(e) =>
-                          setOtp(e.target.value.replace(/\D/g, "").slice(0, SIGNUP_OTP_LENGTH))
-                        }
+                        onChange={(e) => {
+                          setOtp(e.target.value.replace(/\D/g, "").slice(0, SIGNUP_OTP_LENGTH));
+                          clearFieldError("otp");
+                        }}
+                        aria-invalid={Boolean(fieldErrors.otp)}
                         className={`${inputCls} ${fieldErrors.otp ? inputErrorCls : ""}`}
                         autoComplete="one-time-code"
                       />
@@ -923,11 +996,16 @@ export function AuthScreen({
                     <div>
                       <label className="block text-xs font-medium text-[#6E5A51] mb-1.5">
                         {t(lang, "auth.forgot.newPassword")}
+                        <RequiredMark />
                       </label>
                       <input
                         type="password"
                         value={forgotNewPassword}
-                        onChange={(e) => setForgotNewPassword(e.target.value)}
+                        onChange={(e) => {
+                          setForgotNewPassword(e.target.value);
+                          clearFieldError("newPassword");
+                        }}
+                        aria-invalid={Boolean(fieldErrors.newPassword)}
                         className={`${inputCls} ${fieldErrors.newPassword ? inputErrorCls : ""}`}
                         autoComplete="new-password"
                       />
@@ -936,11 +1014,16 @@ export function AuthScreen({
                     <div>
                       <label className="block text-xs font-medium text-[#6E5A51] mb-1.5">
                         {t(lang, "auth.forgot.confirmPassword")}
+                        <RequiredMark />
                       </label>
                       <input
                         type="password"
                         value={forgotConfirmPassword}
-                        onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                        onChange={(e) => {
+                          setForgotConfirmPassword(e.target.value);
+                          clearFieldError("confirmPassword");
+                        }}
+                        aria-invalid={Boolean(fieldErrors.confirmPassword)}
                         className={`${inputCls} ${fieldErrors.confirmPassword ? inputErrorCls : ""}`}
                         autoComplete="new-password"
                       />

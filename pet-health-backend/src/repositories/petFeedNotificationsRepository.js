@@ -1,10 +1,23 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
+import { listAdminUserIds } from './accountRepository.js';
 import { getPetFeedPost } from './petFeedRepository.js';
 
 const memoryNotifications = [];
 const DEFAULT_NOTIFICATION_LIMIT = 50;
 const MAX_NOTIFICATION_LIMIT = 100;
+
+const BREEDER_NOTIFICATION_TYPES = new Set(['breeder_verified', 'breeder_rejected']);
+const ADMIN_NOTIFICATION_TYPES = new Set([
+  'admin_breeder_pending',
+  'admin_listing_pending',
+  'admin_report_open',
+]);
+const ADMIN_DEFAULT_CTA = {
+  admin_breeder_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=breeder' },
+  admin_listing_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=post' },
+  admin_report_open: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=report' },
+};
 
 function getNotificationsSupabase(accessToken) {
   return getSupabaseServiceClient() ?? createSupabaseWithUserAccessToken(accessToken);
@@ -24,6 +37,25 @@ function listThumbFromPost(post) {
   return media[0] || null;
 }
 
+function normalizeMetadata(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return { ...value };
+}
+
+async function loadBreederProfileLite(profileId) {
+  const safeId = trimText(profileId, 64);
+  if (!safeId) return null;
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .select('id, display_name, avatar_url')
+    .eq('id', safeId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 async function authorDisplayNamesForUserIds(userIds) {
   const unique = [...new Set(userIds.filter(Boolean))];
   if (unique.length === 0) return new Map();
@@ -38,30 +70,77 @@ async function authorDisplayNamesForUserIds(userIds) {
 
 function toNotification(row, extras = {}) {
   if (!row) return row;
+  const metadata = normalizeMetadata(row.metadata);
   return {
     id: row.id,
     recipient_user_id: row.recipient_user_id,
     actor_user_id: row.actor_user_id,
-    post_id: row.post_id,
-    comment_id: row.comment_id,
+    post_id: row.post_id ?? null,
+    comment_id: row.comment_id ?? null,
+    breeder_profile_id: row.breeder_profile_id ?? null,
     type: row.type || 'post_comment',
     body_preview: row.body_preview ?? '',
+    metadata,
     created_at: row.created_at,
     read_at: row.read_at ?? null,
     is_unread: !row.read_at,
     actor_display_name: extras.actor_display_name ?? 'Pet Health user',
     post_title: extras.post_title ?? '',
     post_thumb_url: extras.post_thumb_url ?? null,
+    breeder_display_name: extras.breeder_display_name ?? '',
+    cta_label: extras.cta_label ?? metadata.cta_label ?? '',
+    rejection_reason: extras.rejection_reason ?? metadata.rejection_reason ?? '',
+    admin_action: extras.admin_action ?? metadata.admin_action ?? '',
+    admin_note: extras.admin_note ?? metadata.admin_note ?? '',
   };
 }
 
 async function enrichNotification(row, accessToken) {
-  const [names, post] = await Promise.all([
-    authorDisplayNamesForUserIds([row.actor_user_id]),
-    getPetFeedPost(row.recipient_user_id, row.post_id, accessToken).catch(() => null),
-  ]);
+  const names = await authorDisplayNamesForUserIds([row.actor_user_id]);
+  const actorName = names.get(row.actor_user_id) || 'Pet Health user';
+  const type = row.type || 'post_comment';
+
+  if (BREEDER_NOTIFICATION_TYPES.has(type)) {
+    let breederName = '';
+    let thumb = null;
+    if (row.breeder_profile_id) {
+      try {
+        const profile = await loadBreederProfileLite(row.breeder_profile_id);
+        breederName = trimText(profile?.display_name, 160);
+        thumb = typeof profile?.avatar_url === 'string' ? profile.avatar_url : null;
+      } catch {
+        // ignore enrichment failures
+      }
+    }
+    const metadata = normalizeMetadata(row.metadata);
+    return toNotification(row, {
+      actor_display_name: actorName,
+      breeder_display_name: breederName,
+      post_title: breederName,
+      post_thumb_url: thumb,
+      cta_label: metadata.cta_label || '',
+      rejection_reason: metadata.rejection_reason || '',
+      admin_action: metadata.admin_action || '',
+      admin_note: metadata.admin_note || '',
+    });
+  }
+
+  if (ADMIN_NOTIFICATION_TYPES.has(type)) {
+    const metadata = normalizeMetadata(row.metadata);
+    const defaults = ADMIN_DEFAULT_CTA[type] || ADMIN_DEFAULT_CTA.admin_breeder_pending;
+    return toNotification(row, {
+      actor_display_name: actorName,
+      post_title: trimText(metadata.title || metadata.request_title, 160),
+      post_thumb_url: typeof metadata.thumb_url === 'string' ? metadata.thumb_url : null,
+      cta_label: metadata.cta_label || defaults.label,
+    });
+  }
+
+  const post = row.post_id
+    ? await getPetFeedPost(row.recipient_user_id, row.post_id, accessToken).catch(() => null)
+    : null;
   return toNotification(row, {
-    actor_display_name: names.get(row.actor_user_id) || 'Pet Health user',
+    actor_display_name: actorName,
     post_title: post?.title ?? '',
     post_thumb_url: listThumbFromPost(post),
   });
@@ -92,8 +171,10 @@ export async function createPostCommentNotification({
     actor_user_id: actor,
     post_id: safePostId,
     comment_id: safeCommentId,
+    breeder_profile_id: null,
     type: 'post_comment',
     body_preview: trimText(bodyPreview, 160),
+    metadata: {},
     created_at: new Date().toISOString(),
     read_at: null,
   };
@@ -121,6 +202,124 @@ export async function createPostCommentNotification({
     throw error;
   }
   return enrichNotification(data, accessToken);
+}
+
+/**
+ * Notify a user when admin verifies or rejects their breeder application.
+ */
+export async function createBreederVerificationNotification({
+  recipientUserId,
+  actorUserId,
+  breederProfileId,
+  type,
+  bodyPreview,
+  metadata = {},
+  accessToken,
+}) {
+  const recipient = trimText(recipientUserId, 64);
+  const actor = trimText(actorUserId, 64) || 'admin';
+  const profileId = trimText(breederProfileId, 64);
+  const safeType = type === 'breeder_rejected' ? 'breeder_rejected' : 'breeder_verified';
+  if (!recipient || !profileId) return null;
+
+  const meta = normalizeMetadata(metadata);
+  const row = {
+    id: randomUUID(),
+    recipient_user_id: recipient,
+    actor_user_id: actor,
+    post_id: null,
+    comment_id: null,
+    breeder_profile_id: profileId,
+    type: safeType,
+    body_preview: trimText(bodyPreview, 220),
+    metadata: meta,
+    created_at: new Date().toISOString(),
+    read_at: null,
+  };
+
+  const supabase = getNotificationsSupabase(accessToken);
+  if (!supabase) {
+    memoryNotifications.push(row);
+    return enrichNotification(row, accessToken);
+  }
+
+  const { data, error } = await supabase.from('pet_feed_notifications').insert(row).select('*').single();
+  if (error) throw error;
+  return enrichNotification(data, accessToken);
+}
+
+/**
+ * Fan-out one notification row to every admin when a review queue item arrives.
+ * Skips the actor when they are also an admin.
+ */
+export async function createAdminRequestNotifications({
+  actorUserId,
+  type,
+  bodyPreview,
+  metadata = {},
+  postId = null,
+  breederProfileId = null,
+  accessToken,
+}) {
+  const safeType = ADMIN_NOTIFICATION_TYPES.has(type) ? type : '';
+  if (!safeType) return [];
+
+  const actor = trimText(actorUserId, 64);
+  const adminIds = await listAdminUserIds().catch(() => []);
+  const recipients = [...new Set(adminIds)].filter((id) => id && id !== actor);
+  if (!recipients.length) return [];
+
+  const defaults = ADMIN_DEFAULT_CTA[safeType] || ADMIN_DEFAULT_CTA.admin_breeder_pending;
+  const safePostId = trimText(postId, 64) || null;
+  const safeBreederId = trimText(breederProfileId, 64) || null;
+  const reportId = trimText(metadata?.report_id, 64) || null;
+
+  let ctaHref = trimText(metadata?.cta_href, 240) || defaults.href;
+  if (safeType === 'admin_breeder_pending' && safeBreederId) {
+    ctaHref = `/app/admin?section=requests&type=breeder&focus=${encodeURIComponent(safeBreederId)}`;
+  } else if (safeType === 'admin_listing_pending' && safePostId) {
+    ctaHref = `/app/admin?section=requests&type=post&focus=${encodeURIComponent(safePostId)}`;
+  } else if (safeType === 'admin_report_open' && reportId) {
+    ctaHref = `/app/admin?section=requests&type=report&focus=${encodeURIComponent(reportId)}`;
+  }
+
+  const meta = {
+    ...normalizeMetadata(metadata),
+    cta_label: trimText(metadata?.cta_label, 80) || defaults.label,
+    cta_href: ctaHref,
+    request_kind:
+      safeType === 'admin_breeder_pending'
+        ? 'breeder'
+        : safeType === 'admin_listing_pending'
+          ? 'listing'
+          : 'report',
+  };
+  const now = new Date().toISOString();
+  const preview = trimText(bodyPreview, 220);
+
+  const rows = recipients.map((recipientUserId) => ({
+    id: randomUUID(),
+    recipient_user_id: recipientUserId,
+    actor_user_id: actor || 'system',
+    post_id: safePostId,
+    comment_id: null,
+    breeder_profile_id: safeBreederId,
+    type: safeType,
+    body_preview: preview,
+    metadata: meta,
+    created_at: now,
+    read_at: null,
+  }));
+
+  const supabase = getNotificationsSupabase(accessToken);
+  if (!supabase) {
+    memoryNotifications.push(...rows);
+    return Promise.all(rows.map((row) => enrichNotification(row, accessToken)));
+  }
+
+  const { data, error } = await supabase.from('pet_feed_notifications').insert(rows).select('*');
+  if (error) throw error;
+  return Promise.all((data ?? []).map((row) => enrichNotification(row, accessToken)));
 }
 
 export async function listPetFeedNotifications(userId, accessToken, options = {}) {

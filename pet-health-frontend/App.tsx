@@ -476,6 +476,9 @@ function AppContent() {
                 onBack={app.closeNotificationsInbox}
                 onRefresh={app.refreshPetFeedNotifications}
                 onOpenNotification={app.openNotificationItem}
+                onOpenBreederProfile={() => {
+                  void app.openBreederProfile();
+                }}
               />
             ) : null}
 
@@ -612,6 +615,7 @@ function AppContent() {
 
             {app.screen === 'admin-hub' && (
               <AdminHubScreen
+                token={app.token}
                 accounts={app.adminAccounts}
                 breederProfiles={app.adminBreederProfiles}
                 posts={app.adminFeedPosts}

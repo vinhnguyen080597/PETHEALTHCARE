@@ -105,6 +105,23 @@ export async function listAdminAccounts(search = '') {
   return (data ?? []).map(toAccount);
 }
 
+/** User ids with primary_role = admin (service role). */
+export async function listAdminUserIds() {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    return memoryAccounts
+      .filter((account) => normalizeUserRole(account.primary_role, 'sen') === 'admin')
+      .map((account) => account.user_id)
+      .filter(Boolean);
+  }
+  const { data, error } = await supabase
+    .from('app_user_profiles')
+    .select('user_id')
+    .eq('primary_role', 'admin');
+  if (error) throw error;
+  return (data ?? []).map((row) => row.user_id).filter(Boolean);
+}
+
 export async function adminUpdateAccountProfile(userId, payload) {
   const existing = await getAccountProfile(userId);
   if (!existing) return null;

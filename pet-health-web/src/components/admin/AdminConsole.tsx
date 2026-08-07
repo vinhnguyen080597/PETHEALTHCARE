@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { AdminSection, Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
@@ -72,6 +73,42 @@ type AccountRow = {
   account_status?: string;
 };
 
+type ActionLogRow = {
+  id: string;
+  created_at?: string;
+  actor_user_id?: string | null;
+  actor_via_secret?: boolean;
+  actor_display_name?: string | null;
+  action?: string;
+  target_type?: string;
+  target_id?: string | null;
+  target_user_id?: string | null;
+  before_state?: Record<string, unknown>;
+  after_state?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+const HISTORY_ACTION_FILTERS = [
+  "all",
+  "breeder.verify",
+  "breeder.reject",
+  "breeder.suspend",
+  "post.approve",
+  "post.archive",
+  "report.review",
+  "report.dismiss",
+  "account.create",
+  "account.update",
+  "feature_flags.update",
+  "announcement.create",
+  "announcement.update",
+  "pet.create",
+  "pet.update",
+  "care_record.create",
+  "care_record.update",
+  "care_record.delete",
+] as const;
+
 type RequestType = "all" | "breeder" | "post" | "report";
 type RequestStatus = "all" | "waiting" | "approved" | "rejected" | "resolved";
 type DateFilter = "newest" | "oldest" | "today" | "week";
@@ -120,6 +157,7 @@ const navItems: { key: AdminSection; labelKey: EnKey; icon: string }[] = [
   { key: "listings", labelKey: "admin.nav.listings", icon: "◆" },
   { key: "breeders", labelKey: "admin.nav.breeders", icon: "◎" },
   { key: "reports", labelKey: "admin.nav.reports", icon: "!" },
+  { key: "history", labelKey: "admin.nav.history", icon: "☰" },
   { key: "users", labelKey: "admin.nav.users", icon: "◉" },
   { key: "features", labelKey: "admin.nav.features", icon: "⚑" },
   { key: "news", labelKey: "admin.nav.news", icon: "✎" },
@@ -300,6 +338,7 @@ function HealthEvidence({ lang, post }: { lang: Lang; post: PostRow }) {
 }
 
 export function AdminConsole({ lang }: { lang: Lang }) {
+  const searchParams = useSearchParams();
   const [section, setSection] = useState<AdminSection>("home");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [posts, setPosts] = useState<PostRow[]>([]);
@@ -311,6 +350,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [focusRequestId, setFocusRequestId] = useState<string | null>(null);
 
   const [requestType, setRequestType] = useState<RequestType>("all");
   const [requestStatus, setRequestStatus] = useState<RequestStatus>("waiting");
@@ -327,11 +367,24 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [newRole, setNewRole] = useState<(typeof ROLES)[number]>("sen");
 
   const [newsTitle, setNewsTitle] = useState("");
+  const [rejectTargetUserId, setRejectTargetUserId] = useState<string | null>(
+    null,
+  );
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectAction, setRejectAction] = useState("");
+  const [rejectNote, setRejectNote] = useState("");
+  const [rejectError, setRejectError] = useState("");
   const [newsBody, setNewsBody] = useState("");
   const [newsCategory, setNewsCategory] = useState<AnnouncementCategory>("general");
   const [newsCtaLabel, setNewsCtaLabel] = useState("");
   const [newsCtaUrl, setNewsCtaUrl] = useState("");
   const [newsPhotos, setNewsPhotos] = useState<File[]>([]);
+  const [actionLogs, setActionLogs] = useState<ActionLogRow[]>([]);
+  const [historyActionFilter, setHistoryActionFilter] =
+    useState<(typeof HISTORY_ACTION_FILTERS)[number]>("all");
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyCursor, setHistoryCursor] = useState<string | null>(null);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -368,6 +421,71 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const sectionParam = searchParams.get("section");
+    const typeParam = searchParams.get("type");
+    const focusParam = searchParams.get("focus");
+
+    const validSections = new Set(navItems.map((item) => item.key));
+    if (sectionParam && validSections.has(sectionParam as AdminSection)) {
+      setSection(sectionParam as AdminSection);
+    } else if (typeParam === "breeder" || typeParam === "post" || typeParam === "report") {
+      setSection("requests");
+    }
+
+    if (typeParam === "breeder" || typeParam === "post" || typeParam === "report") {
+      setRequestType(typeParam);
+      setRequestStatus("waiting");
+    }
+    if (focusParam) {
+      setFocusRequestId(focusParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!focusRequestId || loading || section !== "requests") return;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`admin-request-${focusRequestId}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [focusRequestId, loading, section, requestType, requestStatus]);
+
+  const loadHistory = async (opts?: { append?: boolean; cursor?: string | null }) => {
+    setHistoryLoading(true);
+    setError("");
+    try {
+      const qs = new URLSearchParams();
+      qs.set("limit", "40");
+      if (historyActionFilter !== "all") qs.set("action", historyActionFilter);
+      if (opts?.cursor) qs.set("cursor", opts.cursor);
+      const res = await adminFetch(`/action-logs?${qs.toString()}`);
+      const rows = Array.isArray(res.data) ? (res.data as ActionLogRow[]) : [];
+      setActionLogs((cur) => (opts?.append ? [...cur, ...rows] : rows));
+      setHistoryCursor(
+        typeof res.next_cursor === "string" ? res.next_cursor : null,
+      );
+    } catch (err) {
+      if (!opts?.append) setActionLogs([]);
+      setHistoryCursor(null);
+      const message = err instanceof Error ? err.message : t(lang, "common.error");
+      setError(
+        /404|HTML instead of JSON/i.test(message)
+          ? t(lang, "admin.history.apiUnavailable")
+          : message,
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (section !== "history") return;
+    void loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section, historyActionFilter]);
 
   const pendingPosts = posts.filter((p) => p.status === "pending_review");
   const pendingBreeders = breeders.filter((b) => b.verification_status === "pending_review");
@@ -529,29 +647,56 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       "admin.toast.updated",
     );
 
-  const updateBreeder = (userId: string, verificationStatus: string) =>
+  const updateBreeder = (
+    userId: string,
+    verificationStatus: string,
+    extras?: {
+      rejectionReason?: string;
+      adminAction?: string;
+      adminNote?: string;
+    },
+  ) =>
     runAction(
       `breeder-${userId}-${verificationStatus}`,
       () =>
         adminFetch(`/breeders/${userId}/status`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ verificationStatus }),
+          body: JSON.stringify({
+            verificationStatus,
+            ...(extras?.rejectionReason
+              ? { rejectionReason: extras.rejectionReason }
+              : {}),
+            ...(extras?.adminAction ? { adminAction: extras.adminAction } : {}),
+            ...(extras?.adminNote ? { adminNote: extras.adminNote } : {}),
+          }),
         }),
       "admin.toast.updated",
     );
 
-  const updateReport = (reportId: string, status: string) =>
-    runAction(
-      `report-${reportId}-${status}`,
-      () =>
-        adminFetch(`/reports/${reportId}/status`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        }),
-      "admin.toast.updated",
-    );
+  const openRejectBreeder = (userId: string) => {
+    setRejectTargetUserId(userId);
+    setRejectReason("");
+    setRejectAction("");
+    setRejectNote("");
+    setRejectError("");
+  };
+
+  const submitRejectBreeder = async () => {
+    if (!rejectTargetUserId) return;
+    const reason = rejectReason.trim();
+    if (!reason) {
+      setRejectError(t(lang, "admin.breeders.rejectReasonRequired"));
+      return;
+    }
+    const userId = rejectTargetUserId;
+    setRejectTargetUserId(null);
+    await updateBreeder(userId, "rejected", {
+      rejectionReason: reason,
+      adminAction: rejectAction.trim() || undefined,
+      adminNote: rejectNote.trim() || undefined,
+    });
+  };
 
   const updateAccountRole = (userId: string, primaryRole: string) =>
     runAction(
@@ -694,7 +839,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             label={t(lang, "admin.breeders.reject")}
             variant="ghost"
             disabled={busyKey !== null}
-            onClick={() => void updateBreeder(item.profile!.user_id!, "rejected")}
+            onClick={() => openRejectBreeder(item.profile!.user_id!)}
           />
         </div>
       );
@@ -837,10 +982,23 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               </div>
             </div>
             <div className="space-y-3">
-              {filteredRequests.map((item) => (
+              {filteredRequests.map((item) => {
+                const rawId =
+                  item.type === "breeder"
+                    ? item.profile?.id
+                    : item.type === "post"
+                      ? item.post?.id
+                      : item.report?.id;
+                const focused = Boolean(focusRequestId && rawId === focusRequestId);
+                return (
                 <div
                   key={item.id}
-                  className="bg-white rounded-2xl border border-[#E8DFD0] p-5"
+                  id={rawId ? `admin-request-${rawId}` : undefined}
+                  className={`bg-white rounded-2xl border p-5 transition-shadow ${
+                    focused
+                      ? "border-[#D97706] ring-2 ring-[#D97706]/25 shadow-sm"
+                      : "border-[#E8DFD0]"
+                  }`}
                 >
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <StatusChip
@@ -877,7 +1035,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   ) : null}
                   {renderRequestActions(item)}
                 </div>
-              ))}
+                );
+              })}
               {filteredRequests.length === 0 && (
                 <p className="text-sm text-[#8B7355]">{t(lang, "admin.requests.empty")}</p>
               )}
@@ -1052,7 +1211,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                             label={t(lang, "admin.breeders.reject")}
                             variant="ghost"
                             disabled={busyKey !== null}
-                            onClick={() => void updateBreeder(b.user_id!, "rejected")}
+                            onClick={() => openRejectBreeder(b.user_id!)}
                           />
                         ) : null}
                         {b.verification_status === "verified" ? (
@@ -1282,6 +1441,175 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             </div>
           </div>
         );
+
+      case "history": {
+        const actionLabel = (action: string) => {
+          const key = `admin.history.action.${action}` as EnKey;
+          const label = t(lang, key);
+          return label === key ? action : label;
+        };
+        const formatLogTime = (value?: string) => {
+          if (!value) return "—";
+          const date = new Date(value);
+          if (!Number.isFinite(date.getTime())) return value;
+          return date.toLocaleString(lang === "VI" ? "vi-VN" : "en-US", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        };
+        const summarizeChange = (log: ActionLogRow) => {
+          const before = log.before_state || {};
+          const after = log.after_state || {};
+          const action = log.action || "";
+          if (action.startsWith("account.")) {
+            const beforeRole = String(before.primary_role || "");
+            const afterRole = String(after.primary_role || "");
+            const name = String(after.display_name || before.display_name || "");
+            if (beforeRole || afterRole) {
+              return `${name ? `${name} · ` : ""}${beforeRole || "—"} → ${afterRole || "—"}`;
+            }
+            return name || log.target_id || "—";
+          }
+          if (action === "feature_flags.update") {
+            const keys = Array.isArray(log.metadata?.changed_keys)
+              ? (log.metadata?.changed_keys as string[])
+              : [];
+            return keys.length ? keys.join(", ") : "feature_flags";
+          }
+          if (action.startsWith("announcement.")) {
+            return String(after.title || before.title || log.target_id || "—");
+          }
+          const beforeStatus = String(before.verification_status || before.status || "");
+          const afterStatus = String(after.verification_status || after.status || "");
+          if (beforeStatus || afterStatus) {
+            return `${beforeStatus || "—"} → ${afterStatus || "—"}`;
+          }
+          const title = String(after.title || before.title || "");
+          return title || log.target_id || "—";
+        };
+        return (
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h1 className="text-xl font-bold text-[#2B1E19]">
+                {t(lang, "admin.history.title")}
+              </h1>
+              <ActionButton
+                label={t(lang, "admin.refresh")}
+                variant="ghost"
+                disabled={historyLoading}
+                onClick={() => void loadHistory()}
+              />
+            </div>
+            <p className="text-sm text-[#8B7355] mb-4">
+              {t(lang, "admin.history.subtitle")}
+            </p>
+            <div className="flex flex-wrap gap-3 mb-4">
+              <FilterSelect
+                label={t(lang, "admin.history.filterAction")}
+                value={historyActionFilter}
+                onChange={(value) =>
+                  setHistoryActionFilter(value as (typeof HISTORY_ACTION_FILTERS)[number])
+                }
+                options={HISTORY_ACTION_FILTERS.map((value) => ({
+                  value,
+                  label:
+                    value === "all"
+                      ? t(lang, "admin.history.filterAll")
+                      : actionLabel(value),
+                }))}
+              />
+            </div>
+            <div className="rounded-2xl border border-[#E8DFD0] bg-white overflow-hidden divide-y divide-[#F0E6D8]">
+              {actionLogs.map((log) => {
+                const open = expandedLogId === log.id;
+                const reason =
+                  typeof log.metadata?.rejection_reason === "string"
+                    ? log.metadata.rejection_reason
+                    : "";
+                return (
+                  <div key={log.id} className="p-4">
+                    <button
+                      type="button"
+                      className="w-full text-left"
+                      onClick={() => setExpandedLogId(open ? null : log.id)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[#2B1E19]">
+                            {actionLabel(log.action || "")}
+                          </p>
+                          <p className="mt-0.5 text-xs text-[#8B7355]">
+                            {log.actor_display_name ||
+                              (log.actor_via_secret
+                                ? t(lang, "admin.history.viaSecret")
+                                : t(lang, "admin.history.unknownActor"))}
+                            {" · "}
+                            {formatLogTime(log.created_at)}
+                          </p>
+                          <p className="mt-1 text-xs text-[#5C4A3A]">
+                            {summarizeChange(log)}
+                            {reason ? ` · ${reason}` : ""}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-xs font-semibold text-[#D97706]">
+                          {open
+                            ? t(lang, "admin.history.hideDetails")
+                            : t(lang, "admin.history.showDetails")}
+                        </span>
+                      </div>
+                    </button>
+                    {open ? (
+                      <div className="mt-3 grid gap-2 rounded-xl bg-[#FDFBF7] border border-[#F0E6D8] p-3 text-xs text-[#5C4A3A]">
+                        <p>
+                          <span className="font-semibold">{t(lang, "admin.history.target")}: </span>
+                          {log.target_type}
+                          {log.target_id ? ` / ${log.target_id}` : ""}
+                        </p>
+                        {log.target_user_id ? (
+                          <p>
+                            <span className="font-semibold">{t(lang, "admin.history.targetUser")}: </span>
+                            {log.target_user_id}
+                          </p>
+                        ) : null}
+                        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-white border border-[#E8DFD0] p-2">
+                          {JSON.stringify(
+                            {
+                              before: log.before_state,
+                              after: log.after_state,
+                              metadata: log.metadata,
+                            },
+                            null,
+                            2,
+                          )}
+                        </pre>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+              {!historyLoading && actionLogs.length === 0 ? (
+                <p className="p-5 text-sm text-[#8B7355]">{t(lang, "admin.empty")}</p>
+              ) : null}
+              {historyLoading ? (
+                <p className="p-5 text-sm text-[#8B7355]">{t(lang, "common.loading")}</p>
+              ) : null}
+            </div>
+            {historyCursor ? (
+              <div className="mt-4">
+                <ActionButton
+                  label={t(lang, "admin.history.loadMore")}
+                  variant="ghost"
+                  disabled={historyLoading}
+                  onClick={() => void loadHistory({ append: true, cursor: historyCursor })}
+                />
+              </div>
+            ) : null}
+          </div>
+        );
+      }
 
       case "features":
         return (
@@ -1561,6 +1889,69 @@ export function AdminConsole({ lang }: { lang: Lang }) {
           {renderSection()}
         </main>
       </div>
+      {rejectTargetUserId ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#2B1E19]/40 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#E8DFD0] bg-white p-5 shadow-xl">
+            <h3 className="text-base font-bold text-[#2B1E19]">
+              {t(lang, "admin.breeders.rejectTitle")}
+            </h3>
+            <p className="mt-1 text-xs text-[#8B7355]">
+              {t(lang, "admin.breeders.rejectHint")}
+            </p>
+            <label className="mt-4 block text-xs font-semibold text-[#6E5A51]">
+              {t(lang, "admin.breeders.rejectReason")} *
+            </label>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => {
+                setRejectReason(e.target.value);
+                setRejectError("");
+              }}
+              rows={3}
+              className="mt-1.5 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+              placeholder={t(lang, "admin.breeders.rejectReasonPlaceholder")}
+            />
+            <label className="mt-3 block text-xs font-semibold text-[#6E5A51]">
+              {t(lang, "admin.breeders.rejectAction")}
+            </label>
+            <input
+              value={rejectAction}
+              onChange={(e) => setRejectAction(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+              placeholder={t(lang, "admin.breeders.rejectActionPlaceholder")}
+            />
+            <label className="mt-3 block text-xs font-semibold text-[#6E5A51]">
+              {t(lang, "admin.breeders.rejectNote")}
+            </label>
+            <input
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+              placeholder={t(lang, "admin.breeders.rejectNotePlaceholder")}
+            />
+            {rejectError ? (
+              <p className="mt-2 text-xs font-medium text-red-600">{rejectError}</p>
+            ) : null}
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRejectTargetUserId(null)}
+                className="flex-1 rounded-full border border-[#E8DFD0] py-2.5 text-sm font-semibold text-[#5C4A3A]"
+              >
+                {t(lang, "common.cancel")}
+              </button>
+              <button
+                type="button"
+                disabled={busyKey !== null}
+                onClick={() => void submitRejectBreeder()}
+                className="flex-1 rounded-full bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {t(lang, "admin.breeders.reject")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#2B1E19] text-white text-sm font-medium px-5 py-3 rounded-xl shadow-xl">
           {toast}

@@ -128,6 +128,57 @@ export async function getUnreadNotificationCount(token: string) {
   );
 }
 
+export type PetFeedNotification = {
+  id: string;
+  post_id?: string | null;
+  comment_id?: string | null;
+  breeder_profile_id?: string | null;
+  type?: "post_comment" | "breeder_verified" | "breeder_rejected" | string;
+  body_preview?: string;
+  created_at?: string;
+  read_at?: string | null;
+  is_unread?: boolean;
+  actor_display_name?: string;
+  post_title?: string;
+  post_thumb_url?: string | null;
+  breeder_display_name?: string;
+  cta_label?: string;
+  rejection_reason?: string;
+  admin_action?: string;
+  admin_note?: string;
+  metadata?: {
+    cta_label?: string;
+    cta_href?: string;
+    rejection_reason?: string;
+    admin_action?: string;
+    admin_note?: string;
+    report_id?: string;
+    request_kind?: string;
+    title?: string;
+    thumb_url?: string | null;
+  };
+};
+
+export async function listNotifications(token: string, limit = 50) {
+  const qs = limit ? `?limit=${encodeURIComponent(String(limit))}` : "";
+  return fetchJson<{ data: PetFeedNotification[]; unread_count: number }>(
+    `/pet-feed/notifications${qs}`,
+    { token, cache: "no-store" },
+  );
+}
+
+export async function markNotificationsRead(token: string, ids?: string[]) {
+  return fetchJson<{ data: { updated: number } }>(
+    "/pet-feed/notifications/read",
+    {
+      method: "POST",
+      token,
+      body: ids?.length ? { ids } : {},
+      cache: "no-store",
+    },
+  );
+}
+
 export async function createListingPost(token: string, formData: FormData) {
   return fetchMultipart<{ data: ApiPetFeedPost }>("/pet-feed/posts", formData, token);
 }
@@ -193,11 +244,21 @@ export async function adminUpdateBreederStatus(
   token: string,
   userId: string,
   status: string,
+  extras?: {
+    rejectionReason?: string;
+    adminAction?: string;
+    adminNote?: string;
+  },
 ) {
   return fetchJson(`/admin/breeder-profiles/${encodeURIComponent(userId)}/status`, {
     method: "PUT",
     token,
-    body: { status },
+    body: {
+      verificationStatus: status,
+      ...(extras?.rejectionReason ? { rejectionReason: extras.rejectionReason } : {}),
+      ...(extras?.adminAction ? { adminAction: extras.adminAction } : {}),
+      ...(extras?.adminNote ? { adminNote: extras.adminNote } : {}),
+    },
   });
 }
 

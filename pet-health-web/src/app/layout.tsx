@@ -59,7 +59,7 @@ export default async function RootLayout({
               lang={lang}
               isAdmin={false}
               isLoggedIn={false}
-              unreadCount={0}
+              unreadNotificationCount={0}
             />
           }
         >
