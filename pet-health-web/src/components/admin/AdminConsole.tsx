@@ -589,6 +589,18 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       "admin.toast.updated",
     );
 
+  const updateReport = (reportId: string, status: string) =>
+    runAction(
+      `report-${reportId}-${status}`,
+      () =>
+        adminFetch(`/reports/${reportId}/status`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        }),
+      "admin.toast.updated",
+    );
+
   const updateBreeder = (
     userId: string,
     verificationStatus: string,
