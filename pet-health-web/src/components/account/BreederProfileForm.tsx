@@ -1,10 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { ApiBreederProfile, Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
+import {
+  coverUrlFromMetadata,
+  DEFAULT_BREEDER_AVATAR_PATH,
+  DEFAULT_BREEDER_COVER_PATH,
+  resolveBreederAvatarUrl,
+  resolveBreederCoverUrl,
+} from "@/lib/breederProfileImages";
 
 const BREEDER_TYPES = [
   "registered_kennel",
@@ -148,6 +155,18 @@ export function BreederProfileForm({
       ? metaArray(meta, "transparencyCommitments")
       : metaArray(meta, "transparency_commitments"),
   );
+  const [avatarUrl, setAvatarUrl] = useState(
+    resolveBreederAvatarUrl(initial?.avatar_url),
+  );
+  const [coverUrl, setCoverUrl] = useState(
+    resolveBreederCoverUrl(coverUrlFromMetadata(meta)),
+  );
+  const [uploadBusy, setUploadBusy] = useState<"avatar" | "cover" | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const pendingPhotoRef = useRef<{ kind: "avatar" | "cover"; url: string } | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
@@ -179,6 +198,53 @@ export function BreederProfileForm({
     if (isEdit) return t(lang, "breederForm.editTitle");
     return t(lang, "breederForm.createTitle");
   }, [isEdit, lang]);
+
+  const finishPhotoLoad = (kind: "avatar" | "cover") => {
+    if (pendingPhotoRef.current?.kind !== kind) return;
+    pendingPhotoRef.current = null;
+    setUploadBusy(null);
+  };
+
+  const uploadPhoto = async (kind: "avatar" | "cover", file: File) => {
+    setError("");
+    setUploadBusy(kind);
+    pendingPhotoRef.current = null;
+    try {
+      const fd = new FormData();
+      fd.append("kind", kind);
+      // Form saves URLs on submit — don't persist mid-edit unless editing existing.
+      fd.append("persist", isEdit ? "1" : "0");
+      fd.append("file", file, file.name || `${kind}.jpg`);
+      const res = await fetch("/api/breeder/upload", {
+        method: "POST",
+        body: fd,
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        data?: { publicUrl?: string };
+      };
+      if (!res.ok || !data.data?.publicUrl) {
+        throw new Error(data.error || t(lang, "breederForm.uploadFailed"));
+      }
+      const publicUrl = data.data.publicUrl;
+      if (
+        publicUrl.startsWith("memory://") ||
+        publicUrl.startsWith("storage://")
+      ) {
+        throw new Error(t(lang, "breederForm.uploadFailed"));
+      }
+      pendingPhotoRef.current = { kind, url: publicUrl };
+      if (kind === "avatar") setAvatarUrl(publicUrl);
+      else setCoverUrl(publicUrl);
+      // Keep uploadBusy until the preview <img> finishes loading.
+    } catch (err) {
+      pendingPhotoRef.current = null;
+      setUploadBusy(null);
+      setError(
+        err instanceof Error ? err.message : t(lang, "breederForm.uploadFailed"),
+      );
+    }
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,6 +290,10 @@ export function BreederProfileForm({
           displayName: displayName.trim(),
           location: location.trim(),
           bio: bio.trim(),
+          avatarUrl:
+            avatarUrl && avatarUrl !== DEFAULT_BREEDER_AVATAR_PATH
+              ? avatarUrl
+              : undefined,
           contact: {
             phone: phone.trim(),
             facebook: facebook.trim(),
@@ -246,6 +316,13 @@ export function BreederProfileForm({
             breedingPetRange,
             careChecklist,
             transparencyCommitments: commitments,
+            ...(coverUrl && coverUrl !== DEFAULT_BREEDER_COVER_PATH
+              ? {
+                  cover_url: coverUrl,
+                  coverUrl,
+                  coverImageUrl: coverUrl,
+                }
+              : {}),
           },
         }),
       });
@@ -309,6 +386,120 @@ export function BreederProfileForm({
       ) : null}
 
       <form onSubmit={onSubmit} noValidate className="mt-6 space-y-5">
+        <div className="rounded-2xl border border-[#F0E6D8] bg-[#FDFBF7] p-4 space-y-4">
+          <div>
+            <p className="text-sm font-semibold text-[#2B1E19]">
+              {t(lang, "breederForm.photos")}
+            </p>
+            <p className="text-xs text-[#6E5A51] mt-1">
+              {t(lang, "breederForm.photosHint")}
+            </p>
+          </div>
+
+          <div>
+            <label className={labelCls}>{t(lang, "breederForm.cover")}</label>
+            <div className="relative h-36 sm:h-44 overflow-hidden rounded-xl border border-[#F0E6D8] bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                key={coverUrl || DEFAULT_BREEDER_COVER_PATH}
+                src={coverUrl || DEFAULT_BREEDER_COVER_PATH}
+                alt=""
+                className="w-full h-full object-cover"
+                onLoad={() => finishPhotoLoad("cover")}
+                onError={() => {
+                  if (pendingPhotoRef.current?.kind === "cover") {
+                    pendingPhotoRef.current = null;
+                    setUploadBusy(null);
+                    setError(t(lang, "breederForm.uploadFailed"));
+                  }
+                }}
+              />
+              {uploadBusy === "cover" ? (
+                <div
+                  className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/45"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span className="inline-block w-8 h-8 rounded-full border-[3px] border-white/35 border-t-white animate-spin" />
+                  <span className="text-white text-xs font-medium">
+                    {t(lang, "breederForm.uploadingPhoto")}
+                  </span>
+                </div>
+              ) : null}
+              <button
+                type="button"
+                disabled={busy || uploadBusy !== null}
+                onClick={() => coverInputRef.current?.click()}
+                className="absolute bottom-3 right-3 px-3 py-1.5 rounded-full bg-white/95 text-[#B45309] text-xs font-semibold border border-amber-200 disabled:opacity-60"
+              >
+                {t(lang, "breederForm.changePhoto")}
+              </button>
+            </div>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void uploadPhoto("cover", file);
+              }}
+            />
+          </div>
+
+          <div className="flex items-end gap-4">
+            <div>
+              <label className={labelCls}>{t(lang, "breederForm.avatar")}</label>
+              <div className="relative w-24 h-24">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  key={avatarUrl || DEFAULT_BREEDER_AVATAR_PATH}
+                  src={avatarUrl || DEFAULT_BREEDER_AVATAR_PATH}
+                  alt=""
+                  className="w-24 h-24 rounded-full object-cover border-[3px] border-white shadow-md bg-white"
+                  onLoad={() => finishPhotoLoad("avatar")}
+                  onError={() => {
+                    if (pendingPhotoRef.current?.kind === "avatar") {
+                      pendingPhotoRef.current = null;
+                      setUploadBusy(null);
+                      setError(t(lang, "breederForm.uploadFailed"));
+                    }
+                  }}
+                />
+                {uploadBusy === "avatar" ? (
+                  <div
+                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span className="inline-block w-7 h-7 rounded-full border-[3px] border-white/35 border-t-white animate-spin" />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={busy || uploadBusy !== null}
+              onClick={() => avatarInputRef.current?.click()}
+              className="px-3 py-1.5 rounded-full bg-white text-[#B45309] text-xs font-semibold border border-amber-200 disabled:opacity-60"
+            >
+              {t(lang, "breederForm.changePhoto")}
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void uploadPhoto("avatar", file);
+              }}
+            />
+          </div>
+        </div>
+
         <div>
           <label className={labelCls}>
             {t(lang, "breederForm.displayName")}
@@ -570,7 +761,7 @@ export function BreederProfileForm({
 
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || uploadBusy !== null}
           className="w-full py-3 rounded-full bg-[#D97706] text-white text-sm font-semibold hover:bg-[#B45309] disabled:opacity-60 shadow-sm shadow-amber-200/60"
         >
           {busy ? t(lang, "common.loading") : t(lang, "breederForm.submit")}

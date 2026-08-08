@@ -1,4 +1,5 @@
 import { fetchJson, fetchMultipart } from "./client";
+import { UPLOAD_TIMEOUT_MS } from "../config";
 import type { ApiBreederProfile, ApiPetFeedPost, PageResult } from "../types";
 
 export async function listMyPosts(token: string) {
@@ -199,6 +200,35 @@ export async function upsertMyBreederProfile(
     token,
     body: payload,
   });
+}
+
+export async function uploadBreederProfileImage(token: string, formData: FormData) {
+  return fetchJson<{
+    data: {
+      publicUrl: string;
+      kind: "avatar" | "cover";
+      profile?: ApiBreederProfile;
+    };
+  }>("/pet-feed/breeder-profile/me/upload", {
+    method: "POST",
+    token,
+    formData,
+    timeoutMs: UPLOAD_TIMEOUT_MS,
+  });
+}
+
+export async function updateMyBreederProfilePhotos(
+  token: string,
+  payload: { avatarUrl?: string; coverUrl?: string },
+) {
+  return fetchJson<{ data: ApiBreederProfile }>(
+    "/pet-feed/breeder-profile/me/photos",
+    {
+      method: "PATCH",
+      token,
+      body: payload,
+    },
+  );
 }
 
 export async function cancelMyBreederVerificationRequest(token: string) {

@@ -5,6 +5,7 @@ import { getLang } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { getPublicBreeder } from "@/lib/api/public";
 import { getMyBreederProfile } from "@/lib/api/petFeed";
+import { mapApiBreeder } from "@/lib/mappers";
 import { FarmDetail } from "@/components/marketplace/FarmDetail";
 import { FarmDetailSkeleton } from "@/components/ui/Skeleton";
 import { ResourceNotFound } from "@/components/ResourceNotFound";
@@ -50,10 +51,23 @@ async function FarmDetailData({
 
   const session = await getSessionUser();
   let isOwner = false;
+  let breeder = data.profile;
   if (session.token) {
     try {
       const mine = await getMyBreederProfile(session.token);
       isOwner = mine.data?.id === profileId;
+      // Owner view: merge latest avatar/cover from /me so photo updates
+      // are visible immediately even if the public breeder cache is stale.
+      if (isOwner && mine.data) {
+        const fresh = mapApiBreeder(mine.data, {
+          activeListings: data.listings.length,
+        });
+        breeder = {
+          ...data.profile,
+          avatar: fresh.avatar,
+          coverUrl: fresh.coverUrl,
+        };
+      }
     } catch {
       isOwner = false;
     }
@@ -61,7 +75,7 @@ async function FarmDetailData({
 
   return (
     <FarmDetail
-      breeder={data.profile}
+      breeder={breeder}
       lang={lang}
       listings={data.listings}
       isOwner={isOwner}

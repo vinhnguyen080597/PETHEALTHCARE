@@ -16,7 +16,7 @@ export type VerificationStatus =
   | "rejected"
   | "suspended";
 
-export type TrustLevel = "L0" | "L1" | "L2" | "L3";
+export type TrustLevel = "L0" | "L1" | "L2" | "L3" | "L4";
 
 /** Verification tier shown on public breeder cards (product Phase 1+). */
 export type VerificationTier = 1 | 2 | 3;
@@ -68,6 +68,7 @@ export interface BreederProfile {
     zalo?: string;
     phone?: string;
     facebook?: string;
+    tiktok?: string;
   };
   scale: string;
   careEnvironment: string;
@@ -210,12 +211,14 @@ export const templateMeta: Record<
 
 export function getTrustLevel(
   score: number,
-  verified: boolean,
+  _verified?: boolean,
 ): { level: TrustLevel; label: string } {
-  if (!verified || score < 40) return { level: "L0", label: "Mới bắt đầu" };
-  if (score < 70) return { level: "L1", label: "Đang xây dựng" };
-  if (score < 90) return { level: "L2", label: "Đáng tin cậy" };
-  return { level: "L3", label: "Đối tác nổi bật" };
+  const s = Math.max(0, Math.min(100, Math.round(score)));
+  if (s <= 20) return { level: "L0", label: "Cảnh báo rủi ro" };
+  if (s <= 40) return { level: "L1", label: "Hồ sơ mới" };
+  if (s <= 60) return { level: "L2", label: "Đang xác minh" };
+  if (s <= 80) return { level: "L3", label: "Đã kiểm định" };
+  return { level: "L4", label: "Trại tiêu chuẩn" };
 }
 
 export function getEffectiveTrust(score: number, penalty: number): number {

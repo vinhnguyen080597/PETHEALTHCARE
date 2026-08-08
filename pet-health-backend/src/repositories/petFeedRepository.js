@@ -947,6 +947,73 @@ export async function upsertMyBreederProfile(userId, payload, accessToken) {
   return toProfile(data);
 }
 
+/** Update avatar/cover only — does not change verification_status. */
+export async function updateMyBreederProfilePhotos(userId, payload, accessToken) {
+  const existing = await getMyBreederProfile(userId, accessToken);
+  if (!existing) {
+    const err = new Error('Breeder profile not found.');
+    err.status = 404;
+    err.code = 'BREEDER_PROFILE_NOT_FOUND';
+    throw err;
+  }
+
+  const avatarUrl = trimText(payload.avatarUrl ?? payload.avatar_url, 1000);
+  const coverUrl = trimText(payload.coverUrl ?? payload.cover_url, 1000);
+  if (!avatarUrl && !coverUrl) {
+    const err = new Error('avatarUrl or coverUrl is required.');
+    err.status = 400;
+    err.code = 'BREEDER_PHOTO_REQUIRED';
+    throw err;
+  }
+  if (
+    (avatarUrl && (avatarUrl.startsWith('memory://') || avatarUrl.startsWith('storage://')))
+    || (coverUrl && (coverUrl.startsWith('memory://') || coverUrl.startsWith('storage://')))
+  ) {
+    const err = new Error('Photo storage is unavailable. Please retry shortly.');
+    err.status = 503;
+    err.code = 'BREEDER_PHOTO_STORAGE_UNAVAILABLE';
+    throw err;
+  }
+
+  const metadata = {
+    ...normalizeJsonObject(existing.metadata),
+  };
+  if (coverUrl) {
+    metadata.cover_url = coverUrl;
+    metadata.coverUrl = coverUrl;
+    metadata.coverImageUrl = coverUrl;
+  }
+
+  const updates = {
+    updated_at: new Date().toISOString(),
+    metadata,
+    ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+  };
+
+  // Prefer service role so photo updates always persist (public pages read via service).
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    const idx = memoryProfiles.findIndex((profile) => profile.user_id === userId);
+    if (idx < 0) {
+      const err = new Error('Breeder profile not found.');
+      err.status = 404;
+      err.code = 'BREEDER_PROFILE_NOT_FOUND';
+      throw err;
+    }
+    memoryProfiles[idx] = { ...memoryProfiles[idx], ...updates };
+    return toProfile(memoryProfiles[idx]);
+  }
+
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .update(updates)
+    .eq('user_id', userId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return toProfile(data);
+}
+
 export async function cancelMyBreederVerificationRequest(userId, accessToken) {
   const existing = await getMyBreederProfile(userId, accessToken);
   if (!existing) {

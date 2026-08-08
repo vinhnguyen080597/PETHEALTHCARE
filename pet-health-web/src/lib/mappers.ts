@@ -14,10 +14,13 @@ import {
   computeBreederQualityIndex,
   contactFieldCount,
   parseStoredTrustScore,
+  parseTrustActivityFromMeta,
 } from "./breederTrust";
-
-const PLACEHOLDER_AVATAR =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23E2E8F0' width='120' height='120'/%3E%3C/svg%3E";
+import {
+  coverUrlFromMetadata,
+  resolveBreederAvatarUrl,
+  resolveBreederCoverUrl,
+} from "./breederProfileImages";
 
 const PLACEHOLDER_MEDIA =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Crect fill='%23E2E8F0' width='800' height='600'/%3E%3C/svg%3E";
@@ -157,13 +160,11 @@ export function mapApiBreeder(
   const name = profile?.display_name || "Breeder";
   const bio = profile?.bio || "";
   const contact = profile?.contact || {};
-  const avatar = profile?.avatar_url || String(meta.avatar_url || "") || PLACEHOLDER_AVATAR;
-  const coverUrl =
-    typeof meta.cover_url === "string"
-      ? meta.cover_url
-      : typeof meta.coverUrl === "string"
-        ? meta.coverUrl
-        : undefined;
+  const avatar = resolveBreederAvatarUrl(
+    profile?.avatar_url,
+    typeof meta.avatar_url === "string" ? meta.avatar_url : undefined,
+  );
+  const coverUrl = resolveBreederCoverUrl(coverUrlFromMetadata(meta));
   const activeListings =
     options?.activeListings ?? (Number(meta.active_listings) || 0);
   const checklist = parseChecklist(meta);
@@ -173,16 +174,31 @@ export function mapApiBreeder(
     zalo: contact.zalo,
     phone: contact.phone,
     facebook: contact.facebook,
+    tiktok: contact.tiktok,
   };
+  const activity = parseTrustActivityFromMeta(meta);
   const trustScore = resolveTrustScore(meta, {
+    hasEkyc: activity.hasEkyc || verified,
+    hasFacebook: Boolean(mappedContact.facebook?.trim()),
+    hasZalo: Boolean(mappedContact.zalo?.trim()),
+    hasTiktok: Boolean(
+      mappedContact.tiktok?.trim() ||
+        (typeof meta.tiktok_url === "string" && meta.tiktok_url.trim()),
+    ),
+    hasFarmFacility:
+      activity.hasFarmFacility ||
+      Boolean(careEnvironment.trim() || bio.trim()),
+    hasBusinessLicense: activity.hasBusinessLicense,
+    hasHealthDocs:
+      activity.hasHealthDocs || checklist.some((c) => c.done),
     verified,
     checklistDoneCount: checklist.filter((c) => c.done).length,
     commitmentsCount: commitments.length,
     contactCount: contactFieldCount(mappedContact),
-    hasCareEnvironment: Boolean(
-      careEnvironment.trim() || bio.trim(),
-    ),
+    hasCareEnvironment: Boolean(careEnvironment.trim() || bio.trim()),
     activeListings,
+    fiveStarReviewCount: activity.fiveStarReviewCount,
+    fastResponseMonth: activity.fastResponseMonth,
   });
   const scaleRaw = String(meta.scale || "").trim();
 

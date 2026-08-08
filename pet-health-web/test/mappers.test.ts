@@ -46,8 +46,8 @@ test("mapApiBreeder uses signal-based trust when metadata trust_score is absent"
     metadata: {},
   };
   const mapped = mapApiBreeder(profile, { activeListings: 0 });
-  // Verified only → 30 (not the old hardcoded 70)
-  assert.equal(mapped.trustScore, 30);
+  // Verified only → +10 eKYC (Part A); not the old hardcoded 70
+  assert.equal(mapped.trustScore, 10);
 });
 
 test("mapApiPost formats price gender and escrow", () => {

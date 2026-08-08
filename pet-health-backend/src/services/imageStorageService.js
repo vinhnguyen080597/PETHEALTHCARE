@@ -287,6 +287,30 @@ export async function storePetAvatar({ userId, file, accessToken }) {
   return `memory://${bucketName}/${filePath}`;
 }
 
+/**
+ * Breeder farm avatar / cover — public bucket so Hồ sơ trại can show without signed URLs.
+ * Paths: `userId/breeder-profile/avatar|cover/...`
+ */
+export async function storeBreederProfileImage({ userId, kind, file, accessToken }) {
+  const safeKind = kind === 'cover' ? 'cover' : 'avatar';
+  const extension = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
+  const filePath = `${userId}/breeder-profile/${safeKind}/${Date.now()}-${randomUUID()}.${extension}`;
+  const bucketName = getPublicMediaBucketName();
+
+  const publicUrl = await uploadToImageBucket({
+    accessToken,
+    bucketName,
+    filePath,
+    buffer: file.buffer,
+    contentType: file.mimetype,
+    publicRead: true,
+  });
+  if (publicUrl) return publicUrl;
+
+  memoryImages.set(filePath, file.buffer);
+  return `memory://${bucketName}/${filePath}`;
+}
+
 async function listStorageObjectPaths(bucket, prefix) {
   const paths = [];
   let offset = 0;

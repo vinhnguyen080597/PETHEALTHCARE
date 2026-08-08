@@ -26,6 +26,7 @@ import {
   archiveMyPetFeedPost,
   updatePetFeedPost,
   upsertMyBreederProfile,
+  updateMyBreederProfilePhotos,
 } from '../repositories/petFeedRepository.js';
 import {
   getPetFeedConversation,
@@ -55,6 +56,7 @@ import {
 import {
   createPetFeedSignedUpload,
   isOwnedPetFeedPublicMediaUrl,
+  storeBreederProfileImage,
   storePetFeedImage,
   storePetFeedThumb,
   storePetFeedVideo,
@@ -875,6 +877,72 @@ router.put('/breeder-profile/me', async (req, res, next) => {
         accessToken: req.accessToken,
       }).catch(() => null);
     }
+    return res.json({ data: profile });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+const BREEDER_PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
+router.post(
+  '/breeder-profile/me/upload',
+  petFeedUpload.single('file'),
+  async (req, res, next) => {
+    try {
+      const kindRaw = typeof req.body?.kind === 'string' ? req.body.kind.trim().toLowerCase() : '';
+      const kind = kindRaw === 'cover' ? 'cover' : kindRaw === 'avatar' ? 'avatar' : '';
+      if (!kind) {
+        return res.status(400).json({ error: 'kind must be avatar or cover', code: 'INVALID_UPLOAD_KIND' });
+      }
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: 'file is required', code: 'BREEDER_FILE_REQUIRED' });
+      }
+      if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
+        return res.status(400).json({
+          error: 'Unsupported photo type. Use JPEG, PNG, or WebP.',
+          code: 'BREEDER_UNSUPPORTED_PHOTO',
+        });
+      }
+      if (file.size > BREEDER_PROFILE_IMAGE_MAX_BYTES) {
+        return res.status(400).json({
+          error: 'Photo is too large. Please use an image under 5MB.',
+          code: 'BREEDER_PHOTO_TOO_LARGE',
+        });
+      }
+      const publicUrl = await storeBreederProfileImage({
+        userId: req.user.id,
+        kind,
+        file,
+        accessToken: req.accessToken,
+      });
+      if (typeof publicUrl === 'string' && publicUrl.startsWith('memory://')) {
+        return res.status(503).json({
+          error: 'Photo storage is unavailable. Please retry shortly.',
+          code: 'BREEDER_PHOTO_STORAGE_UNAVAILABLE',
+        });
+      }
+      const persistRaw = typeof req.body?.persist === 'string' ? req.body.persist.trim().toLowerCase() : '';
+      const shouldPersist = persistRaw === '1' || persistRaw === 'true' || req.body?.persist === true;
+      if (shouldPersist) {
+        const profile = await updateMyBreederProfilePhotos(
+          req.user.id,
+          kind === 'cover' ? { coverUrl: publicUrl } : { avatarUrl: publicUrl },
+          req.accessToken,
+        );
+        return res.status(201).json({ data: { publicUrl, kind, profile } });
+      }
+      return res.status(201).json({ data: { publicUrl, kind } });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.patch('/breeder-profile/me/photos', async (req, res, next) => {
+  try {
+    const profile = await updateMyBreederProfilePhotos(req.user.id, req.body ?? {}, req.accessToken);
     return res.json({ data: profile });
   } catch (err) {
     return next(err);

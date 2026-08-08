@@ -1,10 +1,10 @@
 import Link from "next/link";
 import type { BreederProfile, Lang } from "@/lib/types";
 import { getBreederPublicTrustMetrics } from "@/lib/breederTrust";
+import { DEFAULT_BREEDER_COVER_PATH } from "@/lib/breederProfileImages";
 import { t } from "@/i18n";
 
-const FALLBACK_COVER =
-  "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=900&h=400&fit=crop&auto=format";
+const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
 
 function speciesEmoji(species: string[]): string {
   if (species.includes("dog")) return "🐶";

@@ -1,17 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { BreederProfile, Lang, Listing } from "@/lib/types";
 import { isBlankDisplayValue } from "@/lib/formatPrice";
 import { getBreederPublicTrustMetrics } from "@/lib/breederTrust";
+import { DEFAULT_BREEDER_COVER_PATH } from "@/lib/breederProfileImages";
+import { FARM_DETAIL_TABS, farmTabI18nKey, type FarmDetailTab } from "@/lib/farmTabs";
 import { t } from "@/i18n";
 import { ListingCard } from "./ListingCard";
 import { DisclaimerBanner } from "./DisclaimerBanner";
+import { FarmHealth } from "./FarmHealth";
 
-const FALLBACK_COVER =
-  "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=1600&h=500&fit=crop&auto=format";
+const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
+
+/** Temporary: hide verification chrome until the real eligibility rules ship. */
+const SHOW_BREEDER_VERIFICATION_BADGES = false;
 
 const BREEDER_REPORT_REASONS = [
   "scam",
@@ -21,29 +26,14 @@ const BREEDER_REPORT_REASONS = [
   "unsafe_transaction",
 ] as const;
 
-type TabKey = "listings" | "reviews" | "facility" | "warranty";
-
-function specialtyText(breeder: BreederProfile, lang: Lang): string {
-  const breeds = breeder.mainBreeds.filter(Boolean).slice(0, 2);
-  if (breeds.length) return `🐱 ${breeds.join(" & ")}`;
-  const species = breeder.primarySpecies
-    .map((s) =>
-      s === "cat"
-        ? lang === "VI"
-          ? "Mèo"
-          : "Cat"
-        : s === "dog"
-          ? lang === "VI"
-            ? "Chó"
-            : "Dog"
-          : s,
-    )
-    .filter(Boolean);
-  return species.length
-    ? `🐾 ${species.join(" & ")}`
-    : lang === "VI"
-      ? "🐾 Thú cưng"
-      : "🐾 Pets";
+function PhotoLoadingSpinner({ size = 28 }: { size?: number }) {
+  return (
+    <span
+      className="inline-block rounded-full border-[3px] border-white/35 border-t-white animate-spin"
+      style={{ width: size, height: size }}
+      aria-hidden
+    />
+  );
 }
 
 export function FarmDetail({
@@ -60,7 +50,7 @@ export function FarmDetail({
   listings: Listing[];
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<TabKey>("listings");
+  const [tab, setTab] = useState<FarmDetailTab>("overview");
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<string>(
     BREEDER_REPORT_REASONS[0],
@@ -69,30 +59,93 @@ export function FarmDetail({
   const [reportError, setReportError] = useState("");
   const [reportDone, setReportDone] = useState(false);
   const [messageBusy, setMessageBusy] = useState(false);
+  const [coverUrl, setCoverUrl] = useState(
+    breeder.coverUrl || FALLBACK_COVER,
+  );
+  const [avatarUrl, setAvatarUrl] = useState(breeder.avatar);
+  const [photoBusy, setPhotoBusy] = useState<"avatar" | "cover" | null>(null);
+  const [photoError, setPhotoError] = useState("");
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const pendingPhotoRef = useRef<{ kind: "avatar" | "cover"; url: string } | null>(
+    null,
+  );
 
   const trustMetrics = getBreederPublicTrustMetrics(breeder, {
     listingCount: listings.length,
   });
   const trust = trustMetrics.qualityIndex;
   const reviewCount = trustMetrics.reviewCount;
-  const cover = breeder.coverUrl || FALLBACK_COVER;
+  const cover = coverUrl || FALLBACK_COVER;
   const bioText = (lang === "VI" ? breeder.bioVI : breeder.bio).trim();
 
-  const tabs: { key: TabKey; label: string }[] = [
-    {
-      key: "listings",
-      label: `${t(lang, "farm.tab.listings")} (${listings.length})`,
-    },
-    {
-      key: "reviews",
-      label: `${t(lang, "farm.tab.reviews")} (${reviewCount})`,
-    },
-    { key: "facility", label: t(lang, "farm.tab.facility") },
-    { key: "warranty", label: t(lang, "farm.tab.warranty") },
-  ];
+  const tabs: { key: FarmDetailTab; label: string }[] = FARM_DETAIL_TABS.map(
+    (key) => ({
+      key,
+      label:
+        key === "listings"
+          ? `${t(lang, farmTabI18nKey(key))} (${listings.length})`
+          : t(lang, farmTabI18nKey(key)),
+    }),
+  );
 
   const requireLogin = () => {
     router.push(`/login?next=/app/breeders/${breeder.id}`);
+  };
+
+  const finishPhotoLoad = (kind: "avatar" | "cover") => {
+    if (pendingPhotoRef.current?.kind !== kind) return;
+    pendingPhotoRef.current = null;
+    setPhotoBusy(null);
+  };
+
+  const uploadAndPersistPhoto = async (
+    kind: "avatar" | "cover",
+    file: File,
+  ) => {
+    setPhotoError("");
+    setPhotoBusy(kind);
+    pendingPhotoRef.current = null;
+    try {
+      const fd = new FormData();
+      fd.append("kind", kind);
+      fd.append("persist", "1");
+      fd.append("file", file, file.name || `${kind}.jpg`);
+      const uploadRes = await fetch("/api/breeder/upload", {
+        method: "POST",
+        body: fd,
+      });
+      const uploadData = (await uploadRes.json().catch(() => ({}))) as {
+        error?: string;
+        data?: { publicUrl?: string };
+      };
+      const publicUrl = uploadData.data?.publicUrl;
+      if (!uploadRes.ok || !publicUrl) {
+        throw new Error(
+          uploadData.error || t(lang, "farm.owner.photoUploadFailed"),
+        );
+      }
+      if (
+        publicUrl.startsWith("memory://") ||
+        publicUrl.startsWith("storage://")
+      ) {
+        throw new Error(t(lang, "farm.owner.photoUploadFailed"));
+      }
+
+      pendingPhotoRef.current = { kind, url: publicUrl };
+      if (kind === "avatar") setAvatarUrl(publicUrl);
+      else setCoverUrl(publicUrl);
+      // Keep photoBusy until the <img> onLoad/onError for the new URL.
+      router.refresh();
+    } catch (err) {
+      pendingPhotoRef.current = null;
+      setPhotoBusy(null);
+      setPhotoError(
+        err instanceof Error
+          ? err.message
+          : t(lang, "farm.owner.photoUploadFailed"),
+      );
+    }
   };
 
   const messageBreeder = async () => {
@@ -172,91 +225,215 @@ export function FarmDetail({
       <section className="max-w-[1200px] mx-auto px-5 lg:px-8 pt-6">
         <div className="relative h-44 sm:h-56 lg:h-64 overflow-hidden rounded-2xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={cover} alt="" className="w-full h-full object-cover" />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(43,30,25,0.15) 0%, rgba(43,30,25,0.55) 100%), radial-gradient(ellipse 60% 80% at 80% 20%, rgba(217,119,6,0.35), transparent 55%)",
+          <img
+            key={cover}
+            src={cover}
+            alt=""
+            className="w-full h-full object-cover"
+            onLoad={() => finishPhotoLoad("cover")}
+            onError={() => {
+              if (pendingPhotoRef.current?.kind === "cover") {
+                pendingPhotoRef.current = null;
+                setPhotoBusy(null);
+                setPhotoError(t(lang, "farm.owner.photoUploadFailed"));
+              }
             }}
           />
+          {isOwner && photoBusy === "cover" ? (
+            <div
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/45"
+              role="status"
+              aria-live="polite"
+              aria-label={t(lang, "farm.owner.photoUploading")}
+            >
+              <PhotoLoadingSpinner size={36} />
+              <span className="text-white text-sm font-medium">
+                {t(lang, "farm.owner.photoUploading")}
+              </span>
+            </div>
+          ) : null}
+          {isOwner ? (
+            <>
+              <button
+                type="button"
+                disabled={photoBusy !== null}
+                onClick={() => coverInputRef.current?.click()}
+                className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white text-[#1C1E21] text-sm font-semibold shadow-md hover:bg-[#F0F2F5] transition-colors disabled:opacity-60"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M4 7.5h2.2l1.3-2h9l1.3 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinejoin="round"
+                  />
+                  <circle
+                    cx="12"
+                    cy="13"
+                    r="3.2"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  />
+                </svg>
+                {t(lang, "farm.owner.editCover")}
+              </button>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) void uploadAndPersistPhoto("cover", file);
+                }}
+              />
+            </>
+          ) : null}
         </div>
 
-        <div className="relative -mt-14 sm:-mt-16 flex flex-col sm:flex-row sm:items-end gap-4 pb-2">
+        <div className="relative -mt-12 sm:-mt-14 flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4 pb-2">
           <div className="relative flex-shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={breeder.avatar}
-              alt={breeder.name}
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-[4px] border-white shadow-lg bg-white"
-            />
-            {breeder.verified ? (
-              <span className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-emerald-500 border-[3px] border-white flex items-center justify-center text-white text-sm shadow">
+            {isOwner ? (
+              <button
+                type="button"
+                disabled={photoBusy !== null}
+                onClick={() => avatarInputRef.current?.click()}
+                className="group relative block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 disabled:opacity-70"
+                aria-label={t(lang, "farm.owner.editAvatar")}
+                title={t(lang, "farm.owner.editAvatar")}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  key={avatarUrl}
+                  src={avatarUrl}
+                  alt={breeder.name}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-[4px] border-white shadow-lg bg-white"
+                  onLoad={() => finishPhotoLoad("avatar")}
+                  onError={() => {
+                    if (pendingPhotoRef.current?.kind === "avatar") {
+                      pendingPhotoRef.current = null;
+                      setPhotoBusy(null);
+                      setPhotoError(t(lang, "farm.owner.photoUploadFailed"));
+                    }
+                  }}
+                />
+                {photoBusy === "avatar" ? (
+                  <span
+                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center"
+                    role="status"
+                    aria-live="polite"
+                    aria-label={t(lang, "farm.owner.photoUploading")}
+                  >
+                    <PhotoLoadingSpinner size={28} />
+                  </span>
+                ) : (
+                  <span className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/55 text-white">
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden
+                      >
+                        <path
+                          d="M4 7.5h2.2l1.3-2h9l1.3 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinejoin="round"
+                        />
+                        <circle
+                          cx="12"
+                          cy="13"
+                          r="3.2"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                        />
+                      </svg>
+                    </span>
+                  </span>
+                )}
+              </button>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt={breeder.name}
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-[4px] border-white shadow-lg bg-white"
+              />
+            )}
+            {SHOW_BREEDER_VERIFICATION_BADGES && breeder.verified ? (
+              <span className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-emerald-500 border-[3px] border-white flex items-center justify-center text-white text-sm shadow pointer-events-none">
                 ✓
               </span>
             ) : null}
+            {isOwner ? (
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) void uploadAndPersistPhoto("avatar", file);
+                }}
+              />
+            ) : null}
           </div>
-          <div className="flex-1 min-w-0 pb-1">
-            <h1 className="font-display text-2xl lg:text-3xl font-semibold text-[#2B1E19] tracking-tight truncate">
+          <div className="flex-1 min-w-0 flex flex-col justify-center sm:h-28 sm:py-1.5">
+            <h1 className="font-display text-2xl lg:text-3xl font-semibold text-[#2B1E19] tracking-tight truncate leading-tight">
               {breeder.name}
             </h1>
-            <p className="text-sm text-[#6E5A51] mt-1">
-              {breeder.location
-                ? `📍 ${breeder.location}`
-                : lang === "VI"
-                  ? "📍 Việt Nam"
-                  : "📍 Vietnam"}
-            </p>
-            <p className="text-sm text-[#2B1E19]/70 mt-0.5">
-              {specialtyText(breeder, lang)}
-            </p>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {(breeder.verified || breeder.verificationTier >= 2) && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#B45309] text-[11px] font-semibold border border-amber-200">
-                  🛡️ {t(lang, "farm.badge.inspected")}
-                </span>
-              )}
-              {breeder.verified && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200">
-                  ✓ {t(lang, "farm.badge.idVerified")}
-                </span>
-              )}
+            <div className="mt-1 sm:mt-0 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+              <p className="text-sm text-[#6E5A51]">
+                {breeder.location
+                  ? `📍 ${breeder.location}`
+                  : lang === "VI"
+                    ? "📍 Việt Nam"
+                    : "📍 Vietnam"}
+              </p>
+              {isOwner ? (
+                <Link
+                  href="/app/account/breeder/template"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#1C1E21] text-xs sm:text-sm font-semibold shadow-sm border border-[#F3E2C8] hover:bg-[#F0F2F5] transition-colors shrink-0"
+                >
+                  🎨 {t(lang, "farm.owner.template")}
+                </Link>
+              ) : null}
             </div>
+            {SHOW_BREEDER_VERIFICATION_BADGES ? (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {(breeder.verified || breeder.verificationTier >= 2) && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#B45309] text-[11px] font-semibold border border-amber-200">
+                    🛡️ {t(lang, "farm.badge.inspected")}
+                  </span>
+                )}
+                {breeder.verified && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200">
+                    ✓ {t(lang, "farm.badge.idVerified")}
+                  </span>
+                )}
+              </div>
+            ) : null}
+            {photoError ? (
+              <p className="text-xs text-red-600 mt-2" role="alert">
+                {photoError}
+              </p>
+            ) : null}
           </div>
         </div>
       </section>
 
       <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6 space-y-5">
-        {isOwner && (
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-[#B45309] font-medium">
-              {t(lang, "farm.owner.banner")}
-            </p>
-            <div className="flex gap-2">
-              <Link
-                href="/app/account/breeder/template"
-                className="px-3 py-1.5 bg-white border border-amber-200 text-[#B45309] text-xs font-medium rounded-full hover:bg-amber-50 transition-colors"
-              >
-                🎨 {t(lang, "farm.owner.template")}
-              </Link>
-              <Link
-                href={`/app/breeders/${breeder.id}/health`}
-                className="px-3 py-1.5 bg-white border border-amber-200 text-[#B45309] text-xs font-medium rounded-full hover:bg-amber-50 transition-colors"
-              >
-                📊 {t(lang, "farm.owner.health")}
-              </Link>
-            </div>
-          </div>
-        )}
-
         <DisclaimerBanner lang={lang} />
-
-        <div className="rounded-2xl bg-[#FEF3C7] border border-[#FDE68A] px-4 py-3.5 text-sm text-[#92400E] leading-relaxed">
-          <span className="font-semibold">
-            🛡️ {t(lang, "farm.escrow.title")}
-          </span>{" "}
-          {t(lang, "farm.escrow.body")}
-        </div>
 
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Left 70% */}
@@ -278,6 +455,93 @@ export function FarmDetail({
               ))}
             </div>
 
+            {tab === "overview" && (
+              <div className="space-y-6">
+                <section className="space-y-3">
+                  <FarmHealth breeder={breeder} lang={lang} embedded />
+                </section>
+
+                <section className="space-y-3">
+                  <h2 className="text-base font-semibold text-[#2B1E19]">
+                    {t(lang, "farm.tab.reviews")}
+                    {reviewCount > 0 ? ` (${reviewCount})` : ""}
+                  </h2>
+                  <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5">
+                    {reviewCount > 0 && trustMetrics.rating != null ? (
+                      <p className="text-sm text-[#2B1E19] mb-3">
+                        ⭐ {trustMetrics.rating.toFixed(1)} / 5.0{" "}
+                        <span className="text-[#6E5A51]">
+                          ({reviewCount} {t(lang, "breeders.card.reviews")})
+                        </span>
+                      </p>
+                    ) : null}
+                    <p className="text-sm text-[#6E5A51] py-6 text-center">
+                      {t(lang, "farm.reviews.empty")}
+                    </p>
+                  </div>
+                </section>
+
+                <section className="space-y-3">
+                  <h2 className="text-base font-semibold text-[#2B1E19]">
+                    {t(lang, "farm.tab.facility")}
+                  </h2>
+                  <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5 space-y-4">
+                    {!isBlankDisplayValue(bioText) && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
+                          {t(lang, "farm.facility.about")}
+                        </h3>
+                        <p className="text-sm text-[#6E5A51] leading-relaxed">
+                          {bioText}
+                        </p>
+                      </div>
+                    )}
+                    {!isBlankDisplayValue(breeder.careEnvironment) && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
+                          {t(lang, "farm.facility.env")}
+                        </h3>
+                        <p className="text-sm text-[#6E5A51] leading-relaxed">
+                          {breeder.careEnvironment}
+                        </p>
+                      </div>
+                    )}
+                    {!isBlankDisplayValue(breeder.scale) && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
+                          {t(lang, "farm.facility.scale")}
+                        </h3>
+                        <p className="text-sm text-[#6E5A51]">{breeder.scale}</p>
+                      </div>
+                    )}
+                    {breeder.checklist.length > 0 && (
+                      <ul className="space-y-2">
+                        {breeder.checklist.map((item) => (
+                          <li
+                            key={item.label}
+                            className="flex items-start gap-2 text-sm text-[#2B1E19]/80"
+                          >
+                            <span className="text-emerald-600 mt-0.5">
+                              {item.done ? "✓" : "○"}
+                            </span>
+                            {item.label}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {isBlankDisplayValue(bioText) &&
+                      isBlankDisplayValue(breeder.careEnvironment) &&
+                      isBlankDisplayValue(breeder.scale) &&
+                      breeder.checklist.length === 0 && (
+                        <p className="text-sm text-[#6E5A51]">
+                          {t(lang, "farm.facility.empty")}
+                        </p>
+                      )}
+                  </div>
+                </section>
+              </div>
+            )}
+
             {tab === "listings" && (
               <div>
                 {listings.length > 0 ? (
@@ -291,78 +555,6 @@ export function FarmDetail({
                     {t(lang, "farm.listings.empty")}
                   </p>
                 )}
-              </div>
-            )}
-
-            {tab === "reviews" && (
-              <div className="space-y-3">
-                {reviewCount > 0 && trustMetrics.rating != null ? (
-                  <p className="text-sm text-[#2B1E19]">
-                    ⭐ {trustMetrics.rating.toFixed(1)} / 5.0{" "}
-                    <span className="text-[#6E5A51]">
-                      ({reviewCount} {t(lang, "breeders.card.reviews")})
-                    </span>
-                  </p>
-                ) : null}
-                <p className="text-sm text-[#6E5A51] py-10 text-center">
-                  {t(lang, "farm.reviews.empty")}
-                </p>
-              </div>
-            )}
-
-            {tab === "facility" && (
-              <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5 space-y-4">
-                {!isBlankDisplayValue(bioText) && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
-                      {t(lang, "farm.facility.about")}
-                    </h3>
-                    <p className="text-sm text-[#6E5A51] leading-relaxed">
-                      {bioText}
-                    </p>
-                  </div>
-                )}
-                {!isBlankDisplayValue(breeder.careEnvironment) && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
-                      {t(lang, "farm.facility.env")}
-                    </h3>
-                    <p className="text-sm text-[#6E5A51] leading-relaxed">
-                      {breeder.careEnvironment}
-                    </p>
-                  </div>
-                )}
-                {!isBlankDisplayValue(breeder.scale) && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
-                      {t(lang, "farm.facility.scale")}
-                    </h3>
-                    <p className="text-sm text-[#6E5A51]">{breeder.scale}</p>
-                  </div>
-                )}
-                {breeder.checklist.length > 0 && (
-                  <ul className="space-y-2">
-                    {breeder.checklist.map((item) => (
-                      <li
-                        key={item.label}
-                        className="flex items-start gap-2 text-sm text-[#2B1E19]/80"
-                      >
-                        <span className="text-emerald-600 mt-0.5">
-                          {item.done ? "✓" : "○"}
-                        </span>
-                        {item.label}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {isBlankDisplayValue(bioText) &&
-                  isBlankDisplayValue(breeder.careEnvironment) &&
-                  isBlankDisplayValue(breeder.scale) &&
-                  breeder.checklist.length === 0 && (
-                    <p className="text-sm text-[#6E5A51]">
-                      {t(lang, "farm.facility.empty")}
-                    </p>
-                  )}
               </div>
             )}
 
@@ -401,19 +593,19 @@ export function FarmDetail({
                 >
                   💬 {t(lang, "farm.cta.message")}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!isLoggedIn) {
-                      requireLogin();
-                      return;
-                    }
-                    void messageBreeder();
-                  }}
-                  className="w-full py-2.5 border border-[#F3E2C8] text-[#2B1E19] text-sm font-medium rounded-xl hover:bg-[#FDFBF7] transition-colors"
+                <span
+                  className="block w-full"
+                  title={t(lang, "farm.cta.videoSoon")}
                 >
-                  📹 {t(lang, "farm.cta.video")}
-                </button>
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className="w-full py-2.5 border border-[#F3E2C8] text-[#2B1E19]/55 text-sm font-medium rounded-xl cursor-not-allowed opacity-60"
+                  >
+                    📹 {t(lang, "farm.cta.video")}
+                  </button>
+                </span>
                 <button
                   type="button"
                   onClick={() => {
