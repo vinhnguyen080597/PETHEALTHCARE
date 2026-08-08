@@ -1,17 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveRouteError } from "../src/lib/api/routeError.ts";
+import { resolveRouteError } from "../src/lib/api/routeError";
 import {
   langCookieOptions,
   parseLang,
   sessionCookieOptions,
-} from "../src/lib/sessionOptions.ts";
-import { genderLabel, getLang, t } from "../src/i18n/index.ts";
+} from "../src/lib/sessionOptions";
+import { genderLabel, getLang, t } from "../src/i18n/index";
 import {
   resolveAuthError,
   resolveForgotError,
   resolveOtpError,
-} from "../src/lib/authErrors.ts";
+} from "../src/lib/authErrors";
 
 test("resolveRouteError remaps 204/205 and falls back", () => {
   assert.deepEqual(resolveRouteError({ status: 204, message: "No content", code: "EMPTY" }), {

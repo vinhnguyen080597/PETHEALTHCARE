@@ -7,11 +7,6 @@ import { genderLabel, t } from "@/i18n";
 import { formatPriceVnd, parsePriceVnd } from "@/lib/formatPrice";
 import { VerifiedBadge } from "./Badges";
 
-function ratingFromTrust(score: number): string {
-  const clamped = Math.min(100, Math.max(0, score || 0));
-  return (Math.round((clamped / 20) * 10) / 10).toFixed(1);
-}
-
 function depositLabel(price: string, lang: Lang): string | null {
   const n = parsePriceVnd(price);
   if (n == null || n <= 0) return null;
@@ -57,7 +52,10 @@ export function ListingCard({
   const price = formatPriceVnd(listing.price) || listing.price;
   const deposit = listing.escrowEnabled ? depositLabel(listing.price, lang) : null;
   const vaccine = listing.vaccineStatus?.trim();
-  const rating = ratingFromTrust(listing.breeder.trustScore);
+  const qualityIndex = Math.max(
+    0,
+    Math.min(100, Math.round(listing.breeder.trustScore || 0)),
+  );
   const genderEmoji =
     listing.gender === "male" ? "♂️" : listing.gender === "female" ? "♀️" : "";
   const ageGender = [
@@ -187,7 +185,7 @@ export function ListingCard({
           </span>
           {listing.breeder.verified && <VerifiedBadge size="xs" />}
           <span className="ml-auto text-[11px] text-[#2B1E19]/55 font-medium whitespace-nowrap">
-            ⭐ {rating}
+            {qualityIndex}/100
           </span>
         </div>
       </Link>

@@ -3,6 +3,10 @@
 import Link from "next/link";
 import type { BreederProfile, Lang } from "@/lib/types";
 import { getEffectiveTrust, getTrustLevel } from "@/lib/types";
+import {
+  computeBreederQualityIndex,
+  qualitySignalsFromBreeder,
+} from "@/lib/breederTrust";
 import { TrustLevelChip } from "./Badges";
 
 export function FarmHealth({
@@ -12,7 +16,13 @@ export function FarmHealth({
   breeder: BreederProfile;
   lang: Lang;
 }) {
-  const eff = getEffectiveTrust(breeder.trustScore, breeder.penaltyPoints);
+  const signals = qualitySignalsFromBreeder(breeder);
+  const signalScore = computeBreederQualityIndex(signals);
+  // Prefer mapped score (metadata or signals); keep breakdown from live signals.
+  const eff = getEffectiveTrust(
+    Number.isFinite(breeder.trustScore) ? breeder.trustScore : signalScore,
+    breeder.penaltyPoints,
+  );
   const { level, label } = getTrustLevel(eff, breeder.verified);
   const isPending = breeder.verificationStatus === "pending_review";
   const isRejected =
@@ -38,7 +48,7 @@ export function FarmHealth({
       label: "Cam kết",
       key: "commitments",
       max: 15,
-      val: Math.min(breeder.commitments.length * 7, 15),
+      val: Math.min(breeder.commitments.length * 7.5, 15),
       done: breeder.commitments.length >= 2,
     },
     {
@@ -57,8 +67,8 @@ export function FarmHealth({
       label: "Môi trường chăm sóc",
       key: "care",
       max: 15,
-      val: breeder.careEnvironment ? 15 : 0,
-      done: !!breeder.careEnvironment,
+      val: breeder.careEnvironment || breeder.bio ? 15 : 0,
+      done: !!(breeder.careEnvironment || breeder.bio),
     },
     {
       label: "Tin đăng active",

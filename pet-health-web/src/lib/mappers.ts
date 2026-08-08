@@ -10,6 +10,11 @@ import {
   isTemplateId,
 } from "./types";
 import { formatPriceVnd } from "./formatPrice";
+import {
+  computeBreederQualityIndex,
+  contactFieldCount,
+  parseStoredTrustScore,
+} from "./breederTrust";
 
 const PLACEHOLDER_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect fill='%23E2E8F0' width='120' height='120'/%3E%3C/svg%3E";
@@ -75,10 +80,13 @@ function parseTemplate(meta: Record<string, unknown>): TemplateId {
   return isTemplateId(t) ? t : "T1";
 }
 
-function parseTrustScore(meta: Record<string, unknown>, verified: boolean): number {
-  const raw = meta.trust_score ?? meta.trustScore;
-  if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(0, Math.min(100, raw));
-  return verified ? 70 : 30;
+function resolveTrustScore(
+  meta: Record<string, unknown>,
+  signals: Parameters<typeof computeBreederQualityIndex>[0],
+): number {
+  const stored = parseStoredTrustScore(meta);
+  if (stored != null) return stored;
+  return computeBreederQualityIndex(signals);
 }
 
 function parsePenalty(meta: Record<string, unknown>): number {
@@ -156,7 +164,26 @@ export function mapApiBreeder(
       : typeof meta.coverUrl === "string"
         ? meta.coverUrl
         : undefined;
-  const trustScore = parseTrustScore(meta, verified);
+  const activeListings =
+    options?.activeListings ?? (Number(meta.active_listings) || 0);
+  const checklist = parseChecklist(meta);
+  const commitments = asStringArray(meta.commitments);
+  const careEnvironment = profile?.care_environment || "";
+  const mappedContact = {
+    zalo: contact.zalo,
+    phone: contact.phone,
+    facebook: contact.facebook,
+  };
+  const trustScore = resolveTrustScore(meta, {
+    verified,
+    checklistDoneCount: checklist.filter((c) => c.done).length,
+    commitmentsCount: commitments.length,
+    contactCount: contactFieldCount(mappedContact),
+    hasCareEnvironment: Boolean(
+      careEnvironment.trim() || bio.trim(),
+    ),
+    activeListings,
+  });
   const scaleRaw = String(meta.scale || "").trim();
 
   return {
@@ -184,18 +211,13 @@ export function mapApiBreeder(
           points: Number(v.points) || 0,
         }))
       : [],
-    activeListings:
-      options?.activeListings ?? (Number(meta.active_listings) || 0),
+    activeListings,
     template: parseTemplate(meta),
-    contact: {
-      zalo: contact.zalo,
-      phone: contact.phone,
-      facebook: contact.facebook,
-    },
+    contact: mappedContact,
     scale: scaleRaw === "—" || scaleRaw === "-" ? "" : scaleRaw,
-    careEnvironment: profile?.care_environment || "",
-    commitments: asStringArray(meta.commitments),
-    checklist: parseChecklist(meta),
+    careEnvironment,
+    commitments,
+    checklist,
     verificationTier: parseVerificationTier(meta, verificationStatus, trustScore),
   };
 }

@@ -4,7 +4,7 @@ import {
   adminRequestHref,
   isNotificationUnread,
   notificationType,
-} from "../src/lib/notifications/deepLinks.ts";
+} from "../src/lib/notifications/deepLinks";
 
 test("notificationType defaults to post_comment", () => {
   assert.equal(notificationType({}), "post_comment");

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isAppActionHref, loginHref, signupHref } from "../src/lib/loginHref.ts";
+import { isAppActionHref, loginHref, signupHref } from "../src/lib/loginHref";
 
 test("loginHref encodes next path", () => {
   assert.equal(loginHref("/app/account"), "/login?next=%2Fapp%2Faccount");

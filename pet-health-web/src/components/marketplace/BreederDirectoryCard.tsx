@@ -1,26 +1,10 @@
 import Link from "next/link";
 import type { BreederProfile, Lang } from "@/lib/types";
+import { getBreederPublicTrustMetrics } from "@/lib/breederTrust";
 import { t } from "@/i18n";
 
 const FALLBACK_COVER =
   "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=900&h=400&fit=crop&auto=format";
-
-function ratingFromTrust(score: number): string {
-  const clamped = Math.min(100, Math.max(0, score || 0));
-  return (Math.round((clamped / 20) * 10) / 10).toFixed(1);
-}
-
-function reviewCountFromTrust(score: number): number {
-  return Math.max(5, Math.round((score || 0) * 0.4));
-}
-
-function soldEstimate(breeder: BreederProfile): number {
-  // Soft display metric until sold-count ships on public API
-  return Math.max(
-    breeder.activeListings,
-    Math.round((breeder.trustScore || 0) / 2),
-  );
-}
 
 function speciesEmoji(species: string[]): string {
   if (species.includes("dog")) return "🐶";
@@ -64,12 +48,10 @@ export function BreederDirectoryCard({
   lang: Lang;
 }) {
   const cover = breeder.coverUrl || FALLBACK_COVER;
-  const rating = ratingFromTrust(breeder.trustScore);
-  const reviews = reviewCountFromTrust(breeder.trustScore);
-  const sold = soldEstimate(breeder);
+  const metrics = getBreederPublicTrustMetrics(breeder);
+  const trustPct = metrics.qualityIndex;
   const showEscrowBadge =
     breeder.verified || breeder.verificationTier >= 2;
-  const trustPct = Math.min(100, Math.max(0, breeder.trustScore || 0));
 
   return (
     <article className="group bg-white rounded-2xl border border-[#F3E2C8] overflow-hidden hover:shadow-[0_16px_40px_-22px_rgba(217,119,6,0.4)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
@@ -111,13 +93,19 @@ export function BreederDirectoryCard({
         <div className="mt-4 space-y-2.5">
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#2B1E19]/75">
             <span>
-              ⭐ {rating}{" "}
-              <span className="text-[#6E5A51]">
-                ({reviews} {t(lang, "breeders.card.reviews")})
-              </span>
+              {metrics.rating != null && metrics.reviewCount > 0 ? (
+                <>
+                  ⭐ {metrics.rating.toFixed(1)}{" "}
+                  <span className="text-[#6E5A51]">
+                    ({metrics.reviewCount} {t(lang, "breeders.card.reviews")})
+                  </span>
+                </>
+              ) : (
+                <>⭐ {t(lang, "farm.trust.ratingEmpty")}</>
+              )}
             </span>
             <span>
-              {sold} {t(lang, "breeders.card.sold")}
+              {metrics.petsRehomed} {t(lang, "breeders.card.sold")}
             </span>
           </div>
           <div>

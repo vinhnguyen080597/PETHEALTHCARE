@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { BreederProfile, Lang, Listing } from "@/lib/types";
-import { getEffectiveTrust } from "@/lib/types";
 import { isBlankDisplayValue } from "@/lib/formatPrice";
+import { getBreederPublicTrustMetrics } from "@/lib/breederTrust";
 import { t } from "@/i18n";
 import { ListingCard } from "./ListingCard";
 import { DisclaimerBanner } from "./DisclaimerBanner";
@@ -22,11 +22,6 @@ const BREEDER_REPORT_REASONS = [
 ] as const;
 
 type TabKey = "listings" | "reviews" | "facility" | "warranty";
-
-function ratingFromTrust(score: number): string {
-  const clamped = Math.min(100, Math.max(0, score || 0));
-  return (Math.round((clamped / 20) * 10) / 10).toFixed(1);
-}
 
 function specialtyText(breeder: BreederProfile, lang: Lang): string {
   const breeds = breeder.mainBreeds.filter(Boolean).slice(0, 2);
@@ -49,39 +44,6 @@ function specialtyText(breeder: BreederProfile, lang: Lang): string {
     : lang === "VI"
       ? "🐾 Thú cưng"
       : "🐾 Pets";
-}
-
-function demoReviews(breeder: BreederProfile, lang: Lang) {
-  if (lang === "VI") {
-    return [
-      {
-        id: "r1",
-        name: "Minh Anh",
-        stars: 5,
-        text: `Nhận bé từ ${breeder.name} rất yên tâm. Hồ sơ tiêm rõ, bé khỏe và dễ gần.`,
-      },
-      {
-        id: "r2",
-        name: "Hoàng Long",
-        stars: 5,
-        text: "Trả lời nhanh, hỗ trợ xem bé qua video trước khi quyết định. Rất chuyên nghiệp.",
-      },
-    ];
-  }
-  return [
-    {
-      id: "r1",
-      name: "Minh Anh",
-      stars: 5,
-      text: `Got our pet from ${breeder.name} with clear vaccine records. Healthy and well socialized.`,
-    },
-    {
-      id: "r2",
-      name: "Hoang Long",
-      stars: 5,
-      text: "Fast replies and helpful video check before deciding. Very professional.",
-    },
-  ];
 }
 
 export function FarmDetail({
@@ -108,12 +70,12 @@ export function FarmDetail({
   const [reportDone, setReportDone] = useState(false);
   const [messageBusy, setMessageBusy] = useState(false);
 
-  const trust = getEffectiveTrust(breeder.trustScore, breeder.penaltyPoints);
-  const rating = ratingFromTrust(trust);
-  const reviewCount = Math.max(5, Math.round(trust * 0.22));
-  const sold = Math.max(listings.length, Math.round(trust / 2.5));
+  const trustMetrics = getBreederPublicTrustMetrics(breeder, {
+    listingCount: listings.length,
+  });
+  const trust = trustMetrics.qualityIndex;
+  const reviewCount = trustMetrics.reviewCount;
   const cover = breeder.coverUrl || FALLBACK_COVER;
-  const reviews = useMemo(() => demoReviews(breeder, lang), [breeder, lang]);
   const bioText = (lang === "VI" ? breeder.bioVI : breeder.bio).trim();
 
   const tabs: { key: TabKey; label: string }[] = [
@@ -334,29 +296,16 @@ export function FarmDetail({
 
             {tab === "reviews" && (
               <div className="space-y-3">
-                {reviews.map((r) => (
-                  <div
-                    key={r.id}
-                    className="bg-white border border-[#F3E2C8] rounded-2xl p-4"
-                  >
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <p className="font-semibold text-[#2B1E19] text-sm">
-                        {r.name}
-                      </p>
-                      <p className="text-amber-600 text-xs font-medium">
-                        {"★".repeat(r.stars)}
-                        <span className="text-[#6E5A51] ml-1">
-                          {r.stars}/5
-                        </span>
-                      </p>
-                    </div>
-                    <p className="text-sm text-[#2B1E19]/75 leading-relaxed">
-                      {r.text}
-                    </p>
-                  </div>
-                ))}
-                <p className="text-[11px] text-[#6E5A51]/80 pt-1">
-                  {t(lang, "farm.reviews.note")}
+                {reviewCount > 0 && trustMetrics.rating != null ? (
+                  <p className="text-sm text-[#2B1E19]">
+                    ⭐ {trustMetrics.rating.toFixed(1)} / 5.0{" "}
+                    <span className="text-[#6E5A51]">
+                      ({reviewCount} {t(lang, "breeders.card.reviews")})
+                    </span>
+                  </p>
+                ) : null}
+                <p className="text-sm text-[#6E5A51] py-10 text-center">
+                  {t(lang, "farm.reviews.empty")}
                 </p>
               </div>
             )}
@@ -502,16 +451,30 @@ export function FarmDetail({
                 </div>
               </div>
               <p className="text-sm text-[#2B1E19]">
-                ⭐ {rating} / 5.0{" "}
-                <span className="text-[#6E5A51]">
-                  ({reviewCount} {t(lang, "breeders.card.reviews")})
-                </span>
+                {trustMetrics.rating != null && reviewCount > 0 ? (
+                  <>
+                    ⭐ {trustMetrics.rating.toFixed(1)} / 5.0{" "}
+                    <span className="text-[#6E5A51]">
+                      ({reviewCount} {t(lang, "breeders.card.reviews")})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    ⭐ {t(lang, "farm.trust.ratingEmpty")}
+                  </>
+                )}
               </p>
               <p className="text-sm text-[#2B1E19]">
-                ⚡ {t(lang, "farm.trust.response")}
+                ⚡{" "}
+                {trustMetrics.responseMinutes != null
+                  ? t(lang, "farm.trust.response").replace(
+                      "{minutes}",
+                      String(trustMetrics.responseMinutes),
+                    )
+                  : t(lang, "farm.trust.responseEmpty")}
               </p>
               <p className="text-sm text-[#2B1E19]">
-                📦 {sold} {t(lang, "farm.trust.adopted")}
+                📦 {trustMetrics.petsRehomed} {t(lang, "farm.trust.adopted")}
               </p>
             </div>
           </aside>

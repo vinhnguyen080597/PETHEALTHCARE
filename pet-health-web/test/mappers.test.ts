@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mapApiBreeder, mapApiPost } from "../src/lib/mappers.ts";
-import type { ApiBreederProfile, ApiPetFeedPost } from "../src/lib/types.ts";
+import { mapApiBreeder, mapApiPost } from "../src/lib/mappers";
+import type { ApiBreederProfile, ApiPetFeedPost } from "../src/lib/types";
 
 test("mapApiBreeder normalizes verification and trust defaults", () => {
   const profile: ApiBreederProfile = {
@@ -33,6 +33,21 @@ test("mapApiBreeder normalizes verification and trust defaults", () => {
   assert.equal(mapped.template, "T2");
   assert.equal(mapped.activeListings, 3);
   assert.equal(mapped.checklist[0]?.label, "Vaccine");
+});
+
+test("mapApiBreeder uses signal-based trust when metadata trust_score is absent", () => {
+  const profile: ApiBreederProfile = {
+    id: "bp-new",
+    display_name: "Fresh Farm",
+    verification_status: "verified",
+    bio: "",
+    care_environment: "",
+    contact: {},
+    metadata: {},
+  };
+  const mapped = mapApiBreeder(profile, { activeListings: 0 });
+  // Verified only → 30 (not the old hardcoded 70)
+  assert.equal(mapped.trustScore, 30);
 });
 
 test("mapApiPost formats price gender and escrow", () => {

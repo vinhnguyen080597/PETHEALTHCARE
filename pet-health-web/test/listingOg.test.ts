@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { absoluteMediaUrl, listingShareUrl } from "../src/lib/config.ts";
-import { buildListingOgCopy, listingOgPhotoUrl } from "../src/lib/listingOg.ts";
-import type { Listing } from "../src/lib/types.ts";
+import { absoluteMediaUrl, listingShareUrl } from "../src/lib/config";
+import { buildListingOgCopy, listingOgPhotoUrl } from "../src/lib/listingOg";
+import type { Listing } from "../src/lib/types";
 
 function sampleListing(overrides: Partial<Listing> = {}): Listing {
   return {

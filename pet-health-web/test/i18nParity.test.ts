@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import en from "../src/i18n/en.ts";
-import vi from "../src/i18n/vi.ts";
+import en from "../src/i18n/en";
+import vi from "../src/i18n/vi";
 import {
   HISTORY_ACTION_FILTERS,
   historyActionI18nKey,
-} from "../src/lib/admin/filters.ts";
+} from "../src/lib/admin/filters";
 
 const REQUIRED_PREFIXES = [
   "admin.history.",

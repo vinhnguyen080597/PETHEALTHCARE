@@ -1,12 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatNotificationBadge } from "../src/lib/notifications/badge.ts";
+import { formatNotificationBadge } from "../src/lib/notifications/badge";
 import {
   fillEmail,
   fillSeconds,
   isValidEmail,
   parseRetryAfterSeconds,
-} from "../src/lib/authErrorParsers.ts";
+} from "../src/lib/authErrorParsers";
 
 test("formatNotificationBadge caps at 99+", () => {
   assert.equal(formatNotificationBadge(0), "0");

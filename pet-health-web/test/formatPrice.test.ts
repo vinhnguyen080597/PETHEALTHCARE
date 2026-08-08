@@ -4,7 +4,7 @@ import {
   formatPriceVnd,
   isBlankDisplayValue,
   parsePriceVnd,
-} from "../src/lib/formatPrice.ts";
+} from "../src/lib/formatPrice";
 
 test("formatPriceVnd formats digits and blanks", () => {
   assert.equal(formatPriceVnd(null), "");

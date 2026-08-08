@@ -7,7 +7,7 @@ import {
   passesDateFilter,
   requestStatusGroup,
   sortByDate,
-} from "../src/lib/admin/filters.ts";
+} from "../src/lib/admin/filters";
 
 test("requestStatusGroup maps request statuses for filters", () => {
   assert.equal(requestStatusGroup({ type: "report", status: "open" }), "waiting");
