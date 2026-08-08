@@ -462,12 +462,15 @@ export function getBreederPublicTrustMetrics(
     : computeBreederQualityIndex(
         qualitySignalsFromBreeder(breeder, listingCount),
       );
+  const petsRehomed = Number(breeder.petsRehomed);
+  const sold =
+    Number.isFinite(petsRehomed) && petsRehomed > 0 ? Math.floor(petsRehomed) : 0;
 
   return {
     qualityIndex: Math.max(0, Math.min(100, qualityIndex)),
     reviewCount: 0,
     rating: null,
-    petsRehomed: 0,
+    petsRehomed: sold,
     responseMinutes: null,
   };
 }

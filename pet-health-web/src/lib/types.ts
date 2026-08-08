@@ -63,6 +63,8 @@ export interface BreederProfile {
   penaltyPoints: number;
   violations: Violation[];
   activeListings: number;
+  /** Confirmed rehomes when available; otherwise 0 (never invent). */
+  petsRehomed?: number;
   template: TemplateId;
   contact: {
     zalo?: string;

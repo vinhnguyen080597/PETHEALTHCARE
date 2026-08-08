@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
+import { BRAND_AVATAR_PATH } from "@/lib/brand";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
 
@@ -44,23 +45,14 @@ export function SiteHeader({
     <header className="sticky top-0 z-50 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-[#F0E6D8]">
       <div className="max-w-[1200px] mx-auto px-5 lg:px-8 h-16 flex items-center gap-3">
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-[#D97706] rounded-lg flex items-center justify-center shadow-sm shadow-amber-200/50">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path
-                d="M9 2C5.13 2 2 5.13 2 9c0 3.87 3.13 7 7 7s7-3.13 7-7c0-3.87-3.13-7-7-7Z"
-                fill="white"
-                opacity=".25"
-              />
-              <circle cx="6.5" cy="8" r="1.5" fill="white" />
-              <circle cx="11.5" cy="8" r="1.5" fill="white" />
-              <path
-                d="M7 11.5c.5.5 1 .75 2 .75s1.5-.25 2-.75"
-                stroke="white"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={BRAND_AVATAR_PATH}
+            alt=""
+            width={32}
+            height={32}
+            className="w-8 h-8 rounded-lg object-cover shadow-sm shadow-amber-200/50"
+          />
           <div className="hidden sm:block">
             <span className="font-bold text-stone-900 text-sm tracking-tight">
               {t(lang, "nav.brand")}

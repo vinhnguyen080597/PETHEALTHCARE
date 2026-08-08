@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
+import { BRAND_AVATAR_PATH } from "@/lib/brand";
 
 export function SiteFooter({ lang }: { lang: Lang }) {
   return (
@@ -9,18 +10,14 @@ export function SiteFooter({ lang }: { lang: Lang }) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 bg-[#D97706] rounded-lg flex items-center justify-center">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle cx="5" cy="6" r="1.2" fill="white" />
-                  <circle cx="9" cy="6" r="1.2" fill="white" />
-                  <path
-                    d="M5 9c.5.5 1 .8 2 .8s1.5-.3 2-.8"
-                    stroke="white"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={BRAND_AVATAR_PATH}
+                alt=""
+                width={28}
+                height={28}
+                className="w-7 h-7 rounded-lg object-cover"
+              />
               <span className="font-bold text-sm">{t(lang, "nav.brand")}</span>
             </div>
             <p className="text-stone-400 text-sm leading-relaxed max-w-xs">

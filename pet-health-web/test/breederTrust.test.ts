@@ -187,15 +187,37 @@ test("mapApiBreeder verified-only scores eKYC 10, not 70", () => {
   assert.notEqual(mapped.trustScore, 70);
 });
 
-test("mapApiBreeder still honors explicit metadata trust_score", () => {
+test("mapApiBreeder ignores stale metadata trust_score and uses signals", () => {
   const profile: ApiBreederProfile = {
     id: "bp-2",
     display_name: "Elite Farm",
     verification_status: "verified",
+    care_environment: "",
+    bio: "",
+    contact: {},
     metadata: { trust_score: 95, elite: true },
   };
   const mapped = mapApiBreeder(profile, { activeListings: 3 });
-  assert.equal(mapped.trustScore, 95);
+  assert.equal(mapped.trustScore, 10);
+  assert.equal(mapped.verificationTier, 3);
+});
+
+test("mapApiBreeder uses contact_presence when contact values are stripped", () => {
+  const profile: ApiBreederProfile = {
+    id: "bp-3",
+    display_name: "Mina Cattery",
+    verification_status: "verified",
+    care_environment: "Indoor",
+    bio: "",
+    contact: {},
+    metadata: {
+      trust_score: 20,
+      contact_presence: { zalo: true, facebook: true, tiktok: false },
+    },
+  };
+  const mapped = mapApiBreeder(profile, { activeListings: 0 });
+  // eKYC 10 + FB 4 + Zalo 3 + facility 10 = 27
+  assert.equal(mapped.trustScore, 27);
 });
 
 test("parseStoredTrustScore returns null when missing", () => {

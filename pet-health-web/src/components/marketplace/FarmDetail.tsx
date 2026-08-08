@@ -9,6 +9,7 @@ import { getBreederPublicTrustMetrics } from "@/lib/breederTrust";
 import { DEFAULT_BREEDER_COVER_PATH } from "@/lib/breederProfileImages";
 import { FARM_DETAIL_TABS, farmTabI18nKey, type FarmDetailTab } from "@/lib/farmTabs";
 import { t } from "@/i18n";
+import { farmTemplateHref } from "@/lib/siteBreadcrumbs";
 import { ListingCard } from "./ListingCard";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { FarmHealth } from "./FarmHealth";
@@ -389,7 +390,7 @@ export function FarmDetail({
             ) : null}
           </div>
           <div className="flex-1 min-w-0 flex flex-col justify-center sm:h-28 sm:py-1.5">
-            <h1 className="font-display text-2xl lg:text-3xl font-semibold text-[#2B1E19] tracking-tight truncate leading-tight">
+            <h1 className="text-2xl lg:text-[1.75rem] font-bold text-[#050505] tracking-tight truncate leading-tight [font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif] [text-shadow:0_1px_0_rgba(255,255,255,0.9),0_1px_3px_rgba(0,0,0,0.12)]">
               {breeder.name}
             </h1>
             <div className="mt-1 sm:mt-0 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -402,7 +403,7 @@ export function FarmDetail({
               </p>
               {isOwner ? (
                 <Link
-                  href="/app/account/breeder/template"
+                  href={farmTemplateHref(breeder.id)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#1C1E21] text-xs sm:text-sm font-semibold shadow-sm border border-[#F3E2C8] hover:bg-[#F0F2F5] transition-colors shrink-0"
                 >
                   🎨 {t(lang, "farm.owner.template")}
@@ -458,7 +459,12 @@ export function FarmDetail({
             {tab === "overview" && (
               <div className="space-y-6">
                 <section className="space-y-3">
-                  <FarmHealth breeder={breeder} lang={lang} embedded />
+                  <FarmHealth
+                    breeder={breeder}
+                    lang={lang}
+                    embedded
+                    isOwner={isOwner}
+                  />
                 </section>
 
                 <section className="space-y-3">

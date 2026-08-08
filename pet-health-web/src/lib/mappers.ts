@@ -13,7 +13,6 @@ import { formatPriceVnd } from "./formatPrice";
 import {
   computeBreederQualityIndex,
   contactFieldCount,
-  parseStoredTrustScore,
   parseTrustActivityFromMeta,
 } from "./breederTrust";
 import {
@@ -84,12 +83,30 @@ function parseTemplate(meta: Record<string, unknown>): TemplateId {
 }
 
 function resolveTrustScore(
-  meta: Record<string, unknown>,
+  _meta: Record<string, unknown>,
   signals: Parameters<typeof computeBreederQualityIndex>[0],
 ): number {
-  const stored = parseStoredTrustScore(meta);
-  if (stored != null) return stored;
+  // Always score from live signals — ignore stale metadata.trust_score defaults.
   return computeBreederQualityIndex(signals);
+}
+
+function contactPresenceFlags(meta: Record<string, unknown>): {
+  zalo: boolean;
+  phone: boolean;
+  facebook: boolean;
+  tiktok: boolean;
+} {
+  const raw = asRecord(meta.contact_presence);
+  const flag = (key: string) => {
+    const v = raw[key];
+    return v === true || v === 1 || v === "1" || v === "true";
+  };
+  return {
+    zalo: flag("zalo"),
+    phone: flag("phone"),
+    facebook: flag("facebook"),
+    tiktok: flag("tiktok"),
+  };
 }
 
 function parsePenalty(meta: Record<string, unknown>): number {
@@ -112,6 +129,12 @@ function parseVerificationTier(
     return 2;
   }
   return 1;
+}
+
+function petsRehomedFromMeta(meta: Record<string, unknown>): number {
+  const raw = meta.pets_rehomed ?? meta.petsRehomed ?? meta.sold_count;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
 }
 
 function parseEscrowEnabled(meta: Record<string, unknown>): boolean {
@@ -176,15 +199,32 @@ export function mapApiBreeder(
     facebook: contact.facebook,
     tiktok: contact.tiktok,
   };
+  const presence = contactPresenceFlags(meta);
   const activity = parseTrustActivityFromMeta(meta);
+  const hasFacebook =
+    Boolean(mappedContact.facebook?.trim()) || presence.facebook;
+  const hasZalo = Boolean(mappedContact.zalo?.trim()) || presence.zalo;
+  const hasTiktok =
+    Boolean(mappedContact.tiktok?.trim()) ||
+    presence.tiktok ||
+    (typeof meta.tiktok_url === "string" && Boolean(meta.tiktok_url.trim()));
+  const contactCount =
+    contactFieldCount(mappedContact) ||
+    [hasFacebook, hasZalo, hasTiktok, presence.phone].filter(Boolean).length;
+  const penaltyPoints = parsePenalty(meta);
+  const violations = Array.isArray(meta.violations)
+    ? (meta.violations as Array<Record<string, unknown>>).map((v, i) => ({
+        id: String(v.id || `v${i}`),
+        reason: String(v.reason || ""),
+        date: String(v.date || ""),
+        points: Number(v.points) || 0,
+      }))
+    : [];
   const trustScore = resolveTrustScore(meta, {
     hasEkyc: activity.hasEkyc || verified,
-    hasFacebook: Boolean(mappedContact.facebook?.trim()),
-    hasZalo: Boolean(mappedContact.zalo?.trim()),
-    hasTiktok: Boolean(
-      mappedContact.tiktok?.trim() ||
-        (typeof meta.tiktok_url === "string" && meta.tiktok_url.trim()),
-    ),
+    hasFacebook,
+    hasZalo,
+    hasTiktok,
     hasFarmFacility:
       activity.hasFarmFacility ||
       Boolean(careEnvironment.trim() || bio.trim()),
@@ -194,11 +234,13 @@ export function mapApiBreeder(
     verified,
     checklistDoneCount: checklist.filter((c) => c.done).length,
     commitmentsCount: commitments.length,
-    contactCount: contactFieldCount(mappedContact),
+    contactCount,
     hasCareEnvironment: Boolean(careEnvironment.trim() || bio.trim()),
     activeListings,
     fiveStarReviewCount: activity.fiveStarReviewCount,
     fastResponseMonth: activity.fastResponseMonth,
+    penaltyPoints,
+    violations,
   });
   const scaleRaw = String(meta.scale || "").trim();
 
@@ -218,16 +260,10 @@ export function mapApiBreeder(
     bio,
     bioVI: bio,
     trustScore,
-    penaltyPoints: parsePenalty(meta),
-    violations: Array.isArray(meta.violations)
-      ? (meta.violations as Array<Record<string, unknown>>).map((v, i) => ({
-          id: String(v.id || `v${i}`),
-          reason: String(v.reason || ""),
-          date: String(v.date || ""),
-          points: Number(v.points) || 0,
-        }))
-      : [],
+    penaltyPoints,
+    violations,
     activeListings,
+    petsRehomed: petsRehomedFromMeta(meta),
     template: parseTemplate(meta),
     contact: mappedContact,
     scale: scaleRaw === "—" || scaleRaw === "-" ? "" : scaleRaw,

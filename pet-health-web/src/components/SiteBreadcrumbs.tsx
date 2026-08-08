@@ -1,87 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { Lang } from "@/lib/types";
-import { t, type EnKey } from "@/i18n";
-
-const SEGMENT_LABEL: Record<string, EnKey> = {
-  app: "nav.brand",
-  "pet-feed": "nav.browse",
-  posts: "breadcrumb.listing",
-  breeders: "nav.breeders",
-  health: "breadcrumb.farmHealth",
-  account: "nav.account",
-  saved: "account.savedPage.title",
-  breeder: "breadcrumb.breederProfile",
-  template: "account.template",
-  listings: "account.myListings",
-  new: "account.newListing",
-  messages: "nav.messages",
-  notifications: "nav.notifications",
-  admin: "nav.admin",
-  login: "nav.login",
-  signup: "breadcrumb.signup",
-  "privacy-policy": "legal.privacy",
-  "terms-of-service": "legal.terms",
-  "marketplace-guidelines": "legal.guidelines",
-  support: "legal.support",
-};
-
-function isIdSegment(segment: string) {
-  return (
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      segment,
-    ) || /^[0-9a-f]{16,}$/i.test(segment)
-  );
-}
-
-function labelFor(
-  lang: Lang,
-  segment: string,
-  prev: string | undefined,
-): string {
-  if (SEGMENT_LABEL[segment]) {
-    return t(lang, SEGMENT_LABEL[segment]);
-  }
-  if (isIdSegment(segment)) {
-    if (prev === "posts") return t(lang, "breadcrumb.listingDetail");
-    if (prev === "breeders") return t(lang, "breadcrumb.farmProfile");
-    return t(lang, "breadcrumb.detail");
-  }
-  return segment.replace(/-/g, " ");
-}
+import { t } from "@/i18n";
+import {
+  buildSiteBreadcrumbs,
+  parseFarmBreadcrumbId,
+} from "@/lib/siteBreadcrumbs";
 
 export function SiteBreadcrumbs({ lang }: { lang: Lang }) {
   const pathname = usePathname() || "/";
+  const searchParams = useSearchParams();
+  const farmProfileId = parseFarmBreadcrumbId(searchParams.get("farm"));
 
-  if (
-    pathname === "/" ||
-    pathname === "/login" ||
-    pathname === "/signup" ||
-    pathname.startsWith("/login/") ||
-    pathname.startsWith("/signup/")
-  ) {
-    return null;
-  }
+  const specs = buildSiteBreadcrumbs(pathname, { farmProfileId });
+  if (!specs || specs.length === 0) return null;
 
-  const parts = pathname.split("/").filter(Boolean);
-  if (parts.length === 0) return null;
-
-  const crumbs: { href: string; label: string }[] = [
-    { href: "/", label: t(lang, "breadcrumb.home") },
-  ];
-
-  let href = "";
-  parts.forEach((segment, index) => {
-    href += `/${segment}`;
-    // Skip bare "app" in the trail — jump to marketplace sections
-    if (segment === "app" && parts.length > 1) return;
-    crumbs.push({
-      href,
-      label: labelFor(lang, segment, parts[index - 1]),
-    });
-  });
+  const crumbs = specs.map((crumb) => ({
+    href: crumb.href,
+    label: crumb.rawLabel
+      ? crumb.rawLabel
+      : crumb.labelKey
+        ? t(lang, crumb.labelKey)
+        : crumb.href,
+  }));
 
   return (
     <div className="bg-[#FDFBF7]">
@@ -93,7 +36,10 @@ export function SiteBreadcrumbs({ lang }: { lang: Lang }) {
           {crumbs.map((crumb, index) => {
             const isLast = index === crumbs.length - 1;
             return (
-              <li key={crumb.href} className="flex items-center gap-1.5 min-w-0">
+              <li
+                key={`${crumb.href}-${index}`}
+                className="flex items-center gap-1.5 min-w-0"
+              >
                 {index > 0 ? (
                   <span aria-hidden className="text-[#D6C4B0]">
                     /

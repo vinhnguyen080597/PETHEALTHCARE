@@ -100,6 +100,13 @@ test('public breeder directory and profile include only verified breeders', asyn
   assert.ok(listed);
   assert.equal(listed.verification_status, 'verified');
   assert.equal(listed.contact, undefined);
+  assert.equal(listed.metadata?.active_listings, 1);
+  assert.deepEqual(listed.metadata?.contact_presence, {
+    zalo: true,
+    phone: false,
+    facebook: false,
+    tiktok: false,
+  });
 
   const detail = await getPublicBreederProfile(profile.id);
   assert.ok(detail);

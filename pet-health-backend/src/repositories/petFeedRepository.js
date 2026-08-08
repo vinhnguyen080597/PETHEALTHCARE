@@ -724,10 +724,27 @@ export async function getPublishedPetFeedShareCard(postId) {
   };
 }
 
+function contactPresenceFromContact(contact, metadata = {}) {
+  const c = contact && typeof contact === 'object' ? contact : {};
+  const meta = metadata && typeof metadata === 'object' ? metadata : {};
+  const has = (v) => typeof v === 'string' && v.trim().length > 0;
+  return {
+    zalo: has(c.zalo),
+    phone: has(c.phone),
+    facebook: has(c.facebook),
+    tiktok: has(c.tiktok) || has(meta.tiktok_url),
+  };
+}
+
+/** Strip contact values for public list, keep boolean presence for trust scoring. */
 function stripContactFromProfile(profile) {
   if (!profile) return null;
-  const { contact: _contact, ...rest } = profile;
-  return rest;
+  const { contact, ...rest } = profile;
+  const metadata = {
+    ...(rest.metadata && typeof rest.metadata === 'object' ? rest.metadata : {}),
+    contact_presence: contactPresenceFromContact(contact, rest.metadata),
+  };
+  return { ...rest, metadata };
 }
 
 /** Public list card: slim media, no contact fields. */
@@ -763,6 +780,54 @@ function toPublicBreeder(profile, { includeContact = false } = {}) {
   if (!mapped) return mapped;
   if (includeContact) return mapped;
   return stripContactFromProfile(mapped);
+}
+
+async function withPublicBreederListingCounts(profiles) {
+  if (!Array.isArray(profiles) || profiles.length === 0) return profiles;
+  const ids = profiles.map((p) => p.id).filter(Boolean);
+  const counts = new Map(ids.map((id) => [id, 0]));
+  const supabase = getSupabaseServiceClient();
+
+  if (!supabase) {
+    for (const post of memoryPosts) {
+      if (
+        post.status === 'published'
+        && normalizePostKind(post.post_kind, 'listing') === 'listing'
+        && counts.has(post.breeder_profile_id)
+      ) {
+        counts.set(
+          post.breeder_profile_id,
+          (counts.get(post.breeder_profile_id) || 0) + 1,
+        );
+      }
+    }
+  } else {
+    const { data, error } = await supabase
+      .from('pet_feed_posts')
+      .select('breeder_profile_id')
+      .in('breeder_profile_id', ids)
+      .eq('status', 'published')
+      .eq('post_kind', 'listing');
+    if (error) throw error;
+    for (const row of data ?? []) {
+      const id = row.breeder_profile_id;
+      if (!counts.has(id)) continue;
+      counts.set(id, (counts.get(id) || 0) + 1);
+    }
+  }
+
+  return profiles.map((profile) => {
+    const n = counts.get(profile.id) || 0;
+    return {
+      ...profile,
+      metadata: {
+        ...(profile.metadata && typeof profile.metadata === 'object'
+          ? profile.metadata
+          : {}),
+        active_listings: n,
+      },
+    };
+  });
 }
 
 /** Public SEO feed page (published only, no auth / no block filters). */
@@ -850,7 +915,10 @@ export async function listPublicVerifiedBreederProfiles(options = {}) {
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
       .slice(0, limit)
       .map((profile) => toPublicBreeder(profile, { includeContact: false }));
-    return { data: rows, nextCursor: null };
+    return {
+      data: await withPublicBreederListingCounts(rows),
+      nextCursor: null,
+    };
   }
 
   const { data, error } = await supabase
@@ -860,8 +928,11 @@ export async function listPublicVerifiedBreederProfiles(options = {}) {
     .order('created_at', { ascending: false })
     .limit(limit);
   if (error) throw error;
+  const rows = (data ?? []).map((profile) =>
+    toPublicBreeder(profile, { includeContact: false }),
+  );
   return {
-    data: (data ?? []).map((profile) => toPublicBreeder(profile, { includeContact: false })),
+    data: await withPublicBreederListingCounts(rows),
     nextCursor: null,
   };
 }

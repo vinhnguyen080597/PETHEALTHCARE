@@ -7,65 +7,24 @@ import {
   computeBreederTrustScore,
   getTrustTier,
   qualitySignalsFromBreeder,
-  type TrustScoreBreakdownLine,
 } from "@/lib/breederTrust";
+import { farmTrustGuideHref } from "@/lib/farmTrustGuide";
 import { t } from "@/i18n";
 import { TrustLevelChip } from "./Badges";
 import { TrustTicksGauge } from "./TrustTicksGauge";
-
-function lineLabel(lang: Lang, key: string): string {
-  const map: Record<string, { vi: string; en: string }> = {
-    ekycLicense: {
-      vi: "Xác minh eKYC & Giấy phép",
-      en: "eKYC & business license",
-    },
-    social: {
-      vi: "Liên kết MXH (FB/Zalo/TT)",
-      en: "Social links (FB/Zalo/TT)",
-    },
-    farmFacility: {
-      vi: "Địa chỉ & video cơ sở",
-      en: "Facility address & video",
-    },
-    healthDocs: {
-      vi: "Bảo trợ sức khỏe (sổ tiêm)",
-      en: "Health docs (vaccine book)",
-    },
-    reviews: {
-      vi: "Đánh giá 5 sao từ khách",
-      en: "5★ buyer reviews",
-    },
-    response: {
-      vi: "Phản hồi tin nhắn < 15 phút",
-      en: "Reply rate under 15 min",
-    },
-    penalty: {
-      vi: "Lịch sử phạt",
-      en: "Penalty history",
-    },
-  };
-  const row = map[key];
-  if (!row) return key;
-  return lang === "VI" ? row.vi : row.en;
-}
-
-function formatLinePoints(line: TrustScoreBreakdownLine): string {
-  if (line.group === "penalty") {
-    return line.val === 0 ? "−0đ" : `${line.val}đ`;
-  }
-  const sign = line.val > 0 ? "+" : "";
-  return `${sign}${line.val} / ${line.max}đ`;
-}
 
 export function FarmHealth({
   breeder,
   lang,
   embedded = false,
+  isOwner = false,
 }: {
   breeder: BreederProfile;
   lang: Lang;
-  /** When true, render score content only (for Hồ sơ trại overview tab). */
+  /** When true, render score summary for Hồ sơ trại overview tab. */
   embedded?: boolean;
+  /** Owner-only CTA to the detailed trust guide. */
+  isOwner?: boolean;
 }) {
   const input = qualitySignalsFromBreeder(breeder);
   const computed = computeBreederTrustScore(input);
@@ -75,9 +34,7 @@ export function FarmHealth({
   const tier = getTrustTier(eff);
   const tierLabel = lang === "VI" ? tier.nameVI : tier.nameEN;
   const tierMeaning = lang === "VI" ? tier.meaningVI : tier.meaningEN;
-  const transparencyPct = Math.round(
-    (computed.missionPoints / 50) * 100,
-  );
+  const transparencyPct = Math.round((computed.missionPoints / 50) * 100);
 
   const isPending = breeder.verificationStatus === "pending_review";
   const isRejected =
@@ -120,8 +77,7 @@ export function FarmHealth({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
-        {/* Left: gauge */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-center">
         <div className="flex flex-col items-center text-center">
           <TrustTicksGauge
             score={eff}
@@ -130,7 +86,6 @@ export function FarmHealth({
           />
         </div>
 
-        {/* Right: tier + breakdown */}
         <div className="min-w-0 space-y-4">
           <div>
             <TrustLevelChip level={tier.level} label={tierLabel} />
@@ -144,77 +99,14 @@ export function FarmHealth({
             </p>
           </div>
 
-          <div className="border-t border-slate-100 pt-4">
-            <h3 className="text-xs font-bold tracking-wide text-slate-700 uppercase mb-3 flex items-center gap-1.5">
-              <span aria-hidden>📋</span>
-              {t(lang, "farm.trust.breakdownTitle")}
-            </h3>
-            <ul className="space-y-2">
-              {computed.lines.map((line) => (
-                <li
-                  key={line.key}
-                  className="flex items-center justify-between gap-3 py-1.5 border-b border-slate-50 last:border-0"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className={
-                        line.group === "penalty"
-                          ? line.val === 0
-                            ? "text-emerald-600"
-                            : "text-amber-600"
-                          : line.done
-                            ? "text-emerald-600"
-                            : "text-slate-300"
-                      }
-                      aria-hidden
-                    >
-                      {line.group === "penalty"
-                        ? line.val === 0
-                          ? "✓"
-                          : "⚠️"
-                        : line.done
-                          ? "✓"
-                          : "○"}
-                    </span>
-                    <span className="text-sm text-slate-700 truncate">
-                      {lineLabel(lang, line.key)}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-xs font-semibold tabular-nums shrink-0 ${
-                      line.group === "penalty" && line.val < 0
-                        ? "text-red-600"
-                        : "text-slate-500"
-                    }`}
-                  >
-                    {formatLinePoints(line)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {breeder.violations.length > 0 && (
-            <div className="rounded-xl border border-red-100 bg-red-50/50 p-3 space-y-2">
-              <p className="text-xs font-semibold text-red-800">
-                {lang === "VI" ? "Vi phạm đã xác nhận" : "Confirmed violations"}
-              </p>
-              {breeder.violations.map((v) => (
-                <div
-                  key={v.id}
-                  className="flex items-start justify-between gap-2 text-sm"
-                >
-                  <div>
-                    <p className="text-red-800 font-medium">{v.reason}</p>
-                    <p className="text-xs text-red-400">{v.date}</p>
-                  </div>
-                  <span className="text-red-600 font-bold shrink-0">
-                    −{v.points}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          {isOwner ? (
+            <Link
+              href={farmTrustGuideHref(breeder.id)}
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 rounded-xl border border-[#F3E2C8] bg-[#FDFBF7] text-sm font-semibold text-[#B45309] hover:bg-[#FEF3C7] transition-colors"
+            >
+              📋 {t(lang, "farm.trust.guide.cta")}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
@@ -251,9 +143,7 @@ export function FarmHealth({
         <h1 className="text-2xl font-bold text-slate-900">
           {t(lang, "farm.trust.scoreTitle")}
         </h1>
-        <p className="text-slate-500 text-sm mt-1">
-          {breeder.name}
-        </p>
+        <p className="text-slate-500 text-sm mt-1">{breeder.name}</p>
       </div>
 
       {body}

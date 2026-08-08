@@ -9,6 +9,7 @@ import { SiteBreadcrumbs } from "@/components/SiteBreadcrumbs";
 import { getLang } from "@/i18n";
 import { COOKIE_LANG } from "@/lib/session";
 import { SHARE_ORIGIN } from "@/lib/config";
+import { BRAND_AVATAR_PATH } from "@/lib/brand";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -30,6 +31,11 @@ export const metadata: Metadata = {
   },
   description:
     "Find healthy pets from trusted breeders — clear profiles, vaccine records, and safer in-app contact.",
+  icons: {
+    icon: [{ url: BRAND_AVATAR_PATH, type: "image/png" }],
+    apple: [{ url: BRAND_AVATAR_PATH, type: "image/png" }],
+    shortcut: BRAND_AVATAR_PATH,
+  },
   openGraph: {
     type: "website",
     siteName: "Pet Marketplace",
@@ -65,7 +71,9 @@ export default async function RootLayout({
         >
           <HeaderWithSession lang={lang} />
         </Suspense>
-        <SiteBreadcrumbs lang={lang} />
+        <Suspense fallback={null}>
+          <SiteBreadcrumbs lang={lang} />
+        </Suspense>
         {children}
       </body>
     </html>

@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { TemplateId } from "@/lib/types";
 import { templateMeta } from "@/lib/types";
+import {
+  parseFarmBreadcrumbId,
+} from "@/lib/siteBreadcrumbs";
 
 const templatePreviews: Record<
   TemplateId,
@@ -56,6 +59,10 @@ export function TemplatePicker({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const farmFromQuery = parseFarmBreadcrumbId(searchParams.get("farm"));
+  const farmId = farmFromQuery || profileId || null;
+  const farmHref = farmId ? `/app/breeders/${farmId}` : "/app/account";
   const tids: TemplateId[] = ["T1", "T2", "T3", "T4", "T5"];
 
   const apply = async () => {
@@ -73,8 +80,7 @@ export function TemplatePicker({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to save template");
       setConfirmOpen(false);
-      if (profileId) router.push(`/app/breeders/${profileId}`);
-      else router.push("/app/account");
+      router.push(farmHref);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
@@ -86,7 +92,7 @@ export function TemplatePicker({
   return (
     <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-8">
       <Link
-        href={profileId ? `/app/breeders/${profileId}` : "/app/account"}
+        href={farmHref}
         className="inline-flex items-center gap-2 text-slate-500 text-sm hover:text-slate-900 transition-colors mb-6"
       >
         ← Quay lại hồ sơ trại

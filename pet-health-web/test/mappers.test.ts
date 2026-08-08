@@ -14,13 +14,14 @@ test("mapApiBreeder normalizes verification and trust defaults", () => {
     main_breeds: ["Poodle"],
     bio: "Nice farm",
     care_environment: "Home",
-    contact: { phone: "090" },
+    contact: { phone: "090", facebook: "https://fb.com/a", zalo: "090" },
     metadata: {
       trust_score: 95,
       elite: true,
       breeder_type: "registered_kennel",
       checklist: [{ label: "Vaccine", done: true }],
       template: "T2",
+      business_license_verified: true,
     },
   };
   const mapped = mapApiBreeder(profile, { activeListings: 3 });
@@ -28,7 +29,8 @@ test("mapApiBreeder normalizes verification and trust defaults", () => {
   assert.equal(mapped.verified, true);
   assert.equal(mapped.verificationStatus, "verified");
   assert.equal(mapped.breederType, "registered_kennel");
-  assert.equal(mapped.trustScore, 95);
+  // Live signals: eKYC 10 + FB 4 + Zalo 3 + facility 10 + license 10 + health 5 = 42
+  assert.equal(mapped.trustScore, 42);
   assert.equal(mapped.verificationTier, 3);
   assert.equal(mapped.template, "T2");
   assert.equal(mapped.activeListings, 3);
