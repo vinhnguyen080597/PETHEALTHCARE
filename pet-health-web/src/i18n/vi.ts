@@ -358,6 +358,7 @@ const vi: Record<EnKey, string> = {
   "detail.writeComment": "Viết bình luận…",
   "detail.send": "Gửi",
   "detail.evidence": "Bằng chứng vaccine",
+  "detail.video": "Video",
   "detail.save": "Lưu tin",
   "detail.loginToComment": "Đăng nhập để bình luận…",
   "detail.reportSuccess": "Đã gửi báo cáo. Cảm ơn bạn.",

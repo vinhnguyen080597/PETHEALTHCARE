@@ -17,6 +17,7 @@ import {
   isListingOwner,
   listingVisitorActions,
 } from "@/lib/listingOwnerActions";
+import { buildListingGalleryItems } from "@/lib/listingGallery";
 
 const REPORT_REASONS = [
   "scam",
@@ -134,9 +135,12 @@ export function ListingDetail({
     lang === "VI" ? listing.descriptionVI : listing.description;
   const personality =
     lang === "VI" ? listing.personalityVI : listing.personality;
-  const media = listing.mediaUrls.length
-    ? listing.mediaUrls
-    : [listing.mediaUrl];
+  const gallery = buildListingGalleryItems({
+    mediaUrls: listing.mediaUrls,
+    mediaUrl: listing.mediaUrl,
+    videoUrl: listing.videoUrl,
+  });
+  const activeItem = gallery[Math.min(activeMedia, Math.max(gallery.length - 1, 0))] || gallery[0] || null;
   const price = formatPriceVnd(listing.price) || listing.price;
 
   const reasonLabels = useMemo(
@@ -432,32 +436,58 @@ export function ListingDetail({
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1 lg:flex-[1.4]">
           <div className="relative rounded-2xl overflow-hidden bg-slate-100 aspect-[4/3] mb-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={media[activeMedia] || listing.mediaUrl}
-              alt={listing.breed}
-              className="w-full h-full object-cover"
-            />
+            {activeItem?.type === "video" ? (
+              <video
+                key={activeItem.url}
+                src={activeItem.url}
+                className="w-full h-full object-contain bg-black"
+                controls
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={activeItem?.url || listing.mediaUrl}
+                alt={listing.breed}
+                className="w-full h-full object-cover"
+              />
+            )}
             {listing.escrowEnabled ? (
               <span className="absolute top-3 right-3">
                 <EscrowBadge lang={lang} />
               </span>
             ) : null}
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {media.slice(0, 3).map((url, i) => (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {gallery.map((item, i) => (
               <button
-                key={`${url}-${i}`}
+                key={`${item.type}-${item.url}-${i}`}
                 type="button"
                 onClick={() => setActiveMedia(i)}
-                className={`rounded-xl overflow-hidden aspect-square bg-slate-100 ${
+                className={`relative rounded-xl overflow-hidden aspect-square bg-slate-100 ${
                   i === activeMedia
                     ? "ring-2 ring-[#1E6FE8]"
                     : "opacity-60 hover:opacity-100 transition-opacity"
                 }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="w-full h-full object-cover" />
+                {item.type === "video" ? (
+                  <>
+                    <video
+                      src={item.url}
+                      className="w-full h-full object-contain bg-black"
+                      muted
+                      playsInline
+                      preload="metadata"
+                    />
+                    <span className="absolute inset-x-1 bottom-1 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                      {t(lang, "detail.video")}
+                    </span>
+                  </>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.url} alt="" className="w-full h-full object-cover" />
+                )}
               </button>
             ))}
           </div>

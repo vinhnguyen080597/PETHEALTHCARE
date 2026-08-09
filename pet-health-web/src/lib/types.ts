@@ -137,6 +137,8 @@ export interface Listing {
   dewormingStatus: string;
   mediaUrl: string;
   mediaUrls: string[];
+  /** Short listing video when provided. */
+  videoUrl?: string | null;
   evidenceUrls?: string[];
   status:
     | "published"

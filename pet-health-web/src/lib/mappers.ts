@@ -401,6 +401,7 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     dewormingStatus: post.deworming_status || "",
     mediaUrl: media[0] || PLACEHOLDER_MEDIA,
     mediaUrls: media.length ? media : [PLACEHOLDER_MEDIA],
+    videoUrl: post.video_url?.trim() || null,
     evidenceUrls: evidence.length ? evidence : undefined,
     status,
     breeder,

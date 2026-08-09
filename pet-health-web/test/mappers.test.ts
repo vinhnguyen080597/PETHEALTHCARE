@@ -89,3 +89,14 @@ test("mapApiPost formats price gender and escrow", () => {
   assert.equal(listing.evidenceUrls?.[0], "https://cdn.example/e.jpg");
   assert.match(listing.price, /VNĐ|5\.000\.000|5000000/);
 });
+
+test("mapApiPost maps video_url onto listing.videoUrl", () => {
+  const listing = mapApiPost({
+    id: "p-video",
+    title: "With video",
+    media_urls: ["https://cdn.example/a.jpg"],
+    video_url: "https://cdn.example/clip.mp4",
+    status: "published",
+  });
+  assert.equal(listing.videoUrl, "https://cdn.example/clip.mp4");
+});

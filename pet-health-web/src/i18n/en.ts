@@ -356,6 +356,7 @@ const en = {
   "detail.writeComment": "Write a comment…",
   "detail.send": "Send",
   "detail.evidence": "Vaccine evidence",
+  "detail.video": "Video",
   "detail.save": "Save listing",
   "detail.loginToComment": "Log in to comment…",
   "detail.reportSuccess": "Report submitted. Thank you.",
