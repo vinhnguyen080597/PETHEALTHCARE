@@ -200,7 +200,7 @@ function FarmWarrantyTab({
         policy={viewing}
         open={Boolean(viewing)}
         onClose={() => setViewing(null)}
-        primarySpecies={breeder.primarySpecies}
+        primarySpecies={primarySpecies}
       />
     </div>
   );
