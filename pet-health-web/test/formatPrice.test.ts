@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   formatPriceVnd,
   isBlankDisplayValue,
+  maskVndInput,
   parsePriceVnd,
+  unmaskVndDigits,
 } from "../src/lib/formatPrice";
 
 test("formatPriceVnd formats digits and blanks", () => {
@@ -28,4 +30,12 @@ test("isBlankDisplayValue", () => {
   assert.equal(isBlankDisplayValue("N/A"), true);
   assert.equal(isBlankDisplayValue([]), true);
   assert.equal(isBlankDisplayValue("Hello"), false);
+});
+
+test("maskVndInput formats thousand separators while typing", () => {
+  assert.equal(maskVndInput(""), "");
+  assert.equal(maskVndInput("3500000"), "3.500.000");
+  assert.equal(maskVndInput("3.500.000"), "3.500.000");
+  assert.equal(maskVndInput("abc3500xyz"), "3.500");
+  assert.equal(unmaskVndDigits("3.500.000 VNĐ"), "3500000");
 });

@@ -13,6 +13,10 @@ import { EscrowBadge, VerifiedBadge } from "./Badges";
 import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
 import { mapApiPost } from "@/lib/mappers";
 import type { ApiPetFeedPost } from "@/lib/types";
+import {
+  isListingOwner,
+  listingVisitorActions,
+} from "@/lib/listingOwnerActions";
 
 const REPORT_REASONS = [
   "scam",
@@ -99,11 +103,13 @@ export function ListingDetail({
 }) {
   const router = useRouter();
   const [listing, setListing] = useState(initialListing);
-  const breederUserId = listing.breeder.userId;
-  const isOwner = Boolean(currentUserId && breederUserId && currentUserId === breederUserId);
+  const ownerUserId = listing.ownerUserId || listing.breeder.userId;
+  const isOwner = isListingOwner(currentUserId, ownerUserId);
+  const { showMessage, showReport } = listingVisitorActions(isOwner);
   const isDealSen = Boolean(
     currentUserId && listing.deal?.senUserId && currentUserId === listing.deal.senUserId,
   );
+  const breederUserId = ownerUserId;
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState<UiComment[]>(() =>
     initialComments.map((c) => mapApiComment(c, breederUserId, lang)),
@@ -206,6 +212,7 @@ export function ListingDetail({
   };
 
   const messageSeller = async () => {
+    if (!showMessage) return;
     if (!isLoggedIn) {
       requireLogin();
       return;
@@ -303,6 +310,7 @@ export function ListingDetail({
   };
 
   const submitReport = async () => {
+    if (!showReport) return;
     if (!isLoggedIn) {
       requireLogin();
       return;
@@ -655,15 +663,17 @@ export function ListingDetail({
                 </p>
               ) : null}
 
-              <button
-                type="button"
-                onClick={messageSeller}
-                disabled={busy === "message"}
-                className="w-full py-3 bg-[#1E6FE8] text-white text-sm font-semibold rounded-full hover:bg-[#1D4ED8] transition-colors disabled:opacity-60"
-              >
-                💬 {t(lang, "detail.message")}
-              </button>
-              <div className="grid grid-cols-2 gap-2">
+              {showMessage ? (
+                <button
+                  type="button"
+                  onClick={messageSeller}
+                  disabled={busy === "message"}
+                  className="w-full py-3 bg-[#1E6FE8] text-white text-sm font-semibold rounded-full hover:bg-[#1D4ED8] transition-colors disabled:opacity-60"
+                >
+                  💬 {t(lang, "detail.message")}
+                </button>
+              ) : null}
+              <div className={`grid gap-2 ${showReport ? "grid-cols-2" : "grid-cols-1"}`}>
                 <button
                   type="button"
                   onClick={() => void shareListing()}
@@ -675,19 +685,21 @@ export function ListingDetail({
                 >
                   {shareNotice || t(lang, "detail.share")}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!isLoggedIn) {
-                      requireLogin();
-                      return;
-                    }
-                    setReportOpen(true);
-                  }}
-                  className="py-2.5 border border-slate-200 text-slate-500 text-sm font-medium rounded-full hover:border-red-200 hover:text-red-500 transition-colors"
-                >
-                  {t(lang, "detail.report")}
-                </button>
+                {showReport ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        requireLogin();
+                        return;
+                      }
+                      setReportOpen(true);
+                    }}
+                    className="py-2.5 border border-slate-200 text-slate-500 text-sm font-medium rounded-full hover:border-red-200 hover:text-red-500 transition-colors"
+                  >
+                    {t(lang, "detail.report")}
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>

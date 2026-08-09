@@ -95,6 +95,27 @@ function parsePostPayload(body) {
   } else {
     parsed = body ?? {};
   }
+
+  const parseMaybeJson = (value) => {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    if (!trimmed) return value;
+    if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) return value;
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return value;
+    }
+  };
+
+  parsed = {
+    ...parsed,
+    personality: parseMaybeJson(parsed.personality),
+    paperwork: parseMaybeJson(parsed.paperwork),
+    contact: parseMaybeJson(parsed.contact),
+    metadata: parseMaybeJson(parsed.metadata),
+  };
+
   const metadata = {
     ...(parsed.metadata && typeof parsed.metadata === 'object' ? parsed.metadata : {}),
   };
@@ -410,17 +431,24 @@ router.post('/uploads/file', requireAnyRole('breeder', 'admin'), petFeedUpload.s
 router.post('/posts', requireAnyRole('breeder'), petFeedUpload.fields([
   { name: 'photos', maxCount: 6 },
   { name: 'video', maxCount: 1 },
+  { name: 'healthEvidence', maxCount: 3 },
 ]), async (req, res, next) => {
   try {
     const payload = parsePostPayload(req.body);
     const photos = Array.isArray(req.files?.photos) ? req.files.photos : [];
     const video = Array.isArray(req.files?.video) ? req.files.video[0] : null;
-    const hasFiles = photos.length > 0 || Boolean(video);
+    const healthEvidence = Array.isArray(req.files?.healthEvidence) ? req.files.healthEvidence : [];
+    const hasFiles = photos.length > 0 || Boolean(video) || healthEvidence.length > 0;
     const draft = isDraftStatus(payload);
 
     let postPayload;
     if (hasFiles) {
       validateUploadedFiles({ photos, video }, { requireComplete: !draft });
+      for (const evidence of healthEvidence) {
+        if (!SUPPORTED_IMAGE_MIMES.has(String(evidence.mimetype || '').toLowerCase())) {
+          throw badMedia('Health evidence must be a JPEG, PNG, or WebP image.', 'PET_FEED_INVALID_HEALTH_EVIDENCE');
+        }
+      }
       const uploadedPhotoUrls = [];
       for (const photo of photos) {
         uploadedPhotoUrls.push(await storePetFeedImage({ userId: req.user.id, file: photo, accessToken: req.accessToken }));
@@ -428,10 +456,24 @@ router.post('/posts', requireAnyRole('breeder'), petFeedUpload.fields([
       const uploadedVideoUrl = video
         ? await storePetFeedVideo({ userId: req.user.id, file: video, accessToken: req.accessToken })
         : '';
+      const evidenceUrls = [];
+      for (const evidence of healthEvidence) {
+        evidenceUrls.push(await storePetFeedImage({ userId: req.user.id, file: evidence, accessToken: req.accessToken }));
+      }
+      const metadata = {
+        ...(payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {}),
+      };
+      if (evidenceUrls.length > 0) {
+        const existing = Array.isArray(metadata.health_evidence_urls)
+          ? metadata.health_evidence_urls.filter((u) => typeof u === 'string' && u.trim())
+          : [];
+        metadata.health_evidence_urls = [...existing, ...evidenceUrls];
+      }
       postPayload = {
         ...payload,
-        mediaUrls: uploadedPhotoUrls,
-        videoUrl: uploadedVideoUrl || null,
+        mediaUrls: uploadedPhotoUrls.length > 0 ? uploadedPhotoUrls : payload.mediaUrls,
+        videoUrl: uploadedVideoUrl || payload.videoUrl || null,
+        metadata,
       };
     } else if (hasClientProvidedMediaReferences(payload) || draft) {
       const validated = validateDirectMediaUrls(req.user.id, payload, { requireComplete: !draft });

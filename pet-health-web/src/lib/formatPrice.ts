@@ -59,3 +59,15 @@ export function isBlankDisplayValue(value: unknown): boolean {
   if (Array.isArray(value)) return value.length === 0;
   return false;
 }
+
+/** Live VND thousand-separator mask while typing (3.500.000). Digits only. */
+export function maskVndInput(raw: string): string {
+  const digits = String(raw ?? "").replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+/** Strip mask to digit string for validation / storage. */
+export function unmaskVndDigits(raw: string): string {
+  return String(raw ?? "").replace(/\D/g, "");
+}

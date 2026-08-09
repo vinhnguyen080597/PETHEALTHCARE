@@ -89,6 +89,8 @@ export function NotificationsInboxScreen({
     const type = notificationType(item);
     if (type === 'breeder_verified') return t('petFeed.notifications.verifiedTitle');
     if (type === 'breeder_rejected') return t('petFeed.notifications.rejectedTitle');
+    if (type === 'listing_approved') return t('petFeed.notifications.listingApprovedTitle');
+    if (type === 'listing_rejected') return t('petFeed.notifications.listingRejectedTitle');
     if (type === 'admin_breeder_pending') return t('petFeed.notifications.adminBreederTitle');
     if (type === 'admin_listing_pending') return t('petFeed.notifications.adminListingTitle');
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportTitle');
@@ -99,6 +101,8 @@ export function NotificationsInboxScreen({
     const type = notificationType(item);
     if (type === 'breeder_verified') return t('petFeed.notifications.verifiedSubtitle');
     if (type === 'breeder_rejected') return t('petFeed.notifications.rejectedSubtitle');
+    if (type === 'listing_approved') return t('petFeed.notifications.listingApprovedSubtitle');
+    if (type === 'listing_rejected') return t('petFeed.notifications.listingRejectedSubtitle');
     if (type === 'admin_breeder_pending') return t('petFeed.notifications.adminBreederSubtitle');
     if (type === 'admin_listing_pending') return t('petFeed.notifications.adminListingSubtitle');
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportSubtitle');
@@ -120,6 +124,12 @@ export function NotificationsInboxScreen({
         t('petFeed.notifications.rejectedBody')
       );
     }
+    if (type === 'listing_approved') {
+      return item.body_preview || t('petFeed.notifications.listingApprovedBody');
+    }
+    if (type === 'listing_rejected') {
+      return item.body_preview || t('petFeed.notifications.listingRejectedBody');
+    }
     if (type === 'admin_breeder_pending') {
       return item.body_preview || t('petFeed.notifications.adminBreederBody');
     }
@@ -140,6 +150,12 @@ export function NotificationsInboxScreen({
     if (type === 'breeder_rejected') {
       return item.cta_label || t('petFeed.notifications.rejectedCta');
     }
+    if (type === 'listing_approved') {
+      return item.cta_label || t('petFeed.notifications.listingApprovedCta');
+    }
+    if (type === 'listing_rejected') {
+      return item.cta_label || t('petFeed.notifications.listingRejectedCta');
+    }
     if (
       type === 'admin_breeder_pending' ||
       type === 'admin_listing_pending' ||
@@ -151,8 +167,8 @@ export function NotificationsInboxScreen({
   };
 
   const iconFor = (type: string) => {
-    if (type === 'breeder_verified') return 'checkmark-circle-outline' as const;
-    if (type === 'breeder_rejected') return 'close-circle-outline' as const;
+    if (type === 'breeder_verified' || type === 'listing_approved') return 'checkmark-circle-outline' as const;
+    if (type === 'breeder_rejected' || type === 'listing_rejected') return 'close-circle-outline' as const;
     if (
       type === 'admin_breeder_pending' ||
       type === 'admin_listing_pending' ||

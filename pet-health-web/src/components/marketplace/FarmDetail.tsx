@@ -751,9 +751,19 @@ export function FarmDetail({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-[#6E5A51] py-10 text-center">
-                    {t(lang, "farm.listings.empty")}
-                  </p>
+                  <div className="py-10 text-center space-y-3">
+                    <p className="text-sm text-[#6E5A51]">
+                      {t(lang, "farm.listings.empty")}
+                    </p>
+                    {isOwner ? (
+                      <Link
+                        href="/app/account/listings/new"
+                        className="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-[#D97706] text-white text-sm font-semibold hover:bg-[#B45309] transition-colors"
+                      >
+                        {t(lang, "farm.listings.createPost")}
+                      </Link>
+                    ) : null}
+                  </div>
                 )}
               </div>
             )}

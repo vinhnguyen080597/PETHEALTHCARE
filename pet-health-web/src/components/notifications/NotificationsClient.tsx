@@ -120,6 +120,13 @@ export function NotificationsClient({
       setReasonItem(item);
       return;
     }
+    if (type === "listing_rejected") {
+      const href =
+        (typeof item.metadata?.cta_href === "string" && item.metadata.cta_href.trim()) ||
+        "/app/account";
+      router.push(href);
+      return;
+    }
     if (item.post_id) {
       const unreadIds = items
         .filter(
@@ -168,6 +175,8 @@ export function NotificationsClient({
     const type = notificationType(item);
     if (type === "breeder_verified") return t(lang, "notifications.verifiedTitle");
     if (type === "breeder_rejected") return t(lang, "notifications.rejectedTitle");
+    if (type === "listing_approved") return t(lang, "notifications.listingApprovedTitle");
+    if (type === "listing_rejected") return t(lang, "notifications.listingRejectedTitle");
     if (type === "admin_breeder_pending") return t(lang, "notifications.adminBreederTitle");
     if (type === "admin_listing_pending") return t(lang, "notifications.adminListingTitle");
     if (type === "admin_report_open") return t(lang, "notifications.adminReportTitle");
@@ -185,6 +194,12 @@ export function NotificationsClient({
         item.body_preview ||
         t(lang, "notifications.rejectedBody")
       );
+    }
+    if (type === "listing_approved") {
+      return item.body_preview || t(lang, "notifications.listingApprovedBody");
+    }
+    if (type === "listing_rejected") {
+      return item.body_preview || t(lang, "notifications.listingRejectedBody");
     }
     if (type === "admin_breeder_pending") {
       return item.body_preview || t(lang, "notifications.adminBreederBody");
@@ -205,6 +220,12 @@ export function NotificationsClient({
     }
     if (type === "breeder_rejected") {
       return item.cta_label || t(lang, "notifications.rejectedCta");
+    }
+    if (type === "listing_approved") {
+      return item.cta_label || t(lang, "notifications.listingApprovedCta");
+    }
+    if (type === "listing_rejected") {
+      return item.cta_label || t(lang, "notifications.listingRejectedCta");
     }
     if (
       type === "admin_breeder_pending" ||
@@ -292,9 +313,9 @@ export function NotificationsClient({
                         alt=""
                         className="h-full w-full object-cover"
                       />
-                    ) : type === "breeder_verified" ? (
+                    ) : type === "breeder_verified" || type === "listing_approved" ? (
                       "✅"
-                    ) : type === "breeder_rejected" ? (
+                    ) : type === "breeder_rejected" || type === "listing_rejected" ? (
                       "⚠️"
                     ) : type === "admin_breeder_pending" ||
                       type === "admin_listing_pending" ||

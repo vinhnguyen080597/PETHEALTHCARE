@@ -10,9 +10,9 @@ import {
   type BreederSortKey,
 } from "@/lib/breederDirectorySort";
 import { BreederDirectoryCard } from "./BreederDirectoryCard";
-import { t } from "@/i18n";
+import { t, type EnKey } from "@/i18n";
 
-const SORT_I18N: Record<BreederSortKey, string> = {
+const SORT_I18N: Record<BreederSortKey, EnKey> = {
   trust: "breeders.sort.trust",
   listings: "breeders.sort.listings",
   sold: "breeders.sort.sold",

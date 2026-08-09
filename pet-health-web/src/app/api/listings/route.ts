@@ -25,6 +25,9 @@ export async function POST(req: Request) {
       dewormingStatus: "dewormingStatus",
       status: "status",
       warranty_policy_id: "warranty_policy_id",
+      personality: "personality",
+      paperwork: "paperwork",
+      contact: "contact",
     };
 
     for (const [key, dest] of Object.entries(fieldMap)) {
@@ -42,6 +45,13 @@ export async function POST(req: Request) {
     const video = incoming.get("video");
     if (video instanceof File && video.size > 0) {
       formData.set("video", video);
+    }
+
+    const evidence = incoming.getAll("healthEvidence");
+    for (const file of evidence) {
+      if (file instanceof File && file.size > 0) {
+        formData.append("healthEvidence", file);
+      }
     }
 
     const result = await createListingPost(token, formData);

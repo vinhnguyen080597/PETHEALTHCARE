@@ -78,6 +78,9 @@ test("farm listings tab is named Thú cưng / Pets", () => {
   assert.ok(enDict["farm.listings.sold"]);
   assert.ok(viDict["farm.listings.forSale"]);
   assert.ok(enDict["farm.listings.forSale"]);
+  assert.equal(viDict["farm.listings.createPost"], "Tạo bài đăng");
+  assert.ok(enDict["farm.listings.createPost"]);
+  assert.ok(viDict["farm.listings.empty"]);
 });
 
 test("video CTA soon tooltip exists in EN and VI", () => {

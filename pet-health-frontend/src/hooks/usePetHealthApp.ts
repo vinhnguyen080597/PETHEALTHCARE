@@ -2593,6 +2593,10 @@ export function usePetHealthApp() {
     if (type === 'breeder_rejected') {
       return;
     }
+    if (type === 'listing_rejected') {
+      setScreen('account');
+      return;
+    }
     if (!notification.post_id) return;
     openPetFeedPostDetail(notification.post_id, {
       focusCommentId: notification.comment_id || undefined,

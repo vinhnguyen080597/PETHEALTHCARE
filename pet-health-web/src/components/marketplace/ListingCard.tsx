@@ -32,10 +32,13 @@ export function ListingCard({
   listing,
   lang,
   showFavorite = false,
+  interactive = true,
 }: {
   listing: Listing;
   lang: Lang;
   showFavorite?: boolean;
+  /** When false, render static card (review preview) without links/favorite. */
+  interactive?: boolean;
 }) {
   const [saved, setSaved] = useState(Boolean(listing.saved));
   const [favBusy, setFavBusy] = useState(false);
@@ -71,6 +74,7 @@ export function ListingCard({
   const availability = farmPetAvailability(listing);
   const isSold = availability === "completed";
   const isHold = availability === "deposit_hold";
+  const detailHref = `/app/pet-feed/posts/${listing.id}`;
 
   const toggleFavorite = async (e: MouseEvent) => {
     e.preventDefault();
@@ -98,17 +102,79 @@ export function ListingCard({
     }
   };
 
+  const media = (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={listing.mediaUrl}
+        alt={listing.breed || title}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      />
+    </>
+  );
+
+  const body = (
+    <>
+      <h3 className="font-semibold text-[#2B1E19] text-sm leading-snug mb-2 line-clamp-2">
+        {title}
+      </h3>
+      {price ? (
+        <p className="mb-3">
+          <span className="text-[#D97706] font-bold text-base">{price}</span>
+          {deposit ? (
+            <span className="ml-1.5 text-xs font-medium text-[#2B1E19]/45">
+              {deposit}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
+
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {listing.location ? (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70">
+            📍 {listing.location}
+          </span>
+        ) : null}
+        {vaccine && vaccine !== "—" ? (
+          <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70">
+            💉 {vaccine}
+          </span>
+        ) : null}
+        {ageGender ? (
+          <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70">
+            {ageGender}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="flex items-center gap-2 pt-1 border-t border-[#F3E2C8]/80">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={listing.breeder.avatar}
+          alt={listing.breeder.name}
+          className="w-6 h-6 rounded-full object-cover"
+        />
+        <span className="text-xs text-[#2B1E19] font-medium truncate max-w-[90px]">
+          {listing.breeder.name}
+        </span>
+        {listing.breeder.verified && <VerifiedBadge size="xs" />}
+        <span className="ml-auto text-[11px] text-[#2B1E19]/55 font-medium whitespace-nowrap">
+          {qualityIndex}/100
+        </span>
+      </div>
+    </>
+  );
+
   return (
     <article className="bg-white rounded-2xl overflow-hidden border border-[#F3E2C8] hover:shadow-[0_16px_40px_-22px_rgba(217,119,6,0.4)] hover:-translate-y-0.5 transition-all duration-200 group">
       <div className="relative overflow-hidden h-48 bg-amber-50/40">
-        <Link href={`/app/pet-feed/posts/${listing.id}`} className="absolute inset-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={listing.mediaUrl}
-            alt={listing.breed || title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </Link>
+        {interactive ? (
+          <Link href={detailHref} className="absolute inset-0">
+            {media}
+          </Link>
+        ) : (
+          <div className="absolute inset-0">{media}</div>
+        )}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
           <span className="bg-white/95 backdrop-blur-sm text-[#2B1E19] text-xs font-medium px-2.5 py-1 rounded-full border border-[#F3E2C8]/80 w-fit">
             {listing.species === "cat"
@@ -134,7 +200,7 @@ export function ListingCard({
             </span>
           ) : null}
         </div>
-        {showFavorite ? (
+        {interactive && showFavorite ? (
           <button
             type="button"
             onClick={toggleFavorite}
@@ -151,58 +217,13 @@ export function ListingCard({
         ) : null}
       </div>
 
-      <Link
-        href={`/app/pet-feed/posts/${listing.id}`}
-        className="block p-4"
-      >
-        <h3 className="font-semibold text-[#2B1E19] text-sm leading-snug mb-2 line-clamp-2">
-          {title}
-        </h3>
-        {price ? (
-          <p className="mb-3">
-            <span className="text-[#D97706] font-bold text-base">{price}</span>
-            {deposit ? (
-              <span className="ml-1.5 text-xs font-medium text-[#2B1E19]/45">
-                {deposit}
-              </span>
-            ) : null}
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {listing.location ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70">
-              📍 {listing.location}
-            </span>
-          ) : null}
-          {vaccine && vaccine !== "—" ? (
-            <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70">
-              💉 {vaccine}
-            </span>
-          ) : null}
-          {ageGender ? (
-            <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70">
-              {ageGender}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="flex items-center gap-2 pt-1 border-t border-[#F3E2C8]/80">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={listing.breeder.avatar}
-            alt={listing.breeder.name}
-            className="w-6 h-6 rounded-full object-cover"
-          />
-          <span className="text-xs text-[#2B1E19] font-medium truncate max-w-[90px]">
-            {listing.breeder.name}
-          </span>
-          {listing.breeder.verified && <VerifiedBadge size="xs" />}
-          <span className="ml-auto text-[11px] text-[#2B1E19]/55 font-medium whitespace-nowrap">
-            {qualityIndex}/100
-          </span>
-        </div>
-      </Link>
+      {interactive ? (
+        <Link href={detailHref} className="block p-4">
+          {body}
+        </Link>
+      ) : (
+        <div className="block p-4">{body}</div>
+      )}
     </article>
   );
 }

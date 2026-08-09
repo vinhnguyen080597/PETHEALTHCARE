@@ -22,7 +22,7 @@ import {
   listAdminPetFeedPosts,
   listAdminPetFeedReports,
 } from '../repositories/petFeedRepository.js';
-import { createBreederVerificationNotification } from '../repositories/petFeedNotificationsRepository.js';
+import { createBreederVerificationNotification, createListingReviewNotification } from '../repositories/petFeedNotificationsRepository.js';
 import { listAdminActionLogs, recordAdminAction } from '../repositories/adminActionLogRepository.js';
 import { createPetForUser, getPetByIdForUser, listPetsByUser, updatePetForUser } from '../repositories/petRepository.js';
 import { sendTestAlertEmail } from '../services/errorNotifierService.js';
@@ -438,6 +438,45 @@ router.put('/pet-feed/posts/:postId/status', requireAdminOrSecret, async (req, r
     const before = await getAdminPetFeedPostById(postId);
     const post = await adminUpdatePetFeedPostStatus(postId, req.body?.status);
     if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
+
+    const beforeStatus = String(before?.status || '').toLowerCase();
+    const nextStatus = String(post.status || '').toLowerCase();
+    const recipientUserId = post.user_id || before?.user_id || null;
+    const titlePreview = compactText(post.title || before?.title || '') || 'bài đăng';
+    if (recipientUserId && beforeStatus !== nextStatus) {
+      if (nextStatus === 'published') {
+        void createListingReviewNotification({
+          recipientUserId,
+          actorUserId: req.user?.id || 'admin',
+          postId: post.id,
+          type: 'listing_approved',
+          bodyPreview: `Bài đăng "${String(titlePreview).slice(0, 80)}" đã được Admin duyệt.`,
+          metadata: {
+            title: post.title || before?.title || '',
+            breeder_profile_id: post.breeder_profile_id || before?.breeder_profile_id || undefined,
+            cta_label: 'Xem bài đăng',
+            cta_href: `/app/pet-feed/posts/${encodeURIComponent(post.id)}`,
+          },
+          accessToken: req.accessToken,
+        }).catch(() => null);
+      } else if (nextStatus === 'archived' && beforeStatus === 'pending_review') {
+        void createListingReviewNotification({
+          recipientUserId,
+          actorUserId: req.user?.id || 'admin',
+          postId: post.id,
+          type: 'listing_rejected',
+          bodyPreview: `Bài đăng "${String(titlePreview).slice(0, 80)}" chưa được duyệt.`,
+          metadata: {
+            title: post.title || before?.title || '',
+            breeder_profile_id: post.breeder_profile_id || before?.breeder_profile_id || undefined,
+            cta_label: 'Xem tin đăng',
+            cta_href: `/app/account`,
+          },
+          accessToken: req.accessToken,
+        }).catch(() => null);
+      }
+    }
+
     logAdminAction(req, {
       action: postActionName(post.status),
       targetType: 'post',

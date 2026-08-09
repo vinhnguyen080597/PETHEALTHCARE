@@ -373,6 +373,11 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
   }
 
   const breeder = mapApiBreeder(post.breeder_profile);
+  const ownerUserId =
+    String(post.user_id || breeder.userId || "").trim() || undefined;
+  if (ownerUserId && !breeder.userId) {
+    breeder.userId = ownerUserId;
+  }
   const rawPrice = post.price_note || "";
   const formatted = formatPriceVnd(rawPrice);
   const warrantyPolicy = mapWarrantyPolicy(post.warranty_policy);
@@ -399,6 +404,7 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     evidenceUrls: evidence.length ? evidence : undefined,
     status,
     breeder,
+    ownerUserId,
     saved: Boolean(post.is_favorited),
     postKind: post.post_kind,
     escrowEnabled: parseEscrowEnabled(meta),

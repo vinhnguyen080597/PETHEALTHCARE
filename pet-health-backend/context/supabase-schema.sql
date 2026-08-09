@@ -684,7 +684,9 @@ create table if not exists public.pet_feed_notifications (
     'deposit_confirmed',
     'deposit_cancelled',
     'deal_complete_request',
-    'deal_completed'
+    'deal_completed',
+    'listing_approved',
+    'listing_rejected'
   )),
   body_preview text not null default '',
   metadata jsonb not null default '{}'::jsonb,
@@ -706,7 +708,9 @@ alter table public.pet_feed_notifications
     'deposit_confirmed',
     'deposit_cancelled',
     'deal_complete_request',
-    'deal_completed'
+    'deal_completed',
+    'listing_approved',
+    'listing_rejected'
   ));
 create unique index if not exists idx_pet_feed_notifications_comment_unique
   on public.pet_feed_notifications(comment_id)

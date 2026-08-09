@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getLang } from "@/i18n";
 import { COOKIE_LANG, getAccessToken } from "@/lib/session";
 import { getMyBreederProfile } from "@/lib/api/petFeed";
-import { mapWarrantyPolicies } from "@/lib/mappers";
+import { mapApiBreeder, mapWarrantyPolicies } from "@/lib/mappers";
 import { NewListingForm } from "@/components/account/NewListingForm";
 
 export const metadata = { title: "Create listing" };
@@ -18,5 +18,12 @@ export default async function NewListingPage() {
   const warrantyPolicies = mapWarrantyPolicies(
     profile?.warranty_policies ?? profile?.metadata?.warranty_policies,
   ).map((p) => ({ id: p.id, title: p.title }));
-  return <NewListingForm lang={lang} warrantyPolicies={warrantyPolicies} />;
+  const breeder = mapApiBreeder(profile);
+  return (
+    <NewListingForm
+      lang={lang}
+      warrantyPolicies={warrantyPolicies}
+      breeder={breeder}
+    />
+  );
 }

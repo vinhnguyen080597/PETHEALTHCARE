@@ -81,3 +81,25 @@ test('comment on another user post creates unread notification', async () => {
   const afterRead = await listPetFeedNotifications(ownerId, null);
   assert.equal(afterRead[0].is_unread, false);
 });
+
+test('listing approval creates unread notification for post owner', async () => {
+  __resetPetFeedNotificationsMemoryForTests();
+  const { createListingReviewNotification } = await import(
+    '../src/repositories/petFeedNotificationsRepository.js'
+  );
+  const ownerId = `notif-listing-${Date.now()}`;
+  const post = await publishListing(ownerId, 'Approved kitten');
+  await createListingReviewNotification({
+    recipientUserId: ownerId,
+    actorUserId: 'admin',
+    postId: post.id,
+    type: 'listing_approved',
+    bodyPreview: 'Listing approved',
+    metadata: { title: post.title },
+    accessToken: null,
+  });
+  assert.equal(await countUnreadPetFeedNotifications(ownerId, null), 1);
+  const list = await listPetFeedNotifications(ownerId, null);
+  assert.equal(list[0].type, 'listing_approved');
+  assert.equal(list[0].post_id, post.id);
+});

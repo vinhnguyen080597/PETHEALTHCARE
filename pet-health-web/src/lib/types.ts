@@ -146,6 +146,8 @@ export interface Listing {
     | "sold"
     | "deposit_hold";
   breeder: BreederProfile;
+  /** Post author user id (for owner-only UI). */
+  ownerUserId?: string;
   saved: boolean;
   postKind?: string;
   /** Listing accepts PetCare escrow deposit (Phase B UI). */

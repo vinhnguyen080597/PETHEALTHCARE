@@ -8,6 +8,7 @@ const DEFAULT_NOTIFICATION_LIMIT = 50;
 const MAX_NOTIFICATION_LIMIT = 100;
 
 const BREEDER_NOTIFICATION_TYPES = new Set(['breeder_verified', 'breeder_rejected']);
+const LISTING_REVIEW_NOTIFICATION_TYPES = new Set(['listing_approved', 'listing_rejected']);
 const ADMIN_NOTIFICATION_TYPES = new Set([
   'admin_breeder_pending',
   'admin_listing_pending',
@@ -153,6 +154,19 @@ async function enrichNotification(row, accessToken) {
     });
   }
 
+  if (LISTING_REVIEW_NOTIFICATION_TYPES.has(type)) {
+    const metadata = normalizeMetadata(row.metadata);
+    const post = row.post_id
+      ? await getPetFeedPost(row.recipient_user_id, row.post_id, accessToken).catch(() => null)
+      : null;
+    return toNotification(row, {
+      actor_display_name: actorName,
+      post_title: post?.title || trimText(metadata.title, 160),
+      post_thumb_url: listThumbFromPost(post) || (typeof metadata.thumb_url === 'string' ? metadata.thumb_url : null),
+      cta_label: metadata.cta_label || (type === 'listing_approved' ? 'Xem bài đăng' : 'Xem tin đăng'),
+    });
+  }
+
   const post = row.post_id
     ? await getPetFeedPost(row.recipient_user_id, row.post_id, accessToken).catch(() => null)
     : null;
@@ -185,6 +199,57 @@ export async function createDealNotification({
     meta.cta_href = `/app/posts/${encodeURIComponent(safePostId)}`;
   }
   if (!meta.cta_label) meta.cta_label = 'Xem bài đăng';
+
+  const row = {
+    id: randomUUID(),
+    recipient_user_id: recipient,
+    actor_user_id: actor,
+    post_id: safePostId,
+    comment_id: null,
+    breeder_profile_id: trimText(metadata?.breeder_profile_id, 64) || null,
+    type: safeType,
+    body_preview: trimText(bodyPreview, 220),
+    metadata: meta,
+    created_at: new Date().toISOString(),
+    read_at: null,
+  };
+
+  const supabase = getNotificationsSupabase(accessToken);
+  if (!supabase) {
+    memoryNotifications.push(row);
+    return enrichNotification(row, accessToken);
+  }
+
+  const { data, error } = await supabase.from('pet_feed_notifications').insert(row).select('*').single();
+  if (error) throw error;
+  return enrichNotification(data, accessToken);
+}
+
+/**
+ * Notify breeder when admin publishes or archives their listing under review.
+ */
+export async function createListingReviewNotification({
+  recipientUserId,
+  actorUserId,
+  postId,
+  type,
+  bodyPreview,
+  metadata = {},
+  accessToken,
+}) {
+  const recipient = trimText(recipientUserId, 64);
+  const actor = trimText(actorUserId, 64) || 'admin';
+  const safePostId = trimText(postId, 64);
+  const safeType = LISTING_REVIEW_NOTIFICATION_TYPES.has(type) ? type : '';
+  if (!recipient || !safePostId || !safeType) return null;
+
+  const meta = normalizeMetadata(metadata);
+  if (!meta.cta_href) {
+    meta.cta_href = `/app/pet-feed/posts/${encodeURIComponent(safePostId)}`;
+  }
+  if (!meta.cta_label) {
+    meta.cta_label = safeType === 'listing_approved' ? 'Xem bài đăng' : 'Xem tin đăng';
+  }
 
   const row = {
     id: randomUUID(),

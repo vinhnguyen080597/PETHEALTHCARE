@@ -70,3 +70,8 @@ test("adminRequestHref falls back without focus ids", () => {
   );
   assert.equal(adminRequestHref({ type: "post_comment" }), "/app/admin?section=requests");
 });
+
+test("listing review notification types are distinct from admin queue types", () => {
+  assert.equal(notificationType({ type: "listing_approved" }), "listing_approved");
+  assert.equal(notificationType({ type: "listing_rejected" }), "listing_rejected");
+});
