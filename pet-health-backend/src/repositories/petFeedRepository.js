@@ -2,10 +2,20 @@ import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
 import { assertHealthEvidenceForReview } from '../utils/petFeedHealthEvidence.js';
 import { resolveBreederPetType, resolvePostPetType } from '../utils/petType.js';
+import {
+  asObject,
+  buildWarrantySnapshot,
+  findWarrantyPolicy,
+  isWarrantyPolicyFrozen,
+  listWarrantyPoliciesFromMetadata,
+  normalizeWarrantyPolicy,
+  parseWarrantyPolicyInput,
+  resolveListingWarrantyPolicy,
+} from '../utils/warrantyPolicy.js';
 
 const DEFAULT_VIOLATION_PENALTY_POINTS = 10;
 
-const POST_STATUSES = new Set(['draft', 'pending_review', 'published', 'archived']);
+const POST_STATUSES = new Set(['draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold']);
 const POST_KINDS = new Set(['listing', 'announcement']);
 const ANNOUNCEMENT_CATEGORIES = new Set(['app_update', 'health_tip', 'community', 'general']);
 const VERIFICATION_STATUSES = new Set(['unverified', 'pending_review', 'verified', 'rejected', 'suspended']);
@@ -175,6 +185,7 @@ function normalizePostPayload(userId, payload, existing = {}) {
 
 function toProfile(row) {
   if (!row) return row;
+  const metadata = row.metadata ?? {};
   return {
     id: row.id,
     user_id: row.user_id,
@@ -187,16 +198,154 @@ function toProfile(row) {
     main_breeds: row.main_breeds ?? [],
     care_environment: row.care_environment ?? '',
     verification_status: row.verification_status ?? 'unverified',
-    metadata: row.metadata ?? {},
+    metadata,
+    warranty_policies: listWarrantyPoliciesFromMetadata(metadata),
+    warranty_policy_trust_awarded: Boolean(asObject(metadata).warranty_policy_trust_awarded),
     pet_type: resolveBreederPetType(row),
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
 }
 
+function httpError(message, status, code) {
+  const err = new Error(message);
+  err.status = status;
+  err.code = code;
+  return err;
+}
+
+function applyWarrantyPolicyBind(existingRow, nextRow, breederProfile) {
+  const existingMeta = asObject(existingRow?.metadata);
+  const nextMeta = { ...asObject(nextRow.metadata) };
+  const requestedId = nextMeta.warranty_policy_id !== undefined
+    ? String(nextMeta.warranty_policy_id ?? '').trim()
+    : existingMeta.warranty_policy_id != null
+      ? String(existingMeta.warranty_policy_id).trim()
+      : '';
+
+  if (isWarrantyPolicyFrozen({ status: existingRow?.status ?? nextRow.status, metadata: existingMeta })) {
+    const existingId = String(existingMeta.warranty_policy_id ?? '').trim();
+    if (requestedId && requestedId !== existingId) {
+      throw httpError(
+        'Warranty policy is frozen after deposit confirmation.',
+        400,
+        'WARRANTY_POLICY_FROZEN',
+      );
+    }
+    nextMeta.warranty_policy_id = existingMeta.warranty_policy_id ?? null;
+    if (existingMeta.warranty_policy_snapshot) {
+      nextMeta.warranty_policy_snapshot = existingMeta.warranty_policy_snapshot;
+    }
+    if (existingMeta.deal) nextMeta.deal = existingMeta.deal;
+    return { ...nextRow, metadata: nextMeta };
+  }
+
+  if (nextMeta.warranty_policy_id !== undefined) {
+    if (!requestedId) {
+      nextMeta.warranty_policy_id = null;
+    } else {
+      const policy = findWarrantyPolicy(breederProfile?.metadata, requestedId);
+      if (!policy) {
+        throw httpError('Warranty policy not found in your library.', 400, 'WARRANTY_POLICY_NOT_FOUND');
+      }
+      nextMeta.warranty_policy_id = policy.id;
+    }
+  }
+
+  return { ...nextRow, metadata: nextMeta };
+}
+
+async function persistBreederMetadata(userId, metadata, accessToken) {
+  const updates = {
+    metadata: asObject(metadata),
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    const idx = memoryProfiles.findIndex((profile) => profile.user_id === userId);
+    if (idx < 0) throw httpError('Breeder profile not found.', 404, 'BREEDER_PROFILE_NOT_FOUND');
+    memoryProfiles[idx] = { ...memoryProfiles[idx], ...updates };
+    return toProfile(memoryProfiles[idx]);
+  }
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .update(updates)
+    .eq('user_id', userId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return toProfile(data);
+}
+
+async function loadPostRowForDeal(postId, accessToken) {
+  const safeId = trimText(postId, 80);
+  if (!safeId) return null;
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    return memoryPosts.find((post) => post.id === safeId) ?? null;
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .eq('id', safeId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+async function persistPostRow(postId, patch, accessToken) {
+  const updates = { ...patch, updated_at: new Date().toISOString() };
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    const idx = memoryPosts.findIndex((post) => post.id === postId);
+    if (idx < 0) return null;
+    memoryPosts[idx] = { ...memoryPosts[idx], ...updates };
+    const profile = memoryProfiles.find((p) => p.id === memoryPosts[idx].breeder_profile_id) ?? null;
+    return toPost({ ...memoryPosts[idx], breeder_profile: profile ? toProfile(profile) : null });
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .update(updates)
+    .eq('id', postId)
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .maybeSingle();
+  if (error) throw error;
+  return toPost(data);
+}
+
+function attachWarrantyPolicyDto(post) {
+  if (!post) return post;
+  const breederMeta = asObject(post.breeder_profile?.metadata);
+  const warranty_policy = resolveListingWarrantyPolicy(post, breederMeta);
+  const deal = asObject(asObject(post.metadata).deal);
+  return {
+    ...post,
+    warranty_policy,
+    deal: Object.keys(deal).length ? deal : null,
+  };
+}
+
+function resolvePostBreederProfile(row, profilesById = new Map()) {
+  if (!row) return null;
+  if (profilesById.has(row.breeder_profile_id)) {
+    return profilesById.get(row.breeder_profile_id);
+  }
+  if (row.breeder_profile) {
+    return row.breeder_profile.warranty_policies
+      ? row.breeder_profile
+      : toProfile(row.breeder_profile);
+  }
+  if (row.breeder_profile_id) {
+    const memory = memoryProfiles.find((p) => p.id === row.breeder_profile_id);
+    if (memory) return toProfile(memory);
+  }
+  return null;
+}
+
 function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
   if (!row) return row;
-  return {
+  const breeder = resolvePostBreederProfile(row, profilesById);
+  return attachWarrantyPolicyDto({
     id: row.id,
     user_id: row.user_id,
     breeder_profile_id: row.breeder_profile_id,
@@ -219,11 +368,11 @@ function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
     status: row.status,
     post_kind: normalizePostKind(row.post_kind, 'listing'),
     metadata: row.metadata ?? {},
-    breeder_profile: profilesById.get(row.breeder_profile_id) ?? row.breeder_profile ?? null,
+    breeder_profile: breeder,
     is_favorited: favoriteIds.has(row.id),
     created_at: row.created_at,
     updated_at: row.updated_at,
-  };
+  });
 }
 
 /** Feed card list DTO: first image only + optional video; lighter JSON for scroll. */
@@ -778,8 +927,13 @@ function toPublicDetailPost(row) {
 function toPublicBreeder(profile, { includeContact = false } = {}) {
   const mapped = toProfile(profile);
   if (!mapped) return mapped;
-  if (includeContact) return mapped;
-  return stripContactFromProfile(mapped);
+  const withPolicies = {
+    ...mapped,
+    warranty_policies: listWarrantyPoliciesFromMetadata(mapped.metadata),
+    warranty_policy_trust_awarded: Boolean(asObject(mapped.metadata).warranty_policy_trust_awarded),
+  };
+  if (includeContact) return withPolicies;
+  return stripContactFromProfile(withPolicies);
 }
 
 async function withPublicBreederListingCounts(profiles) {
@@ -884,7 +1038,13 @@ export async function getPublicPetFeedPost(postId) {
 
   if (!supabase) {
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
-    const row = memoryPosts.find((post) => post.id === safePostId && post.status === 'published');
+    const row = memoryPosts.find((post) => {
+      if (post.id !== safePostId) return false;
+      return post.status === 'published'
+        || post.status === 'deposit_hold'
+        || post.status === 'sold'
+        || (post.status === 'archived' && isSoldListingMetadata(post.metadata));
+    });
     if (!row) return null;
     const post = toPublicDetailPost({ ...row, breeder_profile: profilesById.get(row.breeder_profile_id) ?? null });
     return withPostEngagementCounts(post, null);
@@ -894,13 +1054,21 @@ export async function getPublicPetFeedPost(postId) {
     .from('pet_feed_posts')
     .select('*, breeder_profile:breeder_profiles(*)')
     .eq('id', safePostId)
-    .eq('status', 'published')
+    .in('status', ['published', 'deposit_hold', 'sold', 'archived'])
     .maybeSingle();
   if (error) {
     if (error.code === '22P02' || error.code === 'PGRST116') return null;
     throw error;
   }
   if (!data) return null;
+  if (
+    data.status !== 'published'
+    && data.status !== 'deposit_hold'
+    && data.status !== 'sold'
+    && !(data.status === 'archived' && isSoldListingMetadata(data.metadata))
+  ) {
+    return null;
+  }
   return withPostEngagementCounts(toPublicDetailPost(data), null);
 }
 
@@ -937,7 +1105,38 @@ export async function listPublicVerifiedBreederProfiles(options = {}) {
   };
 }
 
-/** Public verified breeder profile + published listings. */
+function isSoldListingMetadata(metadata) {
+  const meta = metadata && typeof metadata === 'object' ? metadata : {};
+  const outcome = String(meta.listing_outcome ?? meta.outcome ?? '').trim().toLowerCase();
+  if (outcome === 'sold' || outcome === 'completed' || outcome === 'rehomed') return true;
+  return meta.sold === true
+    || meta.completed === true
+    || meta.rehomed === true
+    || meta.sold === 1
+    || meta.sold === 'true'
+    || meta.sold === '1';
+}
+
+/** Public farm "Thú cưng" tab: for-sale + deposit hold + completed/sold listings. */
+function isPublicFarmPetListing(post) {
+  if (normalizePostKind(post.post_kind, 'listing') !== 'listing') return false;
+  if (post.status === 'published' || post.status === 'deposit_hold' || post.status === 'sold') return true;
+  if (post.status === 'archived' && isSoldListingMetadata(post.metadata)) return true;
+  return false;
+}
+
+function sortPublicFarmPetListings(a, b) {
+  const rank = (post) => {
+    if (post.status === 'published') return 0;
+    if (post.status === 'deposit_hold') return 1;
+    return 2;
+  };
+  const d = rank(a) - rank(b);
+  if (d !== 0) return d;
+  return a.created_at < b.created_at ? 1 : -1;
+}
+
+/** Public verified breeder profile + farm pets (for sale + completed). */
 export async function getPublicBreederProfile(profileId) {
   const safeId = trimText(profileId, 80);
   if (!safeId) return null;
@@ -967,25 +1166,24 @@ export async function getPublicBreederProfile(profileId) {
   let listings = [];
   if (!supabase) {
     listings = memoryPosts
-      .filter(
-        (post) =>
-          post.breeder_profile_id === safeId
-          && post.status === 'published'
-          && normalizePostKind(post.post_kind, 'listing') === 'listing',
-      )
-      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .filter((post) => post.breeder_profile_id === safeId && isPublicFarmPetListing(post))
+      .sort(sortPublicFarmPetListings)
       .map((post) => toPublicListPost({ ...post, breeder_profile: publicProfile }));
   } else {
     const { data, error } = await supabase
       .from('pet_feed_posts')
       .select('*, breeder_profile:breeder_profiles(*)')
       .eq('breeder_profile_id', safeId)
-      .eq('status', 'published')
       .eq('post_kind', 'listing')
+      .in('status', ['published', 'deposit_hold', 'sold', 'archived'])
       .order('created_at', { ascending: false })
-      .limit(48);
+      .limit(96);
     if (error) throw error;
-    listings = (data ?? []).map((row) => toPublicListPost(row));
+    listings = (data ?? [])
+      .filter((row) => isPublicFarmPetListing(row))
+      .sort(sortPublicFarmPetListings)
+      .slice(0, 48)
+      .map((row) => toPublicListPost(row));
   }
 
   return {
@@ -1137,12 +1335,13 @@ export async function createPetFeedPost(userId, payload, accessToken, _options =
   const profile = await getMyBreederProfile(userId, accessToken);
   assertVerifiedBreederProfile(profile);
   assertHealthEvidenceForReview(payload);
-  const row = {
+  const base = {
     ...normalizePostPayload(userId, { ...payload, breederProfileId: profile?.id, postKind: 'listing' }),
     post_kind: 'listing',
     status: normalizeUserEditablePostStatus(payload.status, 'draft'),
     created_at: new Date().toISOString(),
   };
+  const row = applyWarrantyPolicyBind(null, base, profile);
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) {
     memoryPosts.push(row);
@@ -1310,11 +1509,25 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
     if (idx < 0) return null;
     const profile = await getMyBreederProfile(userId, accessToken);
     assertVerifiedBreederProfile(profile);
-    const nextRow = {
-      ...memoryPosts[idx],
-      ...normalizePostPayload(userId, payload, memoryPosts[idx]),
-      status: normalizeUserEditablePostStatus(payload.status, memoryPosts[idx].status),
+    if (memoryPosts[idx].status === 'deposit_hold' || memoryPosts[idx].status === 'sold') {
+      throw httpError('This listing cannot be edited while deposit is held or completed.', 400, 'LISTING_LOCKED');
+    }
+    const mergedPayload = {
+      ...payload,
+      metadata: {
+        ...asObject(memoryPosts[idx].metadata),
+        ...asObject(payload.metadata),
+      },
     };
+    const nextRow = applyWarrantyPolicyBind(
+      memoryPosts[idx],
+      {
+        ...memoryPosts[idx],
+        ...normalizePostPayload(userId, mergedPayload, memoryPosts[idx]),
+        status: normalizeUserEditablePostStatus(payload.status, memoryPosts[idx].status),
+      },
+      profile,
+    );
     assertHealthEvidenceForReview({
       ...payload,
       status: nextRow.status,
@@ -1322,16 +1535,30 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
       metadata: nextRow.metadata,
     });
     memoryPosts[idx] = nextRow;
-    return toPost(memoryPosts[idx]);
+    return toPost(memoryPosts[idx], new Set(), new Map(profile ? [[profile.id, profile]] : []));
   }
   const existing = await getPetFeedPost(userId, postId, accessToken);
   if (!existing || existing.user_id !== userId) return null;
+  if (existing.status === 'deposit_hold' || existing.status === 'sold') {
+    throw httpError('This listing cannot be edited while deposit is held or completed.', 400, 'LISTING_LOCKED');
+  }
   const profile = await getMyBreederProfile(userId, accessToken);
   assertVerifiedBreederProfile(profile);
-  const updates = {
-    ...normalizePostPayload(userId, payload, existing),
-    status: normalizeUserEditablePostStatus(payload.status, existing.status),
+  const mergedPayload = {
+    ...payload,
+    metadata: {
+      ...asObject(existing.metadata),
+      ...asObject(payload.metadata),
+    },
   };
+  const updates = applyWarrantyPolicyBind(
+    existing,
+    {
+      ...normalizePostPayload(userId, mergedPayload, existing),
+      status: normalizeUserEditablePostStatus(payload.status, existing.status),
+    },
+    profile,
+  );
   assertHealthEvidenceForReview({
     ...payload,
     status: updates.status,
@@ -1865,4 +2092,307 @@ export async function adminUpdatePetFeedReportStatus(reportId, status) {
     await appendBreederViolationFromReport(data);
   }
   return toReport(data);
+}
+
+export function listMyWarrantyPolicies(profile) {
+  return listWarrantyPoliciesFromMetadata(profile?.metadata);
+}
+
+export async function createMyWarrantyPolicy(userId, payload, accessToken) {
+  const profile = await getMyBreederProfile(userId, accessToken);
+  if (!profile) throw httpError('Breeder profile not found.', 404, 'BREEDER_PROFILE_NOT_FOUND');
+
+  const fields = parseWarrantyPolicyInput(payload);
+  if (!fields || !fields.title) {
+    throw httpError('Warranty policy title and required fields are missing.', 400, 'WARRANTY_INVALID');
+  }
+
+  const policy = normalizeWarrantyPolicy({
+    id: randomUUID(),
+    ...fields,
+    created_at: new Date().toISOString(),
+  });
+  if (!policy) {
+    throw httpError('Warranty policy is invalid.', 400, 'WARRANTY_INVALID');
+  }
+
+  const meta = asObject(profile.metadata);
+  const policies = listWarrantyPoliciesFromMetadata(meta);
+  const isFirst = policies.length === 0 && !meta.warranty_policy_trust_awarded;
+  const nextMeta = {
+    ...meta,
+    warranty_policies: [...policies, policy],
+    warranty_policy_trust_awarded: Boolean(meta.warranty_policy_trust_awarded) || isFirst,
+  };
+  const updated = await persistBreederMetadata(userId, nextMeta, accessToken);
+  return {
+    profile: updated,
+    policy,
+    trust_awarded: isFirst,
+  };
+}
+
+export async function deleteMyWarrantyPolicy(userId, policyId, accessToken) {
+  const profile = await getMyBreederProfile(userId, accessToken);
+  if (!profile) throw httpError('Breeder profile not found.', 404, 'BREEDER_PROFILE_NOT_FOUND');
+  const safeId = trimText(policyId, 80);
+  if (!safeId) throw httpError('Warranty policy id is required.', 400, 'WARRANTY_POLICY_ID_REQUIRED');
+
+  const locked = await listPostsLockingWarrantyPolicy(profile.id, safeId, accessToken);
+  if (locked.length > 0) {
+    throw httpError(
+      'Cannot delete a warranty policy bound to a deposit hold or completed listing.',
+      400,
+      'WARRANTY_POLICY_IN_USE',
+    );
+  }
+
+  const meta = asObject(profile.metadata);
+  const policies = listWarrantyPoliciesFromMetadata(meta).filter((p) => p.id !== safeId);
+  if (policies.length === listWarrantyPoliciesFromMetadata(meta).length) {
+    throw httpError('Warranty policy not found.', 404, 'WARRANTY_POLICY_NOT_FOUND');
+  }
+  const updated = await persistBreederMetadata(userId, { ...meta, warranty_policies: policies }, accessToken);
+  return updated;
+}
+
+export async function updateMyWarrantyPolicy(userId, policyId, payload, accessToken) {
+  const profile = await getMyBreederProfile(userId, accessToken);
+  if (!profile) throw httpError('Breeder profile not found.', 404, 'BREEDER_PROFILE_NOT_FOUND');
+  const safeId = trimText(policyId, 80);
+  if (!safeId) throw httpError('Warranty policy id is required.', 400, 'WARRANTY_POLICY_ID_REQUIRED');
+
+  const locked = await listPostsLockingWarrantyPolicy(profile.id, safeId, accessToken);
+  if (locked.length > 0) {
+    throw httpError(
+      'Cannot update a warranty policy bound to a deposit hold or completed listing.',
+      400,
+      'WARRANTY_POLICY_IN_USE',
+    );
+  }
+
+  const fields = parseWarrantyPolicyInput(payload);
+  if (!fields || !fields.title) {
+    throw httpError('Warranty policy title and required fields are missing.', 400, 'WARRANTY_INVALID');
+  }
+
+  const meta = asObject(profile.metadata);
+  const policies = listWarrantyPoliciesFromMetadata(meta);
+  const existing = policies.find((p) => p.id === safeId);
+  if (!existing) {
+    throw httpError('Warranty policy not found.', 404, 'WARRANTY_POLICY_NOT_FOUND');
+  }
+
+  const policy = normalizeWarrantyPolicy({
+    ...fields,
+    id: existing.id,
+    created_at: existing.created_at,
+  });
+  if (!policy) {
+    throw httpError('Warranty policy is invalid.', 400, 'WARRANTY_INVALID');
+  }
+
+  const nextPolicies = policies.map((p) => (p.id === safeId ? policy : p));
+  const updated = await persistBreederMetadata(
+    userId,
+    { ...meta, warranty_policies: nextPolicies },
+    accessToken,
+  );
+  return { profile: updated, policy };
+}
+
+async function listPostsLockingWarrantyPolicy(breederProfileId, policyId, accessToken) {
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    return memoryPosts.filter((post) => {
+      if (post.breeder_profile_id !== breederProfileId) return false;
+      if (post.status !== 'deposit_hold' && post.status !== 'sold') return false;
+      const meta = asObject(post.metadata);
+      return String(meta.warranty_policy_id ?? '') === policyId
+        || String(asObject(meta.warranty_policy_snapshot).id ?? '') === policyId;
+    });
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .select('id, status, metadata')
+    .eq('breeder_profile_id', breederProfileId)
+    .in('status', ['deposit_hold', 'sold']);
+  if (error) throw error;
+  return (data ?? []).filter((post) => {
+    const meta = asObject(post.metadata);
+    return String(meta.warranty_policy_id ?? '') === policyId
+      || String(asObject(meta.warranty_policy_snapshot).id ?? '') === policyId;
+  });
+}
+
+/**
+ * Soft deposit: either party confirms; when both confirmed → deposit_hold + freeze snapshot.
+ * Body: { senUserId?, acknowledge?: boolean }
+ */
+export async function confirmListingDeposit(actorUserId, postId, payload = {}, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row || normalizePostKind(row.post_kind, 'listing') !== 'listing') {
+    throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  }
+  if (row.status !== 'published' && row.status !== 'deposit_hold') {
+    throw httpError('Deposit can only be confirmed on an available listing.', 400, 'DEPOSIT_NOT_ALLOWED');
+  }
+
+  const breederUserId = row.user_id;
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const requestedSen = trimText(payload.senUserId ?? payload.sen_user_id, 80);
+  const isBreeder = actorUserId === breederUserId;
+  let senUserId = trimText(deal.sen_user_id, 80);
+
+  if (isBreeder) {
+    senUserId = requestedSen || senUserId;
+  } else if (actorUserId !== breederUserId) {
+    if (senUserId && senUserId !== actorUserId) {
+      throw httpError('Only the assigned buyer can confirm this deposit.', 403, 'DEPOSIT_FORBIDDEN');
+    }
+    senUserId = actorUserId;
+  } else {
+    throw httpError('Only the breeder or buyer can confirm this deposit.', 403, 'DEPOSIT_FORBIDDEN');
+  }
+
+  if (!senUserId) {
+    throw httpError('Buyer (Sen) is required to confirm deposit.', 400, 'DEPOSIT_SEN_REQUIRED');
+  }
+  if (senUserId === breederUserId) {
+    throw httpError('Buyer must be a different account from the breeder.', 400, 'DEPOSIT_SEN_INVALID');
+  }
+
+  const policyId = String(meta.warranty_policy_id ?? '').trim();
+  const breederProfile = row.breeder_profile
+    ? toProfile(row.breeder_profile)
+    : await getMyBreederProfile(breederUserId, accessToken);
+  const policy = findWarrantyPolicy(breederProfile?.metadata, policyId);
+  if (!policy && !asObject(meta.warranty_policy_snapshot).file_url) {
+    throw httpError('Select a warranty policy on this listing before deposit.', 400, 'WARRANTY_POLICY_REQUIRED');
+  }
+
+  if (!payload.acknowledge && !payload.acknowledged) {
+    throw httpError('Acknowledge the warranty policy and direct deposit terms.', 400, 'DEPOSIT_ACK_REQUIRED');
+  }
+
+  const now = new Date().toISOString();
+  const nextDeal = {
+    ...deal,
+    status: deal.status || 'pending_sen',
+    sen_user_id: senUserId,
+    policy_id_at_request: policyId || deal.policy_id_at_request || null,
+    breeder_confirmed_deposit_at: deal.breeder_confirmed_deposit_at || null,
+    sen_confirmed_deposit_at: deal.sen_confirmed_deposit_at || null,
+  };
+
+  if (actorUserId === breederUserId) {
+    nextDeal.breeder_confirmed_deposit_at = now;
+  }
+  if (actorUserId === senUserId) {
+    nextDeal.sen_confirmed_deposit_at = now;
+  }
+
+  const bothConfirmed = Boolean(nextDeal.breeder_confirmed_deposit_at && nextDeal.sen_confirmed_deposit_at);
+  let nextStatus = row.status;
+  const nextMeta = { ...meta, deal: nextDeal };
+
+  if (bothConfirmed) {
+    nextStatus = 'deposit_hold';
+    nextDeal.status = 'deposit_hold';
+    const snapshot = buildWarrantySnapshot(policy || meta.warranty_policy_snapshot);
+    if (snapshot) nextMeta.warranty_policy_snapshot = snapshot;
+    nextMeta.warranty_policy_id = policyId || snapshot?.id || meta.warranty_policy_id || null;
+  } else {
+    nextDeal.status = 'pending_sen';
+  }
+
+  const updated = await persistPostRow(postId, { status: nextStatus, metadata: nextMeta }, accessToken);
+  return {
+    post: updated,
+    both_confirmed: bothConfirmed,
+    notify_user_id: actorUserId === breederUserId ? senUserId : breederUserId,
+  };
+}
+
+export async function cancelListingDeposit(actorUserId, postId, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  if (row.status !== 'deposit_hold' && row.status !== 'published') {
+    throw httpError('No active deposit to cancel.', 400, 'DEPOSIT_CANCEL_NOT_ALLOWED');
+  }
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const senUserId = trimText(deal.sen_user_id, 80);
+  if (actorUserId !== row.user_id && actorUserId !== senUserId) {
+    throw httpError('Only the breeder or buyer can cancel this deposit.', 403, 'DEPOSIT_FORBIDDEN');
+  }
+
+  const nextMeta = {
+    ...meta,
+    deal: {
+      ...deal,
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: actorUserId,
+      breeder_confirmed_deposit_at: null,
+      sen_confirmed_deposit_at: null,
+      breeder_confirmed_complete_at: null,
+      sen_confirmed_complete_at: null,
+    },
+  };
+  delete nextMeta.warranty_policy_snapshot;
+
+  const updated = await persistPostRow(postId, { status: 'published', metadata: nextMeta }, accessToken);
+  return {
+    post: updated,
+    notify_user_id: actorUserId === row.user_id ? senUserId : row.user_id,
+  };
+}
+
+/** Dual-confirm handoff → sold (HOÀN THÀNH). */
+export async function confirmListingComplete(actorUserId, postId, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  if (row.status !== 'deposit_hold') {
+    throw httpError('Completion is only available while the listing is on deposit hold.', 400, 'COMPLETE_NOT_ALLOWED');
+  }
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const senUserId = trimText(deal.sen_user_id, 80);
+  if (actorUserId !== row.user_id && actorUserId !== senUserId) {
+    throw httpError('Only the breeder or buyer can confirm completion.', 403, 'COMPLETE_FORBIDDEN');
+  }
+
+  const now = new Date().toISOString();
+  const nextDeal = {
+    ...deal,
+    status: 'pending_complete',
+    breeder_confirmed_complete_at: deal.breeder_confirmed_complete_at || null,
+    sen_confirmed_complete_at: deal.sen_confirmed_complete_at || null,
+  };
+  if (actorUserId === row.user_id) nextDeal.breeder_confirmed_complete_at = now;
+  if (actorUserId === senUserId) nextDeal.sen_confirmed_complete_at = now;
+
+  const both = Boolean(nextDeal.breeder_confirmed_complete_at && nextDeal.sen_confirmed_complete_at);
+  let nextStatus = 'deposit_hold';
+  if (both) {
+    nextStatus = 'sold';
+    nextDeal.status = 'completed';
+    nextDeal.completed_at = now;
+  }
+
+  const nextMeta = {
+    ...meta,
+    deal: nextDeal,
+    listing_outcome: both ? 'sold' : meta.listing_outcome,
+    sold: both ? true : meta.sold,
+  };
+
+  const updated = await persistPostRow(postId, { status: nextStatus, metadata: nextMeta }, accessToken);
+  return {
+    post: updated,
+    both_confirmed: both,
+    notify_user_id: actorUserId === row.user_id ? senUserId : row.user_id,
+  };
 }

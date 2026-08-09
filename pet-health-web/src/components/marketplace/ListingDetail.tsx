@@ -10,6 +10,9 @@ import { listingShareUrl } from "@/lib/config";
 import type { PublicComment } from "@/lib/api/public";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { EscrowBadge, VerifiedBadge } from "./Badges";
+import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
+import { mapApiPost } from "@/lib/mappers";
+import type { ApiPetFeedPost } from "@/lib/types";
 
 const REPORT_REASONS = [
   "scam",
@@ -82,22 +85,34 @@ function mapApiComment(
 }
 
 export function ListingDetail({
-  listing,
+  listing: initialListing,
   lang,
   isLoggedIn = false,
+  currentUserId = null,
   initialComments = [],
 }: {
   listing: Listing;
   lang: Lang;
   isLoggedIn?: boolean;
+  currentUserId?: string | null;
   initialComments?: PublicComment[];
 }) {
   const router = useRouter();
+  const [listing, setListing] = useState(initialListing);
   const breederUserId = listing.breeder.userId;
+  const isOwner = Boolean(currentUserId && breederUserId && currentUserId === breederUserId);
+  const isDealSen = Boolean(
+    currentUserId && listing.deal?.senUserId && currentUserId === listing.deal.senUserId,
+  );
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState<UiComment[]>(() =>
     initialComments.map((c) => mapApiComment(c, breederUserId, lang)),
   );
+  const [policyOpen, setPolicyOpen] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositAck, setDepositAck] = useState(false);
+  const [senUserIdInput, setSenUserIdInput] = useState("");
+  const [dealBusy, setDealBusy] = useState(false);
   const [activeMedia, setActiveMedia] = useState(0);
   const [saved, setSaved] = useState(Boolean(listing.saved));
   const [busy, setBusy] = useState<string | null>(null);
@@ -213,6 +228,52 @@ export function ListingDetail({
       setActionError(err instanceof Error ? err.message : "Failed");
     } finally {
       setBusy(null);
+    }
+  };
+
+  const runDealAction = async (kind: "deposit" | "cancel" | "complete") => {
+    if (!isLoggedIn) {
+      requireLogin();
+      return;
+    }
+    setDealBusy(true);
+    setActionError("");
+    try {
+      let url = "";
+      let body: Record<string, unknown> | undefined;
+      if (kind === "deposit") {
+        if (!depositAck) {
+          throw new Error(t(lang, "deal.ackRequired"));
+        }
+        url = `/api/listings/${listing.id}/deposit/confirm`;
+        body = {
+          acknowledge: true,
+          ...(isOwner && senUserIdInput.trim()
+            ? { senUserId: senUserIdInput.trim() }
+            : {}),
+        };
+      } else if (kind === "cancel") {
+        url = `/api/listings/${listing.id}/deposit/cancel`;
+      } else {
+        url = `/api/listings/${listing.id}/complete/confirm`;
+      }
+      const res = await fetch(url, {
+        method: "POST",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed");
+      if (data?.data) {
+        setListing(mapApiPost(data.data as ApiPetFeedPost));
+      }
+      setDepositOpen(false);
+      setDepositAck(false);
+      router.refresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setDealBusy(false);
     }
   };
 
@@ -523,29 +584,76 @@ export function ListingDetail({
             ) : null}
 
             <div className="flex flex-col gap-3">
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0 text-lg">
-                    🛡️
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-emerald-900 mb-1">
-                      {t(lang, "escrow.card.title")}
-                    </p>
-                    <p className="text-xs text-emerald-800/90 leading-relaxed">
-                      {t(lang, "escrow.card.body")}
-                    </p>
-                  </div>
-                </div>
+              {listing.warrantyPolicy ? (
                 <button
                   type="button"
-                  disabled
-                  className="mt-3 w-full py-2.5 bg-emerald-600/70 text-white text-sm font-semibold rounded-full cursor-not-allowed"
-                  title={t(lang, "escrow.card.soon")}
+                  onClick={() => setPolicyOpen(true)}
+                  className="w-full text-left rounded-xl border border-amber-200 bg-amber-50/70 p-4 hover:bg-amber-50 transition-colors"
                 >
-                  {t(lang, "escrow.card.soon")}
+                  <p className="text-sm font-bold text-amber-900 mb-1">
+                    🛡️ {listing.warrantyPolicy.title}
+                  </p>
+                  <p className="text-xs text-amber-800/90">
+                    {listing.warrantyPolicy.frozen
+                      ? t(lang, "warranty.frozenHint")
+                      : t(lang, "warranty.viewCta")}
+                  </p>
                 </button>
-              </div>
+              ) : (
+                <p className="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2">
+                  {t(lang, "warranty.missingOnListing")}
+                </p>
+              )}
+
+              {listing.status === "deposit_hold" ? (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-2">
+                  <p className="text-sm font-semibold text-amber-900">
+                    {t(lang, "deal.holdBadge")}
+                  </p>
+                  {(isOwner || isDealSen) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        disabled={dealBusy}
+                        onClick={() => void runDealAction("complete")}
+                        className="py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full disabled:opacity-60"
+                      >
+                        {t(lang, "deal.complete")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={dealBusy}
+                        onClick={() => void runDealAction("cancel")}
+                        className="py-2.5 border border-red-200 text-red-600 text-sm font-semibold rounded-full disabled:opacity-60"
+                      >
+                        {t(lang, "deal.cancel")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {listing.status === "published" && listing.warrantyPolicy ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isLoggedIn) {
+                      requireLogin();
+                      return;
+                    }
+                    setDepositOpen(true);
+                  }}
+                  className="w-full py-3 bg-[#D97706] text-white text-sm font-semibold rounded-full hover:bg-[#B45309] transition-colors"
+                >
+                  🤝 {t(lang, "deal.requestDeposit")}
+                </button>
+              ) : null}
+
+              {listing.status === "sold" ? (
+                <p className="text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+                  {t(lang, "deal.completed")}
+                </p>
+              ) : null}
 
               <button
                 type="button"
@@ -653,6 +761,96 @@ export function ListingDetail({
           </div>
         </div>
       </div>
+
+      <WarrantyPolicyViewer
+        lang={lang}
+        policy={listing.warrantyPolicy ?? null}
+        open={policyOpen}
+        onClose={() => setPolicyOpen(false)}
+      />
+
+      {depositOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setDepositOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-bold text-slate-900">
+              {t(lang, "deal.confirmTitle")}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {listing.title} · {listing.breeder.name}
+            </p>
+            {listing.warrantyPolicy ? (
+              <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3 text-sm text-amber-950 space-y-1">
+                <p className="font-semibold">{t(lang, "deal.policyPreview")}</p>
+                <p>{listing.warrantyPolicy.title}</p>
+                {listing.warrantyPolicy.careParvoCoverageDays ? (
+                  <p className="text-xs">
+                    {t(lang, "warranty.field.careParvo")}:{" "}
+                    {listing.warrantyPolicy.careParvoCoverageDays}{" "}
+                    {lang === "VI" ? "ngày" : "days"}
+                  </p>
+                ) : null}
+                {listing.warrantyPolicy.medicalFeeSupportPercent != null ? (
+                  <p className="text-xs">
+                    {t(lang, "warranty.field.medicalFee")}:{" "}
+                    {listing.warrantyPolicy.medicalFeeSupportPercent}%
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  className="text-xs font-medium text-[#1E6FE8] underline"
+                  onClick={() => setPolicyOpen(true)}
+                >
+                  {t(lang, "warranty.viewCta")}
+                </button>
+              </div>
+            ) : null}
+            {isOwner ? (
+              <label className="block text-xs font-medium text-slate-500">
+                {t(lang, "deal.senUserId")}
+                <input
+                  value={senUserIdInput}
+                  onChange={(e) => setSenUserIdInput(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm"
+                  placeholder="user id"
+                />
+              </label>
+            ) : null}
+            <label className="flex items-start gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                className="mt-1 accent-[#D97706]"
+                checked={depositAck}
+                onChange={(e) => setDepositAck(e.target.checked)}
+              />
+              <span>{t(lang, "deal.ackLabel")}</span>
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDepositOpen(false)}
+                className="flex-1 py-2.5 border border-slate-200 text-sm rounded-full"
+              >
+                {t(lang, "common.cancel")}
+              </button>
+              <button
+                type="button"
+                disabled={dealBusy || !depositAck}
+                onClick={() => void runDealAction("deposit")}
+                className="flex-1 py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full disabled:opacity-60"
+              >
+                {t(lang, "deal.confirmFreeze")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {reportOpen && (
         <div

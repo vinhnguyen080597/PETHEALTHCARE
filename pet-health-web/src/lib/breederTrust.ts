@@ -2,10 +2,10 @@ import type { BreederProfile } from "./types";
 import { getEffectiveTrust } from "./types";
 
 /**
- * Official design: P_mission max stated as 50.
- * Line items currently sum to 45 (10+4+3+3+10+10+5) — keep headroom at 50.
+ * Official design: P_mission max stated as 55 after first-warranty bonus.
+ * Line items: 10+4+3+3+10+10+5+10 = 55.
  */
-export const TRUST_MISSION_MAX = 50;
+export const TRUST_MISSION_MAX = 55;
 
 /** Part A — mission point awards (exact design table). */
 export const TRUST_MISSION_POINTS = {
@@ -16,6 +16,7 @@ export const TRUST_MISSION_POINTS = {
   farmFacility: 10,
   businessLicense: 10,
   healthDocs: 5,
+  firstWarrantyPolicy: 10,
 } as const;
 
 /** UI consolidated caps (wireframe). Escrow scoring deferred until Escrow ships. */
@@ -28,6 +29,7 @@ export const TRUST_UI_CAPS = {
     TRUST_MISSION_POINTS.tiktok, // 10
   farmFacility: TRUST_MISSION_POINTS.farmFacility, // 10
   healthDocs: TRUST_MISSION_POINTS.healthDocs, // 5
+  firstWarrantyPolicy: TRUST_MISSION_POINTS.firstWarrantyPolicy, // 10
   reviews: 10,
   response: 5,
 } as const;
@@ -74,6 +76,8 @@ export type BreederTrustScoreInput = {
   hasFarmFacility?: boolean;
   hasBusinessLicense?: boolean;
   hasHealthDocs?: boolean;
+  /** +10 once when breeder creates their first warranty policy file. */
+  hasFirstWarrantyPolicy?: boolean;
 
   /** Legacy bridge fields (mapped into flags when flags omitted). */
   verified?: boolean;
@@ -256,6 +260,7 @@ function resolveMissionFlags(input: BreederTrustScoreInput): {
   hasFarmFacility: boolean;
   hasBusinessLicense: boolean;
   hasHealthDocs: boolean;
+  hasFirstWarrantyPolicy: boolean;
 } {
   const hasEkyc = input.hasEkyc ?? Boolean(input.verified);
   const hasFarmFacility =
@@ -266,6 +271,7 @@ function resolveMissionFlags(input: BreederTrustScoreInput): {
   const hasZalo = input.hasZalo ?? false;
   const hasTiktok = input.hasTiktok ?? false;
   const hasBusinessLicense = input.hasBusinessLicense ?? false;
+  const hasFirstWarrantyPolicy = Boolean(input.hasFirstWarrantyPolicy);
 
   return {
     hasEkyc,
@@ -275,6 +281,7 @@ function resolveMissionFlags(input: BreederTrustScoreInput): {
     hasFarmFacility,
     hasBusinessLicense,
     hasHealthDocs,
+    hasFirstWarrantyPolicy,
   };
 }
 
@@ -298,6 +305,9 @@ export function computeBreederTrustScore(
     ? TRUST_MISSION_POINTS.businessLicense
     : 0;
   const healthDocs = flags.hasHealthDocs ? TRUST_MISSION_POINTS.healthDocs : 0;
+  const firstWarrantyPolicy = flags.hasFirstWarrantyPolicy
+    ? TRUST_MISSION_POINTS.firstWarrantyPolicy
+    : 0;
 
   const missionPoints = Math.min(
     TRUST_MISSION_MAX,
@@ -307,7 +317,8 @@ export function computeBreederTrustScore(
       tiktok +
       farmFacility +
       businessLicense +
-      healthDocs,
+      healthDocs +
+      firstWarrantyPolicy,
   );
 
   const reviews = Math.min(
@@ -357,6 +368,13 @@ export function computeBreederTrustScore(
       val: healthDocs,
       max: TRUST_UI_CAPS.healthDocs,
       done: healthDocs > 0,
+    },
+    {
+      key: "firstWarrantyPolicy",
+      group: "mission",
+      val: firstWarrantyPolicy,
+      max: TRUST_UI_CAPS.firstWarrantyPolicy,
+      done: firstWarrantyPolicy > 0,
     },
     {
       key: "reviews",
@@ -409,6 +427,7 @@ export function qualitySignalsFromBreeder(
     | "penaltyPoints"
     | "violations"
     | "verificationTier"
+    | "warrantyPolicyTrustAwarded"
   >,
   listingCount?: number,
   extras?: {
@@ -418,6 +437,7 @@ export function qualitySignalsFromBreeder(
     hasFarmFacility?: boolean;
     hasHealthDocs?: boolean;
     hasEkyc?: boolean;
+    hasFirstWarrantyPolicy?: boolean;
   },
 ): BreederTrustScoreInput {
   const care =
@@ -434,6 +454,9 @@ export function qualitySignalsFromBreeder(
       (breeder.verificationTier != null && breeder.verificationTier >= 2),
     hasHealthDocs:
       extras?.hasHealthDocs ?? breeder.checklist.some((c) => c.done),
+    hasFirstWarrantyPolicy:
+      extras?.hasFirstWarrantyPolicy ??
+      Boolean(breeder.warrantyPolicyTrustAwarded),
     verified: Boolean(breeder.verified),
     checklistDoneCount: breeder.checklist.filter((c) => c.done).length,
     commitmentsCount: breeder.commitments.length,
@@ -494,6 +517,7 @@ export function parseTrustActivityFromMeta(meta: Record<string, unknown>): {
   hasFarmFacility: boolean;
   hasHealthDocs: boolean;
   hasEkyc: boolean;
+  hasFirstWarrantyPolicy: boolean;
 } {
   const num = (v: unknown) => {
     const n = typeof v === "number" ? v : Number(v);
@@ -504,6 +528,9 @@ export function parseTrustActivityFromMeta(meta: Record<string, unknown>): {
       const v = meta[k];
       return v === true || v === 1 || v === "1" || v === "true";
     });
+  const policies = Array.isArray(meta.warranty_policies)
+    ? meta.warranty_policies
+    : [];
 
   return {
     fiveStarReviewCount: num(
@@ -524,5 +551,7 @@ export function parseTrustActivityFromMeta(meta: Record<string, unknown>): {
     ),
     hasHealthDocs: flag("health_docs_verified", "vaccine_book_verified"),
     hasEkyc: flag("ekyc_verified", "id_verified"),
+    hasFirstWarrantyPolicy:
+      flag("warranty_policy_trust_awarded") || policies.length > 0,
   };
 }

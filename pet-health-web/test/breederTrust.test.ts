@@ -48,9 +48,10 @@ function baseBreeder(overrides: Partial<BreederProfile> = {}): BreederProfile {
   };
 }
 
-test("Part A mission line items sum to 45 (design table; max headroom 50)", () => {
+test("Part A mission line items sum to 55 (includes first warranty +10)", () => {
   const sum = Object.values(TRUST_MISSION_POINTS).reduce((a, b) => a + b, 0);
-  assert.equal(sum, 45);
+  assert.equal(sum, 55);
+  assert.equal(TRUST_MISSION_POINTS.firstWarrantyPolicy, 10);
   assert.equal(TRUST_UI_CAPS.ekycLicense, 20);
   assert.equal(TRUST_UI_CAPS.social, 10);
 });
@@ -73,8 +74,8 @@ test("social channels award FB+4 Zalo+3 TikTok+3", () => {
   assert.equal(score, 10 + 4 + 3 + 3);
 });
 
-test("full Part A stack awards 45 mission points", () => {
-  const result = computeBreederTrustScore({
+test("full Part A stack awards 55 mission points with first warranty", () => {
+  const withoutWarranty = computeBreederTrustScore({
     hasEkyc: true,
     hasFacebook: true,
     hasZalo: true,
@@ -83,10 +84,31 @@ test("full Part A stack awards 45 mission points", () => {
     hasBusinessLicense: true,
     hasHealthDocs: true,
   });
-  assert.equal(result.missionPoints, 45);
+  assert.equal(withoutWarranty.missionPoints, 45);
+
+  const result = computeBreederTrustScore({
+    hasEkyc: true,
+    hasFacebook: true,
+    hasZalo: true,
+    hasTiktok: true,
+    hasFarmFacility: true,
+    hasBusinessLicense: true,
+    hasHealthDocs: true,
+    hasFirstWarrantyPolicy: true,
+  });
+  assert.equal(result.missionPoints, 55);
   assert.equal(result.transactionPoints, 0);
-  assert.equal(result.score, 45);
+  assert.equal(result.score, 55);
   assert.equal(getTrustTier(result.score).level, "L2");
+  assert.ok(result.lines.some((l) => l.key === "firstWarrantyPolicy" && l.val === 10));
+});
+
+test("first warranty policy awards +10 once in score input", () => {
+  const score = computeBreederTrustScore({
+    hasEkyc: true,
+    hasFirstWarrantyPolicy: true,
+  }).score;
+  assert.equal(score, 20);
 });
 
 test("reviews and response add transaction points; Escrow not scored", () => {

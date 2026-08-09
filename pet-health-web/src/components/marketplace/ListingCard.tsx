@@ -6,6 +6,7 @@ import type { Lang, Listing } from "@/lib/types";
 import { genderLabel, t } from "@/i18n";
 import { formatPriceVnd, parsePriceVnd } from "@/lib/formatPrice";
 import { VerifiedBadge } from "./Badges";
+import { farmPetAvailability } from "@/lib/farmPets";
 
 function depositLabel(price: string, lang: Lang): string | null {
   const n = parsePriceVnd(price);
@@ -67,6 +68,9 @@ export function ListingCard({
   ]
     .filter(Boolean)
     .join(" ");
+  const availability = farmPetAvailability(listing);
+  const isSold = availability === "completed";
+  const isHold = availability === "deposit_hold";
 
   const toggleFavorite = async (e: MouseEvent) => {
     e.preventDefault();
@@ -114,9 +118,19 @@ export function ListingCard({
                 : "🐾"}{" "}
             {speciesLabel}
           </span>
-          {listing.escrowEnabled ? (
+          {listing.escrowEnabled && !isSold ? (
             <span className="bg-[#FEF3C7]/95 text-[#92400E] text-[10px] font-semibold px-2 py-1 rounded-full border border-amber-300 shadow-sm w-fit">
               🛡️ {lang === "VI" ? "Cọc Escrow" : "Escrow"}
+            </span>
+          ) : null}
+          {isHold ? (
+            <span className="bg-amber-500/95 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
+              {t(lang, "listing.status.deposit_hold")}
+            </span>
+          ) : null}
+          {isSold ? (
+            <span className="bg-slate-900/85 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
+              {t(lang, "farm.listings.sold")}
             </span>
           ) : null}
         </div>

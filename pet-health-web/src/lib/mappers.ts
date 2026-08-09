@@ -1,12 +1,14 @@
 import {
   type ApiBreederProfile,
   type ApiPetFeedPost,
+  type ApiWarrantyPolicy,
   type BreederProfile,
   type BreederType,
   type ChecklistItem,
   type Listing,
   type TemplateId,
   type VerificationStatus,
+  type WarrantyPolicy,
   isTemplateId,
 } from "./types";
 import { formatPriceVnd } from "./formatPrice";
@@ -15,6 +17,7 @@ import {
   contactFieldCount,
   parseTrustActivityFromMeta,
 } from "./breederTrust";
+import { listingMetadataMarksSold } from "./farmPets";
 import {
   coverUrlFromMetadata,
   resolveBreederAvatarUrl,
@@ -28,6 +31,67 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+export function mapWarrantyPolicy(
+  raw: ApiWarrantyPolicy | Record<string, unknown> | null | undefined,
+): WarrantyPolicy | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, unknown>;
+  const id = String(row.id ?? "").trim();
+  const title = String(row.title ?? "").trim();
+  if (!id || !title) return null;
+  const numOrUndef = (value: unknown) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  return {
+    id,
+    title,
+    createdAt: String(row.created_at ?? row.createdAt ?? ""),
+    frozen: Boolean(row.frozen),
+    vaccineShotsCount: numOrUndef(row.vaccine_shots_count ?? row.vaccineShotsCount),
+    vaccineTypes: String(row.vaccine_types ?? row.vaccineTypes ?? ""),
+    dewormingNote: String(row.deworming_note ?? row.dewormingNote ?? ""),
+    hasHealthBook: Boolean(row.has_health_book ?? row.hasHealthBook),
+    careParvoCoverageDays: numOrUndef(
+      row.care_parvo_coverage_days ?? row.careParvoCoverageDays,
+    ),
+    respiratorySkinCoverageDays: numOrUndef(
+      row.respiratory_skin_coverage_days ?? row.respiratorySkinCoverageDays,
+    ),
+    congenitalCoverageDays: numOrUndef(
+      row.congenital_coverage_days ?? row.congenitalCoverageDays,
+    ),
+    reportWithinHours: numOrUndef(
+      row.report_within_hours ?? row.reportWithinHours,
+    ),
+    vetRequirement: String(row.vet_requirement ?? row.vetRequirement ?? ""),
+    buyerGuidelines: asStringArray(row.buyer_guidelines ?? row.buyerGuidelines),
+    exclusions: asStringArray(row.exclusions),
+    medicalFeeSupportPercent: numOrUndef(
+      row.medical_fee_support_percent ?? row.medicalFeeSupportPercent,
+    ),
+    allowEquivalentSwap: Boolean(
+      row.allow_equivalent_swap ?? row.allowEquivalentSwap,
+    ),
+    shippingParty: String(row.shipping_party ?? row.shippingParty ?? ""),
+    evidenceRequired: asStringArray(
+      row.evidence_required ?? row.evidenceRequired,
+    ),
+    breederResponseHours: numOrUndef(
+      row.breeder_response_hours ?? row.breederResponseHours,
+    ),
+    fileUrl: String(row.file_url ?? row.fileUrl ?? ""),
+    contentType: String(row.content_type ?? row.contentType ?? ""),
+  };
+}
+
+export function mapWarrantyPolicies(raw: unknown): WarrantyPolicy[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => mapWarrantyPolicy(item as ApiWarrantyPolicy))
+    .filter((p): p is WarrantyPolicy => Boolean(p));
 }
 
 function asStringArray(value: unknown): string[] {
@@ -231,6 +295,7 @@ export function mapApiBreeder(
     hasBusinessLicense: activity.hasBusinessLicense,
     hasHealthDocs:
       activity.hasHealthDocs || checklist.some((c) => c.done),
+    hasFirstWarrantyPolicy: activity.hasFirstWarrantyPolicy,
     verified,
     checklistDoneCount: checklist.filter((c) => c.done).length,
     commitmentsCount: commitments.length,
@@ -243,6 +308,9 @@ export function mapApiBreeder(
     violations,
   });
   const scaleRaw = String(meta.scale || "").trim();
+  const warrantyPolicies = mapWarrantyPolicies(
+    profile?.warranty_policies ?? meta.warranty_policies,
+  );
 
   return {
     id: profile?.id || "unknown",
@@ -271,6 +339,10 @@ export function mapApiBreeder(
     commitments,
     checklist,
     verificationTier: parseVerificationTier(meta, verificationStatus, trustScore),
+    warrantyPolicies,
+    warrantyPolicyTrustAwarded:
+      Boolean(profile?.warranty_policy_trust_awarded) ||
+      activity.hasFirstWarrantyPolicy,
   };
 }
 
@@ -284,17 +356,27 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
   const description = post.description || "";
   const personality = post.personality || [];
   const statusRaw = (post.status || "published").toLowerCase();
-  const status =
+  const metadataSold = listingMetadataMarksSold(meta);
+  let status: Listing["status"];
+  if (statusRaw === "sold" || (statusRaw === "archived" && metadataSold)) {
+    status = "sold";
+  } else if (
     statusRaw === "pending_review" ||
     statusRaw === "draft" ||
     statusRaw === "archived" ||
-    statusRaw === "published"
-      ? statusRaw
-      : "published";
+    statusRaw === "published" ||
+    statusRaw === "deposit_hold"
+  ) {
+    status = statusRaw;
+  } else {
+    status = "published";
+  }
 
   const breeder = mapApiBreeder(post.breeder_profile);
   const rawPrice = post.price_note || "";
   const formatted = formatPriceVnd(rawPrice);
+  const warrantyPolicy = mapWarrantyPolicy(post.warranty_policy);
+  const dealRaw = asRecord(post.deal ?? meta.deal);
 
   return {
     id: post.id,
@@ -320,6 +402,22 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     saved: Boolean(post.is_favorited),
     postKind: post.post_kind,
     escrowEnabled: parseEscrowEnabled(meta),
+    metadataSold: status === "sold" || metadataSold,
+    warrantyPolicy,
+    deal: Object.keys(dealRaw).length
+      ? {
+          status: String(dealRaw.status || ""),
+          senUserId: String(dealRaw.sen_user_id || dealRaw.senUserId || ""),
+          breederConfirmedDepositAt: (dealRaw.breeder_confirmed_deposit_at ??
+            dealRaw.breederConfirmedDepositAt) as string | null | undefined,
+          senConfirmedDepositAt: (dealRaw.sen_confirmed_deposit_at ??
+            dealRaw.senConfirmedDepositAt) as string | null | undefined,
+          breederConfirmedCompleteAt: (dealRaw.breeder_confirmed_complete_at ??
+            dealRaw.breederConfirmedCompleteAt) as string | null | undefined,
+          senConfirmedCompleteAt: (dealRaw.sen_confirmed_complete_at ??
+            dealRaw.senConfirmedCompleteAt) as string | null | undefined,
+        }
+      : null,
   };
 }
 

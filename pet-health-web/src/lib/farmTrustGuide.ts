@@ -98,6 +98,14 @@ export const TRUST_GUIDE_HOW_TO_EARN: TrustGuideHowToEarn[] = [
     howEN: "Upload sample vaccine books / quarantine papers with clinic stamps.",
   },
   {
+    id: "firstWarrantyPolicy",
+    points: TRUST_MISSION_POINTS.firstWarrantyPolicy,
+    titleVI: "Chính sách bảo hành (file đầu tiên)",
+    titleEN: "First warranty policy file",
+    howVI: "Điền form chính sách bảo hành 6 trụ cột lần đầu (+10, một lần).",
+    howEN: "Complete the 6-pillar warranty policy form once (+10, once).",
+  },
+  {
     id: "reviews",
     points: TRUST_TRANSACTION_CAPS.reviews,
     titleVI: "Đánh giá 5 sao từ khách (tối đa)",

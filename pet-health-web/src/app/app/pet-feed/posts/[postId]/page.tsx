@@ -93,11 +93,20 @@ async function PostDetailData({
     );
   }
   const comments = await listPublicPostComments(postId).catch(() => []);
+  const currentUserId =
+    session.account && typeof session.account === "object"
+      ? String(
+          (session.account as { user_id?: string; id?: string }).user_id ||
+            (session.account as { id?: string }).id ||
+            "",
+        ) || null
+      : null;
   return (
     <ListingDetail
       listing={listing}
       lang={lang}
       isLoggedIn={session.isLoggedIn}
+      currentUserId={currentUserId}
       initialComments={comments}
     />
   );

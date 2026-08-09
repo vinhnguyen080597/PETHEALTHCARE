@@ -8,13 +8,15 @@ import {
   buildSiteBreadcrumbs,
   parseFarmBreadcrumbId,
 } from "@/lib/siteBreadcrumbs";
+import { parseFarmDetailFrom } from "@/lib/farmTabs";
 
 export function SiteBreadcrumbs({ lang }: { lang: Lang }) {
   const pathname = usePathname() || "/";
   const searchParams = useSearchParams();
   const farmProfileId = parseFarmBreadcrumbId(searchParams.get("farm"));
+  const from = parseFarmDetailFrom(searchParams.get("from"));
 
-  const specs = buildSiteBreadcrumbs(pathname, { farmProfileId });
+  const specs = buildSiteBreadcrumbs(pathname, { farmProfileId, from });
   if (!specs || specs.length === 0) return null;
 
   const crumbs = specs.map((crumb) => ({

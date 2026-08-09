@@ -103,6 +103,23 @@ test("breeders detail trail stays under Top Breeders", () => {
   );
 });
 
+test("farm profile from Account uses Account parent not Top Breeders", () => {
+  const crumbs = buildSiteBreadcrumbs(`/app/breeders/${FARM_ID}`, {
+    from: "account",
+  });
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    [
+      "/",
+      "/app/account",
+      `/app/breeders/${FARM_ID}?from=account`,
+    ],
+  );
+  assert.equal(crumbs[1]?.labelKey, "nav.account");
+  assert.equal(crumbs[2]?.labelKey, "breadcrumb.farmProfile");
+});
+
 test("listing detail skips /posts folder link", () => {
   const crumbs = buildSiteBreadcrumbs(`/app/pet-feed/posts/${POST_ID}`);
   assert.ok(crumbs);

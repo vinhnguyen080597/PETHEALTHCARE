@@ -116,6 +116,44 @@ test('public breeder directory and profile include only verified breeders', asyn
   for (const post of detail.listings) {
     assert.deepEqual(post.contact, {});
   }
+
+  // Completed/sold pets also appear on the farm Thú cưng tab.
+  const soldListing = await createPetFeedPost(userId, {
+    title: 'Sold kitten',
+    species: 'cat',
+    breed: 'British Shorthair',
+    gender: 'male',
+    ageMonths: 5,
+    location: 'TP.HCM',
+    priceNote: '7.000.000',
+    description: 'Already rehomed',
+    personality: ['Playful'],
+    vaccineStatus: '2 shots',
+    dewormingStatus: 'Done',
+    paperwork: ['Vaccine book'],
+    mediaUrls: ['https://cdn.example/sold-kitten.jpg'],
+    contact: { zalo: '0901111222' },
+    status: 'pending_review',
+    metadata: {
+      health_evidence_urls: ['https://cdn.example/vaccine-book.jpg'],
+      sold: true,
+    },
+  }, null);
+  assert.ok(soldListing?.id);
+  await adminUpdatePetFeedPostStatus(soldListing.id, 'sold');
+
+  const detailWithSold = await getPublicBreederProfile(profile.id);
+  assert.ok(detailWithSold);
+  assert.equal(detailWithSold.listings.length, 2);
+  assert.ok(detailWithSold.listings.some((post) => post.title === 'Sold kitten'));
+  assert.equal(
+    detailWithSold.listings.find((post) => post.title === 'Kitten listing')?.status,
+    'published',
+  );
+  assert.equal(
+    detailWithSold.listings.find((post) => post.title === 'Sold kitten')?.status,
+    'sold',
+  );
 });
 
 test('public published posts expose comments without auth token', async () => {

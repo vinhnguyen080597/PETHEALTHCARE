@@ -1,6 +1,6 @@
 import { fetchJson, fetchMultipart } from "./client";
 import { UPLOAD_TIMEOUT_MS } from "../config";
-import type { ApiBreederProfile, ApiPetFeedPost, PageResult } from "../types";
+import type { ApiBreederProfile, ApiPetFeedPost, ApiWarrantyPolicy, PageResult } from "../types";
 
 export async function listMyPosts(token: string) {
   return fetchJson<PageResult<ApiPetFeedPost> | { data: ApiPetFeedPost[] }>(
@@ -227,6 +227,103 @@ export async function updateMyBreederProfilePhotos(
       method: "PATCH",
       token,
       body: payload,
+    },
+  );
+}
+
+export async function listMyWarrantyPolicies(token: string) {
+  return fetchJson<{
+    data: Array<{
+      id: string;
+      title: string;
+      file_url: string;
+      content_type: string;
+      created_at?: string;
+    }>;
+    meta?: { trust_awarded?: boolean };
+  }>("/pet-feed/breeder-profile/me/warranty-policies", {
+    token,
+    cache: "no-store",
+  });
+}
+
+export async function createWarrantyPolicy(
+  token: string,
+  payload: Record<string, unknown>,
+) {
+  return fetchJson<{
+    data: ApiWarrantyPolicy;
+    profile?: ApiBreederProfile;
+    trust_awarded?: boolean;
+  }>("/pet-feed/breeder-profile/me/warranty-policies", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteWarrantyPolicy(token: string, policyId: string) {
+  return fetchJson<{ data: ApiBreederProfile }>(
+    `/pet-feed/breeder-profile/me/warranty-policies/${encodeURIComponent(policyId)}`,
+    {
+      method: "DELETE",
+      token,
+    },
+  );
+}
+
+export async function updateWarrantyPolicy(
+  token: string,
+  policyId: string,
+  payload: Record<string, unknown>,
+) {
+  return fetchJson<{
+    data: ApiWarrantyPolicy;
+    profile?: ApiBreederProfile;
+  }>(
+    `/pet-feed/breeder-profile/me/warranty-policies/${encodeURIComponent(policyId)}`,
+    {
+      method: "PATCH",
+      token,
+      body: payload,
+    },
+  );
+}
+
+export async function confirmListingDeposit(
+  token: string,
+  postId: string,
+  payload: { senUserId?: string; acknowledge: boolean },
+) {
+  return fetchJson<{ data: ApiPetFeedPost; both_confirmed?: boolean }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/confirm`,
+    {
+      method: "POST",
+      token,
+      body: {
+        senUserId: payload.senUserId,
+        acknowledge: payload.acknowledge,
+      },
+    },
+  );
+}
+
+export async function cancelListingDeposit(token: string, postId: string) {
+  return fetchJson<{ data: ApiPetFeedPost }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/cancel`,
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
+export async function confirmListingComplete(token: string, postId: string) {
+  return fetchJson<{ data: ApiPetFeedPost; both_confirmed?: boolean }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/complete/confirm`,
+    {
+      method: "POST",
+      token,
     },
   );
 }

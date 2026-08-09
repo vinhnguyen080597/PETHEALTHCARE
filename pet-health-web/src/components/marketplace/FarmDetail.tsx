@@ -1,18 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { BreederProfile, Lang, Listing } from "@/lib/types";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { BreederProfile, Lang, Listing, WarrantyPolicy } from "@/lib/types";
 import { isBlankDisplayValue } from "@/lib/formatPrice";
 import { getBreederPublicTrustMetrics } from "@/lib/breederTrust";
 import { DEFAULT_BREEDER_COVER_PATH } from "@/lib/breederProfileImages";
-import { FARM_DETAIL_TABS, farmTabI18nKey, type FarmDetailTab } from "@/lib/farmTabs";
+import {
+  FARM_DETAIL_TABS,
+  farmDetailHref,
+  farmTabI18nKey,
+  parseFarmDetailFrom,
+  parseFarmDetailTab,
+  warrantyLibraryEditHref,
+  type FarmDetailTab,
+} from "@/lib/farmTabs";
+import { farmPetAvailability, farmPetTabCount, sortFarmPets } from "@/lib/farmPets";
 import { t } from "@/i18n";
 import { farmTemplateHref } from "@/lib/siteBreadcrumbs";
 import { ListingCard } from "./ListingCard";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { FarmHealth } from "./FarmHealth";
+import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
 
 const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
 
@@ -37,6 +47,162 @@ function PhotoLoadingSpinner({ size = 28 }: { size?: number }) {
   );
 }
 
+function FarmWarrantyTab({
+  lang,
+  policies,
+  isOwner,
+}: {
+  lang: Lang;
+  policies: WarrantyPolicy[];
+  isOwner: boolean;
+}) {
+  const router = useRouter();
+  const [viewing, setViewing] = useState<WarrantyPolicy | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
+
+  useEffect(() => {
+    if (!menuOpenId) return;
+    const onDoc = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(`[data-warranty-menu="${menuOpenId}"]`)) return;
+      setMenuOpenId(null);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [menuOpenId]);
+
+  const onDelete = async (policy: WarrantyPolicy) => {
+    if (!window.confirm(t(lang, "farm.warranty.deleteConfirm"))) return;
+    setMenuOpenId(null);
+    setBusyId(policy.id);
+    setActionError("");
+    try {
+      const res = await fetch(
+        `/api/warranty-policies/${encodeURIComponent(policy.id)}`,
+        { method: "DELETE" },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          data.error || t(lang, "farm.warranty.deleteFailed"),
+        );
+      }
+      router.refresh();
+    } catch (err) {
+      setActionError(
+        err instanceof Error
+          ? err.message
+          : t(lang, "farm.warranty.deleteFailed"),
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5 space-y-4">
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold text-[#2B1E19]">
+            {t(lang, "farm.warranty.title")}
+          </h3>
+          {isOwner ? (
+            <Link
+              href="/app/account/warranty"
+              className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-full bg-[#D97706] text-white text-xs font-semibold hover:bg-[#B45309] transition-colors"
+            >
+              {t(lang, "farm.warranty.createButton")}
+            </Link>
+          ) : null}
+        </div>
+        <p className="text-xs text-[#6E5A51] mt-1 leading-relaxed">
+          {t(lang, "farm.warranty.note")}
+        </p>
+      </div>
+      {actionError ? (
+        <p className="text-xs text-red-600" role="alert">
+          {actionError}
+        </p>
+      ) : null}
+      {policies.length > 0 ? (
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {policies.map((p) => (
+            <li key={p.id} className="relative">
+              <div className="rounded-xl border border-[#F3E2C8] px-3.5 py-3 hover:bg-[#FFF8EF] transition-colors">
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewing(p)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <p className="text-sm font-semibold text-[#2B1E19] truncate">
+                      🛡️ {p.title}
+                    </p>
+                    <p className="text-xs text-[#D97706] mt-1 font-medium">
+                      {t(lang, "warranty.viewCta")}
+                    </p>
+                  </button>
+                  {isOwner ? (
+                    <div
+                      className="relative shrink-0"
+                      data-warranty-menu={p.id}
+                    >
+                      <button
+                        type="button"
+                        aria-label={t(lang, "farm.warranty.menu")}
+                        aria-expanded={menuOpenId === p.id}
+                        disabled={busyId === p.id}
+                        onClick={() =>
+                          setMenuOpenId((cur) => (cur === p.id ? null : p.id))
+                        }
+                        className="h-8 w-8 inline-flex items-center justify-center rounded-full text-[#6E5A51] hover:bg-[#F3E2C8]/70 disabled:opacity-50"
+                      >
+                        ⋮
+                      </button>
+                      {menuOpenId === p.id ? (
+                        <div className="absolute right-0 top-9 z-20 min-w-[9.5rem] rounded-xl border border-[#F3E2C8] bg-white py-1 shadow-lg">
+                          <Link
+                            href={warrantyLibraryEditHref(p.id)}
+                            className="block w-full px-3 py-2 text-left text-sm text-[#2B1E19] hover:bg-[#FFF8EF]"
+                            onClick={() => setMenuOpenId(null)}
+                          >
+                            {t(lang, "farm.warranty.update")}
+                          </Link>
+                          <button
+                            type="button"
+                            className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                            onClick={() => void onDelete(p)}
+                          >
+                            {t(lang, "farm.warranty.delete")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-[#6E5A51] leading-relaxed">
+          {isOwner
+            ? t(lang, "farm.warranty.createCta")
+            : t(lang, "farm.warranty.fallback")}
+        </p>
+      )}
+      <WarrantyPolicyViewer
+        lang={lang}
+        policy={viewing}
+        open={Boolean(viewing)}
+        onClose={() => setViewing(null)}
+      />
+    </div>
+  );
+}
+
 export function FarmDetail({
   breeder,
   lang,
@@ -51,7 +217,22 @@ export function FarmDetail({
   listings: Listing[];
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<FarmDetailTab>("overview");
+  const searchParams = useSearchParams();
+  const farmFrom = parseFarmDetailFrom(searchParams.get("from"));
+  const [tab, setTab] = useState<FarmDetailTab>(
+    () => parseFarmDetailTab(searchParams.get("tab")) ?? "overview",
+  );
+  useEffect(() => {
+    setTab(parseFarmDetailTab(searchParams.get("tab")) ?? "overview");
+  }, [searchParams]);
+
+  const selectTab = (key: FarmDetailTab) => {
+    setTab(key);
+    router.replace(
+      farmDetailHref(breeder.id, key, { from: farmFrom }),
+      { scroll: false },
+    );
+  };
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<string>(
     BREEDER_REPORT_REASONS[0],
@@ -72,8 +253,13 @@ export function FarmDetail({
     null,
   );
 
+  const farmPets = sortFarmPets(listings);
+  const farmPetCount = farmPetTabCount(listings);
+  const forSaleCount = farmPets.filter(
+    (l) => farmPetAvailability(l) === "for_sale",
+  ).length;
   const trustMetrics = getBreederPublicTrustMetrics(breeder, {
-    listingCount: listings.length,
+    listingCount: forSaleCount,
   });
   const trust = trustMetrics.qualityIndex;
   const reviewCount = trustMetrics.reviewCount;
@@ -85,7 +271,7 @@ export function FarmDetail({
       key,
       label:
         key === "listings"
-          ? `${t(lang, farmTabI18nKey(key))} (${listings.length})`
+          ? `${t(lang, farmTabI18nKey(key))} (${farmPetCount})`
           : t(lang, farmTabI18nKey(key)),
     }),
   );
@@ -402,12 +588,20 @@ export function FarmDetail({
                     : "📍 Vietnam"}
               </p>
               {isOwner ? (
-                <Link
-                  href={farmTemplateHref(breeder.id)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#1C1E21] text-xs sm:text-sm font-semibold shadow-sm border border-[#F3E2C8] hover:bg-[#F0F2F5] transition-colors shrink-0"
-                >
-                  🎨 {t(lang, "farm.owner.template")}
-                </Link>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <Link
+                    href="/app/account/breeder"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#1C1E21] text-xs sm:text-sm font-semibold shadow-sm border border-[#F3E2C8] hover:bg-[#F0F2F5] transition-colors"
+                  >
+                    ✏️ {t(lang, "farm.owner.editProfile")}
+                  </Link>
+                  <Link
+                    href={farmTemplateHref(breeder.id, { from: farmFrom })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#1C1E21] text-xs sm:text-sm font-semibold shadow-sm border border-[#F3E2C8] hover:bg-[#F0F2F5] transition-colors"
+                  >
+                    🎨 {t(lang, "farm.owner.template")}
+                  </Link>
+                </div>
               ) : null}
             </div>
             {SHOW_BREEDER_VERIFICATION_BADGES ? (
@@ -444,7 +638,7 @@ export function FarmDetail({
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() => setTab(item.key)}
+                  onClick={() => selectTab(item.key)}
                   className={`px-3.5 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                     tab === item.key
                       ? "border-[#D97706] text-[#B45309]"
@@ -550,9 +744,9 @@ export function FarmDetail({
 
             {tab === "listings" && (
               <div>
-                {listings.length > 0 ? (
+                {farmPets.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {listings.map((l) => (
+                    {farmPets.map((l) => (
                       <ListingCard key={l.id} listing={l} lang={lang} />
                     ))}
                   </div>
@@ -565,25 +759,11 @@ export function FarmDetail({
             )}
 
             {tab === "warranty" && (
-              <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5">
-                {breeder.commitments.length > 0 ? (
-                  <ul className="space-y-2.5">
-                    {breeder.commitments.map((c) => (
-                      <li
-                        key={c}
-                        className="flex items-start gap-2 text-sm text-[#2B1E19]/80"
-                      >
-                        <span className="text-[#D97706]">•</span>
-                        {c}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-[#6E5A51] leading-relaxed">
-                    {t(lang, "farm.warranty.fallback")}
-                  </p>
-                )}
-              </div>
+              <FarmWarrantyTab
+                lang={lang}
+                policies={breeder.warrantyPolicies ?? []}
+                isOwner={isOwner}
+              />
             )}
           </div>
 

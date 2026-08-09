@@ -38,6 +38,10 @@ function breakdownLabel(lang: Lang, key: string): string {
       vi: "Bảo trợ sức khỏe (sổ tiêm)",
       en: "Health docs (vaccine book)",
     },
+    firstWarrantyPolicy: {
+      vi: "Chính sách bảo hành đầu tiên",
+      en: "First warranty policy file",
+    },
     reviews: {
       vi: "Đánh giá 5 sao từ khách",
       en: "5★ buyer reviews",

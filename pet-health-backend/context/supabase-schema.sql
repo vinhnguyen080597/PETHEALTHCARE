@@ -370,7 +370,7 @@ create table if not exists public.pet_feed_posts (
   media_urls jsonb not null default '[]'::jsonb,
   video_url text,
   contact jsonb not null default '{}'::jsonb,
-  status text not null default 'draft' check (status in ('draft', 'pending_review', 'published', 'archived')),
+  status text not null default 'draft' check (status in ('draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold')),
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -382,6 +382,12 @@ alter table public.pet_feed_posts drop constraint if exists pet_feed_posts_post_
 alter table public.pet_feed_posts
   add constraint pet_feed_posts_post_kind_check
   check (post_kind in ('listing', 'announcement'));
+
+-- Allow deposit hold + completed/sold listings on farm profiles (in addition to for-sale published).
+alter table public.pet_feed_posts drop constraint if exists pet_feed_posts_status_check;
+alter table public.pet_feed_posts
+  add constraint pet_feed_posts_status_check
+  check (status in ('draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold'));
 
 create index if not exists idx_pet_feed_posts_kind_status
   on public.pet_feed_posts(post_kind, status, created_at desc);
@@ -673,13 +679,35 @@ create table if not exists public.pet_feed_notifications (
     'breeder_rejected',
     'admin_breeder_pending',
     'admin_listing_pending',
-    'admin_report_open'
+    'admin_report_open',
+    'deposit_request',
+    'deposit_confirmed',
+    'deposit_cancelled',
+    'deal_complete_request',
+    'deal_completed'
   )),
   body_preview text not null default '',
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   read_at timestamptz
 );
+
+alter table public.pet_feed_notifications drop constraint if exists pet_feed_notifications_type_check;
+alter table public.pet_feed_notifications
+  add constraint pet_feed_notifications_type_check
+  check (type in (
+    'post_comment',
+    'breeder_verified',
+    'breeder_rejected',
+    'admin_breeder_pending',
+    'admin_listing_pending',
+    'admin_report_open',
+    'deposit_request',
+    'deposit_confirmed',
+    'deposit_cancelled',
+    'deal_complete_request',
+    'deal_completed'
+  ));
 create unique index if not exists idx_pet_feed_notifications_comment_unique
   on public.pet_feed_notifications(comment_id)
   where comment_id is not null;

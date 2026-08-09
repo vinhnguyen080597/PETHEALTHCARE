@@ -311,6 +311,33 @@ export async function storeBreederProfileImage({ userId, kind, file, accessToken
   return `memory://${bucketName}/${filePath}`;
 }
 
+/** Warranty policy PDF/image — public path `{userId}/breeder/warranty/...` for Sen review. */
+export async function storeWarrantyPolicyFile({ userId, file, accessToken }) {
+  const mime = String(file?.mimetype || '').toLowerCase();
+  const extension = mime === 'application/pdf'
+    ? 'pdf'
+    : mime === 'image/png'
+      ? 'png'
+      : mime === 'image/webp'
+        ? 'webp'
+        : 'jpg';
+  const filePath = `${userId}/breeder/warranty/${Date.now()}-${randomUUID()}.${extension}`;
+  const bucketName = getPublicMediaBucketName();
+
+  const publicUrl = await uploadToImageBucket({
+    accessToken,
+    bucketName,
+    filePath,
+    buffer: file.buffer,
+    contentType: file.mimetype,
+    publicRead: true,
+  });
+  if (publicUrl) return publicUrl;
+
+  memoryImages.set(filePath, file.buffer);
+  return `memory://${bucketName}/${filePath}`;
+}
+
 async function listStorageObjectPaths(bucket, prefix) {
   const paths = [];
   let offset = 0;

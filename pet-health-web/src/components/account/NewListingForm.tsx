@@ -28,7 +28,13 @@ function RequiredMark() {
   );
 }
 
-export function NewListingForm({ lang }: { lang: Lang }) {
+export function NewListingForm({
+  lang,
+  warrantyPolicies = [],
+}: {
+  lang: Lang;
+  warrantyPolicies?: Array<{ id: string; title: string }>;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -147,6 +153,27 @@ export function NewListingForm({ lang }: { lang: Lang }) {
             rows={4}
             className={inputCls}
           />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">
+            {t(lang, "listing.new.warranty")}
+          </label>
+          <select name="warranty_policy_id" className={inputCls} defaultValue="">
+            <option value="">{t(lang, "listing.new.warrantyNone")}</option>
+            {warrantyPolicies.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title}
+              </option>
+            ))}
+          </select>
+          {warrantyPolicies.length === 0 ? (
+            <p className="mt-1.5 text-xs text-amber-700">
+              {t(lang, "listing.new.warrantyHint")}{" "}
+              <a href="/app/account/warranty" className="underline font-medium">
+                {t(lang, "listing.new.warrantyManage")}
+              </a>
+            </p>
+          ) : null}
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-1">

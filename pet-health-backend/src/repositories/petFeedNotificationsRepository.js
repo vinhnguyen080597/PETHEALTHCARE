@@ -13,6 +13,13 @@ const ADMIN_NOTIFICATION_TYPES = new Set([
   'admin_listing_pending',
   'admin_report_open',
 ]);
+const DEAL_NOTIFICATION_TYPES = new Set([
+  'deposit_request',
+  'deposit_confirmed',
+  'deposit_cancelled',
+  'deal_complete_request',
+  'deal_completed',
+]);
 const ADMIN_DEFAULT_CTA = {
   admin_breeder_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=breeder' },
   admin_listing_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=post' },
@@ -136,6 +143,16 @@ async function enrichNotification(row, accessToken) {
     });
   }
 
+  if (DEAL_NOTIFICATION_TYPES.has(type)) {
+    const metadata = normalizeMetadata(row.metadata);
+    return toNotification(row, {
+      actor_display_name: actorName,
+      post_title: trimText(metadata.title, 160),
+      post_thumb_url: typeof metadata.thumb_url === 'string' ? metadata.thumb_url : null,
+      cta_label: metadata.cta_label || 'Xem bài đăng',
+    });
+  }
+
   const post = row.post_id
     ? await getPetFeedPost(row.recipient_user_id, row.post_id, accessToken).catch(() => null)
     : null;
@@ -144,6 +161,54 @@ async function enrichNotification(row, accessToken) {
     post_title: post?.title ?? '',
     post_thumb_url: listThumbFromPost(post),
   });
+}
+
+/** Soft-deposit / handoff notifications between Sen and Breeder. */
+export async function createDealNotification({
+  recipientUserId,
+  actorUserId,
+  postId,
+  type,
+  bodyPreview,
+  metadata = {},
+  accessToken,
+}) {
+  const recipient = trimText(recipientUserId, 64);
+  const actor = trimText(actorUserId, 64);
+  const safePostId = trimText(postId, 64);
+  const safeType = DEAL_NOTIFICATION_TYPES.has(type) ? type : '';
+  if (!recipient || !actor || !safePostId || !safeType) return null;
+  if (recipient === actor) return null;
+
+  const meta = normalizeMetadata(metadata);
+  if (!meta.cta_href) {
+    meta.cta_href = `/app/posts/${encodeURIComponent(safePostId)}`;
+  }
+  if (!meta.cta_label) meta.cta_label = 'Xem bài đăng';
+
+  const row = {
+    id: randomUUID(),
+    recipient_user_id: recipient,
+    actor_user_id: actor,
+    post_id: safePostId,
+    comment_id: null,
+    breeder_profile_id: trimText(metadata?.breeder_profile_id, 64) || null,
+    type: safeType,
+    body_preview: trimText(bodyPreview, 220),
+    metadata: meta,
+    created_at: new Date().toISOString(),
+    read_at: null,
+  };
+
+  const supabase = getNotificationsSupabase(accessToken);
+  if (!supabase) {
+    memoryNotifications.push(row);
+    return enrichNotification(row, accessToken);
+  }
+
+  const { data, error } = await supabase.from('pet_feed_notifications').insert(row).select('*').single();
+  if (error) throw error;
+  return enrichNotification(data, accessToken);
 }
 
 /**

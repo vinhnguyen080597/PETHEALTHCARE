@@ -1,0 +1,74 @@
+import type { Listing } from "./types";
+
+/** Listing statuses shown on the farm "Thú cưng" tab. */
+export type FarmPetAvailability = "for_sale" | "deposit_hold" | "completed";
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+/** True when metadata marks a listing as sold/rehomed (completed deal). */
+export function listingMetadataMarksSold(
+  metadata: Record<string, unknown> | null | undefined,
+): boolean {
+  const meta = asRecord(metadata);
+  const outcome = String(meta.listing_outcome ?? meta.outcome ?? "")
+    .trim()
+    .toLowerCase();
+  if (outcome === "sold" || outcome === "completed" || outcome === "rehomed") {
+    return true;
+  }
+  return (
+    meta.sold === true ||
+    meta.completed === true ||
+    meta.rehomed === true ||
+    meta.sold === 1 ||
+    meta.sold === "true" ||
+    meta.sold === "1"
+  );
+}
+
+export function farmPetAvailability(
+  listing: Pick<Listing, "status"> & { metadataSold?: boolean },
+): FarmPetAvailability | null {
+  if (listing.status === "published") return "for_sale";
+  if (listing.status === "deposit_hold") return "deposit_hold";
+  if (listing.status === "sold") return "completed";
+  if (listing.status === "archived" && listing.metadataSold) return "completed";
+  return null;
+}
+
+/** Pets for sale + deposit hold + completed/sold. */
+export function isFarmPetListing(
+  listing: Pick<Listing, "status"> & { metadataSold?: boolean },
+): boolean {
+  return farmPetAvailability(listing) != null;
+}
+
+function availabilityRank(value: FarmPetAvailability | null): number {
+  if (value === "for_sale") return 0;
+  if (value === "deposit_hold") return 1;
+  if (value === "completed") return 2;
+  return 9;
+}
+
+/** For-sale first, then deposit hold, then completed. */
+export function sortFarmPets<
+  T extends Pick<Listing, "status"> & { metadataSold?: boolean },
+>(listings: T[]): T[] {
+  return [...listings]
+    .filter(isFarmPetListing)
+    .sort(
+      (a, b) =>
+        availabilityRank(farmPetAvailability(a)) -
+        availabilityRank(farmPetAvailability(b)),
+    );
+}
+
+export function farmPetTabCount(
+  listings: Array<Pick<Listing, "status"> & { metadataSold?: boolean }>,
+): number {
+  return listings.filter(isFarmPetListing).length;
+}

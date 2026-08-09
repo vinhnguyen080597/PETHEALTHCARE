@@ -62,10 +62,15 @@ async function FarmDetailData({
         const fresh = mapApiBreeder(mine.data, {
           activeListings: data.listings.length,
         });
+        // Owner view: merge latest photos + warranty policies from /me so
+        // edits are visible immediately even if public cache is stale.
         breeder = {
           ...data.profile,
           avatar: fresh.avatar,
           coverUrl: fresh.coverUrl,
+          warrantyPolicies: fresh.warrantyPolicies,
+          warrantyPolicyTrustAwarded: fresh.warrantyPolicyTrustAwarded,
+          trustScore: fresh.trustScore,
         };
       }
     } catch {

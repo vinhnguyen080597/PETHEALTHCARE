@@ -1,4 +1,9 @@
 import type { EnKey } from "@/i18n";
+import {
+  farmDetailHref,
+  parseFarmDetailFrom,
+  type FarmDetailFrom,
+} from "./farmTabs";
 
 export type SiteBreadcrumbCrumb = {
   href: string;
@@ -52,8 +57,14 @@ export function parseFarmBreadcrumbId(value: unknown): string | null {
   return s;
 }
 
-export function farmTemplateHref(farmProfileId: string): string {
-  return `/app/account/breeder/template?farm=${encodeURIComponent(farmProfileId)}`;
+export function farmTemplateHref(
+  farmProfileId: string,
+  options?: { from?: FarmDetailFrom | null },
+): string {
+  const params = new URLSearchParams();
+  params.set("farm", farmProfileId);
+  if (options?.from === "account") params.set("from", "account");
+  return `/app/account/breeder/template?${params.toString()}`;
 }
 
 export function shouldHideSiteBreadcrumbs(pathname: string): boolean {
@@ -110,18 +121,49 @@ function defaultTrail(pathname: string): SiteBreadcrumbCrumb[] {
  */
 export function buildSiteBreadcrumbs(
   pathname: string,
-  options?: { farmProfileId?: string | null },
+  options?: { farmProfileId?: string | null; from?: FarmDetailFrom | null },
 ): SiteBreadcrumbCrumb[] | null {
   if (shouldHideSiteBreadcrumbs(pathname)) return null;
 
   const path = pathname.split("?")[0] || pathname;
   const farmId = parseFarmBreadcrumbId(options?.farmProfileId);
+  const fromAccount = parseFarmDetailFrom(options?.from) === "account";
+
+  // Farm profile opened from Account (owner shortcut)
+  {
+    const farmMatch = path.match(/^\/app\/breeders\/([^/]+)\/?$/);
+    if (farmMatch && fromAccount) {
+      const id = parseFarmBreadcrumbId(farmMatch[1]) || farmMatch[1];
+      return [
+        { href: "/", labelKey: "breadcrumb.home" },
+        { href: "/app/account", labelKey: "nav.account" },
+        {
+          href: farmDetailHref(id, "overview", { from: "account" }),
+          labelKey: "breadcrumb.farmProfile",
+        },
+      ];
+    }
+  }
 
   // Owner trust guide: Home / Top Breeders / Farm / Trust
   {
     const trustMatch = path.match(/^\/app\/breeders\/([^/]+)\/trust\/?$/);
     if (trustMatch) {
       const id = parseFarmBreadcrumbId(trustMatch[1]) || trustMatch[1];
+      if (fromAccount) {
+        return [
+          { href: "/", labelKey: "breadcrumb.home" },
+          { href: "/app/account", labelKey: "nav.account" },
+          {
+            href: farmDetailHref(id, "overview", { from: "account" }),
+            labelKey: "breadcrumb.farmProfile",
+          },
+          {
+            href: `/app/breeders/${id}/trust`,
+            labelKey: "breadcrumb.farmTrust",
+          },
+        ];
+      }
       return [
         { href: "/", labelKey: "breadcrumb.home" },
         { href: "/app/breeders", labelKey: "nav.breeders" },
@@ -176,8 +218,33 @@ export function buildSiteBreadcrumbs(
     ];
   }
 
+  if (path === "/app/account/warranty") {
+    return [
+      { href: "/", labelKey: "breadcrumb.home" },
+      { href: "/app/account", labelKey: "nav.account" },
+      {
+        href: "/app/account/warranty",
+        labelKey: "account.breederTrust.warrantyLibrary",
+      },
+    ];
+  }
+
   // Template from farm profile
   if (path === "/app/account/breeder/template" && farmId) {
+    if (fromAccount) {
+      return [
+        { href: "/", labelKey: "breadcrumb.home" },
+        { href: "/app/account", labelKey: "nav.account" },
+        {
+          href: farmDetailHref(farmId, "overview", { from: "account" }),
+          labelKey: "breadcrumb.farmProfile",
+        },
+        {
+          href: farmTemplateHref(farmId),
+          labelKey: "account.template",
+        },
+      ];
+    }
     return [
       { href: "/", labelKey: "breadcrumb.home" },
       { href: "/app/breeders", labelKey: "nav.breeders" },

@@ -27,6 +27,13 @@ import {
   updatePetFeedPost,
   upsertMyBreederProfile,
   updateMyBreederProfilePhotos,
+  createMyWarrantyPolicy,
+  deleteMyWarrantyPolicy,
+  updateMyWarrantyPolicy,
+  listMyWarrantyPolicies,
+  confirmListingDeposit,
+  cancelListingDeposit,
+  confirmListingComplete,
 } from '../repositories/petFeedRepository.js';
 import {
   getPetFeedConversation,
@@ -39,6 +46,7 @@ import {
 import {
   countUnreadPetFeedNotifications,
   createAdminRequestNotifications,
+  createDealNotification,
   createPostCommentNotification,
   listPetFeedNotifications,
   markPetFeedNotificationsRead,
@@ -73,18 +81,27 @@ const SUPPORTED_VIDEO_MIMES = new Set(['video/mp4', 'video/quicktime', 'video/we
 router.use(requireUser);
 
 function parsePostPayload(body) {
+  let parsed;
   if (typeof body?.payload === 'string') {
     try {
-      const parsed = JSON.parse(body.payload);
-      return parsed && typeof parsed === 'object' ? parsed : {};
+      const json = JSON.parse(body.payload);
+      parsed = json && typeof json === 'object' ? json : {};
     } catch (_err) {
       const err = new Error('Invalid post payload JSON.');
       err.status = 400;
       err.code = 'INVALID_POST_PAYLOAD';
       throw err;
     }
+  } else {
+    parsed = body ?? {};
   }
-  return body ?? {};
+  const metadata = {
+    ...(parsed.metadata && typeof parsed.metadata === 'object' ? parsed.metadata : {}),
+  };
+  if (parsed.warranty_policy_id !== undefined || parsed.warrantyPolicyId !== undefined) {
+    metadata.warranty_policy_id = parsed.warranty_policy_id ?? parsed.warrantyPolicyId ?? null;
+  }
+  return { ...parsed, metadata };
 }
 
 function badMedia(message, code) {
@@ -954,6 +971,169 @@ router.post('/breeder-profile/me/cancel', async (req, res, next) => {
     const profile = await cancelMyBreederVerificationRequest(req.user.id, req.accessToken);
     void recordProductEvent({ userId: req.user.id, event: 'breeder_verification_cancelled', metadata: { status: profile.verification_status } });
     return res.json({ data: profile });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/breeder-profile/me/warranty-policies', requireAnyRole('breeder', 'admin'), async (req, res, next) => {
+  try {
+    const profile = await getMyBreederProfile(req.user.id, req.accessToken);
+    return res.json({
+      data: listMyWarrantyPolicies(profile),
+      meta: {
+        trust_awarded: Boolean(profile?.warranty_policy_trust_awarded),
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post(
+  '/breeder-profile/me/warranty-policies',
+  requireAnyRole('breeder', 'admin'),
+  async (req, res, next) => {
+    try {
+      const result = await createMyWarrantyPolicy(req.user.id, req.body ?? {}, req.accessToken);
+      void recordProductEvent({
+        userId: req.user.id,
+        event: 'warranty_policy_created',
+        metadata: { trust_awarded: result.trust_awarded },
+      });
+      return res.status(201).json({
+        data: result.policy,
+        profile: result.profile,
+        trust_awarded: result.trust_awarded,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.delete(
+  '/breeder-profile/me/warranty-policies/:policyId',
+  requireAnyRole('breeder', 'admin'),
+  async (req, res, next) => {
+    try {
+      const policyId = cleanId(req.params.policyId);
+      if (!policyId) {
+        return res.status(400).json({ error: 'policyId is required', code: 'WARRANTY_POLICY_ID_REQUIRED' });
+      }
+      const profile = await deleteMyWarrantyPolicy(req.user.id, policyId, req.accessToken);
+      return res.json({ data: profile });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.patch(
+  '/breeder-profile/me/warranty-policies/:policyId',
+  requireAnyRole('breeder', 'admin'),
+  async (req, res, next) => {
+    try {
+      const policyId = cleanId(req.params.policyId);
+      if (!policyId) {
+        return res.status(400).json({ error: 'policyId is required', code: 'WARRANTY_POLICY_ID_REQUIRED' });
+      }
+      const result = await updateMyWarrantyPolicy(
+        req.user.id,
+        policyId,
+        req.body ?? {},
+        req.accessToken,
+      );
+      void recordProductEvent({
+        userId: req.user.id,
+        event: 'warranty_policy_updated',
+        metadata: { policy_id: policyId },
+      });
+      return res.json({ data: result.policy, profile: result.profile });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+function dealNotifyMeta(post) {
+  return {
+    title: post?.title || '',
+    thumb_url: Array.isArray(post?.media_urls) ? post.media_urls[0] : null,
+    breeder_profile_id: post?.breeder_profile_id || null,
+    cta_href: post?.id ? `/app/posts/${encodeURIComponent(post.id)}` : undefined,
+  };
+}
+
+router.post('/posts/:postId/deposit/confirm', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const result = await confirmListingDeposit(req.user.id, postId, req.body ?? {}, req.accessToken);
+    const notifyType = result.both_confirmed ? 'deposit_confirmed' : 'deposit_request';
+    const preview = result.both_confirmed
+      ? `Cọc đã được xác nhận cho "${notifyPreview(result.post.title)}". Chính sách bảo hành đã đóng băng.`
+      : `Yêu cầu chốt cọc cho "${notifyPreview(result.post.title)}". Vui lòng xác nhận.`;
+    if (result.notify_user_id) {
+      void createDealNotification({
+        recipientUserId: result.notify_user_id,
+        actorUserId: req.user.id,
+        postId: result.post.id,
+        type: notifyType,
+        bodyPreview: preview,
+        metadata: dealNotifyMeta(result.post),
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
+    return res.json({ data: result.post, both_confirmed: result.both_confirmed });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/posts/:postId/deposit/cancel', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const result = await cancelListingDeposit(req.user.id, postId, req.accessToken);
+    if (result.notify_user_id) {
+      void createDealNotification({
+        recipientUserId: result.notify_user_id,
+        actorUserId: req.user.id,
+        postId: result.post.id,
+        type: 'deposit_cancelled',
+        bodyPreview: `Cọc cho "${notifyPreview(result.post.title)}" đã bị hủy.`,
+        metadata: dealNotifyMeta(result.post),
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
+    return res.json({ data: result.post });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/posts/:postId/complete/confirm', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const result = await confirmListingComplete(req.user.id, postId, req.accessToken);
+    const notifyType = result.both_confirmed ? 'deal_completed' : 'deal_complete_request';
+    const preview = result.both_confirmed
+      ? `Giao dịch "${notifyPreview(result.post.title)}" đã hoàn thành.`
+      : `Yêu cầu xác nhận giao nhận cho "${notifyPreview(result.post.title)}".`;
+    if (result.notify_user_id) {
+      void createDealNotification({
+        recipientUserId: result.notify_user_id,
+        actorUserId: req.user.id,
+        postId: result.post.id,
+        type: notifyType,
+        bodyPreview: preview,
+        metadata: dealNotifyMeta(result.post),
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
+    return res.json({ data: result.post, both_confirmed: result.both_confirmed });
   } catch (err) {
     return next(err);
   }

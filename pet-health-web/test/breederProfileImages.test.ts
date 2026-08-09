@@ -72,6 +72,8 @@ test("breeder photo i18n keys exist in EN and VI", () => {
     "farm.owner.photos",
     "farm.owner.editCover",
     "farm.owner.editAvatar",
+    "farm.owner.editProfile",
+    "farm.owner.template",
   ] as const;
   const enDict = en as Record<string, string>;
   const viDict = vi as Record<string, string>;

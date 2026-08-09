@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       vaccineStatus: "vaccineStatus",
       dewormingStatus: "dewormingStatus",
       status: "status",
+      warranty_policy_id: "warranty_policy_id",
     };
 
     for (const [key, dest] of Object.entries(fieldMap)) {

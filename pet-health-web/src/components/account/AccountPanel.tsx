@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { CancelBreederButton } from "./CancelBreederButton";
+import { farmProfileFromAccountHref } from "@/lib/farmTabs";
 
 export type AccountListingItem = {
   id: string;
@@ -38,7 +39,14 @@ function statusTone(status: string) {
 }
 
 function listingStatusKey(status: string): EnKey {
-  const known = ["draft", "pending_review", "published", "archived"] as const;
+  const known = [
+    "draft",
+    "pending_review",
+    "published",
+    "deposit_hold",
+    "archived",
+    "sold",
+  ] as const;
   const s = (known as readonly string[]).includes(status) ? status : "draft";
   return `listing.status.${s}` as EnKey;
 }
@@ -251,7 +259,7 @@ export function AccountPanel({
                 <div className="mt-4 flex flex-col gap-2">
                   {breeder?.id ? (
                     <Link
-                      href={`/app/breeders/${breeder.id}`}
+                      href={farmProfileFromAccountHref(breeder.id)}
                       className="text-center rounded-xl border border-amber-200 bg-white py-3 text-sm font-bold text-[#B45309] hover:bg-amber-50"
                     >
                       {t(lang, "account.breederTrust.viewFarmProfile")}
@@ -272,20 +280,6 @@ export function AccountPanel({
                       {t(lang, "account.breederTrust.updateProfile")}
                     </Link>
                   )}
-                  <Link
-                    href="/app/account/breeder"
-                    className="text-center rounded-xl border border-amber-100 bg-amber-50 py-2.5 text-sm font-bold text-[#B45309] hover:bg-amber-100"
-                  >
-                    {t(lang, "account.breederTrust.editProfile")}
-                  </Link>
-                  {breeder?.id ? (
-                    <Link
-                      href="/app/account/breeder/template"
-                      className="text-center rounded-xl border border-[#F0E6D8] py-2.5 text-sm font-medium text-[#2B1E19] hover:bg-[#FDFBF7]"
-                    >
-                      {t(lang, "account.template")}
-                    </Link>
-                  ) : null}
                 </div>
 
                 <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-900">

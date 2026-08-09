@@ -78,6 +78,45 @@ export interface BreederProfile {
   checklist: ChecklistItem[];
   /** Public badge T1/T2/T3 — never expose template id. */
   verificationTier: VerificationTier;
+  /** Breeder warranty policy library (files). */
+  warrantyPolicies?: WarrantyPolicy[];
+  /** True after first warranty policy creation (+10 trust once). */
+  warrantyPolicyTrustAwarded?: boolean;
+}
+
+export interface WarrantyPolicy {
+  id: string;
+  title: string;
+  createdAt?: string;
+  frozen?: boolean;
+  vaccineShotsCount?: number;
+  vaccineTypes?: string;
+  dewormingNote?: string;
+  hasHealthBook?: boolean;
+  careParvoCoverageDays?: number;
+  respiratorySkinCoverageDays?: number;
+  congenitalCoverageDays?: number;
+  reportWithinHours?: number;
+  vetRequirement?: string;
+  buyerGuidelines?: string[];
+  exclusions?: string[];
+  medicalFeeSupportPercent?: number;
+  allowEquivalentSwap?: boolean;
+  shippingParty?: string;
+  evidenceRequired?: string[];
+  breederResponseHours?: number;
+  /** @deprecated file-based policies removed; kept for old snapshots */
+  fileUrl?: string;
+  contentType?: string;
+}
+
+export interface ListingDeal {
+  status?: string;
+  senUserId?: string;
+  breederConfirmedDepositAt?: string | null;
+  senConfirmedDepositAt?: string | null;
+  breederConfirmedCompleteAt?: string | null;
+  senConfirmedCompleteAt?: string | null;
 }
 
 export interface Listing {
@@ -99,15 +138,50 @@ export interface Listing {
   mediaUrl: string;
   mediaUrls: string[];
   evidenceUrls?: string[];
-  status: "published" | "pending_review" | "draft" | "archived";
+  status:
+    | "published"
+    | "pending_review"
+    | "draft"
+    | "archived"
+    | "sold"
+    | "deposit_hold";
   breeder: BreederProfile;
   saved: boolean;
   postKind?: string;
   /** Listing accepts PetCare escrow deposit (Phase B UI). */
   escrowEnabled: boolean;
+  /** True when archive/sold metadata marks a completed rehome. */
+  metadataSold?: boolean;
+  warrantyPolicy?: WarrantyPolicy | null;
+  deal?: ListingDeal | null;
 }
 
 /** Raw API shapes (snake_case from backend). */
+export interface ApiWarrantyPolicy {
+  id: string;
+  title?: string;
+  created_at?: string;
+  frozen?: boolean;
+  vaccine_shots_count?: number;
+  vaccine_types?: string;
+  deworming_note?: string;
+  has_health_book?: boolean;
+  care_parvo_coverage_days?: number;
+  respiratory_skin_coverage_days?: number;
+  congenital_coverage_days?: number;
+  report_within_hours?: number;
+  vet_requirement?: string;
+  buyer_guidelines?: string[];
+  exclusions?: string[];
+  medical_fee_support_percent?: number;
+  allow_equivalent_swap?: boolean;
+  shipping_party?: string;
+  evidence_required?: string[];
+  breeder_response_hours?: number;
+  file_url?: string;
+  content_type?: string;
+}
+
 export interface ApiBreederProfile {
   id: string;
   user_id?: string;
@@ -121,6 +195,8 @@ export interface ApiBreederProfile {
   care_environment?: string;
   verification_status?: string;
   metadata?: Record<string, unknown>;
+  warranty_policies?: ApiWarrantyPolicy[];
+  warranty_policy_trust_awarded?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -147,6 +223,8 @@ export interface ApiPetFeedPost {
   status?: string;
   post_kind?: string;
   metadata?: Record<string, unknown>;
+  warranty_policy?: ApiWarrantyPolicy | null;
+  deal?: Record<string, unknown> | null;
   breeder_profile?: ApiBreederProfile | null;
   is_favorited?: boolean;
   created_at?: string;
