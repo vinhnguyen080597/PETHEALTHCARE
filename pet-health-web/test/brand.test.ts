@@ -8,10 +8,10 @@ import { BRAND_AVATAR_PATH } from "../src/lib/brand";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("brand avatar public asset exists", () => {
-  assert.equal(BRAND_AVATAR_PATH, "/images/pet-avatar.png");
+  assert.equal(BRAND_AVATAR_PATH, "/images/PetMarketAvatar.png");
   assert.ok(
-    existsSync(path.join(root, "public", "images", "pet-avatar.png")),
-    "missing public/images/pet-avatar.png",
+    existsSync(path.join(root, "public", "images", "PetMarketAvatar.png")),
+    "missing public/images/PetMarketAvatar.png",
   );
 });
 

@@ -19,6 +19,12 @@ import {
 } from "@/lib/listingOwnerActions";
 import { buildListingGalleryItems } from "@/lib/listingGallery";
 import {
+  canDownloadPostMedia,
+  listingMediaDownloadFallback,
+  mediaDownloadFileName,
+  shouldBlockMediaSave,
+} from "@/lib/mediaDownload";
+import {
   resolveWarrantyFarmSpecies,
   warrantyInfectiousFieldKey,
 } from "@/lib/warrantySpeciesCopy";
@@ -97,12 +103,14 @@ export function ListingDetail({
   listing: initialListing,
   lang,
   isLoggedIn = false,
+  isAdmin = false,
   currentUserId = null,
   initialComments = [],
 }: {
   listing: Listing;
   lang: Lang;
   isLoggedIn?: boolean;
+  isAdmin?: boolean;
   currentUserId?: string | null;
   initialComments?: PublicComment[];
 }) {
@@ -111,6 +119,8 @@ export function ListingDetail({
   const ownerUserId = listing.ownerUserId || listing.breeder.userId;
   const isOwner = isListingOwner(currentUserId, ownerUserId);
   const { showMessage, showReport } = listingVisitorActions(isOwner);
+  const allowMediaDownload = canDownloadPostMedia(isAdmin);
+  const blockMediaSave = shouldBlockMediaSave(isAdmin);
   const isDealSen = Boolean(
     currentUserId && listing.deal?.senUserId && currentUserId === listing.deal.senUserId,
   );
@@ -146,6 +156,30 @@ export function ListingDetail({
   });
   const activeItem = gallery[Math.min(activeMedia, Math.max(gallery.length - 1, 0))] || gallery[0] || null;
   const price = formatPriceVnd(listing.price) || listing.price;
+
+  const downloadActiveMedia = () => {
+    if (!allowMediaDownload || !activeItem?.url) return;
+    const filename = mediaDownloadFileName(
+      activeItem.url,
+      listingMediaDownloadFallback(
+        listing.id,
+        activeItem.type,
+        activeMedia,
+      ).replace(/\.[^.]+$/, ""),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = activeItem.url;
+    anchor.download = filename;
+    anchor.rel = "noopener";
+    anchor.target = "_blank";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
+
+  const blockMediaContextMenu = (e: React.MouseEvent) => {
+    if (blockMediaSave) e.preventDefault();
+  };
 
   const reasonLabels = useMemo(
     () => ({
@@ -439,7 +473,10 @@ export function ListingDetail({
       </div>
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1 lg:flex-[1.4]">
-          <div className="relative rounded-2xl overflow-hidden bg-slate-100 aspect-[4/3] mb-3">
+          <div
+            className="relative rounded-2xl overflow-hidden bg-slate-100 aspect-[4/3] mb-3"
+            onContextMenu={blockMediaContextMenu}
+          >
             {activeItem?.type === "video" ? (
               <video
                 key={activeItem.url}
@@ -448,6 +485,9 @@ export function ListingDetail({
                 controls
                 playsInline
                 preload="metadata"
+                controlsList={blockMediaSave ? "nodownload" : undefined}
+                disablePictureInPicture={blockMediaSave}
+                onContextMenu={blockMediaContextMenu}
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
@@ -455,10 +495,22 @@ export function ListingDetail({
                 src={activeItem?.url || listing.mediaUrl}
                 alt={listing.breed}
                 className="w-full h-full object-cover"
+                draggable={!blockMediaSave}
+                onContextMenu={blockMediaContextMenu}
               />
             )}
+            {allowMediaDownload && activeItem?.url ? (
+              <button
+                type="button"
+                onClick={downloadActiveMedia}
+                title={t(lang, "detail.downloadMediaHint")}
+                className="absolute bottom-3 right-3 z-10 rounded-full bg-white/95 border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#2B1E19] shadow-sm hover:bg-white"
+              >
+                {t(lang, "detail.downloadMedia")}
+              </button>
+            ) : null}
             {listing.escrowEnabled ? (
-              <span className="absolute top-3 right-3">
+              <span className="absolute top-3 right-3 z-10">
                 <EscrowBadge lang={lang} />
               </span>
             ) : null}
@@ -469,6 +521,7 @@ export function ListingDetail({
                 key={`${item.type}-${item.url}-${i}`}
                 type="button"
                 onClick={() => setActiveMedia(i)}
+                onContextMenu={blockMediaContextMenu}
                 className={`relative rounded-xl overflow-hidden aspect-square bg-slate-100 ${
                   i === activeMedia
                     ? "ring-2 ring-[#1E6FE8]"
@@ -483,14 +536,22 @@ export function ListingDetail({
                       muted
                       playsInline
                       preload="metadata"
+                      controlsList={blockMediaSave ? "nodownload" : undefined}
+                      onContextMenu={blockMediaContextMenu}
                     />
-                    <span className="absolute inset-x-1 bottom-1 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    <span className="absolute inset-x-1 bottom-1 z-10 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                       {t(lang, "detail.video")}
                     </span>
                   </>
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.url} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={item.url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    draggable={!blockMediaSave}
+                    onContextMenu={blockMediaContextMenu}
+                  />
                 )}
               </button>
             ))}

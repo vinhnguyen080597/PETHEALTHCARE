@@ -18,6 +18,8 @@ import {
 } from '../utils/adminModerationDisplay';
 import { confirmAdminModeration } from '../utils/adminConfirmModeration';
 import { modalTopInset } from '../utils/modalSafeArea';
+import { opensMyListingReviewPopup } from '../utils/myListingReviewPopup';
+import { PetFeedPostCard } from '../components/PetFeedPostCard';
 
 const PRIMARY = '#1E6FE8';
 
@@ -255,6 +257,7 @@ export function AccountScreen({
   const [rejectUserId, setRejectUserId] = useState<string | null>(null);
   const [rejectPostId, setRejectPostId] = useState<string | null>(null);
   const [listingMenuPostId, setListingMenuPostId] = useState<string | null>(null);
+  const [pendingReviewPost, setPendingReviewPost] = useState<PetFeedPost | null>(null);
   const role = account?.primary_role ?? 'sen';
   const breederStatus = breederProfile?.verification_status ?? 'unverified';
   const isAdmin = role === 'admin';
@@ -1309,6 +1312,11 @@ export function AccountScreen({
                   menuOpen={listingMenuPostId === post.id}
                   onOpenMenu={() => setListingMenuPostId(post.id)}
                   onCloseMenu={() => setListingMenuPostId(null)}
+                  onOpenReview={
+                    opensMyListingReviewPopup(post.status)
+                      ? () => setPendingReviewPost(post)
+                      : undefined
+                  }
                   onEdit={() => onEditPetFeedDraft?.(post)}
                   onSubmitDraft={
                     post.status === 'draft' && onSubmitPetFeedDraft
@@ -1448,6 +1456,65 @@ export function AccountScreen({
         );
       }}
     />
+    {pendingReviewPost ? (
+      <Modal
+        visible
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPendingReviewPost(null)}
+      >
+        <Pressable
+          className="flex-1 justify-end bg-black/40 sm:items-center sm:justify-center sm:px-5"
+          onPress={() => setPendingReviewPost(null)}
+        >
+          <Pressable
+            className="max-h-[92%] w-full overflow-hidden rounded-t-3xl border border-gray-200 bg-slate-50 sm:max-w-lg sm:rounded-3xl"
+            onPress={(event) => event.stopPropagation()}
+          >
+            <View className="flex-row items-start justify-between gap-3 border-b border-gray-200 bg-white px-4 py-4">
+              <View className="min-w-0 flex-1">
+                <Text className="text-base font-bold text-slate-900">
+                  {t('account.breederPosts.pendingReviewTitle')}
+                </Text>
+                <Text className="mt-1 self-start rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+                  {t('petFeed.status.pending_review')}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('account.breederPosts.closePreview')}
+                className="h-9 w-9 items-center justify-center rounded-full active:bg-slate-100"
+                onPress={() => setPendingReviewPost(null)}
+              >
+                <Ionicons name="close" size={20} color="#64748b" />
+              </Pressable>
+            </View>
+            <ScrollView className="px-4 py-4" contentContainerStyle={{ paddingBottom: 16 }}>
+              <Text className="mb-3 text-xs leading-5 text-slate-500">
+                {t('account.breederPosts.pendingReviewBody')}
+              </Text>
+              <PetFeedPostCard
+                post={pendingReviewPost}
+                variant="full"
+                showFavorite={false}
+                showContact={false}
+                showReport={false}
+              />
+            </ScrollView>
+            <View className="border-t border-gray-200 bg-white px-4 py-4">
+              <Pressable
+                className="rounded-xl border border-gray-200 bg-white py-3 active:bg-slate-50"
+                onPress={() => setPendingReviewPost(null)}
+              >
+                <Text className="text-center text-sm font-bold text-slate-700">
+                  {t('account.breederPosts.closePreview')}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    ) : null}
     </>
   );
 }
@@ -1498,6 +1565,7 @@ function MyListingRow({
   menuOpen,
   onOpenMenu,
   onCloseMenu,
+  onOpenReview,
   onEdit,
   onSubmitDraft,
   onDelete,
@@ -1506,6 +1574,7 @@ function MyListingRow({
   menuOpen: boolean;
   onOpenMenu: () => void;
   onCloseMenu: () => void;
+  onOpenReview?: () => void;
   onEdit?: () => void;
   onSubmitDraft?: () => void;
   onDelete?: () => void;
@@ -1517,44 +1586,61 @@ function MyListingRow({
   const subtitle = [post.breed, post.location].filter(Boolean).join(' · ') || post.description;
   const hasActions = canEdit || Boolean(onSubmitDraft) || Boolean(onDelete);
 
+  const mainContent = (
+    <>
+      <View className="h-16 w-16 overflow-hidden rounded-lg bg-slate-200">
+        {thumbUri ? (
+          <Image
+            source={{ uri: thumbUri }}
+            style={{ height: '100%', width: '100%' }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={100}
+          />
+        ) : (
+          <View className="h-full w-full items-center justify-center">
+            <Ionicons name="image-outline" size={22} color="#94a3b8" />
+          </View>
+        )}
+      </View>
+
+      <View className="min-w-0 flex-1 py-0.5">
+        <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>
+          {post.title}
+        </Text>
+        <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
+          <Text className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusTone.wrap} ${statusTone.text}`}>
+            {t(`petFeed.status.${post.status}`)}
+          </Text>
+          {post.species ? (
+            <Text className="text-[10px] font-semibold uppercase text-slate-400">{post.species}</Text>
+          ) : null}
+        </View>
+        {subtitle ? (
+          <Text className="mt-1 text-xs leading-4 text-slate-500" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+        <PetFeedPostTimeMeta post={post} className="mt-1 text-[11px] leading-4 text-slate-400" numberOfLines={2} />
+      </View>
+    </>
+  );
+
   return (
     <View className="overflow-hidden rounded-xl bg-slate-50">
       <View className="flex-row items-center gap-3 p-2.5 pr-1">
-        <View className="h-16 w-16 overflow-hidden rounded-lg bg-slate-200">
-          {thumbUri ? (
-            <Image
-              source={{ uri: thumbUri }}
-              style={{ height: '100%', width: '100%' }}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              transition={100}
-            />
-          ) : (
-            <View className="h-full w-full items-center justify-center">
-              <Ionicons name="image-outline" size={22} color="#94a3b8" />
-            </View>
-          )}
-        </View>
-
-        <View className="min-w-0 flex-1 py-0.5">
-          <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>
-            {post.title}
-          </Text>
-          <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
-            <Text className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusTone.wrap} ${statusTone.text}`}>
-              {t(`petFeed.status.${post.status}`)}
-            </Text>
-            {post.species ? (
-              <Text className="text-[10px] font-semibold uppercase text-slate-400">{post.species}</Text>
-            ) : null}
-          </View>
-          {subtitle ? (
-            <Text className="mt-1 text-xs leading-4 text-slate-500" numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
-          <PetFeedPostTimeMeta post={post} className="mt-1 text-[11px] leading-4 text-slate-400" numberOfLines={2} />
-        </View>
+        {onOpenReview ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('account.breederPosts.pendingReviewTitle')}
+            className="min-w-0 flex-1 flex-row items-center gap-3 active:opacity-90"
+            onPress={onOpenReview}
+          >
+            {mainContent}
+          </Pressable>
+        ) : (
+          <View className="min-w-0 flex-1 flex-row items-center gap-3">{mainContent}</View>
+        )}
 
         {hasActions ? (
           <Pressable

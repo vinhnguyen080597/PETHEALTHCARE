@@ -376,6 +376,9 @@ const vi: Record<EnKey, string> = {
   "detail.share": "Chia sẻ",
   "detail.shareCopied": "Đã sao chép!",
   "detail.shareFailed": "Không chia sẻ được. Hãy sao chép URL trên thanh địa chỉ.",
+  "detail.downloadMedia": "Tải xuống",
+  "detail.downloadMediaHint": "Chỉ Admin — tải ảnh hoặc video này",
+  "detail.downloadMediaFailed": "Không tải được media.",
   "detail.report": "Báo cáo",
   "detail.comments": "Bình luận",
   "detail.writeComment": "Viết bình luận…",
@@ -558,6 +561,10 @@ const vi: Record<EnKey, string> = {
   "account.breederPosts.title": "Tin của tôi",
   "account.breederPosts.empty":
     "Chưa có tin nào. Hãy tạo tin đầu tiên sau khi hồ sơ được xác minh.",
+  "account.breederPosts.pendingReviewTitle": "Tin đang chờ duyệt",
+  "account.breederPosts.pendingReviewBody":
+    "Tin này đang chờ admin duyệt và chưa hiển thị công khai.",
+  "account.breederPosts.closePreview": "Đóng",
   "account.breederRequestStatus.unverified":
     "Chưa có yêu cầu xác minh Breeder.",
   "account.breederRequestStatus.pending_review":

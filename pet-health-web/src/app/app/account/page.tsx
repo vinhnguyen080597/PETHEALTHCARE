@@ -14,6 +14,7 @@ import {
   type AccountBreederInfo,
 } from "@/components/account/AccountPanel";
 import { AccountDataSkeleton } from "@/components/ui/Skeleton";
+import { mapApiPost } from "@/lib/mappers";
 import type { ApiPetFeedPost, Lang } from "@/lib/types";
 
 export const metadata = { title: "Account" };
@@ -42,6 +43,7 @@ function toListingItem(post: ApiPetFeedPost): AccountListingItem {
     location: post.location,
     status: post.status || "draft",
     thumbUrl: listingThumb(post),
+    listing: mapApiPost(post),
   };
 }
 

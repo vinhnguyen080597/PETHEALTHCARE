@@ -7,6 +7,10 @@ import { useTranslation } from 'react-i18next';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
+import {
+  canDownloadPostMedia,
+  selectedMediaDownloadUrl,
+} from '../utils/mediaDownload';
 import { ReportModal } from './ReportModal';
 import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
 
@@ -25,6 +29,8 @@ type PetFeedPostCardProps = {
   onDeletePost?: (post: PetFeedPost) => void;
   onSharePost?: (post: PetFeedPost) => void;
   currentUserId?: string | null;
+  /** Admin-only: show download control for selected media. */
+  allowMediaDownload?: boolean;
   showFavorite?: boolean;
   showContact?: boolean;
   showReport?: boolean;
@@ -155,12 +161,14 @@ function AutoPlayVideo({ uri, autoPlay }: { uri: string; autoPlay: boolean }) {
   }, [autoPlay, player]);
 
   return (
-    <VideoView
-      player={player}
-      nativeControls={!autoPlay}
-      contentFit={autoPlay ? 'cover' : 'contain'}
-      style={{ height: '100%', width: '100%' }}
-    />
+    <View className="relative h-full w-full overflow-hidden">
+      <VideoView
+        player={player}
+        nativeControls={!autoPlay}
+        contentFit={autoPlay ? 'cover' : 'contain'}
+        style={{ height: '100%', width: '100%' }}
+      />
+    </View>
   );
 }
 
@@ -239,6 +247,7 @@ function PetFeedPostCardComponent({
   onDeletePost,
   onSharePost,
   currentUserId = null,
+  allowMediaDownload = false,
   showFavorite = true,
   showContact = true,
   showReport = true,
@@ -256,6 +265,7 @@ function PetFeedPostCardComponent({
   const canShowEdit = isOwnPost && Boolean(onEditPost);
   const canShowDelete = isOwnPost && Boolean(onDeletePost);
   const canShowShare = Boolean(onSharePost);
+  const canDownloadMedia = canDownloadPostMedia(allowMediaDownload);
   const showActions = canShowContact || canShowReport || canShowEdit || canShowDelete || canShowShare;
   const isCompact = variant === 'compact';
   const [reportVisible, setReportVisible] = useState(false);
@@ -289,6 +299,18 @@ function PetFeedPostCardComponent({
     if (!uri) return;
     setLoadedImageUris((current) => (current[uri] ? current : { ...current, [uri]: true }));
   }, []);
+
+  const downloadSelectedMedia = useCallback(async () => {
+    const url = selectedMediaDownloadUrl(selectedMedia);
+    if (!canDownloadMedia || !url) return;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) throw new Error('unsupported');
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(t('petFeed.downloadMediaFailed'));
+    }
+  }, [canDownloadMedia, selectedMedia, t]);
 
   useEffect(() => {
     setSelectedMediaIndex(0);
@@ -328,6 +350,19 @@ function PetFeedPostCardComponent({
             onImageLoaded={markImageLoaded}
           />
         )}
+        {canDownloadMedia && selectedMediaDownloadUrl(selectedMedia) ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('petFeed.accessibility.downloadMedia', { title: post.title })}
+            className="absolute bottom-3 right-3 z-10 rounded-full border border-white/40 bg-black/55 px-3 py-2 active:opacity-90"
+            onPress={(event) => {
+              event.stopPropagation?.();
+              void downloadSelectedMedia();
+            }}
+          >
+            <Text className="text-xs font-bold uppercase text-white">{t('petFeed.downloadMedia')}</Text>
+          </Pressable>
+        ) : null}
       </View>
       {showMediaStrip ? (
         <View className="border-b border-gray-100 bg-white py-2">

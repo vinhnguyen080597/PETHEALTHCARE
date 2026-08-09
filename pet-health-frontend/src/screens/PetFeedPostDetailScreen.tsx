@@ -36,6 +36,7 @@ type PetFeedPostDetailScreenProps = {
   onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
   onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
   currentUserId?: string | null;
+  allowMediaDownload?: boolean;
 };
 
 function Bone({ className }: { className: string }) {
@@ -92,6 +93,7 @@ export function PetFeedPostDetailScreen({
   onSubmitPostComment,
   onDeletePostComment,
   currentUserId,
+  allowMediaDownload = false,
 }: PetFeedPostDetailScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -194,6 +196,7 @@ export function PetFeedPostDetailScreen({
               onDeletePost={confirmDeletePost}
               onSharePost={(post) => void sharePetFeedPost(post)}
               currentUserId={currentUserId}
+              allowMediaDownload={allowMediaDownload}
               autoPlayVideo={false}
               mediaLoading={detailLoading}
               testID={`pet-feed-detail-post-${selectedPost.id}`}

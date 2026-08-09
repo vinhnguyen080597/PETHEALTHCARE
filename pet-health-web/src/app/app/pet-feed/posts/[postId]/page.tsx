@@ -106,6 +106,7 @@ async function PostDetailData({
       listing={listing}
       lang={lang}
       isLoggedIn={session.isLoggedIn}
+      isAdmin={session.isAdmin}
       currentUserId={currentUserId}
       initialComments={comments}
     />

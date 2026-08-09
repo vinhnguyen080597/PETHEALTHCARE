@@ -18,3 +18,10 @@ export function listingVisitorActions(isOwner: boolean): {
     showReport: !isOwner,
   };
 }
+
+/** Pending listings are not public — open owner review popup instead of detail. */
+export function opensMyListingReviewPopup(
+  status: string | null | undefined,
+): boolean {
+  return String(status || "").trim().toLowerCase() === "pending_review";
+}

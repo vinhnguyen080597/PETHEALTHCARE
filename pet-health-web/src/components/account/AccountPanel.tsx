@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { Lang } from "@/lib/types";
+import type { Lang, Listing } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { CancelBreederButton } from "./CancelBreederButton";
 import { farmProfileFromAccountHref } from "@/lib/farmTabs";
+import { opensMyListingReviewPopup } from "@/lib/listingOwnerActions";
+import { ListingCard } from "@/components/marketplace/ListingCard";
 
 export type AccountListingItem = {
   id: string;
@@ -15,6 +17,8 @@ export type AccountListingItem = {
   location?: string;
   status: string;
   thumbUrl?: string | null;
+  /** Mapped listing for owner review preview popup. */
+  listing?: Listing | null;
 };
 
 export type AccountBreederInfo = {
@@ -104,6 +108,7 @@ export function AccountPanel({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [reviewListing, setReviewListing] = useState<Listing | null>(null);
 
   const isSen = role === "sen" || (!isAdmin && role !== "breeder" && role !== "vet");
   const isBreeder = role === "breeder";
@@ -145,6 +150,7 @@ export function AccountPanel({
   };
 
   return (
+    <>
     <div className="min-h-screen bg-[#FDFBF7]">
       <div className="max-w-5xl mx-auto px-5 lg:px-8 py-10">
         <header className="mb-8">
@@ -350,34 +356,60 @@ export function AccountPanel({
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {myListings.map((post) => (
-                      <Link
-                        key={post.id}
-                        href={`/app/pet-feed/posts/${post.id}`}
-                        className="flex items-center gap-3 rounded-xl bg-[#FDFBF7] p-2.5 hover:bg-amber-50/80"
-                      >
-                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-200">
-                          {post.thumbUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={post.thumbUrl}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          ) : null}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold text-[#2B1E19]">
-                            {post.title || "—"}
-                          </p>
-                          <span
-                            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone(post.status)}`}
+                    {myListings.map((post) => {
+                      const rowClass =
+                        "flex w-full items-center gap-3 rounded-xl bg-[#FDFBF7] p-2.5 text-left hover:bg-amber-50/80";
+                      const rowBody = (
+                        <>
+                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-200">
+                            {post.thumbUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={post.thumbUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : null}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold text-[#2B1E19]">
+                              {post.title || "—"}
+                            </p>
+                            <span
+                              className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone(post.status)}`}
+                            >
+                              {t(lang, listingStatusKey(post.status))}
+                            </span>
+                          </div>
+                        </>
+                      );
+
+                      if (
+                        opensMyListingReviewPopup(post.status) &&
+                        post.listing
+                      ) {
+                        return (
+                          <button
+                            key={post.id}
+                            type="button"
+                            className={rowClass}
+                            onClick={() => setReviewListing(post.listing!)}
                           >
-                            {t(lang, listingStatusKey(post.status))}
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
+                            {rowBody}
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          key={post.id}
+                          href={`/app/pet-feed/posts/${post.id}`}
+                          className={rowClass}
+                        >
+                          {rowBody}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -502,5 +534,62 @@ export function AccountPanel({
         </div>
       </div>
     </div>
+
+    {reviewListing ? (
+      <div
+        className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-[#2B1E19]/45 backdrop-blur-[2px] p-0 sm:p-5"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="my-listing-review-title"
+        onClick={() => setReviewListing(null)}
+      >
+        <div
+          className="w-full max-w-lg max-h-[92vh] flex flex-col rounded-t-2xl sm:rounded-2xl border border-[#F0E6D8] bg-[#FDFBF7] shadow-[0_24px_60px_-20px_rgba(43,30,25,0.5)] overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <header className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-200/80 bg-white shrink-0">
+            <div className="min-w-0">
+              <h2
+                id="my-listing-review-title"
+                className="text-base font-bold text-slate-900"
+              >
+                {t(lang, "account.breederPosts.pendingReviewTitle")}
+              </h2>
+              <span
+                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone("pending_review")}`}
+              >
+                {t(lang, "listing.status.pending_review")}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReviewListing(null)}
+              className="h-8 w-8 rounded-full text-slate-500 hover:bg-slate-100 text-lg leading-none"
+              aria-label={t(lang, "account.breederPosts.closePreview")}
+            >
+              ×
+            </button>
+          </header>
+
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {t(lang, "account.breederPosts.pendingReviewBody")}
+            </p>
+            <ListingCard listing={reviewListing} lang={lang} interactive={false} />
+          </div>
+
+          <footer className="shrink-0 border-t border-slate-200/80 bg-white px-5 py-4">
+            <button
+              type="button"
+              onClick={() => setReviewListing(null)}
+              className="w-full py-3 rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              {t(lang, "account.breederPosts.closePreview")}
+            </button>
+          </footer>
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }

@@ -109,6 +109,8 @@ export function ListingCard({
         src={listing.mediaUrl}
         alt={listing.breed || title}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
       />
     </>
   );
@@ -192,6 +194,11 @@ export function ListingCard({
           {isHold ? (
             <span className="bg-amber-500/95 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
               {t(lang, "listing.status.deposit_hold")}
+            </span>
+          ) : null}
+          {listing.status === "pending_review" ? (
+            <span className="bg-amber-500/95 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
+              {t(lang, "listing.status.pending_review")}
             </span>
           ) : null}
           {isSold ? (

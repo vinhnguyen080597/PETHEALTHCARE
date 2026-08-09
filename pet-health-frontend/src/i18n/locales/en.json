@@ -317,6 +317,8 @@
     "loadingMore": "Loading more listings...",
     "endOfFeed": "You have reached the end of Pet Feed.",
     "resetFilters": "Reset",
+    "downloadMedia": "Download",
+    "downloadMediaFailed": "Could not open media for download.",
     "accessibility": {
       "search": "Search Pet Feed listings",
       "clearSearch": "Clear Pet Feed search",
@@ -336,6 +338,7 @@
       "editListing": "Edit listing {{title}}",
       "deleteListing": "Delete listing {{title}}",
       "shareListing": "Share listing {{title}}",
+      "downloadMedia": "Download media for {{title}}",
       "contactBreeder": "Contact breeder for {{title}}",
       "messageBreeder": "Message breeder about {{title}}",
       "hideBreeder": "Hide breeder {{name}}",
@@ -644,7 +647,10 @@
       "submitDraft": "Submit for review",
       "submitDraftSuccess": "Draft submitted for review.",
       "submitDraftFailed": "Could not submit draft.",
-      "submitDraftMediaRequired": "Add at least one photo and one video before submitting this draft."
+      "submitDraftMediaRequired": "Add at least one photo and one video before submitting this draft.",
+      "pendingReviewTitle": "Listing under review",
+      "pendingReviewBody": "This listing is waiting for admin review. It is not public yet.",
+      "closePreview": "Close"
     },
     "vetSummary": "Veterinarian features are planned for educational content and care-record review, not medical decisions inside the app.",
     "roleRequiredTitle": "Role required",

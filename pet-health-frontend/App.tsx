@@ -423,6 +423,7 @@ function AppContent() {
                 onSubmitPostComment={app.submitPetFeedComment}
                 onDeletePostComment={app.deletePetFeedComment}
                 currentUserId={app.accountProfile?.user_id ?? null}
+                allowMediaDownload={app.accountProfile?.primary_role === 'admin'}
               />
               </View>
             ) : null}

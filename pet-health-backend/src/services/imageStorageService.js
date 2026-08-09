@@ -7,6 +7,7 @@ import {
   getSupabaseServiceClient,
   parseSupabaseKeyRole,
 } from '../config/supabase.js';
+import { bakePetFeedImageWatermark } from './petFeedImageWatermark.js';
 
 const memoryImages = new Map();
 
@@ -107,18 +108,19 @@ export async function storePetFeedImage({ userId, file, accessToken }) {
   const extension = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
   const filePath = `${userId}/pet-feed/photos/${Date.now()}-${randomUUID()}.${extension}`;
   const bucketName = getPublicMediaBucketName();
+  const buffer = await bakePetFeedImageWatermark(file.buffer, file.mimetype);
 
   const publicUrl = await uploadToImageBucket({
     accessToken,
     bucketName,
     filePath,
-    buffer: file.buffer,
+    buffer,
     contentType: file.mimetype,
     publicRead: true,
   });
   if (publicUrl) return publicUrl;
 
-  memoryImages.set(filePath, file.buffer);
+  memoryImages.set(filePath, buffer);
   return `memory://${bucketName}/${filePath}`;
 }
 
@@ -127,18 +129,19 @@ export async function storePetFeedThumb({ userId, file, accessToken }) {
   const extension = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
   const filePath = `${userId}/pet-feed/thumbs/${Date.now()}-${randomUUID()}.${extension}`;
   const bucketName = getPublicMediaBucketName();
+  const buffer = await bakePetFeedImageWatermark(file.buffer, file.mimetype);
 
   const publicUrl = await uploadToImageBucket({
     accessToken,
     bucketName,
     filePath,
-    buffer: file.buffer,
+    buffer,
     contentType: file.mimetype,
     publicRead: true,
   });
   if (publicUrl) return publicUrl;
 
-  memoryImages.set(filePath, file.buffer);
+  memoryImages.set(filePath, buffer);
   return `memory://${bucketName}/${filePath}`;
 }
 

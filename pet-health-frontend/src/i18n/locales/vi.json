@@ -317,6 +317,8 @@
     "loadingMore": "Đang tải thêm bài đăng...",
     "endOfFeed": "Sen đã xem hết Pet Feed.",
     "resetFilters": "Đặt lại",
+    "downloadMedia": "Tải xuống",
+    "downloadMediaFailed": "Không mở được media để tải.",
     "accessibility": {
       "search": "Tìm kiếm bài đăng Pet Feed",
       "clearSearch": "Xóa tìm kiếm Pet Feed",
@@ -336,6 +338,7 @@
       "editListing": "Chỉnh sửa bài đăng {{title}}",
       "deleteListing": "Xóa bài đăng {{title}}",
       "shareListing": "Chia sẻ bài đăng {{title}}",
+      "downloadMedia": "Tải media của {{title}}",
       "contactBreeder": "Liên hệ breeder cho {{title}}",
       "messageBreeder": "Nhắn tin với breeder về {{title}}",
       "hideBreeder": "Ẩn breeder {{name}}",
@@ -644,7 +647,10 @@
       "submitDraft": "Gửi duyệt",
       "submitDraftSuccess": "Đã gửi bản nháp đi duyệt.",
       "submitDraftFailed": "Không gửi được bản nháp.",
-      "submitDraftMediaRequired": "Bản nháp cần ít nhất 1 ảnh và 1 video trước khi gửi duyệt."
+      "submitDraftMediaRequired": "Bản nháp cần ít nhất 1 ảnh và 1 video trước khi gửi duyệt.",
+      "pendingReviewTitle": "Tin đang chờ duyệt",
+      "pendingReviewBody": "Tin này đang chờ admin duyệt và chưa hiển thị công khai.",
+      "closePreview": "Đóng"
     },
     "vetSummary": "Vai trò bác sĩ thú y sẽ dành cho nội dung giáo dục và xem hồ sơ chăm sóc, không đưa ra quyết định y tế trong app.",
     "roleRequiredTitle": "Cần đúng vai trò",

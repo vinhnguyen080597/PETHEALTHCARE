@@ -373,6 +373,9 @@ const en = {
   "detail.share": "Share",
   "detail.shareCopied": "Copied!",
   "detail.shareFailed": "Could not share. Copy the URL from the address bar.",
+  "detail.downloadMedia": "Download",
+  "detail.downloadMediaHint": "Admin only — download this photo or video",
+  "detail.downloadMediaFailed": "Could not download media.",
   "detail.report": "Report",
   "detail.comments": "Comments",
   "detail.writeComment": "Write a comment…",
@@ -554,6 +557,10 @@ const en = {
   "account.breederPosts.title": "My listings",
   "account.breederPosts.empty":
     "No listings yet. Create your first listing after your profile is verified.",
+  "account.breederPosts.pendingReviewTitle": "Listing under review",
+  "account.breederPosts.pendingReviewBody":
+    "This listing is waiting for admin review. It is not public yet.",
+  "account.breederPosts.closePreview": "Close",
   "account.breederRequestStatus.unverified":
     "No breeder verification request yet.",
   "account.breederRequestStatus.pending_review":
