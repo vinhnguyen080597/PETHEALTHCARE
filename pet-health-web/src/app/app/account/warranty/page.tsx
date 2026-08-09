@@ -42,6 +42,7 @@ export default async function WarrantyLibraryPage({ searchParams }: Props) {
         initialPolicies={policies}
         trustAwarded={trustAwarded}
         profileId={profile.id}
+        primarySpecies={profile.primary_species || []}
         editPolicyId={editPolicyId}
       />
     </div>

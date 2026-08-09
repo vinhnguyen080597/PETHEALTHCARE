@@ -51,10 +51,12 @@ function FarmWarrantyTab({
   lang,
   policies,
   isOwner,
+  primarySpecies = [],
 }: {
   lang: Lang;
   policies: WarrantyPolicy[];
   isOwner: boolean;
+  primarySpecies?: string[];
 }) {
   const router = useRouter();
   const [viewing, setViewing] = useState<WarrantyPolicy | null>(null);
@@ -198,6 +200,7 @@ function FarmWarrantyTab({
         policy={viewing}
         open={Boolean(viewing)}
         onClose={() => setViewing(null)}
+        primarySpecies={breeder.primarySpecies}
       />
     </div>
   );
@@ -773,6 +776,7 @@ export function FarmDetail({
                 lang={lang}
                 policies={breeder.warrantyPolicies ?? []}
                 isOwner={isOwner}
+                primarySpecies={breeder.primarySpecies}
               />
             )}
           </div>

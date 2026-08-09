@@ -11,6 +11,12 @@ import {
   type WarrantyHandoverCardId,
 } from "@/lib/warrantyPolicyView";
 import { formatDewormingDateLabel } from "@/lib/warrantyPolicyForm";
+import {
+  resolveWarrantyFarmSpecies,
+  warrantyInfectiousSummaryKey,
+  warrantyRapidTestEvidenceKey,
+  type WarrantyFarmSpecies,
+} from "@/lib/warrantySpeciesCopy";
 
 function labelKey(prefix: string, id: string): EnKey {
   return `${prefix}.${id}` as EnKey;
@@ -111,17 +117,26 @@ export function WarrantyPolicyViewer({
   policy,
   open,
   onClose,
+  farmSpecies,
+  primarySpecies,
+  listingSpecies,
 }: {
   lang: Lang;
   policy: WarrantyPolicy | null;
   open: boolean;
   onClose: () => void;
+  farmSpecies?: WarrantyFarmSpecies;
+  primarySpecies?: string[] | null;
+  listingSpecies?: string | null;
 }) {
   if (!open || !policy) return null;
 
+  const species =
+    farmSpecies ||
+    resolveWarrantyFarmSpecies({ primarySpecies, listingSpecies });
   const summary = warrantySummaryChips(policy);
   const handover = warrantyHandoverCards(policy);
-  const coverage = warrantyCoverageRows(policy);
+  const coverage = warrantyCoverageRows(policy, species);
   const guidelines = (policy.buyerGuidelines || []).map((id) =>
     t(lang, labelKey("warranty.guideline", id)),
   );
@@ -129,7 +144,12 @@ export function WarrantyPolicyViewer({
     t(lang, labelKey("warranty.exclusion", id)),
   );
   const evidence = (policy.evidenceRequired || []).map((id) =>
-    t(lang, labelKey("warranty.evidence", id)),
+    t(
+      lang,
+      id === "rapid_test_photo"
+        ? (warrantyRapidTestEvidenceKey(species) as EnKey)
+        : labelKey("warranty.evidence", id),
+    ),
   );
 
   const remedyItems: string[] = [];
@@ -209,10 +229,10 @@ export function WarrantyPolicyViewer({
                           )
                         : null}
                       {chip.id === "careParvo"
-                        ? t(lang, "warranty.viewer.summaryCareParvo").replace(
-                            "{n}",
-                            String(chip.days),
-                          )
+                        ? t(
+                            lang,
+                            warrantyInfectiousSummaryKey(species) as EnKey,
+                          ).replace("{n}", String(chip.days))
                         : null}
                       {chip.id === "medicalFee"
                         ? t(lang, "warranty.viewer.summaryMedicalFee").replace(
@@ -266,7 +286,9 @@ export function WarrantyPolicyViewer({
                       key={row.id}
                       className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border px-3 py-2.5 ${tone.row}`}
                     >
-                      <p className="text-sm text-[#5C4A3A]">{t(lang, row.fieldKey)}</p>
+                      <p className="text-sm text-[#5C4A3A]">
+                        {t(lang, row.fieldKey as EnKey)}
+                      </p>
                       <span
                         className={`inline-flex self-start sm:self-auto items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${tone.badge}`}
                       >

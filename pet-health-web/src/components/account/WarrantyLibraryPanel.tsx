@@ -26,6 +26,16 @@ import {
   todayDateInputValue,
   type WarrantyPolicyFormValues,
 } from "@/lib/warrantyPolicyForm";
+import {
+  appendWarrantyVaccinePreset,
+  resolveWarrantyFarmSpecies,
+  warrantyInfectiousFieldKey,
+  warrantyRapidTestEvidenceKey,
+  warrantyRespiratoryFieldKey,
+  warrantyVaccinePlaceholderKey,
+  warrantyVaccinePresetIds,
+  warrantyVaccinePresetLabelKey,
+} from "@/lib/warrantySpeciesCopy";
 
 const WARRANTY_TITLE_FIELD_ID = "warranty-policy-title";
 
@@ -67,6 +77,7 @@ function ChecklistGroup<T extends string>({
   selected,
   onToggle,
   prefix,
+  labelForId,
 }: {
   lang: Lang;
   titleKey: EnKey;
@@ -74,6 +85,7 @@ function ChecklistGroup<T extends string>({
   selected: T[];
   onToggle: (id: T) => void;
   prefix: string;
+  labelForId?: (id: T) => string;
 }) {
   return (
     <div className="space-y-2">
@@ -90,7 +102,11 @@ function ChecklistGroup<T extends string>({
               checked={selected.includes(id)}
               onChange={() => onToggle(id)}
             />
-            <span>{t(lang, `${prefix}.${id}` as EnKey)}</span>
+            <span>
+              {labelForId
+                ? labelForId(id)
+                : t(lang, `${prefix}.${id}` as EnKey)}
+            </span>
           </label>
         ))}
       </div>
@@ -103,15 +119,19 @@ export function WarrantyLibraryPanel({
   initialPolicies,
   trustAwarded,
   profileId,
+  primarySpecies = [],
   editPolicyId = null,
 }: {
   lang: Lang;
   initialPolicies: WarrantyPolicy[];
   trustAwarded: boolean;
   profileId: string;
+  primarySpecies?: string[];
   editPolicyId?: string | null;
 }) {
   const router = useRouter();
+  const farmSpecies = resolveWarrantyFarmSpecies({ primarySpecies });
+  const vaccinePresets = warrantyVaccinePresetIds(farmSpecies);
   const [policies, setPolicies] = useState(initialPolicies);
   const [editingId, setEditingId] = useState<string | null>(editPolicyId);
   const [form, setForm] = useState<WarrantyPolicyFormValues>(() => {
@@ -342,8 +362,34 @@ export function WarrantyLibraryPanel({
               value={form.vaccineTypes}
               onChange={(e) => setField("vaccineTypes", e.target.value)}
               className={inputCls}
-              placeholder={lang === "VI" ? "VD: 5 trong 1" : "e.g. 5-in-1"}
+              placeholder={t(
+                lang,
+                warrantyVaccinePlaceholderKey(farmSpecies) as EnKey,
+              )}
             />
+            <div className="flex flex-wrap gap-1.5 pt-1.5">
+              {vaccinePresets.map((id) => {
+                const label = t(
+                  lang,
+                  warrantyVaccinePresetLabelKey(id) as EnKey,
+                );
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() =>
+                      setField(
+                        "vaccineTypes",
+                        appendWarrantyVaccinePreset(form.vaccineTypes, label),
+                      )
+                    }
+                    className="rounded-full border border-[#E8DFD0] bg-[#FDF8F0] px-2.5 py-1 text-[11px] font-medium text-[#5C4A3A] hover:border-[#D97706] hover:text-[#B45309]"
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </FieldLabel>
           <FieldLabel>
             {t(lang, "warranty.field.deworming")}
@@ -371,7 +417,7 @@ export function WarrantyLibraryPanel({
             2. {t(lang, "warranty.pillar.coverage")}
           </p>
           <FieldLabel>
-            {t(lang, "warranty.field.careParvo")}
+            {t(lang, warrantyInfectiousFieldKey(farmSpecies) as EnKey)}
             <select
               className={inputCls}
               value={form.careParvoCoverageDays}
@@ -390,7 +436,7 @@ export function WarrantyLibraryPanel({
             </select>
           </FieldLabel>
           <FieldLabel>
-            {t(lang, "warranty.field.respiratory")}
+            {t(lang, warrantyRespiratoryFieldKey(farmSpecies) as EnKey)}
             <select
               className={inputCls}
               value={form.respiratorySkinCoverageDays}
@@ -562,6 +608,14 @@ export function WarrantyLibraryPanel({
             options={EVIDENCE_OPTIONS}
             selected={form.evidenceRequired}
             prefix="warranty.evidence"
+            labelForId={(id) =>
+              t(
+                lang,
+                id === "rapid_test_photo"
+                  ? (warrantyRapidTestEvidenceKey(farmSpecies) as EnKey)
+                  : (`warranty.evidence.${id}` as EnKey),
+              )
+            }
             onToggle={(id) =>
               setField(
                 "evidenceRequired",
@@ -631,7 +685,7 @@ export function WarrantyLibraryPanel({
                   </p>
                   <p className="text-xs text-[#6E5A51]">
                     {p.careParvoCoverageDays
-                      ? t(lang, "warranty.field.careParvo") +
+                      ? t(lang, warrantyInfectiousFieldKey(farmSpecies) as EnKey) +
                         `: ${p.careParvoCoverageDays}d · `
                       : ""}
                     {t(lang, "warranty.library.view")}
@@ -664,6 +718,7 @@ export function WarrantyLibraryPanel({
         policy={viewing}
         open={Boolean(viewing)}
         onClose={() => setViewing(null)}
+        farmSpecies={farmSpecies}
       />
 
       {askCreateAnother ? (

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Lang, Listing } from "@/lib/types";
-import { genderLabel, t } from "@/i18n";
+import { genderLabel, t, type EnKey } from "@/i18n";
 import { formatPriceVnd, isBlankDisplayValue } from "@/lib/formatPrice";
 import { listingShareUrl } from "@/lib/config";
 import type { PublicComment } from "@/lib/api/public";
@@ -18,6 +18,10 @@ import {
   listingVisitorActions,
 } from "@/lib/listingOwnerActions";
 import { buildListingGalleryItems } from "@/lib/listingGallery";
+import {
+  resolveWarrantyFarmSpecies,
+  warrantyInfectiousFieldKey,
+} from "@/lib/warrantySpeciesCopy";
 
 const REPORT_REASONS = [
   "scam",
@@ -809,6 +813,7 @@ export function ListingDetail({
         policy={listing.warrantyPolicy ?? null}
         open={policyOpen}
         onClose={() => setPolicyOpen(false)}
+        listingSpecies={listing.species}
       />
 
       {depositOpen && (
@@ -833,8 +838,15 @@ export function ListingDetail({
                 <p>{listing.warrantyPolicy.title}</p>
                 {listing.warrantyPolicy.careParvoCoverageDays ? (
                   <p className="text-xs">
-                    {t(lang, "warranty.field.careParvo")}:{" "}
-                    {listing.warrantyPolicy.careParvoCoverageDays}{" "}
+                    {t(
+                      lang,
+                      warrantyInfectiousFieldKey(
+                        resolveWarrantyFarmSpecies({
+                          listingSpecies: listing.species,
+                        }),
+                      ) as EnKey,
+                    )}
+                    : {listing.warrantyPolicy.careParvoCoverageDays}{" "}
                     {lang === "VI" ? "ngày" : "days"}
                   </p>
                 ) : null}

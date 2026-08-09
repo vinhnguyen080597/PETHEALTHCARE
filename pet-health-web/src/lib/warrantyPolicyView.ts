@@ -1,4 +1,9 @@
 import type { WarrantyPolicy } from "@/lib/types";
+import {
+  warrantyInfectiousFieldKey,
+  warrantyRespiratoryFieldKey,
+  type WarrantyFarmSpecies,
+} from "./warrantySpeciesCopy";
 
 export type WarrantySummaryChip =
   | { id: "vaccine"; icon: "💉"; shots: number; vaccineTypes: string }
@@ -16,10 +21,7 @@ export type WarrantyCoverageTone = "amber" | "sky" | "violet";
 
 export type WarrantyCoverageRow = {
   id: "careParvo" | "respiratory" | "congenital";
-  fieldKey:
-    | "warranty.field.careParvo"
-    | "warranty.field.respiratory"
-    | "warranty.field.congenital";
+  fieldKey: string;
   days: number;
   tone: WarrantyCoverageTone;
 };
@@ -87,13 +89,14 @@ export function warrantyCoverageRows(
     | "respiratorySkinCoverageDays"
     | "congenitalCoverageDays"
   >,
+  species: WarrantyFarmSpecies = "mixed",
 ): WarrantyCoverageRow[] {
   const rows: WarrantyCoverageRow[] = [];
   const care = Number(policy.careParvoCoverageDays) || 0;
   if (care > 0) {
     rows.push({
       id: "careParvo",
-      fieldKey: "warranty.field.careParvo",
+      fieldKey: warrantyInfectiousFieldKey(species),
       days: care,
       tone: "amber",
     });
@@ -102,7 +105,7 @@ export function warrantyCoverageRows(
   if (resp > 0) {
     rows.push({
       id: "respiratory",
-      fieldKey: "warranty.field.respiratory",
+      fieldKey: warrantyRespiratoryFieldKey(species),
       days: resp,
       tone: "sky",
     });
