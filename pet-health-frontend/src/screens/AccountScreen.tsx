@@ -154,7 +154,11 @@ type AccountScreenProps = {
     verificationStatus: string,
     options?: { rejectionReason?: string; adminAction?: string; adminNote?: string },
   ) => Promise<void>;
-  onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
+  onUpdatePostStatus: (
+    postId: string,
+    status: string,
+    options?: { rejectionReason?: string; adminAction?: string; adminNote?: string },
+  ) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
   onRefreshAdmin?: () => Promise<void>;
   onLogout: () => void;
@@ -249,6 +253,7 @@ export function AccountScreen({
   const [activeBreederDropdown, setActiveBreederDropdown] = useState<'status' | 'species' | 'date' | null>(null);
   const [adminActionBusyKey, setAdminActionBusyKey] = useState<string | null>(null);
   const [rejectUserId, setRejectUserId] = useState<string | null>(null);
+  const [rejectPostId, setRejectPostId] = useState<string | null>(null);
   const [listingMenuPostId, setListingMenuPostId] = useState<string | null>(null);
   const role = account?.primary_role ?? 'sen';
   const breederStatus = breederProfile?.verification_status ?? 'unverified';
@@ -878,17 +883,11 @@ export function AccountScreen({
                       }
                     />
                     <AdminActionButton
-                      label={t('adminReview.archive')}
+                      label={t('adminReview.reject')}
                       variant="neutral"
-                      busy={adminActionBusyKey === `post-archive-${item.post.id}`}
+                      busy={adminActionBusyKey === `post-reject-${item.post.id}`}
                       disabled={Boolean(adminActionBusyKey)}
-                      onPress={() =>
-                        void runAdminAction(
-                          `post-archive-${item.post.id}`,
-                          () => onUpdatePostStatus(item.post.id, 'archived'),
-                          t('adminReview.updateSuccess'),
-                        )
-                      }
+                      onPress={() => setRejectPostId(item.post.id)}
                     />
                   </View>
                 ) : null}
@@ -1060,33 +1059,43 @@ export function AccountScreen({
                 {post.status === 'pending_review' || post.status === 'published' ? (
                   <View className="mt-4 flex-row flex-wrap gap-2">
                     {post.status === 'pending_review' ? (
+                      <>
+                        <AdminActionButton
+                          label={t('adminReview.approve')}
+                          variant="success"
+                          busy={adminActionBusyKey === `feed-post-approve-${post.id}`}
+                          disabled={Boolean(adminActionBusyKey)}
+                          onPress={() =>
+                            void runAdminAction(
+                              `feed-post-approve-${post.id}`,
+                              () => onUpdatePostStatus(post.id, 'published'),
+                              t('adminReview.updateSuccess'),
+                            )
+                          }
+                        />
+                        <AdminActionButton
+                          label={t('adminReview.reject')}
+                          variant="neutral"
+                          busy={adminActionBusyKey === `feed-post-reject-${post.id}`}
+                          disabled={Boolean(adminActionBusyKey)}
+                          onPress={() => setRejectPostId(post.id)}
+                        />
+                      </>
+                    ) : (
                       <AdminActionButton
-                        label={t('adminReview.approve')}
-                        variant="success"
-                        busy={adminActionBusyKey === `feed-post-approve-${post.id}`}
+                        label={t('adminReview.archive')}
+                        variant="neutral"
+                        busy={adminActionBusyKey === `feed-post-archive-${post.id}`}
                         disabled={Boolean(adminActionBusyKey)}
                         onPress={() =>
                           void runAdminAction(
-                            `feed-post-approve-${post.id}`,
-                            () => onUpdatePostStatus(post.id, 'published'),
+                            `feed-post-archive-${post.id}`,
+                            () => onUpdatePostStatus(post.id, 'archived'),
                             t('adminReview.updateSuccess'),
                           )
                         }
                       />
-                    ) : null}
-                    <AdminActionButton
-                      label={t('adminReview.archive')}
-                      variant="neutral"
-                      busy={adminActionBusyKey === `feed-post-archive-${post.id}`}
-                      disabled={Boolean(adminActionBusyKey)}
-                      onPress={() =>
-                        void runAdminAction(
-                          `feed-post-archive-${post.id}`,
-                          () => onUpdatePostStatus(post.id, 'archived'),
-                          t('adminReview.updateSuccess'),
-                        )
-                      }
-                    />
+                    )}
                   </View>
                 ) : null}
               </View>
@@ -1420,6 +1429,22 @@ export function AccountScreen({
           `breeder-reject-${userId}`,
           () => onUpdateBreederStatus(userId, 'rejected', payload),
           t('adminReview.rejectSuccess'),
+        );
+      }}
+    />
+    <AdminRejectBreederModal
+      visible={Boolean(rejectPostId)}
+      submitting={Boolean(adminActionBusyKey)}
+      variant="listing"
+      onClose={() => setRejectPostId(null)}
+      onSubmit={async (payload) => {
+        if (!rejectPostId) return;
+        const postId = rejectPostId;
+        setRejectPostId(null);
+        await runAdminAction(
+          `post-reject-${postId}`,
+          () => onUpdatePostStatus(postId, 'archived', payload),
+          t('adminReview.rejectListingSuccess'),
         );
       }}
     />

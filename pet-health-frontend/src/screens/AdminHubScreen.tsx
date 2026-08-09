@@ -54,7 +54,11 @@ type AdminHubScreenProps = {
   onCreateAccount: (payload: { email: string; password: string; displayName: string; primaryRole: UserRole }) => Promise<void>;
   onOpenUser: (account: AccountProfile) => void;
   onUpdateBreederStatus: (userId: string, status: string, options?: BreederStatusOptions) => Promise<void>;
-  onUpdatePostStatus: (postId: string, status: string) => Promise<void>;
+  onUpdatePostStatus: (
+    postId: string,
+    status: string,
+    options?: BreederStatusOptions,
+  ) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
 };
 
@@ -96,6 +100,7 @@ export function AdminHubScreen({
   const [newRole, setNewRole] = useState<UserRole>('sen');
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [rejectUserId, setRejectUserId] = useState<string | null>(null);
+  const [rejectPostId, setRejectPostId] = useState<string | null>(null);
   const [actionLogs, setActionLogs] = useState<AdminActionLog[]>([]);
   const [historyFilter, setHistoryFilter] = useState<(typeof HISTORY_ACTION_FILTERS)[number]>('all');
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -283,9 +288,9 @@ export function AdminHubScreen({
                     <Pressable
                       className="flex-1 rounded-xl bg-slate-700 py-3"
                       disabled={Boolean(busyKey)}
-                      onPress={() => void runAction(`post-archive-${post.id}`, () => onUpdatePostStatus(post.id, 'archived'), t('adminReview.updateSuccess'))}
+                      onPress={() => setRejectPostId(post.id)}
                     >
-                      <Text className="text-center text-xs font-bold text-white">{t('adminReview.archive')}</Text>
+                      <Text className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -461,6 +466,22 @@ export function AdminHubScreen({
             `breeder-reject-${userId}`,
             () => onUpdateBreederStatus(userId, 'rejected', payload),
             t('adminReview.rejectSuccess'),
+          );
+        }}
+      />
+      <AdminRejectBreederModal
+        visible={Boolean(rejectPostId)}
+        submitting={Boolean(busyKey)}
+        variant="listing"
+        onClose={() => setRejectPostId(null)}
+        onSubmit={async (payload) => {
+          if (!rejectPostId) return;
+          const postId = rejectPostId;
+          setRejectPostId(null);
+          await runAction(
+            `post-reject-${postId}`,
+            () => onUpdatePostStatus(postId, 'archived', payload),
+            t('adminReview.rejectListingSuccess'),
           );
         }}
       />

@@ -1839,7 +1839,7 @@ export async function getAdminBreederProfileByUserId(userId) {
   return data ? toProfile(data) : null;
 }
 
-export async function adminUpdatePetFeedPostStatus(postId, status) {
+export async function adminUpdatePetFeedPostStatus(postId, status, options = {}) {
   const safeStatus = normalizeStatus(status, '');
   if (!safeStatus) {
     const err = new Error('Invalid post status');
@@ -1847,16 +1847,65 @@ export async function adminUpdatePetFeedPostStatus(postId, status) {
     err.code = 'INVALID_POST_STATUS';
     throw err;
   }
+  const rejectionReason = trimText(options.rejectionReason ?? options.rejection_reason, 500);
+  const adminNote = trimText(options.adminNote ?? options.admin_note, 500);
+  const adminAction = trimText(options.adminAction ?? options.admin_action, 300);
+  const now = new Date().toISOString();
+
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
     const idx = memoryPosts.findIndex((post) => post.id === postId);
     if (idx < 0) return null;
-    memoryPosts[idx] = { ...memoryPosts[idx], status: safeStatus, updated_at: new Date().toISOString() };
+    const existing = memoryPosts[idx];
+    const metadata = { ...(existing.metadata ?? {}) };
+    if (safeStatus === 'archived' && String(existing.status || '') === 'pending_review') {
+      metadata.rejection_reason = rejectionReason || metadata.rejection_reason || '';
+      if (adminNote) metadata.admin_note = adminNote;
+      else delete metadata.admin_note;
+      if (adminAction) metadata.admin_action = adminAction;
+      else delete metadata.admin_action;
+      metadata.rejected_at = now;
+    } else if (safeStatus === 'published') {
+      delete metadata.rejection_reason;
+      delete metadata.admin_note;
+      delete metadata.admin_action;
+      delete metadata.rejected_at;
+    }
+    memoryPosts[idx] = {
+      ...existing,
+      status: safeStatus,
+      metadata,
+      updated_at: now,
+    };
     return toPost(memoryPosts[idx]);
   }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('pet_feed_posts')
+    .select('status, metadata')
+    .eq('id', postId)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) return null;
+
+  const metadata = { ...(asObject(existing.metadata) || {}) };
+  if (safeStatus === 'archived' && String(existing.status || '') === 'pending_review') {
+    metadata.rejection_reason = rejectionReason || metadata.rejection_reason || '';
+    if (adminNote) metadata.admin_note = adminNote;
+    else delete metadata.admin_note;
+    if (adminAction) metadata.admin_action = adminAction;
+    else delete metadata.admin_action;
+    metadata.rejected_at = now;
+  } else if (safeStatus === 'published') {
+    delete metadata.rejection_reason;
+    delete metadata.admin_note;
+    delete metadata.admin_action;
+    delete metadata.rejected_at;
+  }
+
   const { data, error } = await supabase
     .from('pet_feed_posts')
-    .update({ status: safeStatus, updated_at: new Date().toISOString() })
+    .update({ status: safeStatus, metadata, updated_at: now })
     .eq('id', postId)
     .select('*, breeder_profile:breeder_profiles(*)')
     .maybeSingle();

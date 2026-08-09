@@ -963,14 +963,28 @@ export async function listAdminPetFeedPosts(token: string, status: string = 'pen
   });
 }
 
-export async function updateAdminPetFeedPostStatus(token: string, postId: string, status: string) {
+export async function updateAdminPetFeedPostStatus(
+  token: string,
+  postId: string,
+  status: string,
+  options?: {
+    rejectionReason?: string;
+    adminAction?: string;
+    adminNote?: string;
+  },
+) {
   return requestJson<{ data: PetFeedPost }>(`/admin/pet-feed/posts/${encodeURIComponent(postId)}/status`, {
     method: 'PUT',
     headers: {
       ...authHeaders(token),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({
+      status,
+      ...(options?.rejectionReason ? { rejectionReason: options.rejectionReason } : {}),
+      ...(options?.adminAction ? { adminAction: options.adminAction } : {}),
+      ...(options?.adminNote ? { adminNote: options.adminNote } : {}),
+    }),
   });
 }
 

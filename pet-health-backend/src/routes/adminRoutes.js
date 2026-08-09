@@ -435,16 +435,38 @@ router.put('/pet-feed/posts/:postId/status', requireAdminOrSecret, async (req, r
   try {
     const postId = cleanId(req.params.postId);
     if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const nextStatus = String(req.body?.status || '').toLowerCase();
+    const rejectionReason = String(
+      compactText(req.body?.rejectionReason ?? req.body?.rejection_reason ?? '') || '',
+    ).slice(0, 500);
+    const adminNote = String(
+      compactText(req.body?.adminNote ?? req.body?.admin_note ?? '') || '',
+    ).slice(0, 500);
+    const adminAction = String(
+      compactText(req.body?.adminAction ?? req.body?.admin_action ?? '') || '',
+    ).slice(0, 300);
+
     const before = await getAdminPetFeedPostById(postId);
-    const post = await adminUpdatePetFeedPostStatus(postId, req.body?.status);
+    const beforeStatus = String(before?.status || '').toLowerCase();
+    if (nextStatus === 'archived' && beforeStatus === 'pending_review' && !rejectionReason) {
+      return res.status(400).json({
+        error: 'rejectionReason is required when rejecting a listing',
+        code: 'MISSING_REJECTION_REASON',
+      });
+    }
+
+    const post = await adminUpdatePetFeedPostStatus(postId, req.body?.status, {
+      rejectionReason,
+      adminNote,
+      adminAction,
+    });
     if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
 
-    const beforeStatus = String(before?.status || '').toLowerCase();
-    const nextStatus = String(post.status || '').toLowerCase();
+    const resolvedStatus = String(post.status || '').toLowerCase();
     const recipientUserId = post.user_id || before?.user_id || null;
     const titlePreview = compactText(post.title || before?.title || '') || 'bài đăng';
-    if (recipientUserId && beforeStatus !== nextStatus) {
-      if (nextStatus === 'published') {
+    if (recipientUserId && beforeStatus !== resolvedStatus) {
+      if (resolvedStatus === 'published') {
         void createListingReviewNotification({
           recipientUserId,
           actorUserId: req.user?.id || 'admin',
@@ -459,16 +481,19 @@ router.put('/pet-feed/posts/:postId/status', requireAdminOrSecret, async (req, r
           },
           accessToken: req.accessToken,
         }).catch(() => null);
-      } else if (nextStatus === 'archived' && beforeStatus === 'pending_review') {
+      } else if (resolvedStatus === 'archived' && beforeStatus === 'pending_review') {
         void createListingReviewNotification({
           recipientUserId,
           actorUserId: req.user?.id || 'admin',
           postId: post.id,
           type: 'listing_rejected',
-          bodyPreview: `Bài đăng "${String(titlePreview).slice(0, 80)}" chưa được duyệt.`,
+          bodyPreview: rejectionReason || `Bài đăng "${String(titlePreview).slice(0, 80)}" chưa được duyệt.`,
           metadata: {
             title: post.title || before?.title || '',
             breeder_profile_id: post.breeder_profile_id || before?.breeder_profile_id || undefined,
+            rejection_reason: rejectionReason,
+            admin_note: adminNote || undefined,
+            admin_action: adminAction || undefined,
             cta_label: 'Xem tin đăng',
             cta_href: `/app/account`,
           },
@@ -492,6 +517,9 @@ router.put('/pet-feed/posts/:postId/status', requireAdminOrSecret, async (req, r
       },
       metadata: {
         breeder_profile_id: post.breeder_profile_id || before?.breeder_profile_id || null,
+        rejection_reason: rejectionReason || undefined,
+        admin_note: adminNote || undefined,
+        admin_action: adminAction || undefined,
       },
     });
     return res.json({ data: post });

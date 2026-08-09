@@ -3128,9 +3128,17 @@ export function usePetHealthApp() {
     }
   }
 
-  async function updateAdminPostStatus(postId: string, status: string) {
+  async function updateAdminPostStatus(
+    postId: string,
+    status: string,
+    options?: {
+      rejectionReason?: string;
+      adminAction?: string;
+      adminNote?: string;
+    },
+  ) {
     if (!token) return;
-    await updateAdminPetFeedPostStatus(token, postId, status);
+    await updateAdminPetFeedPostStatus(token, postId, status, options);
     await ensureAdminReviewLoaded(token, { force: true });
   }
 

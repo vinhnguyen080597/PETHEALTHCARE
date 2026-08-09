@@ -180,7 +180,7 @@ export function NotificationsInboxScreen({
   };
 
   const handleOpen = (item: PetFeedNotification) => {
-    if (notificationType(item) === 'breeder_rejected') {
+    if (notificationType(item) === 'breeder_rejected' || notificationType(item) === 'listing_rejected') {
       setReasonItem(item);
     }
     onOpenNotification(item);
@@ -293,13 +293,18 @@ export function NotificationsInboxScreen({
             onPress={(event) => event.stopPropagation?.()}
           >
             <Text className="text-base font-bold text-slate-900">
-              {t('petFeed.notifications.rejectedTitle')}
+              {reasonItem && notificationType(reasonItem) === 'listing_rejected'
+                ? t('petFeed.notifications.listingRejectedTitle')
+                : t('petFeed.notifications.rejectedTitle')}
             </Text>
             <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">
               {t('petFeed.notifications.rejectionReason')}
             </Text>
             <Text className="mt-1 text-sm leading-5 text-slate-800">
-              {rejectionReason || t('petFeed.notifications.rejectedBody')}
+              {rejectionReason ||
+                (reasonItem && notificationType(reasonItem) === 'listing_rejected'
+                  ? t('petFeed.notifications.listingRejectedBody')
+                  : t('petFeed.notifications.rejectedBody'))}
             </Text>
             {adminAction ? (
               <>
@@ -318,7 +323,9 @@ export function NotificationsInboxScreen({
               </>
             ) : null}
             <View className="mt-4 gap-2">
-              {onOpenBreederProfile ? (
+              {reasonItem &&
+              notificationType(reasonItem) === 'breeder_rejected' &&
+              onOpenBreederProfile ? (
                 <Pressable
                   className="rounded-xl bg-blue-600 py-3 active:opacity-90"
                   onPress={() => {

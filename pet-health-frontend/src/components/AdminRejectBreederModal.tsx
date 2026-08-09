@@ -11,6 +11,7 @@ export type AdminRejectBreederPayload = {
 type AdminRejectBreederModalProps = {
   visible: boolean;
   submitting?: boolean;
+  variant?: 'breeder' | 'listing';
   onClose: () => void;
   onSubmit: (payload: AdminRejectBreederPayload) => void | Promise<void>;
 };
@@ -18,6 +19,7 @@ type AdminRejectBreederModalProps = {
 export function AdminRejectBreederModal({
   visible,
   submitting = false,
+  variant = 'breeder',
   onClose,
   onSubmit,
 }: AdminRejectBreederModalProps) {
@@ -26,6 +28,7 @@ export function AdminRejectBreederModal({
   const [action, setAction] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
+  const isListing = variant === 'listing';
 
   useEffect(() => {
     if (!visible) return;
@@ -55,8 +58,12 @@ export function AdminRejectBreederModal({
           className="w-full max-w-md rounded-2xl bg-white p-4"
           onPress={(event) => event.stopPropagation?.()}
         >
-          <Text className="text-base font-bold text-slate-900">{t('adminReview.rejectTitle')}</Text>
-          <Text className="mt-1 text-xs leading-5 text-slate-500">{t('adminReview.rejectHint')}</Text>
+          <Text className="text-base font-bold text-slate-900">
+            {t(isListing ? 'adminReview.rejectListingTitle' : 'adminReview.rejectTitle')}
+          </Text>
+          <Text className="mt-1 text-xs leading-5 text-slate-500">
+            {t(isListing ? 'adminReview.rejectListingHint' : 'adminReview.rejectHint')}
+          </Text>
 
           <Text className="mt-4 text-xs font-semibold uppercase text-slate-500">
             {t('adminReview.rejectReason')}
@@ -65,7 +72,11 @@ export function AdminRejectBreederModal({
             className="mt-1.5 min-h-[88px] rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-sm text-slate-900"
             multiline
             textAlignVertical="top"
-            placeholder={t('adminReview.rejectReasonPlaceholder')}
+            placeholder={t(
+              isListing
+                ? 'adminReview.rejectListingReasonPlaceholder'
+                : 'adminReview.rejectReasonPlaceholder',
+            )}
             value={reason}
             onChangeText={(value) => {
               setReason(value);

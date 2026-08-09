@@ -116,15 +116,8 @@ export function NotificationsClient({
       router.push(`/app/breeders/${encodeURIComponent(item.breeder_profile_id)}`);
       return;
     }
-    if (type === "breeder_rejected") {
+    if (type === "breeder_rejected" || type === "listing_rejected") {
       setReasonItem(item);
-      return;
-    }
-    if (type === "listing_rejected") {
-      const href =
-        (typeof item.metadata?.cta_href === "string" && item.metadata.cta_href.trim()) ||
-        "/app/account";
-      router.push(href);
       return;
     }
     if (item.post_id) {
@@ -360,7 +353,9 @@ export function NotificationsClient({
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#2B1E19]/40 p-4">
           <div className="w-full max-w-md rounded-2xl border border-[#F0E6D8] bg-white p-5 shadow-xl">
             <h3 className="text-base font-bold text-[#2B1E19]">
-              {t(lang, "notifications.rejectedTitle")}
+              {notificationType(reasonItem) === "listing_rejected"
+                ? t(lang, "notifications.listingRejectedTitle")
+                : t(lang, "notifications.rejectedTitle")}
             </h3>
             <div className="mt-4 space-y-3">
               <div>
@@ -368,7 +363,10 @@ export function NotificationsClient({
                   {t(lang, "notifications.rejectionReason")}
                 </p>
                 <p className="mt-1 text-sm text-[#2B1E19] leading-relaxed">
-                  {reason || t(lang, "notifications.rejectedBody")}
+                  {reason ||
+                    (notificationType(reasonItem) === "listing_rejected"
+                      ? t(lang, "notifications.listingRejectedBody")
+                      : t(lang, "notifications.rejectedBody"))}
                 </p>
               </div>
               {adminAction ? (
@@ -397,11 +395,17 @@ export function NotificationsClient({
                 {t(lang, "common.cancel")}
               </button>
               <Link
-                href="/app/account/breeder"
+                href={
+                  notificationType(reasonItem) === "listing_rejected"
+                    ? "/app/account"
+                    : "/app/account/breeder"
+                }
                 onClick={() => setReasonItem(null)}
                 className="flex-1 text-center rounded-full bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309]"
               >
-                {t(lang, "account.breederTrust.editProfile")}
+                {notificationType(reasonItem) === "listing_rejected"
+                  ? t(lang, "notifications.listingRejectedCta")
+                  : t(lang, "account.breederTrust.editProfile")}
               </Link>
             </div>
           </div>

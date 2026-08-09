@@ -32,7 +32,11 @@ type AdminReviewScreenProps = {
     verificationStatus: string,
     options?: BreederStatusOptions,
   ) => Promise<void>;
-  onUpdateStatus: (postId: string, status: string) => Promise<void>;
+  onUpdateStatus: (
+    postId: string,
+    status: string,
+    options?: BreederStatusOptions,
+  ) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
 };
 
@@ -63,6 +67,7 @@ export function AdminReviewScreen({
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [rejectUserId, setRejectUserId] = useState<string | null>(null);
+  const [rejectPostId, setRejectPostId] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
@@ -174,10 +179,17 @@ export function AdminReviewScreen({
     await run();
   }
 
-  async function updatePostStatus(postId: string, status: string) {
+  async function updatePostStatus(
+    postId: string,
+    status: string,
+    options?: BreederStatusOptions,
+  ) {
     setLoading(true);
     try {
-      await onUpdateStatus(postId, status);
+      await onUpdateStatus(postId, status, options);
+      if (status === 'archived' && options?.rejectionReason) {
+        notifyUser(t('adminReview.updateSuccess'), t('adminReview.rejectListingSuccess'));
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
       notifyUser(t('adminReview.updateFailed'), message);
@@ -305,8 +317,8 @@ export function AdminReviewScreen({
                 <Pressable className="min-w-[120px] flex-1 rounded-xl bg-emerald-600 py-3" onPress={() => updatePostStatus(post.id, 'published')}>
                   <Text className="text-center text-xs font-bold text-white">{t('adminReview.approve')}</Text>
                 </Pressable>
-                <Pressable className="min-w-[120px] flex-1 rounded-xl bg-slate-700 py-3" onPress={() => updatePostStatus(post.id, 'archived')}>
-                  <Text className="text-center text-xs font-bold text-white">{t('adminReview.archive')}</Text>
+                <Pressable className="min-w-[120px] flex-1 rounded-xl bg-slate-700 py-3" onPress={() => setRejectPostId(post.id)}>
+                  <Text className="text-center text-xs font-bold text-white">{t('adminReview.reject')}</Text>
                 </Pressable>
               </View>
             </View>
@@ -342,6 +354,18 @@ export function AdminReviewScreen({
           const userId = rejectUserId;
           setRejectUserId(null);
           await updateBreederStatus(userId, 'rejected', payload);
+        }}
+      />
+      <AdminRejectBreederModal
+        visible={Boolean(rejectPostId)}
+        submitting={loading}
+        variant="listing"
+        onClose={() => setRejectPostId(null)}
+        onSubmit={async (payload) => {
+          if (!rejectPostId) return;
+          const postId = rejectPostId;
+          setRejectPostId(null);
+          await updatePostStatus(postId, 'archived', payload);
         }}
       />
     </View>

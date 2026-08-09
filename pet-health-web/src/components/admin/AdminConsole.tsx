@@ -16,6 +16,19 @@ import {
   type BreederGroup,
   type RequestStatus,
 } from "@/lib/admin/filters";
+import {
+  toggleExpandedReviewId,
+  type AdminReviewBreeder,
+  type AdminReviewPost,
+  type AdminReviewReport,
+} from "@/lib/admin/reviewDetail";
+import { buildListingStatusBody } from "@/lib/admin/listingReject";
+import {
+  AdminBreederReviewDetail,
+  AdminListingReviewDetail,
+  AdminReportReviewDetail,
+  AdminReviewDetailsToggle,
+} from "@/components/admin/AdminReviewDetailPanel";
 
 type FeatureFlags = {
   breed_recognition: boolean;
@@ -29,49 +42,13 @@ type FeatureFlags = {
 
 type FeatureKey = keyof FeatureFlags;
 
-type PostRow = {
-  id: string;
-  title?: string;
-  status?: string;
-  species?: string;
-  breed?: string;
-  location?: string;
-  price_note?: string;
-  description?: string;
-  vaccine_status?: string;
-  created_at?: string;
-  media_urls?: string[];
-  metadata?: Record<string, unknown>;
-  breeder_profile?: { id?: string; display_name?: string; user_id?: string };
-  breeder_profile_id?: string | null;
-};
+type PostRow = AdminReviewPost;
 
-type BreederRow = {
-  id: string;
-  user_id?: string;
-  display_name?: string;
+type BreederRow = AdminReviewBreeder & {
   verification_status?: string;
-  location?: string;
-  bio?: string;
-  care_environment?: string;
-  primary_species?: string[];
-  main_breeds?: string[];
-  created_at?: string;
-  metadata?: Record<string, unknown>;
 };
 
-type ReportRow = {
-  id: string;
-  reason?: string;
-  status?: string;
-  note?: string;
-  created_at?: string;
-  target_type?: string;
-  post_id?: string | null;
-  breeder_profile_id?: string | null;
-  comment_id?: string | null;
-  breeder_profile?: { id?: string; user_id?: string; display_name?: string; bio?: string };
-};
+type ReportRow = AdminReviewReport;
 
 type AccountRow = {
   id?: string;
@@ -309,9 +286,11 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [newRole, setNewRole] = useState<(typeof ROLES)[number]>("sen");
 
   const [newsTitle, setNewsTitle] = useState("");
-  const [rejectTargetUserId, setRejectTargetUserId] = useState<string | null>(
-    null,
-  );
+  const [rejectTarget, setRejectTarget] = useState<
+    | { kind: "breeder"; userId: string }
+    | { kind: "listing"; postId: string }
+    | null
+  >(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectAction, setRejectAction] = useState("");
   const [rejectNote, setRejectNote] = useState("");
@@ -327,6 +306,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyCursor, setHistoryCursor] = useState<string | null>(null);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [expandedReviewId, setExpandedReviewId] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -384,16 +364,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       setFocusRequestId(focusParam);
     }
   }, [searchParams]);
-
-  useEffect(() => {
-    if (!focusRequestId || loading || section !== "requests") return;
-    const timer = window.setTimeout(() => {
-      const el = document.getElementById(`admin-request-${focusRequestId}`);
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 120);
-    return () => window.clearTimeout(timer);
-  }, [focusRequestId, loading, section, requestType, requestStatus]);
 
   const loadHistory = async (opts?: { append?: boolean; cursor?: string | null }) => {
     setHistoryLoading(true);
@@ -500,6 +470,26 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     );
   }, [requestItems, requestType, requestStatus, requestDate]);
 
+  useEffect(() => {
+    if (!focusRequestId || loading || section !== "requests") return;
+    const matched = requestItems.find((item) => {
+      const rawId =
+        item.type === "breeder"
+          ? item.profile?.id
+          : item.type === "post"
+            ? item.post?.id
+            : item.report?.id;
+      return rawId === focusRequestId;
+    });
+    if (matched) setExpandedReviewId(matched.id);
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`admin-request-${focusRequestId}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [focusRequestId, loading, section, requestType, requestStatus, requestItems]);
+
   const breederSpeciesOptions = useMemo(() => {
     const species = Array.from(
       new Set(
@@ -577,14 +567,22 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     }
   }
 
-  const updatePost = (postId: string, status: string) =>
+  const updatePost = (
+    postId: string,
+    status: string,
+    extras?: {
+      rejectionReason?: string;
+      adminAction?: string;
+      adminNote?: string;
+    },
+  ) =>
     runAction(
       `post-${postId}-${status}`,
       () =>
         adminFetch(`/posts/${postId}/status`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
+          body: JSON.stringify(buildListingStatusBody(status, extras)),
         }),
       "admin.toast.updated",
     );
@@ -628,28 +626,42 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       "admin.toast.updated",
     );
 
-  const openRejectBreeder = (userId: string) => {
-    setRejectTargetUserId(userId);
+  const openRejectModal = (
+    target: { kind: "breeder"; userId: string } | { kind: "listing"; postId: string },
+  ) => {
+    setRejectTarget(target);
     setRejectReason("");
     setRejectAction("");
     setRejectNote("");
     setRejectError("");
   };
 
-  const submitRejectBreeder = async () => {
-    if (!rejectTargetUserId) return;
+  const submitReject = async () => {
+    if (!rejectTarget) return;
     const reason = rejectReason.trim();
     if (!reason) {
-      setRejectError(t(lang, "admin.breeders.rejectReasonRequired"));
+      setRejectError(
+        t(
+          lang,
+          rejectTarget.kind === "listing"
+            ? "admin.listings.rejectReasonRequired"
+            : "admin.breeders.rejectReasonRequired",
+        ),
+      );
       return;
     }
-    const userId = rejectTargetUserId;
-    setRejectTargetUserId(null);
-    await updateBreeder(userId, "rejected", {
+    const target = rejectTarget;
+    setRejectTarget(null);
+    const extras = {
       rejectionReason: reason,
       adminAction: rejectAction.trim() || undefined,
       adminNote: rejectNote.trim() || undefined,
-    });
+    };
+    if (target.kind === "listing") {
+      await updatePost(target.postId, "archived", extras);
+      return;
+    }
+    await updateBreeder(target.userId, "rejected", extras);
   };
 
   const updateAccountRole = (userId: string, primaryRole: string) =>
@@ -772,10 +784,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             onClick={() => void updatePost(item.post!.id, "published")}
           />
           <ActionButton
-            label={t(lang, "admin.listings.archive")}
+            label={t(lang, "admin.listings.reject")}
             variant="ghost"
             disabled={busyKey !== null}
-            onClick={() => void updatePost(item.post!.id, "archived")}
+            onClick={() => openRejectModal({ kind: "listing", postId: item.post!.id })}
           />
         </div>
       );
@@ -793,7 +805,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             label={t(lang, "admin.breeders.reject")}
             variant="ghost"
             disabled={busyKey !== null}
-            onClick={() => openRejectBreeder(item.profile!.user_id!)}
+            onClick={() => openRejectModal({ kind: "breeder", userId: item.profile!.user_id! })}
           />
         </div>
       );
@@ -944,6 +956,15 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                       ? item.post?.id
                       : item.report?.id;
                 const focused = Boolean(focusRequestId && rawId === focusRequestId);
+                const detailsOpen = expandedReviewId === item.id;
+                const linkedPost =
+                  item.type === "report" && item.report?.post_id
+                    ? posts.find((p) => p.id === item.report?.post_id)
+                    : undefined;
+                const linkedProfile =
+                  item.type === "report" && item.report?.breeder_profile_id
+                    ? breeders.find((b) => b.id === item.report?.breeder_profile_id)
+                    : undefined;
                 return (
                 <div
                   key={item.id}
@@ -975,16 +996,37 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   </div>
                   <p className="font-semibold text-sm text-[#2B1E19]">{item.title}</p>
                   <p className="text-xs text-[#8B7355] mt-0.5">{item.subtitle}</p>
-                  {item.body ? (
+                  {item.body && !detailsOpen ? (
                     <p className="text-sm text-[#5C4A3A] mt-2 line-clamp-3">{item.body}</p>
                   ) : null}
-                  {item.post ? <HealthEvidence lang={lang} post={item.post} /> : null}
-                  {item.post?.media_urls?.[0] ? (
+                  {item.post && !detailsOpen ? <HealthEvidence lang={lang} post={item.post} /> : null}
+                  {item.post?.media_urls?.[0] && !detailsOpen ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={item.post.media_urls[0]}
                       alt=""
                       className="mt-3 h-28 w-full max-w-xs rounded-xl object-cover bg-[#F3EDE3]"
+                    />
+                  ) : null}
+                  <AdminReviewDetailsToggle
+                    lang={lang}
+                    open={detailsOpen}
+                    onToggle={() =>
+                      setExpandedReviewId((cur) => toggleExpandedReviewId(cur, item.id))
+                    }
+                  />
+                  {detailsOpen && item.post ? (
+                    <AdminListingReviewDetail lang={lang} post={item.post} />
+                  ) : null}
+                  {detailsOpen && item.profile ? (
+                    <AdminBreederReviewDetail lang={lang} profile={item.profile} />
+                  ) : null}
+                  {detailsOpen && item.report ? (
+                    <AdminReportReviewDetail
+                      lang={lang}
+                      report={item.report}
+                      linkedPost={linkedPost}
+                      linkedProfile={linkedProfile}
                     />
                   ) : null}
                   {renderRequestActions(item)}
@@ -1018,13 +1060,16 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               />
             </div>
             <div className="space-y-3">
-              {filteredListings.map((p) => (
+              {filteredListings.map((p) => {
+                const reviewKey = `listing-${p.id}`;
+                const detailsOpen = expandedReviewId === reviewKey;
+                return (
                 <div
                   key={p.id}
                   className="bg-white rounded-2xl border border-[#E8DFD0] p-5"
                 >
                   <div className="flex gap-4">
-                    {p.media_urls?.[0] ? (
+                    {p.media_urls?.[0] && !detailsOpen ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={p.media_urls[0]}
@@ -1045,29 +1090,51 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
-                      <HealthEvidence lang={lang} post={p} />
+                      {!detailsOpen ? <HealthEvidence lang={lang} post={p} /> : null}
+                      <AdminReviewDetailsToggle
+                        lang={lang}
+                        open={detailsOpen}
+                        onToggle={() =>
+                          setExpandedReviewId((cur) => toggleExpandedReviewId(cur, reviewKey))
+                        }
+                      />
+                      {detailsOpen ? (
+                        <AdminListingReviewDetail lang={lang} post={p} />
+                      ) : null}
                       {(p.status === "pending_review" || p.status === "published") && (
                         <div className="flex flex-wrap gap-2 mt-3">
                           {p.status === "pending_review" ? (
+                            <>
+                              <ActionButton
+                                label={t(lang, "admin.listings.approve")}
+                                variant="success"
+                                disabled={busyKey !== null}
+                                onClick={() => void updatePost(p.id, "published")}
+                              />
+                              <ActionButton
+                                label={t(lang, "admin.listings.reject")}
+                                variant="ghost"
+                                disabled={busyKey !== null}
+                                onClick={() =>
+                                  openRejectModal({ kind: "listing", postId: p.id })
+                                }
+                              />
+                            </>
+                          ) : (
                             <ActionButton
-                              label={t(lang, "admin.listings.approve")}
-                              variant="success"
+                              label={t(lang, "admin.listings.archive")}
+                              variant="ghost"
                               disabled={busyKey !== null}
-                              onClick={() => void updatePost(p.id, "published")}
+                              onClick={() => void updatePost(p.id, "archived")}
                             />
-                          ) : null}
-                          <ActionButton
-                            label={t(lang, "admin.listings.archive")}
-                            variant="ghost"
-                            disabled={busyKey !== null}
-                            onClick={() => void updatePost(p.id, "archived")}
-                          />
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               {filteredListings.length === 0 && (
                 <p className="text-sm text-[#8B7355]">{t(lang, "admin.empty")}</p>
               )}
@@ -1117,7 +1184,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               </div>
             </div>
             <div className="space-y-3">
-              {filteredBreeders.map((b) => (
+              {filteredBreeders.map((b) => {
+                const reviewKey = `breeder-row-${b.id}`;
+                const detailsOpen = expandedReviewId === reviewKey;
+                return (
                 <div
                   key={b.id}
                   className="bg-white rounded-2xl border border-[#E8DFD0] p-5"
@@ -1141,11 +1211,21 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
-                      {(b.bio || b.care_environment) && (
+                      {!detailsOpen && (b.bio || b.care_environment) ? (
                         <p className="text-sm text-[#5C4A3A] mt-2 line-clamp-3">
                           {b.care_environment || b.bio}
                         </p>
-                      )}
+                      ) : null}
+                      <AdminReviewDetailsToggle
+                        lang={lang}
+                        open={detailsOpen}
+                        onToggle={() =>
+                          setExpandedReviewId((cur) => toggleExpandedReviewId(cur, reviewKey))
+                        }
+                      />
+                      {detailsOpen ? (
+                        <AdminBreederReviewDetail lang={lang} profile={b} />
+                      ) : null}
                     </div>
                     {b.user_id ? (
                       <div className="flex flex-wrap gap-2">
@@ -1165,7 +1245,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                             label={t(lang, "admin.breeders.reject")}
                             variant="ghost"
                             disabled={busyKey !== null}
-                            onClick={() => openRejectBreeder(b.user_id!)}
+                            onClick={() => openRejectModal({ kind: "breeder", userId: b.user_id! })}
                           />
                         ) : null}
                         {b.verification_status === "verified" ? (
@@ -1183,7 +1263,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     ) : null}
                   </div>
                 </div>
-              ))}
+                );
+              })}
               {filteredBreeders.length === 0 && (
                 <p className="text-sm text-[#8B7355]">{t(lang, "admin.empty")}</p>
               )}
@@ -1215,9 +1296,13 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 const linkedPost = r.post_id
                   ? posts.find((p) => p.id === r.post_id)
                   : undefined;
+                const linkedProfile = r.breeder_profile_id
+                  ? breeders.find((b) => b.id === r.breeder_profile_id)
+                  : undefined;
                 const linkedBreederUserId =
-                  r.breeder_profile?.user_id ||
-                  breeders.find((b) => b.id === r.breeder_profile_id)?.user_id;
+                  r.breeder_profile?.user_id || linkedProfile?.user_id;
+                const reviewKey = `report-row-${r.id}`;
+                const detailsOpen = expandedReviewId === reviewKey;
                 return (
                   <div
                     key={r.id}
@@ -1244,8 +1329,23 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                             }`
                           : null}
                     </p>
-                    {r.note ? (
+                    {r.note && !detailsOpen ? (
                       <p className="text-xs text-[#5C4A3A] mt-2">{r.note}</p>
+                    ) : null}
+                    <AdminReviewDetailsToggle
+                      lang={lang}
+                      open={detailsOpen}
+                      onToggle={() =>
+                        setExpandedReviewId((cur) => toggleExpandedReviewId(cur, reviewKey))
+                      }
+                    />
+                    {detailsOpen ? (
+                      <AdminReportReviewDetail
+                        lang={lang}
+                        report={r}
+                        linkedPost={linkedPost}
+                        linkedProfile={linkedProfile}
+                      />
                     ) : null}
                     {r.status === "open" ? (
                       <div className="flex flex-wrap gap-2 mt-3">
@@ -1843,17 +1943,33 @@ export function AdminConsole({ lang }: { lang: Lang }) {
           {renderSection()}
         </main>
       </div>
-      {rejectTargetUserId ? (
+      {rejectTarget ? (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#2B1E19]/40 p-4">
           <div className="w-full max-w-md rounded-2xl border border-[#E8DFD0] bg-white p-5 shadow-xl">
             <h3 className="text-base font-bold text-[#2B1E19]">
-              {t(lang, "admin.breeders.rejectTitle")}
+              {t(
+                lang,
+                rejectTarget.kind === "listing"
+                  ? "admin.listings.rejectTitle"
+                  : "admin.breeders.rejectTitle",
+              )}
             </h3>
             <p className="mt-1 text-xs text-[#8B7355]">
-              {t(lang, "admin.breeders.rejectHint")}
+              {t(
+                lang,
+                rejectTarget.kind === "listing"
+                  ? "admin.listings.rejectHint"
+                  : "admin.breeders.rejectHint",
+              )}
             </p>
             <label className="mt-4 block text-xs font-semibold text-[#6E5A51]">
-              {t(lang, "admin.breeders.rejectReason")} *
+              {t(
+                lang,
+                rejectTarget.kind === "listing"
+                  ? "admin.listings.rejectReason"
+                  : "admin.breeders.rejectReason",
+              )}{" "}
+              *
             </label>
             <textarea
               value={rejectReason}
@@ -1863,25 +1979,50 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               }}
               rows={3}
               className="mt-1.5 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
-              placeholder={t(lang, "admin.breeders.rejectReasonPlaceholder")}
+              placeholder={t(
+                lang,
+                rejectTarget.kind === "listing"
+                  ? "admin.listings.rejectReasonPlaceholder"
+                  : "admin.breeders.rejectReasonPlaceholder",
+              )}
             />
             <label className="mt-3 block text-xs font-semibold text-[#6E5A51]">
-              {t(lang, "admin.breeders.rejectAction")}
+              {t(
+                lang,
+                rejectTarget.kind === "listing"
+                  ? "admin.listings.rejectAction"
+                  : "admin.breeders.rejectAction",
+              )}
             </label>
             <input
               value={rejectAction}
               onChange={(e) => setRejectAction(e.target.value)}
               className="mt-1.5 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
-              placeholder={t(lang, "admin.breeders.rejectActionPlaceholder")}
+              placeholder={t(
+                lang,
+                rejectTarget.kind === "listing"
+                  ? "admin.listings.rejectActionPlaceholder"
+                  : "admin.breeders.rejectActionPlaceholder",
+              )}
             />
             <label className="mt-3 block text-xs font-semibold text-[#6E5A51]">
-              {t(lang, "admin.breeders.rejectNote")}
+              {t(
+                lang,
+                rejectTarget.kind === "listing"
+                  ? "admin.listings.rejectNote"
+                  : "admin.breeders.rejectNote",
+              )}
             </label>
             <input
               value={rejectNote}
               onChange={(e) => setRejectNote(e.target.value)}
               className="mt-1.5 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
-              placeholder={t(lang, "admin.breeders.rejectNotePlaceholder")}
+              placeholder={t(
+                lang,
+                rejectTarget.kind === "listing"
+                  ? "admin.listings.rejectNotePlaceholder"
+                  : "admin.breeders.rejectNotePlaceholder",
+              )}
             />
             {rejectError ? (
               <p className="mt-2 text-xs font-medium text-red-600">{rejectError}</p>
@@ -1889,7 +2030,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
-                onClick={() => setRejectTargetUserId(null)}
+                onClick={() => setRejectTarget(null)}
                 className="flex-1 rounded-full border border-[#E8DFD0] py-2.5 text-sm font-semibold text-[#5C4A3A]"
               >
                 {t(lang, "common.cancel")}
@@ -1897,10 +2038,15 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               <button
                 type="button"
                 disabled={busyKey !== null}
-                onClick={() => void submitRejectBreeder()}
+                onClick={() => void submitReject()}
                 className="flex-1 rounded-full bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {t(lang, "admin.breeders.reject")}
+                {t(
+                  lang,
+                  rejectTarget.kind === "listing"
+                    ? "admin.listings.reject"
+                    : "admin.breeders.reject",
+                )}
               </button>
             </div>
           </div>
