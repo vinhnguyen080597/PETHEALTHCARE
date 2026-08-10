@@ -38,6 +38,7 @@ type FeatureFlags = {
   pet_feed_news: boolean;
   pet_feed_listings: boolean;
   pet_feed_breeders: boolean;
+  farm_template_change: boolean;
 };
 
 type FeatureKey = keyof FeatureFlags;
@@ -100,6 +101,7 @@ const PET_FEED_TAB_KEYS: FeatureKey[] = [
 const FEATURE_CORE: FeatureKey[] = [
   "breed_recognition",
   "health_analysis",
+  "farm_template_change",
 ];
 
 const DEFAULT_FLAGS: FeatureFlags = {
@@ -110,6 +112,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   pet_feed_news: true,
   pet_feed_listings: true,
   pet_feed_breeders: true,
+  farm_template_change: true,
 };
 
 const ROLES = ["sen", "breeder", "admin"] as const;

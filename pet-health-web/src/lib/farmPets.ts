@@ -3,6 +3,18 @@ import type { Listing } from "./types";
 /** Listing statuses shown on the farm "Thú cưng" tab. */
 export type FarmPetAvailability = "for_sale" | "deposit_hold" | "completed";
 
+/** Filter options for the farm pets toolbar (includes show-all). */
+export type FarmPetAvailabilityFilter = "all" | FarmPetAvailability;
+
+export const FARM_PET_AVAILABILITY_FILTERS = [
+  "all",
+  "for_sale",
+  "deposit_hold",
+  "completed",
+] as const satisfies readonly FarmPetAvailabilityFilter[];
+
+export type FarmPetAvailabilityCounts = Record<FarmPetAvailability, number>;
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -71,4 +83,44 @@ export function farmPetTabCount(
   listings: Array<Pick<Listing, "status"> & { metadataSold?: boolean }>,
 ): number {
   return listings.filter(isFarmPetListing).length;
+}
+
+export function countFarmPetsByAvailability(
+  listings: Array<Pick<Listing, "status"> & { metadataSold?: boolean }>,
+): FarmPetAvailabilityCounts {
+  const counts: FarmPetAvailabilityCounts = {
+    for_sale: 0,
+    deposit_hold: 0,
+    completed: 0,
+  };
+  for (const listing of listings) {
+    const availability = farmPetAvailability(listing);
+    if (availability) counts[availability] += 1;
+  }
+  return counts;
+}
+
+export function parseFarmPetAvailabilityFilter(
+  value: string | null | undefined,
+): FarmPetAvailabilityFilter {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (
+    raw === "for_sale" ||
+    raw === "deposit_hold" ||
+    raw === "completed" ||
+    raw === "all"
+  ) {
+    return raw;
+  }
+  return "all";
+}
+
+export function filterFarmPetsByAvailability<
+  T extends Pick<Listing, "status"> & { metadataSold?: boolean },
+>(listings: T[], filter: FarmPetAvailabilityFilter): T[] {
+  const sorted = sortFarmPets(listings);
+  if (filter === "all") return sorted;
+  return sorted.filter((listing) => farmPetAvailability(listing) === filter);
 }

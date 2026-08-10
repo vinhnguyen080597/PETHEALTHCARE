@@ -1,10 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  countFarmPetsByAvailability,
   farmPetAvailability,
   farmPetTabCount,
+  filterFarmPetsByAvailability,
   isFarmPetListing,
   listingMetadataMarksSold,
+  parseFarmPetAvailabilityFilter,
   sortFarmPets,
 } from "../src/lib/farmPets";
 import type { Listing } from "../src/lib/types";
@@ -95,4 +98,39 @@ test("sortFarmPets puts for-sale before hold before completed", () => {
     ["live", "hold", "sold", "done"],
   );
   assert.equal(farmPetTabCount(sorted), 4);
+});
+
+test("countFarmPetsByAvailability and filterFarmPetsByAvailability", () => {
+  const rows = [
+    listing({ id: "a", status: "published" }),
+    listing({ id: "b", status: "published" }),
+    listing({ id: "c", status: "deposit_hold" }),
+    listing({ id: "d", status: "sold" }),
+    listing({ id: "e", status: "draft" }),
+  ];
+  assert.deepEqual(countFarmPetsByAvailability(rows), {
+    for_sale: 2,
+    deposit_hold: 1,
+    completed: 1,
+  });
+  assert.deepEqual(
+    filterFarmPetsByAvailability(rows, "for_sale").map((l) => l.id),
+    ["a", "b"],
+  );
+  assert.deepEqual(
+    filterFarmPetsByAvailability(rows, "deposit_hold").map((l) => l.id),
+    ["c"],
+  );
+  assert.deepEqual(
+    filterFarmPetsByAvailability(rows, "completed").map((l) => l.id),
+    ["d"],
+  );
+  assert.equal(filterFarmPetsByAvailability(rows, "all").length, 4);
+});
+
+test("parseFarmPetAvailabilityFilter accepts known values only", () => {
+  assert.equal(parseFarmPetAvailabilityFilter("for_sale"), "for_sale");
+  assert.equal(parseFarmPetAvailabilityFilter("DEPOSIT_HOLD"), "deposit_hold");
+  assert.equal(parseFarmPetAvailabilityFilter("nope"), "all");
+  assert.equal(parseFarmPetAvailabilityFilter(null), "all");
 });

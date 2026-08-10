@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import { getLang } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { getPublicBreeder } from "@/lib/api/public";
-import { getMyBreederProfile } from "@/lib/api/petFeed";
+import { getFeatureFlags, getMyBreederProfile } from "@/lib/api/petFeed";
+import { isFarmTemplateChangeEnabled } from "@/lib/featureFlags";
 import { mapApiBreeder } from "@/lib/mappers";
 import { FarmDetail } from "@/components/marketplace/FarmDetail";
 import { FarmDetailSkeleton } from "@/components/ui/Skeleton";
@@ -51,6 +52,7 @@ async function FarmDetailData({
 
   const session = await getSessionUser();
   let isOwner = false;
+  let allowTemplateChange = false;
   let breeder = data.profile;
   if (session.token) {
     try {
@@ -76,6 +78,21 @@ async function FarmDetailData({
     } catch {
       isOwner = false;
     }
+
+    if (isOwner) {
+      try {
+        const flags = await getFeatureFlags(session.token);
+        allowTemplateChange = isFarmTemplateChangeEnabled(
+          flags.data,
+          session.isAdmin,
+        );
+      } catch {
+        allowTemplateChange = isFarmTemplateChangeEnabled(
+          null,
+          session.isAdmin,
+        );
+      }
+    }
   }
 
   return (
@@ -85,6 +102,7 @@ async function FarmDetailData({
       listings={data.listings}
       isOwner={isOwner}
       isLoggedIn={session.isLoggedIn}
+      allowTemplateChange={allowTemplateChange}
     />
   );
 }

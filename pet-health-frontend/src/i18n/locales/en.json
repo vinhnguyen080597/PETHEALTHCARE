@@ -1092,6 +1092,10 @@
       "pet_feed_breeders": {
         "title": "Breeders tab",
         "description": "Top breeder profiles in Pet Feed."
+      },
+      "farm_template_change": {
+        "title": "Change farm template",
+        "description": "Owner button to switch farm profile template layouts."
       }
     },
     "petFeedTabs": {

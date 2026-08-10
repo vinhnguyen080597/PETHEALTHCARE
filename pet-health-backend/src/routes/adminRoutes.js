@@ -205,6 +205,9 @@ router.put('/feature-flags', requireAdminOrSecret, async (req, res, next) => {
     if ('pet_feed_breeders' in body || 'petFeedBreeders' in body) {
       patch.pet_feed_breeders = body.pet_feed_breeders ?? body.petFeedBreeders;
     }
+    if ('farm_template_change' in body || 'farmTemplateChange' in body) {
+      patch.farm_template_change = body.farm_template_change ?? body.farmTemplateChange;
+    }
     const before = await getFeatureFlags();
     const updatedBy = req.user?.id ?? null;
     const data = await updateFeatureFlags(patch, updatedBy);

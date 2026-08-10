@@ -438,6 +438,7 @@ function AppContent() {
                 onOpenPostDetail={app.openPetFeedPostDetail}
                 onOpenFarmHealth={app.openFarmHealth}
                 onOpenTemplatePicker={app.openTemplatePicker}
+                allowTemplateChange={app.isFeatureEnabled('farm_template_change')}
                 currentUserId={app.accountProfile?.user_id ?? null}
               />
             ) : null}

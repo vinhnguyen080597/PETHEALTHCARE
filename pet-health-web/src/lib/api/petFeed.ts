@@ -415,6 +415,13 @@ export async function adminListAccounts(token: string) {
   });
 }
 
+export async function getFeatureFlags(token: string) {
+  return fetchJson<{ data: Record<string, boolean> }>("/feature-flags", {
+    token,
+    cache: "no-store",
+  });
+}
+
 export async function adminListFeatureFlags(token: string) {
   return fetchJson<{ data: unknown[] }>("/admin/feature-flags", {
     token,

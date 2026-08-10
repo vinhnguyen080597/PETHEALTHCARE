@@ -102,6 +102,7 @@ type MockApiState = {
     pet_feed_news: boolean;
     pet_feed_listings: boolean;
     pet_feed_breeders: boolean;
+    farm_template_change: boolean;
   };
 };
 
@@ -254,7 +255,7 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     accountPassword: MOCK_ACCOUNT_PASSWORD,
     pendingNewEmail: null,
     pendingPasswordRecovery: false,
-    featureFlags: { breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true, pet_feed_news: true, pet_feed_listings: true, pet_feed_breeders: true },
+    featureFlags: { breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true, pet_feed_news: true, pet_feed_listings: true, pet_feed_breeders: true, farm_template_change: true },
     ...initial,
   };
 
@@ -722,6 +723,9 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
       }
       if ('pet_feed_breeders' in payload) {
         state.featureFlags.pet_feed_breeders = payload.pet_feed_breeders !== false;
+      }
+      if ('farm_template_change' in payload) {
+        state.featureFlags.farm_template_change = payload.farm_template_change !== false;
       }
       const enabledPetFeedTabs = [
         state.featureFlags.pet_feed_news,

@@ -1092,6 +1092,10 @@
       "pet_feed_breeders": {
         "title": "Tab Breeder",
         "description": "Danh sách breeder nổi bật trên Pet Feed."
+      },
+      "farm_template_change": {
+        "title": "Đổi template trại",
+        "description": "Nút để chủ trại đổi giao diện template hồ sơ."
       }
     },
     "petFeedTabs": {

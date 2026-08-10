@@ -20,6 +20,8 @@ type BreederDetailScreenProps = {
   onOpenPostDetail: (postId: string) => void;
   onOpenFarmHealth?: () => void;
   onOpenTemplatePicker?: () => void;
+  /** Feature flag (admins always allowed via isFeatureEnabled). */
+  allowTemplateChange?: boolean;
   currentUserId?: string | null;
 };
 
@@ -68,6 +70,7 @@ export function BreederDetailScreen({
   onOpenPostDetail,
   onOpenFarmHealth,
   onOpenTemplatePicker,
+  allowTemplateChange = false,
   currentUserId,
 }: BreederDetailScreenProps) {
   const { t } = useTranslation();
@@ -200,23 +203,25 @@ export function BreederDetailScreen({
             >
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{t('breederDetail.openFarmHealth')}</Text>
             </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={onOpenTemplatePicker}
-              style={{
-                flex: 1,
-                paddingVertical: 11,
-                backgroundColor: isT5 ? 'rgba(255,255,255,0.08)' : '#fff',
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: isT5 ? 'rgba(255,255,255,0.12)' : '#E2E8F0',
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ color: isT5 ? '#E2E8F0' : '#0F172A', fontWeight: '600', fontSize: 13 }}>
-                {t('breederDetail.changeTemplate')}
-              </Text>
-            </Pressable>
+            {allowTemplateChange && onOpenTemplatePicker ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={onOpenTemplatePicker}
+                style={{
+                  flex: 1,
+                  paddingVertical: 11,
+                  backgroundColor: isT5 ? 'rgba(255,255,255,0.08)' : '#fff',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: isT5 ? 'rgba(255,255,255,0.12)' : '#E2E8F0',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: isT5 ? '#E2E8F0' : '#0F172A', fontWeight: '600', fontSize: 13 }}>
+                  {t('breederDetail.changeTemplate')}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : (
           <View

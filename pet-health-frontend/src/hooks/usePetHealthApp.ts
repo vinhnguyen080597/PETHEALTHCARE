@@ -1036,6 +1036,7 @@ export function usePetHealthApp() {
         pet_feed_news: true,
         pet_feed_listings: true,
         pet_feed_breeders: true,
+        farm_template_change: true,
       });
     } finally {
       setFeatureFlagsLoading(false);
@@ -1967,6 +1968,7 @@ export function usePetHealthApp() {
 
   function openTemplatePicker() {
     if (!selectedBreederProfileId) return;
+    if (!isFeatureEnabled('farm_template_change')) return;
     setScreen('breeder-template');
   }
 

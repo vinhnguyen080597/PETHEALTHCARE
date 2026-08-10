@@ -81,6 +81,14 @@ test("farm listings tab is named Thú cưng / Pets", () => {
   assert.equal(viDict["farm.listings.createPost"], "Tạo bài đăng");
   assert.ok(enDict["farm.listings.createPost"]);
   assert.ok(viDict["farm.listings.empty"]);
+  assert.equal(viDict["farm.listings.status.for_sale"], "đang tìm chủ");
+  assert.equal(viDict["farm.listings.status.deposit_hold"], "đã cọc");
+  assert.equal(viDict["farm.listings.status.completed"], "đã hoàn thành");
+  assert.ok(enDict["farm.listings.status.for_sale"]);
+  assert.ok(enDict["farm.listings.filter"]);
+  assert.ok(viDict["farm.listings.filter"]);
+  assert.equal(viDict["farm.listings.filterAll"], "Tất cả");
+  assert.equal(enDict["farm.listings.filterAll"], "All");
 });
 
 test("video CTA soon tooltip exists in EN and VI", () => {

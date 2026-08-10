@@ -16,7 +16,14 @@ import {
   warrantyLibraryEditHref,
   type FarmDetailTab,
 } from "@/lib/farmTabs";
-import { farmPetAvailability, farmPetTabCount, sortFarmPets } from "@/lib/farmPets";
+import {
+  countFarmPetsByAvailability,
+  farmPetTabCount,
+  filterFarmPetsByAvailability,
+  type FarmPetAvailability,
+  type FarmPetAvailabilityCounts,
+  type FarmPetAvailabilityFilter,
+} from "@/lib/farmPets";
 import { t } from "@/i18n";
 import { farmTemplateHref } from "@/lib/siteBreadcrumbs";
 import { ListingCard } from "./ListingCard";
@@ -206,17 +213,168 @@ function FarmWarrantyTab({
   );
 }
 
+const FARM_PET_STATUS_ORDER: FarmPetAvailability[] = [
+  "for_sale",
+  "deposit_hold",
+  "completed",
+];
+
+function farmPetStatusLabelKey(
+  status: FarmPetAvailability,
+): `farm.listings.status.${FarmPetAvailability}` {
+  return `farm.listings.status.${status}`;
+}
+
+function FarmPetsToolbar({
+  lang,
+  isOwner,
+  counts,
+  filter,
+  filterOpen,
+  onFilterOpenChange,
+  onFilterChange,
+}: {
+  lang: Lang;
+  isOwner: boolean;
+  counts: FarmPetAvailabilityCounts;
+  filter: FarmPetAvailabilityFilter;
+  filterOpen: boolean;
+  onFilterOpenChange: (open: boolean) => void;
+  onFilterChange: (filter: FarmPetAvailabilityFilter) => void;
+}) {
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-farm-pet-filter]")) return;
+      onFilterOpenChange(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [filterOpen, onFilterOpenChange]);
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[11px] leading-4 text-[#6E5A51]/80">
+        {FARM_PET_STATUS_ORDER.map((status, index) => {
+          const active = filter === status;
+          return (
+            <span key={status} className="inline-flex items-center gap-1">
+              {index > 0 ? (
+                <span className="text-[#D6C4B0]/80" aria-hidden>
+                  |
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={() =>
+                  onFilterChange(active ? "all" : status)
+                }
+                className={`rounded-md px-0.5 py-0.5 transition-colors ${
+                  active
+                    ? "bg-amber-50/80 text-[#B45309] font-semibold"
+                    : "hover:text-[#2B1E19]"
+                }`}
+              >
+                <span className="font-semibold tabular-nums">
+                  {counts[status]}
+                </span>{" "}
+                {t(lang, farmPetStatusLabelKey(status))}
+              </button>
+            </span>
+          );
+        })}
+      </div>
+
+      <div className="ml-auto flex items-center gap-2 shrink-0">
+        <div className="relative" data-farm-pet-filter>
+          <button
+            type="button"
+            onClick={() => onFilterOpenChange(!filterOpen)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#F3E2C8] bg-white px-3 py-1.5 text-xs font-semibold text-[#2B1E19] hover:bg-[#FDFBF7]"
+            aria-expanded={filterOpen}
+            aria-haspopup="menu"
+            aria-label={t(lang, "farm.listings.filter")}
+          >
+            {filter === "all"
+              ? t(lang, "farm.listings.filterAll")
+              : t(lang, farmPetStatusLabelKey(filter))}
+            <span aria-hidden>▾</span>
+          </button>
+          {filterOpen ? (
+            <div
+              role="menu"
+              className="absolute right-0 top-9 z-20 min-w-[11rem] rounded-xl border border-[#F3E2C8] bg-white py-1 shadow-lg"
+            >
+              {(
+                [
+                  "all",
+                  "for_sale",
+                  "deposit_hold",
+                  "completed",
+                ] as FarmPetAvailabilityFilter[]
+              ).map((option) => {
+                const selected = filter === option;
+                const label =
+                  option === "all"
+                    ? t(lang, "farm.listings.filterAll")
+                    : t(lang, farmPetStatusLabelKey(option));
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={selected}
+                    onClick={() => {
+                      onFilterChange(option);
+                      onFilterOpenChange(false);
+                    }}
+                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
+                      selected
+                        ? "bg-amber-50 font-semibold text-[#B45309]"
+                        : "text-[#2B1E19] hover:bg-[#FDFBF7]"
+                    }`}
+                  >
+                    <span>{label}</span>
+                    {option !== "all" ? (
+                      <span className="tabular-nums text-[#6E5A51]">
+                        {counts[option]}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+
+        {isOwner ? (
+          <Link
+            href="/app/account/listings/new"
+            className="inline-flex items-center justify-center rounded-full bg-[#D97706] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#B45309] transition-colors"
+          >
+            + {t(lang, "farm.listings.createPost")}
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function FarmDetail({
   breeder,
   lang,
   isOwner = false,
   isLoggedIn = false,
+  allowTemplateChange = false,
   listings,
 }: {
   breeder: BreederProfile;
   lang: Lang;
   isOwner?: boolean;
   isLoggedIn?: boolean;
+  /** Owner-only: show Change template when feature flag (or admin) allows. */
+  allowTemplateChange?: boolean;
   listings: Listing[];
 }) {
   const router = useRouter();
@@ -244,6 +402,9 @@ export function FarmDetail({
   const [reportError, setReportError] = useState("");
   const [reportDone, setReportDone] = useState(false);
   const [messageBusy, setMessageBusy] = useState(false);
+  const [petFilter, setPetFilter] =
+    useState<FarmPetAvailabilityFilter>("all");
+  const [petFilterOpen, setPetFilterOpen] = useState(false);
   const [coverUrl, setCoverUrl] = useState(
     breeder.coverUrl || FALLBACK_COVER,
   );
@@ -256,11 +417,10 @@ export function FarmDetail({
     null,
   );
 
-  const farmPets = sortFarmPets(listings);
   const farmPetCount = farmPetTabCount(listings);
-  const forSaleCount = farmPets.filter(
-    (l) => farmPetAvailability(l) === "for_sale",
-  ).length;
+  const farmPetCounts = countFarmPetsByAvailability(listings);
+  const visibleFarmPets = filterFarmPetsByAvailability(listings, petFilter);
+  const forSaleCount = farmPetCounts.for_sale;
   const trustMetrics = getBreederPublicTrustMetrics(breeder, {
     listingCount: forSaleCount,
   });
@@ -598,12 +758,14 @@ export function FarmDetail({
                   >
                     ✏️ {t(lang, "farm.owner.editProfile")}
                   </Link>
-                  <Link
-                    href={farmTemplateHref(breeder.id, { from: farmFrom })}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#1C1E21] text-xs sm:text-sm font-semibold shadow-sm border border-[#F3E2C8] hover:bg-[#F0F2F5] transition-colors"
-                  >
-                    🎨 {t(lang, "farm.owner.template")}
-                  </Link>
+                  {allowTemplateChange ? (
+                    <Link
+                      href={farmTemplateHref(breeder.id, { from: farmFrom })}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#1C1E21] text-xs sm:text-sm font-semibold shadow-sm border border-[#F3E2C8] hover:bg-[#F0F2F5] transition-colors"
+                    >
+                      🎨 {t(lang, "farm.owner.template")}
+                    </Link>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -747,18 +909,32 @@ export function FarmDetail({
 
             {tab === "listings" && (
               <div>
-                {farmPets.length > 0 ? (
+                <FarmPetsToolbar
+                  lang={lang}
+                  isOwner={isOwner}
+                  counts={farmPetCounts}
+                  filter={petFilter}
+                  filterOpen={petFilterOpen}
+                  onFilterOpenChange={setPetFilterOpen}
+                  onFilterChange={setPetFilter}
+                />
+                {visibleFarmPets.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {farmPets.map((l) => (
+                    {visibleFarmPets.map((l) => (
                       <ListingCard key={l.id} listing={l} lang={lang} />
                     ))}
                   </div>
                 ) : (
                   <div className="py-10 text-center space-y-3">
                     <p className="text-sm text-[#6E5A51]">
-                      {t(lang, "farm.listings.empty")}
+                      {t(
+                        lang,
+                        farmPetCount > 0
+                          ? "farm.listings.filterEmpty"
+                          : "farm.listings.empty",
+                      )}
                     </p>
-                    {isOwner ? (
+                    {isOwner && farmPetCount === 0 ? (
                       <Link
                         href="/app/account/listings/new"
                         className="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-[#D97706] text-white text-sm font-semibold hover:bg-[#B45309] transition-colors"
