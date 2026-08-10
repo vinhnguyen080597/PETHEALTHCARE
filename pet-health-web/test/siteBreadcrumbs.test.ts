@@ -139,6 +139,23 @@ test("new listing skips /listings folder link", () => {
   );
 });
 
+test("edit listing trail links detail then edit", () => {
+  const path = `/app/account/listings/${POST_ID}/edit`;
+  const crumbs = buildSiteBreadcrumbs(path);
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    [
+      "/",
+      "/app/account",
+      `/app/pet-feed/posts/${POST_ID}`,
+      `/app/account/listings/${POST_ID}/edit`,
+    ],
+  );
+  assert.equal(crumbs.at(-1)?.labelKey, "detail.updateDetails");
+  assertLinksAreRealPages(path);
+});
+
 test("trust guide trail parents are breeders + farm", () => {
   const crumbs = buildSiteBreadcrumbs(`/app/breeders/${FARM_ID}/trust`);
   assert.ok(crumbs);

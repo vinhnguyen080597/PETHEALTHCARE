@@ -17,6 +17,7 @@ import {
   warrantyRapidTestEvidenceKey,
   type WarrantyFarmSpecies,
 } from "@/lib/warrantySpeciesCopy";
+import { WARRANTY_POLICY_VIEWER_Z_CLASS } from "@/lib/listingModalLayers";
 
 function labelKey(prefix: string, id: string): EnKey {
   return `${prefix}.${id}` as EnKey;
@@ -172,7 +173,7 @@ export function WarrantyPolicyViewer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className={`fixed inset-0 ${WARRANTY_POLICY_VIEWER_Z_CLASS} flex items-center justify-center bg-black/50 p-4`}
       role="dialog"
       aria-modal="true"
       aria-label={policy.title}

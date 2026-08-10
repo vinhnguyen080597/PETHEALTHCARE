@@ -3,6 +3,10 @@ import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../
 import { assertHealthEvidenceForReview } from '../utils/petFeedHealthEvidence.js';
 import { resolveBreederPetType, resolvePostPetType } from '../utils/petType.js';
 import {
+  getAccountProfile,
+  normalizeUserRole as normalizeAccountUserRole,
+} from './accountRepository.js';
+import {
   asObject,
   buildWarrantySnapshot,
   findWarrantyPolicy,
@@ -118,6 +122,10 @@ function normalizeVerificationStatus(value) {
 }
 
 function normalizeUserEditablePostStatus(value, existingStatus = 'draft') {
+  // Omit / blank status → keep current (e.g. warranty-only updates must not demote published).
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return existingStatus;
+  }
   const status = normalizeStatus(value, existingStatus);
   if (status === 'pending_review' || status === 'draft' || status === 'archived') return status;
   return existingStatus === 'published' || existingStatus === 'archived' ? 'pending_review' : existingStatus;
@@ -155,27 +163,60 @@ function normalizePostPayload(userId, payload, existing = {}) {
   const metadata = normalizeJsonObject(payload.metadata);
   const hasMediaUrls = payload.mediaUrls !== undefined || payload.media_urls !== undefined;
   const hasVideoUrl = payload.videoUrl !== undefined || payload.video_url !== undefined;
+  const hasPersonality = payload.personality !== undefined;
+  const hasPaperwork = payload.paperwork !== undefined;
+  const hasContact = payload.contact !== undefined;
+  const titleFromPayload = payload.title !== undefined;
+  const speciesFromPayload = payload.species !== undefined;
+  const breedFromPayload = payload.breed !== undefined;
+  const genderFromPayload = payload.gender !== undefined;
+  const ageFromPayload = payload.ageMonths !== undefined || payload.age_months !== undefined;
+  const locationFromPayload = payload.location !== undefined;
+  const priceFromPayload = payload.priceNote !== undefined || payload.price_note !== undefined;
+  const descriptionFromPayload = payload.description !== undefined;
+  const vaccineFromPayload = payload.vaccineStatus !== undefined || payload.vaccine_status !== undefined;
+  const dewormingFromPayload = payload.dewormingStatus !== undefined || payload.deworming_status !== undefined;
+
+  const ageRaw = ageFromPayload ? payload.ageMonths ?? payload.age_months : existing.age_months;
   return {
     id: existing.id ?? payload.id ?? randomUUID(),
     user_id: userId,
     breeder_profile_id: payload.breederProfileId ?? payload.breeder_profile_id ?? existing.breeder_profile_id ?? null,
-    title: trimText(payload.title, 180) || 'Pet looking for a home',
-    species: trimText(payload.species, 32).toLowerCase(),
-    breed: trimText(payload.breed, 120),
-    gender: trimText(payload.gender, 32).toLowerCase(),
-    age_months: Number.isFinite(Number(payload.ageMonths ?? payload.age_months))
-      ? Math.max(0, Math.round(Number(payload.ageMonths ?? payload.age_months)))
+    title: titleFromPayload
+      ? (trimText(payload.title, 180) || existing.title || 'Pet looking for a home')
+      : (existing.title || 'Pet looking for a home'),
+    species: speciesFromPayload
+      ? trimText(payload.species, 32).toLowerCase()
+      : String(existing.species || '').toLowerCase(),
+    breed: breedFromPayload ? trimText(payload.breed, 120) : (existing.breed || ''),
+    gender: genderFromPayload
+      ? trimText(payload.gender, 32).toLowerCase()
+      : String(existing.gender || '').toLowerCase(),
+    age_months: Number.isFinite(Number(ageRaw))
+      ? Math.max(0, Math.round(Number(ageRaw)))
       : null,
-    location: trimText(payload.location, 160),
-    price_note: trimText(payload.priceNote ?? payload.price_note, 160),
-    description: trimText(payload.description, 4000),
-    personality: normalizeStringArray(payload.personality, 8),
-    vaccine_status: trimText(payload.vaccineStatus ?? payload.vaccine_status, 300),
-    deworming_status: trimText(payload.dewormingStatus ?? payload.deworming_status, 300),
-    paperwork: normalizeStringArray(payload.paperwork, 10),
+    location: locationFromPayload ? trimText(payload.location, 160) : (existing.location || ''),
+    price_note: priceFromPayload
+      ? trimText(payload.priceNote ?? payload.price_note, 160)
+      : (existing.price_note || ''),
+    description: descriptionFromPayload
+      ? trimText(payload.description, 4000)
+      : (existing.description || ''),
+    personality: hasPersonality
+      ? normalizeStringArray(payload.personality, 8)
+      : (existing.personality ?? []),
+    vaccine_status: vaccineFromPayload
+      ? trimText(payload.vaccineStatus ?? payload.vaccine_status, 300)
+      : (existing.vaccine_status || ''),
+    deworming_status: dewormingFromPayload
+      ? trimText(payload.dewormingStatus ?? payload.deworming_status, 300)
+      : (existing.deworming_status || ''),
+    paperwork: hasPaperwork
+      ? normalizeStringArray(payload.paperwork, 10)
+      : (existing.paperwork ?? []),
     media_urls: hasMediaUrls ? normalizeStringArray(payload.mediaUrls ?? payload.media_urls, 10) : existing.media_urls ?? [],
     video_url: hasVideoUrl ? trimText(payload.videoUrl ?? payload.video_url, 1000) || null : existing.video_url ?? null,
-    contact: normalizeJsonObject(payload.contact),
+    contact: hasContact ? normalizeJsonObject(payload.contact) : normalizeJsonObject(existing.contact),
     status: normalizeStatus(payload.status, existing.status ?? 'draft'),
     post_kind: normalizePostKind(payload.postKind ?? payload.post_kind ?? existing.post_kind, existing.post_kind ?? 'listing'),
     metadata,
@@ -295,7 +336,9 @@ async function loadPostRowForDeal(postId, accessToken) {
 
 async function persistPostRow(postId, patch, accessToken) {
   const updates = { ...patch, updated_at: new Date().toISOString() };
-  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  // Prefer service role: owner JWT RLS historically blocked deposit_hold/sold transitions.
+  const service = getSupabaseServiceClient();
+  const supabase = service ?? getFeedSupabase(accessToken);
   if (!supabase) {
     const idx = memoryPosts.findIndex((post) => post.id === postId);
     if (idx < 0) return null;
@@ -309,8 +352,74 @@ async function persistPostRow(postId, patch, accessToken) {
     .eq('id', postId)
     .select('*, breeder_profile:breeder_profiles(*)')
     .maybeSingle();
-  if (error) throw error;
+  if (error) {
+    const code = String(error.code ?? '');
+    const msg = String(error.message ?? '');
+    if (/row-level security|42501/i.test(`${code} ${msg}`)) {
+      throw httpError(
+        'Could not update listing status for deposit. Check server service-role configuration or RLS policies.',
+        503,
+        'DEPOSIT_PERSIST_FORBIDDEN',
+      );
+    }
+    throw error;
+  }
+  if (!data) {
+    throw httpError('Listing update returned no row.', 500, 'DEPOSIT_PERSIST_EMPTY');
+  }
   return toPost(data);
+}
+
+function resolveEffectivePostStatus(row) {
+  const raw = String(row?.status ?? '').trim().toLowerCase();
+  const meta = asObject(row?.metadata);
+  const soft = String(meta.soft_status ?? '').trim().toLowerCase();
+  if (soft === 'deposit_hold' || soft === 'sold') return soft;
+  const deal = asObject(meta.deal);
+  if (
+    raw === 'archived'
+    && (deal.status === 'deposit_hold' || meta.soft_deposit_hold)
+  ) {
+    return 'deposit_hold';
+  }
+  return raw;
+}
+
+function isStatusCheckViolation(err) {
+  return String(err?.code ?? '') === '23514'
+    && /pet_feed_posts_status_check/i.test(String(err?.message ?? ''));
+}
+
+/** Persist lifecycle status; older DBs without deposit_hold/sold fall back to archived + soft_status. */
+async function persistListingLifecycle(postId, desiredStatus, metadata, accessToken) {
+  const meta = { ...asObject(metadata) };
+  try {
+    delete meta.soft_status;
+    delete meta.soft_deposit_hold;
+    return await persistPostRow(
+      postId,
+      { status: desiredStatus, metadata: meta },
+      accessToken,
+    );
+  } catch (err) {
+    if (
+      !isStatusCheckViolation(err)
+      || (desiredStatus !== 'deposit_hold' && desiredStatus !== 'sold')
+    ) {
+      throw err;
+    }
+    meta.soft_status = desiredStatus;
+    if (desiredStatus === 'deposit_hold') meta.soft_deposit_hold = true;
+    if (desiredStatus === 'sold') {
+      meta.sold = true;
+      meta.listing_outcome = 'sold';
+    }
+    return persistPostRow(
+      postId,
+      { status: 'archived', metadata: meta },
+      accessToken,
+    );
+  }
 }
 
 function attachWarrantyPolicyDto(post) {
@@ -365,7 +474,7 @@ function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
     media_urls: row.media_urls ?? [],
     video_url: row.video_url ?? null,
     contact: row.contact ?? {},
-    status: row.status,
+    status: resolveEffectivePostStatus(row),
     post_kind: normalizePostKind(row.post_kind, 'listing'),
     metadata: row.metadata ?? {},
     breeder_profile: breeder,
@@ -1577,6 +1686,46 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
   return toPost(data);
 }
 
+/** Bind/change warranty policy without demoting published listings to pending_review. */
+export async function updateListingWarrantyPolicy(userId, postId, warrantyPolicyId, accessToken) {
+  const existing = await getPetFeedPost(userId, postId, accessToken);
+  if (!existing || existing.user_id !== userId) return null;
+  if (existing.status === 'deposit_hold' || existing.status === 'sold') {
+    throw httpError('This listing cannot be edited while deposit is held or completed.', 400, 'LISTING_LOCKED');
+  }
+  const profile = await getMyBreederProfile(userId, accessToken);
+  assertVerifiedBreederProfile(profile);
+
+  const requested =
+    warrantyPolicyId == null || String(warrantyPolicyId).trim() === ''
+      ? null
+      : String(warrantyPolicyId).trim();
+  const bound = applyWarrantyPolicyBind(
+    existing,
+    {
+      ...existing,
+      metadata: {
+        ...asObject(existing.metadata),
+        warranty_policy_id: requested,
+      },
+    },
+    profile,
+  );
+
+  const patch = { metadata: bound.metadata };
+  // Repair listings accidentally demoted by full PUT while attaching warranty.
+  const meta = asObject(existing.metadata);
+  if (
+    existing.status === 'pending_review'
+    && !meta.rejection_reason
+    && !meta.rejected_at
+  ) {
+    patch.status = 'published';
+  }
+
+  return persistPostRow(postId, patch, accessToken);
+}
+
 /** Soft-delete: owner archives their listing so it leaves the public feed. */
 export async function archiveMyPetFeedPost(userId, postId, accessToken) {
   const supabase = getFeedSupabase(accessToken);
@@ -2283,12 +2432,21 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
   if (!row || normalizePostKind(row.post_kind, 'listing') !== 'listing') {
     throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
   }
-  if (row.status !== 'published' && row.status !== 'deposit_hold') {
+  const meta = asObject(row.metadata);
+  // Repair listings accidentally demoted to pending_review (e.g. warranty-only PUT).
+  const demotedPending =
+    row.status === 'pending_review'
+    && !meta.rejection_reason
+    && !meta.rejected_at;
+  if (
+    row.status !== 'published'
+    && row.status !== 'deposit_hold'
+    && !demotedPending
+  ) {
     throw httpError('Deposit can only be confirmed on an available listing.', 400, 'DEPOSIT_NOT_ALLOWED');
   }
 
   const breederUserId = row.user_id;
-  const meta = asObject(row.metadata);
   const deal = asObject(meta.deal);
   const requestedSen = trimText(payload.senUserId ?? payload.sen_user_id, 80);
   const isBreeder = actorUserId === breederUserId;
@@ -2316,13 +2474,25 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
   const breederProfile = row.breeder_profile
     ? toProfile(row.breeder_profile)
     : await getMyBreederProfile(breederUserId, accessToken);
-  const policy = findWarrantyPolicy(breederProfile?.metadata, policyId);
-  if (!policy && !asObject(meta.warranty_policy_snapshot).file_url) {
-    throw httpError('Select a warranty policy on this listing before deposit.', 400, 'WARRANTY_POLICY_REQUIRED');
-  }
+  const policy = policyId ? findWarrantyPolicy(breederProfile?.metadata, policyId) : null;
 
   if (!payload.acknowledge && !payload.acknowledged) {
-    throw httpError('Acknowledge the warranty policy and direct deposit terms.', 400, 'DEPOSIT_ACK_REQUIRED');
+    throw httpError('Acknowledge the direct deposit terms.', 400, 'DEPOSIT_ACK_REQUIRED');
+  }
+
+  let senDisplayName = trimText(deal.sen_display_name, 160);
+  let senEmail = trimText(deal.sen_email, 320);
+  const senAccount = await getAccountProfile(senUserId);
+  if (senAccount) {
+    if (normalizeAccountUserRole(senAccount.primary_role, 'sen') !== 'sen') {
+      throw httpError('Buyer must be a Sen account.', 400, 'DEPOSIT_SEN_INVALID');
+    }
+    senDisplayName = trimText(senAccount.display_name, 160) || senDisplayName || 'Sen';
+    senEmail = trimText(senAccount.email, 320) || senEmail;
+  } else if (getSupabaseServiceClient()) {
+    throw httpError('Buyer must be a Sen account.', 400, 'DEPOSIT_SEN_INVALID');
+  } else if (!senDisplayName) {
+    senDisplayName = 'Sen';
   }
 
   const now = new Date().toISOString();
@@ -2330,6 +2500,8 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
     ...deal,
     status: deal.status || 'pending_sen',
     sen_user_id: senUserId,
+    sen_display_name: senDisplayName || null,
+    sen_email: senEmail || null,
     policy_id_at_request: policyId || deal.policy_id_at_request || null,
     breeder_confirmed_deposit_at: deal.breeder_confirmed_deposit_at || null,
     sen_confirmed_deposit_at: deal.sen_confirmed_deposit_at || null,
@@ -2342,8 +2514,15 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
     nextDeal.sen_confirmed_deposit_at = now;
   }
 
-  const bothConfirmed = Boolean(nextDeal.breeder_confirmed_deposit_at && nextDeal.sen_confirmed_deposit_at);
-  let nextStatus = row.status;
+  // Breeder selecting a Sen and confirming is enough for soft deposit hold.
+  const breederLockedHold = Boolean(
+    actorUserId === breederUserId && nextDeal.breeder_confirmed_deposit_at && senUserId,
+  );
+  const bothConfirmed = Boolean(
+    nextDeal.breeder_confirmed_deposit_at && nextDeal.sen_confirmed_deposit_at,
+  ) || breederLockedHold;
+
+  let nextStatus = demotedPending ? 'published' : row.status;
   const nextMeta = { ...meta, deal: nextDeal };
 
   if (bothConfirmed) {
@@ -2356,7 +2535,9 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
     nextDeal.status = 'pending_sen';
   }
 
-  const updated = await persistPostRow(postId, { status: nextStatus, metadata: nextMeta }, accessToken);
+  const updated = bothConfirmed
+    ? await persistListingLifecycle(postId, 'deposit_hold', nextMeta, accessToken)
+    : await persistPostRow(postId, { status: nextStatus, metadata: nextMeta }, accessToken);
   return {
     post: updated,
     both_confirmed: bothConfirmed,
@@ -2367,7 +2548,8 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
 export async function cancelListingDeposit(actorUserId, postId, accessToken) {
   const row = await loadPostRowForDeal(postId, accessToken);
   if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
-  if (row.status !== 'deposit_hold' && row.status !== 'published') {
+  const effectiveStatus = resolveEffectivePostStatus(row);
+  if (effectiveStatus !== 'deposit_hold' && row.status !== 'published') {
     throw httpError('No active deposit to cancel.', 400, 'DEPOSIT_CANCEL_NOT_ALLOWED');
   }
   const meta = asObject(row.metadata);
@@ -2391,6 +2573,8 @@ export async function cancelListingDeposit(actorUserId, postId, accessToken) {
     },
   };
   delete nextMeta.warranty_policy_snapshot;
+  delete nextMeta.soft_status;
+  delete nextMeta.soft_deposit_hold;
 
   const updated = await persistPostRow(postId, { status: 'published', metadata: nextMeta }, accessToken);
   return {
@@ -2403,7 +2587,7 @@ export async function cancelListingDeposit(actorUserId, postId, accessToken) {
 export async function confirmListingComplete(actorUserId, postId, accessToken) {
   const row = await loadPostRowForDeal(postId, accessToken);
   if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
-  if (row.status !== 'deposit_hold') {
+  if (resolveEffectivePostStatus(row) !== 'deposit_hold') {
     throw httpError('Completion is only available while the listing is on deposit hold.', 400, 'COMPLETE_NOT_ALLOWED');
   }
   const meta = asObject(row.metadata);
@@ -2424,24 +2608,33 @@ export async function confirmListingComplete(actorUserId, postId, accessToken) {
   if (actorUserId === senUserId) nextDeal.sen_confirmed_complete_at = now;
 
   const both = Boolean(nextDeal.breeder_confirmed_complete_at && nextDeal.sen_confirmed_complete_at);
-  let nextStatus = 'deposit_hold';
-  if (both) {
-    nextStatus = 'sold';
-    nextDeal.status = 'completed';
-    nextDeal.completed_at = now;
-  }
-
-  const nextMeta = {
+  let nextMeta = {
     ...meta,
     deal: nextDeal,
     listing_outcome: both ? 'sold' : meta.listing_outcome,
     sold: both ? true : meta.sold,
   };
 
-  const updated = await persistPostRow(postId, { status: nextStatus, metadata: nextMeta }, accessToken);
+  if (both) {
+    nextDeal.status = 'completed';
+    nextDeal.completed_at = now;
+    nextMeta = { ...nextMeta, deal: nextDeal };
+    const updated = await persistListingLifecycle(postId, 'sold', nextMeta, accessToken);
+    return {
+      post: updated,
+      both_confirmed: true,
+      notify_user_id: actorUserId === row.user_id ? senUserId : row.user_id,
+    };
+  }
+
+  const updated = await persistPostRow(
+    postId,
+    { status: row.status, metadata: nextMeta },
+    accessToken,
+  );
   return {
     post: updated,
-    both_confirmed: both,
+    both_confirmed: false,
     notify_user_id: actorUserId === row.user_id ? senUserId : row.user_id,
   };
 }

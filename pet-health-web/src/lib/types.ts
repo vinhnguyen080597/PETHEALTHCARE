@@ -113,6 +113,8 @@ export interface WarrantyPolicy {
 export interface ListingDeal {
   status?: string;
   senUserId?: string;
+  senDisplayName?: string;
+  senEmail?: string;
   breederConfirmedDepositAt?: string | null;
   senConfirmedDepositAt?: string | null;
   breederConfirmedCompleteAt?: string | null;

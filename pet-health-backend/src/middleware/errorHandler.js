@@ -70,13 +70,23 @@ export function errorHandler(err, req, res, _next) {
   // PostgREST / Postgres errors from @supabase/supabase-js (e.g. missing column, constraints)
   if (err?.message && typeof err.message === 'string') {
     const c = String(err.code ?? '');
+    if (c === '42501' || /row-level security/i.test(err.message)) {
+      return res.status(403).json({
+        error: 'Permission denied updating this listing. Apply the deposit-hold RLS migration or configure SUPABASE_SERVICE_ROLE_KEY.',
+        code: 'DEPOSIT_PERSIST_FORBIDDEN',
+      });
+    }
     if (
       c.startsWith('PGRST') ||
       /^42\d{3}$/.test(c) ||
       /^22\d{3}$/.test(c) ||
       /^23\d{3}$/.test(c)
     ) {
-      return res.status(400).json({ error: 'Invalid input. Please check and try again.', code: 'INVALID_INPUT' });
+      return res.status(400).json({
+        error: 'Invalid input. Please check and try again.',
+        code: 'INVALID_INPUT',
+        detail: process.env.NODE_ENV === 'production' ? undefined : err.message,
+      });
     }
   }
 

@@ -27,6 +27,7 @@ const KEYS = [
   "listing.new.section.media",
   "listing.new.photosDrop",
   "listing.new.warrantyCreate",
+  "listing.new.warrantyNone",
   "listing.new.vaccineShort.first_dose",
   "listing.new.dewormingShort.recent",
   "listing.new.review",
@@ -41,6 +42,8 @@ test("listing new form i18n keys exist in EN and VI", () => {
     assert.ok(en[key], `missing EN ${key}`);
     assert.ok(vi[key], `missing VI ${key}`);
   }
+  assert.equal(vi["listing.new.warrantyNone"], "Không bảo hành");
+  assert.equal(en["listing.new.warrantyNone"], "No warranty");
 });
 
 test("vaccine status requires health evidence like mobile", () => {

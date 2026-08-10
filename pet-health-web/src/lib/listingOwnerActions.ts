@@ -19,6 +19,46 @@ export function listingVisitorActions(isOwner: boolean): {
   };
 }
 
+/** Soft-deposit CTA on any published listing (warranty optional). */
+export function canShowDepositRequest(input: {
+  status: string | null | undefined;
+}): boolean {
+  return isListingAvailableStatus(input.status);
+}
+
+/**
+ * "Available" for owner edits = published / for sale (not deposit hold, sold, etc.).
+ */
+export function isListingAvailableStatus(
+  status: string | null | undefined,
+): boolean {
+  return String(status || "").trim().toLowerCase() === "published";
+}
+
+/** Owner may update listing details only while the post is available. */
+export function canShowListingUpdateDetails(input: {
+  isOwner: boolean;
+  status: string | null | undefined;
+}): boolean {
+  return Boolean(input.isOwner) && isListingAvailableStatus(input.status);
+}
+
+/** Warranty attach/update CTA — same availability gate as detail edits. */
+export function canShowWarrantyUpdateCta(input: {
+  isOwner: boolean;
+  status: string | null | undefined;
+  frozen?: boolean;
+}): boolean {
+  if (!input.isOwner || input.frozen) return false;
+  return isListingAvailableStatus(input.status);
+}
+
+/** Edit listing page for the owner (web). */
+export function listingEditHref(postId: string): string {
+  const id = String(postId || "").trim();
+  return `/app/account/listings/${encodeURIComponent(id)}/edit`;
+}
+
 /** Pending listings are not public — open owner review popup instead of detail. */
 export function opensMyListingReviewPopup(
   status: string | null | undefined,

@@ -105,6 +105,45 @@ export async function listAdminAccounts(search = '') {
   return (data ?? []).map(toAccount);
 }
 
+/** Slim Sen directory for breeders (deposit picker). */
+export async function listSenAccounts(search = '', { limit = 50 } = {}) {
+  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const q = trimText(search, 120).toLowerCase();
+    return memoryAccounts
+      .filter((account) => normalizeUserRole(account.primary_role, 'sen') === 'sen')
+      .filter((account) => normalizeAccountStatus(account.account_status) === 'active')
+      .filter((account) => !q || [account.email, account.login_identifier, account.display_name].some((v) => String(v ?? '').toLowerCase().includes(q)))
+      .slice(0, safeLimit)
+      .map((account) => ({
+        user_id: account.user_id,
+        display_name: account.display_name || '',
+        email: account.email || '',
+      }));
+  }
+
+  let query = supabase
+    .from('app_user_profiles')
+    .select('user_id, display_name, email, login_identifier, primary_role, account_status')
+    .eq('primary_role', 'sen')
+    .eq('account_status', 'active')
+    .order('display_name', { ascending: true })
+    .limit(safeLimit);
+  const q = trimText(search, 120);
+  if (q) {
+    const safe = q.replace(/[%_,]/g, '');
+    query = query.or(`email.ilike.%${safe}%,login_identifier.ilike.%${safe}%,display_name.ilike.%${safe}%`);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    user_id: row.user_id,
+    display_name: row.display_name || '',
+    email: row.email || '',
+  }));
+}
+
 /** User ids with primary_role = admin (service role). */
 export async function listAdminUserIds() {
   const supabase = getSupabaseServiceClient();

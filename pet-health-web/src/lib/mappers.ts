@@ -357,9 +357,23 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
   const personality = post.personality || [];
   const statusRaw = (post.status || "published").toLowerCase();
   const metadataSold = listingMetadataMarksSold(meta);
+  const softStatus = String(
+    (meta.soft_status as string | undefined) || "",
+  )
+    .trim()
+    .toLowerCase();
   let status: Listing["status"];
-  if (statusRaw === "sold" || (statusRaw === "archived" && metadataSold)) {
+  if (softStatus === "deposit_hold" || softStatus === "sold") {
+    status = softStatus;
+  } else if (statusRaw === "sold" || (statusRaw === "archived" && metadataSold)) {
     status = "sold";
+  } else if (
+    statusRaw === "archived" &&
+    (String((meta.deal as { status?: string } | undefined)?.status || "") ===
+      "deposit_hold" ||
+      Boolean(meta.soft_deposit_hold))
+  ) {
+    status = "deposit_hold";
   } else if (
     statusRaw === "pending_review" ||
     statusRaw === "draft" ||
@@ -415,6 +429,10 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
       ? {
           status: String(dealRaw.status || ""),
           senUserId: String(dealRaw.sen_user_id || dealRaw.senUserId || ""),
+          senDisplayName: String(
+            dealRaw.sen_display_name || dealRaw.senDisplayName || "",
+          ),
+          senEmail: String(dealRaw.sen_email || dealRaw.senEmail || ""),
           breederConfirmedDepositAt: (dealRaw.breeder_confirmed_deposit_at ??
             dealRaw.breederConfirmedDepositAt) as string | null | undefined,
           senConfirmedDepositAt: (dealRaw.sen_confirmed_deposit_at ??

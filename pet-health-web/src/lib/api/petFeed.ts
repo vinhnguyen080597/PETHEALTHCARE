@@ -290,6 +290,38 @@ export async function updateWarrantyPolicy(
   );
 }
 
+export async function updateListingWarrantyPolicy(
+  token: string,
+  postId: string,
+  warrantyPolicyId: string | null,
+) {
+  return fetchJson<{ data: ApiPetFeedPost }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/warranty-policy`,
+    {
+      method: "PUT",
+      token,
+      body: {
+        warranty_policy_id: warrantyPolicyId,
+      },
+    },
+  );
+}
+
+export async function updateMyListing(
+  token: string,
+  postId: string,
+  payload: Record<string, unknown>,
+) {
+  return fetchJson<{ data: ApiPetFeedPost }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}`,
+    {
+      method: "PUT",
+      token,
+      body: payload,
+    },
+  );
+}
+
 export async function confirmListingDeposit(
   token: string,
   postId: string,
@@ -306,6 +338,22 @@ export async function confirmListingDeposit(
       },
     },
   );
+}
+
+export async function listSenUsers(
+  token: string,
+  options?: { search?: string; limit?: number },
+) {
+  const params = new URLSearchParams();
+  if (options?.search) params.set("search", options.search);
+  if (options?.limit) params.set("limit", String(options.limit));
+  const qs = params.toString();
+  return fetchJson<{
+    data: Array<{ user_id: string; display_name: string; email: string }>;
+  }>(`/pet-feed/sen-users${qs ? `?${qs}` : ""}`, {
+    token,
+    cache: "no-store",
+  });
 }
 
 export async function cancelListingDeposit(token: string, postId: string) {

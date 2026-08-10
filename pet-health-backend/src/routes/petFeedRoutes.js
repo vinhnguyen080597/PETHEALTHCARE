@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { requireAnyRole, requireUser } from '../middleware/auth.js';
+import { listSenAccounts } from '../repositories/accountRepository.js';
 import {
   blockBreederProfile,
   cancelMyBreederVerificationRequest,
@@ -25,6 +26,7 @@ import {
   unfavoritePetFeedPost,
   archiveMyPetFeedPost,
   updatePetFeedPost,
+  updateListingWarrantyPolicy,
   upsertMyBreederProfile,
   updateMyBreederProfilePhotos,
   createMyWarrantyPolicy,
@@ -617,7 +619,7 @@ router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) =
     const body = req.body ?? {};
     const nextStatus = typeof body.status === 'string' ? body.status.trim().toLowerCase() : '';
     const submittingForReview = nextStatus === 'pending_review';
-    let updatePayload = { ...body };
+    let updatePayload = parsePostPayload(body);
 
     if (hasClientProvidedMediaReferences(body)) {
       // Owners may re-attach existing/uploaded media URLs when saving draft or re-submitting for review.
@@ -667,6 +669,38 @@ router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) =
       }).catch(() => null);
     }
     return res.json({ data: post });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/posts/:postId/warranty-policy', requireAnyRole('breeder'), async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const body = req.body ?? {};
+    const raw = body.warrantyPolicyId ?? body.warranty_policy_id;
+    const warrantyPolicyId =
+      raw == null || String(raw).trim() === '' ? null : String(raw).trim();
+    const post = await updateListingWarrantyPolicy(
+      req.user.id,
+      postId,
+      warrantyPolicyId,
+      req.accessToken,
+    );
+    if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
+    return res.json({ data: post });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/sen-users', requireAnyRole('breeder', 'admin'), async (req, res, next) => {
+  try {
+    const search = typeof req.query.search === 'string' ? req.query.search : '';
+    const limit = Number(req.query.limit) || 50;
+    const data = await listSenAccounts(search, { limit });
+    return res.json({ data });
   } catch (err) {
     return next(err);
   }

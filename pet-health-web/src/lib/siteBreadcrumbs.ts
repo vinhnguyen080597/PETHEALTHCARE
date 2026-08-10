@@ -218,6 +218,25 @@ export function buildSiteBreadcrumbs(
     ];
   }
 
+  const editListingMatch = path.match(
+    /^\/app\/account\/listings\/([^/]+)\/edit$/,
+  );
+  if (editListingMatch) {
+    const postId = decodeURIComponent(editListingMatch[1]);
+    return [
+      { href: "/", labelKey: "breadcrumb.home" },
+      { href: "/app/account", labelKey: "nav.account" },
+      {
+        href: `/app/pet-feed/posts/${postId}`,
+        labelKey: "breadcrumb.listingDetail",
+      },
+      {
+        href: `/app/account/listings/${postId}/edit`,
+        labelKey: "detail.updateDetails",
+      },
+    ];
+  }
+
   if (path === "/app/account/warranty") {
     return [
       { href: "/", labelKey: "breadcrumb.home" },

@@ -118,8 +118,10 @@ test('dual deposit confirm freezes policy snapshot; cancel unfreezes', async () 
     senUserId: senId,
     acknowledge: true,
   }, null);
-  assert.equal(firstConfirm.both_confirmed, false);
-  assert.equal(firstConfirm.post.status, 'published');
+  // Breeder attestation with selected Sen locks soft deposit immediately.
+  assert.equal(firstConfirm.both_confirmed, true);
+  assert.equal(firstConfirm.post.status, 'deposit_hold');
+  assert.equal(firstConfirm.post.deal?.sen_user_id || firstConfirm.post.metadata?.deal?.sen_user_id, senId);
 
   const secondConfirm = await confirmListingDeposit(senId, post.id, {
     acknowledge: true,

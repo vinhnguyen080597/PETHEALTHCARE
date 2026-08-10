@@ -6,6 +6,7 @@ import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { listConversations } from "@/lib/api/petFeed";
 import { MessagesClient } from "@/components/messages/MessagesClient";
 import { ConversationsSkeleton } from "@/components/ui/Skeleton";
+import { normalizeConversations } from "@/lib/messages";
 import type { Lang } from "@/lib/types";
 
 export const metadata = { title: "Messages" };
@@ -14,19 +15,17 @@ async function MessagesData({
   lang,
   token,
   conversationId,
+  currentUserId,
 }: {
   lang: Lang;
   token: string;
   conversationId: string | null;
+  currentUserId: string | null;
 }) {
-  let conversations: Array<{
-    id: string;
-    title?: string;
-    last_message?: string;
-  }> = [];
+  let conversations = normalizeConversations([]);
   try {
     const res = await listConversations(token);
-    conversations = (Array.isArray(res.data) ? res.data : []) as typeof conversations;
+    conversations = normalizeConversations(res.data);
   } catch {
     conversations = [];
   }
@@ -34,6 +33,7 @@ async function MessagesData({
   return (
     <MessagesClient
       lang={lang}
+      currentUserId={currentUserId}
       initialConversations={conversations}
       initialConversationId={conversationId}
     />
@@ -64,6 +64,15 @@ export default async function MessagesPage({
     );
   }
 
+  const currentUserId =
+    session.account && typeof session.account === "object"
+      ? String(
+          (session.account as { user_id?: string; id?: string }).user_id ||
+            (session.account as { id?: string }).id ||
+            "",
+        ) || null
+      : null;
+
   return (
     <Suspense
       fallback={
@@ -77,6 +86,7 @@ export default async function MessagesPage({
         lang={lang}
         token={session.token}
         conversationId={sp.c || null}
+        currentUserId={currentUserId}
       />
     </Suspense>
   );

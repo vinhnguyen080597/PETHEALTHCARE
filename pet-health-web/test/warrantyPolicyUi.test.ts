@@ -62,6 +62,13 @@ const KEYS = [
   "listing.new.warranty",
   "listing.status.deposit_hold",
   "deal.requestDeposit",
+  "deal.warrantyRequired",
+  "warranty.attachForDeposit",
+  "warranty.attachTitle",
+  "warranty.attachSave",
+  "warranty.updateCta",
+  "warranty.noneTitle",
+  "warranty.noneHint",
   "farm.owner.editProfile",
 ] as const;
 

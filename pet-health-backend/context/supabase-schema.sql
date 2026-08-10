@@ -549,7 +549,17 @@ create policy "pet_feed_posts_update_own"
 on public.pet_feed_posts for update
 to authenticated
 using (auth.uid()::text = user_id)
-with check (auth.uid()::text = user_id and status in ('draft', 'pending_review'));
+with check (
+  auth.uid()::text = user_id
+  and status in (
+    'draft',
+    'pending_review',
+    'published',
+    'deposit_hold',
+    'archived',
+    'sold'
+  )
+);
 
 create policy "pet_feed_favorites_select_own"
 on public.pet_feed_favorites for select

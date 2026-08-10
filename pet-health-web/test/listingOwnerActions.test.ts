@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  canShowDepositRequest,
+  canShowListingUpdateDetails,
+  canShowWarrantyUpdateCta,
+  isListingAvailableStatus,
   isListingOwner,
+  listingEditHref,
   listingVisitorActions,
   opensMyListingReviewPopup,
 } from "../src/lib/listingOwnerActions";
@@ -31,4 +36,66 @@ test("opensMyListingReviewPopup only for pending_review", () => {
   assert.equal(opensMyListingReviewPopup("published"), false);
   assert.equal(opensMyListingReviewPopup("draft"), false);
   assert.equal(opensMyListingReviewPopup(null), false);
+});
+
+test("canShowDepositRequest on published regardless of warranty/owner", () => {
+  assert.equal(canShowDepositRequest({ status: "published" }), true);
+  assert.equal(canShowDepositRequest({ status: "deposit_hold" }), false);
+  assert.equal(canShowDepositRequest({ status: "sold" }), false);
+  assert.equal(canShowDepositRequest({ status: null }), false);
+});
+
+test("isListingAvailableStatus is published only", () => {
+  assert.equal(isListingAvailableStatus("published"), true);
+  assert.equal(isListingAvailableStatus("PUBLISHED"), true);
+  assert.equal(isListingAvailableStatus("deposit_hold"), false);
+  assert.equal(isListingAvailableStatus("sold"), false);
+  assert.equal(isListingAvailableStatus("pending_review"), false);
+  assert.equal(isListingAvailableStatus(null), false);
+});
+
+test("canShowListingUpdateDetails only for owner on available listing", () => {
+  assert.equal(
+    canShowListingUpdateDetails({ isOwner: true, status: "published" }),
+    true,
+  );
+  assert.equal(
+    canShowListingUpdateDetails({ isOwner: false, status: "published" }),
+    false,
+  );
+  assert.equal(
+    canShowListingUpdateDetails({ isOwner: true, status: "deposit_hold" }),
+    false,
+  );
+});
+
+test("canShowWarrantyUpdateCta respects owner, available, and freeze", () => {
+  assert.equal(
+    canShowWarrantyUpdateCta({ isOwner: true, status: "published" }),
+    true,
+  );
+  assert.equal(
+    canShowWarrantyUpdateCta({
+      isOwner: true,
+      status: "published",
+      frozen: true,
+    }),
+    false,
+  );
+  assert.equal(
+    canShowWarrantyUpdateCta({ isOwner: true, status: "deposit_hold" }),
+    false,
+  );
+  assert.equal(
+    canShowWarrantyUpdateCta({ isOwner: false, status: "published" }),
+    false,
+  );
+});
+
+test("listingEditHref encodes post id", () => {
+  assert.equal(listingEditHref("abc"), "/app/account/listings/abc/edit");
+  assert.equal(
+    listingEditHref("a/b"),
+    "/app/account/listings/a%2Fb/edit",
+  );
 });
