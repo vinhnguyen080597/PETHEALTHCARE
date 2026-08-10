@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   adminRequestHref,
-  conversationMessageHref,
   isNotificationUnread,
   notificationType,
 } from "../src/lib/notifications/deepLinks";
@@ -70,27 +69,6 @@ test("adminRequestHref falls back without focus ids", () => {
     "/app/admin?section=requests&type=report",
   );
   assert.equal(adminRequestHref({ type: "post_comment" }), "/app/admin?section=requests");
-});
-
-test("conversationMessageHref opens messages thread", () => {
-  assert.equal(
-    conversationMessageHref({
-      type: "conversation_message",
-      metadata: { conversation_id: "c1" },
-    }),
-    "/app/messages?c=c1",
-  );
-  assert.equal(
-    conversationMessageHref({
-      type: "conversation_message",
-      metadata: { cta_href: "/app/messages?c=abc" },
-    }),
-    "/app/messages?c=abc",
-  );
-  assert.equal(
-    conversationMessageHref({ type: "conversation_message" }),
-    "/app/messages",
-  );
 });
 
 test("listing review notification types are distinct from admin queue types", () => {

@@ -8,7 +8,6 @@ import { t } from "@/i18n";
 import type { PetFeedNotification } from "@/lib/api/petFeed";
 import {
   adminRequestHref,
-  conversationMessageHref,
   isNotificationUnread,
   notificationType,
 } from "@/lib/notifications/deepLinks";
@@ -113,10 +112,6 @@ export function NotificationsClient({
       router.push(adminRequestHref(item));
       return;
     }
-    if (type === "conversation_message") {
-      router.push(conversationMessageHref(item));
-      return;
-    }
     if (type === "breeder_verified" && item.breeder_profile_id) {
       router.push(`/app/breeders/${encodeURIComponent(item.breeder_profile_id)}`);
       return;
@@ -178,9 +173,6 @@ export function NotificationsClient({
     if (type === "admin_breeder_pending") return t(lang, "notifications.adminBreederTitle");
     if (type === "admin_listing_pending") return t(lang, "notifications.adminListingTitle");
     if (type === "admin_report_open") return t(lang, "notifications.adminReportTitle");
-    if (type === "conversation_message") {
-      return item.actor_display_name || t(lang, "notifications.messageTitle");
-    }
     return item.actor_display_name || t(lang, "notifications.someone");
   };
 
@@ -211,9 +203,6 @@ export function NotificationsClient({
     if (type === "admin_report_open") {
       return item.body_preview || t(lang, "notifications.adminReportBody");
     }
-    if (type === "conversation_message") {
-      return item.body_preview || t(lang, "notifications.messageFallback");
-    }
     return item.body_preview || t(lang, "notifications.commentFallback");
   };
 
@@ -237,9 +226,6 @@ export function NotificationsClient({
       type === "admin_report_open"
     ) {
       return item.cta_label || t(lang, "notifications.adminRequestCta");
-    }
-    if (type === "conversation_message") {
-      return item.cta_label || t(lang, "notifications.messageCta");
     }
     return null;
   };
@@ -328,8 +314,6 @@ export function NotificationsClient({
                       type === "admin_listing_pending" ||
                       type === "admin_report_open" ? (
                       "📋"
-                    ) : type === "conversation_message" ? (
-                      "💬"
                     ) : (
                       "🔔"
                     )}

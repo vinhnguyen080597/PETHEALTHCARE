@@ -24,7 +24,6 @@ const DEAL_NOTIFICATION_TYPES = new Set([
   'deal_dispute_opened',
   'deal_dispute_resolved',
 ]);
-const CONVERSATION_MESSAGE_TYPE = 'conversation_message';
 const ADMIN_DEFAULT_CTA = {
   admin_breeder_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=breeder' },
   admin_listing_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=post' },
@@ -281,58 +280,6 @@ export async function createListingReviewNotification({
 }
 
 /**
- * Notify the other participant when a marketplace DM is sent.
- */
-export async function createConversationMessageNotification({
-  recipientUserId,
-  actorUserId,
-  postId,
-  conversationId,
-  messageId,
-  bodyPreview,
-  accessToken,
-}) {
-  const recipient = trimText(recipientUserId, 64);
-  const actor = trimText(actorUserId, 64);
-  const safePostId = trimText(postId, 64) || null;
-  const safeConversationId = trimText(conversationId, 64);
-  const safeMessageId = trimText(messageId, 64);
-  if (!recipient || !actor || !safeConversationId) return null;
-  if (recipient === actor) return null;
-
-  const meta = normalizeMetadata({
-    conversation_id: safeConversationId,
-    message_id: safeMessageId || undefined,
-    cta_href: `/app/messages?c=${encodeURIComponent(safeConversationId)}`,
-    cta_label: 'Xem tin nhắn',
-  });
-
-  const row = {
-    id: randomUUID(),
-    recipient_user_id: recipient,
-    actor_user_id: actor,
-    post_id: safePostId,
-    comment_id: null,
-    breeder_profile_id: null,
-    type: CONVERSATION_MESSAGE_TYPE,
-    body_preview: trimText(bodyPreview, 220),
-    metadata: meta,
-    created_at: new Date().toISOString(),
-    read_at: null,
-  };
-
-  const supabase = getNotificationsSupabase(accessToken);
-  if (!supabase) {
-    memoryNotifications.push(row);
-    return enrichNotification(row, accessToken);
-  }
-
-  const { data, error } = await supabase.from('pet_feed_notifications').insert(row).select('*').single();
-  if (error) throw error;
-  return enrichNotification(data, accessToken);
-}
-
-/**
  * Create a notification for the post owner when someone else comments.
  * No-ops when the actor owns the post.
  */
@@ -513,7 +460,7 @@ export async function listPetFeedNotifications(userId, accessToken, options = {}
   const supabase = getNotificationsSupabase(accessToken);
   if (!supabase) {
     const rows = memoryNotifications
-      .filter((row) => row.recipient_user_id === userId)
+      .filter((row) => row.recipient_user_id === userId && row.type !== 'conversation_message')
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
       .slice(0, limit);
     return Promise.all(rows.map((row) => enrichNotification(row, accessToken)));
@@ -523,6 +470,7 @@ export async function listPetFeedNotifications(userId, accessToken, options = {}
     .from('pet_feed_notifications')
     .select('*')
     .eq('recipient_user_id', userId)
+    .neq('type', 'conversation_message')
     .order('created_at', { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -532,12 +480,18 @@ export async function listPetFeedNotifications(userId, accessToken, options = {}
 export async function countUnreadPetFeedNotifications(userId, accessToken) {
   const supabase = getNotificationsSupabase(accessToken);
   if (!supabase) {
-    return memoryNotifications.filter((row) => row.recipient_user_id === userId && !row.read_at).length;
+    return memoryNotifications.filter(
+      (row) =>
+        row.recipient_user_id === userId &&
+        !row.read_at &&
+        row.type !== 'conversation_message',
+    ).length;
   }
   const { count, error } = await supabase
     .from('pet_feed_notifications')
     .select('id', { count: 'exact', head: true })
     .eq('recipient_user_id', userId)
+    .neq('type', 'conversation_message')
     .is('read_at', null);
   if (error) throw error;
   return count ?? 0;
