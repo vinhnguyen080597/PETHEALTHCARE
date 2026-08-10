@@ -5,6 +5,7 @@ import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import {
   listFavorites,
+  listMyDeposits,
   listMyPosts,
   getMyBreederProfile,
 } from "@/lib/api/petFeed";
@@ -64,17 +65,20 @@ async function AccountData({
 }) {
   let savedCount = 0;
   let myListings: AccountListingItem[] = [];
+  let depositedListings: AccountListingItem[] = [];
   let breeder: AccountBreederInfo | null = null;
 
   try {
-    const [favs, mine, profile] = await Promise.all([
+    const [favs, mine, deposits, profile] = await Promise.all([
       listFavorites(token).catch(() => ({ data: [] })),
       listMyPosts(token).catch(() => ({ data: [] })),
+      listMyDeposits(token).catch(() => ({ data: [] })),
       getMyBreederProfile(token).catch(() => ({ data: null })),
     ]);
 
     savedCount = extractPosts(favs).length;
     myListings = extractPosts(mine).map(toListingItem);
+    depositedListings = extractPosts(deposits).map(toListingItem);
 
     const profileData =
       profile && typeof profile === "object" && "data" in profile
@@ -102,6 +106,7 @@ async function AccountData({
       isAdmin={isAdmin}
       savedCount={savedCount}
       myListings={myListings}
+      depositedListings={depositedListings}
       breeder={breeder}
     />
   );

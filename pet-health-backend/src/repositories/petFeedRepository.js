@@ -385,6 +385,33 @@ function resolveEffectivePostStatus(row) {
   return raw;
 }
 
+/** Marketplace listing still visible on detail (published / deposit hold / sold). */
+export function isPubliclyViewableListingRow(row) {
+  if (!row) return false;
+  const effective = resolveEffectivePostStatus(row);
+  if (effective === 'published' || effective === 'deposit_hold' || effective === 'sold') {
+    return true;
+  }
+  return String(row.status || '').trim().toLowerCase() === 'archived'
+    && isSoldListingMetadata(row.metadata);
+}
+
+/** Owner always; otherwise same as public marketplace visibility. */
+export function canViewerAccessPetFeedPost(row, userId) {
+  if (!row) return false;
+  if (userId && row.user_id === userId) return true;
+  return isPubliclyViewableListingRow(row);
+}
+
+/** Comment + open conversation allowed while listing is live or on soft deposit. */
+export function isPetFeedPostOpenForEngagement(statusOrPost) {
+  const status = typeof statusOrPost === 'string' || statusOrPost == null
+    ? statusOrPost
+    : (statusOrPost.status ?? resolveEffectivePostStatus(statusOrPost));
+  const s = String(status || '').trim().toLowerCase();
+  return s === 'published' || s === 'deposit_hold';
+}
+
 function isStatusCheckViolation(err) {
   return String(err?.code ?? '') === '23514'
     && /pet_feed_posts_status_check/i.test(String(err?.message ?? ''));
@@ -636,7 +663,8 @@ export async function listPetFeedPostComments(postId, accessToken, options = {})
     Math.max(Number(options.limit) || DEFAULT_PET_FEED_COMMENTS_LIMIT, 1),
     MAX_PET_FEED_COMMENTS_LIMIT,
   );
-  const supabase = getFeedSupabase(accessToken);
+  // Service role: deposit_hold comment rows are hidden by published-only RLS for Sen JWT.
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
   if (!supabase) {
     const rows = memoryComments
       .filter((row) => row.post_id === safePostId)
@@ -673,7 +701,7 @@ export async function createPetFeedPostComment(userId, postId, body, accessToken
     throw err;
   }
   const post = await getPetFeedPost(userId, safePostId, accessToken);
-  if (!post || post.status !== 'published') {
+  if (!post || !isPetFeedPostOpenForEngagement(post)) {
     const err = new Error('Pet feed post not found');
     err.status = 404;
     err.code = 'PET_FEED_POST_NOT_FOUND';
@@ -682,7 +710,8 @@ export async function createPetFeedPostComment(userId, postId, body, accessToken
 
   if (parentId) {
     let parent = null;
-    const supabaseForParent = getFeedSupabase(accessToken);
+    // Service role: comment RLS historically hid deposit_hold parents from Sen JWT.
+    const supabaseForParent = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
     if (!supabaseForParent) {
       parent = memoryComments.find((row) => row.id === parentId) ?? null;
     } else {
@@ -718,7 +747,8 @@ export async function createPetFeedPostComment(userId, postId, body, accessToken
     created_at: now,
     updated_at: now,
   };
-  const supabase = getFeedSupabase(accessToken);
+  // Service role bypasses published-only comment RLS until migration is applied.
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
   if (!supabase) {
     memoryComments.push(row);
     const names = await authorDisplayNamesForUserIds([userId]);
@@ -910,11 +940,14 @@ export async function listVerifiedBreederProfiles(userId, accessToken) {
 }
 
 export async function getPetFeedPost(userId, postId, accessToken) {
-  const supabase = getFeedSupabase(accessToken);
+  // Service role: Sen JWT RLS historically hides deposit_hold/sold from non-owners.
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
   if (!supabase) {
     const favoriteIds = new Set(memoryFavorites.filter((row) => row.user_id === userId).map((row) => row.post_id));
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
-    const post = toPost(memoryPosts.find((post) => post.id === postId && (post.status === 'published' || post.user_id === userId)), favoriteIds, profilesById);
+    const row = memoryPosts.find((post) => post.id === postId);
+    if (!canViewerAccessPetFeedPost(row, userId)) return null;
+    const post = toPost(row, favoriteIds, profilesById);
     if (!post) return post;
     return withPostEngagementCounts(post, accessToken);
   }
@@ -923,9 +956,9 @@ export async function getPetFeedPost(userId, postId, accessToken) {
     .from('pet_feed_posts')
     .select('*, breeder_profile:breeder_profiles(*)')
     .eq('id', postId)
-    .or(`status.eq.published,user_id.eq.${userId}`)
     .maybeSingle();
   if (error) throw error;
+  if (!canViewerAccessPetFeedPost(data, userId)) return null;
   const post = toPost(data, favoriteIds);
   if (!post) return post;
   return withPostEngagementCounts(post, accessToken);
@@ -1147,13 +1180,7 @@ export async function getPublicPetFeedPost(postId) {
 
   if (!supabase) {
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
-    const row = memoryPosts.find((post) => {
-      if (post.id !== safePostId) return false;
-      return post.status === 'published'
-        || post.status === 'deposit_hold'
-        || post.status === 'sold'
-        || (post.status === 'archived' && isSoldListingMetadata(post.metadata));
-    });
+    const row = memoryPosts.find((post) => post.id === safePostId && isPubliclyViewableListingRow(post));
     if (!row) return null;
     const post = toPublicDetailPost({ ...row, breeder_profile: profilesById.get(row.breeder_profile_id) ?? null });
     return withPostEngagementCounts(post, null);
@@ -1169,15 +1196,7 @@ export async function getPublicPetFeedPost(postId) {
     if (error.code === '22P02' || error.code === 'PGRST116') return null;
     throw error;
   }
-  if (!data) return null;
-  if (
-    data.status !== 'published'
-    && data.status !== 'deposit_hold'
-    && data.status !== 'sold'
-    && !(data.status === 'archived' && isSoldListingMetadata(data.metadata))
-  ) {
-    return null;
-  }
+  if (!isPubliclyViewableListingRow(data)) return null;
   return withPostEngagementCounts(toPublicDetailPost(data), null);
 }
 
@@ -1803,6 +1822,59 @@ export async function listMyPetFeedPosts(userId, accessToken, options = {}) {
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map((row) => toPost(row));
+}
+
+/** Active soft-deposit listing where this user is the assigned Sen (buyer). */
+export function isListingDepositedForSen(row, senUserId) {
+  const sid = String(senUserId || '').trim();
+  if (!sid || !row) return false;
+  const deal = asObject(asObject(row.metadata).deal);
+  if (String(deal.sen_user_id || '').trim() !== sid) return false;
+  if (resolveEffectivePostStatus(row) !== 'deposit_hold') return false;
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  if (dealStatus === 'cancelled' || dealStatus === 'completed') return false;
+  return true;
+}
+
+/** Listings on deposit hold where the current user is Sen (buyer). */
+export async function listMyDepositPosts(userId, accessToken, options = {}) {
+  const limit = Number.isFinite(options.limit) && options.limit > 0 ? Math.floor(options.limit) : undefined;
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
+    const rows = memoryPosts
+      .filter((post) => isListingDepositedForSen(post, userId))
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    const slice = limit ? rows.slice(0, limit) : rows;
+    return slice.map((post) => toPost(post, new Set(), profilesById));
+  }
+
+  // Service role: Sen is not the post owner; RLS would hide deposit_hold rows.
+  const fetchLimit = Math.min(Math.max(limit || 40, 1), 100);
+  let query = supabase
+    .from('pet_feed_posts')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .in('status', ['deposit_hold', 'archived'])
+    .eq('metadata->deal->>sen_user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(Math.max(fetchLimit * 2, 40));
+  let { data, error } = await query;
+  if (error) {
+    // Older PostgREST JSON-path filters may fail — fall back to broader fetch + JS filter.
+    const fallback = await supabase
+      .from('pet_feed_posts')
+      .select('*, breeder_profile:breeder_profiles(*)')
+      .in('status', ['deposit_hold', 'archived'])
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (fallback.error) throw fallback.error;
+    data = fallback.data;
+    error = null;
+  }
+
+  const filtered = (data ?? []).filter((post) => isListingDepositedForSen(post, userId));
+  const slice = limit ? filtered.slice(0, limit) : filtered;
+  return slice.map((row) => toPost(row));
 }
 
 export async function countMyPetFeedPostStats(userId, accessToken) {

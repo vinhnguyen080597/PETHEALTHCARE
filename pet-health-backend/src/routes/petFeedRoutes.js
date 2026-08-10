@@ -16,6 +16,7 @@ import {
   listFavoritePetFeedPosts,
   countMyPetFeedPostStats,
   listMyAnnouncementPosts,
+  listMyDepositPosts,
   listMyPetFeedPosts,
   listPetFeedPostComments,
   listPublishedPetFeedPostPage,
@@ -605,6 +606,17 @@ router.get('/my-posts', requireAnyRole('breeder'), async (req, res, next) => {
       const meta = await countMyPetFeedPostStats(req.user.id, req.accessToken);
       return res.json({ data: posts, meta });
     }
+    return res.json({ data: posts });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/** Soft-deposit listings where the current user is the assigned Sen (buyer). */
+router.get('/my-deposits', async (req, res, next) => {
+  try {
+    const limit = parsePositiveInt(firstQueryValue(req.query.limit));
+    const posts = await listMyDepositPosts(req.user.id, req.accessToken, { limit });
     return res.json({ data: posts });
   } catch (err) {
     return next(err);

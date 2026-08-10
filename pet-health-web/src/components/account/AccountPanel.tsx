@@ -11,6 +11,7 @@ import {
   listingDetailHref,
   opensMyListingReviewPopup,
 } from "@/lib/listingOwnerActions";
+import { shouldShowSenDepositedSection } from "@/lib/senDepositedListings";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 
 export type AccountListingItem = {
@@ -36,7 +37,7 @@ function statusTone(status: string) {
   if (status === "published" || status === "verified") {
     return "bg-emerald-50 text-emerald-700";
   }
-  if (status === "pending_review") {
+  if (status === "pending_review" || status === "deposit_hold") {
     return "bg-amber-50 text-amber-800";
   }
   if (status === "suspended" || status === "rejected" || status === "archived") {
@@ -96,6 +97,7 @@ export function AccountPanel({
   isAdmin,
   savedCount,
   myListings,
+  depositedListings = [],
   breeder,
 }: {
   lang: Lang;
@@ -105,6 +107,7 @@ export function AccountPanel({
   isAdmin: boolean;
   savedCount: number;
   myListings: AccountListingItem[];
+  depositedListings?: AccountListingItem[];
   breeder: AccountBreederInfo | null;
 }) {
   const router = useRouter();
@@ -115,6 +118,7 @@ export function AccountPanel({
 
   const isSen = role === "sen" || (!isAdmin && role !== "breeder" && role !== "vet");
   const isBreeder = role === "breeder";
+  const showSenDeposits = shouldShowSenDepositedSection({ role, isAdmin });
   const breederStatus = breeder?.verificationStatus || "unverified";
   const pendingRequest = breederStatus === "pending_review";
   const verifiedBreeder = isBreeder && breederStatus === "verified";
@@ -335,6 +339,57 @@ export function AccountPanel({
                     {t(lang, senHelperKey(breederStatus))}
                   </p>
                 </div>
+              </section>
+            ) : null}
+
+            {showSenDeposits ? (
+              <section className="rounded-2xl border border-[#F0E6D8] bg-white p-5">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h2 className="text-base font-bold text-[#2B1E19]">
+                    {t(lang, "account.senDeposited.title")}
+                  </h2>
+                  {depositedListings.length > 0 ? (
+                    <span className="text-xs font-semibold text-stone-500">
+                      {depositedListings.length}
+                    </span>
+                  ) : null}
+                </div>
+                {depositedListings.length === 0 ? (
+                  <p className="rounded-xl bg-[#FDFBF7] p-3 text-sm text-stone-500">
+                    {t(lang, "account.senDeposited.empty")}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {depositedListings.map((post) => (
+                      <Link
+                        key={post.id}
+                        href={listingDetailHref(post.id, { from: "account" })}
+                        className="flex w-full items-center gap-3 rounded-xl bg-[#FDFBF7] p-2.5 text-left hover:bg-amber-50/80"
+                      >
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-200">
+                          {post.thumbUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={post.thumbUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-[#2B1E19]">
+                            {post.title || "—"}
+                          </p>
+                          <span
+                            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone(post.status)}`}
+                          >
+                            {t(lang, listingStatusKey(post.status))}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </section>
             ) : null}
 

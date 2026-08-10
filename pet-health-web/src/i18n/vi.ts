@@ -332,6 +332,9 @@ const vi: Record<EnKey, string> = {
   "deal.completeRequestHint":
     "Tải lên ảnh giao nhận rõ ràng. Sen sẽ được yêu cầu xác nhận đã nhận bé.",
   "deal.completePhotosLabel": "Ảnh giao nhận",
+  "deal.photosDrop": "Kéo thả ảnh vào đây (tối đa {max})",
+  "deal.photosBrowse": "Chọn ảnh",
+  "deal.photosRemove": "Xóa ảnh",
   "deal.completePhotosRequired": "Vui lòng thêm ít nhất 1 ảnh giao nhận.",
   "deal.completePhotosTooMany": "Bạn chỉ có thể tải tối đa 5 ảnh.",
   "deal.completeConfirm": "Xác nhận giao",
@@ -608,6 +611,9 @@ const vi: Record<EnKey, string> = {
   "account.senIntro.cancelBody":
     "Yêu cầu đang chờ duyệt sẽ được hủy. Bạn có thể chỉnh sửa thông tin rồi gửi lại.",
   "account.senIntro.cancelFailed": "Không thể hủy yêu cầu",
+  "account.senDeposited.title": "Thú cưng đã cọc",
+  "account.senDeposited.empty":
+    "Các bé bạn đã cọc sẽ hiện ở đây để theo dõi bàn giao.",
   "account.senStatus.title": "Trạng thái Breeder",
   "account.senStatus.helper.unverified":
     "Gửi thông tin xác minh khi bạn muốn đăng tin tìm nhà mới cho thú cưng.",

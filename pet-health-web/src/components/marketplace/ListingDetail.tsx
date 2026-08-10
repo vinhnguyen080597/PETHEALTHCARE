@@ -65,6 +65,7 @@ import {
   COMPLETE_HANDOFF_MAX_PHOTOS,
   DEAL_DISPUTE_MAX_PHOTOS,
   daysLeftUntilDeadline,
+  dealPhotosDropHint,
   isDealDisputeOpen,
   validateCancelDepositRequest,
   validateDisputeRequest,
@@ -72,6 +73,7 @@ import {
   waitingForSenMessage,
   type CancelDepositReasonKey,
 } from "@/lib/listingDealHandoff";
+import { DealPhotoPicker } from "./DealPhotoPicker";
 
 const REPORT_REASONS = [
   "scam",
@@ -1724,30 +1726,31 @@ export function ListingDetail({
               {t(lang, "deal.completeRequestHint")}
             </p>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">
                 {t(lang, "deal.completePhotosLabel")} *
               </label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
+              <DealPhotoPicker
+                files={completePhotos}
+                max={COMPLETE_HANDOFF_MAX_PHOTOS}
                 disabled={dealBusy}
-                onChange={(e) => {
-                  const next = Array.from(e.target.files || []).slice(
-                    0,
-                    COMPLETE_HANDOFF_MAX_PHOTOS,
-                  );
+                invalid={Boolean(actionError) && completePhotos.length < 1}
+                dropHint={dealPhotosDropHint(
+                  t(lang, "deal.photosDrop"),
+                  COMPLETE_HANDOFF_MAX_PHOTOS,
+                )}
+                browseLabel={t(lang, "deal.photosBrowse")}
+                removeLabel={t(lang, "deal.photosRemove")}
+                onChange={(next) => {
                   setCompletePhotos(next);
                   setActionError("");
                 }}
-                className="w-full text-sm text-slate-600"
               />
-              {completePhotos.length > 0 ? (
-                <p className="mt-1 text-xs text-slate-500">
-                  {completePhotos.length}/{COMPLETE_HANDOFF_MAX_PHOTOS}
-                </p>
-              ) : null}
             </div>
+            {actionError ? (
+              <p className="text-sm text-red-600" role="alert">
+                {actionError}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
@@ -1851,30 +1854,30 @@ export function ListingDetail({
               />
             </label>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">
                 {t(lang, "deal.cancelPhotosLabel")}
               </label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
+              <DealPhotoPicker
+                files={cancelPhotos}
+                max={CANCEL_DEPOSIT_MAX_PHOTOS}
                 disabled={dealBusy}
-                onChange={(e) => {
-                  const next = Array.from(e.target.files || []).slice(
-                    0,
-                    CANCEL_DEPOSIT_MAX_PHOTOS,
-                  );
+                dropHint={dealPhotosDropHint(
+                  t(lang, "deal.photosDrop"),
+                  CANCEL_DEPOSIT_MAX_PHOTOS,
+                )}
+                browseLabel={t(lang, "deal.photosBrowse")}
+                removeLabel={t(lang, "deal.photosRemove")}
+                onChange={(next) => {
                   setCancelPhotos(next);
                   setActionError("");
                 }}
-                className="w-full text-sm text-slate-600"
               />
-              {cancelPhotos.length > 0 ? (
-                <p className="mt-1 text-xs text-slate-500">
-                  {cancelPhotos.length}/{CANCEL_DEPOSIT_MAX_PHOTOS}
-                </p>
-              ) : null}
             </div>
+            {actionError ? (
+              <p className="text-sm text-red-600" role="alert">
+                {actionError}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
@@ -1928,30 +1931,31 @@ export function ListingDetail({
               />
             </label>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">
                 {t(lang, "deal.disputePhotosLabel")} *
               </label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
+              <DealPhotoPicker
+                files={disputePhotos}
+                max={DEAL_DISPUTE_MAX_PHOTOS}
                 disabled={dealBusy}
-                onChange={(e) => {
-                  const next = Array.from(e.target.files || []).slice(
-                    0,
-                    DEAL_DISPUTE_MAX_PHOTOS,
-                  );
+                invalid={Boolean(actionError) && disputePhotos.length < 1}
+                dropHint={dealPhotosDropHint(
+                  t(lang, "deal.photosDrop"),
+                  DEAL_DISPUTE_MAX_PHOTOS,
+                )}
+                browseLabel={t(lang, "deal.photosBrowse")}
+                removeLabel={t(lang, "deal.photosRemove")}
+                onChange={(next) => {
                   setDisputePhotos(next);
                   setActionError("");
                 }}
-                className="w-full text-sm text-slate-600"
               />
-              {disputePhotos.length > 0 ? (
-                <p className="mt-1 text-xs text-slate-500">
-                  {disputePhotos.length}/{DEAL_DISPUTE_MAX_PHOTOS}
-                </p>
-              ) : null}
             </div>
+            {actionError ? (
+              <p className="text-sm text-red-600" role="alert">
+                {actionError}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"

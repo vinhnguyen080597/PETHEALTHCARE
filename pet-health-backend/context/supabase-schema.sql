@@ -608,7 +608,14 @@ using (
   exists (
     select 1 from public.pet_feed_posts p
     where p.id = post_id
-      and (p.status = 'published' or p.user_id = auth.uid()::text)
+      and (
+        p.status in ('published', 'deposit_hold', 'sold')
+        or p.user_id = auth.uid()::text
+        or (
+          p.status = 'archived'
+          and coalesce(p.metadata->>'soft_status', '') in ('deposit_hold', 'sold')
+        )
+      )
   )
 );
 
@@ -619,7 +626,14 @@ with check (
   auth.uid()::text = user_id
   and exists (
     select 1 from public.pet_feed_posts p
-    where p.id = post_id and p.status = 'published'
+    where p.id = post_id
+      and (
+        p.status in ('published', 'deposit_hold')
+        or (
+          p.status = 'archived'
+          and coalesce(p.metadata->>'soft_status', '') = 'deposit_hold'
+        )
+      )
   )
 );
 
@@ -641,8 +655,14 @@ with check (
   and exists (
     select 1 from public.pet_feed_posts p
     where p.id = post_id
-      and p.status = 'published'
       and p.user_id = breeder_user_id
+      and (
+        p.status in ('published', 'deposit_hold')
+        or (
+          p.status = 'archived'
+          and coalesce(p.metadata->>'soft_status', '') = 'deposit_hold'
+        )
+      )
   )
 );
 

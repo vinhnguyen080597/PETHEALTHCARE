@@ -9,6 +9,14 @@ export async function listMyPosts(token: string) {
   );
 }
 
+/** Soft-deposit listings where the current user is Sen (buyer). */
+export async function listMyDeposits(token: string) {
+  return fetchJson<PageResult<ApiPetFeedPost> | { data: ApiPetFeedPost[] }>(
+    "/pet-feed/my-deposits",
+    { token, cache: "no-store" },
+  );
+}
+
 export async function listFavorites(token: string) {
   return fetchJson<PageResult<ApiPetFeedPost> | { data: ApiPetFeedPost[] }>(
     "/pet-feed/favorites",

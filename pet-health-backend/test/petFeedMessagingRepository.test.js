@@ -96,3 +96,37 @@ test('sen and breeder can exchange messages on a listing', async () => {
   assert.match(inboxRow.last_message_preview, /available/i);
   assert.equal(inboxRow.has_unread, false);
 });
+
+test('sen can open conversation on deposit_hold listing', async () => {
+  const breederId = `msg-dep-breeder-${Date.now()}`;
+  const senId = `msg-dep-sen-${Date.now()}`;
+
+  await upsertMyBreederProfile(breederId, {
+    displayName: 'Deposit Chat Farm',
+    location: 'HCMC',
+    primarySpecies: ['cat'],
+  }, null);
+  await adminUpdateBreederProfileStatus(breederId, 'verified');
+
+  const post = await createPetFeedPost(breederId, {
+    title: 'Deposit chat kitten',
+    species: 'cat',
+    breed: 'Mix',
+    status: 'pending_review',
+    mediaUrls: ['https://cdn.example/photo.jpg'],
+    videoUrl: 'https://cdn.example/video.mp4',
+  }, null);
+  await adminUpdatePetFeedPostStatus(post.id, 'published');
+  const held = await adminUpdatePetFeedPostStatus(post.id, 'deposit_hold');
+  assert.equal(held.status, 'deposit_hold');
+
+  const conversation = await openPetFeedConversation(senId, held.id, null);
+  assert.equal(conversation.post_id, held.id);
+  const message = await sendPetFeedConversationMessage(
+    senId,
+    conversation.id,
+    'When can I pick up?',
+    null,
+  );
+  assert.equal(message.body, 'When can I pick up?');
+});

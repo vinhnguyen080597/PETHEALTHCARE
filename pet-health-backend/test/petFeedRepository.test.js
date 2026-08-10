@@ -229,3 +229,147 @@ test('admin reviewed post report applies penalty to listing owner breeder', asyn
   assert.equal(profile.metadata.violations.length, 1);
   assert.equal(profile.metadata.violations[0].reportId, report.id);
 });
+
+test('isListingDepositedForSen and listMyDepositPosts filter by Sen + deposit_hold', async () => {
+  const {
+    isListingDepositedForSen,
+    listMyDepositPosts,
+  } = await import('../src/repositories/petFeedRepository.js');
+
+  const senId = `sen-deposit-${Date.now()}`;
+  const otherSen = `other-sen-${Date.now()}`;
+
+  assert.equal(
+    isListingDepositedForSen(
+      {
+        status: 'deposit_hold',
+        metadata: { deal: { sen_user_id: senId, status: 'deposit_hold' } },
+      },
+      senId,
+    ),
+    true,
+  );
+  assert.equal(
+    isListingDepositedForSen(
+      {
+        status: 'deposit_hold',
+        metadata: { deal: { sen_user_id: senId, status: 'pending_sen_complete' } },
+      },
+      senId,
+    ),
+    true,
+  );
+  assert.equal(
+    isListingDepositedForSen(
+      {
+        status: 'archived',
+        metadata: {
+          soft_status: 'deposit_hold',
+          deal: { sen_user_id: senId, status: 'deposit_hold' },
+        },
+      },
+      senId,
+    ),
+    true,
+  );
+  assert.equal(
+    isListingDepositedForSen(
+      {
+        status: 'deposit_hold',
+        metadata: { deal: { sen_user_id: otherSen, status: 'deposit_hold' } },
+      },
+      senId,
+    ),
+    false,
+  );
+  assert.equal(
+    isListingDepositedForSen(
+      {
+        status: 'published',
+        metadata: { deal: { sen_user_id: senId, status: 'deposit_hold' } },
+      },
+      senId,
+    ),
+    false,
+  );
+  assert.equal(
+    isListingDepositedForSen(
+      {
+        status: 'deposit_hold',
+        metadata: { deal: { sen_user_id: senId, status: 'cancelled' } },
+      },
+      senId,
+    ),
+    false,
+  );
+
+  const empty = await listMyDepositPosts(senId, null);
+  assert.ok(Array.isArray(empty));
+});
+
+test('deposit_hold listings stay readable and commentable for Sen', async () => {
+  const {
+    adminUpdateBreederProfileStatus,
+    adminUpdatePetFeedPostStatus,
+    canViewerAccessPetFeedPost,
+    createPetFeedPost,
+    createPetFeedPostComment,
+    getPetFeedPost,
+    isPetFeedPostOpenForEngagement,
+    upsertMyBreederProfile,
+  } = await import('../src/repositories/petFeedRepository.js');
+
+  assert.equal(isPetFeedPostOpenForEngagement('published'), true);
+  assert.equal(isPetFeedPostOpenForEngagement('deposit_hold'), true);
+  assert.equal(isPetFeedPostOpenForEngagement('sold'), false);
+  assert.equal(
+    canViewerAccessPetFeedPost(
+      {
+        user_id: 'owner',
+        status: 'deposit_hold',
+        metadata: {},
+      },
+      'sen-viewer',
+    ),
+    true,
+  );
+  assert.equal(
+    canViewerAccessPetFeedPost(
+      {
+        user_id: 'owner',
+        status: 'draft',
+        metadata: {},
+      },
+      'sen-viewer',
+    ),
+    false,
+  );
+
+  const breederId = `dep-engage-breeder-${Date.now()}`;
+  const senId = `dep-engage-sen-${Date.now()}`;
+  await upsertMyBreederProfile(breederId, {
+    displayName: 'Deposit Engage Farm',
+    location: 'HCMC',
+    primarySpecies: ['cat'],
+  }, null);
+  await adminUpdateBreederProfileStatus(breederId, 'verified');
+
+  const created = await createPetFeedPost(breederId, {
+    title: 'Deposit engage kitten',
+    species: 'cat',
+    breed: 'Mix',
+    status: 'pending_review',
+    mediaUrls: ['https://cdn.example/photo.jpg'],
+    videoUrl: 'https://cdn.example/video.mp4',
+  }, null);
+  await adminUpdatePetFeedPostStatus(created.id, 'published');
+  const held = await adminUpdatePetFeedPostStatus(created.id, 'deposit_hold');
+  assert.equal(held.status, 'deposit_hold');
+
+  const forSen = await getPetFeedPost(senId, created.id, null);
+  assert.ok(forSen);
+  assert.equal(forSen.status, 'deposit_hold');
+
+  const comment = await createPetFeedPostComment(senId, created.id, 'Still coordinating pickup', null);
+  assert.equal(comment.body, 'Still coordinating pickup');
+});

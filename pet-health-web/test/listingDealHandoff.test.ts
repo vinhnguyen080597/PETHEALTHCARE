@@ -8,7 +8,9 @@ import {
   canSenConfirmHandoff,
   canSenOpenDispute,
   daysLeftUntilDeadline,
+  dealPhotosDropHint,
   isDealDisputeOpen,
+  mergeDealPhotoFiles,
   resolveDealHandoffPhase,
   validateCancelDepositRequest,
   validateDisputeRequest,
@@ -226,4 +228,25 @@ test("waitingForSenMessage, photo and cancel validation", () => {
     daysLeftUntilDeadline(new Date(Date.now() + 3 * 86400000).toISOString())! >=
       3,
   );
+});
+
+test("mergeDealPhotoFiles keeps images only and caps at max", () => {
+  const img = (name: string): File =>
+    ({ name, size: 10, type: "image/jpeg" }) as File;
+  const pdf = { name: "x.pdf", size: 10, type: "application/pdf" } as File;
+  const empty = { name: "e.jpg", size: 0, type: "image/jpeg" } as File;
+
+  assert.deepEqual(
+    mergeDealPhotoFiles([], [img("a"), pdf, empty, img("b")], 5).map(
+      (f) => f.name,
+    ),
+    ["a", "b"],
+  );
+  assert.deepEqual(
+    mergeDealPhotoFiles([img("a"), img("b")], [img("c"), img("d")], 3).map(
+      (f) => f.name,
+    ),
+    ["a", "b", "c"],
+  );
+  assert.equal(dealPhotosDropHint("Max {max} photos", 5), "Max 5 photos");
 });

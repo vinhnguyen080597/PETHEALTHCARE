@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
-import { getPetFeedPost } from './petFeedRepository.js';
+import { getPetFeedPost, isPetFeedPostOpenForEngagement } from './petFeedRepository.js';
 
 const memoryConversations = [];
 const memoryMessages = [];
@@ -144,7 +144,7 @@ export async function openPetFeedConversation(userId, postId, accessToken) {
     throw err;
   }
   const post = await getPetFeedPost(userId, safePostId, accessToken);
-  if (!post || post.status !== 'published' || post.post_kind === 'announcement') {
+  if (!post || !isPetFeedPostOpenForEngagement(post) || post.post_kind === 'announcement') {
     const err = new Error('Pet feed post not found');
     err.status = 404;
     err.code = 'PET_FEED_POST_NOT_FOUND';

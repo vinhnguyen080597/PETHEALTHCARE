@@ -329,6 +329,9 @@ const en = {
   "deal.completeRequestHint":
     "Upload clear photos of the handoff. The buyer (Sen) will be asked to confirm receipt.",
   "deal.completePhotosLabel": "Handoff photos",
+  "deal.photosDrop": "Drag & drop photos here (max {max})",
+  "deal.photosBrowse": "Choose photos",
+  "deal.photosRemove": "Remove photo",
   "deal.completePhotosRequired": "Please add at least one handoff photo.",
   "deal.completePhotosTooMany": "You can upload up to 5 photos.",
   "deal.completeConfirm": "Confirm handoff",
@@ -604,6 +607,9 @@ const en = {
   "account.senIntro.cancelBody":
     "Your pending request will be withdrawn. You can edit your details and submit again.",
   "account.senIntro.cancelFailed": "Could not cancel request",
+  "account.senDeposited.title": "Deposited pets",
+  "account.senDeposited.empty":
+    "Pets you have soft-deposited will show up here so you can track handoff.",
   "account.senStatus.title": "Breeder status",
   "account.senStatus.helper.unverified":
     "Submit verification details when you want to create listings for pets looking for a new home.",

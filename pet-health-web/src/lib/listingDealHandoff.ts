@@ -144,6 +144,30 @@ export function validateHandoffPhotos(files: File[]): string | null {
   return null;
 }
 
+const IMAGE_MIME_PREFIX = "image/";
+
+/** Append newly picked images, drop empties/non-images, cap at max. */
+export function mergeDealPhotoFiles(
+  existing: File[],
+  incoming: FileList | File[] | null | undefined,
+  max: number,
+): File[] {
+  const cap = Math.max(0, Math.floor(max));
+  const next = Array.isArray(incoming)
+    ? incoming
+    : incoming
+      ? Array.from(incoming)
+      : [];
+  const images = next.filter(
+    (f) => f && f.size > 0 && String(f.type || "").startsWith(IMAGE_MIME_PREFIX),
+  );
+  return [...existing, ...images].slice(0, cap);
+}
+
+export function dealPhotosDropHint(template: string, max: number): string {
+  return String(template || "").replace(/\{max\}/g, String(max));
+}
+
 export function validateCancelDepositRequest(input: {
   reasonKey: string;
   note: string;
