@@ -24,6 +24,7 @@ const DEAL_NOTIFICATION_TYPES = new Set([
   'deal_dispute_opened',
   'deal_dispute_resolved',
 ]);
+const CONVERSATION_MESSAGE_TYPE = 'conversation_message';
 const ADMIN_DEFAULT_CTA = {
   admin_breeder_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=breeder' },
   admin_listing_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=post' },
@@ -262,6 +263,58 @@ export async function createListingReviewNotification({
     comment_id: null,
     breeder_profile_id: trimText(metadata?.breeder_profile_id, 64) || null,
     type: safeType,
+    body_preview: trimText(bodyPreview, 220),
+    metadata: meta,
+    created_at: new Date().toISOString(),
+    read_at: null,
+  };
+
+  const supabase = getNotificationsSupabase(accessToken);
+  if (!supabase) {
+    memoryNotifications.push(row);
+    return enrichNotification(row, accessToken);
+  }
+
+  const { data, error } = await supabase.from('pet_feed_notifications').insert(row).select('*').single();
+  if (error) throw error;
+  return enrichNotification(data, accessToken);
+}
+
+/**
+ * Notify the other participant when a marketplace DM is sent.
+ */
+export async function createConversationMessageNotification({
+  recipientUserId,
+  actorUserId,
+  postId,
+  conversationId,
+  messageId,
+  bodyPreview,
+  accessToken,
+}) {
+  const recipient = trimText(recipientUserId, 64);
+  const actor = trimText(actorUserId, 64);
+  const safePostId = trimText(postId, 64) || null;
+  const safeConversationId = trimText(conversationId, 64);
+  const safeMessageId = trimText(messageId, 64);
+  if (!recipient || !actor || !safeConversationId) return null;
+  if (recipient === actor) return null;
+
+  const meta = normalizeMetadata({
+    conversation_id: safeConversationId,
+    message_id: safeMessageId || undefined,
+    cta_href: `/app/messages?c=${encodeURIComponent(safeConversationId)}`,
+    cta_label: 'Xem tin nhắn',
+  });
+
+  const row = {
+    id: randomUUID(),
+    recipient_user_id: recipient,
+    actor_user_id: actor,
+    post_id: safePostId,
+    comment_id: null,
+    breeder_profile_id: null,
+    type: CONVERSATION_MESSAGE_TYPE,
     body_preview: trimText(bodyPreview, 220),
     metadata: meta,
     created_at: new Date().toISOString(),

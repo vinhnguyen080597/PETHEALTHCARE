@@ -52,3 +52,18 @@ export function adminRequestHref(item: NotificationDeepLinkInput) {
   }
   return "/app/admin?section=requests";
 }
+
+/** Direct message notification → Messages thread. */
+export function conversationMessageHref(item: NotificationDeepLinkInput) {
+  const stored =
+    typeof item.metadata?.cta_href === "string" ? item.metadata.cta_href.trim() : "";
+  if (stored.startsWith("/app/messages")) return stored;
+  const conversationId =
+    (typeof item.metadata?.conversation_id === "string" &&
+      item.metadata.conversation_id.trim()) ||
+    "";
+  if (conversationId) {
+    return `/app/messages?c=${encodeURIComponent(conversationId)}`;
+  }
+  return "/app/messages";
+}

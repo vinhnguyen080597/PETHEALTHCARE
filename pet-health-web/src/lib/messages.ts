@@ -173,3 +173,47 @@ export function normalizeMessages(raw: unknown): MessageItem[] {
       Boolean(row && typeof row === "object" && typeof (row as MessageItem).id === "string"),
   );
 }
+
+/** Poll interval while Messages page is open (near-realtime without websocket). */
+export const MESSAGES_POLL_MS = 5_000;
+
+/** Inbox / chat badge poll (matches notification bell cadence). */
+export const MESSAGES_UNREAD_POLL_MS = 30_000;
+
+/** Merge server messages into local thread without dropping optimistic sends. */
+export function mergeMessageLists(
+  local: MessageItem[],
+  remote: MessageItem[],
+): MessageItem[] {
+  const byId = new Map<string, MessageItem>();
+  for (const row of local) {
+    if (row?.id) byId.set(row.id, row);
+  }
+  for (const row of remote) {
+    if (row?.id) byId.set(row.id, row);
+  }
+  return [...byId.values()].sort((a, b) =>
+    String(a.created_at || "").localeCompare(String(b.created_at || "")),
+  );
+}
+
+/** Prefer fresher remote inbox rows; keep local-only drafts if any. */
+export function mergeConversationLists(
+  local: MessageConversation[],
+  remote: MessageConversation[],
+): MessageConversation[] {
+  const byId = new Map<string, MessageConversation>();
+  for (const row of local) {
+    if (row?.id) byId.set(row.id, row);
+  }
+  for (const row of remote) {
+    if (!row?.id) continue;
+    const prev = byId.get(row.id);
+    byId.set(row.id, prev ? { ...prev, ...row } : row);
+  }
+  return [...byId.values()].sort((a, b) =>
+    String(b.last_message_at || b.updated_at || "").localeCompare(
+      String(a.last_message_at || a.updated_at || ""),
+    ),
+  );
+}

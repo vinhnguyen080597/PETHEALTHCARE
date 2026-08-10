@@ -14,6 +14,7 @@ const {
 } = await import('../src/repositories/petFeedRepository.js');
 const {
   countUnreadPetFeedNotifications,
+  createConversationMessageNotification,
   createPostCommentNotification,
   listPetFeedNotifications,
   markPetFeedNotificationsRead,
@@ -102,4 +103,36 @@ test('listing approval creates unread notification for post owner', async () => 
   const list = await listPetFeedNotifications(ownerId, null);
   assert.equal(list[0].type, 'listing_approved');
   assert.equal(list[0].post_id, post.id);
+});
+
+test('conversation message notifies the other participant', async () => {
+  __resetPetFeedNotificationsMemoryForTests();
+  const recipientId = `notif-dm-recv-${Date.now()}`;
+  const actorId = `notif-dm-send-${Date.now()}`;
+  const created = await createConversationMessageNotification({
+    recipientUserId: recipientId,
+    actorUserId: actorId,
+    postId: 'post-1',
+    conversationId: 'conv-1',
+    messageId: 'msg-1',
+    bodyPreview: 'Hello there',
+    accessToken: null,
+  });
+  assert.ok(created);
+  assert.equal(created.type, 'conversation_message');
+  assert.equal(created.metadata?.conversation_id, 'conv-1');
+  assert.equal(created.metadata?.cta_href, '/app/messages?c=conv-1');
+  assert.equal(await countUnreadPetFeedNotifications(recipientId, null), 1);
+  assert.equal(await countUnreadPetFeedNotifications(actorId, null), 0);
+
+  const self = await createConversationMessageNotification({
+    recipientUserId: actorId,
+    actorUserId: actorId,
+    postId: 'post-1',
+    conversationId: 'conv-1',
+    messageId: 'msg-2',
+    bodyPreview: 'noop',
+    accessToken: null,
+  });
+  assert.equal(self, null);
 });

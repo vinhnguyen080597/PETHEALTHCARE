@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { BRAND_AVATAR_PATH } from "../src/lib/brand";
+import {
+  BRAND_AVATAR_PATH,
+  BRAND_PRIMARY,
+  brandUi,
+} from "../src/lib/brand";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -20,4 +24,10 @@ test("app icon.png exists for tab favicon", () => {
     existsSync(path.join(root, "src", "app", "icon.png")),
     "missing src/app/icon.png",
   );
+});
+
+test("brand primary matches marketplace amber", () => {
+  assert.equal(BRAND_PRIMARY, "#D97706");
+  assert.match(brandUi.primaryBg, /D97706/);
+  assert.equal(brandUi.primarySoftBg, "bg-amber-50");
 });

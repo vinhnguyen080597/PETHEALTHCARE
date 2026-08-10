@@ -8,6 +8,7 @@ import { t } from "@/i18n";
 import { BRAND_AVATAR_PATH } from "@/lib/brand";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
+import { MessagesUnreadBadge } from "@/components/MessagesUnreadBadge";
 
 export function SiteHeader({
   lang,
@@ -80,22 +81,7 @@ export function SiteHeader({
         <div className="flex items-center gap-1 ml-auto">
           {isLoggedIn && (
             <>
-              <Link
-                href="/app/messages"
-                className="relative w-9 h-9 rounded-lg flex items-center justify-center text-stone-500 hover:bg-amber-50 hover:text-stone-900 transition-colors"
-                aria-label={t(lang, "nav.messages")}
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 18 18"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                >
-                  <path d="M15.5 11.5c0 .83-.67 1.5-1.5 1.5H5.5L2.5 15.5v-12C2.5 2.67 3.17 2 4 2h10c.83 0 1.5.67 1.5 1.5v8Z" />
-                </svg>
-              </Link>
+              <MessagesUnreadBadge label={t(lang, "nav.messages")} />
               <NotificationBell
                 initialCount={unreadNotificationCount}
                 label={t(lang, "nav.notifications")}

@@ -14,6 +14,9 @@ import {
   formatMessageTime,
   isConversationBreederViewer,
   isMineMessage,
+  mergeConversationLists,
+  mergeMessageLists,
+  MESSAGES_POLL_MS,
   normalizeConversations,
   normalizeMessages,
   resolveConversationPostSummary,
@@ -21,6 +24,7 @@ import {
   type MessageItem,
 } from "@/lib/messages";
 import { MessageThreadSkeleton } from "@/components/ui/Skeleton";
+import { brandUi } from "@/lib/brand";
 
 const MESSAGE_MAX_LEN = 2000;
 
@@ -60,7 +64,7 @@ function ListingContextCard({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={thumb} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-lg text-[#1E6FE8]">
+            <div className={`flex h-full w-full items-center justify-center text-lg ${brandUi.primaryText}`}>
               🐾
             </div>
           )}
@@ -171,6 +175,67 @@ export function MessagesClient({
     window.history.replaceState({}, "", `${url.pathname}?${url.searchParams.toString()}`);
   }, [activeId]);
 
+  // Near-realtime: poll inbox + active thread while the Messages page is visible.
+  useEffect(() => {
+    let cancelled = false;
+
+    const refresh = async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+      try {
+        const inboxRes = await fetch("/api/messages", { cache: "no-store" });
+        if (inboxRes.ok) {
+          const inboxJson = await inboxRes.json().catch(() => ({ data: [] }));
+          const remoteInbox = normalizeConversations(inboxJson.data);
+          if (!cancelled && remoteInbox.length >= 0) {
+            setConversations((prev) => mergeConversationLists(prev, remoteInbox));
+          }
+        }
+      } catch {
+        // Ignore transient poll errors.
+      }
+
+      if (!activeId || cancelled) return;
+      try {
+        const threadRes = await fetch(
+          `/api/messages/${encodeURIComponent(activeId)}`,
+          { cache: "no-store" },
+        );
+        if (!threadRes.ok) return;
+        const threadJson = await threadRes.json().catch(() => ({ data: [] }));
+        const remote = normalizeMessages(threadJson.data);
+        if (cancelled) return;
+        setMessages((prev) => mergeMessageLists(prev, remote));
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === activeId ? { ...c, has_unread: false } : c,
+          ),
+        );
+      } catch {
+        // Ignore transient poll errors.
+      }
+    };
+
+    void refresh();
+    const id = window.setInterval(() => {
+      void refresh();
+    }, MESSAGES_POLL_MS);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [activeId]);
+
   const send = async () => {
     if (!activeId || sending) return;
     const body = draft.trim().slice(0, MESSAGE_MAX_LEN);
@@ -263,8 +328,8 @@ export function MessagesClient({
                     <button
                       type="button"
                       onClick={() => setActiveId(c.id)}
-                      className={`w-full text-left px-3 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors ${
-                        active ? "bg-blue-50" : ""
+                      className={`w-full text-left px-3 py-3 border-b border-slate-50 hover:bg-amber-50/60 transition-colors ${
+                        active ? brandUi.primarySoftBg : ""
                       }`}
                     >
                       <div className="flex gap-3">
@@ -277,12 +342,14 @@ export function MessagesClient({
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[#1E6FE8]">
+                            <div className={`flex h-full w-full items-center justify-center ${brandUi.primaryText}`}>
                               🐾
                             </div>
                           )}
                           {c.has_unread ? (
-                            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#1E6FE8] ring-2 ring-white" />
+                            <span
+                              className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ${brandUi.primaryDot} ring-2 ring-white`}
+                            />
                           ) : null}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -373,7 +440,7 @@ export function MessagesClient({
                       <div
                         className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-5 ${
                           mine
-                            ? "bg-[#1E6FE8] text-white rounded-br-md"
+                            ? `${brandUi.primaryBg} text-white rounded-br-md`
                             : "bg-slate-100 text-slate-800 rounded-bl-md"
                         }`}
                       >
@@ -406,13 +473,13 @@ export function MessagesClient({
                     }}
                     placeholder={t(lang, "messages.placeholder")}
                     disabled={sending}
-                    className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6FE8]/20 disabled:opacity-60"
+                    className={`flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 ${brandUi.primaryFocusRing} disabled:opacity-60`}
                   />
                   <button
                     type="button"
                     onClick={() => void send()}
                     disabled={sending || !draft.trim()}
-                    className="px-4 py-2.5 bg-[#1E6FE8] text-white text-sm font-semibold rounded-full disabled:opacity-50"
+                    className={`px-4 py-2.5 ${brandUi.primaryBg} ${brandUi.primaryBgHover} text-white text-sm font-semibold rounded-full disabled:opacity-50`}
                   >
                     {t(lang, "detail.send")}
                   </button>
@@ -423,7 +490,7 @@ export function MessagesClient({
         </section>
       </div>
       <p className="mt-4 text-xs text-slate-400">
-        <Link href="/app/pet-feed" className="text-[#1E6FE8]">
+        <Link href="/app/pet-feed" className={`${brandUi.primaryText} hover:underline`}>
           ← {t(lang, "nav.browse")}
         </Link>
       </p>

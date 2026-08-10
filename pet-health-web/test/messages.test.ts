@@ -10,6 +10,8 @@ import {
   formatMessageTime,
   isConversationBreederViewer,
   isMineMessage,
+  mergeConversationLists,
+  mergeMessageLists,
   normalizeConversations,
   resolveConversationPostSummary,
 } from "../src/lib/messages";
@@ -115,4 +117,38 @@ test("messages i18n parity keys exist EN/VI", () => {
     assert.ok(viDict[key], `missing VI ${key}`);
   }
   assert.equal(viDict["messages.emptyTitle"], "Chưa có hội thoại");
+});
+
+test("mergeMessageLists and mergeConversationLists prefer remote updates", () => {
+  const mergedMsgs = mergeMessageLists(
+    [
+      { id: "m1", body: "a", created_at: "2026-01-01T00:00:00.000Z" },
+      { id: "m2", body: "local", created_at: "2026-01-01T00:01:00.000Z" },
+    ],
+    [
+      { id: "m2", body: "remote", created_at: "2026-01-01T00:01:00.000Z" },
+      { id: "m3", body: "new", created_at: "2026-01-01T00:02:00.000Z" },
+    ],
+  );
+  assert.deepEqual(
+    mergedMsgs.map((m) => m.id),
+    ["m1", "m2", "m3"],
+  );
+  assert.equal(mergedMsgs.find((m) => m.id === "m2")?.body, "remote");
+
+  const mergedInbox = mergeConversationLists(
+    [{ id: "c1", has_unread: true, last_message_at: "2026-01-01T00:00:00.000Z" }],
+    [
+      {
+        id: "c1",
+        has_unread: false,
+        last_message_at: "2026-01-01T00:05:00.000Z",
+        last_message_preview: "hi",
+      },
+      { id: "c2", has_unread: true, last_message_at: "2026-01-01T00:06:00.000Z" },
+    ],
+  );
+  assert.equal(mergedInbox[0]?.id, "c2");
+  assert.equal(mergedInbox.find((c) => c.id === "c1")?.has_unread, false);
+  assert.equal(mergedInbox.find((c) => c.id === "c1")?.last_message_preview, "hi");
 });

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
 import { getPetFeedPost, isPetFeedPostOpenForEngagement } from './petFeedRepository.js';
+import { createConversationMessageNotification } from './petFeedNotificationsRepository.js';
 
 const memoryConversations = [];
 const memoryMessages = [];
@@ -380,6 +381,17 @@ export async function sendPetFeedConversationMessage(userId, conversationId, bod
         ...conversationPatch,
       };
     }
+    const recipientUserId =
+      userId === row.sen_user_id ? row.breeder_user_id : row.sen_user_id;
+    void createConversationMessageNotification({
+      recipientUserId,
+      actorUserId: userId,
+      postId: row.post_id,
+      conversationId: row.id,
+      messageId: message.id,
+      bodyPreview: trimmed,
+      accessToken,
+    }).catch(() => null);
     return toMessage(message);
   }
 
@@ -390,5 +402,16 @@ export async function sendPetFeedConversationMessage(userId, conversationId, bod
     .update(conversationPatch)
     .eq('id', row.id);
   if (updateError) throw updateError;
+  const recipientUserId =
+    userId === row.sen_user_id ? row.breeder_user_id : row.sen_user_id;
+  void createConversationMessageNotification({
+    recipientUserId,
+    actorUserId: userId,
+    postId: row.post_id,
+    conversationId: row.id,
+    messageId: data.id,
+    bodyPreview: trimmed,
+    accessToken,
+  }).catch(() => null);
   return toMessage(data);
 }

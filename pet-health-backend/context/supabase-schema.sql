@@ -719,7 +719,8 @@ create table if not exists public.pet_feed_notifications (
     'deal_dispute_opened',
     'deal_dispute_resolved',
     'listing_approved',
-    'listing_rejected'
+    'listing_rejected',
+    'conversation_message'
   )),
   body_preview text not null default '',
   metadata jsonb not null default '{}'::jsonb,
