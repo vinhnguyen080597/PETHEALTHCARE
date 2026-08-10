@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { formatNotificationBadge } from "@/lib/notifications/badge";
+import { formatNotificationBadge, HEADER_UNREAD_BADGE_CLASS } from "@/lib/notifications/badge";
 import {
   countUnreadConversations,
   MESSAGES_UNREAD_POLL_MS,
@@ -70,7 +70,7 @@ export function MessagesUnreadBadge({
         <path d="M15.5 11.5c0 .83-.67 1.5-1.5 1.5H5.5L2.5 15.5v-12C2.5 2.67 3.17 2 4 2h10c.83 0 1.5.67 1.5 1.5v8Z" />
       </svg>
       {count > 0 ? (
-        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#D97706] text-[10px] font-bold text-white flex items-center justify-center leading-none">
+        <span className={HEADER_UNREAD_BADGE_CLASS}>
           {formatNotificationBadge(count)}
         </span>
       ) : null}

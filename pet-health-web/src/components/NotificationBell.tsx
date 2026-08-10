@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { formatNotificationBadge } from "@/lib/notifications/badge";
+import { formatNotificationBadge, HEADER_UNREAD_BADGE_CLASS } from "@/lib/notifications/badge";
 
 const POLL_MS = 30_000;
 
@@ -86,7 +86,7 @@ export function NotificationBell({
         <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
       </svg>
       {count > 0 ? (
-        <span className="absolute top-1 right-1 min-w-4 h-4 px-1 bg-[#EF4444] text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+        <span className={HEADER_UNREAD_BADGE_CLASS}>
           {formatNotificationBadge(count)}
         </span>
       ) : null}

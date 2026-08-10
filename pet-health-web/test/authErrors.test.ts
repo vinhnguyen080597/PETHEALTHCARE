@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatNotificationBadge } from "../src/lib/notifications/badge";
+import { formatNotificationBadge, HEADER_UNREAD_BADGE_CLASS } from "../src/lib/notifications/badge";
 import {
   fillEmail,
   fillSeconds,
@@ -14,6 +14,13 @@ test("formatNotificationBadge caps at 99+", () => {
   assert.equal(formatNotificationBadge(99), "99");
   assert.equal(formatNotificationBadge(100), "99+");
   assert.equal(formatNotificationBadge(-3), "0");
+});
+
+test("header unread badge uses brand amber pill style", () => {
+  assert.match(HEADER_UNREAD_BADGE_CLASS, /bg-\[#D97706\]/);
+  assert.match(HEADER_UNREAD_BADGE_CLASS, /text-\[9px\]/);
+  assert.match(HEADER_UNREAD_BADGE_CLASS, /top-1 right-1/);
+  assert.match(HEADER_UNREAD_BADGE_CLASS, /rounded-full/);
 });
 
 test("isValidEmail validates basic addresses", () => {
