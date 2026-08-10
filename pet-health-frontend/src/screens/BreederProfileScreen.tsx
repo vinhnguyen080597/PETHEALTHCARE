@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Linking, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ACTIVE_BREEDER_SPECIES_OPTIONS } from '../constants/petSpecies';
+import { APP_LINKS } from '../config';
 import type { BreederProfile, UpsertBreederProfilePayload } from '../types';
 
 const PRIMARY = '#1E6FE8';
@@ -381,9 +382,35 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
         <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-base font-bold text-slate-900">{t('breederProfile.commitmentsTitle')}</Text>
           <View className="mt-3 gap-2">
-            {COMMITMENT_OPTIONS.map((item) => (
-              <CheckboxRow key={item} label={t(`breederProfile.commitments.${item}`)} checked={commitments.includes(item)} onPress={() => setCommitments((current) => toggleArrayValue(current, item))} />
-            ))}
+            <CheckboxRow
+              checked={allCommitmentsAccepted}
+              onPress={() =>
+                setCommitments((current) =>
+                  allCommitmentsAccepted
+                    ? current.filter((item) => !(COMMITMENT_OPTIONS as readonly string[]).includes(item))
+                    : Array.from(new Set([...current, ...COMMITMENT_OPTIONS])),
+                )
+              }
+              label={
+                <Text className="text-sm leading-5 text-slate-700">
+                  {t('breederProfile.commitments.combinedBefore')}
+                  <Text
+                    className="font-semibold text-blue-700"
+                    onPress={() => void Linking.openURL(APP_LINKS.termsOfService)}
+                  >
+                    {t('breederProfile.commitments.termsLink')}
+                  </Text>
+                  {t('breederProfile.commitments.and')}
+                  <Text
+                    className="font-semibold text-blue-700"
+                    onPress={() => void Linking.openURL(APP_LINKS.marketplaceGuidelines)}
+                  >
+                    {t('breederProfile.commitments.guidelinesLink')}
+                  </Text>
+                  {t('breederProfile.commitments.combinedAfter')}
+                </Text>
+              }
+            />
           </View>
           {allCommitmentsAccepted ? (
             <Pressable testID="breeder-profile-save-button" className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90" onPress={submit} disabled={submitting}>
@@ -454,7 +481,15 @@ function OptionChip({ label, active, onPress }: { label: string; active: boolean
   );
 }
 
-function CheckboxRow({ label, checked, onPress }: { label: string; checked: boolean; onPress: () => void }) {
+function CheckboxRow({
+  label,
+  checked,
+  onPress,
+}: {
+  label: ReactNode;
+  checked: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -465,7 +500,7 @@ function CheckboxRow({ label, checked, onPress }: { label: string; checked: bool
       <View className={`mt-0.5 h-5 w-5 items-center justify-center rounded-md border ${checked ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'}`}>
         {checked ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
       </View>
-      <Text className="min-w-0 flex-1 text-sm leading-5 text-slate-700">{label}</Text>
+      <View className="min-w-0 flex-1">{typeof label === 'string' ? <Text className="text-sm leading-5 text-slate-700">{label}</Text> : label}</View>
     </Pressable>
   );
 }

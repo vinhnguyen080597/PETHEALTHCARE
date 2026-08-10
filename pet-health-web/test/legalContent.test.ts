@@ -34,11 +34,18 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   const termsVi = flattenLegalDoc(termsOfServiceContent.VI);
   assert.match(termsVi, /không phải người bán/);
   assert.match(termsVi, /bảo hành/);
+  assert.match(termsVi, /quảng bá, truyền thông/);
+  assert.match(flattenLegalDoc(termsOfServiceContent.EN), /marketing or communications/i);
 
   const guideVi = flattenLegalDoc(marketplaceGuidelinesContent.VI);
   assert.match(guideVi, /bàn giao/);
   assert.match(guideVi, /tranh chấp/);
   assert.match(guideVi, /động vật bảo tồn/);
+  assert.match(guideVi, /quảng bá, truyền thông/);
+  assert.match(
+    flattenLegalDoc(marketplaceGuidelinesContent.EN),
+    /marketing or communications/i,
+  );
 
   const supportVi = flattenLegalDoc(supportContent.VI);
   assert.match(

@@ -692,7 +692,7 @@ const en = {
   "breederForm.saved": "Submitted for admin review.",
   "breederForm.saveFailed": "Could not submit breeder request.",
   "breederForm.commitmentsRequired":
-    "Please accept all transparency commitments before submitting.",
+    "Please accept the transparency commitment before submitting.",
   "breederForm.field.displayNameRequired": "Please enter a display name.",
   "breederForm.field.locationRequired": "Please enter a location.",
   "breederForm.field.phoneRequired": "Please enter a phone number.",
@@ -733,6 +733,12 @@ const en = {
     "I confirm the information I submit is accurate and can be verified.",
   "breederForm.commitment.app_only_verification":
     "I understand verification is for PetCare: Pet Marketplace listing access and does not replace in-person checks.",
+  "breederForm.commitment.combinedBefore":
+    "I confirm the information I submit is accurate and can be verified; I understand verification is for PetCare: Pet Marketplace listing access and does not replace in-person checks. I have read and understand the ",
+  "breederForm.commitment.termsLink": "Terms of Service",
+  "breederForm.commitment.and": " and ",
+  "breederForm.commitment.guidelinesLink": "Marketplace Guidelines",
+  "breederForm.commitment.combinedAfter": ".",
 
   "listing.status.draft": "Draft",
   "listing.status.pending_review": "Pending review",

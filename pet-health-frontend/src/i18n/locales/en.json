@@ -795,7 +795,7 @@
     "rejectionNote": "Guidance",
     "checkAndEdit": "Check",
     "retry": "Try again",
-    "commitmentsRequired": "Please accept all transparency commitments before submitting your verification request.",
+    "commitmentsRequired": "Please accept the transparency commitment before submitting your verification request.",
     "breederTypes": {
       "registered_kennel": "Officially registered kennel",
       "home_breeder": "Small home breeder",
@@ -838,7 +838,12 @@
     },
     "commitments": {
       "accurate_information": "I confirm the provided information is accurate.",
-      "app_only_verification": "I understand Breeder verification only applies inside PetCare: Pet Marketplace."
+      "app_only_verification": "I understand Breeder verification only applies inside PetCare: Pet Marketplace.",
+      "combinedBefore": "I confirm the information I submit is accurate and can be verified; I understand verification is for PetCare: Pet Marketplace listing access and does not replace in-person checks. I have read and understand the ",
+      "termsLink": "Terms of Service",
+      "and": " and ",
+      "guidelinesLink": "Marketplace Guidelines",
+      "combinedAfter": "."
     }
   },
   "createPetFeedPost": {

@@ -13,6 +13,10 @@ import {
   resolveBreederCoverUrl,
 } from "@/lib/breederProfileImages";
 import { LISTING_SPECIES } from "@/lib/listingFormOptions";
+import {
+  hasAllBreederCommitments,
+  setBreederCommitmentsAccepted,
+} from "@/lib/breederCommitments";
 
 const BREEDER_TYPES = [
   "registered_kennel",
@@ -30,10 +34,6 @@ const CARE_CHECKLIST = [
   "vet_records",
   "environment_media",
   "in_person_meet",
-] as const;
-const COMMITMENTS = [
-  "accurate_information",
-  "app_only_verification",
 ] as const;
 
 const inputCls =
@@ -266,10 +266,7 @@ export function BreederProfileForm({
       return;
     }
     setFieldErrors({});
-    if (
-      !commitments.includes("accurate_information") ||
-      !commitments.includes("app_only_verification")
-    ) {
+    if (!hasAllBreederCommitments(commitments)) {
       setError(t(lang, "breederForm.commitmentsRequired"));
       return;
     }
@@ -722,22 +719,39 @@ export function BreederProfileForm({
 
         <div>
           <p className={labelCls}>{t(lang, "breederForm.commitments")}</p>
-          <div className="space-y-2">
-            {COMMITMENTS.map((item) => (
-              <label
-                key={item}
-                className="flex items-start gap-2 text-sm text-[#2B1E19]"
+          <label className="flex items-start gap-2 text-sm text-[#2B1E19]">
+            <input
+              type="checkbox"
+              className="mt-1 accent-[#D97706]"
+              checked={hasAllBreederCommitments(commitments)}
+              onChange={(e) =>
+                setCommitments(
+                  setBreederCommitmentsAccepted(commitments, e.target.checked),
+                )
+              }
+            />
+            <span>
+              {t(lang, "breederForm.commitment.combinedBefore")}
+              <Link
+                href="/terms-of-service"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[#D97706] underline underline-offset-2"
               >
-                <input
-                  type="checkbox"
-                  className="mt-1 accent-[#D97706]"
-                  checked={commitments.includes(item)}
-                  onChange={() => setCommitments(toggle(commitments, item))}
-                />
-                <span>{t(lang, `breederForm.commitment.${item}`)}</span>
-              </label>
-            ))}
-          </div>
+                {t(lang, "breederForm.commitment.termsLink")}
+              </Link>
+              {t(lang, "breederForm.commitment.and")}
+              <Link
+                href="/marketplace-guidelines"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[#D97706] underline underline-offset-2"
+              >
+                {t(lang, "breederForm.commitment.guidelinesLink")}
+              </Link>
+              {t(lang, "breederForm.commitment.combinedAfter")}
+            </span>
+          </label>
         </div>
 
         {error ? (

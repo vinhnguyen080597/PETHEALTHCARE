@@ -40,7 +40,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Sharing and visibility",
         paragraphs: [
-          "We do not sell personal data. Information you put in public listings or farm profiles is visible to other users. Contact details and chat content are shared with the people you message as part of normal marketplace use. Admins may access relevant records to investigate reports, disputes, or safety issues.",
+          "We do not sell personal data. Information you put in public listings or farm profiles is visible to other users. Contact details and chat content are shared with the people you message as part of normal marketplace use. Admins may access relevant records to investigate reports, disputes, or safety issues. Pet photos and videos you upload may also be used for product operation and marketing as described in the Terms of Service and Marketplace Guidelines.",
         ],
       },
       {
@@ -80,7 +80,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Chia sẻ và hiển thị",
         paragraphs: [
-          "Chúng tôi không bán dữ liệu cá nhân. Thông tin bạn đưa lên tin công khai hoặc hồ sơ trại có thể được người dùng khác xem. Thông tin liên hệ và nội dung chat được chia sẻ với người bạn nhắn tin trong quá trình dùng marketplace. Admin có thể truy cập hồ sơ liên quan để xử lý báo cáo, tranh chấp hoặc vấn đề an toàn.",
+          "Chúng tôi không bán dữ liệu cá nhân. Thông tin bạn đưa lên tin công khai hoặc hồ sơ trại có thể được người dùng khác xem. Thông tin liên hệ và nội dung chat được chia sẻ với người bạn nhắn tin trong quá trình dùng marketplace. Admin có thể truy cập hồ sơ liên quan để xử lý báo cáo, tranh chấp hoặc vấn đề an toàn. Ảnh và video thú bạn tải lên cũng có thể được dùng để vận hành sản phẩm và truyền thông theo Điều khoản dịch vụ và Nội quy Marketplace.",
         ],
       },
       {
@@ -125,6 +125,12 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
         ],
       },
       {
+        heading: "Photos, videos, and promotion",
+        paragraphs: [
+          "By uploading pet photos or videos to PetCare: Pet Marketplace (including listings, farm profiles, and handoff media), you grant PetCare: Pet Marketplace a non-exclusive, royalty-free license to use, reproduce, lightly edit (crop, compose, watermark), and publish that media to operate the product and for marketing or communications. You confirm you have the right to grant this license and that the content does not infringe third-party rights.",
+        ],
+      },
+      {
         heading: "Accounts and moderation",
         paragraphs: [
           "We may review Breeder verification and listings, remove content, cancel abusive deals, or suspend accounts that violate these Terms, Guidelines, or law. Features may change as we improve the product.",
@@ -163,6 +169,12 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
         ],
       },
       {
+        heading: "Ảnh, video và truyền thông",
+        paragraphs: [
+          "Khi bạn tải ảnh hoặc video thú cưng lên PetCare: Pet Marketplace (gồm tin đăng, hồ sơ trại và media bàn giao), bạn cấp cho PetCare: Pet Marketplace quyền không độc quyền, miễn phí bản quyền để sử dụng, sao chép, chỉnh sửa nhẹ (cắt, ghép, gắn watermark) và công bố nội dung đó nhằm vận hành sản phẩm cũng như quảng bá, truyền thông. Bạn xác nhận mình có quyền cấp phép này và nội dung không xâm phạm quyền của bên thứ ba.",
+        ],
+      },
+      {
         heading: "Tài khoản và kiểm duyệt",
         paragraphs: [
           "Chúng tôi có thể duyệt xác minh Breeder và tin đăng, gỡ nội dung, xử lý giao dịch lạm dụng, hoặc tạm khóa tài khoản vi phạm Điều khoản, Nội quy hoặc pháp luật. Tính năng có thể thay đổi khi sản phẩm được cải thiện.",
@@ -189,6 +201,13 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
           "Describe age, breed, sex, vaccines, health, price, location, and warranty honestly. Photos and videos must match the pet offered.",
           "Attach a clear warranty policy before confirming a soft deposit when the product requires it.",
           "Breeder / farm profiles must reflect real care practices; do not fake verification or trust signals.",
+        ],
+      },
+      {
+        heading: "Media for promotion",
+        bullets: [
+          "Photos and videos you publish on listings or farm profiles may be used by PetCare: Pet Marketplace to operate the product and for marketing or communications (including crop, compose, and watermark), under a non-exclusive, royalty-free license.",
+          "Only upload media you have the right to share. Do not upload content that infringes others’ rights.",
         ],
       },
       {
@@ -227,6 +246,13 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
           "Khai đúng tuổi, giống, giới tính, vaccine, sức khỏe, giá, khu vực và bảo hành. Ảnh / video phải đúng bé đang chào bán.",
           "Gắn chính sách bảo hành rõ ràng trước khi chốt cọc khi sản phẩm yêu cầu.",
           "Hồ sơ Breeder / trại phải phản ánh thực tế chăm sóc; không giả mạo xác minh hay tín hiệu uy tín.",
+        ],
+      },
+      {
+        heading: "Media phục vụ truyền thông",
+        bullets: [
+          "Ảnh và video bạn đăng trên tin hoặc hồ sơ trại có thể được PetCare: Pet Marketplace dùng để vận hành sản phẩm và cho mục đích quảng bá, truyền thông (kể cả cắt, ghép, gắn watermark), theo giấy phép không độc quyền và miễn phí bản quyền.",
+          "Chỉ tải lên media mà bạn có quyền chia sẻ. Không đăng nội dung xâm phạm quyền của người khác.",
         ],
       },
       {

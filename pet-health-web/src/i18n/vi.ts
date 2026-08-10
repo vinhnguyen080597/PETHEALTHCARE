@@ -696,7 +696,7 @@ const vi: Record<EnKey, string> = {
   "breederForm.saved": "Đã gửi để admin duyệt.",
   "breederForm.saveFailed": "Không gửi được hồ sơ Breeder.",
   "breederForm.commitmentsRequired":
-    "Vui lòng chấp nhận đầy đủ cam kết minh bạch trước khi gửi.",
+    "Vui lòng chấp nhận cam kết minh bạch trước khi gửi.",
   "breederForm.field.displayNameRequired": "Vui lòng nhập tên hiển thị.",
   "breederForm.field.locationRequired": "Vui lòng nhập khu vực.",
   "breederForm.field.phoneRequired": "Vui lòng nhập số điện thoại.",
@@ -737,6 +737,12 @@ const vi: Record<EnKey, string> = {
     "Tôi xác nhận thông tin gửi đi là chính xác và có thể kiểm chứng.",
   "breederForm.commitment.app_only_verification":
     "Tôi hiểu xác minh chỉ để đăng tin trên PetCare: Pet Marketplace, không thay thế kiểm tra trực tiếp.",
+  "breederForm.commitment.combinedBefore":
+    "Tôi xác nhận thông tin gửi đi là chính xác và có thể kiểm chứng; hiểu xác minh chỉ để đăng tin trên PetCare: Pet Marketplace, không thay thế kiểm tra trực tiếp. Tôi đã đọc và hiểu ",
+  "breederForm.commitment.termsLink": "Điều khoản dịch vụ",
+  "breederForm.commitment.and": " và ",
+  "breederForm.commitment.guidelinesLink": "Nội quy Marketplace",
+  "breederForm.commitment.combinedAfter": ".",
 
   "listing.status.draft": "Bản nháp",
   "listing.status.pending_review": "Chờ duyệt",

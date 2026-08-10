@@ -795,7 +795,7 @@
     "rejectionNote": "Hướng dẫn",
     "checkAndEdit": "Kiểm tra",
     "retry": "Thử lại",
-    "commitmentsRequired": "Vui lòng tick đầy đủ cam kết minh bạch để gửi yêu cầu xác minh.",
+    "commitmentsRequired": "Vui lòng chấp nhận cam kết minh bạch để gửi yêu cầu xác minh.",
     "breederTypes": {
       "registered_kennel": "Trại đăng ký chính thức",
       "home_breeder": "Hộ gia đình nuôi sinh sản nhỏ",
@@ -838,7 +838,12 @@
     },
     "commitments": {
       "accurate_information": "Tôi cam kết thông tin cung cấp là đúng sự thật.",
-      "app_only_verification": "Tôi hiểu xác minh Breeder chỉ áp dụng trong PetCare: Pet Marketplace."
+      "app_only_verification": "Tôi hiểu xác minh Breeder chỉ áp dụng trong PetCare: Pet Marketplace.",
+      "combinedBefore": "Tôi xác nhận thông tin gửi đi là chính xác và có thể kiểm chứng; hiểu xác minh chỉ để đăng tin trên PetCare: Pet Marketplace, không thay thế kiểm tra trực tiếp. Tôi đã đọc và hiểu ",
+      "termsLink": "Điều khoản dịch vụ",
+      "and": " và ",
+      "guidelinesLink": "Nội quy Marketplace",
+      "combinedAfter": "."
     }
   },
   "createPetFeedPost": {
