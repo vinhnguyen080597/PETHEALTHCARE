@@ -422,6 +422,7 @@ function AppContent() {
                 onFetchPostComments={app.fetchPetFeedPostComments}
                 onSubmitPostComment={app.submitPetFeedComment}
                 onDeletePostComment={app.deletePetFeedComment}
+                onMutateListingDeal={app.mutateListingDeal}
                 currentUserId={app.accountProfile?.user_id ?? null}
                 allowMediaDownload={app.accountProfile?.primary_role === 'admin'}
               />

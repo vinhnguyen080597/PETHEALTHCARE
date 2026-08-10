@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/session";
-import { cancelListingDeposit } from "@/lib/api/petFeed";
+import { requestListingDispute } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
 
 export async function POST(
@@ -16,14 +16,16 @@ export async function POST(
     const { postId } = await params;
     const incoming = await req.formData();
     const formData = new FormData();
-    const reason = incoming.get("reason");
-    if (reason != null && reason !== "") formData.set("reason", String(reason));
+    const message = incoming.get("message");
+    if (message != null && message !== "") {
+      formData.set("message", String(message));
+    }
     for (const photo of incoming.getAll("photos")) {
       if (photo instanceof File && photo.size > 0) {
         formData.append("photos", photo);
       }
     }
-    const result = await cancelListingDeposit(token, postId, formData);
+    const result = await requestListingDispute(token, postId, formData);
     revalidateTag("public-posts");
     revalidateTag(postId);
     revalidatePath(`/app/pet-feed/posts/${postId}`);
@@ -35,6 +37,6 @@ export async function POST(
         { status: err.status },
       );
     }
-    return NextResponse.json({ error: "Failed to cancel deposit" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to open dispute" }, { status: 500 });
   }
 }

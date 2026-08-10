@@ -356,13 +356,41 @@ export async function listSenUsers(
   });
 }
 
-export async function cancelListingDeposit(token: string, postId: string) {
-  return fetchJson<{ data: ApiPetFeedPost }>(
+export async function cancelListingDeposit(
+  token: string,
+  postId: string,
+  formData: FormData,
+) {
+  return fetchMultipart<{ data: ApiPetFeedPost; pending_confirm?: boolean }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/cancel`,
+    formData,
+    token,
+  );
+}
+
+export async function confirmListingCancelDeposit(token: string, postId: string) {
+  return fetchJson<{ data: ApiPetFeedPost }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/cancel/confirm`,
     {
       method: "POST",
       token,
     },
+  );
+}
+
+export async function requestListingComplete(
+  token: string,
+  postId: string,
+  formData: FormData,
+) {
+  return fetchMultipart<{
+    data: ApiPetFeedPost;
+    both_confirmed?: boolean;
+    complete_deadline_at?: string;
+  }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/complete/request`,
+    formData,
+    token,
   );
 }
 
@@ -372,6 +400,40 @@ export async function confirmListingComplete(token: string, postId: string) {
     {
       method: "POST",
       token,
+    },
+  );
+}
+
+export async function requestListingDispute(
+  token: string,
+  postId: string,
+  formData: FormData,
+) {
+  return fetchMultipart<{ data: ApiPetFeedPost; report?: unknown }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/complete/dispute`,
+    formData,
+    token,
+  );
+}
+
+export async function adminForceCompleteListing(token: string, postId: string) {
+  return fetchJson<{ data: ApiPetFeedPost }>(
+    `/admin/pet-feed/posts/${encodeURIComponent(postId)}/deal/force-complete`,
+    {
+      method: "POST",
+      token,
+      body: {},
+    },
+  );
+}
+
+export async function adminForceCancelListing(token: string, postId: string) {
+  return fetchJson<{ data: ApiPetFeedPost }>(
+    `/admin/pet-feed/posts/${encodeURIComponent(postId)}/deal/force-cancel`,
+    {
+      method: "POST",
+      token,
+      body: {},
     },
   );
 }

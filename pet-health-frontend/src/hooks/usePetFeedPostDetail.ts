@@ -53,5 +53,5 @@ export function usePetFeedPostDetail(
     [detailPost, listPost, selectedPostId],
   );
 
-  return { selectedPost, detailLoading };
+  return { selectedPost, detailLoading, replaceDetailPost: setDetailPost };
 }

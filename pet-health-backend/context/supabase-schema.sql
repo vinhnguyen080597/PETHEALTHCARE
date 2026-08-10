@@ -692,9 +692,12 @@ create table if not exists public.pet_feed_notifications (
     'admin_report_open',
     'deposit_request',
     'deposit_confirmed',
+    'deposit_cancel_request',
     'deposit_cancelled',
     'deal_complete_request',
     'deal_completed',
+    'deal_dispute_opened',
+    'deal_dispute_resolved',
     'listing_approved',
     'listing_rejected'
   )),
@@ -716,9 +719,12 @@ alter table public.pet_feed_notifications
     'admin_report_open',
     'deposit_request',
     'deposit_confirmed',
+    'deposit_cancel_request',
     'deposit_cancelled',
     'deal_complete_request',
     'deal_completed',
+    'deal_dispute_opened',
+    'deal_dispute_resolved',
     'listing_approved',
     'listing_rejected'
   ));

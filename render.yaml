@@ -73,3 +73,23 @@ services:
         value: "0"
       - key: ADMIN_INTERNAL_API_KEY
         sync: false
+
+  - type: cron
+    name: pet-health-auto-complete-handoffs
+    runtime: node
+    plan: free
+    rootDir: pet-health-backend
+    schedule: "0 * * * *"
+    buildCommand: npm install
+    startCommand: node scripts/runAutoCompleteHandoffs.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: ADMIN_INTERNAL_API_KEY
+        sync: false

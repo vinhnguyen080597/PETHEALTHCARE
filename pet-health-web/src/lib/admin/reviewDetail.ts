@@ -185,3 +185,67 @@ export function toggleExpandedReviewId(
 ): string | null {
   return current === nextId ? null : nextId;
 }
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function stringUrlList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.trim().length > 0,
+  );
+}
+
+export function isDealDisputeReport(reason?: string | null): boolean {
+  return String(reason || "")
+    .trim()
+    .toLowerCase() === "deal_dispute";
+}
+
+export function dealDisputeFromPost(
+  post: AdminReviewPost | null | undefined,
+): {
+  dealStatus: string;
+  message: string;
+  evidenceUrls: string[];
+  handoffPhotos: string[];
+} | null {
+  const meta = asRecord(post?.metadata);
+  const deal = asRecord(meta?.deal);
+  if (!deal) return null;
+  const dispute = asRecord(deal.dispute);
+  const message = String(dispute?.message || "").trim();
+  const evidenceUrls = stringUrlList(
+    dispute?.evidence_urls ?? dispute?.evidenceUrls,
+  );
+  const handoffPhotos = stringUrlList(
+    deal.handoff_photos ?? deal.handoffPhotos,
+  );
+  const dealStatus = String(deal.status || "").trim().toLowerCase();
+  if (!message && evidenceUrls.length < 1 && handoffPhotos.length < 1) {
+    return dealStatus ? { dealStatus, message: "", evidenceUrls: [], handoffPhotos: [] } : null;
+  }
+  return { dealStatus, message, evidenceUrls, handoffPhotos };
+}
+
+export function canAdminForceResolveDeal(input: {
+  reportReason?: string | null;
+  reportStatus?: string | null;
+  linkedPostStatus?: string | null;
+}): boolean {
+  if (!isDealDisputeReport(input.reportReason)) return false;
+  if (
+    String(input.reportStatus || "")
+      .trim()
+      .toLowerCase() !== "open"
+  ) {
+    return false;
+  }
+  return (
+    String(input.linkedPostStatus || "")
+      .trim()
+      .toLowerCase() === "deposit_hold"
+  );
+}

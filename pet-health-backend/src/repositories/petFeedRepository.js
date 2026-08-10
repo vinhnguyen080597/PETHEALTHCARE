@@ -2496,6 +2496,9 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
   }
 
   const now = new Date().toISOString();
+  const priorStatus = String(deal.status || '').trim().toLowerCase();
+  // Only scrub when starting a brand-new cycle after a closed deal (not mid pending_sen confirm).
+  const startingFreshCycle = priorStatus === 'cancelled' || priorStatus === 'completed';
   const nextDeal = {
     ...deal,
     status: deal.status || 'pending_sen',
@@ -2503,9 +2506,32 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
     sen_display_name: senDisplayName || null,
     sen_email: senEmail || null,
     policy_id_at_request: policyId || deal.policy_id_at_request || null,
-    breeder_confirmed_deposit_at: deal.breeder_confirmed_deposit_at || null,
-    sen_confirmed_deposit_at: deal.sen_confirmed_deposit_at || null,
+    breeder_confirmed_deposit_at: startingFreshCycle
+      ? null
+      : (deal.breeder_confirmed_deposit_at || null),
+    sen_confirmed_deposit_at: startingFreshCycle
+      ? null
+      : (deal.sen_confirmed_deposit_at || null),
   };
+  if (startingFreshCycle) {
+    // Do not carry closed dispute / handoff leftovers into a new soft-deposit cycle.
+    nextDeal.dispute = null;
+    nextDeal.handoff_photos = [];
+    nextDeal.complete_requested_at = null;
+    nextDeal.complete_deadline_at = null;
+    nextDeal.cancel_reason = null;
+    nextDeal.cancel_photos = [];
+    nextDeal.cancel_requested_at = null;
+    nextDeal.breeder_confirmed_complete_at = null;
+    nextDeal.sen_confirmed_complete_at = null;
+    nextDeal.completed_at = null;
+    nextDeal.completed_by_system = null;
+    nextDeal.completed_by_admin = null;
+    nextDeal.admin_resolution = null;
+    nextDeal.admin_resolved_at = null;
+    nextDeal.admin_resolved_by = null;
+    nextDeal.cancelled_by_admin = null;
+  }
 
   if (actorUserId === breederUserId) {
     nextDeal.breeder_confirmed_deposit_at = now;
@@ -2545,45 +2571,250 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
   };
 }
 
-export async function cancelListingDeposit(actorUserId, postId, accessToken) {
+export const COMPLETE_HANDOFF_DEADLINE_DAYS = 7;
+export const COMPLETE_HANDOFF_MAX_PHOTOS = 5;
+export const CANCEL_DEPOSIT_MAX_PHOTOS = 5;
+export const CANCEL_DEPOSIT_REASON_MAX = 500;
+
+function normalizeHandoffPhotoUrls(raw, max = COMPLETE_HANDOFF_MAX_PHOTOS) {
+  const list = Array.isArray(raw) ? raw : [];
+  return list
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter((url) => /^https?:\/\//i.test(url))
+    .slice(0, max);
+}
+
+function addDaysIso(iso, days) {
+  const ms = new Date(iso).getTime();
+  if (!Number.isFinite(ms)) return new Date(Date.now() + days * 86400000).toISOString();
+  return new Date(ms + days * 86400000).toISOString();
+}
+
+function finalizeCancelledDeposit(row, deal, actorUserId) {
+  const now = new Date().toISOString();
+  const priorDispute = asObject(deal.dispute);
+  const nextDeal = {
+    ...deal,
+    status: 'cancelled',
+    cancelled_at: now,
+    cancelled_by: actorUserId,
+    cancel_confirmed_at: now,
+    cancel_confirmed_by: actorUserId,
+    breeder_confirmed_deposit_at: null,
+    sen_confirmed_deposit_at: null,
+    breeder_confirmed_complete_at: null,
+    sen_confirmed_complete_at: null,
+    // Clear handoff / cancel-request / dispute so the next deposit cycle can dispute again.
+    handoff_photos: [],
+    complete_requested_at: null,
+    complete_deadline_at: null,
+    cancel_reason: null,
+    cancel_photos: [],
+    cancel_requested_at: null,
+    dispute: null,
+  };
+  if (priorDispute.opened_at) {
+    nextDeal.last_closed_dispute = {
+      ...priorDispute,
+      closed_at: now,
+      admin_status:
+        String(priorDispute.admin_status || '').trim().toLowerCase() === 'resolved'
+          ? priorDispute.admin_status
+          : 'closed',
+    };
+  }
+  delete nextDeal.pending_cancel; // legacy key if present
+  const nextMeta = {
+    ...asObject(row.metadata),
+    deal: nextDeal,
+  };
+  delete nextMeta.warranty_policy_snapshot;
+  delete nextMeta.soft_status;
+  delete nextMeta.soft_deposit_hold;
+  return nextMeta;
+}
+
+function isActiveDealDispute(deal) {
+  const dealStatus = String(deal?.status || '').trim().toLowerCase();
+  if (dealStatus === 'dispute_open') return true;
+  const dispute = asObject(deal?.dispute);
+  if (!dispute.opened_at) return false;
+  const adminStatus = String(dispute.admin_status || '').trim().toLowerCase();
+  return !adminStatus || adminStatus === 'open';
+}
+
+/**
+ * Breeder requests deposit cancel (reason required, photos optional) → pending Sen confirm.
+ * Body: { reason, cancelPhotoUrls? }
+ */
+export async function requestListingCancelDeposit(actorUserId, postId, payload = {}, accessToken) {
   const row = await loadPostRowForDeal(postId, accessToken);
   if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
   const effectiveStatus = resolveEffectivePostStatus(row);
-  if (effectiveStatus !== 'deposit_hold' && row.status !== 'published') {
+  if (effectiveStatus !== 'deposit_hold') {
+    throw httpError('No active deposit to cancel.', 400, 'DEPOSIT_CANCEL_NOT_ALLOWED');
+  }
+  if (actorUserId !== row.user_id) {
+    throw httpError('Only the breeder can request deposit cancel.', 403, 'DEPOSIT_CANCEL_FORBIDDEN');
+  }
+
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const senUserId = trimText(deal.sen_user_id, 80);
+  if (!senUserId) {
+    throw httpError('Buyer (Sen) is required before cancel.', 400, 'DEPOSIT_SEN_REQUIRED');
+  }
+
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  if (
+    dealStatus === 'pending_sen_complete'
+    || dealStatus === 'pending_complete'
+    || dealStatus === 'dispute_open'
+  ) {
+    throw httpError(
+      'Cancel is not allowed after handoff was requested. Buyer must dispute if they did not receive the pet.',
+      400,
+      'DEPOSIT_CANCEL_HANDOFF_PENDING',
+    );
+  }
+  if (dealStatus === 'pending_cancel_confirm') {
+    throw httpError('Cancel was already requested. Waiting for Sen confirmation.', 400, 'DEPOSIT_CANCEL_ALREADY_REQUESTED');
+  }
+  if (dealStatus && dealStatus !== 'deposit_hold' && dealStatus !== 'pending_sen') {
+    throw httpError('Cancel is not allowed in the current deal state.', 400, 'DEPOSIT_CANCEL_NOT_ALLOWED');
+  }
+
+  const reason = trimText(payload.reason ?? payload.cancel_reason, CANCEL_DEPOSIT_REASON_MAX);
+  if (!reason) {
+    throw httpError('Cancel reason is required.', 400, 'DEPOSIT_CANCEL_REASON_REQUIRED');
+  }
+  const photos = normalizeHandoffPhotoUrls(
+    payload.cancelPhotoUrls ?? payload.cancel_photo_urls ?? payload.photos,
+    CANCEL_DEPOSIT_MAX_PHOTOS,
+  );
+
+  const now = new Date().toISOString();
+  const nextDeal = {
+    ...deal,
+    status: 'pending_cancel_confirm',
+    cancel_requested_at: now,
+    cancel_requested_by: actorUserId,
+    cancel_reason: reason,
+    cancel_photos: photos,
+    cancel_confirmed_at: null,
+    cancel_confirmed_by: null,
+  };
+  const nextMeta = { ...meta, deal: nextDeal };
+  const updated = await persistPostRow(
+    postId,
+    { status: row.status, metadata: nextMeta },
+    accessToken,
+  );
+  return {
+    post: updated,
+    notify_user_id: senUserId,
+  };
+}
+
+/** Sen confirms breeder's cancel request → published + unfreeze warranty. */
+export async function confirmListingCancelDeposit(actorUserId, postId, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  if (resolveEffectivePostStatus(row) !== 'deposit_hold') {
     throw httpError('No active deposit to cancel.', 400, 'DEPOSIT_CANCEL_NOT_ALLOWED');
   }
   const meta = asObject(row.metadata);
   const deal = asObject(meta.deal);
   const senUserId = trimText(deal.sen_user_id, 80);
-  if (actorUserId !== row.user_id && actorUserId !== senUserId) {
-    throw httpError('Only the breeder or buyer can cancel this deposit.', 403, 'DEPOSIT_FORBIDDEN');
+  if (!senUserId || actorUserId !== senUserId) {
+    throw httpError('Only the assigned buyer (Sen) can confirm deposit cancel.', 403, 'DEPOSIT_CANCEL_CONFIRM_FORBIDDEN');
+  }
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  if (dealStatus !== 'pending_cancel_confirm') {
+    throw httpError('No pending cancel request to confirm.', 400, 'DEPOSIT_CANCEL_NOT_PENDING');
   }
 
-  const nextMeta = {
-    ...meta,
-    deal: {
-      ...deal,
-      status: 'cancelled',
-      cancelled_at: new Date().toISOString(),
-      cancelled_by: actorUserId,
-      breeder_confirmed_deposit_at: null,
-      sen_confirmed_deposit_at: null,
-      breeder_confirmed_complete_at: null,
-      sen_confirmed_complete_at: null,
-    },
-  };
-  delete nextMeta.warranty_policy_snapshot;
-  delete nextMeta.soft_status;
-  delete nextMeta.soft_deposit_hold;
-
+  const nextMeta = finalizeCancelledDeposit(row, deal, actorUserId);
   const updated = await persistPostRow(postId, { status: 'published', metadata: nextMeta }, accessToken);
   return {
     post: updated,
-    notify_user_id: actorUserId === row.user_id ? senUserId : row.user_id,
+    notify_user_id: row.user_id,
   };
 }
 
-/** Dual-confirm handoff → sold (HOÀN THÀNH). */
+/** @deprecated Prefer requestListingCancelDeposit — kept name for older imports/tests. */
+export async function cancelListingDeposit(actorUserId, postId, accessToken, payload = {}) {
+  return requestListingCancelDeposit(actorUserId, postId, payload, accessToken);
+}
+
+/**
+ * Breeder requests handoff complete with required photos → pending Sen confirm (7 days).
+ * Body: { handoffPhotoUrls: string[] }
+ */
+export async function requestListingComplete(actorUserId, postId, payload = {}, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  if (resolveEffectivePostStatus(row) !== 'deposit_hold') {
+    throw httpError('Completion is only available while the listing is on deposit hold.', 400, 'COMPLETE_NOT_ALLOWED');
+  }
+  if (actorUserId !== row.user_id) {
+    throw httpError('Only the breeder can request handoff confirmation.', 403, 'COMPLETE_REQUEST_FORBIDDEN');
+  }
+
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const senUserId = trimText(deal.sen_user_id, 80);
+  if (!senUserId) {
+    throw httpError('Buyer (Sen) is required before handoff.', 400, 'COMPLETE_SEN_REQUIRED');
+  }
+
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  if (dealStatus === 'pending_sen_complete' || dealStatus === 'pending_complete') {
+    throw httpError('Handoff confirmation was already requested.', 400, 'COMPLETE_ALREADY_REQUESTED');
+  }
+  if (dealStatus === 'pending_cancel_confirm') {
+    throw httpError('Cancel is pending Sen confirmation.', 400, 'COMPLETE_CANCEL_PENDING');
+  }
+  if (dealStatus === 'dispute_open') {
+    throw httpError('Handoff is under admin dispute review.', 400, 'COMPLETE_DISPUTE_OPEN');
+  }
+  if (dealStatus && dealStatus !== 'deposit_hold' && dealStatus !== 'pending_sen') {
+    throw httpError('Handoff cannot be requested in the current deal state.', 400, 'COMPLETE_NOT_ALLOWED');
+  }
+
+  const photos = normalizeHandoffPhotoUrls(
+    payload.handoffPhotoUrls ?? payload.handoff_photo_urls ?? payload.photos,
+  );
+  if (photos.length < 1) {
+    throw httpError('At least one handoff photo is required.', 400, 'COMPLETE_PHOTOS_REQUIRED');
+  }
+
+  const now = new Date().toISOString();
+  const deadline = addDaysIso(now, COMPLETE_HANDOFF_DEADLINE_DAYS);
+  const nextDeal = {
+    ...deal,
+    status: 'pending_sen_complete',
+    handoff_photos: photos,
+    complete_requested_at: now,
+    complete_deadline_at: deadline,
+    breeder_confirmed_complete_at: now,
+    sen_confirmed_complete_at: null,
+  };
+  const nextMeta = { ...meta, deal: nextDeal };
+  const updated = await persistPostRow(
+    postId,
+    { status: row.status, metadata: nextMeta },
+    accessToken,
+  );
+  return {
+    post: updated,
+    both_confirmed: false,
+    notify_user_id: senUserId,
+    complete_deadline_at: deadline,
+  };
+}
+
+/** Sen confirms they received the pet → sold. */
 export async function confirmListingComplete(actorUserId, postId, accessToken) {
   const row = await loadPostRowForDeal(postId, accessToken);
   if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
@@ -2593,48 +2824,345 @@ export async function confirmListingComplete(actorUserId, postId, accessToken) {
   const meta = asObject(row.metadata);
   const deal = asObject(meta.deal);
   const senUserId = trimText(deal.sen_user_id, 80);
-  if (actorUserId !== row.user_id && actorUserId !== senUserId) {
-    throw httpError('Only the breeder or buyer can confirm completion.', 403, 'COMPLETE_FORBIDDEN');
+  if (!senUserId || actorUserId !== senUserId) {
+    throw httpError('Only the assigned buyer (Sen) can confirm receipt.', 403, 'COMPLETE_FORBIDDEN');
+  }
+
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  const awaitingSen =
+    dealStatus === 'pending_sen_complete'
+    || dealStatus === 'pending_complete'
+    || Boolean(deal.breeder_confirmed_complete_at);
+  if (!awaitingSen) {
+    throw httpError('Breeder has not requested handoff confirmation yet.', 400, 'COMPLETE_NOT_REQUESTED');
+  }
+  if (dealStatus === 'dispute_open') {
+    throw httpError('Handoff is under admin dispute review.', 400, 'COMPLETE_DISPUTE_OPEN');
+  }
+  if (deal.sen_confirmed_complete_at) {
+    throw httpError('Receipt was already confirmed.', 400, 'COMPLETE_ALREADY_CONFIRMED');
   }
 
   const now = new Date().toISOString();
   const nextDeal = {
     ...deal,
-    status: 'pending_complete',
-    breeder_confirmed_complete_at: deal.breeder_confirmed_complete_at || null,
-    sen_confirmed_complete_at: deal.sen_confirmed_complete_at || null,
+    status: 'completed',
+    sen_confirmed_complete_at: now,
+    completed_at: now,
   };
-  if (actorUserId === row.user_id) nextDeal.breeder_confirmed_complete_at = now;
-  if (actorUserId === senUserId) nextDeal.sen_confirmed_complete_at = now;
-
-  const both = Boolean(nextDeal.breeder_confirmed_complete_at && nextDeal.sen_confirmed_complete_at);
-  let nextMeta = {
+  const nextMeta = {
     ...meta,
     deal: nextDeal,
-    listing_outcome: both ? 'sold' : meta.listing_outcome,
-    sold: both ? true : meta.sold,
+    listing_outcome: 'sold',
+    sold: true,
   };
+  const updated = await persistListingLifecycle(postId, 'sold', nextMeta, accessToken);
+  return {
+    post: updated,
+    both_confirmed: true,
+    notify_user_id: row.user_id,
+  };
+}
 
-  if (both) {
-    nextDeal.status = 'completed';
-    nextDeal.completed_at = now;
-    nextMeta = { ...nextMeta, deal: nextDeal };
-    const updated = await persistListingLifecycle(postId, 'sold', nextMeta, accessToken);
-    return {
-      post: updated,
-      both_confirmed: true,
-      notify_user_id: actorUserId === row.user_id ? senUserId : row.user_id,
-    };
+export const DEAL_DISPUTE_MAX_PHOTOS = 5;
+export const DEAL_DISPUTE_MESSAGE_MAX = 1200;
+
+/**
+ * Sen disputes handoff (did not receive pet) while pending_sen_complete.
+ * Body: { message, disputePhotoUrls? }
+ * Also creates a pet_feed_reports row (reason: deal_dispute) for admin queue.
+ */
+export async function requestListingDispute(actorUserId, postId, payload = {}, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  if (resolveEffectivePostStatus(row) !== 'deposit_hold') {
+    throw httpError('Dispute is only available while the listing is on deposit hold.', 400, 'DISPUTE_NOT_ALLOWED');
+  }
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const senUserId = trimText(deal.sen_user_id, 80);
+  if (!senUserId || actorUserId !== senUserId) {
+    throw httpError('Only the assigned buyer (Sen) can open a dispute.', 403, 'DISPUTE_FORBIDDEN');
   }
 
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  if (dealStatus !== 'pending_sen_complete' && dealStatus !== 'pending_complete') {
+    throw httpError(
+      'Dispute is only allowed after the breeder requested handoff confirmation.',
+      400,
+      'DISPUTE_NOT_ALLOWED',
+    );
+  }
+  if (dealStatus === 'dispute_open' || isActiveDealDispute(deal)) {
+    throw httpError('A dispute is already open for this listing.', 400, 'DISPUTE_ALREADY_OPEN');
+  }
+
+  const message = trimText(payload.message ?? payload.note ?? payload.reason, DEAL_DISPUTE_MESSAGE_MAX);
+  if (!message) {
+    throw httpError('Dispute message is required.', 400, 'DISPUTE_MESSAGE_REQUIRED');
+  }
+  const photos = normalizeHandoffPhotoUrls(
+    payload.disputePhotoUrls ?? payload.dispute_photo_urls ?? payload.photos,
+    DEAL_DISPUTE_MAX_PHOTOS,
+  );
+  if (photos.length < 1) {
+    throw httpError('At least one dispute evidence photo is required.', 400, 'DISPUTE_PHOTOS_REQUIRED');
+  }
+
+  const now = new Date().toISOString();
+  const nextDeal = {
+    ...deal,
+    status: 'dispute_open',
+    dispute: {
+      opened_at: now,
+      opened_by: actorUserId,
+      message,
+      evidence_urls: photos,
+      admin_status: 'open',
+      report_id: null,
+    },
+  };
+  const nextMeta = { ...meta, deal: nextDeal };
   const updated = await persistPostRow(
     postId,
     { status: row.status, metadata: nextMeta },
     accessToken,
   );
+
+  const report = await reportPetFeedPost(
+    actorUserId,
+    postId,
+    { reason: 'deal_dispute', note: message },
+    accessToken,
+  );
+
+  const withReport = {
+    ...asObject(updated.metadata),
+    deal: {
+      ...nextDeal,
+      dispute: {
+        ...nextDeal.dispute,
+        report_id: report?.id || null,
+      },
+    },
+  };
+  const finalPost = await persistPostRow(
+    postId,
+    { status: row.status, metadata: withReport },
+    accessToken,
+  );
+
+  return {
+    post: finalPost,
+    report,
+    notify_breeder_user_id: row.user_id,
+  };
+}
+
+/** Admin force-complete disputed (or pending) deposit_hold listing → sold. */
+export async function adminForceCompleteListing(adminUserId, postId, payload = {}, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  if (resolveEffectivePostStatus(row) !== 'deposit_hold') {
+    throw httpError('Force complete is only available on deposit hold listings.', 400, 'FORCE_COMPLETE_NOT_ALLOWED');
+  }
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const now = new Date().toISOString();
+  const note = trimText(payload.note ?? payload.admin_note, 500);
+  const dispute = asObject(deal.dispute);
+  const nextDeal = {
+    ...deal,
+    status: 'completed',
+    sen_confirmed_complete_at: deal.sen_confirmed_complete_at || now,
+    breeder_confirmed_complete_at: deal.breeder_confirmed_complete_at || now,
+    completed_at: now,
+    completed_by_admin: true,
+    admin_resolved_at: now,
+    admin_resolved_by: adminUserId,
+    admin_resolution: 'force_complete',
+    dispute: dispute.opened_at
+      ? {
+          ...dispute,
+          admin_status: 'resolved',
+          admin_note: note || dispute.admin_note || null,
+          resolved_at: now,
+          resolution: 'force_complete',
+        }
+      : deal.dispute,
+  };
+  const nextMeta = {
+    ...meta,
+    deal: nextDeal,
+    listing_outcome: 'sold',
+    sold: true,
+  };
+  const updated = await persistListingLifecycle(postId, 'sold', nextMeta, accessToken);
+
+  let report = null;
+  const reportId = trimText(dispute.report_id, 80);
+  if (reportId) {
+    try {
+      report = await adminUpdatePetFeedReportStatus(reportId, 'dismissed');
+    } catch {
+      report = null;
+    }
+  }
+
   return {
     post: updated,
-    both_confirmed: false,
-    notify_user_id: actorUserId === row.user_id ? senUserId : row.user_id,
+    report,
+    notify_breeder_user_id: row.user_id,
+    notify_sen_user_id: trimText(deal.sen_user_id, 80) || null,
+  };
+}
+
+/** Admin force-cancel disputed (or held) listing → published + unfreeze. */
+export async function adminForceCancelListing(adminUserId, postId, payload = {}, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  if (resolveEffectivePostStatus(row) !== 'deposit_hold') {
+    throw httpError('Force cancel is only available on deposit hold listings.', 400, 'FORCE_CANCEL_NOT_ALLOWED');
+  }
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const now = new Date().toISOString();
+  const note = trimText(payload.note ?? payload.admin_note, 500);
+  const dispute = asObject(deal.dispute);
+  const nextMeta = finalizeCancelledDeposit(row, deal, adminUserId);
+  nextMeta.deal = {
+    ...asObject(nextMeta.deal),
+    cancelled_by_admin: true,
+    admin_resolved_at: now,
+    admin_resolved_by: adminUserId,
+    admin_resolution: 'force_cancel',
+  };
+  if (dispute.opened_at) {
+    nextMeta.deal.last_closed_dispute = {
+      ...dispute,
+      admin_status: 'resolved',
+      admin_note: note || dispute.admin_note || null,
+      resolved_at: now,
+      resolution: 'force_cancel',
+      closed_at: now,
+    };
+  }
+  // Never keep an active dispute blob after cancel — blocks the next Sen dispute cycle.
+  nextMeta.deal.dispute = null;
+  const updated = await persistPostRow(postId, { status: 'published', metadata: nextMeta }, accessToken);
+
+  let report = null;
+  const reportId = trimText(dispute.report_id, 80);
+  if (reportId) {
+    try {
+      report = await adminUpdatePetFeedReportStatus(reportId, 'dismissed');
+    } catch {
+      report = null;
+    }
+  }
+
+  return {
+    post: updated,
+    report,
+    notify_breeder_user_id: row.user_id,
+    notify_sen_user_id: trimText(deal.sen_user_id, 80) || null,
+  };
+}
+
+/**
+ * True when listing is on deposit hold, awaiting Sen handoff confirm, and past complete_deadline_at.
+ * Skips dispute_open (and any non-pending handoff status).
+ */
+export function isListingEligibleForHandoffAutoComplete(row, nowMs = Date.now()) {
+  if (!row || resolveEffectivePostStatus(row) !== 'deposit_hold') return false;
+  const deal = asObject(asObject(row.metadata).deal);
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  if (dealStatus !== 'pending_sen_complete' && dealStatus !== 'pending_complete') {
+    return false;
+  }
+  const deadlineRaw = deal.complete_deadline_at;
+  if (!deadlineRaw) return false;
+  const deadlineMs = new Date(deadlineRaw).getTime();
+  if (!Number.isFinite(deadlineMs)) return false;
+  return deadlineMs <= nowMs;
+}
+
+async function listDepositHoldCandidatesForAutoComplete(accessToken, fetchLimit = 200) {
+  const lim = Math.min(Math.max(Number(fetchLimit) || 200, 1), 1000);
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    return memoryPosts.filter((post) => resolveEffectivePostStatus(post) === 'deposit_hold');
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .select('id, status, user_id, title, media_urls, metadata, breeder_profile_id')
+    .in('status', ['deposit_hold', 'archived'])
+    .limit(lim);
+  if (error) throw error;
+  return (data ?? []).filter((post) => resolveEffectivePostStatus(post) === 'deposit_hold');
+}
+
+async function applySystemAutoCompleteHandoff(row, nowIso, accessToken) {
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const nextDeal = {
+    ...deal,
+    status: 'completed',
+    sen_confirmed_complete_at: deal.sen_confirmed_complete_at || nowIso,
+    completed_at: nowIso,
+    completed_by_system: true,
+    auto_completed_at: nowIso,
+    resolution: 'auto_complete',
+  };
+  const nextMeta = {
+    ...meta,
+    deal: nextDeal,
+    listing_outcome: 'sold',
+    sold: true,
+  };
+  const updated = await persistListingLifecycle(row.id, 'sold', nextMeta, accessToken);
+  return {
+    post: updated,
+    notify_breeder_user_id: row.user_id,
+    notify_sen_user_id: trimText(deal.sen_user_id, 80) || null,
+  };
+}
+
+/**
+ * Batch job: auto-complete overdue pending_sen_complete handoffs (default 7-day deadline).
+ * options.nowMs — inject clock for tests; options.limit — max completes per run.
+ */
+export async function autoCompleteExpiredHandoffs(accessToken, options = {}) {
+  const nowMs = Number.isFinite(options.nowMs) ? Number(options.nowMs) : Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const limit = Math.min(Math.max(Number(options.limit) || 100, 1), 500);
+  const candidates = await listDepositHoldCandidatesForAutoComplete(accessToken, Math.max(limit * 3, 200));
+  const due = candidates
+    .filter((row) => isListingEligibleForHandoffAutoComplete(row, nowMs))
+    .slice(0, limit);
+
+  const completed = [];
+  const errors = [];
+  for (const candidate of due) {
+    try {
+      const fresh = await loadPostRowForDeal(candidate.id, accessToken);
+      if (!fresh || !isListingEligibleForHandoffAutoComplete(fresh, nowMs)) continue;
+      const item = await applySystemAutoCompleteHandoff(fresh, nowIso, accessToken);
+      completed.push(item);
+    } catch (err) {
+      errors.push({
+        post_id: candidate.id,
+        error: err?.message || String(err),
+        code: err?.code || null,
+      });
+    }
+  }
+
+  return {
+    scanned: candidates.length,
+    due: due.length,
+    completed,
+    errors,
+    now: nowIso,
   };
 }

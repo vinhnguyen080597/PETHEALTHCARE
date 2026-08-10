@@ -17,9 +17,12 @@ const ADMIN_NOTIFICATION_TYPES = new Set([
 const DEAL_NOTIFICATION_TYPES = new Set([
   'deposit_request',
   'deposit_confirmed',
+  'deposit_cancel_request',
   'deposit_cancelled',
   'deal_complete_request',
   'deal_completed',
+  'deal_dispute_opened',
+  'deal_dispute_resolved',
 ]);
 const ADMIN_DEFAULT_CTA = {
   admin_breeder_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=breeder' },

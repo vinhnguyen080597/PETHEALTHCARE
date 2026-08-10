@@ -72,6 +72,12 @@ import {
   markPetFeedNotificationsRead,
   reportBreederProfile,
   reportPetFeedPost,
+  confirmListingDeposit,
+  confirmListingCancelDeposit,
+  confirmListingComplete,
+  requestListingCancelDeposit,
+  requestListingComplete,
+  requestListingDispute,
   openPetFeedConversation,
   sendPetFeedConversationMessage,
   requestBreedRecognition,
@@ -2353,6 +2359,56 @@ export function usePetHealthApp() {
     }
   }
 
+  const mutateListingDeal = useCallback(
+    async (
+      postId: string,
+      mutation: import('../utils/listingDealHandoff').ListingDealMutation,
+    ): Promise<PetFeedPost | null> => {
+      if (!token || !postId) return null;
+      let response: { data: PetFeedPost };
+      switch (mutation.type) {
+        case 'deposit_confirm':
+          response = await confirmListingDeposit(token, postId, {
+            acknowledge: true,
+            senUserId: mutation.senUserId,
+          });
+          break;
+        case 'complete_request':
+          response = await requestListingComplete(token, postId, mutation.photoUris);
+          break;
+        case 'complete_confirm':
+          response = await confirmListingComplete(token, postId);
+          break;
+        case 'complete_dispute':
+          response = await requestListingDispute(token, postId, {
+            message: mutation.message,
+            photoUris: mutation.photoUris,
+          });
+          break;
+        case 'cancel_request':
+          response = await requestListingCancelDeposit(token, postId, {
+            reason: mutation.reason,
+            photoUris: mutation.photoUris,
+          });
+          break;
+        case 'cancel_confirm':
+          response = await confirmListingCancelDeposit(token, postId);
+          break;
+        default:
+          return null;
+      }
+      const updated = response.data;
+      setPetFeedPosts((current) =>
+        current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
+      );
+      setMyPetFeedPosts((current) =>
+        current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
+      );
+      return updated;
+    },
+    [token],
+  );
+
   const fetchPetFeedPostDetail = useCallback(async (postId: string): Promise<PetFeedPost | null> => {
     if (!token || !postId) return null;
     try {
@@ -4511,6 +4567,7 @@ export function usePetHealthApp() {
     submitPetFeedDraftForReview,
     editingPetFeedPost,
     submitPetFeedReport,
+    mutateListingDeal,
     adminFeedPosts,
     adminFeedReports,
     adminAccounts,

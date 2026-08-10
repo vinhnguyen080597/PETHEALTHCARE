@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PetFeedCommentComposer, PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
+import { ListingDealPanel, type ListingDealMutation } from '../components/ListingDealPanel';
 import { MarketplaceDisclaimerAlert } from '../components/MarketplaceLegalNotice';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
@@ -35,6 +36,10 @@ type PetFeedPostDetailScreenProps = {
   onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
   onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
   onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
+  onMutateListingDeal?: (
+    postId: string,
+    mutation: ListingDealMutation,
+  ) => Promise<PetFeedPost | null>;
   currentUserId?: string | null;
   allowMediaDownload?: boolean;
 };
@@ -92,6 +97,7 @@ export function PetFeedPostDetailScreen({
   onFetchPostComments,
   onSubmitPostComment,
   onDeletePostComment,
+  onMutateListingDeal,
   currentUserId,
   allowMediaDownload = false,
 }: PetFeedPostDetailScreenProps) {
@@ -104,7 +110,11 @@ export function PetFeedPostDetailScreen({
   const commentsSectionYRef = useRef(0);
   const scrolledFocusIdRef = useRef<string | null>(null);
 
-  const { selectedPost, detailLoading } = usePetFeedPostDetail(postId, listPosts, onFetchPostDetail);
+  const { selectedPost, detailLoading, replaceDetailPost } = usePetFeedPostDetail(
+    postId,
+    listPosts,
+    onFetchPostDetail,
+  );
   const {
     threads,
     loading: commentsLoading,
@@ -201,6 +211,17 @@ export function PetFeedPostDetailScreen({
               mediaLoading={detailLoading}
               testID={`pet-feed-detail-post-${selectedPost.id}`}
             />
+            {onMutateListingDeal && selectedPost.post_kind !== 'announcement' ? (
+              <ListingDealPanel
+                post={selectedPost}
+                currentUserId={currentUserId}
+                onMutate={async (mutation) => {
+                  const updated = await onMutateListingDeal(selectedPost.id, mutation);
+                  if (updated) replaceDetailPost(updated);
+                  return updated;
+                }}
+              />
+            ) : null}
             <View
               collapsable={false}
               onLayout={(event) => {

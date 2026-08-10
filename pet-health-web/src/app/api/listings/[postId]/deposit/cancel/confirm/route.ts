@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/session";
-import { cancelListingDeposit } from "@/lib/api/petFeed";
+import { confirmListingCancelDeposit } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
 
 export async function POST(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ postId: string }> },
 ) {
   const token = await getAccessToken();
@@ -14,16 +14,7 @@ export async function POST(
   }
   try {
     const { postId } = await params;
-    const incoming = await req.formData();
-    const formData = new FormData();
-    const reason = incoming.get("reason");
-    if (reason != null && reason !== "") formData.set("reason", String(reason));
-    for (const photo of incoming.getAll("photos")) {
-      if (photo instanceof File && photo.size > 0) {
-        formData.append("photos", photo);
-      }
-    }
-    const result = await cancelListingDeposit(token, postId, formData);
+    const result = await confirmListingCancelDeposit(token, postId);
     revalidateTag("public-posts");
     revalidateTag(postId);
     revalidatePath(`/app/pet-feed/posts/${postId}`);
@@ -35,6 +26,9 @@ export async function POST(
         { status: err.status },
       );
     }
-    return NextResponse.json({ error: "Failed to cancel deposit" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to confirm deposit cancel" },
+      { status: 500 },
+    );
   }
 }

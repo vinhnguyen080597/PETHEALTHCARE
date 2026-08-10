@@ -119,6 +119,16 @@ export interface ListingDeal {
   senConfirmedDepositAt?: string | null;
   breederConfirmedCompleteAt?: string | null;
   senConfirmedCompleteAt?: string | null;
+  handoffPhotos?: string[];
+  completeRequestedAt?: string | null;
+  completeDeadlineAt?: string | null;
+  completedAt?: string | null;
+  cancelReason?: string | null;
+  cancelPhotos?: string[];
+  cancelRequestedAt?: string | null;
+  disputeMessage?: string | null;
+  disputeEvidenceUrls?: string[];
+  disputeOpenedAt?: string | null;
 }
 
 export interface Listing {

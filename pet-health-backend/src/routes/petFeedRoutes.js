@@ -34,8 +34,12 @@ import {
   updateMyWarrantyPolicy,
   listMyWarrantyPolicies,
   confirmListingDeposit,
-  cancelListingDeposit,
+  requestListingCancelDeposit,
+  confirmListingCancelDeposit,
+  requestListingComplete,
   confirmListingComplete,
+  requestListingDispute,
+  COMPLETE_HANDOFF_DEADLINE_DAYS,
 } from '../repositories/petFeedRepository.js';
 import {
   getPetFeedConversation,
@@ -1137,7 +1141,7 @@ function dealNotifyMeta(post) {
     title: post?.title || '',
     thumb_url: Array.isArray(post?.media_urls) ? post.media_urls[0] : null,
     breeder_profile_id: post?.breeder_profile_id || null,
-    cta_href: post?.id ? `/app/posts/${encodeURIComponent(post.id)}` : undefined,
+    cta_href: post?.id ? `/app/pet-feed/posts/${encodeURIComponent(post.id)}` : undefined,
   };
 }
 
@@ -1167,18 +1171,78 @@ router.post('/posts/:postId/deposit/confirm', async (req, res, next) => {
   }
 });
 
-router.post('/posts/:postId/deposit/cancel', async (req, res, next) => {
+router.post(
+  '/posts/:postId/deposit/cancel',
+  requireAnyRole('breeder'),
+  petFeedUpload.fields([{ name: 'photos', maxCount: 5 }]),
+  async (req, res, next) => {
+    try {
+      const postId = cleanId(req.params.postId);
+      if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+      const files = Array.isArray(req.files?.photos) ? req.files.photos : [];
+      const cancelPhotoUrls = [];
+      for (const file of files) {
+        if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
+          return res.status(400).json({
+            error: 'Unsupported photo type. Use JPEG, PNG, or WebP.',
+            code: 'PET_FEED_UNSUPPORTED_PHOTO',
+          });
+        }
+        cancelPhotoUrls.push(
+          await storePetFeedImage({
+            userId: req.user.id,
+            file,
+            accessToken: req.accessToken,
+          }),
+        );
+      }
+      const reason =
+        typeof req.body?.reason === 'string'
+          ? req.body.reason
+          : typeof req.body?.cancel_reason === 'string'
+            ? req.body.cancel_reason
+            : '';
+      const result = await requestListingCancelDeposit(
+        req.user.id,
+        postId,
+        { reason, cancelPhotoUrls },
+        req.accessToken,
+      );
+      if (result.notify_user_id) {
+        void createDealNotification({
+          recipientUserId: result.notify_user_id,
+          actorUserId: req.user.id,
+          postId: result.post.id,
+          type: 'deposit_cancel_request',
+          bodyPreview:
+            `Breeder yêu cầu hủy cọc cho "${notifyPreview(result.post.title)}". `
+            + `Lý do: ${String(result.post?.metadata?.deal?.cancel_reason || '').slice(0, 80)}. Vui lòng xác nhận.`,
+          metadata: {
+            ...dealNotifyMeta(result.post),
+            cta_label: 'Xác nhận hủy cọc',
+          },
+          accessToken: req.accessToken,
+        }).catch(() => null);
+      }
+      return res.json({ data: result.post, pending_confirm: true });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post('/posts/:postId/deposit/cancel/confirm', async (req, res, next) => {
   try {
     const postId = cleanId(req.params.postId);
     if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const result = await cancelListingDeposit(req.user.id, postId, req.accessToken);
+    const result = await confirmListingCancelDeposit(req.user.id, postId, req.accessToken);
     if (result.notify_user_id) {
       void createDealNotification({
         recipientUserId: result.notify_user_id,
         actorUserId: req.user.id,
         postId: result.post.id,
         type: 'deposit_cancelled',
-        bodyPreview: `Cọc cho "${notifyPreview(result.post.title)}" đã bị hủy.`,
+        bodyPreview: `Sen đã xác nhận hủy cọc cho "${notifyPreview(result.post.title)}". Tin đăng đã mở lại.`,
         metadata: dealNotifyMeta(result.post),
         accessToken: req.accessToken,
       }).catch(() => null);
@@ -1189,30 +1253,169 @@ router.post('/posts/:postId/deposit/cancel', async (req, res, next) => {
   }
 });
 
+router.post(
+  '/posts/:postId/complete/request',
+  requireAnyRole('breeder'),
+  petFeedUpload.fields([{ name: 'photos', maxCount: 5 }]),
+  async (req, res, next) => {
+    try {
+      const postId = cleanId(req.params.postId);
+      if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+      const files = Array.isArray(req.files?.photos) ? req.files.photos : [];
+      const handoffPhotoUrls = [];
+      for (const file of files) {
+        if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
+          return res.status(400).json({
+            error: 'Unsupported photo type. Use JPEG, PNG, or WebP.',
+            code: 'PET_FEED_UNSUPPORTED_PHOTO',
+          });
+        }
+        handoffPhotoUrls.push(
+          await storePetFeedImage({
+            userId: req.user.id,
+            file,
+            accessToken: req.accessToken,
+          }),
+        );
+      }
+      // Allow JSON body URLs (tests / already-uploaded).
+      const bodyUrls = Array.isArray(req.body?.handoffPhotoUrls)
+        ? req.body.handoffPhotoUrls
+        : Array.isArray(req.body?.photos)
+          ? req.body.photos
+          : [];
+      for (const url of bodyUrls) {
+        if (typeof url === 'string' && /^https?:\/\//i.test(url.trim())) {
+          handoffPhotoUrls.push(url.trim());
+        }
+      }
+
+      const result = await requestListingComplete(
+        req.user.id,
+        postId,
+        { handoffPhotoUrls },
+        req.accessToken,
+      );
+      const days = COMPLETE_HANDOFF_DEADLINE_DAYS;
+      const preview =
+        `Breeder đã xác nhận giao bé cho "${notifyPreview(result.post.title)}". `
+        + `Vui lòng xác nhận đã nhận trong ${days} ngày — hết hạn sẽ tự hoàn thành giao dịch.`;
+      if (result.notify_user_id) {
+        void createDealNotification({
+          recipientUserId: result.notify_user_id,
+          actorUserId: req.user.id,
+          postId: result.post.id,
+          type: 'deal_complete_request',
+          bodyPreview: preview,
+          metadata: {
+            ...dealNotifyMeta(result.post),
+            complete_deadline_at: result.complete_deadline_at || null,
+            cta_label: 'Xác nhận đã nhận',
+          },
+          accessToken: req.accessToken,
+        }).catch(() => null);
+      }
+      return res.json({
+        data: result.post,
+        both_confirmed: false,
+        complete_deadline_at: result.complete_deadline_at,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 router.post('/posts/:postId/complete/confirm', async (req, res, next) => {
   try {
     const postId = cleanId(req.params.postId);
     if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
     const result = await confirmListingComplete(req.user.id, postId, req.accessToken);
-    const notifyType = result.both_confirmed ? 'deal_completed' : 'deal_complete_request';
-    const preview = result.both_confirmed
-      ? `Giao dịch "${notifyPreview(result.post.title)}" đã hoàn thành.`
-      : `Yêu cầu xác nhận giao nhận cho "${notifyPreview(result.post.title)}".`;
     if (result.notify_user_id) {
       void createDealNotification({
         recipientUserId: result.notify_user_id,
         actorUserId: req.user.id,
         postId: result.post.id,
-        type: notifyType,
-        bodyPreview: preview,
+        type: 'deal_completed',
+        bodyPreview: `Sen đã xác nhận nhận bé cho "${notifyPreview(result.post.title)}". Giao dịch hoàn thành.`,
         metadata: dealNotifyMeta(result.post),
         accessToken: req.accessToken,
       }).catch(() => null);
     }
-    return res.json({ data: result.post, both_confirmed: result.both_confirmed });
+    return res.json({ data: result.post, both_confirmed: true });
   } catch (err) {
     return next(err);
   }
 });
+
+router.post(
+  '/posts/:postId/complete/dispute',
+  petFeedUpload.fields([{ name: 'photos', maxCount: 5 }]),
+  async (req, res, next) => {
+    try {
+      const postId = cleanId(req.params.postId);
+      if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+      const files = Array.isArray(req.files?.photos) ? req.files.photos : [];
+      const disputePhotoUrls = [];
+      for (const file of files) {
+        if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
+          return res.status(400).json({
+            error: 'Unsupported photo type. Use JPEG, PNG, or WebP.',
+            code: 'PET_FEED_UNSUPPORTED_PHOTO',
+          });
+        }
+        disputePhotoUrls.push(
+          await storePetFeedImage({
+            userId: req.user.id,
+            file,
+            accessToken: req.accessToken,
+          }),
+        );
+      }
+      const message =
+        typeof req.body?.message === 'string'
+          ? req.body.message
+          : typeof req.body?.note === 'string'
+            ? req.body.note
+            : '';
+      const result = await requestListingDispute(
+        req.user.id,
+        postId,
+        { message, disputePhotoUrls },
+        req.accessToken,
+      );
+      if (result.notify_breeder_user_id) {
+        void createDealNotification({
+          recipientUserId: result.notify_breeder_user_id,
+          actorUserId: req.user.id,
+          postId: result.post.id,
+          type: 'deal_dispute_opened',
+          bodyPreview:
+            `Sen khiếu nại chưa nhận bé cho "${notifyPreview(result.post.title)}". Admin đang xem xét.`,
+          metadata: dealNotifyMeta(result.post),
+          accessToken: req.accessToken,
+        }).catch(() => null);
+      }
+      if (result.report?.id) {
+        void createAdminRequestNotifications({
+          actorUserId: req.user.id,
+          type: 'admin_report_open',
+          bodyPreview: `Khiếu nại giao nhận: "${notifyPreview(result.post.title)}"`,
+          postId: result.post.id,
+          breederProfileId: result.post.breeder_profile_id || null,
+          metadata: {
+            report_id: result.report.id,
+            reason: 'deal_dispute',
+            title: result.post.title || '',
+          },
+          accessToken: req.accessToken,
+        }).catch(() => null);
+      }
+      return res.json({ data: result.post, report: result.report });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
 export default router;

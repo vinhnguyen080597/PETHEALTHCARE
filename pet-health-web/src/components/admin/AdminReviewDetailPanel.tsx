@@ -8,7 +8,9 @@ import {
   adminListingContactEntries,
   adminListingMediaUrls,
   adminListingSpecRows,
+  dealDisputeFromPost,
   healthEvidenceUrlsFromMetadata,
+  isDealDisputeReport,
   type AdminReviewBreeder,
   type AdminReviewPost,
   type AdminReviewReport,
@@ -307,6 +309,9 @@ export function AdminReportReviewDetail({
     || report.breeder_profile_id
     || report.comment_id
     || "—";
+  const dealDispute = isDealDisputeReport(report.reason)
+    ? dealDisputeFromPost(linkedPost)
+    : null;
 
   return (
     <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
@@ -317,6 +322,12 @@ export function AdminReportReviewDetail({
           </span>
           {targetLabel}
         </p>
+        {isDealDisputeReport(report.reason) ? (
+          <p className="mt-2 text-xs font-semibold text-[#B45309]">
+            {t(lang, "admin.review.dealDispute")}
+            {dealDispute?.dealStatus ? ` · ${dealDispute.dealStatus}` : ""}
+          </p>
+        ) : null}
       </Section>
 
       {report.note?.trim() ? (
@@ -324,6 +335,46 @@ export function AdminReportReviewDetail({
           <p className="text-sm text-[#5C4A3A] whitespace-pre-wrap">
             {report.note.trim()}
           </p>
+        </Section>
+      ) : null}
+
+      {dealDispute?.message ? (
+        <Section title={t(lang, "admin.review.dealDisputeMessage")}>
+          <p className="text-sm text-[#5C4A3A] whitespace-pre-wrap">
+            {dealDispute.message}
+          </p>
+        </Section>
+      ) : null}
+
+      {dealDispute && dealDispute.evidenceUrls.length > 0 ? (
+        <Section title={t(lang, "admin.review.dealDisputeEvidence")}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {dealDispute.evidenceUrls.map((url) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={url}
+                src={url}
+                alt=""
+                className="h-28 w-full rounded-xl object-cover bg-[#F3EDE3]"
+              />
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {dealDispute && dealDispute.handoffPhotos.length > 0 ? (
+        <Section title={t(lang, "admin.review.dealHandoffPhotos")}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {dealDispute.handoffPhotos.map((url) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={url}
+                src={url}
+                alt=""
+                className="h-28 w-full rounded-xl object-cover bg-[#F3EDE3]"
+              />
+            ))}
+          </div>
         </Section>
       ) : null}
 

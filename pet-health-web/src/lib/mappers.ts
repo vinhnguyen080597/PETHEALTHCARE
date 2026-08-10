@@ -441,6 +441,54 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
             dealRaw.breederConfirmedCompleteAt) as string | null | undefined,
           senConfirmedCompleteAt: (dealRaw.sen_confirmed_complete_at ??
             dealRaw.senConfirmedCompleteAt) as string | null | undefined,
+          handoffPhotos: Array.isArray(dealRaw.handoff_photos)
+            ? (dealRaw.handoff_photos as unknown[]).filter(
+                (u): u is string => typeof u === "string" && Boolean(u.trim()),
+              )
+            : Array.isArray(dealRaw.handoffPhotos)
+              ? (dealRaw.handoffPhotos as unknown[]).filter(
+                  (u): u is string => typeof u === "string" && Boolean(u.trim()),
+                )
+              : [],
+          completeRequestedAt: (dealRaw.complete_requested_at ??
+            dealRaw.completeRequestedAt) as string | null | undefined,
+          completeDeadlineAt: (dealRaw.complete_deadline_at ??
+            dealRaw.completeDeadlineAt) as string | null | undefined,
+          completedAt: (dealRaw.completed_at ?? dealRaw.completedAt) as
+            | string
+            | null
+            | undefined,
+          cancelReason: String(
+            dealRaw.cancel_reason || dealRaw.cancelReason || "",
+          ) || null,
+          cancelPhotos: Array.isArray(dealRaw.cancel_photos)
+            ? (dealRaw.cancel_photos as unknown[]).filter(
+                (u): u is string => typeof u === "string" && Boolean(u.trim()),
+              )
+            : Array.isArray(dealRaw.cancelPhotos)
+              ? (dealRaw.cancelPhotos as unknown[]).filter(
+                  (u): u is string => typeof u === "string" && Boolean(u.trim()),
+                )
+              : [],
+          cancelRequestedAt: (dealRaw.cancel_requested_at ??
+            dealRaw.cancelRequestedAt) as string | null | undefined,
+          disputeMessage: (() => {
+            const d = (dealRaw.dispute || {}) as Record<string, unknown>;
+            return String(d.message || "").trim() || null;
+          })(),
+          disputeEvidenceUrls: (() => {
+            const d = (dealRaw.dispute || {}) as Record<string, unknown>;
+            const raw = d.evidence_urls ?? d.evidenceUrls;
+            return Array.isArray(raw)
+              ? raw.filter(
+                  (u): u is string => typeof u === "string" && Boolean(u.trim()),
+                )
+              : [];
+          })(),
+          disputeOpenedAt: (() => {
+            const d = (dealRaw.dispute || {}) as Record<string, unknown>;
+            return (d.opened_at ?? d.openedAt) as string | null | undefined;
+          })(),
         }
       : null,
   };

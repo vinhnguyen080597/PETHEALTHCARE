@@ -2095,5 +2095,47 @@
       "title": "History failed",
       "message": "{{message}}"
     }
+  },
+  "deal": {
+    "holdBadge": "On deposit hold — warranty policy is frozen",
+    "holdBadgeWithSen": "Sen {{name}} has placed a deposit",
+    "requestDeposit": "Request deposit confirmation",
+    "confirmTitle": "Confirm deposit agreement",
+    "senUserId": "Buyer (Sen) user id",
+    "senUserIdPlaceholder": "Paste Sen user id",
+    "confirmFreeze": "Confirm",
+    "complete": "Confirm handoff complete",
+    "completeRequestTitle": "Confirm handoff to buyer",
+    "completeRequestHint": "Upload clear photos of the handoff. The buyer (Sen) will be asked to confirm receipt.",
+    "completePhotosLabel": "Handoff photos",
+    "completePhotosRequired": "Please add at least one handoff photo.",
+    "completeConfirm": "Confirm handoff",
+    "completeWaitingBadge": "Waiting for Sen · {{days}} days left",
+    "senConfirmReceipt": "Confirm I received the pet",
+    "cancel": "Cancel deposit",
+    "cancelRequestTitle": "Request deposit cancel",
+    "cancelRequestHint": "Tell Sen why you are canceling. Sen must confirm before the listing reopens.",
+    "cancelReason": {
+      "no_contact": "Buyer not reachable",
+      "buyer_changed_mind": "Buyer changed their mind",
+      "pet_unavailable": "Pet no longer available",
+      "other": "Other"
+    },
+    "cancelNotePlaceholder": "Optional details…",
+    "cancelPhotosLabel": "Supporting photos (optional)",
+    "cancelReasonRequired": "Please choose a cancel reason.",
+    "cancelSubmit": "Send cancel request",
+    "cancelPendingBadge": "Waiting for Sen to confirm cancel",
+    "senConfirmCancel": "Confirm cancel deposit",
+    "disputeOpenBadge": "Dispute open — waiting for admin",
+    "senOpenDispute": "I did not receive the pet",
+    "disputeTitle": "Open handoff dispute",
+    "disputeHint": "Explain what happened and upload evidence. Admin will review.",
+    "disputeMessageLabel": "What happened",
+    "disputeMessageRequired": "Please describe the issue.",
+    "disputePhotosLabel": "Evidence photos",
+    "disputePhotosRequired": "Please add at least one evidence photo.",
+    "disputeSubmit": "Submit dispute",
+    "completed": "Transaction completed"
   }
 }

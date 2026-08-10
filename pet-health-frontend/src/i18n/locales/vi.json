@@ -2092,5 +2092,47 @@
       "title": "Tải lịch sử thất bại",
       "message": "{{message}}"
     }
+  },
+  "deal": {
+    "holdBadge": "Đang giữ cọc — chính sách bảo hành đã đóng băng",
+    "holdBadgeWithSen": "Sen {{name}} đã đặt cọc",
+    "requestDeposit": "Yêu cầu xác nhận cọc",
+    "confirmTitle": "Xác nhận thỏa thuận cọc",
+    "senUserId": "Mã người mua (Sen)",
+    "senUserIdPlaceholder": "Dán user id của Sen",
+    "confirmFreeze": "Xác nhận",
+    "complete": "Xác nhận đã giao/nhận bé",
+    "completeRequestTitle": "Xác nhận đã giao bé cho Sen",
+    "completeRequestHint": "Tải lên ảnh giao nhận rõ ràng. Sen sẽ được yêu cầu xác nhận đã nhận bé.",
+    "completePhotosLabel": "Ảnh giao nhận",
+    "completePhotosRequired": "Vui lòng thêm ít nhất 1 ảnh giao nhận.",
+    "completeConfirm": "Xác nhận giao",
+    "completeWaitingBadge": "Chờ Sen xác nhận · còn {{days}} ngày",
+    "senConfirmReceipt": "Xác nhận đã nhận bé",
+    "cancel": "Hủy cọc",
+    "cancelRequestTitle": "Yêu cầu hủy cọc",
+    "cancelRequestHint": "Cho Sen biết lý do hủy. Sen phải xác nhận thì tin mới mở lại.",
+    "cancelReason": {
+      "no_contact": "Sen không liên lạc được",
+      "buyer_changed_mind": "Sen đổi ý",
+      "pet_unavailable": "Thú cưng không còn",
+      "other": "Khác"
+    },
+    "cancelNotePlaceholder": "Chi tiết (tuỳ chọn)…",
+    "cancelPhotosLabel": "Ảnh minh chứng (tuỳ chọn)",
+    "cancelReasonRequired": "Vui lòng chọn lý do hủy cọc.",
+    "cancelSubmit": "Gửi yêu cầu hủy",
+    "cancelPendingBadge": "Chờ Sen xác nhận hủy cọc",
+    "senConfirmCancel": "Xác nhận hủy cọc",
+    "disputeOpenBadge": "Đang khiếu nại — chờ admin",
+    "senOpenDispute": "Tôi chưa nhận được bé",
+    "disputeTitle": "Khiếu nại giao nhận",
+    "disputeHint": "Mô tả sự việc và tải minh chứng. Admin sẽ xem xét.",
+    "disputeMessageLabel": "Mô tả sự việc",
+    "disputeMessageRequired": "Vui lòng mô tả vấn đề.",
+    "disputePhotosLabel": "Ảnh minh chứng",
+    "disputePhotosRequired": "Vui lòng thêm ít nhất 1 ảnh minh chứng.",
+    "disputeSubmit": "Gửi khiếu nại",
+    "completed": "Giao dịch đã hoàn thành"
   }
 }

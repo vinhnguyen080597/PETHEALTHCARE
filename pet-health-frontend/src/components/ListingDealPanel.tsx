@@ -1,0 +1,479 @@
+import * as ImagePicker from 'expo-image-picker';
+import { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useTranslation } from 'react-i18next';
+import type { PetFeedPost } from '../types';
+import {
+  buildCancelDepositReasonText,
+  canBreederCancelDeposit,
+  canBreederRequestHandoff,
+  canSenConfirmCancel,
+  canSenConfirmHandoff,
+  canSenOpenDispute,
+  canShowDepositRequest,
+  CANCEL_DEPOSIT_MAX_PHOTOS,
+  CANCEL_DEPOSIT_REASON_KEYS,
+  COMPLETE_HANDOFF_MAX_PHOTOS,
+  DEAL_DISPUTE_MAX_PHOTOS,
+  daysLeftUntilDeadline,
+  isDealDisputeOpen,
+  readDealFromPostMetadata,
+  validateCancelDepositRequest,
+  validateDisputeRequest,
+  validateHandoffPhotos,
+  COMPLETE_HANDOFF_DEADLINE_DAYS,
+  type CancelDepositReasonKey,
+  type ListingDealMutation,
+} from '../utils/listingDealHandoff';
+
+export type { ListingDealMutation };
+
+type ListingDealPanelProps = {
+  post: PetFeedPost;
+  currentUserId?: string | null;
+  onMutate: (mutation: ListingDealMutation) => Promise<PetFeedPost | null>;
+};
+
+async function pickImages(max: number): Promise<string[]> {
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) {
+    Alert.alert('Permission required', 'Photo library access is needed.');
+    return [];
+  }
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsMultipleSelection: true,
+    selectionLimit: max,
+    quality: 0.85,
+  });
+  if (result.canceled) return [];
+  return (result.assets || [])
+    .map((asset) => asset.uri)
+    .filter(Boolean)
+    .slice(0, max);
+}
+
+export function ListingDealPanel({
+  post,
+  currentUserId,
+  onMutate,
+}: ListingDealPanelProps) {
+  const { t } = useTranslation();
+  const deal = useMemo(() => readDealFromPostMetadata(post.metadata), [post.metadata]);
+  const isOwner = Boolean(currentUserId && currentUserId === post.user_id);
+  const isDealSen = Boolean(currentUserId && deal.senUserId && currentUserId === deal.senUserId);
+  const phaseInput = {
+    listingStatus: post.status,
+    dealStatus: deal.status,
+  };
+  const showDeposit = canShowDepositRequest({ isOwner, listingStatus: post.status });
+  const showHandoff = canBreederRequestHandoff({ isOwner, ...phaseInput });
+  const showCancel = canBreederCancelDeposit({ isOwner, ...phaseInput });
+  const showSenHandoff = canSenConfirmHandoff({ isDealSen, ...phaseInput });
+  const showSenCancel = canSenConfirmCancel({ isDealSen, ...phaseInput });
+  const showSenDispute = canSenOpenDispute({ isDealSen, ...phaseInput });
+  const showDisputeOpen = isDealDisputeOpen(phaseInput);
+  const daysLeft = daysLeftUntilDeadline(deal.completeDeadlineAt);
+
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [senUserId, setSenUserId] = useState('');
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completePhotos, setCompletePhotos] = useState<string[]>([]);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReasonKey, setCancelReasonKey] =
+    useState<CancelDepositReasonKey>('no_contact');
+  const [cancelNote, setCancelNote] = useState('');
+  const [cancelPhotos, setCancelPhotos] = useState<string[]>([]);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeMessage, setDisputeMessage] = useState('');
+  const [disputePhotos, setDisputePhotos] = useState<string[]>([]);
+
+  const visible =
+    showDeposit ||
+    showHandoff ||
+    showCancel ||
+    showSenHandoff ||
+    showSenCancel ||
+    showDisputeOpen ||
+    post.status === 'deposit_hold' ||
+    post.status === 'sold';
+
+  if (!visible) return null;
+
+  async function run(mutation: ListingDealMutation) {
+    setBusy(true);
+    setError('');
+    try {
+      const updated = await onMutate(mutation);
+      if (!updated) throw new Error(t('common.somethingWentWrong'));
+      setDepositOpen(false);
+      setCompleteOpen(false);
+      setCancelOpen(false);
+      setDisputeOpen(false);
+      setCompletePhotos([]);
+      setCancelPhotos([]);
+      setDisputePhotos([]);
+      setCancelNote('');
+      setDisputeMessage('');
+      setSenUserId('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.somethingWentWrong'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <View className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+      {post.status === 'deposit_hold' ? (
+        <Text className="text-sm font-semibold text-amber-900">
+          {deal.senDisplayName
+            ? t('deal.holdBadgeWithSen', { name: deal.senDisplayName })
+            : t('deal.holdBadge')}
+        </Text>
+      ) : null}
+      {phaseInput.dealStatus === 'pending_sen_complete' ||
+      phaseInput.dealStatus === 'pending_complete' ? (
+        <Text className="mt-1 text-xs text-amber-800">
+          {t('deal.completeWaitingBadge', {
+            days: Math.max(0, daysLeft ?? COMPLETE_HANDOFF_DEADLINE_DAYS),
+          })}
+        </Text>
+      ) : null}
+      {phaseInput.dealStatus === 'pending_cancel_confirm' ? (
+        <Text className="mt-1 text-xs text-amber-800">{t('deal.cancelPendingBadge')}</Text>
+      ) : null}
+      {showDisputeOpen ? (
+        <Text className="mt-1 text-xs text-amber-800">{t('deal.disputeOpenBadge')}</Text>
+      ) : null}
+      {post.status === 'sold' ? (
+        <Text className="text-sm font-semibold text-emerald-800">{t('deal.completed')}</Text>
+      ) : null}
+
+      {error ? <Text className="mt-2 text-xs text-red-600">{error}</Text> : null}
+
+      <View className="mt-3 gap-2">
+        {showDeposit ? (
+          <Pressable
+            disabled={busy}
+            onPress={() => setDepositOpen(true)}
+            className="rounded-full bg-amber-600 px-4 py-2.5 active:bg-amber-700"
+          >
+            <Text className="text-center text-sm font-semibold text-white">
+              {t('deal.requestDeposit')}
+            </Text>
+          </Pressable>
+        ) : null}
+        {showHandoff ? (
+          <Pressable
+            disabled={busy}
+            onPress={() => {
+              setCompletePhotos([]);
+              setCompleteOpen(true);
+            }}
+            className="rounded-full bg-amber-600 px-4 py-2.5 active:bg-amber-700"
+          >
+            <Text className="text-center text-sm font-semibold text-white">
+              {t('deal.complete')}
+            </Text>
+          </Pressable>
+        ) : null}
+        {showCancel ? (
+          <Pressable
+            disabled={busy}
+            onPress={() => {
+              setCancelReasonKey('no_contact');
+              setCancelNote('');
+              setCancelPhotos([]);
+              setCancelOpen(true);
+            }}
+            className="rounded-full border border-red-200 bg-white px-4 py-2.5"
+          >
+            <Text className="text-center text-sm font-semibold text-red-600">
+              {t('deal.cancel')}
+            </Text>
+          </Pressable>
+        ) : null}
+        {showSenHandoff ? (
+          <Pressable
+            disabled={busy}
+            onPress={() => void run({ type: 'complete_confirm' })}
+            className="rounded-full bg-amber-600 px-4 py-2.5"
+          >
+            <Text className="text-center text-sm font-semibold text-white">
+              {t('deal.senConfirmReceipt')}
+            </Text>
+          </Pressable>
+        ) : null}
+        {showSenDispute ? (
+          <Pressable
+            disabled={busy}
+            onPress={() => {
+              setDisputeMessage('');
+              setDisputePhotos([]);
+              setDisputeOpen(true);
+            }}
+            className="rounded-full border border-red-200 bg-white px-4 py-2.5"
+          >
+            <Text className="text-center text-sm font-semibold text-red-600">
+              {t('deal.senOpenDispute')}
+            </Text>
+          </Pressable>
+        ) : null}
+        {showSenCancel ? (
+          <Pressable
+            disabled={busy}
+            onPress={() => void run({ type: 'cancel_confirm' })}
+            className="rounded-full border border-red-200 bg-white px-4 py-2.5"
+          >
+            <Text className="text-center text-sm font-semibold text-red-600">
+              {t('deal.senConfirmCancel')}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {busy ? (
+        <View className="mt-3 items-center">
+          <ActivityIndicator color="#D97706" />
+        </View>
+      ) : null}
+
+      <Modal visible={depositOpen} transparent animationType="fade">
+        <View className="flex-1 justify-center bg-black/40 px-5">
+          <View className="rounded-2xl bg-white p-5">
+            <Text className="mb-2 text-base font-bold text-slate-900">
+              {t('deal.confirmTitle')}
+            </Text>
+            <Text className="mb-2 text-xs text-slate-500">{t('deal.senUserId')}</Text>
+            <TextInput
+              value={senUserId}
+              onChangeText={setSenUserId}
+              placeholder={t('deal.senUserIdPlaceholder')}
+              autoCapitalize="none"
+              className="mb-3 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+            <View className="flex-row justify-end gap-2">
+              <Pressable onPress={() => setDepositOpen(false)} className="px-4 py-2">
+                <Text className="text-sm text-slate-600">{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                disabled={busy || !senUserId.trim()}
+                onPress={() =>
+                  void run({ type: 'deposit_confirm', senUserId: senUserId.trim() })
+                }
+                className="rounded-full bg-amber-600 px-4 py-2"
+              >
+                <Text className="text-sm font-semibold text-white">
+                  {t('deal.confirmFreeze')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={completeOpen} transparent animationType="fade">
+        <View className="flex-1 justify-center bg-black/40 px-5">
+          <View className="rounded-2xl bg-white p-5">
+            <Text className="mb-2 text-base font-bold text-slate-900">
+              {t('deal.completeRequestTitle')}
+            </Text>
+            <Text className="mb-3 text-sm text-slate-600">
+              {t('deal.completeRequestHint')}
+            </Text>
+            <Pressable
+              onPress={() => {
+                void pickImages(COMPLETE_HANDOFF_MAX_PHOTOS).then(setCompletePhotos);
+              }}
+              className="mb-2 rounded-xl border border-dashed border-slate-300 px-3 py-3"
+            >
+              <Text className="text-center text-sm text-slate-700">
+                {t('deal.completePhotosLabel')} ({completePhotos.length}/
+                {COMPLETE_HANDOFF_MAX_PHOTOS})
+              </Text>
+            </Pressable>
+            <View className="flex-row justify-end gap-2">
+              <Pressable onPress={() => setCompleteOpen(false)} className="px-4 py-2">
+                <Text className="text-sm text-slate-600">{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                disabled={busy || completePhotos.length < 1}
+                onPress={() => {
+                  const code = validateHandoffPhotos(completePhotos.length);
+                  if (code === 'photos_required') {
+                    setError(t('deal.completePhotosRequired'));
+                    return;
+                  }
+                  void run({ type: 'complete_request', photoUris: completePhotos });
+                }}
+                className="rounded-full bg-amber-600 px-4 py-2"
+              >
+                <Text className="text-sm font-semibold text-white">
+                  {t('deal.completeConfirm')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={cancelOpen} transparent animationType="fade">
+        <View className="flex-1 justify-center bg-black/40 px-5">
+          <View className="max-h-[85%] rounded-2xl bg-white p-5">
+            <ScrollView>
+              <Text className="mb-2 text-base font-bold text-slate-900">
+                {t('deal.cancelRequestTitle')}
+              </Text>
+              <Text className="mb-3 text-sm text-slate-600">
+                {t('deal.cancelRequestHint')}
+              </Text>
+              {CANCEL_DEPOSIT_REASON_KEYS.map((key) => (
+                <Pressable
+                  key={key}
+                  onPress={() => setCancelReasonKey(key)}
+                  className="mb-1 flex-row items-center gap-2 py-1.5"
+                >
+                  <View
+                    className={`h-4 w-4 rounded-full border ${
+                      cancelReasonKey === key
+                        ? 'border-amber-600 bg-amber-600'
+                        : 'border-slate-300'
+                    }`}
+                  />
+                  <Text className="text-sm text-slate-800">
+                    {t(`deal.cancelReason.${key}`)}
+                  </Text>
+                </Pressable>
+              ))}
+              <TextInput
+                value={cancelNote}
+                onChangeText={setCancelNote}
+                placeholder={t('deal.cancelNotePlaceholder')}
+                multiline
+                className="mt-2 mb-2 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <Pressable
+                onPress={() => {
+                  void pickImages(CANCEL_DEPOSIT_MAX_PHOTOS).then(setCancelPhotos);
+                }}
+                className="mb-3 rounded-xl border border-dashed border-slate-300 px-3 py-3"
+              >
+                <Text className="text-center text-sm text-slate-700">
+                  {t('deal.cancelPhotosLabel')} ({cancelPhotos.length}/
+                  {CANCEL_DEPOSIT_MAX_PHOTOS})
+                </Text>
+              </Pressable>
+              <View className="flex-row justify-end gap-2">
+                <Pressable onPress={() => setCancelOpen(false)} className="px-4 py-2">
+                  <Text className="text-sm text-slate-600">{t('common.cancel')}</Text>
+                </Pressable>
+                <Pressable
+                  disabled={busy}
+                  onPress={() => {
+                    const code = validateCancelDepositRequest({
+                      reasonKey: cancelReasonKey,
+                      note: cancelNote,
+                      photoCount: cancelPhotos.length,
+                    });
+                    if (code === 'reason_required') {
+                      setError(t('deal.cancelReasonRequired'));
+                      return;
+                    }
+                    const reason = buildCancelDepositReasonText({
+                      reasonKey: cancelReasonKey,
+                      reasonLabel: t(`deal.cancelReason.${cancelReasonKey}`),
+                      note: cancelNote,
+                    });
+                    void run({
+                      type: 'cancel_request',
+                      reason,
+                      photoUris: cancelPhotos,
+                    });
+                  }}
+                  className="rounded-full bg-red-600 px-4 py-2"
+                >
+                  <Text className="text-sm font-semibold text-white">
+                    {t('deal.cancelSubmit')}
+                  </Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={disputeOpen} transparent animationType="fade">
+        <View className="flex-1 justify-center bg-black/40 px-5">
+          <View className="rounded-2xl bg-white p-5">
+            <Text className="mb-2 text-base font-bold text-slate-900">
+              {t('deal.disputeTitle')}
+            </Text>
+            <Text className="mb-3 text-sm text-slate-600">{t('deal.disputeHint')}</Text>
+            <TextInput
+              value={disputeMessage}
+              onChangeText={setDisputeMessage}
+              placeholder={t('deal.disputeMessageLabel')}
+              multiline
+              className="mb-2 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+            <Pressable
+              onPress={() => {
+                void pickImages(DEAL_DISPUTE_MAX_PHOTOS).then(setDisputePhotos);
+              }}
+              className="mb-3 rounded-xl border border-dashed border-slate-300 px-3 py-3"
+            >
+              <Text className="text-center text-sm text-slate-700">
+                {t('deal.disputePhotosLabel')} ({disputePhotos.length}/
+                {DEAL_DISPUTE_MAX_PHOTOS})
+              </Text>
+            </Pressable>
+            <View className="flex-row justify-end gap-2">
+              <Pressable onPress={() => setDisputeOpen(false)} className="px-4 py-2">
+                <Text className="text-sm text-slate-600">{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                disabled={busy}
+                onPress={() => {
+                  const code = validateDisputeRequest({
+                    message: disputeMessage,
+                    photoCount: disputePhotos.length,
+                  });
+                  if (code === 'message_required') {
+                    setError(t('deal.disputeMessageRequired'));
+                    return;
+                  }
+                  if (code === 'photos_required') {
+                    setError(t('deal.disputePhotosRequired'));
+                    return;
+                  }
+                  void run({
+                    type: 'complete_dispute',
+                    message: disputeMessage.trim(),
+                    photoUris: disputePhotos,
+                  });
+                }}
+                className="rounded-full bg-red-600 px-4 py-2"
+              >
+                <Text className="text-sm font-semibold text-white">
+                  {t('deal.disputeSubmit')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}

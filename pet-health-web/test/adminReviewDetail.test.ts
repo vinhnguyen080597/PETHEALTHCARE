@@ -7,7 +7,10 @@ import {
   adminListingContactEntries,
   adminListingMediaUrls,
   adminListingSpecRows,
+  canAdminForceResolveDeal,
+  dealDisputeFromPost,
   healthEvidenceUrlsFromMetadata,
+  isDealDisputeReport,
   toggleExpandedReviewId,
 } from "../src/lib/admin/reviewDetail";
 
@@ -36,6 +39,14 @@ const KEYS = [
   "admin.review.careEnvironment",
   "admin.review.reportTarget",
   "admin.review.reportNote",
+  "admin.review.dealDispute",
+  "admin.review.dealDisputeMessage",
+  "admin.review.dealDisputeEvidence",
+  "admin.review.dealHandoffPhotos",
+  "admin.reports.forceComplete",
+  "admin.reports.forceCancel",
+  "admin.reports.confirmForceComplete",
+  "admin.reports.confirmForceCancel",
 ] as const;
 
 test("admin review detail i18n keys exist in EN and VI", () => {
@@ -97,4 +108,43 @@ test("adminBreederSpecRows and expand toggle", () => {
   assert.equal(rows.length, 4);
   assert.equal(toggleExpandedReviewId(null, "post-1"), "post-1");
   assert.equal(toggleExpandedReviewId("post-1", "post-1"), null);
+});
+
+test("deal dispute helpers for admin force resolve", () => {
+  assert.equal(isDealDisputeReport("deal_dispute"), true);
+  assert.equal(isDealDisputeReport("scam"), false);
+  assert.equal(
+    canAdminForceResolveDeal({
+      reportReason: "deal_dispute",
+      reportStatus: "open",
+      linkedPostStatus: "deposit_hold",
+    }),
+    true,
+  );
+  assert.equal(
+    canAdminForceResolveDeal({
+      reportReason: "deal_dispute",
+      reportStatus: "open",
+      linkedPostStatus: "sold",
+    }),
+    false,
+  );
+  const dispute = dealDisputeFromPost({
+    id: "p1",
+    status: "deposit_hold",
+    metadata: {
+      deal: {
+        status: "dispute_open",
+        handoff_photos: ["https://h.jpg"],
+        dispute: {
+          message: "No pet",
+          evidence_urls: ["https://e.jpg", ""],
+        },
+      },
+    },
+  });
+  assert.equal(dispute?.dealStatus, "dispute_open");
+  assert.equal(dispute?.message, "No pet");
+  assert.deepEqual(dispute?.evidenceUrls, ["https://e.jpg"]);
+  assert.deepEqual(dispute?.handoffPhotos, ["https://h.jpg"]);
 });

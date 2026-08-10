@@ -151,7 +151,13 @@ export type CreateCoreCareRecordPayload = {
   metadata?: Record<string, unknown>;
 };
 
-export type PetFeedPostStatus = 'draft' | 'pending_review' | 'published' | 'archived';
+export type PetFeedPostStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'published'
+  | 'deposit_hold'
+  | 'archived'
+  | 'sold';
 export type PostKind = 'listing' | 'announcement';
 export type AnnouncementCategory = 'app_update' | 'health_tip' | 'community' | 'general';
 export type BreederVerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected' | 'suspended';
