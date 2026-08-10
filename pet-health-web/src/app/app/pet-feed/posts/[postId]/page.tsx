@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             url: photo,
             width: 1200,
             height: 630,
-            alt: listing.breed || listing.title || "Pet Marketplace listing",
+            alt: listing.breed || listing.title || "PetCare: Pet Marketplace listing",
           },
         ]
       : undefined;
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       alternates: { canonical },
       openGraph: {
         type: "article",
-        siteName: "Pet Marketplace",
+        siteName: "PetCare: Pet Marketplace",
         title,
         description,
         url: canonical,
@@ -65,7 +65,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: "Pet listing",
       alternates: { canonical },
-      openGraph: { url: canonical, siteName: "Pet Marketplace" },
+      openGraph: { url: canonical, siteName: "PetCare: Pet Marketplace" },
     };
   }
 }

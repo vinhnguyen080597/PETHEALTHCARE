@@ -46,7 +46,7 @@ function AdminPostCardComponent({ post, onPress, testID }: AdminPostCardProps) {
         <View className="flex-row items-center justify-between gap-2">
           <View className="flex-row items-center gap-2">
             <Ionicons name="shield-checkmark-outline" size={16} color="#1E6FE8" />
-            <Text className="text-xs font-bold text-blue-600">Pet Health Care</Text>
+            <Text className="text-xs font-bold text-blue-600">PetCare: Pet Marketplace</Text>
           </View>
           <Text className="text-xs text-slate-500">{formatRelativeTime(post.created_at)}</Text>
         </View>

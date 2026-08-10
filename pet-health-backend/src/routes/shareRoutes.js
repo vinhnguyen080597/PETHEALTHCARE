@@ -29,9 +29,9 @@ function absoluteImageUrl(url) {
 }
 
 function renderShareHtml({ postId, card, canonicalUrl, appUrl }) {
-  const title = card?.title || 'Pet Marketplace';
+  const title = card?.title || 'PetCare: Pet Marketplace';
   const description = card?.description
-    || 'Xem tin đăng thú cưng và mở bằng ứng dụng Pet Marketplace.';
+    || 'Xem tin đăng thú cưng và mở bằng ứng dụng PetCare: Pet Marketplace.';
   const imageUrl = absoluteImageUrl(card?.imageUrl);
   const found = Boolean(card);
 
@@ -40,12 +40,12 @@ function renderShareHtml({ postId, card, canonicalUrl, appUrl }) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(title)} · Pet Marketplace</title>
+    <title>${escapeHtml(title)} · PetCare: Pet Marketplace</title>
     <meta name="description" content="${escapeHtml(description)}" />
     <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Pet Marketplace" />
+    <meta property="og:site_name" content="PetCare: Pet Marketplace" />
     <meta property="og:locale" content="vi_VN" />
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
     <meta property="og:title" content="${escapeHtml(title)}" />
@@ -80,14 +80,14 @@ function renderShareHtml({ postId, card, canonicalUrl, appUrl }) {
   </head>
   <body>
     <main>
-      <p class="eyebrow">Pet Marketplace</p>
+      <p class="eyebrow">PetCare: Pet Marketplace</p>
       <section class="card">
         <div class="media">
           <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" />
         </div>
         <div class="body">
           <h1>${escapeHtml(found ? title : 'Tin đăng không còn khả dụng')}</h1>
-          <p class="meta">${escapeHtml(found ? description : 'Tin này có thể đã bị gỡ hoặc chưa được duyệt. Tải ứng dụng để xem các tin khác trên Pet Marketplace.')}</p>
+          <p class="meta">${escapeHtml(found ? description : 'Tin này có thể đã bị gỡ hoặc chưa được duyệt. Tải ứng dụng để xem các tin khác trên PetCare: Pet Marketplace.')}</p>
           <div class="actions">
             <a class="button primary" id="open-app" href="${escapeHtml(appUrl)}">Mở trong ứng dụng</a>
             <a class="button secondary" href="${escapeHtml(IOS_STORE)}">Tải trên App Store</a>

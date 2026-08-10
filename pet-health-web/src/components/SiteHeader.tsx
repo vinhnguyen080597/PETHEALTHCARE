@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
 import { BRAND_AVATAR_PATH } from "@/lib/brand";
+import { BrandWordmark } from "@/components/BrandWordmark";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
 import { MessagesUnreadBadge } from "@/components/MessagesUnreadBadge";
@@ -55,9 +56,7 @@ export function SiteHeader({
             className="w-8 h-8 rounded-lg object-cover shadow-sm shadow-amber-200/50"
           />
           <div className="hidden sm:block">
-            <span className="font-bold text-stone-900 text-sm tracking-tight">
-              {t(lang, "nav.brand")}
-            </span>
+            <BrandWordmark text={t(lang, "nav.brand")} />
             {isAdmin && (
               <span className="ml-1.5 text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded">
                 Admin

@@ -1,6 +1,6 @@
 import type { Lang } from "@/lib/types";
 
-export const LEGAL_SUPPORT_EMAIL = "support@pethealthcare.app";
+export const LEGAL_SUPPORT_EMAIL = "cattieshealthcare@gmail.com";
 
 export type LegalSection = {
   heading?: string;
@@ -18,7 +18,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
   EN: {
     updated: "Last updated: August 2026",
     intro:
-      "Pet Health Care (“we”) operates the Pet Health Care app and marketplace that connects Sen (pet seekers) with Breeders and farms. This Privacy Policy explains what we collect and how we use it.",
+      "PetCare: Pet Marketplace (“we”) operates the app and marketplace that connects Sen (pet seekers) with Breeders and farms. This Privacy Policy explains what we collect and how we use it.",
     sections: [
       {
         heading: "Information we collect",
@@ -58,7 +58,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
   VI: {
     updated: "Cập nhật lần cuối: tháng 8/2026",
     intro:
-      "Pet Health Care (“chúng tôi”) vận hành ứng dụng và marketplace kết nối Sen (người tìm thú cưng) với Breeder / trại giống. Chính sách này mô tả dữ liệu chúng tôi thu thập và cách sử dụng.",
+      "PetCare: Pet Marketplace (“chúng tôi”) vận hành ứng dụng và marketplace kết nối Sen (người tìm thú cưng) với Breeder / trại giống. Chính sách này mô tả dữ liệu chúng tôi thu thập và cách sử dụng.",
     sections: [
       {
         heading: "Dữ liệu thu thập",
@@ -101,10 +101,10 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
   EN: {
     updated: "Last updated: August 2026",
     intro:
-      "These Terms govern use of Pet Health Care’s marketplace (web and app). By creating an account or posting/browsing listings you agree to these Terms and the Marketplace Guidelines.",
+      "These Terms govern use of PetCare: Pet Marketplace (web and app). By creating an account or posting/browsing listings you agree to these Terms and the Marketplace Guidelines.",
     sections: [
       {
-        heading: "What Pet Health Care provides",
+        heading: "What PetCare: Pet Marketplace provides",
         paragraphs: [
           "We provide tools for Sen and Breeders to discover pets, view farm profiles, message each other, attach warranty policies to listings, and coordinate soft deposits / handoffs according to terms shown in the product. Listings and farm content are created by users.",
         ],
@@ -112,7 +112,7 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "We are not the seller",
         paragraphs: [
-          "Pet Health Care is not the seller or owner of pets listed on the marketplace. We do not guarantee pet health, breed claims, vaccine status, or the outcome of any deal between users. Soft-deposit / escrow-style holds in the product help coordinate deposits under seller terms; they are not a platform guarantee against illness or a full payment-processing service for the entire purchase price unless clearly stated otherwise in-product.",
+          "PetCare: Pet Marketplace is not the seller or owner of pets listed on the marketplace. We do not guarantee pet health, breed claims, vaccine status, or the outcome of any deal between users. Soft-deposit / escrow-style holds in the product help coordinate deposits under seller terms; they are not a platform guarantee against illness or a full payment-processing service for the entire purchase price unless clearly stated otherwise in-product.",
         ],
       },
       {
@@ -139,10 +139,10 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
   VI: {
     updated: "Cập nhật lần cuối: tháng 8/2026",
     intro:
-      "Điều khoản này áp dụng khi bạn dùng marketplace Pet Health Care (web và app). Khi tạo tài khoản, đăng tin hoặc xem tin, bạn đồng ý với Điều khoản và Nội quy Marketplace.",
+      "Điều khoản này áp dụng khi bạn dùng marketplace PetCare: Pet Marketplace (web và app). Khi tạo tài khoản, đăng tin hoặc xem tin, bạn đồng ý với Điều khoản và Nội quy Marketplace.",
     sections: [
       {
-        heading: "Pet Health Care cung cấp gì",
+        heading: "PetCare: Pet Marketplace cung cấp gì",
         paragraphs: [
           "Chúng tôi cung cấp công cụ để Sen và Breeder tìm thú cưng, xem hồ sơ trại, nhắn tin, gắn chính sách bảo hành vào tin đăng, và phối hợp đặt cọc / bàn giao theo điều khoản hiển thị trong sản phẩm. Nội dung tin đăng và hồ sơ trại do người dùng tạo.",
         ],
@@ -150,7 +150,7 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Chúng tôi không phải bên bán",
         paragraphs: [
-          "Pet Health Care không phải người bán hay chủ sở hữu thú cưng trên marketplace. Chúng tôi không bảo lãnh sức khỏe thú, giống, tình trạng vaccine hay kết quả giao dịch giữa người dùng. Cơ chế đặt cọc / giữ cọc trong app giúp các bên theo dõi khoản cọc theo điều khoản người bán; đây không phải bảo lãnh bệnh tật từ nền tảng và không đồng nghĩa chúng tôi xử lý toàn bộ thanh toán giá thú trừ khi sản phẩm nêu rõ khác.",
+          "PetCare: Pet Marketplace không phải người bán hay chủ sở hữu thú cưng trên marketplace. Chúng tôi không bảo lãnh sức khỏe thú, giống, tình trạng vaccine hay kết quả giao dịch giữa người dùng. Cơ chế đặt cọc / giữ cọc trong app giúp các bên theo dõi khoản cọc theo điều khoản người bán; đây không phải bảo lãnh bệnh tật từ nền tảng và không đồng nghĩa chúng tôi xử lý toàn bộ thanh toán giá thú trừ khi sản phẩm nêu rõ khác.",
         ],
       },
       {
@@ -180,7 +180,7 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
   EN: {
     updated: "Last updated: August 2026",
     intro:
-      "These Marketplace Guidelines apply to Sen, Breeders, and anyone using Pet Health Care listings, chat, or soft deposits. Violations may lead to removed listings or suspended accounts.",
+      "These Marketplace Guidelines apply to Sen, Breeders, and anyone using PetCare: Pet Marketplace listings, chat, or soft deposits. Violations may lead to removed listings or suspended accounts.",
     sections: [
       {
         heading: "Listings and farms",
@@ -218,7 +218,7 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
   VI: {
     updated: "Cập nhật lần cuối: tháng 8/2026",
     intro:
-      "Nội quy Marketplace áp dụng cho Sen, Breeder và mọi người dùng tin đăng, chat hoặc đặt cọc trên Pet Health Care. Vi phạm có thể dẫn tới gỡ tin hoặc khóa tài khoản.",
+      "Nội quy Marketplace áp dụng cho Sen, Breeder và mọi người dùng tin đăng, chat hoặc đặt cọc trên PetCare: Pet Marketplace. Vi phạm có thể dẫn tới gỡ tin hoặc khóa tài khoản.",
     sections: [
       {
         heading: "Tin đăng và hồ sơ trại",
@@ -259,7 +259,7 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
   EN: {
     updated: "Last updated: August 2026",
     intro:
-      "We’re here to help with Pet Health Care accounts, Breeder verification, listings, chat, soft deposits, and warranty questions.",
+      "We’re here to help with PetCare: Pet Marketplace accounts, Breeder verification, listings, chat, soft deposits, and warranty questions.",
     sections: [
       {
         heading: "Contact",
@@ -279,7 +279,7 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Before you write",
         paragraphs: [
-          "For deal questions, first check the listing warranty, deposit panel status, and Marketplace Guidelines. Pet Health Care moderates the platform but does not replace in-person verification between Sen and Breeder.",
+          "For deal questions, first check the listing warranty, deposit panel status, and Marketplace Guidelines. PetCare: Pet Marketplace moderates the platform but does not replace in-person verification between Sen and Breeder.",
         ],
       },
     ],
@@ -287,7 +287,7 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
   VI: {
     updated: "Cập nhật lần cuối: tháng 8/2026",
     intro:
-      "Chúng tôi hỗ trợ tài khoản Pet Health Care, xác minh Breeder, tin đăng, chat, đặt cọc và câu hỏi về bảo hành.",
+      "Chúng tôi hỗ trợ tài khoản PetCare: Pet Marketplace, xác minh Breeder, tin đăng, chat, đặt cọc và câu hỏi về bảo hành.",
     sections: [
       {
         heading: "Liên hệ",
@@ -307,7 +307,7 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Trước khi gửi",
         paragraphs: [
-          "Với câu hỏi giao dịch, hãy xem trước chính sách bảo hành trên tin, trạng thái bảng đặt cọc và Nội quy Marketplace. Pet Health Care kiểm duyệt nền tảng nhưng không thay thế việc Sen và Breeder tự kiểm tra trực tiếp.",
+          "Với câu hỏi giao dịch, hãy xem trước chính sách bảo hành trên tin, trạng thái bảng đặt cọc và Nội quy Marketplace. PetCare: Pet Marketplace kiểm duyệt nền tảng nhưng không thay thế việc Sen và Breeder tự kiểm tra trực tiếp.",
         ],
       },
     ],

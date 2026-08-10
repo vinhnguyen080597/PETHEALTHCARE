@@ -8,7 +8,7 @@ const vi: Record<EnKey, string> = {
   "nav.account": "Tài khoản",
   "nav.admin": "Admin",
   "nav.login": "Đăng nhập",
-  "nav.brand": "Pet Marketplace",
+  "nav.brand": "PetCare: Pet Marketplace",
   "nav.language": "Ngôn ngữ",
   "breadcrumb.home": "Trang chủ",
   "breadcrumb.listing": "Tin đăng",
@@ -65,10 +65,10 @@ const vi: Record<EnKey, string> = {
   "landing.footer.browse": "Bé cưng",
   "landing.footer.create": "Đăng tin",
   "landing.footer.disclaimer":
-    "Tin đăng do người dùng đăng. Pet Health Care không phải bên bán; đặt cọc theo điều khoản trên tin.",
+    "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán; đặt cọc theo điều khoản trên tin.",
 
   "feed.disclaimer":
-    "Tin đăng do người dùng đăng. Pet Health Care không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. Đặt cọc theo điều khoản trên tin. Hãy kiểm tra trực tiếp và đọc ",
+    "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. Đặt cọc theo điều khoản trên tin. Hãy kiểm tra trực tiếp và đọc ",
   "feed.guidelines": "Nội quy Marketplace",
   "feed.disclaimerEnd": " trước khi quyết định.",
   "feed.search": "Tìm giống, breeder, khu vực…",
@@ -125,7 +125,6 @@ const vi: Record<EnKey, string> = {
   "breeders.card.sold": "Bé đã có nhà",
   "breeders.card.trustIndex": "Chỉ số tín nhiệm",
   "breeders.card.cta": "Xem Trại Giống",
-  "breeders.card.ctaListings": "Bé Đang Đăng",
 
   "farm.badge.inspected": "Trại Giống Kiểm Định",
   "farm.badge.idVerified": "Đã Xác Minh ID",
@@ -467,7 +466,7 @@ const vi: Record<EnKey, string> = {
 
   "app.banner.need": "Cần theo dõi sức khỏe thú cưng?",
   "app.banner.desc":
-    "Tải app Pet Health Care — AI sàng lọc sơ bộ, nhắc vaccine, nhật ký sức khỏe đầy đủ.",
+    "Tải app PetCare: Pet Marketplace — AI sàng lọc sơ bộ, nhắc vaccine, nhật ký sức khỏe đầy đủ.",
 
   "auth.login": "Đăng nhập",
   "auth.signup": "Đăng ký",
@@ -585,12 +584,12 @@ const vi: Record<EnKey, string> = {
   "account.breederProfile": "Hồ sơ breeder",
   "account.template": "Giao diện trang trại",
   "account.notLoggedIn": "Vui lòng đăng nhập để quản lý tài khoản.",
-  "account.myRole": "Vai trò trên Pet Marketplace",
+  "account.myRole": "Vai trò trên PetCare: Pet Marketplace",
   "account.shortcuts": "Lối tắt",
   "account.requestBreeder": "Đăng ký Breeder",
   "account.openAdminReview": "Mở Admin Console",
   "account.communitySafety":
-    "Tin đăng cần minh bạch và tôn trọng. Pet Marketplace không xử lý thanh toán và không thay thế xác minh trực tiếp với breeder.",
+    "Tin đăng cần minh bạch và tôn trọng. PetCare: Pet Marketplace không xử lý thanh toán và không thay thế xác minh trực tiếp với breeder.",
   "account.breederSafety":
     "Tin đăng cần ảnh rõ, video ngắn, thông tin vaccine/tẩy giun và điều kiện nhận bé minh bạch. Không cam kết sức khỏe tuyệt đối nếu chưa có xác nhận thú y.",
   "account.vetSummary":
@@ -620,7 +619,7 @@ const vi: Record<EnKey, string> = {
   "account.senStatus.helper.pending_review":
     "Admin đang xem xét yêu cầu. Bạn có thể hủy và gửi lại nếu thông tin chưa đúng.",
   "account.senStatus.helper.verified":
-    "Tài khoản đã dùng được tính năng Breeder trên Pet Marketplace.",
+    "Tài khoản đã dùng được tính năng Breeder trên PetCare: Pet Marketplace.",
   "account.senStatus.helper.rejected":
     "Bổ sung thông tin rõ hơn rồi gửi lại để admin xem xét.",
   "account.senStatus.helper.suspended":
@@ -654,7 +653,7 @@ const vi: Record<EnKey, string> = {
   "account.breederRequestStatus.suspended": "Quyền Breeder đang tạm khóa.",
   "account.roles.sen.title": "Sen (chủ nuôi)",
   "account.roles.sen.body":
-    "Xem tin có cấu trúc, lưu thú cưng và nhắn tin breeder trên Pet Marketplace.",
+    "Xem tin có cấu trúc, lưu thú cưng và nhắn tin breeder trên PetCare: Pet Marketplace.",
   "account.roles.breeder.title": "Breeder",
   "account.roles.breeder.body":
     "Tạo hồ sơ trại uy tín và tin đăng có cấu trúc để admin duyệt.",
@@ -737,7 +736,7 @@ const vi: Record<EnKey, string> = {
   "breederForm.commitment.accurate_information":
     "Tôi xác nhận thông tin gửi đi là chính xác và có thể kiểm chứng.",
   "breederForm.commitment.app_only_verification":
-    "Tôi hiểu xác minh chỉ để đăng tin trên Pet Marketplace, không thay thế kiểm tra trực tiếp.",
+    "Tôi hiểu xác minh chỉ để đăng tin trên PetCare: Pet Marketplace, không thay thế kiểm tra trực tiếp.",
 
   "listing.status.draft": "Bản nháp",
   "listing.status.pending_review": "Chờ duyệt",
@@ -1081,7 +1080,7 @@ const vi: Record<EnKey, string> = {
   "admin.features.farm_template_change.title": "Đổi template trại",
   "admin.features.farm_template_change.desc":
     "Nút để chủ trại đổi giao diện template hồ sơ.",
-  "admin.news.title": "Đăng tin Pet Health Care",
+  "admin.news.title": "Đăng tin PetCare: Pet Marketplace",
   "admin.news.note": "Bài này hiện ở tab Tin tức, không phải tin bán.",
   "admin.news.category": "Loại nội dung",
   "admin.news.titleLabel": "Tiêu đề",
@@ -1105,7 +1104,7 @@ const vi: Record<EnKey, string> = {
 
   "legal.title": "Hỗ trợ và chính sách",
   "legal.body":
-    "Đọc cách Pet Marketplace xử lý bảo mật, điều khoản cộng đồng, nội quy marketplace và yêu cầu hỗ trợ.",
+    "Đọc cách PetCare: Pet Marketplace xử lý bảo mật, điều khoản cộng đồng, nội quy marketplace và yêu cầu hỗ trợ.",
   "legal.privacy": "Chính sách bảo mật",
   "legal.terms": "Điều khoản dịch vụ",
   "legal.guidelines": "Nội quy Marketplace",

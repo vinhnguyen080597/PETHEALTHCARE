@@ -6,7 +6,7 @@ const en = {
   "nav.account": "Account",
   "nav.admin": "Admin",
   "nav.login": "Log in",
-  "nav.brand": "Pet Marketplace",
+  "nav.brand": "PetCare: Pet Marketplace",
   "nav.language": "Language",
   "breadcrumb.home": "Home",
   "breadcrumb.listing": "Listings",
@@ -63,10 +63,10 @@ const en = {
   "landing.footer.browse": "Pets",
   "landing.footer.create": "Create listing",
   "landing.footer.disclaimer":
-    "Listings posted by users. Pet Health Care is not the seller; soft deposits follow listing terms.",
+    "Listings posted by users. PetCare: Pet Marketplace is not the seller; soft deposits follow listing terms.",
 
   "feed.disclaimer":
-    "Listings are posted by users. Pet Health Care is not the seller and does not guarantee pets, health claims, or deal outcomes. Soft deposits follow listing terms. Verify in person and read our ",
+    "Listings are posted by users. PetCare: Pet Marketplace is not the seller and does not guarantee pets, health claims, or deal outcomes. Soft deposits follow listing terms. Verify in person and read our ",
   "feed.guidelines": "Marketplace Guidelines",
   "feed.disclaimerEnd": " before deciding.",
   "feed.search": "Search breed, breeder, location…",
@@ -123,7 +123,6 @@ const en = {
   "breeders.card.sold": "pets rehomed",
   "breeders.card.trustIndex": "Trust index",
   "breeders.card.cta": "View kennel",
-  "breeders.card.ctaListings": "active listings",
 
   "farm.badge.inspected": "Inspected kennel",
   "farm.badge.idVerified": "ID verified",
@@ -464,7 +463,7 @@ const en = {
 
   "app.banner.need": "Need to track your pet's health?",
   "app.banner.desc":
-    "Download Pet Health Care — AI health screening, vaccine reminders, and complete health diary.",
+    "Download PetCare: Pet Marketplace — AI health screening, vaccine reminders, and complete health diary.",
 
   "auth.login": "Log in",
   "auth.signup": "Sign up",
@@ -581,12 +580,12 @@ const en = {
   "account.breederProfile": "Breeder profile",
   "account.template": "Farm page template",
   "account.notLoggedIn": "Please log in to manage your account.",
-  "account.myRole": "Your role on Pet Marketplace",
+  "account.myRole": "Your role on PetCare: Pet Marketplace",
   "account.shortcuts": "Shortcuts",
   "account.requestBreeder": "Register as Breeder",
   "account.openAdminReview": "Open Admin Console",
   "account.communitySafety":
-    "Listings should stay transparent and respectful. Pet Marketplace does not handle payments or replace direct breeder verification.",
+    "Listings should stay transparent and respectful. PetCare: Pet Marketplace does not handle payments or replace direct breeder verification.",
   "account.breederSafety":
     "Listings should include clear photos, a short video, vaccine/deworming details, and transparent adoption conditions. Avoid absolute health claims without veterinary confirmation.",
   "account.vetSummary":
@@ -616,7 +615,7 @@ const en = {
   "account.senStatus.helper.pending_review":
     "Admin is reviewing your request. You can cancel and resubmit if something looks wrong.",
   "account.senStatus.helper.verified":
-    "This account can use Breeder features on Pet Marketplace.",
+    "This account can use Breeder features on PetCare: Pet Marketplace.",
   "account.senStatus.helper.rejected":
     "Add clearer details and submit again for admin review.",
   "account.senStatus.helper.suspended":
@@ -650,7 +649,7 @@ const en = {
   "account.breederRequestStatus.suspended": "Breeder access is suspended.",
   "account.roles.sen.title": "Pet parent",
   "account.roles.sen.body":
-    "Browse structured listings, save pets, and message breeders on Pet Marketplace.",
+    "Browse structured listings, save pets, and message breeders on PetCare: Pet Marketplace.",
   "account.roles.breeder.title": "Breeder",
   "account.roles.breeder.body":
     "Create a trustworthy farm profile and structured listings for admin review.",
@@ -733,7 +732,7 @@ const en = {
   "breederForm.commitment.accurate_information":
     "I confirm the information I submit is accurate and can be verified.",
   "breederForm.commitment.app_only_verification":
-    "I understand verification is for Pet Marketplace listing access and does not replace in-person checks.",
+    "I understand verification is for PetCare: Pet Marketplace listing access and does not replace in-person checks.",
 
   "listing.status.draft": "Draft",
   "listing.status.pending_review": "Pending review",
@@ -1077,7 +1076,7 @@ const en = {
   "admin.features.farm_template_change.title": "Change farm template",
   "admin.features.farm_template_change.desc":
     "Owner button to switch farm profile template layouts.",
-  "admin.news.title": "Post Pet Health Care news",
+  "admin.news.title": "Post PetCare: Pet Marketplace news",
   "admin.news.note": "This post appears in the News tab, not in sale listings.",
   "admin.news.category": "Content type",
   "admin.news.titleLabel": "Title",
@@ -1101,7 +1100,7 @@ const en = {
 
   "legal.title": "Support and policies",
   "legal.body":
-    "Read how Pet Marketplace handles privacy, community terms, marketplace rules, and support requests.",
+    "Read how PetCare: Pet Marketplace handles privacy, community terms, marketplace rules, and support requests.",
   "legal.privacy": "Privacy Policy",
   "legal.terms": "Terms of Service",
   "legal.guidelines": "Marketplace Guidelines",

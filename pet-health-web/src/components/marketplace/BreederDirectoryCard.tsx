@@ -92,8 +92,7 @@ export function BreederDirectoryCard({
           href={`/app/breeders/${breeder.id}`}
           className="mt-5 block w-full text-center py-2.5 rounded-xl bg-[#D97706] text-white text-sm font-semibold hover:bg-[#B45309] transition-colors shadow-sm shadow-amber-200/60"
         >
-          {t(lang, "breeders.card.cta")} ({card.activeListings}{" "}
-          {t(lang, "breeders.card.ctaListings")})
+          {t(lang, "breeders.card.cta")}
         </Link>
       </div>
     </article>

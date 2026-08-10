@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 
 /** Baked into listing/feed photos only (not video). */
-export const PET_FEED_IMAGE_WATERMARK_TEXT = 'Pet Marketplace';
+export const PET_FEED_IMAGE_WATERMARK_TEXT = 'PetCare: Pet Marketplace';
 export const PET_FEED_IMAGE_WATERMARK_OPACITY = 0.3;
 /** Diagonal text tilt (degrees, SVG rotate). */
 export const PET_FEED_IMAGE_WATERMARK_ROTATE_DEG = -45;

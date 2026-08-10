@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
-import { BRAND_AVATAR_PATH } from "@/lib/brand";
+import { BRAND_AVATAR_PATH, BRAND_NAME } from "@/lib/brand";
+import { BrandWordmark } from "@/components/BrandWordmark";
 
 export function SiteFooter({ lang }: { lang: Lang }) {
   return (
@@ -18,7 +19,7 @@ export function SiteFooter({ lang }: { lang: Lang }) {
                 height={28}
                 className="w-7 h-7 rounded-lg object-cover"
               />
-              <span className="font-bold text-sm">{t(lang, "nav.brand")}</span>
+              <BrandWordmark text={t(lang, "nav.brand")} tone="onDark" />
             </div>
             <p className="text-stone-400 text-sm leading-relaxed max-w-xs">
               {t(lang, "landing.footer.blurb")}
@@ -82,7 +83,7 @@ export function SiteFooter({ lang }: { lang: Lang }) {
           </div>
         </div>
         <div className="border-t border-stone-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
-          <p>© 2026 Pet Health Care</p>
+          <p>© 2026 {BRAND_NAME}</p>
           <p>{t(lang, "landing.footer.disclaimer")}</p>
         </div>
       </div>

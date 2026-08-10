@@ -7,7 +7,7 @@ export function AppDownloadBanner({ lang }: { lang: Lang }) {
     <div className="bg-gradient-to-br from-[#B45309] via-[#D97706] to-[#F59E0B] rounded-2xl p-6 lg:p-8 flex flex-col lg:flex-row items-center gap-6 text-white shadow-[0_18px_40px_-24px_rgba(180,83,9,0.55)]">
       <div className="flex-1">
         <p className="text-sm font-semibold text-amber-100 mb-1">
-          Pet Health Care App
+          PetCare: Pet Marketplace App
         </p>
         <h3 className="font-display text-xl lg:text-2xl font-semibold mb-2">
           {t(lang, "app.banner.need")}

@@ -116,7 +116,7 @@ function ServiceCard({
   );
 }
 
-/** Shown after each new pet is added — showcase Pet Health Care services before home. */
+/** Shown after each new pet is added — showcase PetCare: Pet Marketplace services before home. */
 export function OnboardingHealthPromptScreen({
   petName,
   showBreedService = true,

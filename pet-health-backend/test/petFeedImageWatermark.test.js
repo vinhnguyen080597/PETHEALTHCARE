@@ -9,8 +9,8 @@ import {
 } from '../src/services/petFeedImageWatermark.js';
 
 describe('bakePetFeedImageWatermark', () => {
-  it('keeps Pet Marketplace brand text style contract', () => {
-    assert.equal(PET_FEED_IMAGE_WATERMARK_TEXT, 'Pet Marketplace');
+  it('keeps PetCare: Pet Marketplace brand text style contract', () => {
+    assert.equal(PET_FEED_IMAGE_WATERMARK_TEXT, 'PetCare: Pet Marketplace');
     assert.equal(PET_FEED_IMAGE_WATERMARK_OPACITY, 0.3);
     assert.equal(Math.abs(PET_FEED_IMAGE_WATERMARK_ROTATE_DEG), 45);
   });

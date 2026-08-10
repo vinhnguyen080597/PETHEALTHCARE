@@ -26,7 +26,7 @@
     "offline": "Dịch vụ hiện tạm thời chưa sẵn sàng. Vui lòng thử lại sau."
   },
   "login": {
-    "appName": "Pet Health Care",
+    "appName": "PetCare: Pet Marketplace",
     "tagline": "Trợ lý chăm sóc sức khỏe thú cưng",
     "createAccount": "Tạo tài khoản",
     "welcomeBack": "Chào mừng trở lại",
@@ -47,7 +47,7 @@
     "toggleToSignUp": "Chưa có tài khoản? Đăng ký",
     "forgotPassword": "Quên mật khẩu?",
     "forgotPasswordTitle": "Quên mật khẩu",
-    "forgotPasswordBody": "Nhập email đăng ký. Pet Health Care sẽ gửi mã OTP để bạn đặt lại mật khẩu ngay trong app.",
+    "forgotPasswordBody": "Nhập email đăng ký. PetCare: Pet Marketplace sẽ gửi mã OTP để bạn đặt lại mật khẩu ngay trong app.",
     "forgotPasswordSendOtp": "Gửi mã OTP",
     "forgotPasswordBack": "Quay lại đăng nhập",
     "forgotPasswordSuccess": "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập bằng mật khẩu mới.",
@@ -98,12 +98,12 @@
   },
   "legal": {
     "title": "Hỗ trợ và chính sách",
-    "body": "Xem cách Pet Health Care xử lý quyền riêng tư, điều khoản, nội quy marketplace và yêu cầu hỗ trợ.",
+    "body": "Xem cách PetCare: Pet Marketplace xử lý quyền riêng tư, điều khoản, nội quy marketplace và yêu cầu hỗ trợ.",
     "privacy": "Chính sách bảo mật",
     "terms": "Điều khoản dịch vụ",
     "marketplaceGuidelines": "Nội quy Marketplace",
     "support": "Liên hệ hỗ trợ",
-    "marketplaceDisclaimer": "Tin đăng do người dùng đăng. Pet Health Care không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. Đặt cọc theo điều khoản trên tin. Hãy kiểm tra trực tiếp và đọc <guidelines>Nội quy Marketplace</guidelines> trước khi quyết định.",
+    "marketplaceDisclaimer": "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. Đặt cọc theo điều khoản trên tin. Hãy kiểm tra trực tiếp và đọc <guidelines>Nội quy Marketplace</guidelines> trước khi quyết định.",
     "dismissMarketplaceDisclaimer": "Đóng thông báo marketplace",
     "marketplaceListingTermsLabel": "Cam kết khi đăng tin marketplace",
     "marketplaceListingTermsBody": "Tôi xác nhận tin đăng này hợp pháp, không liên quan động vật hoang dã, loài bảo vệ hoặc buôn bán trái phép, và thông tin là trung thực. Tôi chịu mọi trách nhiệm về nội dung và giao dịch. Tôi đã đọc <guidelines>Nội quy Marketplace</guidelines>."
@@ -117,7 +117,7 @@
     "logout": "Đăng xuất"
   },
   "header": {
-    "appName": "Pet Health Care",
+    "appName": "PetCare: Pet Marketplace",
     "tagline": "Trợ lý chăm sóc sức khỏe thú cưng"
   },
   "home": {
@@ -143,7 +143,7 @@
   },
   "petFeed": {
     "title": "Pet Feed",
-    "headerTitle": "Pet Marketplace",
+    "headerTitle": "PetCare: Pet Marketplace",
     "subtitle": "Bài đăng breeder có cấu trúc để Sen dễ so sánh thông tin quan trọng hơn các bài mạng xã hội rời rạc.",
     "disclaimer": "Thông tin do breeder cung cấp. Sen nên tự xác minh danh tính, giấy tờ, vaccine và sắp xếp gặp trực tiếp hoặc kiểm tra thú y trước khi quyết định.",
     "emptyTitle": "Chưa có bài đã duyệt",
@@ -161,7 +161,7 @@
       "news": "Tin tức",
       "breeders": "Breeders"
     },
-    "newsEmpty": "Chưa có tin từ Pet Health Care",
+    "newsEmpty": "Chưa có tin từ PetCare: Pet Marketplace",
     "topBreeders": {
       "verified": "Đã xác minh",
       "posts": "Tin đăng",
@@ -209,7 +209,7 @@
     "hasVideo": "Có video",
     "contact": "Liên hệ",
     "contactConfirmTitle": "Mở liên hệ breeder?",
-    "contactConfirmBody": "Pet Health Care không xử lý thanh toán và không xác minh cuộc trò chuyện bên ngoài. Sen nên tự kiểm tra danh tính breeder, giấy tờ, vaccine và gặp an toàn trước khi quyết định.",
+    "contactConfirmBody": "PetCare: Pet Marketplace không xử lý thanh toán và không xác minh cuộc trò chuyện bên ngoài. Sen nên tự kiểm tra danh tính breeder, giấy tờ, vaccine và gặp an toàn trước khi quyết định.",
     "contactConfirmOpen": "Mở liên hệ",
     "favoriteFailed": "Không thể lưu",
     "reportSuccess": "Cảm ơn Sen. Bài đăng đã được gửi để admin xem xét.",
@@ -369,7 +369,7 @@
     "contactMissing": "Chưa bổ sung liên hệ",
     "trustTitle": "Độ tin cậy",
     "trustSignalsTitle": "Tín hiệu tin cậy",
-    "trustBody": "Điểm này là tín hiệu tham khảo trong Pet Health Care, dựa trên mức độ minh bạch hồ sơ và bài đăng.",
+    "trustBody": "Điểm này là tín hiệu tham khảo trong PetCare: Pet Marketplace, dựa trên mức độ minh bạch hồ sơ và bài đăng.",
     "profileInfo": "Về trại",
     "registration": "Thông tin xác thực",
     "careChecklist": "Chăm sóc & sức khỏe",
@@ -378,7 +378,7 @@
     "emptyListings": "Không có bài đăng phù hợp với bộ lọc hiện tại.",
     "openFarmHealth": "Sức khỏe trại",
     "changeTemplate": "Đổi template",
-    "disclaimer": "Tin đăng do người dùng đăng. Pet Health Care không phải bên bán, không xử lý thanh toán và không bảo lãnh sức khoẻ thú.",
+    "disclaimer": "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán, không xử lý thanh toán và không bảo lãnh sức khoẻ thú.",
     "registeredKennelBanner": "Trại đăng ký chính thức — {{name}}",
     "registeredKennelBannerDefault": "Trại đăng ký chính thức",
     "typeShort": {
@@ -503,7 +503,7 @@
       "cardBody": "Yêu cầu xóa vĩnh viễn tài khoản và dữ liệu trong app. Thao tác này không thể khôi phục trong ứng dụng.",
       "cta": "Xóa tài khoản",
       "title": "Xóa tài khoản của Sen?",
-      "message": "Pet Health Care sẽ xóa hồ sơ tài khoản, thú cưng, lịch sử sức khỏe, hoạt động Pet Feed và bài đã lưu. Thao tác này không thể hoàn tác.",
+      "message": "PetCare: Pet Marketplace sẽ xóa hồ sơ tài khoản, thú cưng, lịch sử sức khỏe, hoạt động Pet Feed và bài đã lưu. Thao tác này không thể hoàn tác.",
       "confirm": "Xóa tài khoản",
       "failedTitle": "Không thể xóa tài khoản"
     },
@@ -528,7 +528,7 @@
       "newPasswordLabel": "Mật khẩu mới",
       "confirmNewPasswordLabel": "Xác nhận mật khẩu mới",
       "saveChanges": "Lưu thay đổi",
-      "recoverPasswordBody": "Pet Health Care sẽ gửi mã OTP đến email đăng ký. Sen nhập mã và mật khẩu mới ngay trong app — không cần mở link web.",
+      "recoverPasswordBody": "PetCare: Pet Marketplace sẽ gửi mã OTP đến email đăng ký. Sen nhập mã và mật khẩu mới ngay trong app — không cần mở link web.",
       "sendRecoverOtp": "Gửi mã OTP",
       "recoverOtpTitle": "Đặt lại mật khẩu",
       "recoverOtpBody": "Mã OTP đã được gửi đến {{email}}. Nhập mã và mật khẩu mới bên dưới.",
@@ -557,7 +557,7 @@
         "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng xuất và đăng nhập lại."
       }
     },
-    "myRole": "Vai trò trong Pet Health Care",
+    "myRole": "Vai trò trong PetCare: Pet Marketplace",
     "pets": "Thú cưng",
     "savedPosts": "Đã lưu",
     "myPosts": "Bài của tôi",
@@ -596,7 +596,7 @@
         "waiting": "Chờ duyệt"
       }
     },
-    "communitySafety": "Bài đăng cộng đồng cần minh bạch và tôn trọng. Pet Health Care không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
+    "communitySafety": "Bài đăng cộng đồng cần minh bạch và tôn trọng. PetCare: Pet Marketplace không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
     "breederSafety": "Bài đăng cần có ảnh rõ, video ngắn, thông tin vaccine/tẩy giun và điều kiện nhận bé minh bạch. Không cam kết sức khỏe tuyệt đối nếu chưa có xác nhận thú y.",
     "openBreederProfile": "Hồ sơ breeder & bài đăng",
     "createPost": "Tạo bài đăng",
@@ -758,7 +758,7 @@
     "title": "Đăng ký Breeder",
     "profileInfo": "Thông tin đăng ký",
     "maiTitle": "Mai nhắn Sen",
-    "maiBody": "Sen ơi, hãy điền thông tin trung thực và đầy đủ để tăng độ uy tín khi đăng ký Breeder. Việc xác minh này chỉ áp dụng trong Pet Health Care, giúp admin đánh giá trước khi cho phép tạo bài Pet Feed. Thời gian duyệt thường trong khoảng 1 ngày. Nếu thông tin chưa rõ ràng, admin có thể yêu cầu bổ sung hoặc từ chối.",
+    "maiBody": "Sen ơi, hãy điền thông tin trung thực và đầy đủ để tăng độ uy tín khi đăng ký Breeder. Việc xác minh này chỉ áp dụng trong PetCare: Pet Marketplace, giúp admin đánh giá trước khi cho phép tạo bài Pet Feed. Thời gian duyệt thường trong khoảng 1 ngày. Nếu thông tin chưa rõ ràng, admin có thể yêu cầu bổ sung hoặc từ chối.",
     "displayName": "Tên trại / tên người chăm sóc",
     "location": "Khu vực",
     "bio": "Giới thiệu ngắn về cách chăm sóc",
@@ -838,7 +838,7 @@
     },
     "commitments": {
       "accurate_information": "Tôi cam kết thông tin cung cấp là đúng sự thật.",
-      "app_only_verification": "Tôi hiểu xác minh Breeder chỉ áp dụng trong Pet Health Care."
+      "app_only_verification": "Tôi hiểu xác minh Breeder chỉ áp dụng trong PetCare: Pet Marketplace."
     }
   },
   "createPetFeedPost": {
@@ -983,7 +983,7 @@
     }
   },
   "adminPost": {
-    "createTitle": "Đăng tin Pet Health Care",
+    "createTitle": "Đăng tin PetCare: Pet Marketplace",
     "publishNote": "Tin này hiện ở tab Tin tức, không xuất hiện trong mục mua bán.",
     "categoryLabel": "Loại nội dung",
     "titleLabel": "Tiêu đề",
@@ -1092,7 +1092,7 @@
       },
       "pet_feed_news": {
         "title": "Tab Tin tức",
-        "description": "Tin tức và thông báo Pet Health Care trên Pet Feed."
+        "description": "Tin tức và thông báo PetCare: Pet Marketplace trên Pet Feed."
       },
       "pet_feed_listings": {
         "title": "Tab Bài đăng",
@@ -1214,14 +1214,14 @@
   },
   "onboarding": {
     "introTitle": "Sen ơi!",
-    "introBubbleWelcome": "👋 Chào mừng bạn đến với\nPet Health Care.",
-    "introBubbleMission": "Với Pet Health Care, mỗi bé thú cưng không chỉ là một người bạn nhỏ, mà là một thành viên trong gia đình. Chúng mình mong được cùng Sen lưu lại từng thay đổi, từng thói quen và từng khoảnh khắc chăm sóc để các bé luôn được yêu thương đúng lúc.",
+    "introBubbleWelcome": "👋 Chào mừng bạn đến với\nPetCare: Pet Marketplace.",
+    "introBubbleMission": "Với PetCare: Pet Marketplace, mỗi bé thú cưng không chỉ là một người bạn nhỏ, mà là một thành viên trong gia đình. Chúng mình mong được cùng Sen lưu lại từng thay đổi, từng thói quen và từng khoảnh khắc chăm sóc để các bé luôn được yêu thương đúng lúc.",
     "go": "Khám phá ngay",
     "createPetProfile": "Tạo hồ sơ thú cưng",
     "profileGuideByMai": "Sen ơi, hãy giúp mình điền các thông tin của bé nhé!",
     "careServicesTitle": "Góc chăm sóc của {{name}}",
-    "servicesWelcomeTitle": "Chào mừng Sen đến với Pet Health Care! 👋",
-    "servicesWelcomeBody": "Pet Health Care có sử dụng công nghệ AI để hỗ trợ tham khảo ban đầu. 🐾 Ứng dụng không thay thế bác sĩ thú y; nếu có dấu hiệu nặng, Sen hãy đưa bé đi thăm khám sớm nhé.",
+    "servicesWelcomeTitle": "Chào mừng Sen đến với PetCare: Pet Marketplace! 👋",
+    "servicesWelcomeBody": "PetCare: Pet Marketplace có sử dụng công nghệ AI để hỗ trợ tham khảo ban đầu. 🐾 Ứng dụng không thay thế bác sĩ thú y; nếu có dấu hiệu nặng, Sen hãy đưa bé đi thăm khám sớm nhé.",
     "serviceBreedTitle": "Nhận diện giống bằng AI",
     "serviceBreedDesc": "AI phân tích ảnh để gợi ý giống chó/mèo và màu lông ở mức tham khảo.",
     "serviceBreedCta": "Khám phá ngay",
@@ -1236,7 +1236,7 @@
   "healthCheck": {
     "title": "Sàng lọc sức khỏe — {{name}}",
     "petFallback": "Thú cưng",
-    "infoBanner": "Hãy tải ảnh rõ nét để Pet Health Care hỗ trợ sàng lọc sức khỏe ban đầu: mặt, tai, mắt, thân... Kết quả chỉ mang tính tham khảo.",
+    "infoBanner": "Hãy tải ảnh rõ nét để PetCare: Pet Marketplace hỗ trợ sàng lọc sức khỏe ban đầu: mặt, tai, mắt, thân... Kết quả chỉ mang tính tham khảo.",
     "urgentWarningTitle": "Đừng chờ AI nếu bé có dấu hiệu khẩn cấp",
     "urgentWarningBody": "Nếu bé khó thở, ngã quỵ, co giật, chảy máu nhiều, nôn liên tục, nghi ngộ độc, không tiểu được hoặc xấu đi nhanh, Sen hãy liên hệ bác sĩ thú y/phòng khám cấp cứu ngay.",
     "photos": "Ảnh",
@@ -1415,7 +1415,7 @@
     "profileAndCare": "Nguồn gốc, đặc tính & chăm sóc",
     "sources": "Nguồn tham khảo",
     "openSourceTitle": "Mở nguồn bên ngoài?",
-    "openSourceBody": "Liên kết này sẽ mở website ngoài Pet Health Care. Sen hãy kiểm tra kỹ trước khi chia sẻ thông tin.",
+    "openSourceBody": "Liên kết này sẽ mở website ngoài PetCare: Pet Marketplace. Sen hãy kiểm tra kỹ trước khi chia sẻ thông tin.",
     "openSource": "Mở",
     "levels": {
       "low": "Thấp",
@@ -1614,7 +1614,7 @@
     "pastDateRequired": "Ngày tiêm phải từ quá khứ đến hôm nay.",
     "vaccineTitleRequired": "Vui lòng nhập tên vaccine.",
     "reminderTitleRequired": "Vui lòng nhập nội dung nhắc lịch.",
-    "generatedScheduleIntro": "Dựa trên ngày sinh, Pet Health Care có thể tạo lịch nhắc vaccine và tẩy giun cho chó/mèo theo guideline thú y.",
+    "generatedScheduleIntro": "Dựa trên ngày sinh, PetCare: Pet Marketplace có thể tạo lịch nhắc vaccine và tẩy giun cho chó/mèo theo guideline thú y.",
     "generatedScheduleDisclaimer": "Đây là lịch nhắc chăm sóc, không phải chẩn đoán hoặc đơn thuốc. Hãy xác nhận loại vaccine, luật tiêm dại, thuốc và liều với bác sĩ thú y.",
     "generatedScheduleRequired": "Vui lòng chọn ngày sinh và loại vaccine muốn tạo lịch.",
     "generatedScheduleNote": "Mốc guideline: {{targetDate}}. Tham khảo: {{source}}. Dựa trên guideline tham khảo, không thay thế tư vấn bác sĩ thú y. Hãy xác nhận sản phẩm, liều dùng và yêu cầu pháp lý địa phương với bác sĩ thú y.",
@@ -1939,7 +1939,7 @@
     "claimSuccess": "Đã thêm {{credits}} lượt. Bạn có thể tiếp tục ngay."
   },
   "premium": {
-    "title": "Pet Health Care Premium",
+    "title": "PetCare: Pet Marketplace Premium",
     "subscribeCta": "Đăng ký Premium",
     "subscribeHint": "Không cần xem quảng cáo · Hủy bất cứ lúc nào",
     "comingSoonBody": "Gói Premium: {{credits}} lượt AI/tháng — {{price}}₫/tháng.\n\nThanh toán qua App Store sẽ sớm có. Cảm ơn Sen đã quan tâm!",

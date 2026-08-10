@@ -4,7 +4,7 @@ import { COOKIE_LANG } from "@/lib/session";
 import { LegalPage } from "@/components/legal/LegalPage";
 import { supportContent } from "@/lib/legalContent";
 
-export const metadata = { title: "Support · Pet Health Care" };
+export const metadata = { title: "Support · PetCare: Pet Marketplace" };
 
 export default async function SupportPage() {
   const jar = await cookies();

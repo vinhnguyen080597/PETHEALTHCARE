@@ -26,7 +26,7 @@
     "offline": "Service temporarily unavailable. Please try again."
   },
   "login": {
-    "appName": "Pet Health Care",
+    "appName": "PetCare: Pet Marketplace",
     "tagline": "Your pet wellness companion",
     "createAccount": "Create Account",
     "welcomeBack": "Welcome Back",
@@ -47,7 +47,7 @@
     "toggleToSignUp": "Don't have an account? Sign up",
     "forgotPassword": "Forgot password?",
     "forgotPasswordTitle": "Forgot password",
-    "forgotPasswordBody": "Enter your registered email. Pet Health Care will send an OTP so you can reset your password in the app.",
+    "forgotPasswordBody": "Enter your registered email. PetCare: Pet Marketplace will send an OTP so you can reset your password in the app.",
     "forgotPasswordSendOtp": "Send OTP",
     "forgotPasswordBack": "Back to sign in",
     "forgotPasswordSuccess": "Your password has been reset. You can sign in with your new password.",
@@ -98,12 +98,12 @@
   },
   "legal": {
     "title": "Support and policies",
-    "body": "Read how Pet Health Care handles privacy, community terms, marketplace rules, and support requests.",
+    "body": "Read how PetCare: Pet Marketplace handles privacy, community terms, marketplace rules, and support requests.",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "marketplaceGuidelines": "Marketplace Guidelines",
     "support": "Contact Support",
-    "marketplaceDisclaimer": "Listings are posted by users. Pet Health Care is not the seller and does not guarantee pets, health claims, or deal outcomes. Soft deposits follow listing terms. Verify in person and read our <guidelines>Marketplace Guidelines</guidelines> before deciding.",
+    "marketplaceDisclaimer": "Listings are posted by users. PetCare: Pet Marketplace is not the seller and does not guarantee pets, health claims, or deal outcomes. Soft deposits follow listing terms. Verify in person and read our <guidelines>Marketplace Guidelines</guidelines> before deciding.",
     "dismissMarketplaceDisclaimer": "Dismiss marketplace notice",
     "marketplaceListingTermsLabel": "Marketplace listing responsibility",
     "marketplaceListingTermsBody": "I confirm this listing is lawful, does not involve wild, protected, or illegally traded animals, and the information is truthful. I accept full responsibility for the content and any transaction. I have read the <guidelines>Marketplace Guidelines</guidelines>."
@@ -117,7 +117,7 @@
     "logout": "Logout"
   },
   "header": {
-    "appName": "Pet Health Care",
+    "appName": "PetCare: Pet Marketplace",
     "tagline": "Your pet wellness companion"
   },
   "home": {
@@ -143,7 +143,7 @@
   },
   "petFeed": {
     "title": "Pet Feed",
-    "headerTitle": "Pet Marketplace",
+    "headerTitle": "PetCare: Pet Marketplace",
     "subtitle": "Structured breeder posts so pet parents can compare important information more clearly than scattered social posts.",
     "disclaimer": "Listings are provided by breeders. Please verify identity, documents, vaccine records, and arrange an in-person or veterinary check before making decisions.",
     "emptyTitle": "No published listings yet",
@@ -161,7 +161,7 @@
       "news": "News",
       "breeders": "Breeders"
     },
-    "newsEmpty": "No news from Pet Health Care yet",
+    "newsEmpty": "No news from PetCare: Pet Marketplace yet",
     "topBreeders": {
       "verified": "Verified",
       "posts": "Listings",
@@ -209,7 +209,7 @@
     "hasVideo": "Has video",
     "contact": "Contact",
     "contactConfirmTitle": "Open breeder contact?",
-    "contactConfirmBody": "Pet Health Care does not handle payments or verify external conversations. Please verify breeder identity, documents, vaccine records, and meet safely before making decisions.",
+    "contactConfirmBody": "PetCare: Pet Marketplace does not handle payments or verify external conversations. Please verify breeder identity, documents, vaccine records, and meet safely before making decisions.",
     "contactConfirmOpen": "Open contact",
     "favoriteFailed": "Save failed",
     "reportSuccess": "Thanks. This listing has been sent for admin review.",
@@ -378,7 +378,7 @@
     "emptyListings": "No listings match the current filters.",
     "openFarmHealth": "Farm health",
     "changeTemplate": "Change template",
-    "disclaimer": "Listings are posted by users. Pet Health Care is not the seller, does not process payments, and does not guarantee pet health.",
+    "disclaimer": "Listings are posted by users. PetCare: Pet Marketplace is not the seller, does not process payments, and does not guarantee pet health.",
     "registeredKennelBanner": "Officially registered kennel — {{name}}",
     "registeredKennelBannerDefault": "Officially registered kennel",
     "typeShort": {
@@ -503,7 +503,7 @@
       "cardBody": "Request permanent deletion of your account and app data. This action cannot be restored from the app.",
       "cta": "Delete account",
       "title": "Delete your account?",
-      "message": "Pet Health Care will delete your account profile, pets, health history, Pet Feed activity, and saved listings. This cannot be undone.",
+      "message": "PetCare: Pet Marketplace will delete your account profile, pets, health history, Pet Feed activity, and saved listings. This cannot be undone.",
       "confirm": "Delete account",
       "failedTitle": "Could not delete account"
     },
@@ -528,7 +528,7 @@
       "newPasswordLabel": "New password",
       "confirmNewPasswordLabel": "Confirm new password",
       "saveChanges": "Save changes",
-      "recoverPasswordBody": "Pet Health Care will send an OTP to your registered email. Enter the code and your new password in the app — no web link required.",
+      "recoverPasswordBody": "PetCare: Pet Marketplace will send an OTP to your registered email. Enter the code and your new password in the app — no web link required.",
       "sendRecoverOtp": "Send OTP",
       "recoverOtpTitle": "Reset password",
       "recoverOtpBody": "An OTP has been sent to {{email}}. Enter the code and your new password below.",
@@ -557,7 +557,7 @@
         "sessionExpired": "Your session has expired. Please log out and sign in again."
       }
     },
-    "myRole": "Roles in Pet Health Care",
+    "myRole": "Roles in PetCare: Pet Marketplace",
     "pets": "Pets",
     "savedPosts": "Saved",
     "myPosts": "My posts",
@@ -596,7 +596,7 @@
         "waiting": "Waiting review"
       }
     },
-    "communitySafety": "Community posts should stay transparent and respectful. Pet Health Care does not handle payments or replace direct breeder/veterinary verification.",
+    "communitySafety": "Community posts should stay transparent and respectful. PetCare: Pet Marketplace does not handle payments or replace direct breeder/veterinary verification.",
     "breederSafety": "Posts should include clear photos, a short video, vaccine/deworming details, and transparent adoption conditions. Avoid absolute health claims without veterinary confirmation.",
     "openBreederProfile": "Breeder profile & posts",
     "createPost": "Create post",
@@ -758,7 +758,7 @@
     "title": "Breeder registration",
     "profileInfo": "Application information",
     "maiTitle": "Mai's note for pet parents",
-    "maiBody": "Pet parent, please provide accurate and complete information to build trust when applying for Breeder access. This verification only applies inside Pet Health Care and helps admins review before allowing Pet Feed posts. Review usually takes about 1 day. If details are unclear, admin may request updates or reject the application.",
+    "maiBody": "Pet parent, please provide accurate and complete information to build trust when applying for Breeder access. This verification only applies inside PetCare: Pet Marketplace and helps admins review before allowing Pet Feed posts. Review usually takes about 1 day. If details are unclear, admin may request updates or reject the application.",
     "displayName": "Kennel / caregiver name",
     "location": "Location",
     "bio": "Short intro about care style",
@@ -838,7 +838,7 @@
     },
     "commitments": {
       "accurate_information": "I confirm the provided information is accurate.",
-      "app_only_verification": "I understand Breeder verification only applies inside Pet Health Care."
+      "app_only_verification": "I understand Breeder verification only applies inside PetCare: Pet Marketplace."
     }
   },
   "createPetFeedPost": {
@@ -983,7 +983,7 @@
     }
   },
   "adminPost": {
-    "createTitle": "Post Pet Health Care news",
+    "createTitle": "Post PetCare: Pet Marketplace news",
     "publishNote": "This post appears in the News tab, not in sale listings.",
     "categoryLabel": "Content type",
     "titleLabel": "Title",
@@ -1092,7 +1092,7 @@
       },
       "pet_feed_news": {
         "title": "News tab",
-        "description": "Pet Health Care news and announcements in Pet Feed."
+        "description": "PetCare: Pet Marketplace news and announcements in Pet Feed."
       },
       "pet_feed_listings": {
         "title": "Listings tab",
@@ -1217,14 +1217,14 @@
   },
   "onboarding": {
     "introTitle": "Hey there!",
-    "introBubbleWelcome": "👋 Welcome to\nPet Health Care.",
-    "introBubbleMission": "At Pet Health Care, every pet is more than a little companion — they are family. We hope to help you keep every change, habit, and care moment close, so your pets can be loved at the right time.",
+    "introBubbleWelcome": "👋 Welcome to\nPetCare: Pet Marketplace.",
+    "introBubbleMission": "At PetCare: Pet Marketplace, every pet is more than a little companion — they are family. We hope to help you keep every change, habit, and care moment close, so your pets can be loved at the right time.",
     "go": "Explore now",
     "createPetProfile": "Create your pet's profile",
     "profileGuideByMai": "Dear pet parent, please help me fill in your pet's details.",
     "careServicesTitle": "{{name}}'s care corner",
-    "servicesWelcomeTitle": "Welcome to Pet Health Care! 👋",
-    "servicesWelcomeBody": "Pet Health Care uses AI technology for early guidance only. 🐾 It does not replace a veterinarian; if your pet shows serious signs, please seek in-person veterinary care.",
+    "servicesWelcomeTitle": "Welcome to PetCare: Pet Marketplace! 👋",
+    "servicesWelcomeBody": "PetCare: Pet Marketplace uses AI technology for early guidance only. 🐾 It does not replace a veterinarian; if your pet shows serious signs, please seek in-person veterinary care.",
     "serviceBreedTitle": "AI breed recognition",
     "serviceBreedDesc": "AI analyzes photos to suggest dog/cat breed and coat patterns as a reference.",
     "serviceBreedCta": "Explore now",
@@ -1239,7 +1239,7 @@
   "healthCheck": {
     "title": "Wellness Screening for {{name}}",
     "petFallback": "Pet",
-    "infoBanner": "Upload clear photos so Pet Health Care can support an early wellness screening: face, ears, eyes, body... Results are for guidance only.",
+    "infoBanner": "Upload clear photos so PetCare: Pet Marketplace can support an early wellness screening: face, ears, eyes, body... Results are for guidance only.",
     "urgentWarningTitle": "Do not wait for AI in urgent situations",
     "urgentWarningBody": "If your pet has trouble breathing, collapse, seizure, severe bleeding, repeated vomiting, suspected poisoning, cannot urinate, or is rapidly getting worse, contact a veterinarian or emergency clinic now.",
     "photos": "Photos",
@@ -1418,7 +1418,7 @@
     "profileAndCare": "Origin, traits & care",
     "sources": "References",
     "openSourceTitle": "Open external source?",
-    "openSourceBody": "This will open a website outside Pet Health Care. Review it carefully before sharing any information.",
+    "openSourceBody": "This will open a website outside PetCare: Pet Marketplace. Review it carefully before sharing any information.",
     "openSource": "Open",
     "levels": {
       "low": "Low",
@@ -1617,7 +1617,7 @@
     "pastDateRequired": "Vaccination date must be between the past and today.",
     "vaccineTitleRequired": "Please enter the vaccine name.",
     "reminderTitleRequired": "Please enter the reminder title.",
-    "generatedScheduleIntro": "Based on the birth date, Pet Health Care can create guideline-based vaccine and deworming reminders for dogs and cats.",
+    "generatedScheduleIntro": "Based on the birth date, PetCare: Pet Marketplace can create guideline-based vaccine and deworming reminders for dogs and cats.",
     "generatedScheduleDisclaimer": "This is a care reminder, not a diagnosis or prescription. Confirm vaccine products, rabies law, medicine choice, and dose with a veterinarian.",
     "generatedScheduleRequired": "Please select the birth date and desired vaccine type.",
     "generatedScheduleNote": "Guideline target: {{targetDate}}. Reference: {{source}}. Based on reference guidelines; this does not replace veterinary advice. Please confirm the product, dose, and local legal requirements with a veterinarian.",
@@ -1942,7 +1942,7 @@
     "claimSuccess": "{{credits}} use added. You can continue now."
   },
   "premium": {
-    "title": "Pet Health Care Premium",
+    "title": "PetCare: Pet Marketplace Premium",
     "subscribeCta": "Subscribe to Premium",
     "subscribeHint": "No ads required · Cancel anytime",
     "comingSoonBody": "Premium plan: {{credits}} AI uses/month — {{price}} VND/month.\n\nIn-app purchase via the App Store is coming soon. Thank you for your interest!",

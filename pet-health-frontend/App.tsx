@@ -121,7 +121,7 @@ class StartupErrorBoundary extends Component<StartupErrorBoundaryProps, StartupE
       message: error.message,
       stack: error.stack,
     });
-    console.error('Pet Health Care startup error', error);
+    console.error('PetCare: Pet Marketplace startup error', error);
   }
 
   render() {

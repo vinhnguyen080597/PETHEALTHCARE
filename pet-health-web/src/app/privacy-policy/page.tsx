@@ -4,7 +4,7 @@ import { COOKIE_LANG } from "@/lib/session";
 import { LegalPage } from "@/components/legal/LegalPage";
 import { privacyPolicyContent } from "@/lib/legalContent";
 
-export const metadata = { title: "Privacy Policy · Pet Health Care" };
+export const metadata = { title: "Privacy Policy · PetCare: Pet Marketplace" };
 
 export default async function PrivacyPage() {
   const jar = await cookies();

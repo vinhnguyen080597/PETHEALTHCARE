@@ -47,7 +47,7 @@ export function CreateAdminPostScreen({ onBack, onSubmit }: CreateAdminPostScree
     contact: {},
     status: 'published',
     post_kind: 'announcement',
-    metadata: { category, ctaLabel: ctaLabel.trim(), ctaUrl: ctaUrl.trim(), authorLabel: 'Pet Health Care' },
+    metadata: { category, ctaLabel: ctaLabel.trim(), ctaUrl: ctaUrl.trim(), authorLabel: 'PetCare: Pet Marketplace' },
     breeder_profile: null,
     is_favorited: false,
     created_at: new Date().toISOString(),

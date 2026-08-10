@@ -18,8 +18,8 @@ test("legal docs are bilingual and mention marketplace product context", () => {
     const enDoc = legalDocFor(kind, "EN");
     const viText = flattenLegalDoc(viDoc);
     const enText = flattenLegalDoc(enDoc);
-    assert.match(viText, /Pet Health Care/);
-    assert.match(enText, /Pet Health Care/);
+    assert.match(viText, /PetCare: Pet Marketplace/);
+    assert.match(enText, /PetCare: Pet Marketplace/);
     assert.match(viText, /Sen/);
     assert.match(enText, /Sen/);
     assert.match(viText, /Breeder/);
@@ -41,7 +41,10 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(guideVi, /động vật bảo tồn/);
 
   const supportVi = flattenLegalDoc(supportContent.VI);
-  assert.match(supportVi, new RegExp(LEGAL_SUPPORT_EMAIL.replace(".", "\\.")));
+  assert.match(
+    supportVi,
+    new RegExp(LEGAL_SUPPORT_EMAIL.replace(/\./g, "\\.")),
+  );
   assert.match(supportVi, /URL tin đăng/);
 });
 

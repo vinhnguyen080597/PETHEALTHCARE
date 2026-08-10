@@ -26,8 +26,8 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   metadataBase: new URL(SHARE_ORIGIN),
   title: {
-    default: "Pet Marketplace",
-    template: "%s · Pet Marketplace",
+    default: "PetCare: Pet Marketplace",
+    template: "%s · PetCare: Pet Marketplace",
   },
   description:
     "Find healthy pets from trusted breeders — clear profiles, vaccine records, and safer in-app contact.",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "Pet Marketplace",
+    siteName: "PetCare: Pet Marketplace",
     locale: "vi_VN",
   },
   twitter: {

@@ -68,7 +68,7 @@ export function buildListingOgCopy(listing: Listing): {
   const description = (
     parts.length
       ? parts.join(" • ")
-      : "Tìm thú cưng khỏe mạnh từ breeder uy tín trên Pet Marketplace"
+      : "Tìm thú cưng khỏe mạnh từ breeder uy tín trên PetCare: Pet Marketplace"
   ).slice(0, 160);
 
   return { title, description };
