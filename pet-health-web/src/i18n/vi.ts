@@ -65,10 +65,10 @@ const vi: Record<EnKey, string> = {
   "landing.footer.browse": "Bé cưng",
   "landing.footer.create": "Đăng tin",
   "landing.footer.disclaimer":
-    "Tin đăng do người dùng đăng. Pet Health Care không xử lý thanh toán.",
+    "Tin đăng do người dùng đăng. Pet Health Care không phải bên bán; đặt cọc theo điều khoản trên tin.",
 
   "feed.disclaimer":
-    "Tin đăng do người dùng đăng. Pet Health Care không phải bên bán, không xử lý thanh toán và không bảo lãnh sức khỏe thú, thông tin hay giao dịch. Hãy kiểm tra trực tiếp và đọc ",
+    "Tin đăng do người dùng đăng. Pet Health Care không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. Đặt cọc theo điều khoản trên tin. Hãy kiểm tra trực tiếp và đọc ",
   "feed.guidelines": "Nội quy Marketplace",
   "feed.disclaimerEnd": " trước khi quyết định.",
   "feed.search": "Tìm giống, breeder, khu vực…",

@@ -82,7 +82,7 @@ export function SiteFooter({ lang }: { lang: Lang }) {
           </div>
         </div>
         <div className="border-t border-stone-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
-          <p>© 2026 Pet Marketplace · pet-marketplace.org</p>
+          <p>© 2026 Pet Health Care</p>
           <p>{t(lang, "landing.footer.disclaimer")}</p>
         </div>
       </div>

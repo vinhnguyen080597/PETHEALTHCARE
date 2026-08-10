@@ -63,10 +63,10 @@ const en = {
   "landing.footer.browse": "Pets",
   "landing.footer.create": "Create listing",
   "landing.footer.disclaimer":
-    "Listings posted by users. Pet Health Care does not process payments.",
+    "Listings posted by users. Pet Health Care is not the seller; soft deposits follow listing terms.",
 
   "feed.disclaimer":
-    "Listings are posted by users. Pet Health Care is not the seller, does not process payments, and does not guarantee pets, health claims, or transactions. Verify in person and read our ",
+    "Listings are posted by users. Pet Health Care is not the seller and does not guarantee pets, health claims, or deal outcomes. Soft deposits follow listing terms. Verify in person and read our ",
   "feed.guidelines": "Marketplace Guidelines",
   "feed.disclaimerEnd": " before deciding.",
   "feed.search": "Search breed, breeder, location…",
