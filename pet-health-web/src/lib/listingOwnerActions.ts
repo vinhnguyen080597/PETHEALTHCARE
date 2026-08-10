@@ -59,6 +59,34 @@ export function listingEditHref(postId: string): string {
   return `/app/account/listings/${encodeURIComponent(id)}/edit`;
 }
 
+export type ListingDetailFrom = "account";
+
+/** Public listing detail URL; pass `from=account` when opened from My listings. */
+export function listingDetailHref(
+  postId: string,
+  options?: { from?: ListingDetailFrom | null },
+): string {
+  const id = String(postId || "").trim();
+  const base = `/app/pet-feed/posts/${encodeURIComponent(id)}`;
+  if (options?.from === "account") return `${base}?from=account`;
+  return base;
+}
+
+export function parseListingDetailFrom(
+  value: string | null | undefined,
+): ListingDetailFrom | null {
+  return value === "account" ? "account" : null;
+}
+
+/** Back target for listing detail (Account vs New Pets). */
+export function listingDetailBackHref(
+  from?: ListingDetailFrom | string | null,
+): string {
+  return parseListingDetailFrom(from) === "account"
+    ? "/app/account"
+    : "/app/pet-feed";
+}
+
 /** Pending listings are not public — open owner review popup instead of detail. */
 export function opensMyListingReviewPopup(
   status: string | null | undefined,

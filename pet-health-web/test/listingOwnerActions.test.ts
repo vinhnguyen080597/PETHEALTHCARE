@@ -6,9 +6,12 @@ import {
   canShowWarrantyUpdateCta,
   isListingAvailableStatus,
   isListingOwner,
+  listingDetailBackHref,
+  listingDetailHref,
   listingEditHref,
   listingVisitorActions,
   opensMyListingReviewPopup,
+  parseListingDetailFrom,
 } from "../src/lib/listingOwnerActions";
 
 test("isListingOwner requires matching non-empty ids", () => {
@@ -98,4 +101,16 @@ test("listingEditHref encodes post id", () => {
     listingEditHref("a/b"),
     "/app/account/listings/a%2Fb/edit",
   );
+});
+
+test("listingDetailHref and back href respect from=account", () => {
+  assert.equal(listingDetailHref("abc"), "/app/pet-feed/posts/abc");
+  assert.equal(
+    listingDetailHref("abc", { from: "account" }),
+    "/app/pet-feed/posts/abc?from=account",
+  );
+  assert.equal(parseListingDetailFrom("account"), "account");
+  assert.equal(parseListingDetailFrom("pet-feed"), null);
+  assert.equal(listingDetailBackHref("account"), "/app/account");
+  assert.equal(listingDetailBackHref(null), "/app/pet-feed");
 });

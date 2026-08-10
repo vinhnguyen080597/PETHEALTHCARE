@@ -36,10 +36,11 @@ function assertLinksAreRealPages(path: string, farmId?: string) {
   const crumbs = buildSiteBreadcrumbs(path, { farmProfileId: farmId });
   const links = breadcrumbLinkHrefs(crumbs);
   for (const href of links) {
+    const pathOnly = href.split("?")[0] || href;
     const ok =
-      REAL_PAGE_PREFIXES.includes(href) ||
-      /^\/app\/breeders\/[^/]+$/.test(href) ||
-      /^\/app\/pet-feed\/posts\/[^/]+$/.test(href);
+      REAL_PAGE_PREFIXES.includes(pathOnly) ||
+      /^\/app\/breeders\/[^/]+$/.test(pathOnly) ||
+      /^\/app\/pet-feed\/posts\/[^/]+$/.test(pathOnly);
     assert.ok(ok, `dead breadcrumb link on ${path}: ${href}`);
   }
   // Never link to folder-only paths
@@ -130,6 +131,23 @@ test("listing detail skips /posts folder link", () => {
   assert.equal(crumbs[2]?.labelKey, "breadcrumb.listingDetail");
 });
 
+test("listing detail from Account uses Account parent not New Pets", () => {
+  const crumbs = buildSiteBreadcrumbs(`/app/pet-feed/posts/${POST_ID}`, {
+    from: "account",
+  });
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    [
+      "/",
+      "/app/account",
+      `/app/pet-feed/posts/${POST_ID}?from=account`,
+    ],
+  );
+  assert.equal(crumbs[1]?.labelKey, "nav.account");
+  assert.equal(crumbs[2]?.labelKey, "breadcrumb.listingDetail");
+});
+
 test("new listing skips /listings folder link", () => {
   const crumbs = buildSiteBreadcrumbs("/app/account/listings/new");
   assert.ok(crumbs);
@@ -148,7 +166,7 @@ test("edit listing trail links detail then edit", () => {
     [
       "/",
       "/app/account",
-      `/app/pet-feed/posts/${POST_ID}`,
+      `/app/pet-feed/posts/${POST_ID}?from=account`,
       `/app/account/listings/${POST_ID}/edit`,
     ],
   );

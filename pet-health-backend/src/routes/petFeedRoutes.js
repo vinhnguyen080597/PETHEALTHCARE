@@ -611,6 +611,28 @@ router.get('/my-posts', requireAnyRole('breeder'), async (req, res, next) => {
   }
 });
 
+// More specific than PUT /posts/:postId — register first so attach-warranty never 404s.
+router.put('/posts/:postId/warranty-policy', requireAnyRole('breeder', 'admin'), async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const body = req.body ?? {};
+    const raw = body.warrantyPolicyId ?? body.warranty_policy_id;
+    const warrantyPolicyId =
+      raw == null || String(raw).trim() === '' ? null : String(raw).trim();
+    const post = await updateListingWarrantyPolicy(
+      req.user.id,
+      postId,
+      warrantyPolicyId,
+      req.accessToken,
+    );
+    if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
+    return res.json({ data: post });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) => {
   try {
     const postId = cleanId(req.params.postId);
@@ -672,27 +694,6 @@ router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) =
         accessToken: req.accessToken,
       }).catch(() => null);
     }
-    return res.json({ data: post });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.put('/posts/:postId/warranty-policy', requireAnyRole('breeder'), async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const body = req.body ?? {};
-    const raw = body.warrantyPolicyId ?? body.warranty_policy_id;
-    const warrantyPolicyId =
-      raw == null || String(raw).trim() === '' ? null : String(raw).trim();
-    const post = await updateListingWarrantyPolicy(
-      req.user.id,
-      postId,
-      warrantyPolicyId,
-      req.accessToken,
-    );
-    if (!post) return res.status(404).json({ error: 'Pet feed post not found', code: 'PET_FEED_POST_NOT_FOUND' });
     return res.json({ data: post });
   } catch (err) {
     return next(err);

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang, Listing } from "@/lib/types";
 import { genderLabel, t, type EnKey } from "@/i18n";
 import { formatPriceVnd, isBlankDisplayValue } from "@/lib/formatPrice";
@@ -18,8 +18,10 @@ import {
   canShowListingUpdateDetails,
   canShowWarrantyUpdateCta,
   isListingOwner,
+  listingDetailBackHref,
   listingEditHref,
   listingVisitorActions,
+  parseListingDetailFrom,
 } from "@/lib/listingOwnerActions";
 import {
   depositHoldSenLabel,
@@ -157,6 +159,9 @@ export function ListingDetail({
   initialComments?: PublicComment[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const listingFrom = parseListingDetailFrom(searchParams.get("from"));
+  const backHref = listingDetailBackHref(listingFrom);
   const [listing, setListing] = useState(initialListing);
   const ownerUserId = listing.ownerUserId || listing.breeder.userId;
   const isOwner = isListingOwner(currentUserId, ownerUserId);
@@ -826,7 +831,7 @@ export function ListingDetail({
   return (
     <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6">
       <Link
-        href="/app/pet-feed"
+        href={backHref}
         className="inline-flex items-center gap-2 text-slate-500 text-sm hover:text-slate-900 transition-colors mb-5"
       >
         <svg

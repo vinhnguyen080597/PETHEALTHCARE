@@ -194,10 +194,21 @@ export function buildSiteBreadcrumbs(
   }
 
   // Listing detail: Home / New Pets / Listing (skip /posts folder)
+  // From Account → My listings: Home / Account / Listing
   {
     const postMatch = path.match(/^\/app\/pet-feed\/posts\/([^/]+)\/?$/);
     if (postMatch) {
       const postId = postMatch[1];
+      if (fromAccount) {
+        return [
+          { href: "/", labelKey: "breadcrumb.home" },
+          { href: "/app/account", labelKey: "nav.account" },
+          {
+            href: `/app/pet-feed/posts/${postId}?from=account`,
+            labelKey: "breadcrumb.listingDetail",
+          },
+        ];
+      }
       return [
         { href: "/", labelKey: "breadcrumb.home" },
         { href: "/app/pet-feed", labelKey: "nav.browse" },
@@ -227,7 +238,7 @@ export function buildSiteBreadcrumbs(
       { href: "/", labelKey: "breadcrumb.home" },
       { href: "/app/account", labelKey: "nav.account" },
       {
-        href: `/app/pet-feed/posts/${postId}`,
+        href: `/app/pet-feed/posts/${postId}?from=account`,
         labelKey: "breadcrumb.listingDetail",
       },
       {

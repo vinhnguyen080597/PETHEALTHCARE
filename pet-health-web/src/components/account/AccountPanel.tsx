@@ -7,7 +7,10 @@ import type { Lang, Listing } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { CancelBreederButton } from "./CancelBreederButton";
 import { farmProfileFromAccountHref } from "@/lib/farmTabs";
-import { opensMyListingReviewPopup } from "@/lib/listingOwnerActions";
+import {
+  listingDetailHref,
+  opensMyListingReviewPopup,
+} from "@/lib/listingOwnerActions";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 
 export type AccountListingItem = {
@@ -403,7 +406,7 @@ export function AccountPanel({
                       return (
                         <Link
                           key={post.id}
-                          href={`/app/pet-feed/posts/${post.id}`}
+                          href={listingDetailHref(post.id, { from: "account" })}
                           className={rowClass}
                         >
                           {rowBody}
