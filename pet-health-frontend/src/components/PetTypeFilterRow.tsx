@@ -13,10 +13,9 @@ const PET_TYPE_ICONS: Record<ActivePetFeedSpecies, PetTypeIconSpec> = {
   cat: { library: 'fa5', name: 'cat' },
   bird: { library: 'fa5', name: 'dove' },
   fish: { library: 'fa5', name: 'fish' },
-  mouse: { library: 'mci', name: 'rodent' },
-  cow: { library: 'mci', name: 'cow' },
-  pig: { library: 'mci', name: 'pig' },
-  chicken: { library: 'mci', name: 'bird' },
+  rabbit: { library: 'mci', name: 'rabbit' },
+  hamster: { library: 'mci', name: 'rodent' },
+  reptile: { library: 'mci', name: 'snake' },
 };
 
 function PetTypeIcon({ spec, color }: { spec: PetTypeIconSpec; color: string }) {

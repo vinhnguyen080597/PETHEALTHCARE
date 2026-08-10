@@ -1,6 +1,18 @@
-/** @typedef {'dog' | 'cat' | 'bird' | 'fish' | 'mouse' | 'cow' | 'pig' | 'chicken'} PetType */
+/** @typedef {'dog' | 'cat' | 'bird' | 'fish' | 'rabbit' | 'hamster' | 'mouse' | 'reptile' | 'cow' | 'pig' | 'chicken'} PetType */
 
-const PET_TYPES = new Set(['dog', 'cat', 'bird', 'fish', 'mouse', 'cow', 'pig', 'chicken']);
+const PET_TYPES = new Set([
+  'dog',
+  'cat',
+  'bird',
+  'fish',
+  'rabbit',
+  'hamster',
+  'mouse',
+  'reptile',
+  'cow',
+  'pig',
+  'chicken',
+]);
 
 /**
  * @param {unknown} value
@@ -19,8 +31,27 @@ export function normalizePetType(value) {
   if (normalized === 'dog' || normalized === 'chó' || normalized === 'cho') return 'dog';
   if (normalized === 'cat' || normalized === 'mèo' || normalized === 'meo') return 'cat';
   if (normalized === 'bird' || normalized === 'chim') return 'bird';
-  if (normalized === 'fish' || normalized === 'cá' || normalized === 'ca') return 'fish';
-  if (normalized === 'mouse' || normalized === 'chuột' || normalized === 'chuot' || normalized === 'hamster') return 'mouse';
+  if (
+    normalized === 'fish' ||
+    normalized === 'cá' ||
+    normalized === 'ca' ||
+    normalized === 'cá cảnh' ||
+    normalized === 'ca canh' ||
+    normalized === 'aquarium'
+  ) {
+    return 'fish';
+  }
+  if (normalized === 'rabbit' || normalized === 'thỏ' || normalized === 'tho') return 'rabbit';
+  if (normalized === 'hamster') return 'hamster';
+  if (normalized === 'mouse' || normalized === 'chuột' || normalized === 'chuot') return 'mouse';
+  if (
+    normalized === 'reptile' ||
+    normalized === 'reptiles' ||
+    normalized === 'bò sát' ||
+    normalized === 'bo sat'
+  ) {
+    return 'reptile';
+  }
   if (normalized === 'cow' || normalized === 'bò' || normalized === 'bo' || normalized === 'cattle') return 'cow';
   if (normalized === 'pig' || normalized === 'heo' || normalized === 'lợn' || normalized === 'lon') return 'pig';
   if (normalized === 'chicken' || normalized === 'gà' || normalized === 'ga') return 'chicken';

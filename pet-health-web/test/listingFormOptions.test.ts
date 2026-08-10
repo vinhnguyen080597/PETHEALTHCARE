@@ -5,6 +5,7 @@ import vi from "../src/i18n/vi";
 import {
   firstNewListingErrorField,
   LISTING_SPECIES,
+  listingSpeciesEmoji,
   mergeListingMediaFiles,
   moveListingMediaItem,
   validateNewListingForm,
@@ -123,11 +124,23 @@ test("listing species options match mobile active set", () => {
     "cat",
     "bird",
     "fish",
-    "mouse",
-    "cow",
-    "pig",
-    "chicken",
+    "rabbit",
+    "hamster",
+    "reptile",
   ]);
+  for (const id of LISTING_SPECIES) {
+    const key = `listing.new.species.${id}`;
+    assert.ok(en[key as keyof typeof en], `missing EN ${key}`);
+    assert.ok(vi[key as keyof typeof vi], `missing VI ${key}`);
+  }
+  assert.equal(vi["listing.new.species.fish"], "Cá cảnh");
+  assert.equal(vi["listing.new.species.rabbit"], "Thỏ");
+  assert.equal(vi["listing.new.species.hamster"], "Hamster");
+  assert.equal(vi["listing.new.species.reptile"], "Bò sát");
+  assert.equal(listingSpeciesEmoji("rabbit"), "🐰");
+  assert.equal(listingSpeciesEmoji("hamster"), "🐹");
+  assert.equal(listingSpeciesEmoji("reptile"), "🐍");
+  assert.equal(listingSpeciesEmoji("fish"), "🐠");
 });
 
 test("mergeListingMediaFiles respects max", () => {

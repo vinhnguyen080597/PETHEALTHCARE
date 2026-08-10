@@ -3,10 +3,14 @@
 import { useState, type MouseEvent } from "react";
 import Link from "next/link";
 import type { Lang, Listing } from "@/lib/types";
-import { genderLabel, t } from "@/i18n";
+import { genderLabel, t, type EnKey } from "@/i18n";
 import { formatPriceVnd, parsePriceVnd } from "@/lib/formatPrice";
 import { VerifiedBadge } from "./Badges";
 import { farmPetAvailability } from "@/lib/farmPets";
+import {
+  isListingSpecies,
+  listingSpeciesEmoji,
+} from "@/lib/listingFormOptions";
 
 function depositLabel(price: string, lang: Lang): string | null {
   const n = parsePriceVnd(price);
@@ -43,16 +47,11 @@ export function ListingCard({
   const [saved, setSaved] = useState(Boolean(listing.saved));
   const [favBusy, setFavBusy] = useState(false);
   const title = lang === "VI" ? listing.titleVI : listing.title;
-  const speciesLabel =
-    listing.species === "cat"
-      ? lang === "VI"
-        ? "Mèo"
-        : "Cat"
-      : listing.species === "dog"
-        ? lang === "VI"
-          ? "Chó"
-          : "Dog"
-        : listing.species;
+  const speciesSlug = listing.species?.trim().toLowerCase() ?? "";
+  const speciesLabel = isListingSpecies(speciesSlug)
+    ? t(lang, `listing.new.species.${speciesSlug}` as EnKey)
+    : listing.species;
+  const speciesEmoji = listingSpeciesEmoji(speciesSlug);
   const price = formatPriceVnd(listing.price) || listing.price;
   const deposit = listing.escrowEnabled ? depositLabel(listing.price, lang) : null;
   const vaccine = listing.vaccineStatus?.trim();
@@ -179,12 +178,7 @@ export function ListingCard({
         )}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
           <span className="bg-white/95 backdrop-blur-sm text-[#2B1E19] text-xs font-medium px-2.5 py-1 rounded-full border border-[#F3E2C8]/80 w-fit">
-            {listing.species === "cat"
-              ? "🐱"
-              : listing.species === "dog"
-                ? "🐶"
-                : "🐾"}{" "}
-            {speciesLabel}
+            {speciesEmoji} {speciesLabel}
           </span>
           {listing.escrowEnabled && !isSold ? (
             <span className="bg-[#FEF3C7]/95 text-[#92400E] text-[10px] font-semibold px-2 py-1 rounded-full border border-amber-300 shadow-sm w-fit">

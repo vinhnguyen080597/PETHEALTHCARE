@@ -5,10 +5,9 @@ export const LISTING_SPECIES = [
   "cat",
   "bird",
   "fish",
-  "mouse",
-  "cow",
-  "pig",
-  "chicken",
+  "rabbit",
+  "hamster",
+  "reptile",
 ] as const;
 
 export const LISTING_CAT_BREED_KEYS = [
@@ -77,6 +76,42 @@ export const LISTING_MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
 export type ListingSpecies = (typeof LISTING_SPECIES)[number];
 export type ListingVaccineKey = (typeof LISTING_VACCINE_KEYS)[number];
+
+export function isListingSpecies(value: string | null | undefined): value is ListingSpecies {
+  return (LISTING_SPECIES as readonly string[]).includes(
+    String(value ?? "").trim().toLowerCase(),
+  );
+}
+
+/** Card / OG emoji for a listing species slug. */
+export function listingSpeciesEmoji(species: string | null | undefined): string {
+  switch (String(species ?? "").trim().toLowerCase()) {
+    case "cat":
+      return "🐱";
+    case "dog":
+      return "🐶";
+    case "bird":
+      return "🐦";
+    case "fish":
+      return "🐠";
+    case "rabbit":
+      return "🐰";
+    case "hamster":
+      return "🐹";
+    case "mouse":
+      return "🐭";
+    case "reptile":
+      return "🐍";
+    case "cow":
+      return "🐮";
+    case "pig":
+      return "🐷";
+    case "chicken":
+      return "🐔";
+    default:
+      return "🐾";
+  }
+}
 
 /** Mirror mobile/backend: vaccinated claim requires evidence (not unknown / not yet). */
 export function vaccineStatusRequiresHealthEvidence(

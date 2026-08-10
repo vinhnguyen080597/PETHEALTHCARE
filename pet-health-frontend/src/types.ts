@@ -168,7 +168,18 @@ export type BreederContact = {
   facebook?: string;
 };
 
-export type PetType = 'dog' | 'cat' | 'bird' | 'fish' | 'mouse' | 'cow' | 'pig' | 'chicken';
+export type PetType =
+  | 'dog'
+  | 'cat'
+  | 'bird'
+  | 'fish'
+  | 'rabbit'
+  | 'hamster'
+  | 'mouse'
+  | 'reptile'
+  | 'cow'
+  | 'pig'
+  | 'chicken';
 
 export type BreederProfile = {
   id: string;

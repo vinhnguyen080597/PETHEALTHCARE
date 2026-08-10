@@ -6,6 +6,7 @@ import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
 import { VIETNAM_PROVINCES } from "@/constants/vietnamProvinces";
 import { loginHref } from "@/lib/loginHref";
+import { LISTING_SPECIES } from "@/lib/listingFormOptions";
 
 export const SEARCH_MORPH_KEY = "phc-search-morph";
 
@@ -232,9 +233,11 @@ export function MarketplaceSearchBar({
             className={selectCls}
           >
             <option value="">{t(lang, "landing.species.all")}</option>
-            <option value="cat">{t(lang, "landing.species.cat")}</option>
-            <option value="dog">{t(lang, "landing.species.dog")}</option>
-            <option value="bird">{t(lang, "feed.bird")}</option>
+            {LISTING_SPECIES.map((id) => (
+              <option key={id} value={id}>
+                {t(lang, `listing.new.species.${id}`)}
+              </option>
+            ))}
           </select>
           <label className="sr-only" htmlFor={`search-province-${variant}`}>
             {t(lang, "landing.province")}

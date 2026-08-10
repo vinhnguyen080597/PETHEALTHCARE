@@ -12,6 +12,7 @@ import {
   resolveBreederAvatarUrl,
   resolveBreederCoverUrl,
 } from "@/lib/breederProfileImages";
+import { LISTING_SPECIES } from "@/lib/listingFormOptions";
 
 const BREEDER_TYPES = [
   "registered_kennel",
@@ -20,16 +21,7 @@ const BREEDER_TYPES = [
   "rehoming",
   "other",
 ] as const;
-const SPECIES_OPTIONS = [
-  "dog",
-  "cat",
-  "bird",
-  "fish",
-  "mouse",
-  "cow",
-  "pig",
-  "chicken",
-] as const;
+const SPECIES_OPTIONS = LISTING_SPECIES;
 const SCALE_OPTIONS = ["1_3", "4_10", "11_20", "20_plus"] as const;
 const BREEDING_PET_OPTIONS = ["none", "1_3", "4_10", "10_plus"] as const;
 const CARE_CHECKLIST = [
@@ -646,7 +638,7 @@ export function BreederProfileForm({
                       : "bg-white text-[#5C4A3A] border-[#F0E6D8]"
                   }`}
                 >
-                  {t(lang, `breederForm.speciesOptions.${sp}`)}
+                  {t(lang, `breederForm.speciesOptions.${sp}` as EnKey)}
                 </button>
               );
             })}

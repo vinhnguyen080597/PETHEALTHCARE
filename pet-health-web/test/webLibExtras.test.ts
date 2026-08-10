@@ -48,6 +48,8 @@ test("i18n getLang prefers query then cookie", () => {
   assert.equal(genderLabel("EN", "male"), t("EN", "common.male"));
   assert.equal(genderLabel("VI", "female"), t("VI", "common.female"));
   assert.equal(genderLabel("EN", "unknown"), "unknown");
+  assert.equal(t("VI", "landing.searchPlaceholder"), "Bạn đang tìm bé thú cưng nào?");
+  assert.equal(t("EN", "landing.searchPlaceholder"), "Looking for a pet?");
 });
 
 test("resolveAuthError / OTP / forgot map codes", () => {

@@ -6,10 +6,26 @@ export type ActivePetSpecies = (typeof ACTIVE_PET_SPECIES)[number];
 export const DEFAULT_PET_SPECIES: ActivePetSpecies = 'cat';
 
 /** Species pickers for breeder profile registration. */
-export const ACTIVE_BREEDER_SPECIES_OPTIONS = ['dog', 'cat', 'bird', 'fish', 'mouse', 'cow', 'pig', 'chicken'] as const;
+export const ACTIVE_BREEDER_SPECIES_OPTIONS = [
+  'dog',
+  'cat',
+  'bird',
+  'fish',
+  'rabbit',
+  'hamster',
+  'reptile',
+] as const;
 
 /** Pet Feed listing create form + filter chips (excludes legacy `all`). */
-export const ACTIVE_PET_FEED_SPECIES = ['dog', 'cat', 'bird', 'fish', 'mouse', 'cow', 'pig', 'chicken'] as const;
+export const ACTIVE_PET_FEED_SPECIES = [
+  'dog',
+  'cat',
+  'bird',
+  'fish',
+  'rabbit',
+  'hamster',
+  'reptile',
+] as const;
 
 export type ActivePetFeedSpecies = (typeof ACTIVE_PET_FEED_SPECIES)[number];
 

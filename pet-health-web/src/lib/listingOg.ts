@@ -7,6 +7,11 @@ function speciesEmoji(species: string): string {
   if (s.includes("cat") || s.includes("mèo") || s.includes("meo")) return "🐱";
   if (s.includes("dog") || s.includes("chó") || s.includes("cho")) return "🐶";
   if (s.includes("bird") || s.includes("chim")) return "🐦";
+  if (s.includes("fish") || s.includes("cá") || s.includes("ca ")) return "🐠";
+  if (s.includes("rabbit") || s.includes("thỏ") || s.includes("tho")) return "🐰";
+  if (s.includes("hamster")) return "🐹";
+  if (s.includes("mouse") || s.includes("chuột") || s.includes("chuot")) return "🐭";
+  if (s.includes("reptile") || s.includes("bò sát") || s.includes("bo sat")) return "🐍";
   return "🐾";
 }
 

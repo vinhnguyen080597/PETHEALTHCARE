@@ -15,11 +15,15 @@ test('normalizePetType maps dog, cat, bird, fish, and mouse aliases', () => {
   assert.equal(normalizePetType('Mèo'), 'cat');
   assert.equal(normalizePetType('chim'), 'bird');
   assert.equal(normalizePetType('Cá'), 'fish');
+  assert.equal(normalizePetType('Cá cảnh'), 'fish');
   assert.equal(normalizePetType('chuột'), 'mouse');
+  assert.equal(normalizePetType('hamster'), 'hamster');
+  assert.equal(normalizePetType('Thỏ'), 'rabbit');
+  assert.equal(normalizePetType('Bò sát'), 'reptile');
   assert.equal(normalizePetType('Bò'), 'cow');
   assert.equal(normalizePetType('heo'), 'pig');
   assert.equal(normalizePetType('Gà'), 'chicken');
-  assert.equal(normalizePetType('rabbit'), null);
+  assert.equal(normalizePetType('unknown-pet'), null);
 });
 
 test('resolvePostPetType prefers pet_type then species', () => {
