@@ -1081,49 +1081,93 @@ function toPublicBreeder(profile, { includeContact = false } = {}) {
 async function withPublicBreederListingCounts(profiles) {
   if (!Array.isArray(profiles) || profiles.length === 0) return profiles;
   const ids = profiles.map((p) => p.id).filter(Boolean);
-  const counts = new Map(ids.map((id) => [id, 0]));
+  const activeCounts = new Map(ids.map((id) => [id, 0]));
+  const soldCounts = new Map(ids.map((id) => [id, 0]));
   const supabase = getSupabaseServiceClient();
 
   if (!supabase) {
     for (const post of memoryPosts) {
       if (
-        post.status === 'published'
-        && normalizePostKind(post.post_kind, 'listing') === 'listing'
-        && counts.has(post.breeder_profile_id)
+        normalizePostKind(post.post_kind, 'listing') !== 'listing'
+        || !activeCounts.has(post.breeder_profile_id)
       ) {
-        counts.set(
+        continue;
+      }
+      if (post.status === 'published') {
+        activeCounts.set(
           post.breeder_profile_id,
-          (counts.get(post.breeder_profile_id) || 0) + 1,
+          (activeCounts.get(post.breeder_profile_id) || 0) + 1,
+        );
+      } else if (
+        post.status === 'sold'
+        || (post.status === 'archived' && isSoldListingMetadata(post.metadata))
+      ) {
+        soldCounts.set(
+          post.breeder_profile_id,
+          (soldCounts.get(post.breeder_profile_id) || 0) + 1,
         );
       }
     }
   } else {
     const { data, error } = await supabase
       .from('pet_feed_posts')
-      .select('breeder_profile_id')
+      .select('breeder_profile_id, status, metadata')
       .in('breeder_profile_id', ids)
-      .eq('status', 'published')
-      .eq('post_kind', 'listing');
+      .eq('post_kind', 'listing')
+      .in('status', ['published', 'sold', 'archived']);
     if (error) throw error;
     for (const row of data ?? []) {
       const id = row.breeder_profile_id;
-      if (!counts.has(id)) continue;
-      counts.set(id, (counts.get(id) || 0) + 1);
+      if (!activeCounts.has(id)) continue;
+      if (row.status === 'published') {
+        activeCounts.set(id, (activeCounts.get(id) || 0) + 1);
+      } else if (
+        row.status === 'sold'
+        || (row.status === 'archived' && isSoldListingMetadata(row.metadata))
+      ) {
+        soldCounts.set(id, (soldCounts.get(id) || 0) + 1);
+      }
     }
   }
 
   return profiles.map((profile) => {
-    const n = counts.get(profile.id) || 0;
+    const active = activeCounts.get(profile.id) || 0;
+    const sold = soldCounts.get(profile.id) || 0;
     return {
       ...profile,
       metadata: {
         ...(profile.metadata && typeof profile.metadata === 'object'
           ? profile.metadata
           : {}),
-        active_listings: n,
+        active_listings: active,
+        pets_rehomed: sold,
       },
     };
   });
+}
+
+function enrichPublicProfileWithFarmPetCounts(profile, listings) {
+  let active = 0;
+  let sold = 0;
+  for (const post of listings || []) {
+    if (post.status === 'published') active += 1;
+    else if (
+      post.status === 'sold'
+      || (post.status === 'archived' && isSoldListingMetadata(post.metadata))
+    ) {
+      sold += 1;
+    }
+  }
+  return {
+    ...profile,
+    metadata: {
+      ...(profile.metadata && typeof profile.metadata === 'object'
+        ? profile.metadata
+        : {}),
+      active_listings: active,
+      pets_rehomed: sold,
+    },
+  };
 }
 
 /** Public SEO feed page (published only, no auth / no block filters). */
@@ -1314,9 +1358,10 @@ export async function getPublicBreederProfile(profileId) {
       .map((row) => toPublicListPost(row));
   }
 
+  const listingsWithEngagement = await withPostsEngagementCounts(listings, null);
   return {
-    profile: publicProfile,
-    listings: await withPostsEngagementCounts(listings, null),
+    profile: enrichPublicProfileWithFarmPetCounts(publicProfile, listingsWithEngagement),
+    listings: listingsWithEngagement,
   };
 }
 

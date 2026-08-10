@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { fetchJson } from "./client";
 import type { ApiBreederProfile, ApiPetFeedPost, PageResult } from "../types";
 import { mapApiBreeder, mapApiPost, mapApiPosts } from "../mappers";
+import { countFarmPetsByAvailability } from "../farmPets";
 import type { BreederProfile, Listing } from "../types";
 
 const PUBLIC_LIST_REVALIDATE = 30;
@@ -124,9 +125,11 @@ export async function getPublicBreeder(
         });
         if (!res?.data?.profile) return null;
         const listings = mapApiPosts(res.data.listings || []);
+        const farmCounts = countFarmPetsByAvailability(listings);
         return {
           profile: mapApiBreeder(res.data.profile, {
-            activeListings: listings.length,
+            activeListings: farmCounts.for_sale,
+            petsRehomed: farmCounts.completed,
           }),
           listings,
         };

@@ -154,6 +154,8 @@ test('public breeder directory and profile include only verified breeders', asyn
     detailWithSold.listings.find((post) => post.title === 'Sold kitten')?.status,
     'sold',
   );
+  assert.equal(detailWithSold.profile.metadata?.pets_rehomed, 1);
+  assert.equal(detailWithSold.profile.metadata?.active_listings, 1);
 });
 
 test('public published posts expose comments without auth token', async () => {

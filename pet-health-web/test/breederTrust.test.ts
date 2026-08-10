@@ -190,6 +190,15 @@ test("public trust metrics never invent reviews rating sold or response", () => 
   assert.equal(metrics.qualityIndex, 70);
 });
 
+test("public trust metrics prefer completed listing count for pets rehomed", () => {
+  const metrics = getBreederPublicTrustMetrics(
+    baseBreeder({ trustScore: 37, petsRehomed: 0 }),
+    { petsRehomed: 1 },
+  );
+  assert.equal(metrics.petsRehomed, 1);
+  assert.equal(metrics.qualityIndex, 37);
+});
+
 test("mapApiBreeder verified-only scores eKYC 10, not 70", () => {
   const profile: ApiBreederProfile = {
     id: "bp-1",

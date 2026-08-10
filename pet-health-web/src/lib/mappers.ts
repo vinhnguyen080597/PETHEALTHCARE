@@ -239,7 +239,7 @@ function normalizeGender(value?: string): string {
 
 export function mapApiBreeder(
   profile: ApiBreederProfile | null | undefined,
-  options?: { activeListings?: number },
+  options?: { activeListings?: number; petsRehomed?: number },
 ): BreederProfile {
   const meta = asRecord(profile?.metadata);
   const verificationStatus = normalizeVerification(profile?.verification_status);
@@ -254,6 +254,8 @@ export function mapApiBreeder(
   const coverUrl = resolveBreederCoverUrl(coverUrlFromMetadata(meta));
   const activeListings =
     options?.activeListings ?? (Number(meta.active_listings) || 0);
+  const petsRehomed =
+    options?.petsRehomed ?? petsRehomedFromMeta(meta);
   const checklist = parseChecklist(meta);
   const commitments = asStringArray(meta.commitments);
   const careEnvironment = profile?.care_environment || "";
@@ -331,7 +333,7 @@ export function mapApiBreeder(
     penaltyPoints,
     violations,
     activeListings,
-    petsRehomed: petsRehomedFromMeta(meta),
+    petsRehomed,
     template: parseTemplate(meta),
     contact: mappedContact,
     scale: scaleRaw === "—" || scaleRaw === "-" ? "" : scaleRaw,

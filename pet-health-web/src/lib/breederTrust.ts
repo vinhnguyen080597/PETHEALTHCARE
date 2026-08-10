@@ -473,7 +473,7 @@ export function qualitySignalsFromBreeder(
 
 export function getBreederPublicTrustMetrics(
   breeder: BreederProfile,
-  options?: { listingCount?: number },
+  options?: { listingCount?: number; petsRehomed?: number },
 ): BreederPublicTrustMetrics {
   const listingCount = options?.listingCount ?? breeder.activeListings;
   const fromProfile = getEffectiveTrust(
@@ -485,9 +485,16 @@ export function getBreederPublicTrustMetrics(
     : computeBreederQualityIndex(
         qualitySignalsFromBreeder(breeder, listingCount),
       );
-  const petsRehomed = Number(breeder.petsRehomed);
-  const sold =
-    Number.isFinite(petsRehomed) && petsRehomed > 0 ? Math.floor(petsRehomed) : 0;
+  const fromOption =
+    typeof options?.petsRehomed === "number" && Number.isFinite(options.petsRehomed)
+      ? Math.max(0, Math.floor(options.petsRehomed))
+      : null;
+  const fromProfileSold = Number(breeder.petsRehomed);
+  const profileSold =
+    Number.isFinite(fromProfileSold) && fromProfileSold > 0
+      ? Math.floor(fromProfileSold)
+      : 0;
+  const sold = fromOption != null ? fromOption : profileSold;
 
   return {
     qualityIndex: Math.max(0, Math.min(100, qualityIndex)),

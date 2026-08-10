@@ -10,6 +10,7 @@ import { DEFAULT_BREEDER_COVER_PATH } from "@/lib/breederProfileImages";
 import {
   FARM_DETAIL_TABS,
   farmDetailHref,
+  farmNameMarginClass,
   farmTabI18nKey,
   parseFarmDetailFrom,
   parseFarmDetailTab,
@@ -423,6 +424,7 @@ export function FarmDetail({
   const forSaleCount = farmPetCounts.for_sale;
   const trustMetrics = getBreederPublicTrustMetrics(breeder, {
     listingCount: forSaleCount,
+    petsRehomed: farmPetCounts.completed,
   });
   const trust = trustMetrics.qualityIndex;
   const reviewCount = trustMetrics.reviewCount;
@@ -739,7 +741,9 @@ export function FarmDetail({
             ) : null}
           </div>
           <div className="flex-1 min-w-0 flex flex-col justify-center sm:h-28 sm:py-1.5">
-            <h1 className="text-2xl lg:text-[1.75rem] font-bold text-[#050505] tracking-tight truncate leading-tight [font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif] [text-shadow:0_1px_0_rgba(255,255,255,0.9),0_1px_3px_rgba(0,0,0,0.12)]">
+            <h1
+              className={`text-2xl lg:text-[1.75rem] font-bold text-[#050505] tracking-tight truncate leading-tight [font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif] [text-shadow:0_1px_0_rgba(255,255,255,0.9),0_1px_3px_rgba(0,0,0,0.12)] ${farmNameMarginClass(isOwner)}`}
+            >
               {breeder.name}
             </h1>
             <div className="mt-1 sm:mt-0 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">

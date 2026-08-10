@@ -28,6 +28,11 @@ export function parseFarmDetailFrom(
   return value === "account" ? "account" : null;
 }
 
+/** Extra space under farm name for visitors (owner keeps tighter header with CTAs). */
+export function farmNameMarginClass(isOwner: boolean): string {
+  return isOwner ? "" : "mb-1.5";
+}
+
 /** Deep link into a farm profile tab (optional `from=account` for breadcrumbs). */
 export function farmDetailHref(
   profileId: string,

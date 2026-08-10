@@ -8,6 +8,7 @@ import {
   farmProfileFromAccountHref,
   farmTabI18nKey,
   parseFarmDetailTab,
+  farmNameMarginClass,
   warrantySaveNextHref,
 } from "../src/lib/farmTabs";
 
@@ -20,6 +21,11 @@ test("parseFarmDetailTab accepts known tabs only", () => {
   assert.equal(parseFarmDetailTab("listings"), "listings");
   assert.equal(parseFarmDetailTab("nope"), null);
   assert.equal(parseFarmDetailTab(null), null);
+});
+
+test("farm name margin applies only for visitor view", () => {
+  assert.equal(farmNameMarginClass(true), "");
+  assert.equal(farmNameMarginClass(false), "mb-1.5");
 });
 
 test("warranty save Không returns farm warranty deep link", () => {
