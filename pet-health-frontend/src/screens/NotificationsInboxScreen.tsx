@@ -12,6 +12,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PetFeedNotification } from '../types';
+import { resolveRejectionNotice } from '../utils/rejectionNotice';
+import { notificationInboxCta } from '../utils/notificationInboxCta';
 
 const PRIMARY = '#1E6FE8';
 
@@ -94,6 +96,7 @@ export function NotificationsInboxScreen({
     if (type === 'admin_breeder_pending') return t('petFeed.notifications.adminBreederTitle');
     if (type === 'admin_listing_pending') return t('petFeed.notifications.adminListingTitle');
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportTitle');
+    if (type === 'deposit_cancel_request') return t('petFeed.notifications.depositCancelTitle');
     return item.actor_display_name || t('petFeed.notifications.actorFallback');
   };
 
@@ -106,6 +109,18 @@ export function NotificationsInboxScreen({
     if (type === 'admin_breeder_pending') return t('petFeed.notifications.adminBreederSubtitle');
     if (type === 'admin_listing_pending') return t('petFeed.notifications.adminListingSubtitle');
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportSubtitle');
+    if (type === 'deposit_cancel_request') return t('petFeed.notifications.depositCancelSubtitle');
+    if (
+      type === 'deposit_request' ||
+      type === 'deposit_confirmed' ||
+      type === 'deposit_cancelled' ||
+      type === 'deal_complete_request' ||
+      type === 'deal_completed' ||
+      type === 'deal_dispute_opened' ||
+      type === 'deal_dispute_resolved'
+    ) {
+      return item.post_title || t('petFeed.notifications.listingFallback');
+    }
     return t('petFeed.notifications.commentedOn', {
       title: item.post_title || t('petFeed.notifications.listingFallback'),
     });
@@ -128,7 +143,9 @@ export function NotificationsInboxScreen({
       return item.body_preview || t('petFeed.notifications.listingApprovedBody');
     }
     if (type === 'listing_rejected') {
-      return item.body_preview || t('petFeed.notifications.listingRejectedBody');
+      return (
+        resolveRejectionNotice(item).reason || t('petFeed.notifications.listingRejectedBody')
+      );
     }
     if (type === 'admin_breeder_pending') {
       return item.body_preview || t('petFeed.notifications.adminBreederBody');
@@ -139,32 +156,24 @@ export function NotificationsInboxScreen({
     if (type === 'admin_report_open') {
       return item.body_preview || t('petFeed.notifications.adminReportBody');
     }
+    if (type === 'deposit_cancel_request') {
+      return item.body_preview || t('petFeed.notifications.depositCancelBody');
+    }
     return item.body_preview || t('petFeed.notifications.noPreview');
   };
 
-  const ctaFor = (item: PetFeedNotification) => {
-    const type = notificationType(item);
-    if (type === 'breeder_verified') {
-      return item.cta_label || t('petFeed.notifications.verifiedCta');
-    }
-    if (type === 'breeder_rejected') {
-      return item.cta_label || t('petFeed.notifications.rejectedCta');
-    }
-    if (type === 'listing_approved') {
-      return item.cta_label || t('petFeed.notifications.listingApprovedCta');
-    }
-    if (type === 'listing_rejected') {
-      return item.cta_label || t('petFeed.notifications.listingRejectedCta');
-    }
-    if (
-      type === 'admin_breeder_pending' ||
-      type === 'admin_listing_pending' ||
-      type === 'admin_report_open'
-    ) {
-      return item.cta_label || t('petFeed.notifications.adminRequestCta');
-    }
-    return null;
-  };
+  const ctaFor = (item: PetFeedNotification) =>
+    notificationInboxCta(item, {
+      verified: t('petFeed.notifications.verifiedCta'),
+      rejected: t('petFeed.notifications.rejectedCta'),
+      listingApproved: t('petFeed.notifications.listingApprovedCta'),
+      listingRejected: t('petFeed.notifications.listingRejectedCta'),
+      adminRequest: t('petFeed.notifications.adminRequestCta'),
+      depositCancelConfirm: t('petFeed.notifications.depositCancelCta'),
+      depositConfirm: t('petFeed.notifications.depositRequestCta'),
+      dealCompleteConfirm: t('petFeed.notifications.dealCompleteCta'),
+      viewListing: t('petFeed.notifications.viewListing'),
+    });
 
   const iconFor = (type: string) => {
     if (type === 'breeder_verified' || type === 'listing_approved') return 'checkmark-circle-outline' as const;
@@ -186,13 +195,10 @@ export function NotificationsInboxScreen({
     onOpenNotification(item);
   };
 
-  const rejectionReason =
-    reasonItem?.rejection_reason ||
-    reasonItem?.metadata?.rejection_reason ||
-    reasonItem?.body_preview ||
-    '';
-  const adminAction = reasonItem?.admin_action || reasonItem?.metadata?.admin_action || '';
-  const adminNote = reasonItem?.admin_note || reasonItem?.metadata?.admin_note || '';
+  const rejectionNotice = resolveRejectionNotice(reasonItem);
+  const rejectionReason = rejectionNotice.reason;
+  const adminAction = rejectionNotice.adminAction;
+  const adminNote = rejectionNotice.adminNote;
 
   return (
     <View className="flex-1 bg-[#F2F4F8]">
@@ -303,7 +309,7 @@ export function NotificationsInboxScreen({
             <Text className="mt-1 text-sm leading-5 text-slate-800">
               {rejectionReason ||
                 (reasonItem && notificationType(reasonItem) === 'listing_rejected'
-                  ? t('petFeed.notifications.listingRejectedBody')
+                  ? t('petFeed.notifications.listingRejectedReasonMissing')
                   : t('petFeed.notifications.rejectedBody'))}
             </Text>
             {adminAction ? (

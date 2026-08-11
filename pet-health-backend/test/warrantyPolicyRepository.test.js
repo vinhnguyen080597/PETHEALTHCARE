@@ -169,14 +169,21 @@ test('dual deposit confirm freezes policy snapshot; cancel unfreezes', async () 
   );
 
   const cancelled = await confirmListingCancelDeposit(senId, post.id, null);
-  assert.equal(cancelled.post.status, 'published');
+  assert.equal(cancelled.post.status, 'sold');
+  assert.equal(cancelled.post.metadata?.listing_outcome, 'sold');
   assert.equal(cancelled.post.metadata?.warranty_policy_snapshot, undefined);
   assert.equal(cancelled.post.metadata?.deal?.status, 'cancelled');
+  assert.ok(cancelled.post.metadata?.deal?.completed_at);
   assert.equal(cancelled.post.metadata?.deal?.dispute ?? null, null);
 
   await assert.rejects(
     () => requestListingCancelDeposit(senId, post.id, { reason: 'Sen try cancel' }, null),
     (err) => err.code === 'DEPOSIT_CANCEL_FORBIDDEN' || err.code === 'DEPOSIT_CANCEL_NOT_ALLOWED',
+  );
+
+  await assert.rejects(
+    () => confirmListingDeposit(senId, post.id, { acknowledge: true }, null),
+    (err) => err.code === 'DEPOSIT_NOT_ALLOWED',
   );
 
   const publicProfile = await getPublicBreederProfile(profile.id);

@@ -11,6 +11,12 @@ import {
   listingDetailHref,
   opensMyListingReviewPopup,
 } from "@/lib/listingOwnerActions";
+import {
+  evaluateOwnerDeleteListing,
+  listingDeleteClickAction,
+  ownerDeleteBlockedMessage,
+} from "@/lib/listingOwnerDelete";
+import { ListingDeleteConfirmModal } from "@/components/marketplace/ListingDeleteConfirmModal";
 import { shouldShowSenDepositedSection } from "@/lib/senDepositedListings";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 
@@ -115,6 +121,17 @@ export function AccountPanel({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [reviewListing, setReviewListing] = useState<Listing | null>(null);
+  const [listingDeleteBusyId, setListingDeleteBusyId] = useState<string | null>(
+    null,
+  );
+  const [listingDeleteError, setListingDeleteError] = useState("");
+  const [listingToDelete, setListingToDelete] =
+    useState<AccountListingItem | null>(null);
+  const [listingDeleteModalMode, setListingDeleteModalMode] = useState<
+    "confirm" | "blocked"
+  >("confirm");
+  const [cancelBusyId, setCancelBusyId] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState("");
 
   const isSen = role === "sen" || (!isAdmin && role !== "breeder" && role !== "vet");
   const isBreeder = role === "breeder";
@@ -153,6 +170,67 @@ export function AccountPanel({
       setDeleteError(t(lang, "account.deleteAccount.failed"));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const confirmSenCancelDeposit = async (postId: string) => {
+    setCancelBusyId(postId);
+    setCancelError("");
+    try {
+      const res = await fetch(
+        `/api/listings/${encodeURIComponent(postId)}/deposit/cancel/confirm`,
+        { method: "POST" },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string"
+            ? data.error
+            : t(lang, "common.error"),
+        );
+      }
+      router.refresh();
+    } catch (err) {
+      setCancelError(
+        err instanceof Error ? err.message : t(lang, "common.error"),
+      );
+    } finally {
+      setCancelBusyId(null);
+    }
+  };
+
+  const listingDeleteDecision = (item: AccountListingItem) =>
+    evaluateOwnerDeleteListing({
+      isOwner: true,
+      status: item.listing?.status || item.status,
+      metadataSold: item.listing?.metadataSold,
+      ownerDeleted: item.listing?.ownerDeleted,
+      completedAt: item.listing?.deal?.completedAt,
+      senConfirmedCompleteAt: item.listing?.deal?.senConfirmedCompleteAt,
+    });
+
+  const deleteOwnListing = async (item: AccountListingItem) => {
+    const decision = listingDeleteDecision(item);
+    if (!decision.allowed) return;
+    setListingDeleteBusyId(item.id);
+    setListingDeleteError("");
+    try {
+      const res = await fetch(`/api/listings/${item.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          String((data as { error?: string }).error || t(lang, "detail.deleteFailed")),
+        );
+      }
+      setListingToDelete(null);
+      router.refresh();
+    } catch (err) {
+      setListingToDelete(null);
+      setListingDeleteError(
+        err instanceof Error ? err.message : t(lang, "detail.deleteFailed"),
+      );
+    } finally {
+      setListingDeleteBusyId(null);
     }
   };
 
@@ -360,34 +438,66 @@ export function AccountPanel({
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {depositedListings.map((post) => (
-                      <Link
-                        key={post.id}
-                        href={listingDetailHref(post.id, { from: "account" })}
-                        className="flex w-full items-center gap-3 rounded-xl bg-[#FDFBF7] p-2.5 text-left hover:bg-amber-50/80"
-                      >
-                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-200">
-                          {post.thumbUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={post.thumbUrl}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
+                    {cancelError ? (
+                      <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">
+                        {cancelError}
+                      </p>
+                    ) : null}
+                    {depositedListings.map((post) => {
+                      const needsCancelConfirm =
+                        post.listing?.deal?.status === "pending_cancel_confirm";
+                      return (
+                        <div
+                          key={post.id}
+                          className="rounded-xl bg-[#FDFBF7] p-2.5"
+                        >
+                          <Link
+                            href={listingDetailHref(post.id, {
+                              from: "account",
+                              dealAction: needsCancelConfirm
+                                ? "confirm-cancel"
+                                : undefined,
+                            })}
+                            className="flex w-full items-center gap-3 text-left hover:opacity-90"
+                          >
+                            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-200">
+                              {post.thumbUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={post.thumbUrl}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : null}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-bold text-[#2B1E19]">
+                                {post.title || "—"}
+                              </p>
+                              <span
+                                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone(post.status)}`}
+                              >
+                                {t(lang, listingStatusKey(post.status))}
+                              </span>
+                            </div>
+                          </Link>
+                          {needsCancelConfirm ? (
+                            <button
+                              type="button"
+                              disabled={cancelBusyId === post.id}
+                              onClick={() =>
+                                void confirmSenCancelDeposit(post.id)
+                              }
+                              className="mt-2 w-full rounded-full border border-red-200 py-2 text-xs font-semibold text-red-600 disabled:opacity-60"
+                            >
+                              {cancelBusyId === post.id
+                                ? t(lang, "common.loading")
+                                : t(lang, "deal.senConfirmCancel")}
+                            </button>
                           ) : null}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold text-[#2B1E19]">
-                            {post.title || "—"}
-                          </p>
-                          <span
-                            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone(post.status)}`}
-                          >
-                            {t(lang, listingStatusKey(post.status))}
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -414,9 +524,17 @@ export function AccountPanel({
                   </p>
                 ) : (
                   <div className="space-y-2">
+                    {listingDeleteError ? (
+                      <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        {listingDeleteError}
+                      </p>
+                    ) : null}
                     {myListings.map((post) => {
+                      const deleteDecision = listingDeleteDecision(post);
+                      const showListingDelete =
+                        deleteDecision.reason !== "already_deleted";
                       const rowClass =
-                        "flex w-full items-center gap-3 rounded-xl bg-[#FDFBF7] p-2.5 text-left hover:bg-amber-50/80";
+                        "flex min-w-0 flex-1 items-center gap-3 p-2.5 text-left hover:bg-amber-50/80";
                       const rowBody = (
                         <>
                           <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-200">
@@ -442,30 +560,52 @@ export function AccountPanel({
                         </>
                       );
 
-                      if (
-                        opensMyListingReviewPopup(post.status) &&
-                        post.listing
-                      ) {
-                        return (
-                          <button
-                            key={post.id}
-                            type="button"
-                            className={rowClass}
-                            onClick={() => setReviewListing(post.listing!)}
-                          >
-                            {rowBody}
-                          </button>
-                        );
-                      }
-
                       return (
-                        <Link
+                        <div
                           key={post.id}
-                          href={listingDetailHref(post.id, { from: "account" })}
-                          className={rowClass}
+                          className="flex items-stretch rounded-xl bg-[#FDFBF7]"
                         >
-                          {rowBody}
-                        </Link>
+                          {opensMyListingReviewPopup(post.status) &&
+                          post.listing ? (
+                            <button
+                              type="button"
+                              className={rowClass}
+                              onClick={() => setReviewListing(post.listing!)}
+                            >
+                              {rowBody}
+                            </button>
+                          ) : (
+                            <Link
+                              href={listingDetailHref(post.id, {
+                                from: "account",
+                              })}
+                              className={rowClass}
+                            >
+                              {rowBody}
+                            </Link>
+                          )}
+                          {showListingDelete ? (
+                            <button
+                              type="button"
+                              aria-label={t(lang, "detail.delete")}
+                              disabled={listingDeleteBusyId === post.id}
+                              title={t(lang, "detail.delete")}
+                              onClick={() => {
+                                const action =
+                                  listingDeleteClickAction(deleteDecision);
+                                if (action === "hidden") return;
+                                setListingDeleteError("");
+                                setListingDeleteModalMode(
+                                  action === "blocked" ? "blocked" : "confirm",
+                                );
+                                setListingToDelete(post);
+                              }}
+                              className="shrink-0 px-3 text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
+                            >
+                              {listingDeleteBusyId === post.id ? "…" : "✕"}
+                            </button>
+                          ) : null}
+                        </div>
                       );
                     })}
                   </div>
@@ -648,6 +788,28 @@ export function AccountPanel({
         </div>
       </div>
     ) : null}
+
+    <ListingDeleteConfirmModal
+      lang={lang}
+      open={Boolean(listingToDelete)}
+      mode={listingDeleteModalMode}
+      blockedMessage={
+        listingToDelete
+          ? ownerDeleteBlockedMessage(listingDeleteDecision(listingToDelete), {
+              deposit: t(lang, "detail.deleteBlockedDeposit"),
+              cooldown: t(lang, "detail.deleteBlockedSoldCooldown"),
+              generic: t(lang, "detail.deleteFailed"),
+            })
+          : ""
+      }
+      busy={Boolean(listingToDelete && listingDeleteBusyId === listingToDelete.id)}
+      onCancel={() => {
+        if (!listingDeleteBusyId) setListingToDelete(null);
+      }}
+      onConfirm={() => {
+        if (listingToDelete) void deleteOwnListing(listingToDelete);
+      }}
+    />
     </>
   );
 }

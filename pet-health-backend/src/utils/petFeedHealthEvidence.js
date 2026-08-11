@@ -25,6 +25,8 @@ export function healthEvidenceUrlsFromMetadata(metadata) {
 
 /**
  * Throws 400 when status is pending_review/published and vaccinated without evidence.
+ * Used on create only. Text-only listing edits keep existing photos and cannot
+ * attach evidence, so updatePetFeedPost must not call this.
  */
 export function assertHealthEvidenceForReview(payload) {
   const status = String(payload?.status ?? '').trim().toLowerCase();

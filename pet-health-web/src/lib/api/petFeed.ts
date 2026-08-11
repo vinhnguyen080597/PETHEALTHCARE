@@ -330,6 +330,23 @@ export async function updateMyListing(
   );
 }
 
+export async function getListingDetail(token: string, postId: string) {
+  return fetchJson<{ data: ApiPetFeedPost }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}`,
+    { token, cache: "no-store" },
+  );
+}
+
+export async function deleteMyListing(token: string, postId: string) {
+  return fetchJson<{ data: ApiPetFeedPost }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}`,
+    {
+      method: "DELETE",
+      token,
+    },
+  );
+}
+
 export async function confirmListingDeposit(
   token: string,
   postId: string,

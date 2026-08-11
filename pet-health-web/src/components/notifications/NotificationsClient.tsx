@@ -8,9 +8,13 @@ import { t } from "@/i18n";
 import type { PetFeedNotification } from "@/lib/api/petFeed";
 import {
   adminRequestHref,
-  isNotificationUnread,
+  isDepositCancelRequestNotification,
+  listingNotificationHref,
+  notificationInboxCta,
   notificationType,
+  isNotificationUnread,
 } from "@/lib/notifications/deepLinks";
+import { resolveRejectionNotice } from "@/lib/notifications/rejectionNotice";
 
 function formatTime(value: string | undefined, lang: Lang) {
   if (!value) return "";
@@ -39,6 +43,10 @@ export function NotificationsClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [reasonItem, setReasonItem] = useState<PetFeedNotification | null>(null);
+  const [cancelItem, setCancelItem] = useState<PetFeedNotification | null>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+  const [cancelDone, setCancelDone] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -120,6 +128,12 @@ export function NotificationsClient({
       setReasonItem(item);
       return;
     }
+    if (isDepositCancelRequestNotification(item)) {
+      setCancelError("");
+      setCancelDone(false);
+      setCancelItem(item);
+      return;
+    }
     if (item.post_id) {
       const unreadIds = items
         .filter(
@@ -130,7 +144,36 @@ export function NotificationsClient({
         )
         .map((n) => n.id);
       if (unreadIds.length) await markIdsRead(unreadIds);
-      router.push(`/app/pet-feed/posts/${encodeURIComponent(item.post_id)}`);
+      router.push(
+        listingNotificationHref(item) ||
+          `/app/pet-feed/posts/${encodeURIComponent(item.post_id)}`,
+      );
+    }
+  };
+
+  const confirmDepositCancel = async () => {
+    const postId = String(cancelItem?.post_id || "").trim();
+    if (!postId) return;
+    setCancelBusy(true);
+    setCancelError("");
+    try {
+      const res = await fetch(
+        `/api/listings/${encodeURIComponent(postId)}/deposit/cancel/confirm`,
+        { method: "POST" },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : t(lang, "common.error"),
+        );
+      }
+      setCancelDone(true);
+    } catch (err) {
+      setCancelError(
+        err instanceof Error ? err.message : t(lang, "common.error"),
+      );
+    } finally {
+      setCancelBusy(false);
     }
   };
 
@@ -173,6 +216,9 @@ export function NotificationsClient({
     if (type === "admin_breeder_pending") return t(lang, "notifications.adminBreederTitle");
     if (type === "admin_listing_pending") return t(lang, "notifications.adminListingTitle");
     if (type === "admin_report_open") return t(lang, "notifications.adminReportTitle");
+    if (type === "deposit_cancel_request") {
+      return t(lang, "notifications.depositCancelTitle");
+    }
     return item.actor_display_name || t(lang, "notifications.someone");
   };
 
@@ -192,7 +238,10 @@ export function NotificationsClient({
       return item.body_preview || t(lang, "notifications.listingApprovedBody");
     }
     if (type === "listing_rejected") {
-      return item.body_preview || t(lang, "notifications.listingRejectedBody");
+      return (
+        resolveRejectionNotice(item).reason ||
+        t(lang, "notifications.listingRejectedBody")
+      );
     }
     if (type === "admin_breeder_pending") {
       return item.body_preview || t(lang, "notifications.adminBreederBody");
@@ -203,41 +252,29 @@ export function NotificationsClient({
     if (type === "admin_report_open") {
       return item.body_preview || t(lang, "notifications.adminReportBody");
     }
+    if (type === "deposit_cancel_request") {
+      return item.body_preview || t(lang, "notifications.depositCancelBody");
+    }
     return item.body_preview || t(lang, "notifications.commentFallback");
   };
 
-  const ctaFor = (item: PetFeedNotification) => {
-    const type = notificationType(item);
-    if (type === "breeder_verified") {
-      return item.cta_label || t(lang, "notifications.verifiedCta");
-    }
-    if (type === "breeder_rejected") {
-      return item.cta_label || t(lang, "notifications.rejectedCta");
-    }
-    if (type === "listing_approved") {
-      return item.cta_label || t(lang, "notifications.listingApprovedCta");
-    }
-    if (type === "listing_rejected") {
-      return item.cta_label || t(lang, "notifications.listingRejectedCta");
-    }
-    if (
-      type === "admin_breeder_pending" ||
-      type === "admin_listing_pending" ||
-      type === "admin_report_open"
-    ) {
-      return item.cta_label || t(lang, "notifications.adminRequestCta");
-    }
-    return null;
-  };
+  const ctaFor = (item: PetFeedNotification) =>
+    notificationInboxCta(item, {
+      verified: t(lang, "notifications.verifiedCta"),
+      rejected: t(lang, "notifications.rejectedCta"),
+      listingApproved: t(lang, "notifications.listingApprovedCta"),
+      listingRejected: t(lang, "notifications.listingRejectedCta"),
+      adminRequest: t(lang, "notifications.adminRequestCta"),
+      depositCancelConfirm: t(lang, "notifications.depositCancelCta"),
+      depositConfirm: t(lang, "notifications.depositRequestCta"),
+      dealCompleteConfirm: t(lang, "notifications.dealCompleteCta"),
+      viewListing: t(lang, "notifications.viewListing"),
+    });
 
-  const reason =
-    reasonItem?.rejection_reason ||
-    reasonItem?.metadata?.rejection_reason ||
-    reasonItem?.body_preview ||
-    "";
-  const adminAction =
-    reasonItem?.admin_action || reasonItem?.metadata?.admin_action || "";
-  const adminNote = reasonItem?.admin_note || reasonItem?.metadata?.admin_note || "";
+  const rejectionNotice = resolveRejectionNotice(reasonItem);
+  const reason = rejectionNotice.reason;
+  const adminAction = rejectionNotice.adminAction;
+  const adminNote = rejectionNotice.adminNote;
 
   return (
     <div className="max-w-[720px] mx-auto px-5 lg:px-8 py-6">
@@ -365,7 +402,7 @@ export function NotificationsClient({
                 <p className="mt-1 text-sm text-[#2B1E19] leading-relaxed">
                   {reason ||
                     (notificationType(reasonItem) === "listing_rejected"
-                      ? t(lang, "notifications.listingRejectedBody")
+                      ? t(lang, "notifications.listingRejectedReasonMissing")
                       : t(lang, "notifications.rejectedBody"))}
                 </p>
               </div>
@@ -407,6 +444,73 @@ export function NotificationsClient({
                   ? t(lang, "notifications.listingRejectedCta")
                   : t(lang, "account.breederTrust.editProfile")}
               </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {cancelItem ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#2B1E19]/40 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#F0E6D8] bg-white p-5 shadow-xl">
+            <h3 className="text-base font-bold text-[#2B1E19]">
+              {t(lang, "notifications.depositCancelTitle")}
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-[#2B1E19]">
+              {cancelItem.body_preview || t(lang, "notifications.depositCancelBody")}
+            </p>
+            {cancelError ? (
+              <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                {cancelError}
+              </p>
+            ) : null}
+            {cancelDone ? (
+              <p className="mt-3 text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+                {t(lang, "notifications.depositCancelSuccess")}
+              </p>
+            ) : null}
+            <div className="mt-5 flex flex-col gap-2">
+              {cancelDone ? (
+                <Link
+                  href={
+                    listingNotificationHref(cancelItem) ||
+                    `/app/pet-feed/posts/${encodeURIComponent(cancelItem.post_id || "")}`
+                  }
+                  onClick={() => setCancelItem(null)}
+                  className="w-full text-center rounded-full bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309]"
+                >
+                  {t(lang, "notifications.viewListing")}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  disabled={cancelBusy || !cancelItem.post_id}
+                  onClick={() => void confirmDepositCancel()}
+                  className="w-full rounded-full bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309] disabled:opacity-60"
+                >
+                  {cancelBusy
+                    ? t(lang, "common.loading")
+                    : t(lang, "notifications.depositCancelCta")}
+                </button>
+              )}
+              {!cancelDone && cancelItem.post_id ? (
+                <Link
+                  href={
+                    listingNotificationHref(cancelItem) ||
+                    `/app/pet-feed/posts/${encodeURIComponent(cancelItem.post_id)}`
+                  }
+                  onClick={() => setCancelItem(null)}
+                  className="w-full text-center rounded-full border border-[#F0E6D8] py-2.5 text-sm font-semibold text-[#5C4A3A]"
+                >
+                  {t(lang, "notifications.viewListing")}
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setCancelItem(null)}
+                className="w-full rounded-full border border-[#F0E6D8] py-2.5 text-sm font-semibold text-[#5C4A3A]"
+              >
+                {t(lang, "common.cancel")}
+              </button>
             </div>
           </div>
         </div>

@@ -37,6 +37,25 @@ test('resolveDealHandoffPhase and gates match web contract', () => {
     true,
   );
   assert.equal(
+    canShowDepositRequest({ isOwner: false, listingStatus: 'published' }),
+    false,
+  );
+  assert.equal(
+    canShowDepositRequest({
+      isOwner: true,
+      listingStatus: 'published',
+      dealStatus: 'deposit_hold',
+    }),
+    false,
+  );
+  assert.equal(
+    resolveDealHandoffPhase({
+      listingStatus: 'published',
+      dealStatus: 'deposit_hold',
+    }),
+    'deposit_hold',
+  );
+  assert.equal(
     canBreederRequestHandoff({
       isOwner: true,
       listingStatus: 'deposit_hold',

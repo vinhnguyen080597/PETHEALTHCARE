@@ -24,6 +24,12 @@ import {
   parseListingDetailFrom,
 } from "@/lib/listingOwnerActions";
 import {
+  evaluateOwnerDeleteListing,
+  listingDeleteClickAction,
+  ownerDeleteBlockedMessage,
+} from "@/lib/listingOwnerDelete";
+import { ListingDeleteConfirmModal } from "./ListingDeleteConfirmModal";
+import {
   depositHoldSenLabel,
   filterSenUserOptions,
   formatSenOptionLabel,
@@ -163,13 +169,17 @@ export function ListingDetail({
   const router = useRouter();
   const searchParams = useSearchParams();
   const listingFrom = parseListingDetailFrom(searchParams.get("from"));
+  const dealAction = searchParams.get("dealAction");
+  const wantsSenConfirmCancel = dealAction === "confirm-cancel";
   const backHref = listingDetailBackHref(listingFrom);
   const [listing, setListing] = useState(initialListing);
   const ownerUserId = listing.ownerUserId || listing.breeder.userId;
   const isOwner = isListingOwner(currentUserId, ownerUserId);
   const { showMessage, showReport } = listingVisitorActions(isOwner);
   const showDepositRequest = canShowDepositRequest({
+    isOwner,
     status: listing.status,
+    dealStatus: listing.deal?.status,
   });
   const showUpdateDetails = canShowListingUpdateDetails({
     isOwner,
@@ -205,6 +215,7 @@ export function ListingDetail({
     isDealSen,
     listingStatus: listing.status,
     dealStatus: listing.deal?.status,
+    allowLoggedInDeepLink: Boolean(isLoggedIn && wantsSenConfirmCancel),
   });
   const showSenOpenDispute = canSenOpenDispute({
     isDealSen,
@@ -214,6 +225,22 @@ export function ListingDetail({
   const showDisputeOpen = isDealDisputeOpen({
     listingStatus: listing.status,
     dealStatus: listing.deal?.status,
+  });
+  const deleteDecision = evaluateOwnerDeleteListing({
+    isOwner,
+    status: listing.status,
+    metadataSold: listing.metadataSold,
+    ownerDeleted: listing.ownerDeleted,
+    completedAt: listing.deal?.completedAt,
+    senConfirmedCompleteAt: listing.deal?.senConfirmedCompleteAt,
+  });
+  const showDelete =
+    isOwner && listingDeleteClickAction(deleteDecision) !== "hidden";
+  const deleteClickAction = listingDeleteClickAction(deleteDecision);
+  const deleteBlockedHint = ownerDeleteBlockedMessage(deleteDecision, {
+    deposit: t(lang, "detail.deleteBlockedDeposit"),
+    cooldown: t(lang, "detail.deleteBlockedSoldCooldown"),
+    generic: t(lang, "detail.deleteFailed"),
   });
   const handoffDaysLeft = daysLeftUntilDeadline(listing.deal?.completeDeadlineAt);
   const allowMediaDownload = canDownloadPostMedia(isAdmin);
@@ -258,6 +285,9 @@ export function ListingDetail({
   const [actionError, setActionError] = useState("");
   const [shareNotice, setShareNotice] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
+  const [deleteModalMode, setDeleteModalMode] = useState<
+    "confirm" | "blocked" | null
+  >(null);
   const [reportReason, setReportReason] = useState<string>(REPORT_REASONS[0]);
   const [reportNote, setReportNote] = useState("");
   const [reportDone, setReportDone] = useState(false);
@@ -319,6 +349,36 @@ export function ListingDetail({
   useEffect(() => {
     setListing(initialListing);
   }, [initialListing]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const postId = initialListing.id;
+    if (!postId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/listings/${encodeURIComponent(postId)}`, {
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && data?.data) {
+          setListing(mapApiPost(data.data as ApiPetFeedPost));
+        }
+      } catch {
+        // Keep SSR listing if live fetch fails.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, initialListing.id]);
+
+  useEffect(() => {
+    if (!wantsSenConfirmCancel) return;
+    const el = document.getElementById("listing-deal-panel");
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [wantsSenConfirmCancel, listing.deal?.status, showSenConfirmCancel]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -707,6 +767,31 @@ export function ListingDetail({
       setActionError(err instanceof Error ? err.message : "Failed");
     } finally {
       setDealBusy(false);
+    }
+  };
+
+  const deleteOwnListing = async () => {
+    if (!showDelete || !deleteDecision.allowed) return;
+    setBusy("delete");
+    setActionError("");
+    try {
+      const res = await fetch(`/api/listings/${listing.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          String((data as { error?: string }).error || t(lang, "detail.deleteFailed")),
+        );
+      }
+      setDeleteModalMode(null);
+      router.push(backHref);
+      router.refresh();
+    } catch (err) {
+      setDeleteModalMode(null);
+      setActionError(
+        err instanceof Error ? err.message : t(lang, "detail.deleteFailed"),
+      );
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -1121,7 +1206,7 @@ export function ListingDetail({
               )}
 
               {listing.status === "deposit_hold" ? (
-                <div className={depositHoldTone.shell}>
+                <div id="listing-deal-panel" className={depositHoldTone.shell}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className={depositHoldTone.title}>
@@ -1330,6 +1415,23 @@ export function ListingDetail({
                   </button>
                 ) : null}
               </div>
+              {showDelete ? (
+                <button
+                  type="button"
+                  disabled={busy === "delete"}
+                  onClick={() => {
+                    if (deleteClickAction === "hidden") return;
+                    setDeleteModalMode(
+                      deleteClickAction === "blocked" ? "blocked" : "confirm",
+                    );
+                  }}
+                  className="w-full py-2.5 border border-red-200 text-red-600 text-sm font-medium rounded-full hover:bg-red-50 transition-colors disabled:opacity-50"
+                >
+                  {busy === "delete"
+                    ? t(lang, "detail.deleting")
+                    : t(lang, "detail.delete")}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -1630,6 +1732,18 @@ export function ListingDetail({
           </div>
         </div>
       )}
+
+      <ListingDeleteConfirmModal
+        lang={lang}
+        open={deleteModalMode != null}
+        mode={deleteModalMode === "blocked" ? "blocked" : "confirm"}
+        blockedMessage={deleteBlockedHint}
+        busy={busy === "delete"}
+        onCancel={() => {
+          if (busy !== "delete") setDeleteModalMode(null);
+        }}
+        onConfirm={() => void deleteOwnListing()}
+      />
 
       {reportOpen && (
         <div

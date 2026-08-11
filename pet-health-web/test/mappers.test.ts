@@ -100,3 +100,32 @@ test("mapApiPost maps video_url onto listing.videoUrl", () => {
   });
   assert.equal(listing.videoUrl, "https://cdn.example/clip.mp4");
 });
+
+test("mapApiPost treats published + active deposit deal as deposit_hold", () => {
+  const listing = mapApiPost({
+    id: "p-hold",
+    title: "Held",
+    status: "published",
+    metadata: {
+      deal: { status: "deposit_hold", sen_user_id: "sen-1" },
+    },
+  });
+  assert.equal(listing.status, "deposit_hold");
+  assert.equal(listing.deal?.senUserId, "sen-1");
+});
+
+test("mapApiPost treats owner-deleted sold listings as archived", () => {
+  const listing = mapApiPost({
+    id: "p-deleted",
+    title: "Removed",
+    status: "archived",
+    metadata: {
+      sold: true,
+      owner_deleted: true,
+      owner_deleted_at: "2026-08-11T00:00:00.000Z",
+    },
+  });
+  assert.equal(listing.status, "archived");
+  assert.equal(listing.ownerDeleted, true);
+  assert.equal(listing.metadataSold, false);
+});

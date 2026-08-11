@@ -55,6 +55,13 @@ test("resolveDealHandoffPhase maps listing + deal status", () => {
     resolveDealHandoffPhase({ listingStatus: "sold" }),
     "completed",
   );
+  assert.equal(
+    resolveDealHandoffPhase({
+      listingStatus: "published",
+      dealStatus: "deposit_hold",
+    }),
+    "deposit_hold",
+  );
 });
 
 test("breeder can request handoff / cancel only on deposit_hold phase", () => {
@@ -163,6 +170,15 @@ test("sen can confirm handoff, cancel, or open dispute by phase", () => {
       dealStatus: "deposit_hold",
     }),
     false,
+  );
+  assert.equal(
+    canSenConfirmCancel({
+      isDealSen: false,
+      listingStatus: "deposit_hold",
+      dealStatus: "pending_cancel_confirm",
+      allowLoggedInDeepLink: true,
+    }),
+    true,
   );
 });
 

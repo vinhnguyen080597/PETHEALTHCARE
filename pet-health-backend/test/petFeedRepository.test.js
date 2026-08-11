@@ -290,7 +290,7 @@ test('isListingDepositedForSen and listMyDepositPosts filter by Sen + deposit_ho
       },
       senId,
     ),
-    false,
+    true,
   );
   assert.equal(
     isListingDepositedForSen(

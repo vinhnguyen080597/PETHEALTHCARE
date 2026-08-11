@@ -75,7 +75,11 @@ export function ListingDealPanel({
     listingStatus: post.status,
     dealStatus: deal.status,
   };
-  const showDeposit = canShowDepositRequest({ isOwner, listingStatus: post.status });
+  const showDeposit = canShowDepositRequest({
+    isOwner,
+    listingStatus: post.status,
+    dealStatus: deal.status,
+  });
   const showHandoff = canBreederRequestHandoff({ isOwner, ...phaseInput });
   const showCancel = canBreederCancelDeposit({ isOwner, ...phaseInput });
   const showSenHandoff = canSenConfirmHandoff({ isDealSen, ...phaseInput });

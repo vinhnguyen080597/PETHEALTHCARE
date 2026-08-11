@@ -2,9 +2,24 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   adminRequestHref,
+  isDepositCancelRequestNotification,
+  listingNotificationHref,
+  notificationInboxCta,
   isNotificationUnread,
   notificationType,
 } from "../src/lib/notifications/deepLinks";
+
+const CTA_FALLBACKS = {
+  verified: "View farm",
+  rejected: "View reason",
+  listingApproved: "View listing",
+  listingRejected: "View account",
+  adminRequest: "View request",
+  depositCancelConfirm: "Confirm cancel deposit",
+  depositConfirm: "Confirm deposit",
+  dealCompleteConfirm: "Confirm handoff",
+  viewListing: "View listing",
+};
 
 test("notificationType defaults to post_comment", () => {
   assert.equal(notificationType({}), "post_comment");
@@ -74,4 +89,48 @@ test("adminRequestHref falls back without focus ids", () => {
 test("listing review notification types are distinct from admin queue types", () => {
   assert.equal(notificationType({ type: "listing_approved" }), "listing_approved");
   assert.equal(notificationType({ type: "listing_rejected" }), "listing_rejected");
+});
+
+test("deposit cancel notification shows a confirm CTA", () => {
+  assert.equal(
+    notificationInboxCta({ type: "deposit_cancel_request" }, CTA_FALLBACKS),
+    "Confirm cancel deposit",
+  );
+  assert.equal(
+    notificationInboxCta(
+      {
+        type: "deposit_cancel_request",
+        cta_label: "Xác nhận hủy cọc",
+      },
+      CTA_FALLBACKS,
+    ),
+    "Xác nhận hủy cọc",
+  );
+  assert.equal(notificationInboxCta({ type: "post_comment" }, CTA_FALLBACKS), null);
+});
+
+test("listingNotificationHref rewrites legacy /app/posts and adds cancel action", () => {
+  assert.equal(
+    listingNotificationHref({
+      type: "deposit_cancel_request",
+      post_id: "post-1",
+    }),
+    "/app/pet-feed/posts/post-1?dealAction=confirm-cancel",
+  );
+  assert.equal(
+    listingNotificationHref({
+      type: "deposit_cancel_request",
+      post_id: "post-1",
+      metadata: { cta_href: "/app/posts/post-1" },
+    }),
+    "/app/pet-feed/posts/post-1?dealAction=confirm-cancel",
+  );
+  assert.equal(
+    listingNotificationHref({
+      type: "deposit_confirmed",
+      post_id: "post-2",
+    }),
+    "/app/pet-feed/posts/post-2",
+  );
+  assert.equal(isDepositCancelRequestNotification("deposit_cancel_request"), true);
 });

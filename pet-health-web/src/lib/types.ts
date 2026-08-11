@@ -168,6 +168,8 @@ export interface Listing {
   escrowEnabled: boolean;
   /** True when archive/sold metadata marks a completed rehome. */
   metadataSold?: boolean;
+  /** True after the owner deleted the listing (hidden from farm / feed). */
+  ownerDeleted?: boolean;
   warrantyPolicy?: WarrantyPolicy | null;
   deal?: ListingDeal | null;
 }

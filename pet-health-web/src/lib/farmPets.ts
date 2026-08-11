@@ -42,9 +42,15 @@ export function listingMetadataMarksSold(
   );
 }
 
+export type FarmPetListingFields = Pick<Listing, "status"> & {
+  metadataSold?: boolean;
+  ownerDeleted?: boolean;
+};
+
 export function farmPetAvailability(
-  listing: Pick<Listing, "status"> & { metadataSold?: boolean },
+  listing: FarmPetListingFields,
 ): FarmPetAvailability | null {
+  if (listing.ownerDeleted) return null;
   if (listing.status === "published") return "for_sale";
   if (listing.status === "deposit_hold") return "deposit_hold";
   if (listing.status === "sold") return "completed";
@@ -53,9 +59,7 @@ export function farmPetAvailability(
 }
 
 /** Pets for sale + deposit hold + completed/sold. */
-export function isFarmPetListing(
-  listing: Pick<Listing, "status"> & { metadataSold?: boolean },
-): boolean {
+export function isFarmPetListing(listing: FarmPetListingFields): boolean {
   return farmPetAvailability(listing) != null;
 }
 
@@ -67,9 +71,7 @@ function availabilityRank(value: FarmPetAvailability | null): number {
 }
 
 /** For-sale first, then deposit hold, then completed. */
-export function sortFarmPets<
-  T extends Pick<Listing, "status"> & { metadataSold?: boolean },
->(listings: T[]): T[] {
+export function sortFarmPets<T extends FarmPetListingFields>(listings: T[]): T[] {
   return [...listings]
     .filter(isFarmPetListing)
     .sort(
@@ -79,14 +81,12 @@ export function sortFarmPets<
     );
 }
 
-export function farmPetTabCount(
-  listings: Array<Pick<Listing, "status"> & { metadataSold?: boolean }>,
-): number {
+export function farmPetTabCount(listings: FarmPetListingFields[]): number {
   return listings.filter(isFarmPetListing).length;
 }
 
 export function countFarmPetsByAvailability(
-  listings: Array<Pick<Listing, "status"> & { metadataSold?: boolean }>,
+  listings: FarmPetListingFields[],
 ): FarmPetAvailabilityCounts {
   const counts: FarmPetAvailabilityCounts = {
     for_sale: 0,
@@ -117,9 +117,10 @@ export function parseFarmPetAvailabilityFilter(
   return "all";
 }
 
-export function filterFarmPetsByAvailability<
-  T extends Pick<Listing, "status"> & { metadataSold?: boolean },
->(listings: T[], filter: FarmPetAvailabilityFilter): T[] {
+export function filterFarmPetsByAvailability<T extends FarmPetListingFields>(
+  listings: T[],
+  filter: FarmPetAvailabilityFilter,
+): T[] {
   const sorted = sortFarmPets(listings);
   if (filter === "all") return sorted;
   return sorted.filter((listing) => farmPetAvailability(listing) === filter);

@@ -84,6 +84,23 @@ test("farm pets include for-sale, deposit hold, and completed", () => {
   );
   assert.equal(isFarmPetListing(listing({ id: "4", status: "draft" })), false);
   assert.equal(isFarmPetListing(listing({ id: "5", status: "archived" })), false);
+  assert.equal(
+    farmPetAvailability(
+      listing({ id: "6", status: "sold", ownerDeleted: true }),
+    ),
+    null,
+  );
+  assert.equal(
+    isFarmPetListing(
+      listing({
+        id: "7",
+        status: "archived",
+        metadataSold: true,
+        ownerDeleted: true,
+      }),
+    ),
+    false,
+  );
 });
 
 test("sortFarmPets puts for-sale before hold before completed", () => {

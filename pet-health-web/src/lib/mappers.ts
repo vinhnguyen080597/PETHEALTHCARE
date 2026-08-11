@@ -18,6 +18,7 @@ import {
   parseTrustActivityFromMeta,
 } from "./breederTrust";
 import { listingMetadataMarksSold } from "./farmPets";
+import { metadataMarksOwnerDeleted } from "./listingOwnerDelete";
 import {
   coverUrlFromMetadata,
   resolveBreederAvatarUrl,
@@ -359,13 +360,16 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
   const personality = post.personality || [];
   const statusRaw = (post.status || "published").toLowerCase();
   const metadataSold = listingMetadataMarksSold(meta);
+  const ownerDeleted = metadataMarksOwnerDeleted(meta);
   const softStatus = String(
     (meta.soft_status as string | undefined) || "",
   )
     .trim()
     .toLowerCase();
   let status: Listing["status"];
-  if (softStatus === "deposit_hold" || softStatus === "sold") {
+  if (ownerDeleted) {
+    status = "archived";
+  } else if (softStatus === "deposit_hold" || softStatus === "sold") {
     status = softStatus;
   } else if (statusRaw === "sold" || (statusRaw === "archived" && metadataSold)) {
     status = "sold";
@@ -383,7 +387,21 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     statusRaw === "published" ||
     statusRaw === "deposit_hold"
   ) {
-    status = statusRaw;
+    const dealStatus = String(
+      (meta.deal as { status?: string } | undefined)?.status || "",
+    )
+      .trim()
+      .toLowerCase();
+    const heldDeal =
+      dealStatus === "deposit_hold" ||
+      dealStatus === "pending_cancel_confirm" ||
+      dealStatus === "pending_sen_complete" ||
+      dealStatus === "pending_complete" ||
+      dealStatus === "dispute_open";
+    status =
+      (statusRaw === "published" || statusRaw === "pending_review") && heldDeal
+        ? "deposit_hold"
+        : statusRaw;
   } else {
     status = "published";
   }
@@ -425,7 +443,8 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     saved: Boolean(post.is_favorited),
     postKind: post.post_kind,
     escrowEnabled: parseEscrowEnabled(meta),
-    metadataSold: status === "sold" || metadataSold,
+    metadataSold: !ownerDeleted && (status === "sold" || metadataSold),
+    ownerDeleted,
     warrantyPolicy,
     deal: Object.keys(dealRaw).length
       ? {

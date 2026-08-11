@@ -19,11 +19,27 @@ export function listingVisitorActions(isOwner: boolean): {
   };
 }
 
-/** Soft-deposit CTA on any published listing (warranty optional). */
+const DEAL_STATUSES_BLOCKING_NEW_DEPOSIT = new Set([
+  "deposit_hold",
+  "pending_cancel_confirm",
+  "pending_sen_complete",
+  "pending_complete",
+  "dispute_open",
+]);
+
+/** Soft-deposit CTA — breeder only, and only while the listing is still open. */
 export function canShowDepositRequest(input: {
+  isOwner?: boolean;
   status: string | null | undefined;
+  dealStatus?: string | null;
 }): boolean {
-  return isListingAvailableStatus(input.status);
+  if (input.isOwner === false) return false;
+  if (!isListingAvailableStatus(input.status)) return false;
+  const deal = String(input.dealStatus || "")
+    .trim()
+    .toLowerCase();
+  if (DEAL_STATUSES_BLOCKING_NEW_DEPOSIT.has(deal)) return false;
+  return true;
 }
 
 /**
@@ -60,16 +76,25 @@ export function listingEditHref(postId: string): string {
 }
 
 export type ListingDetailFrom = "account";
+export type ListingDealAction = "confirm-cancel";
 
 /** Public listing detail URL; pass `from=account` when opened from My listings. */
 export function listingDetailHref(
   postId: string,
-  options?: { from?: ListingDetailFrom | null },
+  options?: {
+    from?: ListingDetailFrom | null;
+    dealAction?: ListingDealAction | null;
+  },
 ): string {
   const id = String(postId || "").trim();
   const base = `/app/pet-feed/posts/${encodeURIComponent(id)}`;
-  if (options?.from === "account") return `${base}?from=account`;
-  return base;
+  const params = new URLSearchParams();
+  if (options?.from === "account") params.set("from", "account");
+  if (options?.dealAction === "confirm-cancel") {
+    params.set("dealAction", "confirm-cancel");
+  }
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
 }
 
 export function parseListingDetailFrom(

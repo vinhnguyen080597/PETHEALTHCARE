@@ -103,3 +103,44 @@ test('listing approval creates unread notification for post owner', async () => 
   assert.equal(list[0].type, 'listing_approved');
   assert.equal(list[0].post_id, post.id);
 });
+
+test('listing rejection notification surfaces admin reason from the post', async () => {
+  __resetPetFeedNotificationsMemoryForTests();
+  const { createListingReviewNotification } = await import(
+    '../src/repositories/petFeedNotificationsRepository.js'
+  );
+  const ownerId = `notif-listing-reject-${Date.now()}`;
+  await upsertMyBreederProfile(ownerId, {
+    displayName: 'Owner',
+    location: 'HCMC',
+    primarySpecies: ['cat'],
+  }, null);
+  await adminUpdateBreederProfileStatus(ownerId, 'verified');
+  const created = await createPetFeedPost(ownerId, {
+    title: 'gà bé mèo con',
+    species: 'cat',
+    status: 'pending_review',
+    mediaUrls: ['https://cdn.example/a.jpg'],
+  }, null);
+  const rejected = await adminUpdatePetFeedPostStatus(created.id, 'archived', {
+    rejectionReason: 'Thiếu sổ tiêm và ảnh môi trường',
+    adminAction: 'Bổ sung sổ tiêm',
+  });
+  assert.equal(rejected.status, 'archived');
+
+  await createListingReviewNotification({
+    recipientUserId: ownerId,
+    actorUserId: 'admin',
+    postId: rejected.id,
+    type: 'listing_rejected',
+    bodyPreview: `Bài đăng "${rejected.title}" chưa được duyệt.`,
+    metadata: { title: rejected.title },
+    accessToken: null,
+  });
+
+  const list = await listPetFeedNotifications(ownerId, null);
+  assert.equal(list[0].type, 'listing_rejected');
+  assert.equal(list[0].rejection_reason, 'Thiếu sổ tiêm và ảnh môi trường');
+  assert.equal(list[0].admin_action, 'Bổ sung sổ tiêm');
+  assert.equal(list[0].body_preview, 'Thiếu sổ tiêm và ảnh môi trường');
+});

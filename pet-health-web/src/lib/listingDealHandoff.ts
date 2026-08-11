@@ -30,17 +30,19 @@ export function resolveDealHandoffPhase(input: {
   const listing = String(input.listingStatus || "")
     .trim()
     .toLowerCase();
-  if (listing === "sold") return "completed";
-  if (listing !== "deposit_hold") return "none";
-
   const deal = String(input.dealStatus || "")
     .trim()
     .toLowerCase();
+  if (listing === "sold") return "completed";
+
   if (deal === "pending_sen_complete" || deal === "pending_complete") {
     return "pending_sen_complete";
   }
   if (deal === "pending_cancel_confirm") return "pending_cancel_confirm";
   if (deal === "dispute_open") return "dispute_open";
+
+  const held = listing === "deposit_hold" || deal === "deposit_hold";
+  if (!held) return "none";
   if (!deal || deal === "deposit_hold" || deal === "pending_sen") {
     return "deposit_hold";
   }
@@ -78,8 +80,10 @@ export function canSenConfirmCancel(input: {
   isDealSen: boolean;
   listingStatus?: string | null;
   dealStatus?: string | null;
+  /** Notification / account deep link — backend still enforces Sen identity. */
+  allowLoggedInDeepLink?: boolean;
 }): boolean {
-  if (!input.isDealSen) return false;
+  if (!input.isDealSen && !input.allowLoggedInDeepLink) return false;
   return resolveDealHandoffPhase(input) === "pending_cancel_confirm";
 }
 

@@ -342,7 +342,7 @@ const en = {
   "deal.cancel": "Cancel deposit",
   "deal.cancelRequestTitle": "Request deposit cancel",
   "deal.cancelRequestHint":
-    "Tell the buyer why you want to cancel. They must confirm before the listing reopens.",
+    "Tell the buyer why you want to cancel. After they confirm, the listing is marked completed and cannot take another deposit.",
   "deal.cancelReasonLabel": "Cancel reason",
   "deal.cancelReason.no_contact": "Buyer not reachable",
   "deal.cancelReason.buyer_changed_mind": "Buyer changed their mind",
@@ -439,6 +439,18 @@ const en = {
   "detail.message": "Message",
   "detail.share": "Share",
   "detail.updateDetails": "Update details",
+  "detail.delete": "Delete listing",
+  "detail.deleting": "Deleting…",
+  "detail.deleteConfirmTitle": "Delete this listing?",
+  "detail.deleteConfirmBody":
+    "This listing will be removed from Pet Feed and your farm profile. This cannot be undone.",
+  "detail.deleteFailed": "Could not delete this listing.",
+  "detail.deleteBlockedTitle": "Cannot delete this listing yet",
+  "detail.deleteBlockedOk": "Got it",
+  "detail.deleteBlockedDeposit":
+    "Listings with an active deposit cannot be deleted.",
+  "detail.deleteBlockedSoldCooldown":
+    "Completed listings can be deleted 7 days after completion. {days} day(s) remaining.",
   "listing.edit.hint":
     "Update listing details. Saving will send the post back for review. Photos and video stay unchanged.",
   "listing.edit.save": "Save for review",
@@ -880,6 +892,8 @@ const en = {
   "notifications.listingApprovedCta": "View listing",
   "notifications.listingRejectedTitle": "Listing not approved",
   "notifications.listingRejectedBody": "Admin did not approve your listing.",
+  "notifications.listingRejectedReasonMissing":
+    "Admin did not provide a specific reason.",
   "notifications.listingRejectedCta": "View account",
   "notifications.rejectionReason": "Rejection reason",
   "notifications.adminAction": "What to do next",
@@ -891,6 +905,15 @@ const en = {
   "notifications.adminReportTitle": "New report",
   "notifications.adminReportBody": "A new report needs admin review.",
   "notifications.adminRequestCta": "View request",
+  "notifications.depositCancelTitle": "Deposit cancel requested",
+  "notifications.depositCancelBody":
+    "The breeder asked to cancel this deposit. Please confirm if you agree.",
+  "notifications.depositCancelCta": "Confirm cancel deposit",
+  "notifications.depositCancelSuccess":
+    "Deposit cancel confirmed. The listing is now completed.",
+  "notifications.depositRequestCta": "Confirm deposit",
+  "notifications.dealCompleteCta": "Confirm handoff",
+  "notifications.viewListing": "View listing",
   "breederForm.rejectionBannerTitle": "Application rejected",
   "breederForm.rejectionReason": "Reason",
   "breederForm.rejectionAction": "Next step",

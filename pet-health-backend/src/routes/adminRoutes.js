@@ -493,11 +493,14 @@ router.put('/pet-feed/posts/:postId/status', requireAdminOrSecret, async (req, r
           actorUserId: req.user?.id || 'admin',
           postId: post.id,
           type: 'listing_rejected',
-          bodyPreview: rejectionReason || `Bài đăng "${String(titlePreview).slice(0, 80)}" chưa được duyệt.`,
+          bodyPreview:
+            rejectionReason
+            || compactText(post.metadata?.rejection_reason)
+            || `Bài đăng "${String(titlePreview).slice(0, 80)}" chưa được duyệt.`,
           metadata: {
             title: post.title || before?.title || '',
             breeder_profile_id: post.breeder_profile_id || before?.breeder_profile_id || undefined,
-            rejection_reason: rejectionReason,
+            rejection_reason: rejectionReason || compactText(post.metadata?.rejection_reason) || undefined,
             admin_note: adminNote || undefined,
             admin_action: adminAction || undefined,
             cta_label: 'Xem tin đăng',

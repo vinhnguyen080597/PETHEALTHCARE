@@ -160,6 +160,7 @@ import {
   markVaccinationDuePopupShownToday,
 } from '../utils/vaccinationDuePopupStorage';
 import { postsForBreeder } from '../utils/breederTrust';
+import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 import {
   isPetFeedMessagingRealtimeConfigured,
@@ -2223,6 +2224,17 @@ export function usePetHealthApp() {
   async function deleteOwnPetFeedPost(post: PetFeedPost): Promise<boolean> {
     if (!token || !post?.id) return false;
     if (accountProfile?.user_id && post.user_id && post.user_id !== accountProfile.user_id) return false;
+    const decision = evaluatePetFeedPostDelete(post, accountProfile?.user_id);
+    if (!decision.allowed) {
+      const message =
+        decision.reason === 'deposit_hold'
+          ? i18n.t('petFeed.deleteBlockedDeposit')
+          : i18n.t('petFeed.deleteBlockedSoldCooldown', {
+              days: decision.daysRemaining ?? 7,
+            });
+      Alert.alert(i18n.t('petFeed.deleteBlockedTitle'), message);
+      return false;
+    }
     try {
       await deleteMyPetFeedPost(token, post.id);
       setPetFeedPosts((current) => current.filter((item) => item.id !== post.id));
@@ -2653,6 +2665,45 @@ export function usePetHealthApp() {
     }
     if (type === 'listing_rejected') {
       setScreen('account');
+      return;
+    }
+    if (type === 'deposit_cancel_request' && notification.post_id) {
+      const postId = notification.post_id;
+      Alert.alert(
+        i18n.t('petFeed.notifications.depositCancelTitle'),
+        notification.body_preview || i18n.t('petFeed.notifications.depositCancelBody'),
+        [
+          { text: i18n.t('common.cancel'), style: 'cancel' },
+          {
+            text: i18n.t('petFeed.notifications.viewListing'),
+            onPress: () => openPetFeedPostDetail(postId),
+          },
+          {
+            text: i18n.t('petFeed.notifications.depositCancelCta'),
+            onPress: () => {
+              void mutateListingDeal(postId, { type: 'cancel_confirm' })
+                .then((updated) => {
+                  if (updated) {
+                    Alert.alert(
+                      i18n.t('common.ok'),
+                      i18n.t('petFeed.notifications.depositCancelSuccess'),
+                    );
+                    return;
+                  }
+                  Alert.alert(
+                    i18n.t('common.somethingWentWrong'),
+                    i18n.t('common.unknownError'),
+                  );
+                })
+                .catch((error: unknown) => {
+                  const message =
+                    error instanceof Error ? error.message : i18n.t('common.unknownError');
+                  Alert.alert(i18n.t('common.somethingWentWrong'), message);
+                });
+            },
+          },
+        ],
+      );
       return;
     }
     if (!notification.post_id) return;

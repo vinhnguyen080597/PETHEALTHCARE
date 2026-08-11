@@ -1255,7 +1255,7 @@ router.post('/posts/:postId/deposit/cancel/confirm', async (req, res, next) => {
         actorUserId: req.user.id,
         postId: result.post.id,
         type: 'deposit_cancelled',
-        bodyPreview: `Sen đã xác nhận hủy cọc cho "${notifyPreview(result.post.title)}". Tin đăng đã mở lại.`,
+        bodyPreview: `Sen đã xác nhận hủy cọc cho "${notifyPreview(result.post.title)}". Tin đăng đã chuyển sang hoàn thành.`,
         metadata: dealNotifyMeta(result.post),
         accessToken: req.accessToken,
       }).catch(() => null);

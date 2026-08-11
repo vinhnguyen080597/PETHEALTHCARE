@@ -19,6 +19,7 @@ import {
 import { confirmAdminModeration } from '../utils/adminConfirmModeration';
 import { modalTopInset } from '../utils/modalSafeArea';
 import { opensMyListingReviewPopup } from '../utils/myListingReviewPopup';
+import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 
 const PRIMARY = '#1E6FE8';
@@ -1324,9 +1325,23 @@ export function AccountScreen({
                       : undefined
                   }
                   onDelete={
-                    onDeletePetFeedPost && post.status !== 'archived'
+                    onDeletePetFeedPost &&
+                    evaluatePetFeedPostDelete(post).reason !== 'already_deleted'
                       ? () => {
                           setListingMenuPostId(null);
+                          const decision = evaluatePetFeedPostDelete(post);
+                          if (!decision.allowed) {
+                            const message =
+                              decision.reason === 'deposit_hold'
+                                ? t('petFeed.deleteBlockedDeposit')
+                                : t('petFeed.deleteBlockedSoldCooldown', {
+                                    days: decision.daysRemaining ?? 7,
+                                  });
+                            InteractionManager.runAfterInteractions(() => {
+                              setTimeout(() => notifyUser(t('petFeed.deleteBlockedTitle'), message), 280);
+                            });
+                            return;
+                          }
                           confirmDeleteListing(() => void onDeletePetFeedPost(post), t, true);
                         }
                       : undefined

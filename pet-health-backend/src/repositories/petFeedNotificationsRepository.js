@@ -162,11 +162,15 @@ async function enrichNotification(row, accessToken) {
     const post = row.post_id
       ? await getPetFeedPost(row.recipient_user_id, row.post_id, accessToken).catch(() => null)
       : null;
+    const postMeta = normalizeMetadata(post?.metadata);
     return toNotification(row, {
       actor_display_name: actorName,
       post_title: post?.title || trimText(metadata.title, 160),
       post_thumb_url: listThumbFromPost(post) || (typeof metadata.thumb_url === 'string' ? metadata.thumb_url : null),
       cta_label: metadata.cta_label || (type === 'listing_approved' ? 'Xem bài đăng' : 'Xem tin đăng'),
+      rejection_reason: metadata.rejection_reason || postMeta.rejection_reason || '',
+      admin_action: metadata.admin_action || postMeta.admin_action || '',
+      admin_note: metadata.admin_note || postMeta.admin_note || '',
     });
   }
 
@@ -199,7 +203,7 @@ export async function createDealNotification({
 
   const meta = normalizeMetadata(metadata);
   if (!meta.cta_href) {
-    meta.cta_href = `/app/posts/${encodeURIComponent(safePostId)}`;
+    meta.cta_href = `/app/pet-feed/posts/${encodeURIComponent(safePostId)}`;
   }
   if (!meta.cta_label) meta.cta_label = 'Xem bài đăng';
 
@@ -253,6 +257,13 @@ export async function createListingReviewNotification({
   if (!meta.cta_label) {
     meta.cta_label = safeType === 'listing_approved' ? 'Xem bài đăng' : 'Xem tin đăng';
   }
+  if (safeType === 'listing_rejected' && !trimText(meta.rejection_reason, 500)) {
+    const post = await getPetFeedPost(recipient, safePostId, accessToken).catch(() => null);
+    const postMeta = normalizeMetadata(post?.metadata);
+    if (postMeta.rejection_reason) meta.rejection_reason = trimText(postMeta.rejection_reason, 500);
+    if (!meta.admin_action && postMeta.admin_action) meta.admin_action = trimText(postMeta.admin_action, 300);
+    if (!meta.admin_note && postMeta.admin_note) meta.admin_note = trimText(postMeta.admin_note, 500);
+  }
 
   const row = {
     id: randomUUID(),
@@ -262,7 +273,7 @@ export async function createListingReviewNotification({
     comment_id: null,
     breeder_profile_id: trimText(metadata?.breeder_profile_id, 64) || null,
     type: safeType,
-    body_preview: trimText(bodyPreview, 220),
+    body_preview: trimText(meta.rejection_reason || bodyPreview, 220),
     metadata: meta,
     created_at: new Date().toISOString(),
     read_at: null,

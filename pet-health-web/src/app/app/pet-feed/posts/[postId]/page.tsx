@@ -7,6 +7,8 @@ import {
   getPublicPostDetail,
   listPublicPostComments,
 } from "@/lib/api/public";
+import { getListingDetail } from "@/lib/api/petFeed";
+import { mapApiPost } from "@/lib/mappers";
 import { ListingDetail } from "@/components/marketplace/ListingDetail";
 import { ListingDetailSkeleton } from "@/components/ui/Skeleton";
 import { ResourceNotFound } from "@/components/ResourceNotFound";
@@ -78,7 +80,18 @@ async function PostDetailData({
   lang: Lang;
 }) {
   const session = await getSessionUser();
-  const listing = await getPublicPostDetail(postId).catch(() => null);
+  let listing = null;
+  if (session.token) {
+    try {
+      const fresh = await getListingDetail(session.token, postId);
+      if (fresh?.data) listing = mapApiPost(fresh.data);
+    } catch {
+      listing = null;
+    }
+  }
+  if (!listing) {
+    listing = await getPublicPostDetail(postId).catch(() => null);
+  }
   if (!listing) {
     return (
       <ResourceNotFound

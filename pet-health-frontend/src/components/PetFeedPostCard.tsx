@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
+import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 import {
   canDownloadPostMedia,
   selectedMediaDownloadUrl,
@@ -263,7 +264,9 @@ function PetFeedPostCardComponent({
   const canShowContact = showContact && !isOwnPost;
   const canShowReport = showReport && !isOwnPost;
   const canShowEdit = isOwnPost && Boolean(onEditPost);
-  const canShowDelete = isOwnPost && Boolean(onDeletePost);
+  const deleteDecision = evaluatePetFeedPostDelete(post, currentUserId);
+  const canShowDelete =
+    isOwnPost && Boolean(onDeletePost) && deleteDecision.reason !== 'already_deleted';
   const canShowShare = Boolean(onSharePost);
   const canDownloadMedia = canDownloadPostMedia(allowMediaDownload);
   const showActions = canShowContact || canShowReport || canShowEdit || canShowDelete || canShowShare;
@@ -568,7 +571,19 @@ function PetFeedPostCardComponent({
                 accessibilityRole="button"
                 accessibilityLabel={t('petFeed.accessibility.deleteListing', { title: post.title })}
                 className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 active:bg-red-100"
-                onPress={() => onDeletePost?.(post)}
+                onPress={() => {
+                  if (!deleteDecision.allowed) {
+                    const message =
+                      deleteDecision.reason === 'deposit_hold'
+                        ? t('petFeed.deleteBlockedDeposit')
+                        : t('petFeed.deleteBlockedSoldCooldown', {
+                            days: deleteDecision.daysRemaining ?? 7,
+                          });
+                    Alert.alert(t('petFeed.deleteBlockedTitle'), message);
+                    return;
+                  }
+                  onDeletePost?.(post);
+                }}
               >
                 <Ionicons name="trash-outline" size={18} color="#b91c1c" />
               </Pressable>

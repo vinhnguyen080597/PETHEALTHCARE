@@ -79,6 +79,7 @@ test("buildListingEditPayload trims fields and resubmits for review", () => {
   assert.equal(payload.description, "nice");
   assert.equal(payload.status, "pending_review");
   assert.equal(payload.mediaUrls, undefined);
+  assert.equal(payload.metadata, undefined);
 });
 
 test("listingEditFormDefaults prefer locale and strip price formatting", () => {
