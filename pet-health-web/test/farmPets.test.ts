@@ -72,6 +72,12 @@ test("listingMetadataMarksSold reads sold flags", () => {
 test("farm pets include for-sale, deposit hold, and completed", () => {
   assert.equal(farmPetAvailability(listing({ id: "1", status: "published" })), "for_sale");
   assert.equal(
+    farmPetAvailability(
+      listing({ id: "1c", status: "published", metadataSold: true }),
+    ),
+    "completed",
+  );
+  assert.equal(
     farmPetAvailability(listing({ id: "1b", status: "deposit_hold" })),
     "deposit_hold",
   );

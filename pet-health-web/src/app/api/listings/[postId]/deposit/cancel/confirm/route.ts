@@ -16,6 +16,7 @@ export async function POST(
     const { postId } = await params;
     const result = await confirmListingCancelDeposit(token, postId);
     revalidateTag("public-posts");
+    revalidateTag("public-breeders");
     revalidateTag(postId);
     revalidatePath(`/app/pet-feed/posts/${postId}`);
     return NextResponse.json(result);

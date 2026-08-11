@@ -27,6 +27,7 @@ const {
   isListingEligibleForHandoffAutoComplete,
   getPublicBreederProfile,
   getPublicPetFeedPost,
+  listPublicPetFeedPostPage,
 } = await import('../src/repositories/petFeedRepository.js');
 
 const samplePolicy = {
@@ -175,6 +176,11 @@ test('dual deposit confirm freezes policy snapshot; cancel unfreezes', async () 
   assert.equal(cancelled.post.metadata?.deal?.status, 'cancelled');
   assert.ok(cancelled.post.metadata?.deal?.completed_at);
   assert.equal(cancelled.post.metadata?.deal?.dispute ?? null, null);
+
+  const publicFeed = await listPublicPetFeedPostPage({ limit: 50, kind: 'listing' });
+  assert.equal(publicFeed.data.some((row) => row.id === post.id), false);
+  const publicClosed = await getPublicPetFeedPost(post.id);
+  assert.equal(publicClosed?.status, 'sold');
 
   await assert.rejects(
     () => requestListingCancelDeposit(senId, post.id, { reason: 'Sen try cancel' }, null),

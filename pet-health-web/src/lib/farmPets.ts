@@ -51,10 +51,9 @@ export function farmPetAvailability(
   listing: FarmPetListingFields,
 ): FarmPetAvailability | null {
   if (listing.ownerDeleted) return null;
-  if (listing.status === "published") return "for_sale";
   if (listing.status === "deposit_hold") return "deposit_hold";
-  if (listing.status === "sold") return "completed";
-  if (listing.status === "archived" && listing.metadataSold) return "completed";
+  if (listing.status === "sold" || listing.metadataSold) return "completed";
+  if (listing.status === "published") return "for_sale";
   return null;
 }
 

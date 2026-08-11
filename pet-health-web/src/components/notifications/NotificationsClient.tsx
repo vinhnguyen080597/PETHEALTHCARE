@@ -469,18 +469,7 @@ export function NotificationsClient({
               </p>
             ) : null}
             <div className="mt-5 flex flex-col gap-2">
-              {cancelDone ? (
-                <Link
-                  href={
-                    listingNotificationHref(cancelItem) ||
-                    `/app/pet-feed/posts/${encodeURIComponent(cancelItem.post_id || "")}`
-                  }
-                  onClick={() => setCancelItem(null)}
-                  className="w-full text-center rounded-full bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309]"
-                >
-                  {t(lang, "notifications.viewListing")}
-                </Link>
-              ) : (
+              {!cancelDone ? (
                 <button
                   type="button"
                   disabled={cancelBusy || !cancelItem.post_id}
@@ -491,26 +480,32 @@ export function NotificationsClient({
                     ? t(lang, "common.loading")
                     : t(lang, "notifications.depositCancelCta")}
                 </button>
-              )}
-              {!cancelDone && cancelItem.post_id ? (
-                <Link
-                  href={
-                    listingNotificationHref(cancelItem) ||
-                    `/app/pet-feed/posts/${encodeURIComponent(cancelItem.post_id)}`
-                  }
-                  onClick={() => setCancelItem(null)}
-                  className="w-full text-center rounded-full border border-[#F0E6D8] py-2.5 text-sm font-semibold text-[#5C4A3A]"
-                >
-                  {t(lang, "notifications.viewListing")}
-                </Link>
               ) : null}
-              <button
-                type="button"
-                onClick={() => setCancelItem(null)}
-                className="w-full rounded-full border border-[#F0E6D8] py-2.5 text-sm font-semibold text-[#5C4A3A]"
-              >
-                {t(lang, "common.cancel")}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCancelItem(null)}
+                  className="flex-1 rounded-full border border-[#F0E6D8] py-2 text-xs font-semibold text-[#5C4A3A]"
+                >
+                  {t(lang, "common.cancel")}
+                </button>
+                {cancelItem.post_id ? (
+                  <Link
+                    href={
+                      listingNotificationHref(cancelItem) ||
+                      `/app/pet-feed/posts/${encodeURIComponent(cancelItem.post_id)}`
+                    }
+                    onClick={() => setCancelItem(null)}
+                    className={`flex-1 text-center rounded-full py-2 text-xs font-semibold ${
+                      cancelDone
+                        ? "bg-[#D97706] text-white hover:bg-[#B45309]"
+                        : "border border-[#F0E6D8] text-[#5C4A3A]"
+                    }`}
+                  >
+                    {t(lang, "notifications.viewListing")}
+                  </Link>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>

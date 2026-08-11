@@ -13,6 +13,11 @@ const REQUIRED_PREFIXES = [
   "admin.nav.history",
 ] as const;
 
+test("deposit cancel success copy stays short", () => {
+  assert.equal(en["notifications.depositCancelSuccess"], "Deposit cancel confirmed.");
+  assert.equal(vi["notifications.depositCancelSuccess"], "Đã xác nhận hủy cọc.");
+});
+
 test("EN and VI dictionaries stay in key parity for admin/history notifications", () => {
   const enKeys = Object.keys(en);
   const viKeys = new Set(Object.keys(vi));

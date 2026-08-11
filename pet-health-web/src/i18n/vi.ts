@@ -911,7 +911,7 @@ const vi: Record<EnKey, string> = {
   "notifications.depositCancelBody":
     "Breeder yêu cầu hủy cọc. Vui lòng xác nhận nếu bạn đồng ý.",
   "notifications.depositCancelCta": "Xác nhận hủy cọc",
-  "notifications.depositCancelSuccess": "Đã xác nhận hủy cọc. Tin đăng đã chuyển sang hoàn thành.",
+  "notifications.depositCancelSuccess": "Đã xác nhận hủy cọc.",
   "notifications.depositRequestCta": "Xác nhận cọc",
   "notifications.dealCompleteCta": "Xác nhận bàn giao",
   "notifications.viewListing": "Xem bài đăng",

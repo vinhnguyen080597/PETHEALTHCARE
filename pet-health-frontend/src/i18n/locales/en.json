@@ -296,7 +296,7 @@
       "depositCancelSubtitle": "Needs your confirmation",
       "depositCancelBody": "The breeder asked to cancel this deposit. Please confirm if you agree.",
       "depositCancelCta": "Confirm cancel deposit",
-      "depositCancelSuccess": "Deposit cancel confirmed. The listing is now completed.",
+      "depositCancelSuccess": "Deposit cancel confirmed.",
       "depositRequestCta": "Confirm deposit",
       "dealCompleteCta": "Confirm handoff",
       "viewListing": "View listing"

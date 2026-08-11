@@ -9,6 +9,7 @@ const {
   adminUpdateBreederProfileStatus,
   adminUpdatePetFeedPostStatus,
   createAnnouncementPost,
+  confirmListingDeposit,
   createPetFeedPost,
   createPetFeedPostComment,
   getPublicBreederProfile,
@@ -156,6 +157,55 @@ test('public breeder directory and profile include only verified breeders', asyn
   );
   assert.equal(detailWithSold.profile.metadata?.pets_rehomed, 1);
   assert.equal(detailWithSold.profile.metadata?.active_listings, 1);
+});
+
+test('published column + sold metadata is closed, not listed as for-sale', async () => {
+  const userId = `public-closed-${Date.now()}`;
+  await upsertMyBreederProfile(userId, {
+    displayName: 'Closed Farm',
+    bio: 'Indoor cats',
+    location: 'TP.HCM',
+    contact: { zalo: '0901111222' },
+    primarySpecies: ['cat'],
+    mainBreeds: ['British Shorthair'],
+    careEnvironment: 'Indoor',
+  }, null);
+  await adminUpdateBreederProfileStatus(userId, 'verified');
+  const created = await createPetFeedPost(userId, {
+    title: 'Cancel-closed listing',
+    species: 'cat',
+    breed: 'British Shorthair',
+    gender: 'female',
+    ageMonths: 3,
+    location: 'TP.HCM',
+    priceNote: '8.000.000',
+    description: 'Should not stay on New Pets',
+    personality: ['Calm'],
+    vaccineStatus: '2 shots',
+    dewormingStatus: 'Done',
+    paperwork: ['Vaccine book'],
+    mediaUrls: ['https://cdn.example/closed.jpg'],
+    status: 'pending_review',
+    metadata: {
+      health_evidence_urls: ['https://cdn.example/vaccine-book.jpg'],
+      sold: true,
+      listing_outcome: 'sold',
+      deal: { status: 'cancelled', completed_at: '2026-08-11T00:00:00.000Z' },
+    },
+  }, null);
+  assert.ok(created?.id);
+  await adminUpdatePetFeedPostStatus(created.id, 'published');
+
+  const page = await listPublicPetFeedPostPage({ limit: 50, kind: 'listing' });
+  assert.equal(page.data.some((row) => row.id === created.id), false);
+
+  const detail = await getPublicPetFeedPost(created.id);
+  assert.equal(detail?.status, 'sold');
+
+  await assert.rejects(
+    () => confirmListingDeposit(userId, created.id, { senUserId: 'sen-x', acknowledge: true }, null),
+    (err) => err.code === 'DEPOSIT_NOT_ALLOWED',
+  );
 });
 
 test('public published posts expose comments without auth token', async () => {

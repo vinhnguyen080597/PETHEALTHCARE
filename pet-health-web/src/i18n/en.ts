@@ -909,8 +909,7 @@ const en = {
   "notifications.depositCancelBody":
     "The breeder asked to cancel this deposit. Please confirm if you agree.",
   "notifications.depositCancelCta": "Confirm cancel deposit",
-  "notifications.depositCancelSuccess":
-    "Deposit cancel confirmed. The listing is now completed.",
+  "notifications.depositCancelSuccess": "Deposit cancel confirmed.",
   "notifications.depositRequestCta": "Confirm deposit",
   "notifications.dealCompleteCta": "Confirm handoff",
   "notifications.viewListing": "View listing",

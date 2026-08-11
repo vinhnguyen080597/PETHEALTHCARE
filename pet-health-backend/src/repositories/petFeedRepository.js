@@ -375,6 +375,14 @@ async function persistPostRow(postId, patch, accessToken) {
   return toPost(data);
 }
 
+const ACTIVE_HOLD_DEAL_STATUSES = new Set([
+  'deposit_hold',
+  'pending_cancel_confirm',
+  'pending_sen_complete',
+  'pending_complete',
+  'dispute_open',
+]);
+
 function resolveEffectivePostStatus(row) {
   const raw = String(row?.status ?? '').trim().toLowerCase();
   const meta = asObject(row?.metadata);
@@ -382,24 +390,22 @@ function resolveEffectivePostStatus(row) {
   const soft = String(meta.soft_status ?? '').trim().toLowerCase();
   if (soft === 'deposit_hold' || soft === 'sold') return soft;
   const deal = asObject(meta.deal);
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
   if (
     raw === 'archived'
-    && (deal.status === 'deposit_hold' || meta.soft_deposit_hold)
+    && (dealStatus === 'deposit_hold' || meta.soft_deposit_hold)
   ) {
     return 'deposit_hold';
   }
-  const dealStatus = String(deal.status || '').trim().toLowerCase();
   if (
     (raw === 'published' || raw === 'pending_review')
-    && (
-      dealStatus === 'deposit_hold'
-      || dealStatus === 'pending_cancel_confirm'
-      || dealStatus === 'pending_sen_complete'
-      || dealStatus === 'pending_complete'
-      || dealStatus === 'dispute_open'
-    )
+    && ACTIVE_HOLD_DEAL_STATUSES.has(dealStatus)
   ) {
     return 'deposit_hold';
+  }
+  // Sen-confirmed cancel stamps sold metadata even if the status column stayed published.
+  if (isSoldListingMetadata(meta) && !ACTIVE_HOLD_DEAL_STATUSES.has(dealStatus)) {
+    return 'sold';
   }
   return raw;
 }
@@ -440,16 +446,44 @@ export function isPetFeedPostOpenForEngagement(statusOrPost) {
 }
 
 function isStatusCheckViolation(err) {
-  return String(err?.code ?? '') === '23514'
-    && /pet_feed_posts_status_check/i.test(String(err?.message ?? ''));
+  const code = String(err?.code ?? '');
+  const msg = String(err?.message ?? '');
+  if (code === '23514') {
+    return /status/i.test(msg) || /pet_feed_posts_status/i.test(msg);
+  }
+  return /pet_feed_posts_status_check/i.test(msg);
+}
+
+function stampSoldListingMetadata(metadata) {
+  const meta = { ...asObject(metadata) };
+  meta.soft_status = 'sold';
+  meta.sold = true;
+  meta.listing_outcome = 'sold';
+  delete meta.soft_deposit_hold;
+  return meta;
+}
+
+function clearSoldListingMetadata(metadata) {
+  const meta = { ...asObject(metadata) };
+  delete meta.soft_status;
+  delete meta.soft_deposit_hold;
+  delete meta.sold;
+  delete meta.listing_outcome;
+  delete meta.completed;
+  delete meta.rehomed;
+  return meta;
 }
 
 /** Persist lifecycle status; older DBs without deposit_hold/sold fall back to archived + soft_status. */
 async function persistListingLifecycle(postId, desiredStatus, metadata, accessToken) {
-  const meta = { ...asObject(metadata) };
-  try {
+  const meta = desiredStatus === 'sold'
+    ? stampSoldListingMetadata(metadata)
+    : { ...asObject(metadata) };
+  if (desiredStatus !== 'sold') {
     delete meta.soft_status;
     delete meta.soft_deposit_hold;
+  }
+  try {
     return await persistPostRow(
       postId,
       { status: desiredStatus, metadata: meta },
@@ -474,6 +508,16 @@ async function persistListingLifecycle(postId, desiredStatus, metadata, accessTo
       accessToken,
     );
   }
+}
+
+async function persistClosedSoldListing(postId, metadata, accessToken) {
+  const updated = await persistListingLifecycle(postId, 'sold', metadata, accessToken);
+  if (resolveEffectivePostStatus(updated) === 'sold') return updated;
+  return persistPostRow(
+    postId,
+    { status: 'archived', metadata: stampSoldListingMetadata(updated?.metadata ?? metadata) },
+    accessToken,
+  );
 }
 
 function attachWarrantyPolicyDto(post) {
@@ -871,7 +915,7 @@ export async function listPublishedPetFeedPosts(userId, accessToken, options = {
     const blockedBreederIds = new Set(memoryBlockedBreeders.filter((row) => row.user_id === userId).map((row) => row.breeder_profile_id));
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     return memoryPosts
-      .filter((post) => post.status === 'published'
+      .filter((post) => resolveEffectivePostStatus(post) === 'published'
         && normalizePostKind(post.post_kind, 'listing') === kind
         && (kind === 'announcement' || !blockedBreederIds.has(post.breeder_profile_id)))
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
@@ -888,7 +932,10 @@ export async function listPublishedPetFeedPosts(userId, accessToken, options = {
     .order('created_at', { ascending: false });
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).filter((row) => kind === 'announcement' || !blockedBreederIds.has(row.breeder_profile_id)).map((row) => toPost(row, favoriteIds));
+  return (data ?? [])
+    .filter((row) => resolveEffectivePostStatus(row) === 'published')
+    .filter((row) => kind === 'announcement' || !blockedBreederIds.has(row.breeder_profile_id))
+    .map((row) => toPost(row, favoriteIds));
 }
 
 export async function listPublishedPetFeedPostPage(userId, accessToken, options = {}) {
@@ -901,7 +948,7 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
     const blockedBreederIds = new Set(memoryBlockedBreeders.filter((row) => row.user_id === userId).map((row) => row.breeder_profile_id));
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     const { rows, nextCursor } = paginateFeedRows(
-      memoryPosts.filter((post) => post.status === 'published'
+      memoryPosts.filter((post) => resolveEffectivePostStatus(post) === 'published'
         && normalizePostKind(post.post_kind, 'listing') === kind
         && (kind === 'announcement' || !blockedBreederIds.has(post.breeder_profile_id))),
       limit,
@@ -936,7 +983,7 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
 
   const { data, error } = await query;
   if (error) throw error;
-  const rows = data ?? [];
+  const rows = (data ?? []).filter((row) => resolveEffectivePostStatus(row) === 'published');
   const pageRows = rows.slice(0, limit);
   return {
     data: await withPostsEngagementCounts(
@@ -1120,18 +1167,13 @@ async function withPublicBreederListingCounts(profiles) {
       ) {
         continue;
       }
-      if (post.status === 'published') {
+      const effective = resolveEffectivePostStatus(post);
+      if (effective === 'published') {
         activeCounts.set(
           post.breeder_profile_id,
           (activeCounts.get(post.breeder_profile_id) || 0) + 1,
         );
-      } else if (
-        !isOwnerDeletedListing(post.metadata)
-        && (
-          post.status === 'sold'
-          || (post.status === 'archived' && isSoldListingMetadata(post.metadata))
-        )
-      ) {
+      } else if (!isOwnerDeletedListing(post.metadata) && effective === 'sold') {
         soldCounts.set(
           post.breeder_profile_id,
           (soldCounts.get(post.breeder_profile_id) || 0) + 1,
@@ -1149,15 +1191,10 @@ async function withPublicBreederListingCounts(profiles) {
     for (const row of data ?? []) {
       const id = row.breeder_profile_id;
       if (!activeCounts.has(id)) continue;
-      if (row.status === 'published') {
+      const effective = resolveEffectivePostStatus(row);
+      if (effective === 'published') {
         activeCounts.set(id, (activeCounts.get(id) || 0) + 1);
-      } else if (
-        !isOwnerDeletedListing(row.metadata)
-        && (
-          row.status === 'sold'
-          || (row.status === 'archived' && isSoldListingMetadata(row.metadata))
-        )
-      ) {
+      } else if (!isOwnerDeletedListing(row.metadata) && effective === 'sold') {
         soldCounts.set(id, (soldCounts.get(id) || 0) + 1);
       }
     }
@@ -1184,13 +1221,7 @@ function enrichPublicProfileWithFarmPetCounts(profile, listings) {
   let sold = 0;
   for (const post of listings || []) {
     if (post.status === 'published') active += 1;
-    else if (
-      !isOwnerDeletedListing(post.metadata)
-      && (
-        post.status === 'sold'
-        || (post.status === 'archived' && isSoldListingMetadata(post.metadata))
-      )
-    ) {
+    else if (!isOwnerDeletedListing(post.metadata) && post.status === 'sold') {
       sold += 1;
     }
   }
@@ -1216,7 +1247,8 @@ export async function listPublicPetFeedPostPage(options = {}) {
   if (!supabase) {
     const { rows, nextCursor } = paginateFeedRows(
       memoryPosts.filter(
-        (post) => post.status === 'published' && normalizePostKind(post.post_kind, 'listing') === kind,
+        (post) => resolveEffectivePostStatus(post) === 'published'
+          && normalizePostKind(post.post_kind, 'listing') === kind,
       ),
       limit,
       cursor,
@@ -1244,7 +1276,7 @@ export async function listPublicPetFeedPostPage(options = {}) {
 
   const { data, error } = await query;
   if (error) throw error;
-  const rows = data ?? [];
+  const rows = (data ?? []).filter((row) => resolveEffectivePostStatus(row) === 'published');
   const pageRows = rows.slice(0, limit);
   return {
     data: await withPostsEngagementCounts(pageRows.map((row) => toPublicListPost(row)), null),
@@ -1329,15 +1361,17 @@ function isSoldListingMetadata(metadata) {
 function isPublicFarmPetListing(post) {
   if (normalizePostKind(post.post_kind, 'listing') !== 'listing') return false;
   if (isOwnerDeletedListing(post.metadata)) return false;
-  if (post.status === 'published' || post.status === 'deposit_hold' || post.status === 'sold') return true;
-  if (post.status === 'archived' && isSoldListingMetadata(post.metadata)) return true;
+  const status = resolveEffectivePostStatus(post);
+  if (status === 'published' || status === 'deposit_hold' || status === 'sold') return true;
+  if (status === 'archived' && isSoldListingMetadata(post.metadata)) return true;
   return false;
 }
 
 function sortPublicFarmPetListings(a, b) {
   const rank = (post) => {
-    if (post.status === 'published') return 0;
-    if (post.status === 'deposit_hold') return 1;
+    const status = resolveEffectivePostStatus(post);
+    if (status === 'published') return 0;
+    if (status === 'deposit_hold') return 1;
     return 2;
   };
   const d = rank(a) - rank(b);
@@ -2608,9 +2642,14 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
     row.status === 'pending_review'
     && !meta.rejection_reason
     && !meta.rejected_at;
+  const effectiveStatus = resolveEffectivePostStatus(row);
+  if (effectiveStatus === 'sold') {
+    throw httpError('Deposit can only be confirmed on an available listing.', 400, 'DEPOSIT_NOT_ALLOWED');
+  }
   if (
     row.status !== 'published'
     && row.status !== 'deposit_hold'
+    && effectiveStatus !== 'deposit_hold'
     && !demotedPending
   ) {
     throw httpError('Deposit can only be confirmed on an available listing.', 400, 'DEPOSIT_NOT_ALLOWED');
@@ -2904,15 +2943,13 @@ export async function confirmListingCancelDeposit(actorUserId, postId, accessTok
     throw httpError('No pending cancel request to confirm.', 400, 'DEPOSIT_CANCEL_NOT_PENDING');
   }
 
-  const nextMeta = finalizeCancelledDeposit(row, deal, actorUserId);
+  const nextMeta = stampSoldListingMetadata(finalizeCancelledDeposit(row, deal, actorUserId));
   const cancelledAt = trimText(asObject(nextMeta.deal).cancelled_at, 40) || new Date().toISOString();
-  nextMeta.sold = true;
-  nextMeta.listing_outcome = 'sold';
   nextMeta.deal = {
     ...asObject(nextMeta.deal),
     completed_at: cancelledAt,
   };
-  const updated = await persistListingLifecycle(postId, 'sold', nextMeta, accessToken);
+  const updated = await persistClosedSoldListing(postId, nextMeta, accessToken);
   return {
     post: updated,
     notify_user_id: row.user_id,
@@ -3226,7 +3263,8 @@ export async function adminForceCancelListing(adminUserId, postId, payload = {},
   }
   // Never keep an active dispute blob after cancel — blocks the next Sen dispute cycle.
   nextMeta.deal.dispute = null;
-  const updated = await persistPostRow(postId, { status: 'published', metadata: nextMeta }, accessToken);
+  const republishedMeta = clearSoldListingMetadata(nextMeta);
+  const updated = await persistPostRow(postId, { status: 'published', metadata: republishedMeta }, accessToken);
 
   let report = null;
   const reportId = trimText(dispute.report_id, 80);

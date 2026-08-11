@@ -296,7 +296,7 @@
       "depositCancelSubtitle": "Cần bạn xác nhận",
       "depositCancelBody": "Breeder yêu cầu hủy cọc. Vui lòng xác nhận nếu bạn đồng ý.",
       "depositCancelCta": "Xác nhận hủy cọc",
-      "depositCancelSuccess": "Đã xác nhận hủy cọc. Tin đăng đã chuyển sang hoàn thành.",
+      "depositCancelSuccess": "Đã xác nhận hủy cọc.",
       "depositRequestCta": "Xác nhận cọc",
       "dealCompleteCta": "Xác nhận bàn giao",
       "viewListing": "Xem bài đăng"

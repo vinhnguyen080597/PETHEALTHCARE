@@ -398,12 +398,15 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
       dealStatus === "pending_sen_complete" ||
       dealStatus === "pending_complete" ||
       dealStatus === "dispute_open";
-    status =
-      (statusRaw === "published" || statusRaw === "pending_review") && heldDeal
-        ? "deposit_hold"
-        : statusRaw;
+    if ((statusRaw === "published" || statusRaw === "pending_review") && heldDeal) {
+      status = "deposit_hold";
+    } else if (metadataSold) {
+      status = "sold";
+    } else {
+      status = statusRaw;
+    }
   } else {
-    status = "published";
+    status = metadataSold ? "sold" : "published";
   }
 
   const breeder = mapApiBreeder(post.breeder_profile);
