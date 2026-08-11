@@ -139,6 +139,19 @@ function badMedia(message, code) {
   return err;
 }
 
+function appendHttpPhotoUrls(target, body, keys) {
+  for (const key of keys) {
+    const raw = body?.[key];
+    const list = Array.isArray(raw) ? raw : [];
+    for (const item of list) {
+      if (typeof item === 'string' && /^https?:\/\//i.test(item.trim())) {
+        target.push(item.trim());
+      }
+    }
+  }
+  return target;
+}
+
 function validateUploadedFiles({ photos, video }, { requireComplete = true } = {}) {
   if (requireComplete && photos.length === 0) {
     throw badMedia('Please upload at least one clear photo for the Pet Feed post.', 'PET_FEED_PHOTO_REQUIRED');
@@ -430,6 +443,33 @@ router.post('/uploads/file', requireAnyRole('breeder', 'admin'), petFeedUpload.s
         ? await storePetFeedThumb({ userId: req.user.id, file, accessToken: req.accessToken })
         : await storePetFeedImage({ userId: req.user.id, file, accessToken: req.accessToken });
     return res.status(201).json({ data: { publicUrl, kind } });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/** Deal evidence (Sen/breeder): one photo so web BFF stays under function payload limits. */
+router.post('/uploads/deal-photo', petFeedUpload.single('file'), async (req, res, next) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'file is required', code: 'PET_FEED_FILE_REQUIRED' });
+    }
+    if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
+      return res.status(400).json({ error: 'Unsupported photo type.', code: 'PET_FEED_UNSUPPORTED_PHOTO' });
+    }
+    if (file.size > PET_FEED_PHOTO_MAX_BYTES) {
+      return res.status(400).json({
+        error: `Photo is too large. Please use photos under ${petFeedPhotoMaxLabel()}.`,
+        code: 'PET_FEED_PHOTO_TOO_LARGE',
+      });
+    }
+    const publicUrl = await storePetFeedImage({
+      userId: req.user.id,
+      file,
+      accessToken: req.accessToken,
+    });
+    return res.status(201).json({ data: { publicUrl, kind: 'photo' } });
   } catch (err) {
     return next(err);
   }
@@ -1209,6 +1249,11 @@ router.post(
           }),
         );
       }
+      appendHttpPhotoUrls(cancelPhotoUrls, req.body, [
+        'cancelPhotoUrls',
+        'cancel_photo_urls',
+        'photos',
+      ]);
       const reason =
         typeof req.body?.reason === 'string'
           ? req.body.reason
@@ -1291,17 +1336,7 @@ router.post(
           }),
         );
       }
-      // Allow JSON body URLs (tests / already-uploaded).
-      const bodyUrls = Array.isArray(req.body?.handoffPhotoUrls)
-        ? req.body.handoffPhotoUrls
-        : Array.isArray(req.body?.photos)
-          ? req.body.photos
-          : [];
-      for (const url of bodyUrls) {
-        if (typeof url === 'string' && /^https?:\/\//i.test(url.trim())) {
-          handoffPhotoUrls.push(url.trim());
-        }
-      }
+      appendHttpPhotoUrls(handoffPhotoUrls, req.body, ['handoffPhotoUrls', 'photos']);
 
       const result = await requestListingComplete(
         req.user.id,
@@ -1385,6 +1420,11 @@ router.post(
           }),
         );
       }
+      appendHttpPhotoUrls(disputePhotoUrls, req.body, [
+        'disputePhotoUrls',
+        'dispute_photo_urls',
+        'photos',
+      ]);
       const message =
         typeof req.body?.message === 'string'
           ? req.body.message

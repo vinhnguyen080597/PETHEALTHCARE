@@ -374,6 +374,8 @@ const vi: Record<EnKey, string> = {
   "deal.disputePhotosLabel": "Ảnh minh chứng",
   "deal.disputePhotosRequired": "Vui lòng thêm ít nhất 1 ảnh minh chứng.",
   "deal.disputePhotosTooMany": "Bạn chỉ có thể tải tối đa 5 ảnh.",
+  "deal.photosTooLarge":
+    "Ảnh quá lớn. Hãy chọn ít ảnh hơn hoặc ảnh nhỏ hơn rồi gửi lại.",
   "deal.disputeSubmit": "Gửi khiếu nại",
   "deal.completed": "Giao dịch đã hoàn thành",
   "deal.cancelledClosed": "Giao dịch đã hủy",

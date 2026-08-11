@@ -371,6 +371,8 @@ const en = {
   "deal.disputePhotosLabel": "Evidence photos",
   "deal.disputePhotosRequired": "Please add at least one evidence photo.",
   "deal.disputePhotosTooMany": "You can upload up to 5 photos.",
+  "deal.photosTooLarge":
+    "Photos are too large. Try fewer photos or smaller images, then submit again.",
   "deal.disputeSubmit": "Submit dispute",
   "deal.completed": "Transaction completed",
   "deal.cancelledClosed": "Transaction cancelled",

@@ -79,6 +79,11 @@ import {
   waitingForSenMessage,
   type CancelDepositReasonKey,
 } from "@/lib/listingDealHandoff";
+import {
+  DealSubmitError,
+  dealSubmitErrorMessage,
+} from "@/lib/dealPhotoUpload";
+import { uploadDealEvidencePhotos } from "@/lib/uploadDealEvidence";
 import { DealPhotoPicker } from "./DealPhotoPicker";
 
 const REPORT_REASONS = [
@@ -650,14 +655,20 @@ export function ListingDetail({
     setDealBusy(true);
     setActionError("");
     try {
-      const fd = new FormData();
-      for (const photo of completePhotos) fd.append("photos", photo);
+      const handoffPhotoUrls = await uploadDealEvidencePhotos(completePhotos);
       const res = await fetch(`/api/listings/${listing.id}/complete/request`, {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handoffPhotoUrls }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed");
+      if (!res.ok) {
+        throw new DealSubmitError(
+          String(data.error || "Failed"),
+          res.status,
+          typeof data.code === "string" ? data.code : undefined,
+        );
+      }
       if (data?.data) {
         setListing(mapApiPost(data.data as ApiPetFeedPost));
       }
@@ -666,7 +677,7 @@ export function ListingDetail({
       setCompleteWaitingOpen(true);
       router.refresh();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed");
+      setActionError(dealSubmitErrorMessage(err, (key) => t(lang, key)));
     } finally {
       setDealBusy(false);
     }
@@ -702,15 +713,20 @@ export function ListingDetail({
         reasonLabel,
         note: cancelNote,
       });
-      const fd = new FormData();
-      fd.set("reason", reason);
-      for (const photo of cancelPhotos) fd.append("photos", photo);
+      const cancelPhotoUrls = await uploadDealEvidencePhotos(cancelPhotos);
       const res = await fetch(`/api/listings/${listing.id}/deposit/cancel`, {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason, cancelPhotoUrls }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed");
+      if (!res.ok) {
+        throw new DealSubmitError(
+          String(data.error || "Failed"),
+          res.status,
+          typeof data.code === "string" ? data.code : undefined,
+        );
+      }
       if (data?.data) {
         setListing(mapApiPost(data.data as ApiPetFeedPost));
       }
@@ -719,7 +735,7 @@ export function ListingDetail({
       setCancelPhotos([]);
       router.refresh();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed");
+      setActionError(dealSubmitErrorMessage(err, (key) => t(lang, key)));
     } finally {
       setDealBusy(false);
     }
@@ -749,15 +765,23 @@ export function ListingDetail({
     setDealBusy(true);
     setActionError("");
     try {
-      const fd = new FormData();
-      fd.set("message", disputeMessage.trim());
-      for (const photo of disputePhotos) fd.append("photos", photo);
+      const disputePhotoUrls = await uploadDealEvidencePhotos(disputePhotos);
       const res = await fetch(`/api/listings/${listing.id}/complete/dispute`, {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: disputeMessage.trim(),
+          disputePhotoUrls,
+        }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed");
+      if (!res.ok) {
+        throw new DealSubmitError(
+          String(data.error || "Failed"),
+          res.status,
+          typeof data.code === "string" ? data.code : undefined,
+        );
+      }
       if (data?.data) {
         setListing(mapApiPost(data.data as ApiPetFeedPost));
       }
@@ -766,7 +790,7 @@ export function ListingDetail({
       setDisputePhotos([]);
       router.refresh();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed");
+      setActionError(dealSubmitErrorMessage(err, (key) => t(lang, key)));
     } finally {
       setDealBusy(false);
     }

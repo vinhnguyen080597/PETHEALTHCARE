@@ -3,6 +3,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/session";
 import { requestListingComplete } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
+import { httpPhotoUrls } from "@/lib/dealPhotoUpload";
 
 export async function POST(
   req: Request,
@@ -14,14 +15,12 @@ export async function POST(
   }
   try {
     const { postId } = await params;
-    const incoming = await req.formData();
-    const formData = new FormData();
-    for (const photo of incoming.getAll("photos")) {
-      if (photo instanceof File && photo.size > 0) {
-        formData.append("photos", photo);
-      }
-    }
-    const result = await requestListingComplete(token, postId, formData);
+    const incoming = (await req.json().catch(() => ({}))) as {
+      handoffPhotoUrls?: unknown;
+    };
+    const result = await requestListingComplete(token, postId, {
+      handoffPhotoUrls: httpPhotoUrls(incoming.handoffPhotoUrls),
+    });
     revalidateTag("public-posts");
     revalidateTag(postId);
     revalidatePath(`/app/pet-feed/posts/${postId}`);

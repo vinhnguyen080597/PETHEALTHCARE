@@ -381,15 +381,30 @@ export async function listSenUsers(
   });
 }
 
+export async function uploadDealPhoto(token: string, formData: FormData) {
+  return fetchJson<{ data: { publicUrl: string; kind: string } }>(
+    "/pet-feed/uploads/deal-photo",
+    {
+      method: "POST",
+      token,
+      formData,
+      timeoutMs: UPLOAD_TIMEOUT_MS,
+    },
+  );
+}
+
 export async function cancelListingDeposit(
   token: string,
   postId: string,
-  formData: FormData,
+  payload: { reason: string; cancelPhotoUrls?: string[] },
 ) {
-  return fetchMultipart<{ data: ApiPetFeedPost; pending_confirm?: boolean }>(
+  return fetchJson<{ data: ApiPetFeedPost; pending_confirm?: boolean }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/cancel`,
-    formData,
-    token,
+    {
+      method: "POST",
+      token,
+      body: payload,
+    },
   );
 }
 
@@ -406,16 +421,19 @@ export async function confirmListingCancelDeposit(token: string, postId: string)
 export async function requestListingComplete(
   token: string,
   postId: string,
-  formData: FormData,
+  payload: { handoffPhotoUrls: string[] },
 ) {
-  return fetchMultipart<{
+  return fetchJson<{
     data: ApiPetFeedPost;
     both_confirmed?: boolean;
     complete_deadline_at?: string;
   }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/complete/request`,
-    formData,
-    token,
+    {
+      method: "POST",
+      token,
+      body: payload,
+    },
   );
 }
 
@@ -432,12 +450,15 @@ export async function confirmListingComplete(token: string, postId: string) {
 export async function requestListingDispute(
   token: string,
   postId: string,
-  formData: FormData,
+  payload: { message: string; disputePhotoUrls: string[] },
 ) {
-  return fetchMultipart<{ data: ApiPetFeedPost; report?: unknown }>(
+  return fetchJson<{ data: ApiPetFeedPost; report?: unknown }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/complete/dispute`,
-    formData,
-    token,
+    {
+      method: "POST",
+      token,
+      body: payload,
+    },
   );
 }
 
