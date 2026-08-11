@@ -204,6 +204,7 @@ export function AccountPanel({
       isOwner: true,
       status: item.listing?.status || item.status,
       metadataSold: item.listing?.metadataSold,
+      metadataCancelled: item.listing?.metadataCancelled,
       ownerDeleted: item.listing?.ownerDeleted,
       completedAt: item.listing?.deal?.completedAt,
       senConfirmedCompleteAt: item.listing?.deal?.senConfirmedCompleteAt,

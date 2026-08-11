@@ -35,6 +35,19 @@ test("deposit hold blocks delete", () => {
   );
 });
 
+test("cancelled listings use the same 7-day cooldown as sold", () => {
+  const blocked = evaluateOwnerDeleteListing(
+    {
+      isOwner: true,
+      status: "cancelled",
+      completedAt: new Date(now - 2 * DAY_MS).toISOString(),
+    },
+    now,
+  );
+  assert.equal(blocked.allowed, false);
+  assert.equal(blocked.reason, "sold_cooldown");
+});
+
 test("sold listings are deletable only after 7 days", () => {
   const blocked = evaluateOwnerDeleteListing(
     {

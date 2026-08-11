@@ -157,7 +157,8 @@ export type PetFeedPostStatus =
   | 'published'
   | 'deposit_hold'
   | 'archived'
-  | 'sold';
+  | 'sold'
+  | 'cancelled';
 export type PostKind = 'listing' | 'announcement';
 export type AnnouncementCategory = 'app_update' | 'health_tip' | 'community' | 'general';
 export type BreederVerificationStatus = 'unverified' | 'pending_review' | 'verified' | 'rejected' | 'suspended';

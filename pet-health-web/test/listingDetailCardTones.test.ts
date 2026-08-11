@@ -22,12 +22,14 @@ test("warranty has-policy uses sky; none uses slate", () => {
   assert.doesNotMatch(none.shell, /sky|amber/);
 });
 
-test("deposit hold stays amber; sold stays emerald", () => {
+test("deposit hold stays amber; sold stays emerald; cancelled stays rose", () => {
   const hold = listingDealStatusTone("deposit_hold");
   const sold = listingDealStatusTone("sold");
+  const cancelled = listingDealStatusTone("cancelled");
   assert.match(hold.shell, /amber/);
   assert.doesNotMatch(hold.shell, /sky|emerald/);
   assert.match(sold.shell, /emerald/);
+  assert.match(cancelled.shell, /rose/);
 });
 
 test("warranty sky and deposit amber do not share the same palette token", () => {

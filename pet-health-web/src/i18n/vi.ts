@@ -140,6 +140,7 @@ const vi: Record<EnKey, string> = {
   "farm.listings.createPost": "Tạo bài đăng",
   "farm.listings.forSale": "Đang bán",
   "farm.listings.sold": "Đã bán",
+  "farm.listings.cancelled": "Đã hủy",
   "farm.listings.filter": "Lọc",
   "farm.listings.filterAll": "Tất cả",
   "farm.listings.status.for_sale": "đang tìm chủ",
@@ -345,7 +346,7 @@ const vi: Record<EnKey, string> = {
   "deal.cancel": "Hủy cọc",
   "deal.cancelRequestTitle": "Yêu cầu hủy cọc",
   "deal.cancelRequestHint":
-    "Cho Sen biết lý do hủy. Sen xác nhận thì tin chuyển sang hoàn thành, không chốt cọc lại được.",
+    "Cho Sen biết lý do hủy. Sen xác nhận thì tin chuyển sang đã hủy, không chốt cọc lại được.",
   "deal.cancelReasonLabel": "Lý do hủy cọc",
   "deal.cancelReason.no_contact": "Sen không liên lạc được",
   "deal.cancelReason.buyer_changed_mind": "Sen đổi ý",
@@ -375,6 +376,7 @@ const vi: Record<EnKey, string> = {
   "deal.disputePhotosTooMany": "Bạn chỉ có thể tải tối đa 5 ảnh.",
   "deal.disputeSubmit": "Gửi khiếu nại",
   "deal.completed": "Giao dịch đã hoàn thành",
+  "deal.cancelledClosed": "Giao dịch đã hủy",
   "account.breederTrust.warrantyLibrary": "Chính sách bảo hành",
   "farm.trust.line.firstWarrantyPolicy": "Chính sách bảo hành đầu tiên",
   "farm.cta.message": "Nhắn Tin Với Breeder",
@@ -760,6 +762,7 @@ const vi: Record<EnKey, string> = {
   "listing.status.published": "Đã đăng",
   "listing.status.archived": "Đã ẩn",
   "listing.status.sold": "Đã bán",
+  "listing.status.cancelled": "Đã hủy",
   "listing.status.deposit_hold": "Đang được cọc",
 
   "listing.new.title": "Đăng tin mới",

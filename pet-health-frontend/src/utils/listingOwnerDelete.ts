@@ -42,6 +42,7 @@ function metadataMarksSold(metadata: Record<string, unknown> | null | undefined)
   const outcome = String(meta.listing_outcome ?? meta.outcome ?? '')
     .trim()
     .toLowerCase();
+  if (outcome === 'cancelled' || outcome === 'canceled') return false;
   if (outcome === 'sold' || outcome === 'completed' || outcome === 'rehomed') return true;
   return (
     meta.sold === true ||
@@ -50,6 +51,20 @@ function metadataMarksSold(metadata: Record<string, unknown> | null | undefined)
     meta.sold === 1 ||
     meta.sold === 'true' ||
     meta.sold === '1'
+  );
+}
+
+function metadataMarksCancelled(metadata: Record<string, unknown> | null | undefined): boolean {
+  const meta = asRecord(metadata);
+  const outcome = String(meta.listing_outcome ?? meta.outcome ?? '')
+    .trim()
+    .toLowerCase();
+  if (outcome === 'cancelled' || outcome === 'canceled') return true;
+  return (
+    meta.cancelled === true ||
+    meta.cancelled === 1 ||
+    meta.cancelled === 'true' ||
+    meta.cancelled === '1'
   );
 }
 
@@ -92,6 +107,7 @@ export function evaluateOwnerDeleteListing(
     isOwner?: boolean;
     status?: string | null;
     metadataSold?: boolean;
+    metadataCancelled?: boolean;
     ownerDeleted?: boolean;
     metadata?: Record<string, unknown> | null;
     completedAt?: string | null;
@@ -113,16 +129,19 @@ export function evaluateOwnerDeleteListing(
   }
 
   const status = String(input.status || '').trim().toLowerCase();
-  const sold =
+  const closed =
     status === 'sold' ||
+    status === 'cancelled' ||
     Boolean(input.metadataSold) ||
-    (status === 'archived' && Boolean(input.metadataSold));
+    Boolean(input.metadataCancelled) ||
+    (status === 'archived' &&
+      (Boolean(input.metadataSold) || Boolean(input.metadataCancelled)));
 
   if (status === 'deposit_hold') {
     return { allowed: false, reason: 'deposit_hold' };
   }
 
-  if (sold) {
+  if (closed) {
     const completedMs = listingCompletionAtMs(input) ?? nowMs;
     const eligibleAt = completedMs + OWNER_DELETE_SOLD_COOLDOWN_DAYS * DAY_MS;
     if (nowMs < eligibleAt) {
@@ -165,6 +184,7 @@ export function evaluatePetFeedPostDelete(
       status: post.status,
       metadata: post.metadata,
       metadataSold: metadataMarksSold(post.metadata),
+      metadataCancelled: metadataMarksCancelled(post.metadata),
       updatedAt: post.updated_at,
       createdAt: post.created_at,
     },

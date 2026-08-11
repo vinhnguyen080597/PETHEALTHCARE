@@ -17,7 +17,10 @@ import {
   contactFieldCount,
   parseTrustActivityFromMeta,
 } from "./breederTrust";
-import { listingMetadataMarksSold } from "./farmPets";
+import {
+  listingMetadataMarksCancelled,
+  listingMetadataMarksSold,
+} from "./farmPets";
 import { metadataMarksOwnerDeleted } from "./listingOwnerDelete";
 import {
   coverUrlFromMetadata,
@@ -360,6 +363,7 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
   const personality = post.personality || [];
   const statusRaw = (post.status || "published").toLowerCase();
   const metadataSold = listingMetadataMarksSold(meta);
+  const metadataCancelled = listingMetadataMarksCancelled(meta);
   const ownerDeleted = metadataMarksOwnerDeleted(meta);
   const softStatus = String(
     (meta.soft_status as string | undefined) || "",
@@ -369,8 +373,14 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
   let status: Listing["status"];
   if (ownerDeleted) {
     status = "archived";
-  } else if (softStatus === "deposit_hold" || softStatus === "sold") {
+  } else if (
+    softStatus === "deposit_hold" ||
+    softStatus === "sold" ||
+    softStatus === "cancelled"
+  ) {
     status = softStatus;
+  } else if (statusRaw === "cancelled" || (statusRaw === "archived" && metadataCancelled)) {
+    status = "cancelled";
   } else if (statusRaw === "sold" || (statusRaw === "archived" && metadataSold)) {
     status = "sold";
   } else if (
@@ -400,11 +410,15 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
       dealStatus === "dispute_open";
     if ((statusRaw === "published" || statusRaw === "pending_review") && heldDeal) {
       status = "deposit_hold";
+    } else if (metadataCancelled) {
+      status = "cancelled";
     } else if (metadataSold) {
       status = "sold";
     } else {
       status = statusRaw;
     }
+  } else if (statusRaw === "cancelled" || metadataCancelled) {
+    status = "cancelled";
   } else {
     status = metadataSold ? "sold" : "published";
   }
@@ -447,6 +461,8 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     postKind: post.post_kind,
     escrowEnabled: parseEscrowEnabled(meta),
     metadataSold: !ownerDeleted && (status === "sold" || metadataSold),
+    metadataCancelled:
+      !ownerDeleted && (status === "cancelled" || metadataCancelled),
     ownerDeleted,
     warrantyPolicy,
     deal: Object.keys(dealRaw).length

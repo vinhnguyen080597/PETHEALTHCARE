@@ -64,15 +64,17 @@ export function evaluateOwnerDeleteListing(input = {}, now = Date.now()) {
   }
 
   const status = String(input.status || '').trim().toLowerCase();
-  const sold = status === 'sold'
+  const closed = status === 'sold'
+    || status === 'cancelled'
     || Boolean(input.metadataSold)
-    || (status === 'archived' && Boolean(input.metadataSold));
+    || Boolean(input.metadataCancelled)
+    || (status === 'archived' && (Boolean(input.metadataSold) || Boolean(input.metadataCancelled)));
 
   if (status === 'deposit_hold') {
     return { allowed: false, reason: 'deposit_hold' };
   }
 
-  if (sold) {
+  if (closed) {
     const completedMs = listingCompletionAtMs(input) ?? nowMs;
     const eligibleAt = completedMs + OWNER_DELETE_SOLD_COOLDOWN_DAYS * DAY_MS;
     if (nowMs < eligibleAt) {

@@ -21,10 +21,15 @@ import {
   isOwnerDeletedListing,
   OWNER_DELETE_SOLD_COOLDOWN_DAYS,
 } from '../utils/listingOwnerDelete.js';
+import {
+  isCancelledListingMetadata,
+  isSoldListingMetadata,
+} from '../utils/listingCloseOutcome.js';
 
 const DEFAULT_VIOLATION_PENALTY_POINTS = 10;
 
-const POST_STATUSES = new Set(['draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold']);
+const POST_STATUSES = new Set(['draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold', 'cancelled']);
+const CLOSED_LISTING_STATUSES = new Set(['sold', 'cancelled']);
 const POST_KINDS = new Set(['listing', 'announcement']);
 const ANNOUNCEMENT_CATEGORIES = new Set(['app_update', 'health_tip', 'community', 'general']);
 const VERIFICATION_STATUSES = new Set(['unverified', 'pending_review', 'verified', 'rejected', 'suspended']);
@@ -388,7 +393,7 @@ function resolveEffectivePostStatus(row) {
   const meta = asObject(row?.metadata);
   if (isOwnerDeletedListing(meta)) return 'archived';
   const soft = String(meta.soft_status ?? '').trim().toLowerCase();
-  if (soft === 'deposit_hold' || soft === 'sold') return soft;
+  if (soft === 'deposit_hold' || soft === 'sold' || soft === 'cancelled') return soft;
   const deal = asObject(meta.deal);
   const dealStatus = String(deal.status || '').trim().toLowerCase();
   if (
@@ -403,7 +408,10 @@ function resolveEffectivePostStatus(row) {
   ) {
     return 'deposit_hold';
   }
-  // Sen-confirmed cancel stamps sold metadata even if the status column stayed published.
+  // Closed deals stamp outcome metadata even if the status column stayed published.
+  if (isCancelledListingMetadata(meta) && !ACTIVE_HOLD_DEAL_STATUSES.has(dealStatus)) {
+    return 'cancelled';
+  }
   if (isSoldListingMetadata(meta) && !ACTIVE_HOLD_DEAL_STATUSES.has(dealStatus)) {
     return 'sold';
   }
@@ -415,11 +423,16 @@ export function isPubliclyViewableListingRow(row) {
   if (!row) return false;
   if (isOwnerDeletedListing(row.metadata)) return false;
   const effective = resolveEffectivePostStatus(row);
-  if (effective === 'published' || effective === 'deposit_hold' || effective === 'sold') {
+  if (
+    effective === 'published'
+    || effective === 'deposit_hold'
+    || effective === 'sold'
+    || effective === 'cancelled'
+  ) {
     return true;
   }
   return String(row.status || '').trim().toLowerCase() === 'archived'
-    && isSoldListingMetadata(row.metadata);
+    && (isSoldListingMetadata(row.metadata) || isCancelledListingMetadata(row.metadata));
 }
 
 /** Owner "My listings" hides archived/deleted rows but keeps live, hold, and sold. */
@@ -454,32 +467,42 @@ function isStatusCheckViolation(err) {
   return /pet_feed_posts_status_check/i.test(msg);
 }
 
-function stampSoldListingMetadata(metadata) {
+function stampClosedListingMetadata(metadata, outcome) {
   const meta = { ...asObject(metadata) };
-  meta.soft_status = 'sold';
-  meta.sold = true;
-  meta.listing_outcome = 'sold';
+  const close = outcome === 'cancelled' ? 'cancelled' : 'sold';
+  meta.soft_status = close;
+  meta.listing_outcome = close;
   delete meta.soft_deposit_hold;
+  if (close === 'cancelled') {
+    meta.cancelled = true;
+    delete meta.sold;
+    delete meta.completed;
+    delete meta.rehomed;
+  } else {
+    meta.sold = true;
+    delete meta.cancelled;
+  }
   return meta;
 }
 
-function clearSoldListingMetadata(metadata) {
+function clearClosedListingMetadata(metadata) {
   const meta = { ...asObject(metadata) };
   delete meta.soft_status;
   delete meta.soft_deposit_hold;
   delete meta.sold;
+  delete meta.cancelled;
   delete meta.listing_outcome;
   delete meta.completed;
   delete meta.rehomed;
   return meta;
 }
 
-/** Persist lifecycle status; older DBs without deposit_hold/sold fall back to archived + soft_status. */
+/** Persist lifecycle status; older DBs without deposit_hold/sold/cancelled fall back to archived + soft_status. */
 async function persistListingLifecycle(postId, desiredStatus, metadata, accessToken) {
-  const meta = desiredStatus === 'sold'
-    ? stampSoldListingMetadata(metadata)
+  const meta = CLOSED_LISTING_STATUSES.has(desiredStatus)
+    ? stampClosedListingMetadata(metadata, desiredStatus)
     : { ...asObject(metadata) };
-  if (desiredStatus !== 'sold') {
+  if (!CLOSED_LISTING_STATUSES.has(desiredStatus)) {
     delete meta.soft_status;
     delete meta.soft_deposit_hold;
   }
@@ -492,15 +515,14 @@ async function persistListingLifecycle(postId, desiredStatus, metadata, accessTo
   } catch (err) {
     if (
       !isStatusCheckViolation(err)
-      || (desiredStatus !== 'deposit_hold' && desiredStatus !== 'sold')
+      || (desiredStatus !== 'deposit_hold' && !CLOSED_LISTING_STATUSES.has(desiredStatus))
     ) {
       throw err;
     }
     meta.soft_status = desiredStatus;
     if (desiredStatus === 'deposit_hold') meta.soft_deposit_hold = true;
-    if (desiredStatus === 'sold') {
-      meta.sold = true;
-      meta.listing_outcome = 'sold';
+    if (CLOSED_LISTING_STATUSES.has(desiredStatus)) {
+      Object.assign(meta, stampClosedListingMetadata(meta, desiredStatus));
     }
     return persistPostRow(
       postId,
@@ -510,12 +532,12 @@ async function persistListingLifecycle(postId, desiredStatus, metadata, accessTo
   }
 }
 
-async function persistClosedSoldListing(postId, metadata, accessToken) {
-  const updated = await persistListingLifecycle(postId, 'sold', metadata, accessToken);
-  if (resolveEffectivePostStatus(updated) === 'sold') return updated;
+async function persistClosedListing(postId, outcome, metadata, accessToken) {
+  const updated = await persistListingLifecycle(postId, outcome, metadata, accessToken);
+  if (resolveEffectivePostStatus(updated) === outcome) return updated;
   return persistPostRow(
     postId,
-    { status: 'archived', metadata: stampSoldListingMetadata(updated?.metadata ?? metadata) },
+    { status: 'archived', metadata: stampClosedListingMetadata(updated?.metadata ?? metadata, outcome) },
     accessToken,
   );
 }
@@ -1186,7 +1208,7 @@ async function withPublicBreederListingCounts(profiles) {
       .select('breeder_profile_id, status, metadata')
       .in('breeder_profile_id', ids)
       .eq('post_kind', 'listing')
-      .in('status', ['published', 'sold', 'archived']);
+      .in('status', ['published', 'sold', 'cancelled', 'archived']);
     if (error) throw error;
     for (const row of data ?? []) {
       const id = row.breeder_profile_id;
@@ -1302,7 +1324,7 @@ export async function getPublicPetFeedPost(postId) {
     .from('pet_feed_posts')
     .select('*, breeder_profile:breeder_profiles(*)')
     .eq('id', safePostId)
-    .in('status', ['published', 'deposit_hold', 'sold', 'archived'])
+    .in('status', ['published', 'deposit_hold', 'sold', 'cancelled', 'archived'])
     .maybeSingle();
   if (error) {
     if (error.code === '22P02' || error.code === 'PGRST116') return null;
@@ -1345,25 +1367,25 @@ export async function listPublicVerifiedBreederProfiles(options = {}) {
   };
 }
 
-function isSoldListingMetadata(metadata) {
-  const meta = metadata && typeof metadata === 'object' ? metadata : {};
-  const outcome = String(meta.listing_outcome ?? meta.outcome ?? '').trim().toLowerCase();
-  if (outcome === 'sold' || outcome === 'completed' || outcome === 'rehomed') return true;
-  return meta.sold === true
-    || meta.completed === true
-    || meta.rehomed === true
-    || meta.sold === 1
-    || meta.sold === 'true'
-    || meta.sold === '1';
-}
-
-/** Public farm "Thú cưng" tab: for-sale + deposit hold + completed/sold listings. */
+/** Public farm "Thú cưng" tab: for-sale + deposit hold + completed/sold/cancelled listings. */
 function isPublicFarmPetListing(post) {
   if (normalizePostKind(post.post_kind, 'listing') !== 'listing') return false;
   if (isOwnerDeletedListing(post.metadata)) return false;
   const status = resolveEffectivePostStatus(post);
-  if (status === 'published' || status === 'deposit_hold' || status === 'sold') return true;
-  if (status === 'archived' && isSoldListingMetadata(post.metadata)) return true;
+  if (
+    status === 'published'
+    || status === 'deposit_hold'
+    || status === 'sold'
+    || status === 'cancelled'
+  ) {
+    return true;
+  }
+  if (
+    status === 'archived'
+    && (isSoldListingMetadata(post.metadata) || isCancelledListingMetadata(post.metadata))
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -1418,7 +1440,7 @@ export async function getPublicBreederProfile(profileId) {
       .select('*, breeder_profile:breeder_profiles(*)')
       .eq('breeder_profile_id', safeId)
       .eq('post_kind', 'listing')
-      .in('status', ['published', 'deposit_hold', 'sold', 'archived'])
+      .in('status', ['published', 'deposit_hold', 'sold', 'cancelled', 'archived'])
       .order('created_at', { ascending: false })
       .limit(96);
     if (error) throw error;
@@ -1753,7 +1775,7 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
     if (idx < 0) return null;
     const profile = await getMyBreederProfile(userId, accessToken);
     assertVerifiedBreederProfile(profile);
-    if (memoryPosts[idx].status === 'deposit_hold' || memoryPosts[idx].status === 'sold') {
+    if (memoryPosts[idx].status === 'deposit_hold' || CLOSED_LISTING_STATUSES.has(memoryPosts[idx].status)) {
       throw httpError('This listing cannot be edited while deposit is held or completed.', 400, 'LISTING_LOCKED');
     }
     const mergedPayload = {
@@ -1777,7 +1799,7 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
   }
   const existing = await getPetFeedPost(userId, postId, accessToken);
   if (!existing || existing.user_id !== userId) return null;
-  if (existing.status === 'deposit_hold' || existing.status === 'sold') {
+  if (existing.status === 'deposit_hold' || CLOSED_LISTING_STATUSES.has(existing.status)) {
     throw httpError('This listing cannot be edited while deposit is held or completed.', 400, 'LISTING_LOCKED');
   }
   const profile = await getMyBreederProfile(userId, accessToken);
@@ -1813,7 +1835,7 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
 export async function updateListingWarrantyPolicy(userId, postId, warrantyPolicyId, accessToken) {
   const existing = await getPetFeedPost(userId, postId, accessToken);
   if (!existing || existing.user_id !== userId) return null;
-  if (existing.status === 'deposit_hold' || existing.status === 'sold') {
+  if (existing.status === 'deposit_hold' || CLOSED_LISTING_STATUSES.has(existing.status)) {
     throw httpError('This listing cannot be edited while deposit is held or completed.', 400, 'LISTING_LOCKED');
   }
   const profile = await getMyBreederProfile(userId, accessToken);
@@ -1856,6 +1878,7 @@ function assertOwnerCanDeleteListing(post) {
     status: post?.status,
     metadata: post?.metadata,
     metadataSold: isSoldListingMetadata(post?.metadata),
+    metadataCancelled: isCancelledListingMetadata(post?.metadata),
     completedAt: deal.completed_at || deal.completedAt,
     senConfirmedCompleteAt: deal.sen_confirmed_complete_at || deal.senConfirmedCompleteAt,
     autoCompletedAt: deal.auto_completed_at || deal.autoCompletedAt,
@@ -2643,7 +2666,7 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
     && !meta.rejection_reason
     && !meta.rejected_at;
   const effectiveStatus = resolveEffectivePostStatus(row);
-  if (effectiveStatus === 'sold') {
+  if (CLOSED_LISTING_STATUSES.has(effectiveStatus)) {
     throw httpError('Deposit can only be confirmed on an available listing.', 400, 'DEPOSIT_NOT_ALLOWED');
   }
   if (
@@ -2925,7 +2948,7 @@ export async function requestListingCancelDeposit(actorUserId, postId, payload =
   };
 }
 
-/** Sen confirms breeder's cancel request → sold/completed so deposit cannot restart. */
+/** Sen confirms breeder's cancel request → cancelled (negative close); deposit cannot restart. */
 export async function confirmListingCancelDeposit(actorUserId, postId, accessToken) {
   const row = await loadPostRowForDeal(postId, accessToken);
   if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
@@ -2943,13 +2966,16 @@ export async function confirmListingCancelDeposit(actorUserId, postId, accessTok
     throw httpError('No pending cancel request to confirm.', 400, 'DEPOSIT_CANCEL_NOT_PENDING');
   }
 
-  const nextMeta = stampSoldListingMetadata(finalizeCancelledDeposit(row, deal, actorUserId));
+  const nextMeta = stampClosedListingMetadata(
+    finalizeCancelledDeposit(row, deal, actorUserId),
+    'cancelled',
+  );
   const cancelledAt = trimText(asObject(nextMeta.deal).cancelled_at, 40) || new Date().toISOString();
   nextMeta.deal = {
     ...asObject(nextMeta.deal),
     completed_at: cancelledAt,
   };
-  const updated = await persistClosedSoldListing(postId, nextMeta, accessToken);
+  const updated = await persistClosedListing(postId, 'cancelled', nextMeta, accessToken);
   return {
     post: updated,
     notify_user_id: row.user_id,
@@ -3263,7 +3289,7 @@ export async function adminForceCancelListing(adminUserId, postId, payload = {},
   }
   // Never keep an active dispute blob after cancel — blocks the next Sen dispute cycle.
   nextMeta.deal.dispute = null;
-  const republishedMeta = clearSoldListingMetadata(nextMeta);
+  const republishedMeta = clearClosedListingMetadata(nextMeta);
   const updated = await persistPostRow(postId, { status: 'published', metadata: republishedMeta }, accessToken);
 
   let report = null;

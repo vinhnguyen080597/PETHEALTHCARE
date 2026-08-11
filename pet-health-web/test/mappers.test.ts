@@ -101,6 +101,22 @@ test("mapApiPost maps video_url onto listing.videoUrl", () => {
   assert.equal(listing.videoUrl, "https://cdn.example/clip.mp4");
 });
 
+test("mapApiPost treats published + cancelled metadata as cancelled", () => {
+  const listing = mapApiPost({
+    id: "p-cancelled",
+    title: "Closed after cancel",
+    status: "published",
+    metadata: {
+      cancelled: true,
+      listing_outcome: "cancelled",
+      deal: { status: "cancelled", completed_at: "2026-08-11T00:00:00.000Z" },
+    },
+  });
+  assert.equal(listing.status, "cancelled");
+  assert.equal(listing.metadataCancelled, true);
+  assert.equal(listing.metadataSold, false);
+});
+
 test("mapApiPost treats published + sold metadata as sold", () => {
   const listing = mapApiPost({
     id: "p-closed",

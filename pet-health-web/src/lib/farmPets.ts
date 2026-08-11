@@ -21,7 +21,7 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-/** True when metadata marks a listing as sold/rehomed (completed deal). */
+/** True when metadata marks a listing as sold/rehomed (positive close). */
 export function listingMetadataMarksSold(
   metadata: Record<string, unknown> | null | undefined,
 ): boolean {
@@ -29,6 +29,7 @@ export function listingMetadataMarksSold(
   const outcome = String(meta.listing_outcome ?? meta.outcome ?? "")
     .trim()
     .toLowerCase();
+  if (outcome === "cancelled" || outcome === "canceled") return false;
   if (outcome === "sold" || outcome === "completed" || outcome === "rehomed") {
     return true;
   }
@@ -42,8 +43,35 @@ export function listingMetadataMarksSold(
   );
 }
 
+/** True when metadata marks a listing as deposit-cancelled (negative close). */
+export function listingMetadataMarksCancelled(
+  metadata: Record<string, unknown> | null | undefined,
+): boolean {
+  const meta = asRecord(metadata);
+  const outcome = String(meta.listing_outcome ?? meta.outcome ?? "")
+    .trim()
+    .toLowerCase();
+  if (outcome === "cancelled" || outcome === "canceled") return true;
+  return (
+    meta.cancelled === true ||
+    meta.cancelled === 1 ||
+    meta.cancelled === "true" ||
+    meta.cancelled === "1"
+  );
+}
+
+/** Future trust scoring: sold adds, cancelled subtracts. */
+export function listingTrustOutcome(
+  listing: Pick<FarmPetListingFields, "status" | "metadataSold" | "metadataCancelled">,
+): "positive" | "negative" | null {
+  if (listing.status === "cancelled" || listing.metadataCancelled) return "negative";
+  if (listing.status === "sold" || listing.metadataSold) return "positive";
+  return null;
+}
+
 export type FarmPetListingFields = Pick<Listing, "status"> & {
   metadataSold?: boolean;
+  metadataCancelled?: boolean;
   ownerDeleted?: boolean;
 };
 
@@ -52,9 +80,27 @@ export function farmPetAvailability(
 ): FarmPetAvailability | null {
   if (listing.ownerDeleted) return null;
   if (listing.status === "deposit_hold") return "deposit_hold";
-  if (listing.status === "sold" || listing.metadataSold) return "completed";
+  if (
+    listing.status === "sold" ||
+    listing.status === "cancelled" ||
+    listing.metadataSold ||
+    listing.metadataCancelled
+  ) {
+    return "completed";
+  }
   if (listing.status === "published") return "for_sale";
   return null;
+}
+
+/** Rehomed count for trust — sold only, never cancelled. */
+export function isFarmRehomedListing(listing: FarmPetListingFields): boolean {
+  if (listing.ownerDeleted) return false;
+  if (listing.status === "cancelled" || listing.metadataCancelled) return false;
+  return listing.status === "sold" || Boolean(listing.metadataSold);
+}
+
+export function countFarmPetsRehomed(listings: FarmPetListingFields[]): number {
+  return listings.filter(isFarmRehomedListing).length;
 }
 
 /** Pets for sale + deposit hold + completed/sold. */

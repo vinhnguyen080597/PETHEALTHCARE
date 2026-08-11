@@ -2137,7 +2137,8 @@
     "senConfirmReceipt": "Xác nhận đã nhận bé",
     "cancel": "Hủy cọc",
     "cancelRequestTitle": "Yêu cầu hủy cọc",
-    "cancelRequestHint": "Cho Sen biết lý do hủy. Sen xác nhận thì tin chuyển sang hoàn thành, không chốt cọc lại được.",
+    "cancelRequestHint": "Cho Sen biết lý do hủy. Sen xác nhận thì tin chuyển sang đã hủy, không chốt cọc lại được.",
+    "cancelledClosed": "Giao dịch đã hủy",
     "cancelReason": {
       "no_contact": "Sen không liên lạc được",
       "buyer_changed_mind": "Sen đổi ý",

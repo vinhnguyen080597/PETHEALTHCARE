@@ -111,7 +111,8 @@ export function ListingDealPanel({
     showSenCancel ||
     showDisputeOpen ||
     post.status === 'deposit_hold' ||
-    post.status === 'sold';
+    post.status === 'sold' ||
+    post.status === 'cancelled';
 
   if (!visible) return null;
 
@@ -163,6 +164,9 @@ export function ListingDealPanel({
       ) : null}
       {post.status === 'sold' ? (
         <Text className="text-sm font-semibold text-emerald-800">{t('deal.completed')}</Text>
+      ) : null}
+      {post.status === 'cancelled' ? (
+        <Text className="text-sm font-semibold text-rose-800">{t('deal.cancelledClosed')}</Text>
       ) : null}
 
       {error ? <Text className="mt-2 text-xs text-red-600">{error}</Text> : null}

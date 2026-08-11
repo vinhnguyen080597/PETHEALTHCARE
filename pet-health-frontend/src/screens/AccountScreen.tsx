@@ -1572,6 +1572,8 @@ function listingStatusTone(status: PetFeedPost['status']) {
   if (status === 'published') return { wrap: 'bg-emerald-50', text: 'text-emerald-700' };
   if (status === 'pending_review') return { wrap: 'bg-amber-50', text: 'text-amber-700' };
   if (status === 'draft') return { wrap: 'bg-slate-100', text: 'text-slate-600' };
+  if (status === 'sold') return { wrap: 'bg-emerald-50', text: 'text-emerald-800' };
+  if (status === 'cancelled') return { wrap: 'bg-rose-50', text: 'text-rose-700' };
   return { wrap: 'bg-slate-100', text: 'text-slate-500' };
 }
 

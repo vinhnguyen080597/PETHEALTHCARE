@@ -19,6 +19,7 @@ import {
 } from "@/lib/farmTabs";
 import {
   countFarmPetsByAvailability,
+  countFarmPetsRehomed,
   farmPetTabCount,
   filterFarmPetsByAvailability,
   type FarmPetAvailability,
@@ -424,7 +425,7 @@ export function FarmDetail({
   const forSaleCount = farmPetCounts.for_sale;
   const trustMetrics = getBreederPublicTrustMetrics(breeder, {
     listingCount: forSaleCount,
-    petsRehomed: farmPetCounts.completed,
+    petsRehomed: countFarmPetsRehomed(listings),
   });
   const trust = trustMetrics.qualityIndex;
   const reviewCount = trustMetrics.reviewCount;

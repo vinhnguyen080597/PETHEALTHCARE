@@ -71,7 +71,9 @@ export function ListingCard({
     .filter(Boolean)
     .join(" ");
   const availability = farmPetAvailability(listing);
-  const isSold = availability === "completed";
+  const isCancelled =
+    listing.status === "cancelled" || Boolean(listing.metadataCancelled);
+  const isSold = availability === "completed" && !isCancelled;
   const isHold = availability === "deposit_hold";
   const detailHref = `/app/pet-feed/posts/${listing.id}`;
 
@@ -198,6 +200,11 @@ export function ListingCard({
           {isSold ? (
             <span className="bg-slate-900/85 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
               {t(lang, "farm.listings.sold")}
+            </span>
+          ) : null}
+          {isCancelled ? (
+            <span className="bg-rose-700/90 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
+              {t(lang, "farm.listings.cancelled")}
             </span>
           ) : null}
         </div>

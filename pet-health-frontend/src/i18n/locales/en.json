@@ -2140,7 +2140,8 @@
     "senConfirmReceipt": "Confirm I received the pet",
     "cancel": "Cancel deposit",
     "cancelRequestTitle": "Request deposit cancel",
-    "cancelRequestHint": "Tell Sen why you are canceling. After they confirm, the listing is marked completed and cannot take another deposit.",
+    "cancelRequestHint": "Tell Sen why you are canceling. After they confirm, the listing is marked cancelled and cannot take another deposit.",
+    "cancelledClosed": "Transaction cancelled",
     "cancelReason": {
       "no_contact": "Buyer not reachable",
       "buyer_changed_mind": "Buyer changed their mind",

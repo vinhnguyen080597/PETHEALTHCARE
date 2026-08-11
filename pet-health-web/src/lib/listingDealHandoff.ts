@@ -21,6 +21,7 @@ export type DealHandoffPhase =
   | "pending_cancel_confirm"
   | "dispute_open"
   | "completed"
+  | "cancelled"
   | "other";
 
 export function resolveDealHandoffPhase(input: {
@@ -34,6 +35,7 @@ export function resolveDealHandoffPhase(input: {
     .trim()
     .toLowerCase();
   if (listing === "sold") return "completed";
+  if (listing === "cancelled") return "cancelled";
 
   if (deal === "pending_sen_complete" || deal === "pending_complete") {
     return "pending_sen_complete";

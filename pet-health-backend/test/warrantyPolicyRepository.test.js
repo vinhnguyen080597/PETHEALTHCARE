@@ -170,8 +170,9 @@ test('dual deposit confirm freezes policy snapshot; cancel unfreezes', async () 
   );
 
   const cancelled = await confirmListingCancelDeposit(senId, post.id, null);
-  assert.equal(cancelled.post.status, 'sold');
-  assert.equal(cancelled.post.metadata?.listing_outcome, 'sold');
+  assert.equal(cancelled.post.status, 'cancelled');
+  assert.equal(cancelled.post.metadata?.listing_outcome, 'cancelled');
+  assert.equal(cancelled.post.metadata?.sold, undefined);
   assert.equal(cancelled.post.metadata?.warranty_policy_snapshot, undefined);
   assert.equal(cancelled.post.metadata?.deal?.status, 'cancelled');
   assert.ok(cancelled.post.metadata?.deal?.completed_at);
@@ -180,7 +181,7 @@ test('dual deposit confirm freezes policy snapshot; cancel unfreezes', async () 
   const publicFeed = await listPublicPetFeedPostPage({ limit: 50, kind: 'listing' });
   assert.equal(publicFeed.data.some((row) => row.id === post.id), false);
   const publicClosed = await getPublicPetFeedPost(post.id);
-  assert.equal(publicClosed?.status, 'sold');
+  assert.equal(publicClosed?.status, 'cancelled');
 
   await assert.rejects(
     () => requestListingCancelDeposit(senId, post.id, { reason: 'Sen try cancel' }, null),

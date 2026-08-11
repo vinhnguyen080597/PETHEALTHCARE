@@ -52,6 +52,22 @@ test('deposit hold own listing is not deletable', () => {
   );
 });
 
+test('cancelled listing waits 7 days like sold', () => {
+  const blocked = evaluatePetFeedPostDelete(
+    post({
+      status: 'cancelled',
+      metadata: {
+        listing_outcome: 'cancelled',
+        deal: { completed_at: new Date(now - 1 * DAY_MS).toISOString() },
+      },
+    }),
+    'owner-1',
+    now,
+  );
+  assert.equal(blocked.allowed, false);
+  assert.equal(blocked.reason, 'sold_cooldown');
+});
+
 test('sold listing waits 7 days from deal.completed_at', () => {
   const blocked = evaluatePetFeedPostDelete(
     post({

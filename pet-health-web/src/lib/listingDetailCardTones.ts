@@ -44,15 +44,25 @@ export type ListingDealStatusTone = {
 /**
  * Deal status cards:
  * - deposit_hold: amber (attention / in-progress deal — matches listing card badge)
- * - sold: emerald (completed)
+ * - sold: emerald (positive close)
+ * - cancelled: rose (negative close)
  */
 export function listingDealStatusTone(
-  status: "deposit_hold" | "sold",
+  status: "deposit_hold" | "sold" | "cancelled",
 ): ListingDealStatusTone {
   if (status === "sold") {
     return {
       shell:
         "text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2",
+      title: "",
+      menuBtn: "",
+      menuPanel: "",
+    };
+  }
+  if (status === "cancelled") {
+    return {
+      shell:
+        "text-sm font-semibold text-rose-800 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2",
       title: "",
       menuBtn: "",
       menuPanel: "",

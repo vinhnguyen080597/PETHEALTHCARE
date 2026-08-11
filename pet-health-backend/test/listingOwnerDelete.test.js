@@ -46,6 +46,16 @@ test('sold listings wait 7 days from completion', () => {
   assert.deepEqual(ready, { allowed: true, reason: null });
 });
 
+test('cancelled listings use the same 7-day cooldown as sold', () => {
+  const completedAt = new Date(now - 3 * DAY_MS).toISOString();
+  const decision = evaluateOwnerDeleteListing(
+    { status: 'cancelled', completedAt },
+    now,
+  );
+  assert.equal(decision.allowed, false);
+  assert.equal(decision.reason, 'sold_cooldown');
+});
+
 test('archived sold metadata uses deal completed_at', () => {
   const decision = evaluateOwnerDeleteListing(
     {

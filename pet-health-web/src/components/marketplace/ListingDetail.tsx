@@ -193,6 +193,7 @@ export function ListingDetail({
   const warrantyTone = listingWarrantyCardTone(Boolean(listing.warrantyPolicy));
   const depositHoldTone = listingDealStatusTone("deposit_hold");
   const soldTone = listingDealStatusTone("sold");
+  const cancelledTone = listingDealStatusTone("cancelled");
   const isDealSen = Boolean(
     currentUserId && listing.deal?.senUserId && currentUserId === listing.deal.senUserId,
   );
@@ -230,6 +231,7 @@ export function ListingDetail({
     isOwner,
     status: listing.status,
     metadataSold: listing.metadataSold,
+    metadataCancelled: listing.metadataCancelled,
     ownerDeleted: listing.ownerDeleted,
     completedAt: listing.deal?.completedAt,
     senConfirmedCompleteAt: listing.deal?.senConfirmedCompleteAt,
@@ -1363,6 +1365,9 @@ export function ListingDetail({
 
               {listing.status === "sold" ? (
                 <p className={soldTone.shell}>{t(lang, "deal.completed")}</p>
+              ) : null}
+              {listing.status === "cancelled" ? (
+                <p className={cancelledTone.shell}>{t(lang, "deal.cancelledClosed")}</p>
               ) : null}
 
               {showMessage ? (

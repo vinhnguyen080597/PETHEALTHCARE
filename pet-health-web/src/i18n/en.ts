@@ -138,6 +138,7 @@ const en = {
   "farm.listings.createPost": "Create listing",
   "farm.listings.forSale": "For sale",
   "farm.listings.sold": "Sold",
+  "farm.listings.cancelled": "Cancelled",
   "farm.listings.filter": "Filter",
   "farm.listings.filterAll": "All",
   "farm.listings.status.for_sale": "seeking a home",
@@ -342,7 +343,7 @@ const en = {
   "deal.cancel": "Cancel deposit",
   "deal.cancelRequestTitle": "Request deposit cancel",
   "deal.cancelRequestHint":
-    "Tell the buyer why you want to cancel. After they confirm, the listing is marked completed and cannot take another deposit.",
+    "Tell the buyer why you want to cancel. After they confirm, the listing is marked cancelled and cannot take another deposit.",
   "deal.cancelReasonLabel": "Cancel reason",
   "deal.cancelReason.no_contact": "Buyer not reachable",
   "deal.cancelReason.buyer_changed_mind": "Buyer changed their mind",
@@ -372,6 +373,7 @@ const en = {
   "deal.disputePhotosTooMany": "You can upload up to 5 photos.",
   "deal.disputeSubmit": "Submit dispute",
   "deal.completed": "Transaction completed",
+  "deal.cancelledClosed": "Transaction cancelled",
   "account.breederTrust.warrantyLibrary": "Warranty policies",
   "farm.trust.line.firstWarrantyPolicy": "First warranty policy",
   "farm.cta.message": "Message breeder",
@@ -757,6 +759,7 @@ const en = {
   "listing.status.published": "Published",
   "listing.status.archived": "Archived",
   "listing.status.sold": "Sold",
+  "listing.status.cancelled": "Cancelled",
   "listing.status.deposit_hold": "Deposit hold",
 
   "listing.new.title": "Create listing",

@@ -19,6 +19,10 @@ import {
 
 test('resolveDealHandoffPhase and gates match web contract', () => {
   assert.equal(
+    resolveDealHandoffPhase({ listingStatus: 'cancelled' }),
+    'cancelled',
+  );
+  assert.equal(
     resolveDealHandoffPhase({
       listingStatus: 'deposit_hold',
       dealStatus: 'pending_sen_complete',

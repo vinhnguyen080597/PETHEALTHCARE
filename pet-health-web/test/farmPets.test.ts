@@ -2,11 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   countFarmPetsByAvailability,
+  countFarmPetsRehomed,
   farmPetAvailability,
   farmPetTabCount,
   filterFarmPetsByAvailability,
   isFarmPetListing,
+  isFarmRehomedListing,
+  listingMetadataMarksCancelled,
   listingMetadataMarksSold,
+  listingTrustOutcome,
   parseFarmPetAvailabilityFilter,
   sortFarmPets,
 } from "../src/lib/farmPets";
@@ -66,7 +70,32 @@ function listing(
 test("listingMetadataMarksSold reads sold flags", () => {
   assert.equal(listingMetadataMarksSold({ sold: true }), true);
   assert.equal(listingMetadataMarksSold({ listing_outcome: "sold" }), true);
+  assert.equal(listingMetadataMarksSold({ listing_outcome: "cancelled" }), false);
   assert.equal(listingMetadataMarksSold({}), false);
+});
+
+test("cancelled listings are completed on farm but not rehomed", () => {
+  assert.equal(listingMetadataMarksCancelled({ listing_outcome: "cancelled" }), true);
+  assert.equal(
+    farmPetAvailability(listing({ id: "c1", status: "cancelled" })),
+    "completed",
+  );
+  assert.equal(
+    isFarmRehomedListing(listing({ id: "c1", status: "cancelled" })),
+    false,
+  );
+  assert.equal(
+    listingTrustOutcome({ status: "cancelled" }),
+    "negative",
+  );
+  assert.equal(listingTrustOutcome({ status: "sold" }), "positive");
+  assert.equal(
+    countFarmPetsRehomed([
+      listing({ id: "s", status: "sold" }),
+      listing({ id: "c", status: "cancelled" }),
+    ]),
+    1,
+  );
 });
 
 test("farm pets include for-sale, deposit hold, and completed", () => {

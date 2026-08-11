@@ -370,7 +370,7 @@ create table if not exists public.pet_feed_posts (
   media_urls jsonb not null default '[]'::jsonb,
   video_url text,
   contact jsonb not null default '{}'::jsonb,
-  status text not null default 'draft' check (status in ('draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold')),
+  status text not null default 'draft' check (status in ('draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold', 'cancelled')),
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -387,7 +387,7 @@ alter table public.pet_feed_posts
 alter table public.pet_feed_posts drop constraint if exists pet_feed_posts_status_check;
 alter table public.pet_feed_posts
   add constraint pet_feed_posts_status_check
-  check (status in ('draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold'));
+  check (status in ('draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold', 'cancelled'));
 
 create index if not exists idx_pet_feed_posts_kind_status
   on public.pet_feed_posts(post_kind, status, created_at desc);
@@ -557,7 +557,8 @@ with check (
     'published',
     'deposit_hold',
     'archived',
-    'sold'
+    'sold',
+    'cancelled'
   )
 );
 
@@ -609,11 +610,11 @@ using (
     select 1 from public.pet_feed_posts p
     where p.id = post_id
       and (
-        p.status in ('published', 'deposit_hold', 'sold')
+        p.status in ('published', 'deposit_hold', 'sold', 'cancelled')
         or p.user_id = auth.uid()::text
         or (
           p.status = 'archived'
-          and coalesce(p.metadata->>'soft_status', '') in ('deposit_hold', 'sold')
+          and coalesce(p.metadata->>'soft_status', '') in ('deposit_hold', 'sold', 'cancelled')
         )
       )
   )

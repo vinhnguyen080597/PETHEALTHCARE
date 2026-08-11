@@ -56,6 +56,10 @@ test("resolveDealHandoffPhase maps listing + deal status", () => {
     "completed",
   );
   assert.equal(
+    resolveDealHandoffPhase({ listingStatus: "cancelled" }),
+    "cancelled",
+  );
+  assert.equal(
     resolveDealHandoffPhase({
       listingStatus: "published",
       dealStatus: "deposit_hold",
