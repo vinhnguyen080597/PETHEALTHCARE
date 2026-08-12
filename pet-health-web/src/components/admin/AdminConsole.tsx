@@ -421,7 +421,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         .filter(Boolean)
         .join(" · "),
       body:
-        profile.care_environment ||
         profile.bio ||
         (profile.main_breeds || []).join(", ") ||
         "",
@@ -1265,9 +1264,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
-                      {!detailsOpen && (b.bio || b.care_environment) ? (
+                      {!detailsOpen && b.bio ? (
                         <p className="text-sm text-[#5C4A3A] mt-2 line-clamp-3">
-                          {b.care_environment || b.bio}
+                          {b.bio}
                         </p>
                       ) : null}
                       <AdminReviewDetailsToggle

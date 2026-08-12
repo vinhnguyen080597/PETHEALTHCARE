@@ -45,15 +45,13 @@ export function postsForBreeder(posts: PetFeedPost[], profileId: string) {
 }
 
 export function computeBreederTrust(profile: BreederProfile, posts: PetFeedPost[]): BreederTrustSummary {
-  const careChecklistCount = metadataArray(profile.metadata, 'careChecklist').length;
   const commitmentsCount = metadataArray(profile.metadata, 'transparencyCommitments').length;
   const activeListingCount = posts.length;
   const signals: BreederTrustSignal[] = [
     { key: 'verified', passed: profile.verification_status === 'verified', value: profile.verification_status === 'verified' ? 30 : 0, max: 30 },
-    { key: 'careChecklist', passed: careChecklistCount >= 3, value: Math.min(15, careChecklistCount * 3), max: 15 },
     { key: 'commitments', passed: commitmentsCount >= 2, value: Math.min(15, commitmentsCount * 7.5), max: 15 },
     { key: 'contact', passed: hasBreederContact(profile), value: hasBreederContact(profile) ? 15 : 0, max: 15 },
-    { key: 'careEnvironment', passed: Boolean(profile.care_environment || profile.bio), value: profile.care_environment || profile.bio ? 15 : 0, max: 15 },
+    { key: 'careEnvironment', passed: Boolean(profile.bio?.trim()), value: profile.bio?.trim() ? 15 : 0, max: 15 },
     { key: 'activeListings', passed: activeListingCount > 0, value: Math.min(10, activeListingCount * 2), max: 10 },
   ];
   const score = Math.round(signals.reduce((sum, signal) => sum + signal.value, 0));

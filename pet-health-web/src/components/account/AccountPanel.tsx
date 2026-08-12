@@ -7,6 +7,7 @@ import type { Lang, Listing } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { CancelBreederButton } from "./CancelBreederButton";
 import { farmProfileFromAccountHref } from "@/lib/farmTabs";
+import { breederDisplaySpecies } from "@/lib/breederSpeciesSelection";
 import {
   listingDetailHref,
   opensMyListingReviewPopup,
@@ -312,7 +313,7 @@ export function AccountPanel({
                 <p className="mt-2 text-sm text-[#5C4A3A]">
                   {[
                     breeder?.location,
-                    breeder?.primarySpecies?.filter(Boolean).join(", "),
+                    breederDisplaySpecies(breeder?.primarySpecies || []).join(", "),
                   ]
                     .filter(Boolean)
                     .join(" · ") || t(lang, "account.breederTrust.missingInfo")}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 
 import { useRouter } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
+import { resolveProvinceSelection } from "@/lib/vietnamProvinceSelection";
 import { VIETNAM_PROVINCES } from "@/constants/vietnamProvinces";
 import { loginHref } from "@/lib/loginHref";
 import { LISTING_SPECIES } from "@/lib/listingFormOptions";
@@ -77,7 +78,7 @@ export function MarketplaceSearchBar({
   const panelRef = useRef<HTMLDivElement>(null);
   const [localQ, setLocalQ] = useState(q);
   const [localSpecies, setLocalSpecies] = useState(species === "all" ? "" : species);
-  const [localProvince, setLocalProvince] = useState(province);
+  const [localProvince, setLocalProvince] = useState(resolveProvinceSelection(province));
   const [morphing, setMorphing] = useState(false);
 
   useEffect(() => {
@@ -87,7 +88,7 @@ export function MarketplaceSearchBar({
     setLocalSpecies(species === "all" ? "" : species);
   }, [species]);
   useEffect(() => {
-    setLocalProvince(province);
+    setLocalProvince(resolveProvinceSelection(province));
   }, [province]);
 
   useEffect(() => {

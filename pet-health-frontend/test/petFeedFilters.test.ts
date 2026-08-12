@@ -27,5 +27,9 @@ test('postMatchesProvince matches province inside free-text location', () => {
     postMatchesProvince({ location: 'Q. Bình Tân, TP. Hồ Chí Minh', breeder_profile: null }, 'TP. Hồ Chí Minh'),
     true,
   );
+  assert.equal(
+    postMatchesProvince({ location: 'Đà Nẵng', breeder_profile: null }, 'TP. Đà Nẵng'),
+    true,
+  );
   assert.equal(postMatchesProvince({ location: 'Hà Nội', breeder_profile: null }, 'TP. Hồ Chí Minh'), false);
 });

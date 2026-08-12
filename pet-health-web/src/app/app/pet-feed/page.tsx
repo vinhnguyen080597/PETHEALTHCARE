@@ -7,6 +7,7 @@ import { FeedView } from "@/components/marketplace/FeedView";
 import { DisclaimerBanner } from "@/components/marketplace/DisclaimerBanner";
 import { ListingGridSkeleton } from "@/components/ui/Skeleton";
 import type { Lang } from "@/lib/types";
+import { resolveProvinceSelection } from "@/lib/vietnamProvinceSelection";
 
 export const metadata = {
   title: "Browse listings",
@@ -78,7 +79,7 @@ export default async function PetFeedPage({
             lang={lang}
             initialSpecies={sp.species || "all"}
             initialQ={sp.q || ""}
-            initialProvince={sp.province || ""}
+            initialProvince={resolveProvinceSelection(sp.province || "")}
           />
         </Suspense>
       </div>

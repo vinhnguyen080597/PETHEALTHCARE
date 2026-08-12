@@ -856,7 +856,7 @@ export function FarmDetail({
                     {t(lang, "farm.tab.facility")}
                   </h2>
                   <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5 space-y-4">
-                    {!isBlankDisplayValue(bioText) && (
+                    {!isBlankDisplayValue(bioText) ? (
                       <div>
                         <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
                           {t(lang, "farm.facility.about")}
@@ -865,48 +865,11 @@ export function FarmDetail({
                           {bioText}
                         </p>
                       </div>
+                    ) : (
+                      <p className="text-sm text-[#6E5A51]">
+                        {t(lang, "farm.facility.empty")}
+                      </p>
                     )}
-                    {!isBlankDisplayValue(breeder.careEnvironment) && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
-                          {t(lang, "farm.facility.env")}
-                        </h3>
-                        <p className="text-sm text-[#6E5A51] leading-relaxed">
-                          {breeder.careEnvironment}
-                        </p>
-                      </div>
-                    )}
-                    {!isBlankDisplayValue(breeder.scale) && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
-                          {t(lang, "farm.facility.scale")}
-                        </h3>
-                        <p className="text-sm text-[#6E5A51]">{breeder.scale}</p>
-                      </div>
-                    )}
-                    {breeder.checklist.length > 0 && (
-                      <ul className="space-y-2">
-                        {breeder.checklist.map((item) => (
-                          <li
-                            key={item.label}
-                            className="flex items-start gap-2 text-sm text-[#2B1E19]/80"
-                          >
-                            <span className="text-emerald-600 mt-0.5">
-                              {item.done ? "✓" : "○"}
-                            </span>
-                            {item.label}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {isBlankDisplayValue(bioText) &&
-                      isBlankDisplayValue(breeder.careEnvironment) &&
-                      isBlankDisplayValue(breeder.scale) &&
-                      breeder.checklist.length === 0 && (
-                        <p className="text-sm text-[#6E5A51]">
-                          {t(lang, "farm.facility.empty")}
-                        </p>
-                      )}
                   </div>
                 </section>
               </div>

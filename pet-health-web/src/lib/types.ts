@@ -212,6 +212,8 @@ export interface ApiBreederProfile {
   avatar_url?: string | null;
   contact?: Record<string, string>;
   primary_species?: string[];
+  registration_unit?: string;
+  registration_unit_other?: string;
   main_breeds?: string[];
   care_environment?: string;
   verification_status?: string;

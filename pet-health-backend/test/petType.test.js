@@ -30,8 +30,9 @@ test('resolvePostPetType derives from species', () => {
   assert.equal(resolvePostPetType('fish'), 'fish');
 });
 
-test('resolveBreederPetType uses primary_species', () => {
+test('resolveBreederPetType uses primary species only', () => {
   assert.equal(resolveBreederPetType({ primary_species: ['mouse', 'dog'] }), 'mouse');
+  assert.equal(resolveBreederPetType({ primary_species: ['bird'] }), 'bird');
   assert.equal(resolvePetTypeFromSpeciesList(['bird', 'dog']), 'bird');
   assert.equal(resolveBreederPetType({ primary_species: [] }), null);
 });

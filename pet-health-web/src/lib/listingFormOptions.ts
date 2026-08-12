@@ -32,13 +32,9 @@ export const LISTING_CAT_BREED_KEYS = [
 export const LISTING_GENDERS = ["male", "female"] as const;
 export const LISTING_AGE_MONTHS = [2, 3, 6, 12, 24] as const;
 
-export const LISTING_LOCATIONS = [
-  "TP. Hồ Chí Minh",
-  "Hà Nội",
-  "Đà Nẵng",
-  "Cần Thơ",
-  "Khác",
-] as const;
+import { VIETNAM_PROVINCES } from "../constants/vietnamProvinces";
+
+export const LISTING_LOCATIONS = [...VIETNAM_PROVINCES] as const;
 
 export const LISTING_VACCINE_KEYS = [
   "unknown",

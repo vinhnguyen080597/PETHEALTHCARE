@@ -26,6 +26,8 @@ import {
   petFeedPriceInputFromStored,
   petFeedPriceInputUnit,
 } from '../utils/petFeedCurrency';
+import { VIETNAM_PROVINCES } from '../constants/vietnamProvinces';
+import { resolveProvinceSelection } from '../utils/vietnamProvinceSelection';
 import { modalBottomInset } from '../utils/modalSafeArea';
 import {
   findOversizedPetFeedMedia,
@@ -277,13 +279,10 @@ export function CreatePetFeedPostScreen({
     { value: '12', label: t('createPetFeedPost.options.age.twelve') },
     { value: '24', label: t('createPetFeedPost.options.age.twentyFour') },
   ], [t]);
-  const locationOptions = useMemo<Option[]>(() => [
-    { value: 'TP. Hồ Chí Minh', label: 'TP. Hồ Chí Minh' },
-    { value: 'Hà Nội', label: 'Hà Nội' },
-    { value: 'Đà Nẵng', label: 'Đà Nẵng' },
-    { value: 'Cần Thơ', label: 'Cần Thơ' },
-    { value: 'Khác', label: t('createPetFeedPost.options.location.other') },
-  ], [t]);
+  const locationOptions = useMemo<Option[]>(
+    () => VIETNAM_PROVINCES.map((province) => ({ value: province, label: province })),
+    [],
+  );
   const personalityOptions = useMemo<Option[]>(() => [
     { value: t('createPetFeedPost.options.personality.friendly'), label: t('createPetFeedPost.options.personality.friendly') },
     { value: t('createPetFeedPost.options.personality.calm'), label: t('createPetFeedPost.options.personality.calm') },
@@ -321,10 +320,7 @@ export function CreatePetFeedPostScreen({
       setAgeMonths(String(editingPost.age_months));
     }
     if (editingPost.location) {
-      const locationMatch = locationOptions.find(
-        (option) => option.value === editingPost.location || option.label === editingPost.location,
-      );
-      setLocation(locationMatch?.value ?? editingPost.location);
+      setLocation(resolveProvinceSelection(editingPost.location));
     }
     const storedBreed = editingPost.breed?.trim() ?? '';
     if (storedBreed) {

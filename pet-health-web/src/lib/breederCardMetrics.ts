@@ -1,5 +1,6 @@
 import type { BreederProfile, Lang } from "./types";
 import { getBreederPublicTrustMetrics } from "./breederTrust";
+import { breederDisplaySpecies } from "./breederSpeciesSelection";
 
 export function breederCardSpecialtyLabel(
   breeder: BreederProfile,
@@ -7,9 +8,10 @@ export function breederCardSpecialtyLabel(
 ): string {
   const breeds = breeder.mainBreeds.filter(Boolean).slice(0, 2);
   const prefix = lang === "VI" ? "Chuyên" : "Specialty";
-  const emoji = breeder.primarySpecies.includes("dog")
+  const allSpecies = breederDisplaySpecies(breeder.primarySpecies);
+  const emoji = allSpecies.includes("dog")
     ? "🐶"
-    : breeder.primarySpecies.includes("bird")
+    : allSpecies.includes("bird")
       ? "🦜"
       : "🐱";
 
@@ -17,7 +19,7 @@ export function breederCardSpecialtyLabel(
     return `${emoji} ${prefix}: ${breeds.join(" • ")}`;
   }
 
-  const species = breeder.primarySpecies
+  const species = allSpecies
     .map((s) =>
       s === "cat"
         ? lang === "VI"

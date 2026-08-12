@@ -62,8 +62,9 @@ export async function PUT(req: Request) {
       primarySpecies: Array.isArray(body.primarySpecies)
         ? body.primarySpecies
         : [],
+      registrationUnit: String(body.registrationUnit || ""),
+      registrationUnitOther: String(body.registrationUnitOther || ""),
       mainBreeds: Array.isArray(body.mainBreeds) ? body.mainBreeds : [],
-      careEnvironment: String(body.careEnvironment || ""),
       metadata:
         body.metadata && typeof body.metadata === "object"
           ? body.metadata

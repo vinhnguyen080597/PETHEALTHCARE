@@ -70,9 +70,8 @@ export function computeActivityFreshnessScore(latestPostAt: number, now = Date.n
 export function computeProfileCompletenessScore(profile: BreederProfile): number {
   let score = 0;
   if (hasBreederContact(profile)) score += 30;
-  if (metadataArray(profile.metadata, 'careChecklist').length >= 3) score += 25;
   if (metadataArray(profile.metadata, 'transparencyCommitments').length >= 2) score += 20;
-  if (profile.care_environment || profile.bio) score += 15;
+  if (profile.bio?.trim()) score += 15;
   if (profile.location?.trim()) score += 5;
   if ((profile.primary_species?.length ?? 0) > 0) score += 5;
   return Math.min(100, score);
@@ -142,8 +141,7 @@ export function effectiveTrustScore(profile: BreederProfile, posts: PetFeedPost[
 export function isHomeBreederEligible(profile: BreederProfile, trustScore: number): boolean {
   if (trustScore < HOME_BREEDER_TRUST_MIN) return false;
   const type = metadataString(profile.metadata, 'breederType');
-  const scale = metadataString(profile.metadata, 'scaleRange');
-  return type === 'home_breeder' || scale === '1_3';
+  return type === 'home_breeder';
 }
 
 /**

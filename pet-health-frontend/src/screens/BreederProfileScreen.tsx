@@ -5,24 +5,30 @@ import { useTranslation } from 'react-i18next';
 import { ACTIVE_BREEDER_SPECIES_OPTIONS } from '../constants/petSpecies';
 import { APP_LINKS } from '../config';
 import type { BreederProfile, UpsertBreederProfilePayload } from '../types';
+import {
+  breederSpeciesForSave,
+  selectPrimarySpecies,
+  splitBreederSpeciesForForm,
+} from '../utils/breederSpeciesSelection';
+import { ProvinceSelectField } from '../components/form/ProvinceSelectField';
+import { resolveProvinceSelection } from '../utils/vietnamProvinceSelection';
+import {
+  normalizeRegistrationUnitSelection,
+  registrationUnitsForSpecies,
+  REGISTRATION_UNIT_OTHER,
+  splitRegistrationUnitForForm,
+} from '../utils/breederRegistrationUnits';
+import {
+  validateRegisteredKennelFields,
+  type RegisteredKennelFieldErrors,
+} from '../utils/breederRegisteredKennelValidation.ts';
 
 const PRIMARY = '#1E6FE8';
 
 type BreederType = 'registered_kennel' | 'home_breeder' | 'rescue_foster' | 'rehoming' | 'other';
-type ScaleRange = '1_3' | '4_10' | '11_20' | '20_plus';
-type BreedingPetRange = 'none' | '1_3' | '4_10' | '10_plus';
 
 const BREEDER_TYPES: BreederType[] = ['registered_kennel', 'home_breeder', 'rescue_foster', 'rehoming', 'other'];
 const SPECIES_OPTIONS = [...ACTIVE_BREEDER_SPECIES_OPTIONS];
-const SCALE_OPTIONS: ScaleRange[] = ['1_3', '4_10', '11_20', '20_plus'];
-const BREEDING_PET_OPTIONS: BreedingPetRange[] = ['none', '1_3', '4_10', '10_plus'];
-const CARE_CHECKLIST_OPTIONS = [
-  'vaccination_schedule',
-  'deworming_schedule',
-  'vet_records',
-  'environment_media',
-  'in_person_meet',
-] as const;
 const COMMITMENT_OPTIONS = [
   'accurate_information',
   'app_only_verification',
@@ -58,48 +64,71 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
   const scrollRef = useRef<ScrollView>(null);
   const registrationSectionYRef = useRef(0);
   const displayNameRef = useRef<TextInput>(null);
-  const locationRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
   const facebookRef = useRef<TextInput>(null);
   const zaloRef = useRef<TextInput>(null);
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
-  const [location, setLocation] = useState(profile?.location ?? '');
-  const [primarySpecies, setPrimarySpecies] = useState<string[]>(
-    profile?.primary_species?.length ? profile.primary_species : [],
+  const [location, setLocation] = useState(
+    resolveProvinceSelection(profile?.location ?? ''),
   );
+  const [bio, setBio] = useState(profile?.bio ?? '');
+  const [primarySpecies, setPrimarySpecies] = useState<string>(
+    splitBreederSpeciesForForm(profile?.primary_species ?? []),
+  );
+  const initialRegistration = splitRegistrationUnitForForm({
+    unit: profile?.registration_unit,
+    other: profile?.registration_unit_other,
+    species: splitBreederSpeciesForForm(profile?.primary_species ?? []),
+    legacyMetadataUnit:
+      metadataString(metadata, 'registrationUnit') ||
+      metadataString(metadata, 'registration_unit'),
+  });
   const [mainBreeds, setMainBreeds] = useState((profile?.main_breeds ?? []).join(', '));
   const [facebook, setFacebook] = useState(String(profile?.contact?.facebook ?? ''));
   const [zalo, setZalo] = useState(String(profile?.contact?.zalo ?? ''));
   const [phone, setPhone] = useState(String(profile?.contact?.phone ?? ''));
   const [breederType, setBreederType] = useState<BreederType>((metadataString(metadata, 'breederType') as BreederType) || 'home_breeder');
   const [registeredAt, setRegisteredAt] = useState(metadataString(metadata, 'registeredAt'));
+  const [registrationUnit, setRegistrationUnit] = useState(initialRegistration.registrationUnit);
+  const [registrationUnitOther, setRegistrationUnitOther] = useState(
+    initialRegistration.registrationUnitOther,
+  );
   const [registeredKennelName, setRegisteredKennelName] = useState(metadataString(metadata, 'registeredKennelName'));
-  const [scaleRange, setScaleRange] = useState<ScaleRange>((metadataString(metadata, 'scaleRange') as ScaleRange) || '1_3');
-  const [breedingPetRange, setBreedingPetRange] = useState<BreedingPetRange>((metadataString(metadata, 'breedingPetRange') as BreedingPetRange) || 'none');
-  const [careChecklist, setCareChecklist] = useState<string[]>(metadataArray(metadata, 'careChecklist'));
   const [commitments, setCommitments] = useState<string[]>(metadataArray(metadata, 'transparencyCommitments'));
   const [submitting, setSubmitting] = useState(false);
   const [registrationError, setRegistrationError] = useState('');
+  const [registeredKennelErrors, setRegisteredKennelErrors] =
+    useState<RegisteredKennelFieldErrors>({});
   const [submitDialog, setSubmitDialog] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
   const allCommitmentsAccepted = COMMITMENT_OPTIONS.every((item) => commitments.includes(item));
 
   useEffect(() => {
     const nextMetadata = profile?.metadata ?? {};
+    const nextPrimary = splitBreederSpeciesForForm(profile?.primary_species ?? []);
+    const nextRegistration = splitRegistrationUnitForForm({
+      unit: profile?.registration_unit,
+      other: profile?.registration_unit_other,
+      species: nextPrimary,
+      legacyMetadataUnit:
+        metadataString(nextMetadata, 'registrationUnit') ||
+        metadataString(nextMetadata, 'registration_unit'),
+    });
     setDisplayName(profile?.display_name ?? '');
-    setLocation(profile?.location ?? '');
-    setPrimarySpecies(profile?.primary_species?.length ? profile.primary_species : []);
+    setLocation(resolveProvinceSelection(profile?.location ?? ''));
+    setBio(profile?.bio ?? '');
+    setPrimarySpecies(nextPrimary);
     setMainBreeds((profile?.main_breeds ?? []).join(', '));
     setFacebook(String(profile?.contact?.facebook ?? ''));
     setZalo(String(profile?.contact?.zalo ?? ''));
     setPhone(String(profile?.contact?.phone ?? ''));
     setBreederType((metadataString(nextMetadata, 'breederType') as BreederType) || 'home_breeder');
     setRegisteredAt(metadataString(nextMetadata, 'registeredAt'));
+    setRegistrationUnit(nextRegistration.registrationUnit);
+    setRegistrationUnitOther(nextRegistration.registrationUnitOther);
     setRegisteredKennelName(metadataString(nextMetadata, 'registeredKennelName'));
-    setScaleRange((metadataString(nextMetadata, 'scaleRange') as ScaleRange) || '1_3');
-    setBreedingPetRange((metadataString(nextMetadata, 'breedingPetRange') as BreedingPetRange) || 'none');
-    setCareChecklist(metadataArray(nextMetadata, 'careChecklist'));
     setCommitments(metadataArray(nextMetadata, 'transparencyCommitments'));
     setRegistrationError('');
+    setRegisteredKennelErrors({});
   }, [profile]);
 
   function validateRegistrationInfo() {
@@ -117,7 +146,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
       return;
     }
     if (!location.trim()) {
-      locationRef.current?.focus();
+      scrollToRegistrationFields();
       return;
     }
     if (!phone.trim()) {
@@ -150,7 +179,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
       scrollToRegistrationFields();
       return;
     }
-    if (!primarySpecies.length) {
+    if (!primarySpecies.trim()) {
       setSubmitDialog({
         type: 'error',
         title: t('breederProfile.saveFailed'),
@@ -158,25 +187,53 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
       });
       return;
     }
+    const kennelErrors = validateRegisteredKennelFields(
+      {
+        breederType,
+        registrationUnit,
+        registrationUnitOther,
+        registeredKennelName,
+        registeredAt,
+      },
+      {
+        registrationUnitRequired: t('breederProfile.errors.registrationUnitRequired'),
+        registrationUnitOtherRequired: t('breederProfile.errors.registrationUnitOtherRequired'),
+        registeredKennelNameRequired: t('breederProfile.errors.registeredKennelNameRequired'),
+        registeredAtRequired: t('breederProfile.errors.registeredAtRequired'),
+      },
+    );
+    if (Object.keys(kennelErrors).length > 0) {
+      setRegisteredKennelErrors(kennelErrors);
+      return;
+    }
+    setRegisteredKennelErrors({});
 
     setSubmitting(true);
     try {
+      const speciesPayload = breederSpeciesForSave(primarySpecies);
+      const registrationPayload =
+        breederType === 'registered_kennel'
+          ? normalizeRegistrationUnitSelection({
+              species: primarySpecies,
+              unit: registrationUnit,
+              other: registrationUnitOther,
+            })
+          : { registrationUnit: '', registrationUnitOther: '' };
       await onSaveProfile({
         displayName: displayName.trim(),
-        bio: profile?.bio ?? '',
+        bio: bio.trim(),
         location: location.trim(),
         contact: { facebook: facebook.trim(), zalo: zalo.trim(), phone: phone.trim() },
-        primarySpecies,
+        primarySpecies: speciesPayload.primarySpecies,
+        registrationUnit: registrationPayload.registrationUnit,
+        registrationUnitOther: registrationPayload.registrationUnitOther,
         mainBreeds: splitList(mainBreeds),
-        careEnvironment: profile?.care_environment ?? '',
         metadata: {
           ...metadata,
           breederType,
-          registeredAt: registeredAt.trim(),
-          registeredKennelName: registeredKennelName.trim(),
-          scaleRange,
-          breedingPetRange,
-          careChecklist,
+          registeredAt: breederType === 'registered_kennel' ? registeredAt.trim() : '',
+          registeredKennelName:
+            breederType === 'registered_kennel' ? registeredKennelName.trim() : '',
           transparencyCommitments: commitments,
         },
       });
@@ -278,15 +335,17 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
               if (registrationError) setRegistrationError('');
             }}
           />
-          <TextInput
-            ref={locationRef}
-            className={`mt-3 rounded-xl border bg-slate-50 px-3 py-3 text-slate-900 ${showRegistrationInvalid && missingLocation ? 'border-red-400' : 'border-gray-200'}`}
-            placeholder={`${t('breederProfile.location')} *`}
+          <ProvinceSelectField
+            label={t('breederProfile.location')}
             value={location}
-            onChangeText={(value) => {
+            onChange={(value) => {
               setLocation(value);
               if (registrationError) setRegistrationError('');
             }}
+            required
+            error={showRegistrationInvalid && missingLocation ? registrationError : undefined}
+            placeholder={t('breederProfile.locationPlaceholder')}
+            onOpen={scrollToRegistrationFields}
           />
           <TextInput
             ref={phoneRef}
@@ -327,27 +386,27 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
         </View>
 
         <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-          <Text className="text-base font-bold text-slate-900">{t('breederProfile.applicationType')}</Text>
-          <View className="mt-3 flex-row flex-wrap gap-2">
-            {BREEDER_TYPES.map((item) => (
-              <OptionChip key={item} label={t(`breederProfile.breederTypes.${item}`)} active={breederType === item} onPress={() => setBreederType(item)} />
-            ))}
-          </View>
-          {breederType === 'registered_kennel' ? (
-            <View className="mt-3">
-              <TextInput className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder={t('breederProfile.registeredAt')} value={registeredAt} onChangeText={setRegisteredAt} />
-              <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder={t('breederProfile.registeredKennelName')} value={registeredKennelName} onChangeText={setRegisteredKennelName} />
-            </View>
-          ) : null}
-        </View>
-
-        <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-base font-bold text-slate-900">{t('breederProfile.scaleAndSpecies')}</Text>
           <Text className="mt-3 text-xs font-bold uppercase text-slate-500">{t('breederProfile.primarySpecies')}</Text>
           {SPECIES_OPTIONS.length > 1 ? (
             <View className="mt-2 flex-row flex-wrap gap-2">
               {SPECIES_OPTIONS.map((item) => (
-                <OptionChip key={item} label={t(`breederProfile.speciesOptions.${item}`)} active={primarySpecies.includes(item)} onPress={() => setPrimarySpecies((current) => toggleArrayValue(current, item))} />
+                <OptionChip
+                  key={item}
+                  label={t(`breederProfile.speciesOptions.${item}`)}
+                  active={primarySpecies === item}
+                  onPress={() => {
+                    setPrimarySpecies(selectPrimarySpecies(primarySpecies, item));
+                    const nextOptions = registrationUnitsForSpecies(item);
+                    if (
+                      registrationUnit &&
+                      !nextOptions.includes(registrationUnit as (typeof nextOptions)[number])
+                    ) {
+                      setRegistrationUnit('');
+                      setRegistrationUnitOther('');
+                    }
+                  }}
+                />
               ))}
             </View>
           ) : (
@@ -356,27 +415,121 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
             </View>
           )}
           <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder={t('breederProfile.mainBreeds')} value={mainBreeds} onChangeText={setMainBreeds} />
-          <Text className="mt-3 text-xs font-bold uppercase text-slate-500">{t('breederProfile.scaleRange')}</Text>
-          <View className="mt-2 flex-row flex-wrap gap-2">
-            {SCALE_OPTIONS.map((item) => (
-              <OptionChip key={item} label={t(`breederProfile.scaleOptions.${item}`)} active={scaleRange === item} onPress={() => setScaleRange(item)} />
-            ))}
-          </View>
-          <Text className="mt-3 text-xs font-bold uppercase text-slate-500">{t('breederProfile.breedingPetRange')}</Text>
-          <View className="mt-2 flex-row flex-wrap gap-2">
-            {BREEDING_PET_OPTIONS.map((item) => (
-              <OptionChip key={item} label={t(`breederProfile.breedingPetOptions.${item}`)} active={breedingPetRange === item} onPress={() => setBreedingPetRange(item)} />
-            ))}
-          </View>
         </View>
 
-        <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-          <Text className="text-base font-bold text-slate-900">{t('breederProfile.careAndTrust')}</Text>
-          <View className="mt-3 gap-2">
-            {CARE_CHECKLIST_OPTIONS.map((item) => (
-              <CheckboxRow key={item} label={t(`breederProfile.careChecklist.${item}`)} checked={careChecklist.includes(item)} onPress={() => setCareChecklist((current) => toggleArrayValue(current, item))} />
-            ))}
+        {primarySpecies ? (
+          <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+            <Text className="text-base font-bold text-slate-900">{t('breederProfile.applicationType')}</Text>
+            <View className="mt-3 flex-row flex-wrap gap-2">
+              {BREEDER_TYPES.map((item) => (
+                <OptionChip key={item} label={t(`breederProfile.breederTypes.${item}`)} active={breederType === item} onPress={() => {
+                  setBreederType(item);
+                  setRegisteredKennelErrors({});
+                }} />
+              ))}
+            </View>
+            {breederType === 'registered_kennel' ? (
+              <View className="mt-3 gap-3">
+                <Text className="text-xs font-bold uppercase text-slate-500">
+                  {t('breederProfile.registrationUnit')} <Text className="text-red-500">*</Text>
+                </Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {registrationUnitsForSpecies(primarySpecies).map((item) => (
+                    <OptionChip
+                      key={item}
+                      label={t(`breederProfile.registrationUnits.${item}`)}
+                      active={registrationUnit === item}
+                      onPress={() => {
+                        setRegistrationUnit(item);
+                        setRegisteredKennelErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.registrationUnit;
+                          delete next.registrationUnitOther;
+                          return next;
+                        });
+                      }}
+                    />
+                  ))}
+                </View>
+                {registeredKennelErrors.registrationUnit ? (
+                  <Text className="text-sm text-red-600">{registeredKennelErrors.registrationUnit}</Text>
+                ) : null}
+                {registrationUnit === REGISTRATION_UNIT_OTHER ? (
+                  <>
+                    <TextInput
+                      className={`rounded-xl border bg-slate-50 px-3 py-3 text-slate-900 ${registeredKennelErrors.registrationUnitOther ? 'border-red-400' : 'border-gray-200'}`}
+                      placeholder={t('breederProfile.registrationUnitOtherPlaceholder')}
+                      value={registrationUnitOther}
+                      onChangeText={(value) => {
+                        setRegistrationUnitOther(value);
+                        setRegisteredKennelErrors((prev) => {
+                          if (!prev.registrationUnitOther) return prev;
+                          const next = { ...prev };
+                          delete next.registrationUnitOther;
+                          return next;
+                        });
+                      }}
+                    />
+                    {registeredKennelErrors.registrationUnitOther ? (
+                      <Text className="-mt-2 text-sm text-red-600">{registeredKennelErrors.registrationUnitOther}</Text>
+                    ) : null}
+                  </>
+                ) : null}
+                <Text className="text-xs font-bold uppercase text-slate-500">
+                  {t('breederProfile.registeredKennelName')} <Text className="text-red-500">*</Text>
+                </Text>
+                <TextInput
+                  className={`rounded-xl border bg-slate-50 px-3 py-3 text-slate-900 ${registeredKennelErrors.registeredKennelName ? 'border-red-400' : 'border-gray-200'}`}
+                  placeholder={t('breederProfile.registeredKennelName')}
+                  value={registeredKennelName}
+                  onChangeText={(value) => {
+                    setRegisteredKennelName(value);
+                    setRegisteredKennelErrors((prev) => {
+                      if (!prev.registeredKennelName) return prev;
+                      const next = { ...prev };
+                      delete next.registeredKennelName;
+                      return next;
+                    });
+                  }}
+                />
+                {registeredKennelErrors.registeredKennelName ? (
+                  <Text className="-mt-2 text-sm text-red-600">{registeredKennelErrors.registeredKennelName}</Text>
+                ) : null}
+                <Text className="text-xs font-bold uppercase text-slate-500">
+                  {t('breederProfile.registeredAt')} <Text className="text-red-500">*</Text>
+                </Text>
+                <TextInput
+                  className={`rounded-xl border bg-slate-50 px-3 py-3 text-slate-900 ${registeredKennelErrors.registeredAt ? 'border-red-400' : 'border-gray-200'}`}
+                  placeholder={t('breederProfile.registeredAt')}
+                  value={registeredAt}
+                  onChangeText={(value) => {
+                    setRegisteredAt(value);
+                    setRegisteredKennelErrors((prev) => {
+                      if (!prev.registeredAt) return prev;
+                      const next = { ...prev };
+                      delete next.registeredAt;
+                      return next;
+                    });
+                  }}
+                />
+                {registeredKennelErrors.registeredAt ? (
+                  <Text className="-mt-2 text-sm text-red-600">{registeredKennelErrors.registeredAt}</Text>
+                ) : null}
+              </View>
+            ) : null}
           </View>
+        ) : null}
+
+        <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+          <Text className="text-base font-bold text-slate-900">{t('breederProfile.bio')}</Text>
+          <TextInput
+            className="mt-3 min-h-[88px] rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900"
+            placeholder={t('breederProfile.bio')}
+            value={bio}
+            onChangeText={setBio}
+            multiline
+            textAlignVertical="top"
+          />
         </View>
 
         <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">

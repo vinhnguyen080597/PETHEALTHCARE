@@ -525,6 +525,9 @@ export function usePetHealthApp() {
         contact: prefer.contact ?? fromPost.contact ?? {},
         metadata: prefer.metadata ?? fromPost.metadata ?? {},
         primary_species: prefer.primary_species ?? fromPost.primary_species ?? [],
+        registration_unit: prefer.registration_unit ?? fromPost.registration_unit,
+        registration_unit_other:
+          prefer.registration_unit_other ?? fromPost.registration_unit_other,
         main_breeds: prefer.main_breeds ?? fromPost.main_breeds ?? [],
       };
     }
@@ -535,6 +538,8 @@ export function usePetHealthApp() {
       contact: fromPost.contact ?? {},
       metadata: fromPost.metadata ?? {},
       primary_species: Array.isArray(fromPost.primary_species) ? fromPost.primary_species : [],
+      registration_unit: fromPost.registration_unit,
+      registration_unit_other: fromPost.registration_unit_other,
       main_breeds: Array.isArray(fromPost.main_breeds) ? fromPost.main_breeds : [],
     };
   }, [breederProfile, selectedBreederPosts, selectedBreederProfileId, topBreederProfiles]);
@@ -1998,7 +2003,6 @@ export function usePetHealthApp() {
         },
         primarySpecies: Array.isArray(breederProfile.primary_species) ? breederProfile.primary_species : [],
         mainBreeds: Array.isArray(breederProfile.main_breeds) ? breederProfile.main_breeds : [],
-        careEnvironment: breederProfile.care_environment || undefined,
         metadata: {
           ...(breederProfile.metadata ?? {}),
           templateId,

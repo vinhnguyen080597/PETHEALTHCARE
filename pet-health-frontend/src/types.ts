@@ -193,8 +193,9 @@ export type BreederProfile = {
   /** Derived filter field for dog/cat listings. */
   pet_type?: PetType | null;
   primary_species: string[];
+  registration_unit?: string;
+  registration_unit_other?: string;
   main_breeds: string[];
-  care_environment: string;
   verification_status: BreederVerificationStatus;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -360,8 +361,9 @@ export type UpsertBreederProfilePayload = {
   location?: string;
   contact?: BreederContact;
   primarySpecies?: string[];
+  registrationUnit?: string;
+  registrationUnitOther?: string;
   mainBreeds?: string[];
-  careEnvironment?: string;
   metadata?: Record<string, unknown>;
 };
 

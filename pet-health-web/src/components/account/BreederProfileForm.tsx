@@ -13,10 +13,24 @@ import {
   resolveBreederCoverUrl,
 } from "@/lib/breederProfileImages";
 import { LISTING_SPECIES } from "@/lib/listingFormOptions";
+import { VIETNAM_PROVINCES } from "@/constants/vietnamProvinces";
+import { resolveProvinceSelection } from "@/lib/vietnamProvinceSelection";
 import {
   hasAllBreederCommitments,
   setBreederCommitmentsAccepted,
 } from "@/lib/breederCommitments";
+import {
+  breederSpeciesForSave,
+  selectPrimarySpecies,
+  splitBreederSpeciesForForm,
+} from "@/lib/breederSpeciesSelection";
+import {
+  normalizeRegistrationUnitSelection,
+  registrationUnitsForSpecies,
+  REGISTRATION_UNIT_OTHER,
+  splitRegistrationUnitForForm,
+} from "@/lib/breederRegistrationUnits";
+import { validateRegisteredKennelFields } from "@/lib/breederRegisteredKennelValidation";
 
 const BREEDER_TYPES = [
   "registered_kennel",
@@ -26,15 +40,6 @@ const BREEDER_TYPES = [
   "other",
 ] as const;
 const SPECIES_OPTIONS = LISTING_SPECIES;
-const SCALE_OPTIONS = ["1_3", "4_10", "11_20", "20_plus"] as const;
-const BREEDING_PET_OPTIONS = ["none", "1_3", "4_10", "10_plus"] as const;
-const CARE_CHECKLIST = [
-  "vaccination_schedule",
-  "deworming_schedule",
-  "vet_records",
-  "environment_media",
-  "in_person_meet",
-] as const;
 
 const inputCls =
   "w-full px-4 py-2.5 bg-white border border-[#F0E6D8] rounded-xl text-sm text-[#2B1E19] focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-[#D97706]";
@@ -104,9 +109,11 @@ export function BreederProfileForm({
   const meta = (initial?.metadata || {}) as Record<string, unknown>;
 
   const [displayName, setDisplayName] = useState(initial?.display_name || "");
-  const [location, setLocation] = useState(initial?.location || "");
+  const [location, setLocation] = useState(
+    resolveProvinceSelection(initial?.location || ""),
+  );
   const [bio, setBio] = useState(initial?.bio || "");
-  const [phone, setPhone] = useState(initial?.contact?.phone || "");
+  const [phone] = useState(initial?.contact?.phone || "");
   const [facebook, setFacebook] = useState(initial?.contact?.facebook || "");
   const [zalo, setZalo] = useState(initial?.contact?.zalo || "");
   const [breederType, setBreederType] = useState(
@@ -118,29 +125,28 @@ export function BreederProfileForm({
     metaString(meta, "registeredKennelName") ||
       metaString(meta, "registered_kennel_name"),
   );
+  const initialRegistration = splitRegistrationUnitForForm({
+    unit: initial?.registration_unit,
+    other: initial?.registration_unit_other,
+    species: splitBreederSpeciesForForm(initial?.primary_species || []),
+    legacyMetadataUnit:
+      metaString(meta, "registrationUnit") ||
+      metaString(meta, "registration_unit"),
+  });
+  const [registrationUnit, setRegistrationUnit] = useState(
+    initialRegistration.registrationUnit,
+  );
+  const [registrationUnitOther, setRegistrationUnitOther] = useState(
+    initialRegistration.registrationUnitOther,
+  );
   const [registeredAt, setRegisteredAt] = useState(
     metaString(meta, "registeredAt") || metaString(meta, "registered_at"),
   );
-  const [scaleRange, setScaleRange] = useState(
-    metaString(meta, "scaleRange") ||
-      metaString(meta, "scale_range") ||
-      "1_3",
-  );
-  const [breedingPetRange, setBreedingPetRange] = useState(
-    metaString(meta, "breedingPetRange") ||
-      metaString(meta, "breeding_pet_range") ||
-      "none",
-  );
-  const [primarySpecies, setPrimarySpecies] = useState<string[]>(
-    initial?.primary_species?.length ? initial.primary_species : [],
+  const [primarySpecies, setPrimarySpecies] = useState<string>(
+    splitBreederSpeciesForForm(initial?.primary_species || []),
   );
   const [mainBreeds, setMainBreeds] = useState(
     (initial?.main_breeds || []).join(", "),
-  );
-  const [careChecklist, setCareChecklist] = useState<string[]>(
-    metaArray(meta, "careChecklist").length
-      ? metaArray(meta, "careChecklist")
-      : metaArray(meta, "care_checklist"),
   );
   const [commitments, setCommitments] = useState<string[]>(
     metaArray(meta, "transparencyCommitments").length
@@ -165,10 +171,13 @@ export function BreederProfileForm({
   const [fieldErrors, setFieldErrors] = useState<{
     displayName?: string;
     location?: string;
-    phone?: string;
     facebook?: string;
     zalo?: string;
     species?: string;
+    registrationUnit?: string;
+    registrationUnitOther?: string;
+    registeredKennelName?: string;
+    registeredAt?: string;
   }>({});
 
   const status = initial?.verification_status || "unverified";
@@ -185,6 +194,11 @@ export function BreederProfileForm({
       return next;
     });
   };
+
+  const registrationUnitOptions = useMemo(
+    () => registrationUnitsForSpecies(primarySpecies),
+    [primarySpecies],
+  );
 
   const title = useMemo(() => {
     if (isEdit) return t(lang, "breederForm.editTitle");
@@ -249,18 +263,40 @@ export function BreederProfileForm({
     if (!location.trim()) {
       nextErrors.location = t(lang, "breederForm.field.locationRequired");
     }
-    if (!phone.trim()) {
-      nextErrors.phone = t(lang, "breederForm.field.phoneRequired");
-    }
     if (!facebook.trim()) {
       nextErrors.facebook = t(lang, "breederForm.field.facebookRequired");
     }
     if (!zalo.trim()) {
       nextErrors.zalo = t(lang, "breederForm.field.zaloRequired");
     }
-    if (primarySpecies.length === 0) {
+    if (!primarySpecies.trim()) {
       nextErrors.species = t(lang, "breederForm.field.speciesRequired");
     }
+    const registeredKennelErrors = validateRegisteredKennelFields(
+      {
+        breederType,
+        registrationUnit,
+        registrationUnitOther,
+        registeredKennelName,
+        registeredAt,
+      },
+      {
+        registrationUnitRequired: t(
+          lang,
+          "breederForm.field.registrationUnitRequired",
+        ),
+        registrationUnitOtherRequired: t(
+          lang,
+          "breederForm.field.registrationUnitOtherRequired",
+        ),
+        registeredKennelNameRequired: t(
+          lang,
+          "breederForm.field.registeredKennelNameRequired",
+        ),
+        registeredAtRequired: t(lang, "breederForm.field.registeredAtRequired"),
+      },
+    );
+    Object.assign(nextErrors, registeredKennelErrors);
     if (Object.keys(nextErrors).length > 0) {
       setFieldErrors(nextErrors);
       return;
@@ -272,6 +308,15 @@ export function BreederProfileForm({
     }
     setBusy(true);
     try {
+      const speciesPayload = breederSpeciesForSave(primarySpecies);
+      const registrationPayload =
+        breederType === "registered_kennel"
+          ? normalizeRegistrationUnitSelection({
+              species: primarySpecies,
+              unit: registrationUnit,
+              other: registrationUnitOther,
+            })
+          : { registrationUnit: "", registrationUnitOther: "" };
       const res = await fetch("/api/breeder/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -288,12 +333,13 @@ export function BreederProfileForm({
             facebook: facebook.trim(),
             zalo: zalo.trim(),
           },
-          primarySpecies,
+          primarySpecies: speciesPayload.primarySpecies,
+          registrationUnit: registrationPayload.registrationUnit,
+          registrationUnitOther: registrationPayload.registrationUnitOther,
           mainBreeds: mainBreeds
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean),
-          careEnvironment: String(initial?.care_environment || ""),
           metadata: {
             ...meta,
             breederType,
@@ -301,9 +347,6 @@ export function BreederProfileForm({
               breederType === "registered_kennel" ? registeredKennelName : "",
             registeredAt:
               breederType === "registered_kennel" ? registeredAt : "",
-            scaleRange,
-            breedingPetRange,
-            careChecklist,
             transparencyCommitments: commitments,
             ...(coverUrl && coverUrl !== DEFAULT_BREEDER_COVER_PATH
               ? {
@@ -510,34 +553,25 @@ export function BreederProfileForm({
             {t(lang, "breederForm.location")}
             <RequiredMark />
           </label>
-          <input
-            className={`${inputCls} ${fieldErrors.location ? inputErrorCls : ""}`}
+          <select
+            className={`${selectCls} ${fieldErrors.location ? inputErrorCls : ""}`}
             value={location}
             onChange={(e) => {
               setLocation(e.target.value);
               clearFieldError("location");
             }}
             aria-invalid={Boolean(fieldErrors.location)}
-          />
+          >
+            <option value="">{t(lang, "breederForm.locationPlaceholder")}</option>
+            {VIETNAM_PROVINCES.map((province) => (
+              <option key={province} value={province}>
+                {province}
+              </option>
+            ))}
+          </select>
           <FieldError message={fieldErrors.location} />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className={labelCls}>
-              {t(lang, "breederForm.phone")}
-              <RequiredMark />
-            </label>
-            <input
-              className={`${inputCls} ${fieldErrors.phone ? inputErrorCls : ""}`}
-              value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value);
-                clearFieldError("phone");
-              }}
-              aria-invalid={Boolean(fieldErrors.phone)}
-            />
-            <FieldError message={fieldErrors.phone} />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>
               {t(lang, "breederForm.facebook")}
@@ -573,60 +607,29 @@ export function BreederProfileForm({
         </div>
 
         <div>
-          <label className={labelCls}>{t(lang, "breederForm.breederType")}</label>
-          <select
-            className={selectCls}
-            value={breederType}
-            onChange={(e) => setBreederType(e.target.value)}
-          >
-            {BREEDER_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {t(lang, `breederForm.types.${type}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {breederType === "registered_kennel" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>
-                {t(lang, "breederForm.kennelName")}
-              </label>
-              <input
-                className={inputCls}
-                value={registeredKennelName}
-                onChange={(e) => setRegisteredKennelName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>
-                {t(lang, "breederForm.registeredAt")}
-              </label>
-              <input
-                className={inputCls}
-                value={registeredAt}
-                onChange={(e) => setRegisteredAt(e.target.value)}
-                placeholder="YYYY"
-              />
-            </div>
-          </div>
-        ) : null}
-
-        <div>
           <p className={labelCls}>
             {t(lang, "breederForm.species")}
             <RequiredMark />
           </p>
           <div className="flex flex-wrap gap-2">
             {SPECIES_OPTIONS.map((sp) => {
-              const on = primarySpecies.includes(sp);
+              const on = primarySpecies === sp;
               return (
                 <button
                   key={sp}
                   type="button"
                   onClick={() => {
-                    setPrimarySpecies(toggle(primarySpecies, sp));
+                    setPrimarySpecies(selectPrimarySpecies(primarySpecies, sp));
+                    const nextOptions = registrationUnitsForSpecies(sp);
+                    if (
+                      registrationUnit &&
+                      !nextOptions.includes(
+                        registrationUnit as (typeof nextOptions)[number],
+                      )
+                    ) {
+                      setRegistrationUnit("");
+                      setRegistrationUnitOther("");
+                    }
                     clearFieldError("species");
                   }}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
@@ -643,6 +646,110 @@ export function BreederProfileForm({
           <FieldError message={fieldErrors.species} />
         </div>
 
+        {primarySpecies ? (
+          <div>
+            <label className={labelCls}>{t(lang, "breederForm.breederType")}</label>
+            <select
+              className={selectCls}
+              value={breederType}
+              onChange={(e) => {
+                setBreederType(e.target.value);
+                setFieldErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.registrationUnit;
+                  delete next.registrationUnitOther;
+                  delete next.registeredKennelName;
+                  delete next.registeredAt;
+                  return next;
+                });
+              }}
+            >
+              {BREEDER_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {t(lang, `breederForm.types.${type}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+
+        {primarySpecies && breederType === "registered_kennel" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className={labelCls}>
+                {t(lang, "breederForm.registrationUnit")}
+                <RequiredMark />
+              </label>
+              <select
+                className={`${selectCls} ${fieldErrors.registrationUnit ? inputErrorCls : ""}`}
+                value={registrationUnit}
+                onChange={(e) => {
+                  setRegistrationUnit(e.target.value);
+                  clearFieldError("registrationUnit");
+                  clearFieldError("registrationUnitOther");
+                }}
+                aria-invalid={Boolean(fieldErrors.registrationUnit)}
+              >
+                <option value="" hidden disabled />
+                {registrationUnitOptions.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {t(lang, `breederForm.registrationUnits.${unit}` as EnKey)}
+                  </option>
+                ))}
+              </select>
+              <FieldError message={fieldErrors.registrationUnit} />
+              {registrationUnit === REGISTRATION_UNIT_OTHER ? (
+                <>
+                  <input
+                    className={`${inputCls} mt-2 ${fieldErrors.registrationUnitOther ? inputErrorCls : ""}`}
+                    value={registrationUnitOther}
+                    onChange={(e) => {
+                      setRegistrationUnitOther(e.target.value);
+                      clearFieldError("registrationUnitOther");
+                    }}
+                    placeholder={t(lang, "breederForm.registrationUnitOtherPlaceholder")}
+                    aria-invalid={Boolean(fieldErrors.registrationUnitOther)}
+                  />
+                  <FieldError message={fieldErrors.registrationUnitOther} />
+                </>
+              ) : null}
+            </div>
+            <div>
+              <label className={labelCls}>
+                {t(lang, "breederForm.kennelName")}
+                <RequiredMark />
+              </label>
+              <input
+                className={`${inputCls} ${fieldErrors.registeredKennelName ? inputErrorCls : ""}`}
+                value={registeredKennelName}
+                onChange={(e) => {
+                  setRegisteredKennelName(e.target.value);
+                  clearFieldError("registeredKennelName");
+                }}
+                aria-invalid={Boolean(fieldErrors.registeredKennelName)}
+              />
+              <FieldError message={fieldErrors.registeredKennelName} />
+            </div>
+            <div>
+              <label className={labelCls}>
+                {t(lang, "breederForm.registeredAt")}
+                <RequiredMark />
+              </label>
+              <input
+                className={`${inputCls} ${fieldErrors.registeredAt ? inputErrorCls : ""}`}
+                value={registeredAt}
+                onChange={(e) => {
+                  setRegisteredAt(e.target.value);
+                  clearFieldError("registeredAt");
+                }}
+                placeholder="YYYY"
+                aria-invalid={Boolean(fieldErrors.registeredAt)}
+              />
+              <FieldError message={fieldErrors.registeredAt} />
+            </div>
+          </div>
+        ) : null}
+
         <div>
           <label className={labelCls}>{t(lang, "breederForm.mainBreeds")}</label>
           <input
@@ -653,39 +760,6 @@ export function BreederProfileForm({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>{t(lang, "breederForm.scale")}</label>
-            <select
-              className={selectCls}
-              value={scaleRange}
-              onChange={(e) => setScaleRange(e.target.value)}
-            >
-              {SCALE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {t(lang, `breederForm.scaleOptions.${opt}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>
-              {t(lang, "breederForm.breedingPets")}
-            </label>
-            <select
-              className={selectCls}
-              value={breedingPetRange}
-              onChange={(e) => setBreedingPetRange(e.target.value)}
-            >
-              {BREEDING_PET_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {t(lang, `breederForm.breedingOptions.${opt}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
         <div>
           <label className={labelCls}>{t(lang, "breederForm.bio")}</label>
           <textarea
@@ -693,28 +767,6 @@ export function BreederProfileForm({
             value={bio}
             onChange={(e) => setBio(e.target.value)}
           />
-        </div>
-
-        <div>
-          <p className={labelCls}>{t(lang, "breederForm.careChecklist")}</p>
-          <div className="space-y-2">
-            {CARE_CHECKLIST.map((item) => (
-              <label
-                key={item}
-                className="flex items-start gap-2 text-sm text-[#2B1E19]"
-              >
-                <input
-                  type="checkbox"
-                  className="mt-1 accent-[#D97706]"
-                  checked={careChecklist.includes(item)}
-                  onChange={() =>
-                    setCareChecklist(toggle(careChecklist, item))
-                  }
-                />
-                <span>{t(lang, `breederForm.care.${item}`)}</span>
-              </label>
-            ))}
-          </div>
         </div>
 
         <div>

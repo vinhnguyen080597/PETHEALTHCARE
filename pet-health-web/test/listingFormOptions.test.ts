@@ -103,7 +103,7 @@ test("validateNewListingForm requires mobile parity fields", () => {
       customBreed: "",
       gender: "male",
       ageMonths: "2",
-      location: "Hà Nội",
+      location: "TP. Hà Nội",
       priceNote: "3.500.000",
       vaccineKey: "not_yet",
       vaccineLabel: "Not vaccinated yet",

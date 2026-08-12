@@ -272,14 +272,10 @@ export function AccountScreen({
   const breederApplicationSummary = (profile: BreederProfile) => {
     const metadata = profile.metadata ?? {};
     const breederType = typeof metadata.breederType === 'string' ? metadata.breederType : '';
-    const scaleRange = typeof metadata.scaleRange === 'string' ? metadata.scaleRange : '';
     const registeredKennelName = typeof metadata.registeredKennelName === 'string' ? metadata.registeredKennelName : '';
-    const checklistCount = Array.isArray(metadata.careChecklist) ? metadata.careChecklist.length : 0;
     return [
       breederType ? t(`breederProfile.breederTypes.${breederType}`) : '',
-      scaleRange ? t(`breederProfile.scaleOptions.${scaleRange}`) : '',
       registeredKennelName,
-      checklistCount ? t('adminRequests.breederChecklistCount', { count: checklistCount }) : '',
     ].filter(Boolean).join(' - ');
   };
   const adminRequestItems = useMemo<AdminRequestItem[]>(() => {
@@ -290,7 +286,7 @@ export function AccountScreen({
       createdAt: profile.created_at,
       title: profile.display_name || t('adminRequests.untitledBreeder'),
       subtitle: [profile.location, profile.primary_species.join(', ')].filter(Boolean).join(' - '),
-      body: breederApplicationSummary(profile) || profile.care_environment || profile.bio || profile.main_breeds.join(', '),
+      body: breederApplicationSummary(profile) || profile.bio || profile.main_breeds.join(', '),
       profile,
     }));
     const postItems: AdminRequestItem[] = adminFeedPosts.map((post) => ({
@@ -1152,9 +1148,9 @@ export function AccountScreen({
                     <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>
                       {breederApplicationSummary(profile)}
                     </Text>
-                  ) : profile.care_environment || profile.bio ? (
+                  ) : profile.bio ? (
                     <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>
-                      {profile.care_environment || profile.bio}
+                      {profile.bio}
                     </Text>
                   ) : null}
                   <View className="mt-4 flex-row flex-wrap gap-2">

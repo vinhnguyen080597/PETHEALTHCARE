@@ -257,14 +257,6 @@ export function AdminBreederReviewDetail({
         </Section>
       ) : null}
 
-      {profile.care_environment?.trim() ? (
-        <Section title={t(lang, "admin.review.careEnvironment")}>
-          <p className="text-sm text-[#5C4A3A] whitespace-pre-wrap">
-            {profile.care_environment.trim()}
-          </p>
-        </Section>
-      ) : null}
-
       {contact.length > 0 ? (
         <Section title={t(lang, "admin.review.contact")}>
           <div className="space-y-1">

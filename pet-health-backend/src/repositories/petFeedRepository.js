@@ -25,6 +25,8 @@ import {
   isCancelledListingMetadata,
   isSoldListingMetadata,
 } from '../utils/listingCloseOutcome.js';
+import { sanitizeBreederProfileMetadata } from '../utils/breederProfileMetadata.js';
+import { normalizeRegistrationUnitPayload } from '../utils/breederRegistrationUnit.js';
 
 const DEFAULT_VIOLATION_PENALTY_POINTS = 10;
 
@@ -152,6 +154,16 @@ function normalizeStringArray(value, limit = 8) {
 function normalizeProfilePayload(userId, payload, existingId) {
   const existingStatus = normalizeVerificationStatus(payload.existingVerificationStatus);
   const nextStatus = existingStatus === 'suspended' ? 'suspended' : 'pending_review';
+  const primarySpecies = normalizeStringArray(payload.primarySpecies ?? payload.primary_species, 1);
+  const metadata = sanitizeBreederProfileMetadata(normalizeJsonObject(payload.metadata));
+  const breederType = trimText(metadata.breederType ?? metadata.breeder_type, 64).toLowerCase();
+  const registration = breederType === 'registered_kennel'
+    ? normalizeRegistrationUnitPayload(
+      primarySpecies,
+      payload.registrationUnit ?? payload.registration_unit,
+      payload.registrationUnitOther ?? payload.registration_unit_other,
+    )
+    : { registration_unit: '', registration_unit_other: '' };
   return {
     id: existingId ?? payload.id ?? randomUUID(),
     user_id: userId,
@@ -160,11 +172,12 @@ function normalizeProfilePayload(userId, payload, existingId) {
     location: trimText(payload.location, 160),
     avatar_url: trimText(payload.avatarUrl ?? payload.avatar_url, 1000) || null,
     contact: normalizeJsonObject(payload.contact),
-    primary_species: normalizeStringArray(payload.primarySpecies ?? payload.primary_species, 2),
+    primary_species: primarySpecies,
     main_breeds: normalizeStringArray(payload.mainBreeds ?? payload.main_breeds, 12),
-    care_environment: trimText(payload.careEnvironment ?? payload.care_environment, 1500),
+    registration_unit: registration.registration_unit,
+    registration_unit_other: registration.registration_unit_other,
     verification_status: nextStatus,
-    metadata: normalizeJsonObject(payload.metadata),
+    metadata,
     updated_at: new Date().toISOString(),
   };
 }
@@ -247,7 +260,8 @@ function toProfile(row) {
     contact: row.contact ?? {},
     primary_species: row.primary_species ?? [],
     main_breeds: row.main_breeds ?? [],
-    care_environment: row.care_environment ?? '',
+    registration_unit: row.registration_unit ?? '',
+    registration_unit_other: row.registration_unit_other ?? '',
     verification_status: row.verification_status ?? 'unverified',
     metadata,
     warranty_policies: listWarrantyPoliciesFromMetadata(metadata),

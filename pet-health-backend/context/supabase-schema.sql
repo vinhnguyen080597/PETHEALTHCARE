@@ -332,8 +332,9 @@ create table if not exists public.breeder_profiles (
   avatar_url text,
   contact jsonb not null default '{}'::jsonb,
   primary_species jsonb not null default '[]'::jsonb,
+  registration_unit text not null default '',
+  registration_unit_other text not null default '',
   main_breeds jsonb not null default '[]'::jsonb,
-  care_environment text not null default '',
   verification_status text not null default 'unverified'
     check (verification_status in ('unverified', 'pending_review', 'verified', 'rejected', 'suspended')),
   metadata jsonb not null default '{}'::jsonb,
@@ -343,8 +344,11 @@ create table if not exists public.breeder_profiles (
 
 alter table public.breeder_profiles
   add column if not exists primary_species jsonb not null default '[]'::jsonb,
-  add column if not exists main_breeds jsonb not null default '[]'::jsonb,
-  add column if not exists care_environment text not null default '';
+  add column if not exists registration_unit text not null default '',
+  add column if not exists registration_unit_other text not null default '',
+  add column if not exists main_breeds jsonb not null default '[]'::jsonb;
+
+alter table public.breeder_profiles drop column if exists care_environment;
 
 alter table public.breeder_profiles drop constraint if exists breeder_profiles_verification_status_check;
 alter table public.breeder_profiles

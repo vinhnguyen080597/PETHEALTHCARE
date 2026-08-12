@@ -39,7 +39,6 @@ export async function POST(req: Request) {
       contact: profile.contact,
       primarySpecies: profile.primary_species,
       mainBreeds: profile.main_breeds,
-      careEnvironment: profile.care_environment,
       metadata,
     });
     return NextResponse.json(updated);

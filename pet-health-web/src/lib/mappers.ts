@@ -262,7 +262,6 @@ export function mapApiBreeder(
     options?.petsRehomed ?? petsRehomedFromMeta(meta);
   const checklist = parseChecklist(meta);
   const commitments = asStringArray(meta.commitments);
-  const careEnvironment = profile?.care_environment || "";
   const mappedContact = {
     zalo: contact.zalo,
     phone: contact.phone,
@@ -297,7 +296,7 @@ export function mapApiBreeder(
     hasTiktok,
     hasFarmFacility:
       activity.hasFarmFacility ||
-      Boolean(careEnvironment.trim() || bio.trim()),
+      Boolean(bio.trim()),
     hasBusinessLicense: activity.hasBusinessLicense,
     hasHealthDocs:
       activity.hasHealthDocs || checklist.some((c) => c.done),
@@ -306,14 +305,14 @@ export function mapApiBreeder(
     checklistDoneCount: checklist.filter((c) => c.done).length,
     commitmentsCount: commitments.length,
     contactCount,
-    hasCareEnvironment: Boolean(careEnvironment.trim() || bio.trim()),
+    hasCareEnvironment: Boolean(bio.trim()),
     activeListings,
     fiveStarReviewCount: activity.fiveStarReviewCount,
     fastResponseMonth: activity.fastResponseMonth,
     penaltyPoints,
     violations,
   });
-  const scaleRaw = String(meta.scale || "").trim();
+  const scaleRaw = String(meta.scale || meta.scaleRange || "").trim();
   const warrantyPolicies = mapWarrantyPolicies(
     profile?.warranty_policies ?? meta.warranty_policies,
   );
@@ -341,7 +340,7 @@ export function mapApiBreeder(
     template: parseTemplate(meta),
     contact: mappedContact,
     scale: scaleRaw === "—" || scaleRaw === "-" ? "" : scaleRaw,
-    careEnvironment,
+    careEnvironment: "",
     commitments,
     checklist,
     verificationTier: parseVerificationTier(meta, verificationStatus, trustScore),

@@ -9,6 +9,8 @@ import { getBreederTemplateId, templateAccent, type BreederTemplateId } from '..
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { computeBreederTrust, hasBreederContact, metadataArray, metadataString } from '../utils/breederTrust';
+import { breederDisplaySpecies } from '../utils/breederSpeciesSelection';
+import { displayRegistrationUnit } from '../utils/breederRegistrationUnits';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 
 type BreederDetailScreenProps = {
@@ -87,17 +89,21 @@ export function BreederDetailScreen({
   const mainBreeds = Array.isArray(profile.main_breeds) ? profile.main_breeds : [];
   const trust = useMemo(() => computeBreederTrust(profile, listingPosts), [profile, listingPosts]);
   const templateId = getBreederTemplateId(profile.metadata);
-  const scaleRange = metadataString(profile.metadata, 'scaleRange');
-  const breedingPetRange = metadataString(profile.metadata, 'breedingPetRange');
   const breederType = metadataString(profile.metadata, 'breederType');
   const registeredAt = metadataString(profile.metadata, 'registeredAt');
+  const registrationUnitLabel = displayRegistrationUnit(
+    profile.registration_unit || '',
+    profile.registration_unit_other || '',
+    (key) => t(key),
+  );
   const registeredKennelName = metadataString(profile.metadata, 'registeredKennelName');
-  const careChecklist = metadataArray(profile.metadata, 'careChecklist');
   const commitments = metadataArray(profile.metadata, 'transparencyCommitments');
   const coverImageUrl = metadataString(profile.metadata, 'coverImageUrl') || profile.avatar_url;
-  const species = primarySpecies.map((value) => translatedOption(t, 'breederProfile.speciesOptions', value)).filter(Boolean).join(', ');
+  const species = breederDisplaySpecies(primarySpecies)
+    .map((value) => translatedOption(t, 'breederProfile.speciesOptions', value))
+    .filter(Boolean)
+    .join(', ');
   const breeds = mainBreeds.join(', ');
-  const scaleLabel = scaleRange ? t(`breederProfile.scaleOptions.${scaleRange}`) : t('petFeed.topBreeders.notUpdated');
   const typeFullLabel = breederType ? t(`breederProfile.breederTypes.${breederType}`) : t('petFeed.topBreeders.notUpdated');
   const typeShortLabel = shortBreederTypeLabel(t, breederType) || typeFullLabel;
   const isT5 = templateId === 'T5';
@@ -303,13 +309,6 @@ export function BreederDetailScreen({
               <InfoRow icon="🏠" label={t('petFeed.topBreeders.type')} value={typeFullLabel} dark={isT5} />
               <InfoRow icon="📍" label={t('breederDetail.area')} value={profile.location || t('petFeed.topBreeders.notUpdated')} dark={isT5} />
               <InfoRow icon="🐾" label={t('breederDetail.mainBreeds')} value={breeds || t('petFeed.topBreeders.notUpdated')} dark={isT5} />
-              <InfoRow icon="📊" label={t('petFeed.topBreeders.scale')} value={scaleLabel} dark={isT5} />
-              <InfoRow
-                icon="🐕"
-                label={t('breederDetail.breedingPets')}
-                value={breedingPetRange ? t(`breederProfile.breedingPetOptions.${breedingPetRange}`) : t('petFeed.topBreeders.notUpdated')}
-                dark={isT5}
-              />
               <InfoRow
                 icon="📞"
                 label={t('breederDetail.contact')}
@@ -343,42 +342,20 @@ export function BreederDetailScreen({
               ))}
             </SectionCard>
 
-            {profile.bio || profile.care_environment ? (
+            {profile.bio ? (
               <SectionCard title={t('breederDetail.profileInfo')} dark={isT5}>
-                {profile.bio ? (
-                  <Text style={{ fontSize: 13, color: isT5 ? '#CBD5E1' : '#334155', lineHeight: 20 }}>{profile.bio}</Text>
-                ) : null}
-                {profile.care_environment ? (
-                  <Text
-                    style={{
-                      marginTop: profile.bio ? 10 : 0,
-                      fontSize: 13,
-                      color: isT5 ? '#CBD5E1' : '#334155',
-                      lineHeight: 20,
-                      backgroundColor: isT5 ? 'rgba(255,255,255,0.05)' : '#F8FAFC',
-                      borderRadius: 10,
-                      padding: 10,
-                    }}
-                  >
-                    {profile.care_environment}
-                  </Text>
-                ) : null}
+                <Text style={{ fontSize: 13, color: isT5 ? '#CBD5E1' : '#334155', lineHeight: 20 }}>{profile.bio}</Text>
               </SectionCard>
             ) : null}
 
-            {registeredAt || registeredKennelName || careChecklist.length || commitments.length ? (
+            {registeredAt || registrationUnitLabel || registeredKennelName || commitments.length ? (
               <SectionCard title={t('breederDetail.registration')} dark={isT5}>
+                {registrationUnitLabel ? (
+                  <InfoRow icon="🏛️" label={t('breederProfile.registrationUnit')} value={registrationUnitLabel} dark={isT5} />
+                ) : null}
                 {registeredAt ? <InfoRow icon="📅" label={t('breederProfile.registeredAt')} value={registeredAt} dark={isT5} /> : null}
                 {registeredKennelName ? (
                   <InfoRow icon="🏅" label={t('breederProfile.registeredKennelName')} value={registeredKennelName} dark={isT5} />
-                ) : null}
-                {careChecklist.length ? (
-                  <InfoRow
-                    icon="✅"
-                    label={t('breederDetail.careChecklist')}
-                    value={careChecklist.map((item) => t(`breederProfile.careChecklist.${item}`)).join(', ')}
-                    dark={isT5}
-                  />
                 ) : null}
                 {commitments.length ? (
                   <InfoRow

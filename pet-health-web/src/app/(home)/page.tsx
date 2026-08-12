@@ -219,7 +219,7 @@ export default async function HomePage() {
               [
                 ["2,400+", "landing.stat.listings"],
                 ["156+", "landing.stat.breeders"],
-                ["63", "landing.stat.provinces"],
+                ["34", "landing.stat.provinces"],
                 ["12K+", "landing.stat.owners"],
               ] as const
             ).map(([num, key]) => (

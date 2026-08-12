@@ -72,18 +72,24 @@ export function resolvePostPetType(post: Pick<PetFeedPost, 'pet_type' | 'species
   return normalizePetType(post.species);
 }
 
+export function resolvePetTypeFromSpeciesList(speciesList: unknown): PetType | null {
+  if (!Array.isArray(speciesList)) return null;
+  for (const item of speciesList) {
+    const petType = normalizePetType(String(item ?? ''));
+    if (petType) return petType;
+  }
+  return null;
+}
+
 export function postMatchesPetType(post: Pick<PetFeedPost, 'pet_type' | 'species'>, filter: PetType): boolean {
   return resolvePostPetType(post) === filter;
 }
 
-export function resolveBreederPetType(profile: Pick<BreederProfile, 'pet_type' | 'primary_species'>): PetType | null {
+export function resolveBreederPetType(
+  profile: Pick<BreederProfile, 'pet_type' | 'primary_species'>,
+): PetType | null {
   if (isPetType(profile.pet_type)) return profile.pet_type;
-  if (!Array.isArray(profile.primary_species)) return null;
-  for (const item of profile.primary_species) {
-    const petType = normalizePetType(item);
-    if (petType) return petType;
-  }
-  return null;
+  return resolvePetTypeFromSpeciesList(profile.primary_species);
 }
 
 export function breederMatchesPetType(
@@ -91,7 +97,8 @@ export function breederMatchesPetType(
   filter: PetType,
   postSpecies: string[] = [],
 ): boolean {
-  if (Array.isArray(profile.primary_species) && profile.primary_species.some((species) => normalizePetType(species) === filter)) {
+  const primary = Array.isArray(profile.primary_species) ? profile.primary_species : [];
+  if (primary.some((species) => normalizePetType(species) === filter)) {
     return true;
   }
   if (resolveBreederPetType(profile) === filter) return true;

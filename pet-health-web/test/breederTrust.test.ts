@@ -238,8 +238,7 @@ test("mapApiBreeder uses contact_presence when contact values are stripped", () 
     id: "bp-3",
     display_name: "Mina Cattery",
     verification_status: "verified",
-    care_environment: "Indoor",
-    bio: "",
+    bio: "Indoor",
     contact: {},
     metadata: {
       trust_score: 20,
@@ -264,7 +263,7 @@ test("qualitySignalsFromBreeder maps contact channels and facility proxy", () =>
         { label: "b", done: false },
       ],
       contact: { phone: "090", facebook: "fb.com/x", zalo: "09" },
-      careEnvironment: "Home raised",
+      bio: "Home raised",
       verificationTier: 1,
       activeListings: 0,
     }),

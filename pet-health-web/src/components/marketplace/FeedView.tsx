@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { Lang, Listing } from "@/lib/types";
 import { t } from "@/i18n";
 import { parsePriceVnd } from "@/lib/formatPrice";
+import { listingMatchesProvince, resolveProvinceSelection } from "@/lib/vietnamProvinceSelection";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { ListingCard } from "./ListingCard";
 import { MarketplaceSearchBar } from "./MarketplaceSearchBar";
@@ -47,17 +48,13 @@ export function FeedView({
   const [escrowOnly, setEscrowOnly] = useState(false);
   const [sortBy, setSortBy] = useState("date");
   const [q, setQ] = useState(initialQ);
-  const [province, setProvince] = useState(initialProvince);
+  const [province, setProvince] = useState(resolveProvinceSelection(initialProvince));
 
   const filtered = useMemo(() => {
     let rows = listings.filter((l) => {
       if (activeSpecies !== "all" && l.species !== activeSpecies) return false;
       if (activeGender !== "all" && l.gender !== activeGender) return false;
-      if (province) {
-        if (!l.location.toLowerCase().includes(province.toLowerCase())) {
-          return false;
-        }
-      }
+      if (province && !listingMatchesProvince(l, province)) return false;
       if (!matchesPrice(l, priceFilter)) return false;
       if (escrowOnly && !l.escrowEnabled) return false;
       if (q.trim()) {

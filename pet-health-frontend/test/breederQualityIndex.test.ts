@@ -23,7 +23,6 @@ function profile(partial: Partial<BreederProfile> & Pick<BreederProfile, 'id' | 
     contact: {},
     primary_species: [],
     main_breeds: [],
-    care_environment: '',
     verification_status: 'verified',
     metadata: {},
     created_at: '2026-01-01T00:00:00.000Z',
@@ -200,7 +199,7 @@ test('rankBreedersWithHomeQuota prefers quality over raw post count and applies 
   assert.ok(homeQi >= farmQi || homeIndex === 0);
 });
 
-test('isHomeBreederEligible requires trust and home type/scale', () => {
+test('isHomeBreederEligible requires trust and home breeder type', () => {
   assert.equal(
     isHomeBreederEligible(profile({ id: 'a', user_id: 'a', metadata: { breederType: 'home_breeder' } }), 39),
     false,
@@ -211,7 +210,7 @@ test('isHomeBreederEligible requires trust and home type/scale', () => {
   );
   assert.equal(
     isHomeBreederEligible(profile({ id: 'a', user_id: 'a', metadata: { scaleRange: '1_3' } }), 50),
-    true,
+    false,
   );
 });
 

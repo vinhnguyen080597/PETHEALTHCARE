@@ -42,9 +42,10 @@ export type AdminReviewBreeder = {
   verification_status?: string;
   location?: string;
   bio?: string;
-  care_environment?: string;
-  avatar_url?: string | null;
+  care_environment?: string;  avatar_url?: string | null;
   primary_species?: string[];
+  registration_unit?: string;
+  registration_unit_other?: string;
   main_breeds?: string[];
   contact?: Record<string, string | undefined> | null;
   metadata?: Record<string, unknown> | null;
@@ -157,9 +158,20 @@ export function adminBreederSpecRows(profile: AdminReviewBreeder): AdminReviewSp
   }
   if ((profile.primary_species || []).length) {
     rows.push({
-      id: "species",
-      labelKey: "admin.review.species",
+      id: "primarySpecies",
+      labelKey: "admin.review.primarySpecies",
       value: (profile.primary_species || []).join(", "),
+    });
+  }
+  const registrationUnit = String(profile.registration_unit || "").trim();
+  if (registrationUnit) {
+    rows.push({
+      id: "registrationUnit",
+      labelKey: "admin.review.registrationUnit",
+      value:
+        registrationUnit === "other"
+          ? String(profile.registration_unit_other || "").trim() || "other"
+          : registrationUnit,
     });
   }
   if ((profile.main_breeds || []).length) {

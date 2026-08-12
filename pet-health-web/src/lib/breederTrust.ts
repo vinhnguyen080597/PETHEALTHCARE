@@ -440,8 +440,7 @@ export function qualitySignalsFromBreeder(
     hasFirstWarrantyPolicy?: boolean;
   },
 ): BreederTrustScoreInput {
-  const care =
-    (breeder.careEnvironment || "").trim() || (breeder.bio || "").trim();
+  const care = (breeder.bio || "").trim();
   const contact = breeder.contact || {};
   return {
     hasEkyc: extras?.hasEkyc ?? Boolean(breeder.verified),

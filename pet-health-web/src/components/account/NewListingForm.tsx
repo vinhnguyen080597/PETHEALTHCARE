@@ -714,7 +714,7 @@ export function NewListingForm({
               >
                 {LISTING_LOCATIONS.map((loc) => (
                   <option key={loc} value={loc}>
-                    {loc === "Khác" ? t(lang, "listing.new.location.other") : loc}
+                    {loc}
                   </option>
                 ))}
               </select>
