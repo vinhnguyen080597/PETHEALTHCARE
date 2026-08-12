@@ -1503,9 +1503,26 @@ export async function getMyBreederProfile(userId, accessToken) {
 }
 
 export async function upsertMyBreederProfile(userId, payload, accessToken) {
-  const existing = await getMyBreederProfile(userId, accessToken);
-  const row = normalizeProfilePayload(userId, { ...payload, existingVerificationStatus: existing?.verification_status }, existing?.id);
-  const supabase = getFeedSupabase(accessToken);
+  // Prefer service role so profile save is not blocked by JWT/RLS/network edge cases
+  // (same pattern as updateMyBreederProfilePhotos).
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  let existing = null;
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('breeder_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) throw error;
+    existing = toProfile(data);
+  } else {
+    existing = await getMyBreederProfile(userId, accessToken);
+  }
+  const row = normalizeProfilePayload(
+    userId,
+    { ...payload, existingVerificationStatus: existing?.verification_status },
+    existing?.id,
+  );
   if (!supabase) {
     const idx = memoryProfiles.findIndex((profile) => profile.user_id === userId);
     const next = { ...(idx >= 0 ? memoryProfiles[idx] : { created_at: new Date().toISOString() }), ...row };
@@ -1515,6 +1532,12 @@ export async function upsertMyBreederProfile(userId, payload, accessToken) {
   }
   const { data, error } = await supabase.from('breeder_profiles').upsert(row, { onConflict: 'user_id' }).select('*').single();
   if (error) throw error;
+  if (!data) {
+    const err = new Error('Breeder profile save returned no row.');
+    err.status = 500;
+    err.code = 'BREEDER_PROFILE_UPSERT_EMPTY';
+    throw err;
+  }
   return toProfile(data);
 }
 

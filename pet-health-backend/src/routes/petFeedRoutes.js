@@ -1025,7 +1025,11 @@ router.put('/breeder-profile/me', async (req, res, next) => {
   try {
     const before = await getMyBreederProfile(req.user.id, req.accessToken);
     const profile = await upsertMyBreederProfile(req.user.id, req.body ?? {}, req.accessToken);
-    void recordProductEvent({ userId: req.user.id, event: 'breeder_profile_upserted', metadata: { status: profile.verification_status } });
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'breeder_profile_upserted',
+      metadata: { status: profile.verification_status },
+    }).catch(() => null);
     if (
       profile.verification_status === 'pending_review'
       && before?.verification_status !== 'pending_review'
@@ -1044,6 +1048,7 @@ router.put('/breeder-profile/me', async (req, res, next) => {
     }
     return res.json({ data: profile });
   } catch (err) {
+    console.error('[breeder-profile/me PUT]', err?.code || err?.name || 'error', err?.message || err);
     return next(err);
   }
 });

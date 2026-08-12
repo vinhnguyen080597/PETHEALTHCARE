@@ -88,6 +88,17 @@ export function errorHandler(err, req, res, _next) {
         detail: process.env.NODE_ENV === 'production' ? undefined : err.message,
       });
     }
+    // Fetch/network timeouts to Supabase often surface without a PostgREST code.
+    if (
+      err?.cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+      /connect timeout|fetch failed|network/i.test(err.message)
+    ) {
+      void notifySystemError({ req, err, code: 'UPSTREAM_TIMEOUT', status: 503 });
+      return res.status(503).json({
+        error: 'Service is temporarily unavailable. Please try again shortly.',
+        code: 'UPSTREAM_TIMEOUT',
+      });
+    }
   }
 
   console.error(err);
