@@ -247,7 +247,7 @@ export function MarketplaceSearchBar({
             id={`search-province-${variant}`}
             value={controlled ? province : localProvince}
             onChange={(e) => {
-              const v = e.target.value;
+              const v = resolveProvinceSelection(e.target.value);
               if (controlled) onProvinceChange?.(v);
               else setLocalProvince(v);
             }}

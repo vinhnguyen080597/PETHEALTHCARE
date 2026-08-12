@@ -107,7 +107,7 @@ export function FeedView({
             province={province}
             onQChange={setQ}
             onSpeciesChange={setActiveSpecies}
-            onProvinceChange={setProvince}
+            onProvinceChange={(value) => setProvince(resolveProvinceSelection(value))}
           />
         </div>
 

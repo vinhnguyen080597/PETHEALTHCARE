@@ -82,12 +82,6 @@ function metaArray(meta: Record<string, unknown> | undefined, key: string) {
     : [];
 }
 
-function toggle(list: string[], value: string) {
-  return list.includes(value)
-    ? list.filter((x) => x !== value)
-    : [...list, value];
-}
-
 function breederStatusLabel(status: string): EnKey {
   const known = [
     "unverified",
@@ -551,7 +545,7 @@ export function BreederProfileForm({
             className={`${selectCls} ${fieldErrors.location ? inputErrorCls : ""}`}
             value={location}
             onChange={(e) => {
-              setLocation(e.target.value);
+              setLocation(resolveProvinceSelection(e.target.value));
               clearFieldError("location");
             }}
             aria-invalid={Boolean(fieldErrors.location)}

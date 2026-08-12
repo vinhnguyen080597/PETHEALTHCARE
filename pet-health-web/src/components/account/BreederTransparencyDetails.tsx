@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ApiBreederProfile, Lang } from "@/lib/types";
-import { t } from "@/i18n";
+import { t, type EnKey } from "@/i18n";
 import {
   BREEDER_SUBMISSION_TYPES,
   breederSubmissionTypeLabel,
@@ -26,7 +26,7 @@ function statusBadge(status: string, lang: Lang) {
     rejected: "bg-red-50 text-red-700 border-red-200",
     cancelled: "bg-slate-100 text-slate-600 border-slate-200",
   };
-  const labelKey = `account.breederDetails.status.${status}` as const;
+  const labelKey = `account.breederDetails.status.${status}` as EnKey;
   const label =
     status === "pending" || status === "approved" || status === "rejected" || status === "cancelled"
       ? t(lang, labelKey)

@@ -15,6 +15,7 @@ import {
   type AdminReviewPost,
   type AdminReviewReport,
 } from "@/lib/admin/reviewDetail";
+import type { BreederProfileSubmission } from "@/lib/breederProfileSubmissions";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -398,16 +399,7 @@ export function AdminReviewDetailsToggle({
   );
 }
 
-export type AdminReviewBreederDetailSubmission = {
-  id: string;
-  submission_type: string;
-  payload?: { url?: string; note?: string };
-  status?: string;
-  rejection_reason?: string;
-  admin_note?: string;
-  created_at?: string;
-  breeder_profile?: AdminReviewBreeder | null;
-};
+export type AdminReviewBreederDetailSubmission = BreederProfileSubmission;
 
 export function AdminBreederDetailSubmissionReview({
   lang,
@@ -419,7 +411,9 @@ export function AdminBreederDetailSubmissionReview({
   const url = submission.payload?.url?.trim() || "";
   const isVideo = submission.submission_type === "facility_video";
   const breederName =
-    submission.breeder_profile?.display_name || submission.breeder_profile?.user_id || "—";
+    submission.breeder_profile?.display_name ||
+    submission.breeder_profile?.id ||
+    "—";
 
   return (
     <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">

@@ -538,7 +538,7 @@ export async function confirmListingComplete(token: string, postId: string) {
 }
 
 export async function getMyDealReview(token: string, postId: string) {
-  return fetchJson<{ data: import("./breederDealReviews").BreederDealReview | null }>(
+  return fetchJson<{ data: import("../breederDealReviews").BreederDealReview | null }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/review/me`,
     { token, cache: "no-store" },
   );
@@ -549,14 +549,14 @@ export async function submitDealReview(
   postId: string,
   payload: { rating: number; body?: string },
 ) {
-  return fetchJson<{ data: import("./breederDealReviews").BreederDealReview }>(
+  return fetchJson<{ data: import("../breederDealReviews").BreederDealReview }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/review`,
     { method: "POST", token, body: payload },
   );
 }
 
 export async function getBreederDealReviews(token: string | null, profileId: string) {
-  return fetchJson<{ data: import("./breederDealReviews").BreederDealReviewAggregate }>(
+  return fetchJson<{ data: import("../breederDealReviews").BreederDealReviewAggregate }>(
     `/pet-feed/breeder-profiles/${encodeURIComponent(profileId)}/reviews`,
     { token, cache: "no-store" },
   );
