@@ -92,6 +92,7 @@ import {
   getBreederDealReviewAggregate,
   getMyDealReviewForPost,
 } from '../repositories/breederDealReviewsRepository.js';
+import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 const router = Router();
 const petFeedUpload = multer({
