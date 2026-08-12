@@ -626,6 +626,8 @@ const en = {
   "account.senIntro.cancelTitle": "Cancel breeder registration?",
   "account.senIntro.cancelBody":
     "Your pending request will be withdrawn. You can edit your details and submit again.",
+  "account.senIntro.cancelConfirm": "Cancel request",
+  "account.senIntro.cancelKeep": "Keep request",
   "account.senIntro.cancelFailed": "Could not cancel request",
   "account.senDeposited.title": "Deposited pets",
   "account.senDeposited.empty":

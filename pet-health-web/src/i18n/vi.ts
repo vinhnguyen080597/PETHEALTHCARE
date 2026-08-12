@@ -629,6 +629,8 @@ const vi: Record<EnKey, string> = {
   "account.senIntro.cancelTitle": "Hủy đăng ký Breeder?",
   "account.senIntro.cancelBody":
     "Yêu cầu đang chờ duyệt sẽ được hủy. Bạn có thể chỉnh sửa thông tin rồi gửi lại.",
+  "account.senIntro.cancelConfirm": "Hủy yêu cầu",
+  "account.senIntro.cancelKeep": "Giữ yêu cầu",
   "account.senIntro.cancelFailed": "Không thể hủy yêu cầu",
   "account.senDeposited.title": "Thú cưng đã cọc",
   "account.senDeposited.empty":
