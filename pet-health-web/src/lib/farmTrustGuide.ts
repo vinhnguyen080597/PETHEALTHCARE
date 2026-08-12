@@ -2,13 +2,12 @@ import type { Lang } from "./types";
 import {
   LIGHT_VIOLATION_EXPIRY_DAYS,
   LIGHT_VIOLATION_MAX_POINTS,
-  TRUST_MISSION_POINTS,
-  TRUST_TIERS,
-  TRUST_TRANSACTION_CAPS,
-  TRUST_VIOLATION_PENALTIES,
-} from "./breederTrust";
+  TRANSPARENCY_POINTS,
+  TRANSPARENCY_TIERS,
+  TRANSPARENCY_VIOLATION_PENALTIES,
+} from "./breederTransparencyScore";
 
-/** Owner-only trust guide page. */
+/** Owner-only transparency guide page. */
 export function farmTrustGuideHref(profileId: string): string {
   return `/app/breeders/${encodeURIComponent(profileId)}/trust`;
 }
@@ -39,94 +38,93 @@ export type TrustGuideImpact = {
   bodyEN: string;
 };
 
-/** Missions + activity that raise score (Escrow deferred). */
 export const TRUST_GUIDE_HOW_TO_EARN: TrustGuideHowToEarn[] = [
   {
-    id: "ekyc",
-    points: TRUST_MISSION_POINTS.ekyc,
-    titleVI: "Xác minh danh tính (eKYC)",
-    titleEN: "Identity verification (eKYC)",
-    howVI: "Cung cấp CCCD/Passport chính chủ kèm ảnh chân dung khớp. Admin/AI duyệt.",
-    howEN: "Submit your ID/passport with a matching selfie. Admin/AI review required.",
+    id: "verifiedBase",
+    points: TRANSPARENCY_POINTS.verifiedBase,
+    titleVI: "Hồ sơ được admin duyệt",
+    titleEN: "Admin-approved profile",
+    howVI: "Sau khi gửi đăng ký trại, admin duyệt hồ sơ → nhận 30 điểm minh bạch cơ bản.",
+    howEN: "After submitting your kennel profile, admin approval grants 30 base transparency points.",
   },
   {
     id: "facebook",
-    points: TRUST_MISSION_POINTS.facebook,
-    titleVI: "Liên kết Facebook",
-    titleEN: "Link Facebook",
-    howVI: "Thêm Facebook cá nhân/Fanpage đang hoạt động, công khai danh tính.",
-    howEN: "Add an active personal/Fanpage Facebook with a public identity.",
+    points: TRANSPARENCY_POINTS.socialPlatform,
+    titleVI: "Liên kết Facebook (admin duyệt)",
+    titleEN: "Facebook link (admin approved)",
+    howVI: "Thêm Facebook và gửi admin xác nhận (+5, không bắt buộc).",
+    howEN: "Add Facebook and submit for admin approval (+5, optional).",
   },
   {
     id: "zalo",
-    points: TRUST_MISSION_POINTS.zalo,
-    titleVI: "Liên kết Zalo",
-    titleEN: "Link Zalo",
-    howVI: "Thêm Zalo chính chủ khớp số điện thoại đăng ký.",
-    howEN: "Add your Zalo matching the registered phone number.",
+    points: TRANSPARENCY_POINTS.socialPlatform,
+    titleVI: "Liên kết Zalo (admin duyệt)",
+    titleEN: "Zalo link (admin approved)",
+    howVI: "Thêm Zalo và gửi admin xác nhận (+5, không bắt buộc).",
+    howEN: "Add Zalo and submit for admin approval (+5, optional).",
   },
   {
     id: "tiktok",
-    points: TRUST_MISSION_POINTS.tiktok,
-    titleVI: "Liên kết TikTok",
-    titleEN: "Link TikTok",
-    howVI: "Thêm kênh TikTok chuyên pet có clip quay thực tế thú cưng.",
-    howEN: "Add a pet-focused TikTok with real animal footage.",
+    points: TRANSPARENCY_POINTS.socialPlatform,
+    titleVI: "Liên kết TikTok (admin duyệt)",
+    titleEN: "TikTok link (admin approved)",
+    howVI: "Thêm TikTok chuyên pet và gửi admin xác nhận (+5).",
+    howEN: "Add a pet-focused TikTok and submit for admin approval (+5).",
+  },
+  {
+    id: "instagram",
+    points: TRANSPARENCY_POINTS.socialPlatform,
+    titleVI: "Liên kết Instagram (admin duyệt)",
+    titleEN: "Instagram link (admin approved)",
+    howVI: "Thêm Instagram và gửi admin xác nhận (+5).",
+    howEN: "Add Instagram and submit for admin approval (+5).",
   },
   {
     id: "farmFacility",
-    points: TRUST_MISSION_POINTS.farmFacility,
-    titleVI: "Địa chỉ & video cơ sở",
-    titleEN: "Facility address & video",
-    howVI: "Cập nhật địa chỉ chuồng trại và video quay cơ sở có gắn địa chỉ/thực tế.",
-    howEN: "Add kennel address plus a real facility video tied to that location.",
+    points: TRANSPARENCY_POINTS.facilityVideo,
+    titleVI: "Video cơ sở / môi trường chăm sóc",
+    titleEN: "Facility tour video",
+    howVI: "Upload clip quay trại thực tế, admin duyệt (+10).",
+    howEN: "Upload a real facility video for admin review (+10).",
   },
   {
     id: "businessLicense",
-    points: TRUST_MISSION_POINTS.businessLicense,
+    points: TRANSPARENCY_POINTS.businessLicense,
     titleVI: "Giấy phép kinh doanh / trại giống",
     titleEN: "Business / kennel license",
-    howVI: "Đăng tải giấy chứng nhận đăng ký kinh doanh hoặc trại giống hợp lệ.",
-    howEN: "Upload a valid business or kennel registration certificate.",
-  },
-  {
-    id: "healthDocs",
-    points: TRUST_MISSION_POINTS.healthDocs,
-    titleVI: "Bảo trợ sức khỏe (sổ tiêm)",
-    titleEN: "Health docs (vaccine book)",
-    howVI: "Đăng sổ tiêm chủng mẫu / giấy kiểm dịch đủ tem vắc-xin & dấu phòng khám.",
-    howEN: "Upload sample vaccine books / quarantine papers with clinic stamps.",
+    howVI: "Upload ảnh giấy phép hợp lệ, admin duyệt (+10).",
+    howEN: "Upload a valid license image for admin review (+10).",
   },
   {
     id: "firstWarrantyPolicy",
-    points: TRUST_MISSION_POINTS.firstWarrantyPolicy,
-    titleVI: "Chính sách bảo hành (file đầu tiên)",
-    titleEN: "First warranty policy file",
-    howVI: "Điền form chính sách bảo hành 6 trụ cột lần đầu (+10, một lần).",
-    howEN: "Complete the 6-pillar warranty policy form once (+10, once).",
+    points: TRANSPARENCY_POINTS.firstWarranty,
+    titleVI: "Chính sách bảo hành đầu tiên",
+    titleEN: "First warranty policy",
+    howVI: "Hoàn thành form bảo hành lần đầu, admin duyệt (+10).",
+    howEN: "Complete your first warranty policy form for admin review (+10).",
+  },
+  {
+    id: "completions",
+    points: TRANSPARENCY_POINTS.senConfirmedCompletion,
+    titleVI: "Giao dịch hoàn thành",
+    titleEN: "Completed handoffs",
+    howVI: "Mỗi bé Sen xác nhận đã nhận (+1 điểm).",
+    howEN: "Each pet the buyer confirms received (+1 point).",
   },
   {
     id: "reviews",
-    points: TRUST_TRANSACTION_CAPS.reviews,
-    titleVI: "Đánh giá 5 sao từ khách (tối đa)",
-    titleEN: "5★ buyer reviews (cap)",
-    howVI: "Mỗi đánh giá 5★ từ người mua thật +1 điểm (tối đa 10).",
-    howEN: "Each real 5★ buyer review adds +1 point (capped at 10).",
-  },
-  {
-    id: "response",
-    points: TRUST_TRANSACTION_CAPS.response,
-    titleVI: "Phản hồi tin nhắn < 15 phút",
-    titleEN: "Reply under 15 minutes",
-    howVI: "Duy trì tỷ lệ trả lời tin nhắn dưới 15 phút trong tháng để nhận +5.",
-    howEN: "Keep a sub-15-minute reply rate for the month to earn +5.",
+    points: TRANSPARENCY_POINTS.fiveStarReview,
+    titleVI: "Đánh giá 5 sao từ Sen",
+    titleEN: "5★ buyer reviews",
+    howVI: "Sau khi xác nhận nhận bé, Sen đánh giá 5 sao (+2 điểm/lần).",
+    howEN: "After confirming receipt, a 5★ buyer review adds +2 points.",
   },
 ];
 
 export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = [
   {
     id: "inaccurate_listing",
-    points: TRUST_VIOLATION_PENALTIES.inaccurate_listing,
+    points: TRANSPARENCY_VIOLATION_PENALTIES.inaccurate_listing,
     titleVI: "Đăng thông tin không chính xác",
     titleEN: "Inaccurate listing information",
     actionVI: "An ninh gỡ bài vi phạm.",
@@ -134,7 +132,7 @@ export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = [
   },
   {
     id: "stock_photo_spam",
-    points: TRUST_VIOLATION_PENALTIES.stock_photo_spam,
+    points: TRANSPARENCY_VIOLATION_PENALTIES.stock_photo_spam,
     titleVI: "Dùng ảnh mạng / spam bài ảo",
     titleEN: "Stock photos / fake spam listings",
     actionVI: "Tạm ẩn bài đăng.",
@@ -142,7 +140,7 @@ export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = [
   },
   {
     id: "abusive_communication",
-    points: TRUST_VIOLATION_PENALTIES.abusive_communication,
+    points: TRANSPARENCY_VIOLATION_PENALTIES.abusive_communication,
     titleVI: "Thái độ giao tiếp độc hại",
     titleEN: "Abusive communication",
     actionVI: "Cảnh cáo hệ thống.",
@@ -150,7 +148,7 @@ export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = [
   },
   {
     id: "concealed_illness",
-    points: TRUST_VIOLATION_PENALTIES.concealed_illness,
+    points: TRANSPARENCY_VIOLATION_PENALTIES.concealed_illness,
     titleVI: "Che giấu bệnh nặng (Care/Parvo…)",
     titleEN: "Concealing serious illness",
     actionVI: "Yêu cầu đền bù theo chính sách sàn.",
@@ -158,7 +156,7 @@ export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = [
   },
   {
     id: "confirmed_scam",
-    points: TRUST_VIOLATION_PENALTIES.confirmed_scam,
+    points: TRANSPARENCY_VIOLATION_PENALTIES.confirmed_scam,
     titleVI: "Lừa đảo / tráo bé cưng (xác nhận)",
     titleEN: "Confirmed scam / bait-and-switch",
     actionVI: "Khóa tính năng nhận cọc 30 ngày (khi tính năng đặt cọc mở).",
@@ -172,9 +170,9 @@ export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
     titleVI: "Niềm tin người mua",
     titleEN: "Buyer confidence",
     bodyVI:
-      "Điểm và cấp độ (L0–L4) hiện trên hồ sơ công khai giúp khách nhanh chóng đánh giá mức minh bạch của trại trước khi nhắn tin.",
+      "Điểm minh bạch và danh hiệu trại hiện trên hồ sơ công khai giúp khách đánh giá trước khi nhắn tin.",
     bodyEN:
-      "Score and tier (L0–L4) appear on your public farm page so buyers can gauge transparency before messaging.",
+      "Transparency score and kennel titles appear on your public farm page for buyers.",
   },
   {
     id: "visibility",
@@ -190,15 +188,26 @@ export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
     titleVI: "Vi phạm làm giảm điểm",
     titleEN: "Violations reduce score",
     bodyVI: `Chỉ trừ điểm khi báo cáo được Admin xác nhận. Vi phạm nhẹ (≤${LIGHT_VIOLATION_MAX_POINTS}đ) có thể hết hiệu lực sau ${LIGHT_VIOLATION_EXPIRY_DAYS} ngày nếu không tái phạm.`,
-    bodyEN: `Points drop only after Admin confirms a report. Light penalties (≤${LIGHT_VIOLATION_MAX_POINTS}) may expire after ${LIGHT_VIOLATION_EXPIRY_DAYS} days if not repeated.`,
+    bodyEN: `Points drop only after Admin confirms a report. Light penalties (≤${LIGHT_VIOLATION_MAX_POINTS}) may expire after ${LIGHT_VIOLATION_EXPIRY_DAYS} days without repeat offenses.`,
+  },
+  {
+    id: "lowScoreWarning",
+    titleVI: "Cảnh báo ≤15 điểm",
+    titleEN: "Warning at ≤15 points",
+    bodyVI:
+      "Sau phạt nếu điểm minh bạch ≤15, bạn nhận popup: Xác nhận (tạm khóa tài khoản) hoặc Kháng cáo (Admin xem xét). Không thu thập CCCD / eKYC.",
+    bodyEN:
+      "After a penalty, if transparency score is ≤15 you get a popup: Confirm (suspend account) or Appeal (Admin review). No CCCD / eKYC collection.",
   },
 ];
 
 export function trustGuideTierSummary(lang: Lang): string[] {
-  return TRUST_TIERS.map((tier) => {
+  return TRANSPARENCY_TIERS.map((tier) => {
     const name = lang === "VI" ? tier.nameVI : tier.nameEN;
     const meaning = lang === "VI" ? tier.meaningVI : tier.meaningEN;
-    return `${tier.level} (${tier.min}–${tier.max}): ${name} — ${meaning}`;
+    const range =
+      tier.min === tier.max ? `${tier.min}` : `${tier.min}–${tier.max}`;
+    return `${tier.level} (${range}): ${name} — ${meaning}`;
   });
 }
 

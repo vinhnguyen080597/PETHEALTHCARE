@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
-import { TRUST_MISSION_POINTS } from "../src/lib/breederTrust";
+import { TRUST_UI_CAPS } from "../src/lib/breederTrust";
 import { farmPetAvailability } from "../src/lib/farmPets";
 import {
   defaultWarrantyFormValues,
@@ -80,7 +80,7 @@ test("warranty / deposit i18n keys exist in EN and VI", () => {
 });
 
 test("first warranty trust award is +10", () => {
-  assert.equal(TRUST_MISSION_POINTS.firstWarrantyPolicy, 10);
+  assert.equal(TRUST_UI_CAPS.firstWarrantyPolicy, 10);
 });
 
 test("deposit_hold is a farm pet availability", () => {

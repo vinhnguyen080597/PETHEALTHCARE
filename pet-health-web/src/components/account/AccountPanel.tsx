@@ -18,6 +18,7 @@ import {
   ownerDeleteBlockedMessage,
 } from "@/lib/listingOwnerDelete";
 import { ListingDeleteConfirmModal } from "@/components/marketplace/ListingDeleteConfirmModal";
+import { TransparencyWarningModal } from "@/components/account/TransparencyWarningModal";
 import { shouldShowSenDepositedSection } from "@/lib/senDepositedListings";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 
@@ -812,6 +813,7 @@ export function AccountPanel({
         if (listingToDelete) void deleteOwnListing(listingToDelete);
       }}
     />
+    <TransparencyWarningModal lang={lang} />
     </>
   );
 }

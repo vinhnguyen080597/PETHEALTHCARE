@@ -8,6 +8,8 @@ import { t } from "@/i18n";
 import type { PetFeedNotification } from "@/lib/api/petFeed";
 import {
   adminRequestHref,
+  breederTransparencyNotificationHref,
+  isAdminQueueNotification,
   isDepositCancelRequestNotification,
   listingNotificationHref,
   notificationInboxCta,
@@ -112,11 +114,7 @@ export function NotificationsClient({
       await markIdsRead([item.id]);
     }
 
-    if (
-      type === "admin_breeder_pending" ||
-      type === "admin_listing_pending" ||
-      type === "admin_report_open"
-    ) {
+    if (isAdminQueueNotification(item)) {
       router.push(adminRequestHref(item));
       return;
     }
@@ -124,8 +122,17 @@ export function NotificationsClient({
       router.push(`/app/breeders/${encodeURIComponent(item.breeder_profile_id)}`);
       return;
     }
-    if (type === "breeder_rejected" || type === "listing_rejected") {
+    if (
+      type === "breeder_rejected" ||
+      type === "listing_rejected" ||
+      type === "breeder_detail_rejected"
+    ) {
       setReasonItem(item);
+      return;
+    }
+    const transparencyHref = breederTransparencyNotificationHref(item);
+    if (transparencyHref) {
+      router.push(transparencyHref);
       return;
     }
     if (isDepositCancelRequestNotification(item)) {
@@ -213,7 +220,25 @@ export function NotificationsClient({
     if (type === "breeder_rejected") return t(lang, "notifications.rejectedTitle");
     if (type === "listing_approved") return t(lang, "notifications.listingApprovedTitle");
     if (type === "listing_rejected") return t(lang, "notifications.listingRejectedTitle");
+    if (type === "breeder_detail_approved") {
+      return t(lang, "notifications.detailApprovedTitle");
+    }
+    if (type === "breeder_detail_rejected") {
+      return t(lang, "notifications.detailRejectedTitle");
+    }
+    if (type === "transparency_warning") {
+      return t(lang, "notifications.transparencyWarningTitle");
+    }
+    if (type === "transparency_warning_resolved") {
+      return t(lang, "notifications.transparencyResolvedTitle");
+    }
     if (type === "admin_breeder_pending") return t(lang, "notifications.adminBreederTitle");
+    if (type === "admin_breeder_detail_pending") {
+      return t(lang, "notifications.adminDetailTitle");
+    }
+    if (type === "admin_transparency_appeal") {
+      return t(lang, "notifications.adminAppealTitle");
+    }
     if (type === "admin_listing_pending") return t(lang, "notifications.adminListingTitle");
     if (type === "admin_report_open") return t(lang, "notifications.adminReportTitle");
     if (type === "deposit_cancel_request") {
@@ -243,8 +268,30 @@ export function NotificationsClient({
         t(lang, "notifications.listingRejectedBody")
       );
     }
+    if (type === "breeder_detail_approved") {
+      return item.body_preview || t(lang, "notifications.detailApprovedBody");
+    }
+    if (type === "breeder_detail_rejected") {
+      return (
+        resolveRejectionNotice(item).reason ||
+        item.body_preview ||
+        t(lang, "notifications.detailRejectedBody")
+      );
+    }
+    if (type === "transparency_warning") {
+      return item.body_preview || t(lang, "notifications.transparencyWarningBody");
+    }
+    if (type === "transparency_warning_resolved") {
+      return item.body_preview || t(lang, "notifications.transparencyResolvedBody");
+    }
     if (type === "admin_breeder_pending") {
       return item.body_preview || t(lang, "notifications.adminBreederBody");
+    }
+    if (type === "admin_breeder_detail_pending") {
+      return item.body_preview || t(lang, "notifications.adminDetailBody");
+    }
+    if (type === "admin_transparency_appeal") {
+      return item.body_preview || t(lang, "notifications.adminAppealBody");
     }
     if (type === "admin_listing_pending") {
       return item.body_preview || t(lang, "notifications.adminListingBody");
@@ -265,6 +312,10 @@ export function NotificationsClient({
       listingApproved: t(lang, "notifications.listingApprovedCta"),
       listingRejected: t(lang, "notifications.listingRejectedCta"),
       adminRequest: t(lang, "notifications.adminRequestCta"),
+      detailApproved: t(lang, "notifications.detailApprovedCta"),
+      detailRejected: t(lang, "notifications.detailRejectedCta"),
+      transparencyWarning: t(lang, "notifications.transparencyWarningCta"),
+      transparencyResolved: t(lang, "notifications.transparencyResolvedCta"),
       depositCancelConfirm: t(lang, "notifications.depositCancelCta"),
       depositConfirm: t(lang, "notifications.depositRequestCta"),
       dealCompleteConfirm: t(lang, "notifications.dealCompleteCta"),
@@ -343,13 +394,17 @@ export function NotificationsClient({
                         alt=""
                         className="h-full w-full object-cover"
                       />
-                    ) : type === "breeder_verified" || type === "listing_approved" ? (
+                    ) : type === "breeder_verified" ||
+                      type === "listing_approved" ||
+                      type === "breeder_detail_approved" ||
+                      type === "transparency_warning_resolved" ? (
                       "✅"
-                    ) : type === "breeder_rejected" || type === "listing_rejected" ? (
+                    ) : type === "breeder_rejected" ||
+                      type === "listing_rejected" ||
+                      type === "breeder_detail_rejected" ||
+                      type === "transparency_warning" ? (
                       "⚠️"
-                    ) : type === "admin_breeder_pending" ||
-                      type === "admin_listing_pending" ||
-                      type === "admin_report_open" ? (
+                    ) : isAdminQueueNotification(type) ? (
                       "📋"
                     ) : (
                       "🔔"
@@ -392,7 +447,9 @@ export function NotificationsClient({
             <h3 className="text-base font-bold text-[#2B1E19]">
               {notificationType(reasonItem) === "listing_rejected"
                 ? t(lang, "notifications.listingRejectedTitle")
-                : t(lang, "notifications.rejectedTitle")}
+                : notificationType(reasonItem) === "breeder_detail_rejected"
+                  ? t(lang, "notifications.detailRejectedTitle")
+                  : t(lang, "notifications.rejectedTitle")}
             </h3>
             <div className="mt-4 space-y-3">
               <div>
@@ -403,7 +460,9 @@ export function NotificationsClient({
                   {reason ||
                     (notificationType(reasonItem) === "listing_rejected"
                       ? t(lang, "notifications.listingRejectedReasonMissing")
-                      : t(lang, "notifications.rejectedBody"))}
+                      : notificationType(reasonItem) === "breeder_detail_rejected"
+                        ? t(lang, "notifications.detailRejectedBody")
+                        : t(lang, "notifications.rejectedBody"))}
                 </p>
               </div>
               {adminAction ? (

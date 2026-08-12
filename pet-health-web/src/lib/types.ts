@@ -16,7 +16,7 @@ export type VerificationStatus =
   | "rejected"
   | "suspended";
 
-export type TrustLevel = "L0" | "L1" | "L2" | "L3" | "L4";
+export type TrustLevel = "L0" | "L1" | "L2" | "L3" | "L4" | "L5";
 
 /** Verification tier shown on public breeder cards (product Phase 1+). */
 export type VerificationTier = 1 | 2 | 3;
@@ -65,6 +65,10 @@ export interface BreederProfile {
   activeListings: number;
   /** Confirmed rehomes when available; otherwise 0 (never invent). */
   petsRehomed?: number;
+  /** Average Sen review rating (1–5) when reviews exist. */
+  reviewAverage?: number;
+  /** Count of Sen deal reviews. */
+  reviewCount?: number;
   template: TemplateId;
   contact: {
     zalo?: string;
@@ -317,15 +321,16 @@ export function getTrustLevel(
   _verified?: boolean,
 ): { level: TrustLevel; label: string } {
   const s = Math.max(0, Math.min(100, Math.round(score)));
-  if (s <= 20) return { level: "L0", label: "Cảnh báo rủi ro" };
-  if (s <= 40) return { level: "L1", label: "Hồ sơ mới" };
-  if (s <= 60) return { level: "L2", label: "Đang xác minh" };
-  if (s <= 80) return { level: "L3", label: "Đã kiểm định" };
-  return { level: "L4", label: "Trại tiêu chuẩn" };
+  if (s >= 100) return { level: "L5", label: "Trại uy tín hàng đầu" };
+  if (s >= 80) return { level: "L4", label: "Ngôi sao đang lên" };
+  if (s >= 50) return { level: "L3", label: "Trại tiềm năng" };
+  if (s >= 30) return { level: "L2", label: "Trại mới" };
+  if (s >= 16) return { level: "L1", label: "Trại bị cảnh báo" };
+  return { level: "L0", label: "Sắp bị khóa" };
 }
 
-export function getEffectiveTrust(score: number, penalty: number): number {
-  return Math.max(0, score - penalty);
+export function getEffectiveTrust(score: number, _penalty: number): number {
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 export function isTemplateId(value: unknown): value is TemplateId {

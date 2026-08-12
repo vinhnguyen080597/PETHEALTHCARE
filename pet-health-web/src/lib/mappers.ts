@@ -16,12 +16,14 @@ import {
   computeBreederQualityIndex,
   contactFieldCount,
   parseTrustActivityFromMeta,
+  transparencyInputFromBreeder,
 } from "./breederTrust";
 import {
   listingMetadataMarksCancelled,
   listingMetadataMarksSold,
 } from "./farmPets";
 import { metadataMarksOwnerDeleted } from "./listingOwnerDelete";
+import { parseReviewStatsFromMeta } from "./breederDealReviews";
 import {
   coverUrlFromMetadata,
   resolveBreederAvatarUrl,
@@ -151,11 +153,16 @@ function parseTemplate(meta: Record<string, unknown>): TemplateId {
 }
 
 function resolveTrustScore(
-  _meta: Record<string, unknown>,
-  signals: Parameters<typeof computeBreederQualityIndex>[0],
+  meta: Record<string, unknown>,
+  breeder: Pick<
+    import("./types").BreederProfile,
+    "verified" | "verificationStatus" | "penaltyPoints" | "violations" | "warrantyPolicyTrustAwarded"
+  >,
+  extras: { senConfirmedCompletions?: number; fiveStarReviewCount?: number },
 ): number {
-  // Always score from live signals — ignore stale metadata.trust_score defaults.
-  return computeBreederQualityIndex(signals);
+  return computeBreederQualityIndex(
+    transparencyInputFromBreeder(breeder, meta, extras),
+  );
 }
 
 function contactPresenceFlags(meta: Record<string, unknown>): {
@@ -268,18 +275,6 @@ export function mapApiBreeder(
     facebook: contact.facebook,
     tiktok: contact.tiktok,
   };
-  const presence = contactPresenceFlags(meta);
-  const activity = parseTrustActivityFromMeta(meta);
-  const hasFacebook =
-    Boolean(mappedContact.facebook?.trim()) || presence.facebook;
-  const hasZalo = Boolean(mappedContact.zalo?.trim()) || presence.zalo;
-  const hasTiktok =
-    Boolean(mappedContact.tiktok?.trim()) ||
-    presence.tiktok ||
-    (typeof meta.tiktok_url === "string" && Boolean(meta.tiktok_url.trim()));
-  const contactCount =
-    contactFieldCount(mappedContact) ||
-    [hasFacebook, hasZalo, hasTiktok, presence.phone].filter(Boolean).length;
   const penaltyPoints = parsePenalty(meta);
   const violations = Array.isArray(meta.violations)
     ? (meta.violations as Array<Record<string, unknown>>).map((v, i) => ({
@@ -289,28 +284,24 @@ export function mapApiBreeder(
         points: Number(v.points) || 0,
       }))
     : [];
-  const trustScore = resolveTrustScore(meta, {
-    hasEkyc: activity.hasEkyc || verified,
-    hasFacebook,
-    hasZalo,
-    hasTiktok,
-    hasFarmFacility:
-      activity.hasFarmFacility ||
-      Boolean(bio.trim()),
-    hasBusinessLicense: activity.hasBusinessLicense,
-    hasHealthDocs:
-      activity.hasHealthDocs || checklist.some((c) => c.done),
-    hasFirstWarrantyPolicy: activity.hasFirstWarrantyPolicy,
+  const activity = parseTrustActivityFromMeta(meta);
+  const reviewStats = parseReviewStatsFromMeta(meta);
+  const breederSignals = {
     verified,
-    checklistDoneCount: checklist.filter((c) => c.done).length,
-    commitmentsCount: commitments.length,
-    contactCount,
-    hasCareEnvironment: Boolean(bio.trim()),
-    activeListings,
-    fiveStarReviewCount: activity.fiveStarReviewCount,
-    fastResponseMonth: activity.fastResponseMonth,
+    verificationStatus,
     penaltyPoints,
     violations,
+    warrantyPolicyTrustAwarded:
+      Boolean(profile?.warranty_policy_trust_awarded) ||
+      activity.hasFirstWarrantyPolicy,
+  };
+  const trustScore = resolveTrustScore(meta, breederSignals, {
+    senConfirmedCompletions:
+      reviewStats.senConfirmedCompletions ||
+      activity.senConfirmedCompletions ||
+      petsRehomed,
+    fiveStarReviewCount:
+      reviewStats.fiveStarReviewCount || activity.fiveStarReviewCount,
   });
   const scaleRaw = String(meta.scale || meta.scaleRange || "").trim();
   const warrantyPolicies = mapWarrantyPolicies(
@@ -337,6 +328,8 @@ export function mapApiBreeder(
     violations,
     activeListings,
     petsRehomed,
+    reviewAverage: reviewStats.reviewAverage,
+    reviewCount: reviewStats.reviewCount,
     template: parseTemplate(meta),
     contact: mappedContact,
     scale: scaleRaw === "—" || scaleRaw === "-" ? "" : scaleRaw,

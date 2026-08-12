@@ -18,6 +18,12 @@ test("requestStatusGroup maps request statuses for filters", () => {
   assert.equal(requestStatusGroup({ type: "post", status: "published" }), "approved");
   assert.equal(requestStatusGroup({ type: "post", status: "archived" }), "rejected");
   assert.equal(requestStatusGroup({ type: "post", status: "pending_review" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "detail", status: "pending" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "detail", status: "approved" }), "approved");
+  assert.equal(requestStatusGroup({ type: "detail", status: "rejected" }), "rejected");
+  assert.equal(requestStatusGroup({ type: "appeal", status: "appealed" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "appeal", status: "restored" }), "approved");
+  assert.equal(requestStatusGroup({ type: "appeal", status: "upheld" }), "rejected");
 });
 
 test("breederGroup maps verification status buckets", () => {

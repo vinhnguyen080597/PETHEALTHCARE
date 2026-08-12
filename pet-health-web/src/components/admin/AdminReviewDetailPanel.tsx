@@ -397,3 +397,67 @@ export function AdminReviewDetailsToggle({
     </button>
   );
 }
+
+export type AdminReviewBreederDetailSubmission = {
+  id: string;
+  submission_type: string;
+  payload?: { url?: string; note?: string };
+  status?: string;
+  rejection_reason?: string;
+  admin_note?: string;
+  created_at?: string;
+  breeder_profile?: AdminReviewBreeder | null;
+};
+
+export function AdminBreederDetailSubmissionReview({
+  lang,
+  submission,
+}: {
+  lang: Lang;
+  submission: AdminReviewBreederDetailSubmission;
+}) {
+  const url = submission.payload?.url?.trim() || "";
+  const isVideo = submission.submission_type === "facility_video";
+  const breederName =
+    submission.breeder_profile?.display_name || submission.breeder_profile?.user_id || "—";
+
+  return (
+    <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
+      <Section title={t(lang, "admin.review.detailBreeder")}>
+        <p className="text-sm text-[#5C4A3A]">{breederName}</p>
+      </Section>
+      <Section title={t(lang, "admin.review.detailType")}>
+        <Chip>{submission.submission_type}</Chip>
+      </Section>
+      {url ? (
+        <Section title={t(lang, "admin.review.detailUrl")}>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-[#B45309] break-all hover:underline"
+          >
+            {url}
+          </a>
+          {isVideo ? (
+            <video
+              src={url}
+              controls
+              className="mt-3 w-full max-h-64 rounded-xl bg-black/5"
+            />
+          ) : /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={url} alt="" className="mt-3 max-h-64 rounded-xl object-contain bg-white" />
+          ) : null}
+        </Section>
+      ) : null}
+      {submission.payload?.note?.trim() ? (
+        <Section title={t(lang, "admin.review.reportNote")}>
+          <p className="text-sm text-[#5C4A3A] whitespace-pre-wrap">
+            {submission.payload.note.trim()}
+          </p>
+        </Section>
+      ) : null}
+    </div>
+  );
+}

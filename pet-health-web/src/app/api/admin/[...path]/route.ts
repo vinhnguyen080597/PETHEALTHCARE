@@ -16,6 +16,12 @@ function mapAdminPath(segments: string[], method: string): string {
   if (path === "breeders" || path.startsWith("breeders/")) {
     return `/admin/breeder-profiles${path === "breeders" ? "" : path.slice("breeders".length)}`;
   }
+  if (path === "breeder-submissions" || path.startsWith("breeder-submissions/")) {
+    return `/admin/${path}`;
+  }
+  if (path === "transparency-warnings" || path.startsWith("transparency-warnings/")) {
+    return `/admin/${path}`;
+  }
   if (path === "accounts" || path.startsWith("accounts/")) {
     return `/admin/${path}`;
   }

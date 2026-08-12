@@ -168,7 +168,7 @@
       "species": "Loài chính",
       "scale": "Quy mô",
       "type": "Loại hình",
-      "trustScore": "Điểm tin cậy",
+      "trustScore": "Điểm minh bạch",
       "notUpdated": "Chưa cập nhật",
       "viewPosts": "Xem bài đăng",
       "viewProfile": "Xem hồ sơ trại",
@@ -292,6 +292,28 @@
       "adminReportSubtitle": "Cần Admin xử lý",
       "adminReportBody": "Có báo cáo mới cần Admin xử lý.",
       "adminRequestCta": "Xem yêu cầu",
+      "detailApprovedTitle": "Chi tiết hồ sơ đã được duyệt",
+      "detailApprovedSubtitle": "Admin duyệt",
+      "detailApprovedBody": "Admin đã duyệt chi tiết minh bạch của bạn. Điểm sẽ được cập nhật.",
+      "detailApprovedCta": "Xem hồ sơ trại",
+      "detailRejectedTitle": "Chi tiết hồ sơ chưa được duyệt",
+      "detailRejectedSubtitle": "Quyết định Admin",
+      "detailRejectedBody": "Admin chưa duyệt chi tiết hồ sơ này.",
+      "detailRejectedCta": "Xem lý do",
+      "transparencyWarningTitle": "Cảnh báo điểm minh bạch",
+      "transparencyWarningSubtitle": "Cần xử lý",
+      "transparencyWarningBody": "Điểm minh bạch của bạn đã xuống mức nguy hiểm. Xác nhận tạm khóa hoặc kháng cáo.",
+      "transparencyWarningCta": "Xem cảnh báo",
+      "transparencyResolvedTitle": "Đã xử lý cảnh báo minh bạch",
+      "transparencyResolvedSubtitle": "Quyết định Admin",
+      "transparencyResolvedBody": "Admin đã xử lý xong cảnh báo điểm minh bạch của bạn.",
+      "transparencyResolvedCta": "Xem hồ sơ trại",
+      "adminDetailTitle": "Chi tiết Breeder chờ duyệt",
+      "adminDetailSubtitle": "Cần Admin xử lý",
+      "adminDetailBody": "Có chi tiết minh bạch mới cần Admin duyệt.",
+      "adminAppealTitle": "Kháng cáo điểm minh bạch",
+      "adminAppealSubtitle": "Cần Admin xử lý",
+      "adminAppealBody": "Breeder kháng cáo cảnh báo điểm minh bạch thấp.",
       "depositCancelTitle": "Yêu cầu hủy cọc",
       "depositCancelSubtitle": "Cần bạn xác nhận",
       "depositCancelBody": "Breeder yêu cầu hủy cọc. Vui lòng xác nhận nếu bạn đồng ý.",
@@ -431,10 +453,12 @@
     }
   },
   "breederTrustLevel": {
-    "L3": "Đối tác nổi bật",
-    "L2": "Đáng tin cậy",
-    "L1": "Đang xây dựng",
-    "L0": "Mới bắt đầu"
+    "L5": "Trại uy tín hàng đầu",
+    "L4": "Ngôi sao đang lên",
+    "L3": "Trại tiềm năng",
+    "L2": "Trại mới",
+    "L1": "Trại bị cảnh báo",
+    "L0": "Sắp bị khóa"
   },
   "farmHealth": {
     "title": "Sức khỏe trại",
@@ -442,10 +466,10 @@
     "subtitle": "Tín hiệu tham khảo về mức độ minh bạch hồ sơ.",
     "yourHealth": "Sức khoẻ trại của bạn",
     "improveHint": "Hoàn thiện thêm để tăng điểm và hiện với nhiều sen hơn.",
-    "trustShort": "Tin cậy",
+    "trustShort": "Minh bạch",
     "level": "Cấp độ",
-    "levelSub": "Trust level",
-    "trustScoreSub": "Trust score",
+    "levelSub": "Cấp tín nhiệm",
+    "trustScoreSub": "Điểm minh bạch",
     "reports": "Báo cáo",
     "reportsSub": "Chưa có báo cáo được xác nhận",
     "reportsActiveSub": "Vi phạm đã xác nhận",
@@ -462,7 +486,7 @@
     "tipChecklist": "Hoàn thiện checklist chăm sóc (+15)",
     "tipPhotos": "Thêm ảnh môi trường nuôi",
     "tipListings": "Đăng thêm tin đang bán",
-    "footnote": "Điểm tin cậy là chỉ số tham khảo, không phải điểm tín dụng hay bảo đảm giao dịch."
+    "footnote": "Điểm minh bạch là chỉ số tham khảo, không phải điểm tín dụng hay bảo đảm giao dịch."
   },
   "breederTemplates": {
     "pickerTitle": "Chọn giao diện",
@@ -2178,6 +2202,19 @@
     "disputePhotosLabel": "Ảnh minh chứng",
     "disputePhotosRequired": "Vui lòng thêm ít nhất 1 ảnh minh chứng.",
     "disputeSubmit": "Gửi khiếu nại",
-    "completed": "Giao dịch đã hoàn thành"
+    "completed": "Giao dịch đã hoàn thành",
+    "reviewTitle": "Đánh giá trại",
+    "reviewHint": "Chỉ đánh giá 5★ mới cộng điểm minh bạch (+2/lần).",
+    "reviewPlaceholder": "Nhận xét thêm (không bắt buộc)…",
+    "reviewSubmit": "Gửi đánh giá",
+    "reviewSkip": "Bỏ qua"
+  },
+  "transparencyWarning": {
+    "title": "Điểm minh bạch còn {{score}}/100",
+    "body": "Một điểm phạt đã đưa điểm minh bạch xuống mức nguy hiểm. Xác nhận để tạm khóa tài khoản, hoặc kháng cáo để admin xem xét.",
+    "confirm": "Xác nhận — tạm khóa",
+    "appeal": "Kháng cáo",
+    "confirmed": "Tài khoản của bạn đã bị tạm khóa.",
+    "appealed": "Đã gửi kháng cáo. Tài khoản vẫn hoạt động trong lúc admin xem xét."
   }
 }

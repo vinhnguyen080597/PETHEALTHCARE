@@ -239,6 +239,94 @@ export async function updateMyBreederProfilePhotos(
   );
 }
 
+export async function getMyTransparencyWarning(token: string) {
+  return fetchJson<{ data: import("../transparencyWarnings").TransparencyWarning | null }>(
+    "/pet-feed/breeder-profile/me/transparency-warning",
+    { token, cache: "no-store" },
+  );
+}
+
+export async function confirmTransparencyWarning(token: string, warningId: string) {
+  return fetchJson<{ data: import("../transparencyWarnings").TransparencyWarning }>(
+    `/pet-feed/breeder-profile/me/transparency-warning/${encodeURIComponent(warningId)}/confirm`,
+    { method: "POST", token },
+  );
+}
+
+export async function appealTransparencyWarning(token: string, warningId: string) {
+  return fetchJson<{ data: import("../transparencyWarnings").TransparencyWarning }>(
+    `/pet-feed/breeder-profile/me/transparency-warning/${encodeURIComponent(warningId)}/appeal`,
+    { method: "POST", token },
+  );
+}
+
+export async function listMyBreederProfileSubmissions(token: string) {
+  return fetchJson<{ data: import("../breederProfileSubmissions").BreederProfileSubmission[] }>(
+    "/pet-feed/breeder-profile/me/submissions",
+    { token, cache: "no-store" },
+  );
+}
+
+export async function createBreederProfileSubmission(
+  token: string,
+  payload: { submissionType: string; url: string; note?: string },
+) {
+  return fetchJson<{ data: import("../breederProfileSubmissions").BreederProfileSubmission }>(
+    "/pet-feed/breeder-profile/me/submissions",
+    {
+      method: "POST",
+      token,
+      body: payload,
+    },
+  );
+}
+
+export async function cancelBreederProfileSubmission(token: string, submissionId: string) {
+  return fetchJson<{ data: import("../breederProfileSubmissions").BreederProfileSubmission }>(
+    `/pet-feed/breeder-profile/me/submissions/${encodeURIComponent(submissionId)}/cancel`,
+    { method: "POST", token },
+  );
+}
+
+export async function uploadBreederTransparencyMedia(token: string, formData: FormData) {
+  return fetchJson<{
+    data: { publicUrl: string; kind: "facility_video" | "business_license" };
+  }>("/pet-feed/breeder-profile/me/submissions/upload", {
+    method: "POST",
+    token,
+    formData,
+    timeoutMs: UPLOAD_TIMEOUT_MS,
+  });
+}
+
+export async function adminListBreederSubmissions(token: string, status?: string) {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  return fetchJson<{ data: import("../breederProfileSubmissions").BreederProfileSubmission[] }>(
+    `/admin/breeder-submissions${qs}`,
+    { token, cache: "no-store" },
+  );
+}
+
+export async function adminReviewBreederSubmission(
+  token: string,
+  submissionId: string,
+  status: "approved" | "rejected",
+  extras?: { rejectionReason?: string; adminNote?: string },
+) {
+  return fetchJson<{ data: import("../breederProfileSubmissions").BreederProfileSubmission }>(
+    `/admin/breeder-submissions/${encodeURIComponent(submissionId)}/status`,
+    {
+      method: "PUT",
+      token,
+      body: {
+        status,
+        ...(extras?.rejectionReason ? { rejectionReason: extras.rejectionReason } : {}),
+        ...(extras?.adminNote ? { adminNote: extras.adminNote } : {}),
+      },
+    },
+  );
+}
+
 export async function listMyWarrantyPolicies(token: string) {
   return fetchJson<{
     data: Array<{
@@ -438,12 +526,39 @@ export async function requestListingComplete(
 }
 
 export async function confirmListingComplete(token: string, postId: string) {
-  return fetchJson<{ data: ApiPetFeedPost; both_confirmed?: boolean }>(
-    `/pet-feed/posts/${encodeURIComponent(postId)}/complete/confirm`,
-    {
-      method: "POST",
-      token,
-    },
+  return fetchJson<{
+    data: ApiPetFeedPost;
+    both_confirmed?: boolean;
+    review_eligible?: boolean;
+    breeder_profile_id?: string | null;
+  }>(`/pet-feed/posts/${encodeURIComponent(postId)}/complete/confirm`, {
+    method: "POST",
+    token,
+  });
+}
+
+export async function getMyDealReview(token: string, postId: string) {
+  return fetchJson<{ data: import("./breederDealReviews").BreederDealReview | null }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/review/me`,
+    { token, cache: "no-store" },
+  );
+}
+
+export async function submitDealReview(
+  token: string,
+  postId: string,
+  payload: { rating: number; body?: string },
+) {
+  return fetchJson<{ data: import("./breederDealReviews").BreederDealReview }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/review`,
+    { method: "POST", token, body: payload },
+  );
+}
+
+export async function getBreederDealReviews(token: string | null, profileId: string) {
+  return fetchJson<{ data: import("./breederDealReviews").BreederDealReviewAggregate }>(
+    `/pet-feed/breeder-profiles/${encodeURIComponent(profileId)}/reviews`,
+    { token, cache: "no-store" },
   );
 }
 

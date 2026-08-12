@@ -168,7 +168,7 @@
       "species": "Main species",
       "scale": "Scale",
       "type": "Type",
-      "trustScore": "Trust score",
+      "trustScore": "Transparency score",
       "notUpdated": "Not updated",
       "viewPosts": "View listings",
       "viewProfile": "View breeder profile",
@@ -292,6 +292,28 @@
       "adminReportSubtitle": "Needs admin review",
       "adminReportBody": "A new report needs admin review.",
       "adminRequestCta": "View request",
+      "detailApprovedTitle": "Profile detail approved",
+      "detailApprovedSubtitle": "Admin approval",
+      "detailApprovedBody": "Admin approved your transparency detail. Your score will update.",
+      "detailApprovedCta": "View farm profile",
+      "detailRejectedTitle": "Profile detail not approved",
+      "detailRejectedSubtitle": "Admin decision",
+      "detailRejectedBody": "Admin did not approve this profile detail.",
+      "detailRejectedCta": "View reason",
+      "transparencyWarningTitle": "Transparency score warning",
+      "transparencyWarningSubtitle": "Action needed",
+      "transparencyWarningBody": "Your transparency score dropped to a critical level. Confirm suspension or appeal.",
+      "transparencyWarningCta": "Review warning",
+      "transparencyResolvedTitle": "Transparency warning resolved",
+      "transparencyResolvedSubtitle": "Admin decision",
+      "transparencyResolvedBody": "Admin finished reviewing your transparency warning.",
+      "transparencyResolvedCta": "View farm profile",
+      "adminDetailTitle": "New breeder detail for review",
+      "adminDetailSubtitle": "Needs admin review",
+      "adminDetailBody": "A breeder submitted a transparency detail for approval.",
+      "adminAppealTitle": "Transparency warning appeal",
+      "adminAppealSubtitle": "Needs admin review",
+      "adminAppealBody": "A breeder appealed a low transparency score warning.",
       "depositCancelTitle": "Deposit cancel requested",
       "depositCancelSubtitle": "Needs your confirmation",
       "depositCancelBody": "The breeder asked to cancel this deposit. Please confirm if you agree.",
@@ -431,10 +453,12 @@
     }
   },
   "breederTrustLevel": {
-    "L3": "Outstanding partner",
-    "L2": "Trustworthy",
-    "L1": "Building",
-    "L0": "Getting started"
+    "L5": "Top trusted kennel",
+    "L4": "Rising star",
+    "L3": "Promising kennel",
+    "L2": "New kennel",
+    "L1": "Warning",
+    "L0": "At risk of suspension"
   },
   "farmHealth": {
     "title": "Farm health",
@@ -442,10 +466,10 @@
     "subtitle": "Reference signals for profile transparency.",
     "yourHealth": "Your farm health",
     "improveHint": "Complete more details to raise your score and reach more pet parents.",
-    "trustShort": "Trust",
+    "trustShort": "Transparency",
     "level": "Level",
     "levelSub": "Trust level",
-    "trustScoreSub": "Trust score",
+    "trustScoreSub": "Transparency score",
     "reports": "Reports",
     "reportsSub": "No confirmed reports",
     "reportsActiveSub": "Confirmed violations",
@@ -462,7 +486,7 @@
     "tipChecklist": "Complete the care checklist (+15)",
     "tipPhotos": "Add care-environment photos",
     "tipListings": "Post more active listings",
-    "footnote": "Trust score is a reference signal, not a credit score or transaction guarantee."
+    "footnote": "Transparency score is a reference signal, not a credit score or transaction guarantee."
   },
   "breederTemplates": {
     "pickerTitle": "Choose template",
@@ -2181,6 +2205,19 @@
     "disputePhotosLabel": "Evidence photos",
     "disputePhotosRequired": "Please add at least one evidence photo.",
     "disputeSubmit": "Submit dispute",
-    "completed": "Transaction completed"
+    "completed": "Transaction completed",
+    "reviewTitle": "Rate this breeder",
+    "reviewHint": "Only 5★ reviews add transparency points (+2 each).",
+    "reviewPlaceholder": "Optional comment…",
+    "reviewSubmit": "Submit review",
+    "reviewSkip": "Skip for now"
+  },
+  "transparencyWarning": {
+    "title": "Transparency score is {{score}}/100",
+    "body": "A penalty dropped your transparency score to a critical level. Confirm to suspend your account, or appeal for admin review.",
+    "confirm": "Confirm — suspend",
+    "appeal": "Appeal",
+    "confirmed": "Your account has been suspended.",
+    "appealed": "Appeal sent. Your account stays active while admin reviews."
   }
 }

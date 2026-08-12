@@ -78,6 +78,10 @@ import {
   requestListingCancelDeposit,
   requestListingComplete,
   requestListingDispute,
+  submitDealReview,
+  getMyTransparencyWarning,
+  confirmTransparencyWarning,
+  appealTransparencyWarning,
   openPetFeedConversation,
   sendPetFeedConversationMessage,
   requestBreedRecognition,
@@ -2132,6 +2136,7 @@ export function usePetHealthApp() {
           setScreen('home');
         }
         await loadAccountDashboard(token, freshAccount.primary_role);
+        void checkTransparencyWarning();
       } catch {
         // Keep the account tab responsive even if the dashboard refresh is slow/offline.
       }
@@ -2156,6 +2161,7 @@ export function usePetHealthApp() {
         setMyPetFeedPostStats(emptyMyPetFeedPostStats);
       }
       setScreen('breeder-profile');
+      void checkTransparencyWarning();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('petFeed.breederProfile'), message);
@@ -2379,9 +2385,9 @@ export function usePetHealthApp() {
     async (
       postId: string,
       mutation: import('../utils/listingDealHandoff').ListingDealMutation,
-    ): Promise<PetFeedPost | null> => {
+    ): Promise<{ post: PetFeedPost; reviewEligible?: boolean } | null> => {
       if (!token || !postId) return null;
-      let response: { data: PetFeedPost };
+      let response: { data: PetFeedPost; review_eligible?: boolean };
       switch (mutation.type) {
         case 'deposit_confirm':
           response = await confirmListingDeposit(token, postId, {
@@ -2420,10 +2426,63 @@ export function usePetHealthApp() {
       setMyPetFeedPosts((current) =>
         current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
       );
-      return updated;
+      return {
+        post: updated,
+        reviewEligible:
+          mutation.type === 'complete_confirm' ? Boolean(response.review_eligible) : undefined,
+      };
     },
     [token],
   );
+
+  const submitListingDealReview = useCallback(
+    async (postId: string, payload: { rating: number; body?: string }) => {
+      if (!token || !postId) return;
+      await submitDealReview(token, postId, payload);
+    },
+    [token],
+  );
+
+  const checkTransparencyWarning = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await getMyTransparencyWarning(token);
+      const warning = res.data;
+      if (!warning || warning.status !== 'pending_breeder_action') return;
+      Alert.alert(
+        i18n.t('transparencyWarning.title', { score: warning.score_at_trigger }),
+        i18n.t('transparencyWarning.body'),
+        [
+          {
+            text: i18n.t('transparencyWarning.confirm'),
+            style: 'destructive',
+            onPress: () => {
+              void confirmTransparencyWarning(token, warning.id)
+                .then(() => Alert.alert(i18n.t('common.ok'), i18n.t('transparencyWarning.confirmed')))
+                .catch((error: unknown) => {
+                  const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+                  Alert.alert(i18n.t('common.error'), message);
+                });
+            },
+          },
+          {
+            text: i18n.t('transparencyWarning.appeal'),
+            onPress: () => {
+              void appealTransparencyWarning(token, warning.id)
+                .then(() => Alert.alert(i18n.t('common.ok'), i18n.t('transparencyWarning.appealed')))
+                .catch((error: unknown) => {
+                  const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+                  Alert.alert(i18n.t('common.error'), message);
+                });
+            },
+          },
+        ],
+        { cancelable: false },
+      );
+    } catch {
+      // best-effort gate
+    }
+  }, [token]);
 
   const fetchPetFeedPostDetail = useCallback(async (postId: string): Promise<PetFeedPost | null> => {
     if (!token || !postId) return null;
@@ -2651,6 +2710,8 @@ export function usePetHealthApp() {
 
     if (
       type === 'admin_breeder_pending' ||
+      type === 'admin_breeder_detail_pending' ||
+      type === 'admin_transparency_appeal' ||
       type === 'admin_listing_pending' ||
       type === 'admin_report_open'
     ) {
@@ -2658,13 +2719,23 @@ export function usePetHealthApp() {
       return;
     }
 
-    if (type === 'breeder_verified' && notification.breeder_profile_id) {
+    if (
+      (type === 'breeder_verified' || type === 'breeder_detail_approved') &&
+      notification.breeder_profile_id
+    ) {
       setBreederDetailReturnScreen('notifications-inbox');
       setSelectedBreederProfileId(notification.breeder_profile_id);
       setScreen('breeder-detail');
       return;
     }
-    if (type === 'breeder_rejected') {
+    if (type === 'breeder_rejected' || type === 'breeder_detail_rejected') {
+      return;
+    }
+    if (
+      type === 'transparency_warning' ||
+      type === 'transparency_warning_resolved'
+    ) {
+      void openBreederProfile();
       return;
     }
     if (type === 'listing_rejected') {
@@ -2686,8 +2757,8 @@ export function usePetHealthApp() {
             text: i18n.t('petFeed.notifications.depositCancelCta'),
             onPress: () => {
               void mutateListingDeal(postId, { type: 'cancel_confirm' })
-                .then((updated) => {
-                  if (updated) {
+                .then((result) => {
+                  if (result?.post) {
                     Alert.alert(
                       i18n.t('common.ok'),
                       i18n.t('petFeed.notifications.depositCancelSuccess'),
@@ -4623,6 +4694,8 @@ export function usePetHealthApp() {
     editingPetFeedPost,
     submitPetFeedReport,
     mutateListingDeal,
+    submitListingDealReview,
+    checkTransparencyWarning,
     adminFeedPosts,
     adminFeedReports,
     adminAccounts,

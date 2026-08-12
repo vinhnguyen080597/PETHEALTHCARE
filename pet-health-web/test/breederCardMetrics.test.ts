@@ -81,7 +81,7 @@ test("getBreederCardMetrics uses trust score and listings honestly", () => {
 test("breeder card trust index i18n aligned", () => {
   const enDict = en as Record<string, string>;
   const viDict = vi as Record<string, string>;
-  assert.equal(viDict["breeders.card.trustIndex"], "Chỉ số tín nhiệm");
+  assert.equal(viDict["breeders.card.trustIndex"], "Điểm minh bạch");
   assert.ok(enDict["breeders.card.trustIndex"]);
   assert.equal(viDict["breeders.card.cta"], "Xem Trại Giống");
   assert.doesNotMatch(viDict["breeders.card.cta"], /đang đăng/i);

@@ -7,10 +7,19 @@ const memoryNotifications = [];
 const DEFAULT_NOTIFICATION_LIMIT = 50;
 const MAX_NOTIFICATION_LIMIT = 100;
 
-const BREEDER_NOTIFICATION_TYPES = new Set(['breeder_verified', 'breeder_rejected']);
+const BREEDER_NOTIFICATION_TYPES = new Set([
+  'breeder_verified',
+  'breeder_rejected',
+  'breeder_detail_approved',
+  'breeder_detail_rejected',
+  'transparency_warning',
+  'transparency_warning_resolved',
+]);
 const LISTING_REVIEW_NOTIFICATION_TYPES = new Set(['listing_approved', 'listing_rejected']);
 const ADMIN_NOTIFICATION_TYPES = new Set([
   'admin_breeder_pending',
+  'admin_breeder_detail_pending',
+  'admin_transparency_appeal',
   'admin_listing_pending',
   'admin_report_open',
 ]);
@@ -26,6 +35,8 @@ const DEAL_NOTIFICATION_TYPES = new Set([
 ]);
 const ADMIN_DEFAULT_CTA = {
   admin_breeder_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=breeder' },
+  admin_breeder_detail_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=detail' },
+  admin_transparency_appeal: { label: 'Xem kháng cáo', href: '/app/admin?section=requests&type=appeal' },
   admin_listing_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=post' },
   admin_report_open: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=report' },
 };
@@ -392,6 +403,96 @@ export async function createBreederVerificationNotification({
   return enrichNotification(data, accessToken);
 }
 
+/** Notify breeder when admin approves/rejects a transparency detail submission. */
+export async function createBreederDetailReviewNotification({
+  recipientUserId,
+  actorUserId,
+  breederProfileId,
+  type,
+  bodyPreview,
+  metadata = {},
+  accessToken,
+}) {
+  const recipient = trimText(recipientUserId, 64);
+  const actor = trimText(actorUserId, 64) || 'admin';
+  const profileId = trimText(breederProfileId, 64);
+  const safeType = type === 'breeder_detail_rejected' ? 'breeder_detail_rejected' : 'breeder_detail_approved';
+  if (!recipient || !profileId) return null;
+
+  const meta = normalizeMetadata(metadata);
+  const row = {
+    id: randomUUID(),
+    recipient_user_id: recipient,
+    actor_user_id: actor,
+    post_id: null,
+    comment_id: null,
+    breeder_profile_id: profileId,
+    type: safeType,
+    body_preview: trimText(bodyPreview, 220),
+    metadata: meta,
+    created_at: new Date().toISOString(),
+    read_at: null,
+  };
+
+  const supabase = getNotificationsSupabase(accessToken);
+  if (!supabase) {
+    memoryNotifications.push(row);
+    return enrichNotification(row, accessToken);
+  }
+
+  const { data, error } = await supabase.from('pet_feed_notifications').insert(row).select('*').single();
+  if (error) throw error;
+  return enrichNotification(data, accessToken);
+}
+
+/** Notify breeder about transparency score warning / resolution. */
+export async function createTransparencyWarningNotification({
+  recipientUserId,
+  actorUserId,
+  breederProfileId,
+  type,
+  bodyPreview,
+  metadata = {},
+  accessToken,
+}) {
+  const recipient = trimText(recipientUserId, 64);
+  const actor = trimText(actorUserId, 64) || 'system';
+  const profileId = trimText(breederProfileId, 64);
+  const safeType = type === 'transparency_warning_resolved'
+    ? 'transparency_warning_resolved'
+    : 'transparency_warning';
+  if (!recipient || !profileId) return null;
+
+  const meta = {
+    ...normalizeMetadata(metadata),
+    cta_label: trimText(metadata?.cta_label, 80) || 'Xem cảnh báo',
+    cta_href: trimText(metadata?.cta_href, 240) || '/app/account/breeder',
+  };
+  const row = {
+    id: randomUUID(),
+    recipient_user_id: recipient,
+    actor_user_id: actor,
+    post_id: null,
+    comment_id: null,
+    breeder_profile_id: profileId,
+    type: safeType,
+    body_preview: trimText(bodyPreview, 220),
+    metadata: meta,
+    created_at: new Date().toISOString(),
+    read_at: null,
+  };
+
+  const supabase = getNotificationsSupabase(accessToken);
+  if (!supabase) {
+    memoryNotifications.push(row);
+    return enrichNotification(row, accessToken);
+  }
+
+  const { data, error } = await supabase.from('pet_feed_notifications').insert(row).select('*').single();
+  if (error) throw error;
+  return enrichNotification(data, accessToken);
+}
+
 /**
  * Fan-out one notification row to every admin when a review queue item arrives.
  * Skips the actor when they are also an admin.
@@ -421,6 +522,16 @@ export async function createAdminRequestNotifications({
   let ctaHref = trimText(metadata?.cta_href, 240) || defaults.href;
   if (safeType === 'admin_breeder_pending' && safeBreederId) {
     ctaHref = `/app/admin?section=requests&type=breeder&focus=${encodeURIComponent(safeBreederId)}`;
+  } else if (safeType === 'admin_breeder_detail_pending') {
+    const submissionId = trimText(metadata?.submission_id, 64);
+    ctaHref = submissionId
+      ? `/app/admin?section=requests&type=detail&focus=${encodeURIComponent(submissionId)}`
+      : defaults.href;
+  } else if (safeType === 'admin_transparency_appeal') {
+    const warningId = trimText(metadata?.warning_id, 64);
+    ctaHref = warningId
+      ? `/app/admin?section=requests&type=appeal&focus=${encodeURIComponent(warningId)}`
+      : defaults.href;
   } else if (safeType === 'admin_listing_pending' && safePostId) {
     ctaHref = `/app/admin?section=requests&type=post&focus=${encodeURIComponent(safePostId)}`;
   } else if (safeType === 'admin_report_open' && reportId) {
@@ -434,6 +545,10 @@ export async function createAdminRequestNotifications({
     request_kind:
       safeType === 'admin_breeder_pending'
         ? 'breeder'
+        : safeType === 'admin_breeder_detail_pending'
+          ? 'detail'
+          : safeType === 'admin_transparency_appeal'
+            ? 'appeal'
         : safeType === 'admin_listing_pending'
           ? 'listing'
           : 'report',

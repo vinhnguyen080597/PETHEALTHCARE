@@ -27,6 +27,20 @@ import {
 } from '../utils/listingCloseOutcome.js';
 import { sanitizeBreederProfileMetadata } from '../utils/breederProfileMetadata.js';
 import { normalizeRegistrationUnitPayload } from '../utils/breederRegistrationUnit.js';
+import {
+  applyApprovedBreederSubmission,
+  normalizeBreederSubmissionStatus,
+  normalizeBreederSubmissionType,
+  validateBreederSubmissionPayload,
+} from '../utils/breederProfileSubmissions.js';
+import {
+  bindBreederDealReviewMemoryPosts,
+  recomputeBreederDealActivity,
+} from './breederDealReviewsRepository.js';
+import {
+  bindTransparencyWarningMemoryProfiles,
+  maybeCreateTransparencyWarningAfterPenalty,
+} from './transparencyWarningsRepository.js';
 
 const DEFAULT_VIOLATION_PENALTY_POINTS = 10;
 
@@ -41,6 +55,14 @@ const memoryFavorites = [];
 const memoryReports = [];
 const memoryComments = [];
 const memoryBlockedBreeders = [];
+const memorySubmissions = [];
+bindBreederDealReviewMemoryPosts(() => memoryPosts);
+bindTransparencyWarningMemoryProfiles(
+  () => memoryProfiles,
+  (idx, next) => {
+    memoryProfiles[idx] = next;
+  },
+);
 const DEFAULT_FEED_PAGE_LIMIT = 12;
 const MAX_FEED_PAGE_LIMIT = 30;
 
@@ -2453,20 +2475,29 @@ async function appendBreederViolationFromReport(report) {
     breederProfileId: report.breeder_profile_id,
     postId: report.post_id,
   });
-  if (!profileRow?.id) return;
+  if (!profileRow?.id) return null;
+
+  const profileBefore = {
+    ...profileRow,
+    metadata: profileRow.metadata && typeof profileRow.metadata === 'object'
+      ? { ...profileRow.metadata }
+      : {},
+  };
 
   const metadata = profileRow.metadata && typeof profileRow.metadata === 'object' ? { ...profileRow.metadata } : {};
   const existingViolations = Array.isArray(metadata.violations) ? [...metadata.violations] : [];
   if (existingViolations.some((item) => item && item.reportId === report.id)) {
-    return;
+    return null;
   }
 
   const points = DEFAULT_VIOLATION_PENALTY_POINTS;
+  const violationId = randomUUID();
   existingViolations.push({
-    id: randomUUID(),
+    id: violationId,
     reportId: report.id,
     reason: trimText(report.reason, 120) || 'report_upheld',
     points,
+    date: new Date().toISOString().slice(0, 10),
     createdAt: new Date().toISOString(),
     status: 'active',
   });
@@ -2479,22 +2510,34 @@ async function appendBreederViolationFromReport(report) {
   const updatedAt = new Date().toISOString();
 
   const supabase = getSupabaseServiceClient();
+  let profileAfter = null;
   if (!supabase) {
     const idx = memoryProfiles.findIndex((profile) => profile.id === profileRow.id);
-    if (idx < 0) return;
+    if (idx < 0) return null;
     memoryProfiles[idx] = {
       ...memoryProfiles[idx],
       metadata,
       updated_at: updatedAt,
     };
-    return;
+    profileAfter = memoryProfiles[idx];
+  } else {
+    const { data, error } = await supabase
+      .from('breeder_profiles')
+      .update({ metadata, updated_at: updatedAt })
+      .eq('id', profileRow.id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    profileAfter = data;
   }
 
-  const { error } = await supabase
-    .from('breeder_profiles')
-    .update({ metadata, updated_at: updatedAt })
-    .eq('id', profileRow.id);
-  if (error) throw error;
+  const warning = await maybeCreateTransparencyWarningAfterPenalty({
+    profileBefore,
+    profileAfter,
+    triggerViolationId: violationId,
+  }).catch(() => null);
+
+  return { profile: profileAfter, warning, violationId };
 }
 
 export async function adminUpdatePetFeedReportStatus(reportId, status) {
@@ -2507,10 +2550,12 @@ export async function adminUpdatePetFeedReportStatus(reportId, status) {
     if (idx < 0) return null;
     const previous = memoryReports[idx];
     memoryReports[idx] = { ...previous, status: safeStatus, updated_at: new Date().toISOString() };
+    let transparencyWarning = null;
     if (safeStatus === 'reviewed' && previous.status !== 'reviewed') {
-      await appendBreederViolationFromReport(memoryReports[idx]);
+      const penaltyResult = await appendBreederViolationFromReport(memoryReports[idx]);
+      transparencyWarning = penaltyResult?.warning ?? null;
     }
-    return toReport(memoryReports[idx]);
+    return { ...toReport(memoryReports[idx]), transparency_warning: transparencyWarning };
   }
   const { data: existing, error: existingError } = await supabase
     .from('pet_feed_reports')
@@ -2527,10 +2572,12 @@ export async function adminUpdatePetFeedReportStatus(reportId, status) {
     .select('*')
     .maybeSingle();
   if (error) throw error;
+  let transparencyWarning = null;
   if (safeStatus === 'reviewed' && existing.status !== 'reviewed') {
-    await appendBreederViolationFromReport(data);
+    const penaltyResult = await appendBreederViolationFromReport(data);
+    transparencyWarning = penaltyResult?.warning ?? null;
   }
-  return toReport(data);
+  return { ...toReport(data), transparency_warning: transparencyWarning };
 }
 
 export function listMyWarrantyPolicies(profile) {
@@ -3111,10 +3158,16 @@ export async function confirmListingComplete(actorUserId, postId, accessToken) {
     sold: true,
   };
   const updated = await persistListingLifecycle(postId, 'sold', nextMeta, accessToken);
+  const breederProfileId = trimText(row.breeder_profile_id, 64);
+  if (breederProfileId) {
+    await recomputeBreederDealActivity(breederProfileId, accessToken).catch(() => null);
+  }
   return {
     post: updated,
     both_confirmed: true,
     notify_user_id: row.user_id,
+    review_eligible: true,
+    breeder_profile_id: breederProfileId || null,
   };
 }
 
@@ -3420,4 +3473,316 @@ export async function autoCompleteExpiredHandoffs(accessToken, options = {}) {
     errors,
     now: nowIso,
   };
+}
+
+function toBreederSubmission(row) {
+  if (!row) return row;
+  return {
+    id: row.id,
+    breeder_profile_id: row.breeder_profile_id,
+    user_id: row.user_id,
+    submission_type: row.submission_type,
+    payload: asObject(row.payload) || {},
+    status: row.status ?? 'pending',
+    rejection_reason: row.rejection_reason ?? '',
+    admin_note: row.admin_note ?? '',
+    created_at: row.created_at,
+    reviewed_at: row.reviewed_at ?? null,
+    breeder_profile: row.breeder_profile ? toProfile(row.breeder_profile) : null,
+  };
+}
+
+export async function listMyBreederProfileSubmissions(userId, accessToken) {
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    return memorySubmissions
+      .filter((row) => row.user_id === userId)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+      .map(toBreederSubmission);
+  }
+  const { data, error } = await supabase
+    .from('breeder_profile_submissions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(toBreederSubmission);
+}
+
+export async function createBreederProfileSubmission(userId, payload, accessToken) {
+  const submissionType = normalizeBreederSubmissionType(
+    payload?.submissionType ?? payload?.submission_type,
+  );
+  if (!submissionType) {
+    throw httpError('Invalid submission type.', 400, 'INVALID_SUBMISSION_TYPE');
+  }
+
+  const profile = await getMyBreederProfile(userId, accessToken);
+  if (!profile?.id) {
+    throw httpError('Breeder profile not found.', 404, 'BREEDER_PROFILE_NOT_FOUND');
+  }
+  if (profile.verification_status !== 'verified') {
+    throw httpError(
+      'Only verified breeders can submit transparency details.',
+      403,
+      'BREEDER_NOT_VERIFIED',
+    );
+  }
+
+  const validated = validateBreederSubmissionPayload(submissionType, payload?.payload ?? payload);
+  if (!validated.ok) {
+    throw httpError(validated.error, 400, validated.code);
+  }
+
+  const now = new Date().toISOString();
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+
+  if (!supabase) {
+    const pendingIdx = memorySubmissions.findIndex(
+      (row) =>
+        row.user_id === userId
+        && row.submission_type === submissionType
+        && row.status === 'pending',
+    );
+    if (pendingIdx >= 0) {
+      memorySubmissions[pendingIdx] = {
+        ...memorySubmissions[pendingIdx],
+        payload: validated.payload,
+        created_at: now,
+        rejection_reason: '',
+        admin_note: '',
+      };
+      return toBreederSubmission(memorySubmissions[pendingIdx]);
+    }
+    const row = {
+      id: randomUUID(),
+      breeder_profile_id: profile.id,
+      user_id: userId,
+      submission_type: submissionType,
+      payload: validated.payload,
+      status: 'pending',
+      rejection_reason: '',
+      admin_note: '',
+      created_at: now,
+      reviewed_at: null,
+    };
+    memorySubmissions.push(row);
+    return toBreederSubmission(row);
+  }
+
+  const { data: existingPending, error: pendingError } = await supabase
+    .from('breeder_profile_submissions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('submission_type', submissionType)
+    .eq('status', 'pending')
+    .maybeSingle();
+  if (pendingError) throw pendingError;
+
+  if (existingPending?.id) {
+    const { data, error } = await supabase
+      .from('breeder_profile_submissions')
+      .update({
+        payload: validated.payload,
+        rejection_reason: '',
+        admin_note: '',
+        created_at: now,
+      })
+      .eq('id', existingPending.id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return toBreederSubmission(data);
+  }
+
+  const { data, error } = await supabase
+    .from('breeder_profile_submissions')
+    .insert({
+      breeder_profile_id: profile.id,
+      user_id: userId,
+      submission_type: submissionType,
+      payload: validated.payload,
+      status: 'pending',
+    })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return toBreederSubmission(data);
+}
+
+export async function cancelMyBreederProfileSubmission(userId, submissionId, accessToken) {
+  const safeId = trimText(submissionId, 64);
+  if (!safeId) throw httpError('submissionId is required.', 400, 'MISSING_SUBMISSION_ID');
+
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    const idx = memorySubmissions.findIndex(
+      (row) => row.id === safeId && row.user_id === userId && row.status === 'pending',
+    );
+    if (idx < 0) throw httpError('Pending submission not found.', 404, 'SUBMISSION_NOT_FOUND');
+    memorySubmissions[idx] = {
+      ...memorySubmissions[idx],
+      status: 'cancelled',
+      reviewed_at: new Date().toISOString(),
+    };
+    return toBreederSubmission(memorySubmissions[idx]);
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('breeder_profile_submissions')
+    .select('*')
+    .eq('id', safeId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) throw httpError('Pending submission not found.', 404, 'SUBMISSION_NOT_FOUND');
+  if (existing.status !== 'pending') {
+    throw httpError('Only pending submissions can be cancelled.', 400, 'SUBMISSION_NOT_PENDING');
+  }
+
+  const { data, error } = await supabase
+    .from('breeder_profile_submissions')
+    .update({ status: 'cancelled', reviewed_at: new Date().toISOString() })
+    .eq('id', safeId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return toBreederSubmission(data);
+}
+
+export async function listAdminBreederProfileSubmissions(status = 'pending') {
+  const safeStatus = normalizeBreederSubmissionStatus(status) || (status ? '' : 'pending');
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    return memorySubmissions
+      .filter((row) => !safeStatus || row.status === safeStatus)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+      .map((row) => {
+        const profile = memoryProfiles.find((p) => p.id === row.breeder_profile_id) ?? null;
+        return toBreederSubmission({ ...row, breeder_profile: profile });
+      });
+  }
+  let query = supabase
+    .from('breeder_profile_submissions')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .order('created_at', { ascending: false });
+  if (safeStatus) query = query.eq('status', safeStatus);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(toBreederSubmission);
+}
+
+export async function getAdminBreederProfileSubmissionById(submissionId) {
+  const safeId = trimText(submissionId, 64);
+  if (!safeId) return null;
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const row = memorySubmissions.find((item) => item.id === safeId) ?? null;
+    if (!row) return null;
+    const profile = memoryProfiles.find((p) => p.id === row.breeder_profile_id) ?? null;
+    return toBreederSubmission({ ...row, breeder_profile: profile });
+  }
+  const { data, error } = await supabase
+    .from('breeder_profile_submissions')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .eq('id', safeId)
+    .maybeSingle();
+  if (error) throw error;
+  return toBreederSubmission(data);
+}
+
+export async function adminReviewBreederProfileSubmission(
+  submissionId,
+  status,
+  options = {},
+) {
+  const safeStatus = normalizeBreederSubmissionStatus(status);
+  if (safeStatus !== 'approved' && safeStatus !== 'rejected') {
+    throw httpError('status must be approved or rejected.', 400, 'INVALID_SUBMISSION_STATUS');
+  }
+  const rejectionReason = trimText(options.rejectionReason ?? options.rejection_reason, 500);
+  const adminNote = trimText(options.adminNote ?? options.admin_note, 500);
+  if (safeStatus === 'rejected' && !rejectionReason) {
+    throw httpError('rejectionReason is required when rejecting.', 400, 'MISSING_REJECTION_REASON');
+  }
+
+  const now = new Date().toISOString();
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const idx = memorySubmissions.findIndex((row) => row.id === submissionId);
+    if (idx < 0) return null;
+    const existing = memorySubmissions[idx];
+    if (existing.status !== 'pending') {
+      throw httpError('Submission is not pending review.', 400, 'SUBMISSION_NOT_PENDING');
+    }
+    memorySubmissions[idx] = {
+      ...existing,
+      status: safeStatus,
+      rejection_reason: safeStatus === 'rejected' ? rejectionReason : '',
+      admin_note: adminNote,
+      reviewed_at: now,
+    };
+    const submission = toBreederSubmission(memorySubmissions[idx]);
+    if (safeStatus === 'approved') {
+      const profileIdx = memoryProfiles.findIndex((p) => p.id === existing.breeder_profile_id);
+      if (profileIdx >= 0) {
+        const profile = memoryProfiles[profileIdx];
+        const merged = applyApprovedBreederSubmission(profile, submission, now);
+        memoryProfiles[profileIdx] = {
+          ...profile,
+          contact: merged.contact,
+          metadata: sanitizeBreederProfileMetadata(merged.metadata),
+          updated_at: now,
+        };
+        submission.breeder_profile = toProfile(memoryProfiles[profileIdx]);
+      }
+    }
+    return submission;
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('breeder_profile_submissions')
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .eq('id', submissionId)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) return null;
+  if (existing.status !== 'pending') {
+    throw httpError('Submission is not pending review.', 400, 'SUBMISSION_NOT_PENDING');
+  }
+
+  const { data: updatedSubmission, error: updateError } = await supabase
+    .from('breeder_profile_submissions')
+    .update({
+      status: safeStatus,
+      rejection_reason: safeStatus === 'rejected' ? rejectionReason : '',
+      admin_note: adminNote,
+      reviewed_at: now,
+    })
+    .eq('id', submissionId)
+    .select('*, breeder_profile:breeder_profiles(*)')
+    .single();
+  if (updateError) throw updateError;
+
+  if (safeStatus === 'approved' && existing.breeder_profile) {
+    const profile = toProfile(existing.breeder_profile);
+    const merged = applyApprovedBreederSubmission(profile, toBreederSubmission(existing), now);
+    const { data: updatedProfile, error: profileError } = await supabase
+      .from('breeder_profiles')
+      .update({
+        contact: merged.contact,
+        metadata: sanitizeBreederProfileMetadata(merged.metadata),
+        updated_at: now,
+      })
+      .eq('id', profile.id)
+      .select('*')
+      .single();
+    if (profileError) throw profileError;
+    return toBreederSubmission({
+      ...updatedSubmission,
+      breeder_profile: updatedProfile,
+    });
+  }
+
+  return toBreederSubmission(updatedSubmission);
 }

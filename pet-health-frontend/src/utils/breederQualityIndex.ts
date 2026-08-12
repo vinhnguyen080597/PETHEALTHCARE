@@ -134,8 +134,7 @@ export function getActiveBreederViolations(profile: BreederProfile): BreederViol
 }
 
 export function effectiveTrustScore(profile: BreederProfile, posts: PetFeedPost[]): number {
-  const base = computeBreederTrust(profile, posts).score;
-  return Math.max(0, base - getBreederPenaltyPoints(profile));
+  return computeBreederTrust(profile, posts).score;
 }
 
 export function isHomeBreederEligible(profile: BreederProfile, trustScore: number): boolean {

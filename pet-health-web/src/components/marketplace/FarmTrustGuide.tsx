@@ -6,7 +6,7 @@ import { getEffectiveTrust } from "@/lib/types";
 import {
   computeBreederTrustScore,
   getTrustTier,
-  qualitySignalsFromBreeder,
+  transparencyInputFromBreeder,
   type TrustScoreBreakdownLine,
 } from "@/lib/breederTrust";
 import {
@@ -22,33 +22,33 @@ import { TrustTicksGauge } from "./TrustTicksGauge";
 
 function breakdownLabel(lang: Lang, key: string): string {
   const map: Record<string, { vi: string; en: string }> = {
-    ekycLicense: {
-      vi: "Xác minh eKYC & Giấy phép",
-      en: "eKYC & business license",
+    verifiedBase: {
+      vi: "Hồ sơ được duyệt",
+      en: "Approved profile base",
     },
     social: {
-      vi: "Liên kết MXH (FB/Zalo/TT)",
-      en: "Social links (FB/Zalo/TT)",
+      vi: "MXH đã duyệt (FB/Zalo/TT/IG)",
+      en: "Approved social links",
     },
-    farmFacility: {
-      vi: "Địa chỉ & video cơ sở",
-      en: "Facility address & video",
+    facilityVideo: {
+      vi: "Video cơ sở",
+      en: "Facility video",
     },
-    healthDocs: {
-      vi: "Bảo trợ sức khỏe (sổ tiêm)",
-      en: "Health docs (vaccine book)",
+    businessLicense: {
+      vi: "Giấy phép kinh doanh",
+      en: "Business license",
     },
-    firstWarrantyPolicy: {
+    firstWarranty: {
       vi: "Chính sách bảo hành đầu tiên",
-      en: "First warranty policy file",
+      en: "First warranty policy",
+    },
+    completions: {
+      vi: "Giao dịch Sen xác nhận",
+      en: "Buyer-confirmed completions",
     },
     reviews: {
-      vi: "Đánh giá 5 sao từ khách",
-      en: "5★ buyer reviews",
-    },
-    response: {
-      vi: "Phản hồi tin nhắn < 15 phút",
-      en: "Reply rate under 15 min",
+      vi: "Đánh giá 5 sao",
+      en: "5★ reviews",
     },
     penalty: {
       vi: "Lịch sử phạt",
@@ -64,6 +64,7 @@ function formatLinePoints(line: TrustScoreBreakdownLine): string {
     return line.val === 0 ? "−0đ" : `${line.val}đ`;
   }
   const sign = line.val > 0 ? "+" : "";
+  if (line.max <= 0) return `${sign}${line.val}đ`;
   return `${sign}${line.val} / ${line.max}đ`;
 }
 
@@ -74,10 +75,12 @@ export function FarmTrustGuide({
   breeder: BreederProfile;
   lang: Lang;
 }) {
-  const input = qualitySignalsFromBreeder(breeder);
+  const input = transparencyInputFromBreeder(breeder, {}, {
+    senConfirmedCompletions: breeder.petsRehomed ?? 0,
+  });
   const computed = computeBreederTrustScore(input);
   const eff = Number.isFinite(breeder.trustScore)
-    ? getEffectiveTrust(breeder.trustScore, breeder.penaltyPoints)
+    ? getEffectiveTrust(breeder.trustScore, 0)
     : computed.score;
   const tier = getTrustTier(eff);
   const tierLabel = lang === "VI" ? tier.nameVI : tier.nameEN;
@@ -130,8 +133,8 @@ export function FarmTrustGuide({
           <TrustLevelChip level={tier.level} label={tierLabel} />
           <p className="text-sm text-slate-600">
             {lang === "VI"
-              ? `Điểm hiện tại: ${eff}/100 · Nhiệm vụ ${computed.missionPoints} · Hoạt động ${computed.transactionPoints} · Phạt −${computed.violationPoints}`
-              : `Current: ${eff}/100 · Missions ${computed.missionPoints} · Activity ${computed.transactionPoints} · Penalties −${computed.violationPoints}`}
+              ? `Điểm hiện tại: ${eff}/100 · Hồ sơ ${computed.profilePoints} · Hoạt động ${computed.activityPoints} · Phạt −${computed.violationPoints}`
+              : `Current: ${eff}/100 · Profile ${computed.profilePoints} · Activity ${computed.activityPoints} · Penalties −${computed.violationPoints}`}
           </p>
           <p className="text-xs text-slate-400 leading-relaxed">
             {lang === "VI" ? tier.meaningVI : tier.meaningEN}

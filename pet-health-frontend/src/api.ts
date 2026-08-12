@@ -805,12 +805,56 @@ export async function requestListingComplete(token: string, postId: string, phot
 }
 
 export async function confirmListingComplete(token: string, postId: string) {
-  return requestJson<{ data: PetFeedPost; both_confirmed?: boolean }>(
+  return requestJson<{
+    data: PetFeedPost;
+    both_confirmed?: boolean;
+    review_eligible?: boolean;
+  }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/complete/confirm`,
     {
       method: 'POST',
       headers: authHeaders(token),
     },
+  );
+}
+
+export async function submitDealReview(
+  token: string,
+  postId: string,
+  payload: { rating: number; body?: string },
+) {
+  return requestJson<{ data: { id: string; rating: number; body?: string } }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/review`,
+    {
+      method: 'POST',
+      headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function getMyTransparencyWarning(token: string) {
+  return requestJson<{ data: {
+    id: string;
+    score_at_trigger: number;
+    status: string;
+  } | null }>(
+    '/pet-feed/breeder-profile/me/transparency-warning',
+    { headers: authHeaders(token) },
+  );
+}
+
+export async function confirmTransparencyWarning(token: string, warningId: string) {
+  return requestJson<{ data: { id: string; status: string } }>(
+    `/pet-feed/breeder-profile/me/transparency-warning/${encodeURIComponent(warningId)}/confirm`,
+    { method: 'POST', headers: authHeaders(token) },
+  );
+}
+
+export async function appealTransparencyWarning(token: string, warningId: string) {
+  return requestJson<{ data: { id: string; status: string } }>(
+    `/pet-feed/breeder-profile/me/transparency-warning/${encodeURIComponent(warningId)}/appeal`,
+    { method: 'POST', headers: authHeaders(token) },
   );
 }
 

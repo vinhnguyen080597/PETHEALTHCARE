@@ -438,6 +438,125 @@ create table if not exists public.pet_feed_comments (
 );
 
 create index if not exists idx_breeder_profiles_user on public.breeder_profiles(user_id);
+
+create table if not exists public.breeder_profile_submissions (
+  id uuid primary key default gen_random_uuid(),
+  breeder_profile_id uuid not null references public.breeder_profiles(id) on delete cascade,
+  user_id text not null,
+  submission_type text not null check (submission_type in (
+    'facility_video',
+    'business_license',
+    'social_facebook',
+    'social_zalo',
+    'social_tiktok',
+    'social_instagram'
+  )),
+  payload jsonb not null default '{}'::jsonb,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'cancelled')),
+  rejection_reason text not null default '',
+  admin_note text not null default '',
+  created_at timestamptz not null default now(),
+  reviewed_at timestamptz
+);
+
+create index if not exists idx_breeder_profile_submissions_status_created
+  on public.breeder_profile_submissions(status, created_at desc);
+create index if not exists idx_breeder_profile_submissions_user_status
+  on public.breeder_profile_submissions(user_id, status);
+create index if not exists idx_breeder_profile_submissions_profile_type
+  on public.breeder_profile_submissions(breeder_profile_id, submission_type, status);
+
+alter table public.breeder_profile_submissions enable row level security;
+drop policy if exists "breeder_profile_submissions_select_own" on public.breeder_profile_submissions;
+drop policy if exists "breeder_profile_submissions_insert_own" on public.breeder_profile_submissions;
+drop policy if exists "breeder_profile_submissions_update_own" on public.breeder_profile_submissions;
+create policy "breeder_profile_submissions_select_own"
+on public.breeder_profile_submissions for select
+to authenticated
+using (auth.uid()::text = user_id);
+create policy "breeder_profile_submissions_insert_own"
+on public.breeder_profile_submissions for insert
+to authenticated
+with check (auth.uid()::text = user_id);
+create policy "breeder_profile_submissions_update_own"
+on public.breeder_profile_submissions for update
+to authenticated
+using (auth.uid()::text = user_id);
+
+create table if not exists public.breeder_deal_reviews (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.pet_feed_posts(id) on delete cascade,
+  sen_user_id text not null,
+  breeder_profile_id uuid not null references public.breeder_profiles(id) on delete cascade,
+  rating integer not null check (rating >= 1 and rating <= 5),
+  body text not null default '',
+  created_at timestamptz not null default now(),
+  unique (post_id, sen_user_id)
+);
+
+create index if not exists idx_breeder_deal_reviews_breeder_created
+  on public.breeder_deal_reviews(breeder_profile_id, created_at desc);
+create index if not exists idx_breeder_deal_reviews_post
+  on public.breeder_deal_reviews(post_id);
+
+alter table public.breeder_deal_reviews enable row level security;
+drop policy if exists "breeder_deal_reviews_select_public" on public.breeder_deal_reviews;
+drop policy if exists "breeder_deal_reviews_insert_own" on public.breeder_deal_reviews;
+create policy "breeder_deal_reviews_select_public"
+on public.breeder_deal_reviews for select
+to authenticated
+using (true);
+create policy "breeder_deal_reviews_insert_own"
+on public.breeder_deal_reviews for insert
+to authenticated
+with check (auth.uid()::text = sen_user_id);
+
+create table if not exists public.transparency_warnings (
+  id uuid primary key default gen_random_uuid(),
+  breeder_profile_id uuid not null references public.breeder_profiles(id) on delete cascade,
+  user_id text not null,
+  score_at_trigger integer not null default 0,
+  penalty_points_at_trigger integer not null default 0,
+  trigger_violation_id text not null default '',
+  status text not null default 'pending_breeder_action'
+    check (status in (
+      'pending_breeder_action',
+      'confirmed',
+      'appealed',
+      'upheld',
+      'restored'
+    )),
+  breeder_action_at timestamptz,
+  admin_resolution text not null default '',
+  admin_note text not null default '',
+  admin_resolved_at timestamptz,
+  admin_resolved_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_transparency_warnings_user_status
+  on public.transparency_warnings(user_id, status);
+create index if not exists idx_transparency_warnings_status_created
+  on public.transparency_warnings(status, created_at desc);
+create index if not exists idx_transparency_warnings_profile
+  on public.transparency_warnings(breeder_profile_id, created_at desc);
+create unique index if not exists idx_transparency_warnings_one_open
+  on public.transparency_warnings(breeder_profile_id)
+  where status in ('pending_breeder_action', 'appealed');
+
+alter table public.transparency_warnings enable row level security;
+drop policy if exists "transparency_warnings_select_own" on public.transparency_warnings;
+drop policy if exists "transparency_warnings_update_own" on public.transparency_warnings;
+create policy "transparency_warnings_select_own"
+on public.transparency_warnings for select
+to authenticated
+using (auth.uid()::text = user_id);
+create policy "transparency_warnings_update_own"
+on public.transparency_warnings for update
+to authenticated
+using (auth.uid()::text = user_id);
+
 create index if not exists idx_pet_feed_posts_status_created on public.pet_feed_posts(status, created_at desc);
 create index if not exists idx_pet_feed_posts_user_created on public.pet_feed_posts(user_id, created_at desc);
 create index if not exists idx_pet_feed_favorites_user on public.pet_feed_favorites(user_id, created_at desc);
@@ -712,7 +831,13 @@ create table if not exists public.pet_feed_notifications (
     'post_comment',
     'breeder_verified',
     'breeder_rejected',
+    'breeder_detail_approved',
+    'breeder_detail_rejected',
+    'transparency_warning',
+    'transparency_warning_resolved',
     'admin_breeder_pending',
+    'admin_breeder_detail_pending',
+    'admin_transparency_appeal',
     'admin_listing_pending',
     'admin_report_open',
     'deposit_request',
@@ -740,7 +865,13 @@ alter table public.pet_feed_notifications
     'post_comment',
     'breeder_verified',
     'breeder_rejected',
+    'breeder_detail_approved',
+    'breeder_detail_rejected',
+    'transparency_warning',
+    'transparency_warning_resolved',
     'admin_breeder_pending',
+    'admin_breeder_detail_pending',
+    'admin_transparency_appeal',
     'admin_listing_pending',
     'admin_report_open',
     'deposit_request',

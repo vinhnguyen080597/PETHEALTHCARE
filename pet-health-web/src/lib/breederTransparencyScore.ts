@@ -1,0 +1,417 @@
+/** Breeder transparency score (0–100) — Phase 1 spec. */
+
+export const TRANSPARENCY_SCORE_MAX = 100;
+
+export const TRANSPARENCY_POINTS = {
+  verifiedBase: 30,
+  socialPlatform: 5,
+  facilityVideo: 10,
+  businessLicense: 10,
+  firstWarranty: 10,
+  senConfirmedCompletion: 1,
+  fiveStarReview: 2,
+} as const;
+
+export const SOCIAL_PLATFORMS = [
+  "facebook",
+  "zalo",
+  "tiktok",
+  "instagram",
+] as const;
+
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
+
+export type TransparencyScoreInput = {
+  /** Admin-approved breeder profile only. Unverified → score 0. */
+  isVerified?: boolean;
+  approvedFacebook?: boolean;
+  approvedZalo?: boolean;
+  approvedTiktok?: boolean;
+  approvedInstagram?: boolean;
+  approvedFacilityVideo?: boolean;
+  approvedBusinessLicense?: boolean;
+  approvedFirstWarranty?: boolean;
+  senConfirmedCompletions?: number;
+  fiveStarReviewCount?: number;
+  penaltyPoints?: number;
+  violations?: Array<{ points: number; date?: string; reason?: string }>;
+  now?: Date;
+};
+
+export type TransparencyBreakdownLine = {
+  key: string;
+  group: "profile" | "activity" | "penalty";
+  val: number;
+  max: number;
+  done: boolean;
+};
+
+export type TransparencyScoreResult = {
+  score: number;
+  profilePoints: number;
+  activityPoints: number;
+  violationPoints: number;
+  lines: TransparencyBreakdownLine[];
+};
+
+export type TransparencyTierId = "L0" | "L1" | "L2" | "L3" | "L4" | "L5";
+
+export type TransparencyTierInfo = {
+  level: TransparencyTierId;
+  nameVI: string;
+  nameEN: string;
+  meaningVI: string;
+  meaningEN: string;
+  chipClass: string;
+  min: number;
+  max: number;
+  color: string;
+};
+
+export const TRANSPARENCY_TIERS: TransparencyTierInfo[] = [
+  {
+    level: "L0",
+    nameVI: "Sắp bị khóa",
+    nameEN: "At risk of suspension",
+    meaningVI: "Điểm minh bạch rất thấp — cần khắc phục ngay.",
+    meaningEN: "Very low transparency — immediate action required.",
+    chipClass: "bg-red-100 text-red-800 border-red-300",
+    min: 0,
+    max: 15,
+    color: "#DC2626",
+  },
+  {
+    level: "L1",
+    nameVI: "Trại bị cảnh báo",
+    nameEN: "Warning",
+    meaningVI: "Điểm minh bạch dưới mức an toàn — hoàn thiện hồ sơ và giảm vi phạm.",
+    meaningEN: "Transparency below safe level — complete your profile and avoid violations.",
+    chipClass: "bg-red-50 text-red-700 border-red-200",
+    min: 16,
+    max: 29,
+    color: "#EF4444",
+  },
+  {
+    level: "L2",
+    nameVI: "Trại mới",
+    nameEN: "New kennel",
+    meaningVI: "Hồ sơ đã được duyệt — tiếp tục bổ sung minh bạch để tăng điểm.",
+    meaningEN: "Profile approved — add more transparency to grow your score.",
+    chipClass: "bg-orange-50 text-orange-700 border-orange-200",
+    min: 30,
+    max: 49,
+    color: "#F97316",
+  },
+  {
+    level: "L3",
+    nameVI: "Trại tiềm năng",
+    nameEN: "Promising kennel",
+    meaningVI: "Hồ sơ minh bạch tốt, đang xây dựng uy tín với cộng đồng.",
+    meaningEN: "Good transparency — building community trust.",
+    chipClass: "bg-amber-50 text-amber-800 border-amber-200",
+    min: 50,
+    max: 79,
+    color: "#F59E0B",
+  },
+  {
+    level: "L4",
+    nameVI: "Ngôi sao đang lên",
+    nameEN: "Rising star",
+    meaningVI: "Minh bạch cao, có giao dịch và phản hồi tích cực.",
+    meaningEN: "High transparency with strong activity and feedback.",
+    chipClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    min: 80,
+    max: 99,
+    color: "#10B981",
+  },
+  {
+    level: "L5",
+    nameVI: "Trại uy tín hàng đầu",
+    nameEN: "Top trusted kennel",
+    meaningVI: "Mức minh bạch tối đa trên PetCare.",
+    meaningEN: "Maximum transparency on PetCare.",
+    chipClass: "bg-emerald-100 text-emerald-900 border-emerald-300",
+    min: 100,
+    max: 100,
+    color: "#059669",
+  },
+];
+
+export const TRANSPARENCY_TICK_INACTIVE = "#E5E7EB";
+
+export const LIGHT_VIOLATION_EXPIRY_DAYS = 90;
+export const LIGHT_VIOLATION_MAX_POINTS = 10;
+
+export const TRANSPARENCY_VIOLATION_PENALTIES = {
+  inaccurate_listing: 10,
+  stock_photo_spam: 5,
+  confirmed_scam: 40,
+  concealed_illness: 30,
+  abusive_communication: 5,
+} as const;
+
+function clampScore(value: number): number {
+  return Math.max(0, Math.min(TRANSPARENCY_SCORE_MAX, Math.round(value)));
+}
+
+function nonNegativeInt(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.floor(n);
+}
+
+function daysBetween(isoDate: string, now: Date): number | null {
+  const t = Date.parse(isoDate);
+  if (!Number.isFinite(t)) return null;
+  return (now.getTime() - t) / (1000 * 60 * 60 * 24);
+}
+
+export function computeEffectiveViolationPoints(
+  input: Pick<TransparencyScoreInput, "penaltyPoints" | "violations" | "now">,
+): number {
+  const now = input.now ?? new Date();
+  const list = input.violations;
+  if (Array.isArray(list) && list.length > 0) {
+    let sum = 0;
+    for (const v of list) {
+      const pts = Math.max(0, Number(v.points) || 0);
+      if (pts <= 0) continue;
+      if (pts <= LIGHT_VIOLATION_MAX_POINTS && v.date) {
+        const age = daysBetween(v.date, now);
+        if (age != null && age > LIGHT_VIOLATION_EXPIRY_DAYS) continue;
+      }
+      sum += pts;
+    }
+    return sum;
+  }
+  return Math.max(0, Number(input.penaltyPoints) || 0);
+}
+
+export function socialTransparencyPoints(
+  input: Pick<
+    TransparencyScoreInput,
+    | "approvedFacebook"
+    | "approvedZalo"
+    | "approvedTiktok"
+    | "approvedInstagram"
+  >,
+): number {
+  let total = 0;
+  if (input.approvedFacebook) total += TRANSPARENCY_POINTS.socialPlatform;
+  if (input.approvedZalo) total += TRANSPARENCY_POINTS.socialPlatform;
+  if (input.approvedTiktok) total += TRANSPARENCY_POINTS.socialPlatform;
+  if (input.approvedInstagram) total += TRANSPARENCY_POINTS.socialPlatform;
+  return total;
+}
+
+export function computeTransparencyScore(
+  input: TransparencyScoreInput,
+): TransparencyScoreResult {
+  if (!input.isVerified) {
+    return {
+      score: 0,
+      profilePoints: 0,
+      activityPoints: 0,
+      violationPoints: 0,
+      lines: [
+        {
+          key: "verifiedBase",
+          group: "profile",
+          val: 0,
+          max: TRANSPARENCY_POINTS.verifiedBase,
+          done: false,
+        },
+      ],
+    };
+  }
+
+  const verifiedBase = TRANSPARENCY_POINTS.verifiedBase;
+  const social = socialTransparencyPoints(input);
+  const facilityVideo = input.approvedFacilityVideo
+    ? TRANSPARENCY_POINTS.facilityVideo
+    : 0;
+  const businessLicense = input.approvedBusinessLicense
+    ? TRANSPARENCY_POINTS.businessLicense
+    : 0;
+  const firstWarranty = input.approvedFirstWarranty
+    ? TRANSPARENCY_POINTS.firstWarranty
+    : 0;
+  const completions =
+    nonNegativeInt(input.senConfirmedCompletions) *
+    TRANSPARENCY_POINTS.senConfirmedCompletion;
+  const reviews =
+    nonNegativeInt(input.fiveStarReviewCount) *
+    TRANSPARENCY_POINTS.fiveStarReview;
+
+  const profilePoints =
+    verifiedBase + social + facilityVideo + businessLicense + firstWarranty;
+  const activityPoints = completions + reviews;
+  const violationPoints = computeEffectiveViolationPoints(input);
+  const score = clampScore(profilePoints + activityPoints - violationPoints);
+
+  const lines: TransparencyBreakdownLine[] = [
+    {
+      key: "verifiedBase",
+      group: "profile",
+      val: verifiedBase,
+      max: TRANSPARENCY_POINTS.verifiedBase,
+      done: true,
+    },
+    {
+      key: "social",
+      group: "profile",
+      val: social,
+      max: SOCIAL_PLATFORMS.length * TRANSPARENCY_POINTS.socialPlatform,
+      done: social >= SOCIAL_PLATFORMS.length * TRANSPARENCY_POINTS.socialPlatform,
+    },
+    {
+      key: "facilityVideo",
+      group: "profile",
+      val: facilityVideo,
+      max: TRANSPARENCY_POINTS.facilityVideo,
+      done: facilityVideo > 0,
+    },
+    {
+      key: "businessLicense",
+      group: "profile",
+      val: businessLicense,
+      max: TRANSPARENCY_POINTS.businessLicense,
+      done: businessLicense > 0,
+    },
+    {
+      key: "firstWarranty",
+      group: "profile",
+      val: firstWarranty,
+      max: TRANSPARENCY_POINTS.firstWarranty,
+      done: firstWarranty > 0,
+    },
+    {
+      key: "completions",
+      group: "activity",
+      val: completions,
+      max: 0,
+      done: completions > 0,
+    },
+    {
+      key: "reviews",
+      group: "activity",
+      val: reviews,
+      max: 0,
+      done: reviews > 0,
+    },
+    {
+      key: "penalty",
+      group: "penalty",
+      val: -violationPoints,
+      max: 0,
+      done: violationPoints === 0,
+    },
+  ];
+
+  return {
+    score,
+    profilePoints,
+    activityPoints,
+    violationPoints,
+    lines,
+  };
+}
+
+export function getTransparencyTier(score: number): TransparencyTierInfo {
+  const s = clampScore(score);
+  if (s >= 100) return TRANSPARENCY_TIERS[5];
+  if (s >= 80) return TRANSPARENCY_TIERS[4];
+  if (s >= 50) return TRANSPARENCY_TIERS[3];
+  if (s >= 30) return TRANSPARENCY_TIERS[2];
+  if (s >= 16) return TRANSPARENCY_TIERS[1];
+  return TRANSPARENCY_TIERS[0];
+}
+
+export function transparencyTickBandColor(tickIndex: number): string {
+  if (tickIndex <= 15) return TRANSPARENCY_TIERS[0].color;
+  if (tickIndex <= 29) return TRANSPARENCY_TIERS[1].color;
+  if (tickIndex <= 49) return TRANSPARENCY_TIERS[2].color;
+  if (tickIndex <= 79) return TRANSPARENCY_TIERS[3].color;
+  if (tickIndex <= 99) return TRANSPARENCY_TIERS[4].color;
+  return TRANSPARENCY_TIERS[5].color;
+}
+
+export function transparencyTickColor(tickIndex: number, score: number): string {
+  if (tickIndex > score) return TRANSPARENCY_TICK_INACTIVE;
+  return transparencyTickBandColor(tickIndex);
+}
+
+export function parseApprovedSocialFromMeta(meta: Record<string, unknown>): {
+  approvedFacebook: boolean;
+  approvedZalo: boolean;
+  approvedTiktok: boolean;
+  approvedInstagram: boolean;
+} {
+  const flag = (...keys: string[]) =>
+    keys.some((k) => {
+      const v = meta[k];
+      return v === true || v === 1 || v === "1" || v === "true";
+    });
+  return {
+    approvedFacebook: flag(
+      "social_facebook_approved",
+      "approved_social_facebook",
+    ),
+    approvedZalo: flag("social_zalo_approved", "approved_social_zalo"),
+    approvedTiktok: flag("social_tiktok_approved", "approved_social_tiktok"),
+    approvedInstagram: flag(
+      "social_instagram_approved",
+      "approved_social_instagram",
+    ),
+  };
+}
+
+export function parseTransparencyActivityFromMeta(
+  meta: Record<string, unknown>,
+): {
+  senConfirmedCompletions: number;
+  fiveStarReviewCount: number;
+  approvedFacilityVideo: boolean;
+  approvedBusinessLicense: boolean;
+  approvedFirstWarranty: boolean;
+} {
+  const num = (v: unknown) => {
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  };
+  const flag = (...keys: string[]) =>
+    keys.some((k) => {
+      const v = meta[k];
+      return v === true || v === 1 || v === "1" || v === "true";
+    });
+  const policies = Array.isArray(meta.warranty_policies)
+    ? meta.warranty_policies
+    : [];
+
+  return {
+    senConfirmedCompletions: num(
+      meta.sen_confirmed_completions ??
+        meta.senConfirmedCompletions ??
+        meta.pets_rehomed ??
+        meta.petsRehomed,
+    ),
+    fiveStarReviewCount: num(
+      meta.five_star_review_count ?? meta.review_5star_count,
+    ),
+    approvedFacilityVideo: flag(
+      "facility_verified",
+      "farm_video_verified",
+      "environment_verified",
+      "facility_video_approved",
+    ),
+    approvedBusinessLicense: flag(
+      "business_license_verified",
+      "license_verified",
+      "farm_license_verified",
+      "business_license_approved",
+    ),
+    approvedFirstWarranty:
+      flag("warranty_policy_trust_awarded", "first_warranty_approved") ||
+      policies.length > 0,
+  };
+}

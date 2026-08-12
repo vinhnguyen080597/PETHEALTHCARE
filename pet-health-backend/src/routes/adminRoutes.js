@@ -17,14 +17,28 @@ import {
   adminUpdatePetFeedReportStatus,
   adminForceCompleteListing,
   adminForceCancelListing,
+  adminReviewBreederProfileSubmission,
   getAdminBreederProfileByUserId,
+  getAdminBreederProfileSubmissionById,
   getAdminPetFeedPostById,
   getAdminPetFeedReportById,
   listAdminBreederProfiles,
+  listAdminBreederProfileSubmissions,
   listAdminPetFeedPosts,
   listAdminPetFeedReports,
 } from '../repositories/petFeedRepository.js';
-import { createBreederVerificationNotification, createDealNotification, createListingReviewNotification } from '../repositories/petFeedNotificationsRepository.js';
+import {
+  createBreederDetailReviewNotification,
+  createBreederVerificationNotification,
+  createDealNotification,
+  createListingReviewNotification,
+  createTransparencyWarningNotification,
+} from '../repositories/petFeedNotificationsRepository.js';
+import {
+  adminResolveTransparencyWarning,
+  getAdminTransparencyWarningById,
+  listAdminTransparencyAppeals,
+} from '../repositories/transparencyWarningsRepository.js';
 import { runAutoCompleteHandoffsJob } from '../services/autoCompleteHandoffsJob.js';
 import { listAdminActionLogs, recordAdminAction } from '../repositories/adminActionLogRepository.js';
 import { createPetForUser, getPetByIdForUser, listPetsByUser, updatePetForUser } from '../repositories/petRepository.js';
@@ -35,6 +49,7 @@ import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../service
 import { resolveAdminCreatedAuthUser, validateAdminAccountPassword } from '../services/adminAuthUserService.js';
 import { hasValidAdminSecret, requireAdminOrSecret } from '../middleware/auth.js';
 import { getFeatureFlags, updateFeatureFlags } from '../repositories/featureFlagRepository.js';
+import { breederSubmissionTypeLabel } from '../utils/breederProfileSubmissions.js';
 
 const router = Router();
 
@@ -427,6 +442,106 @@ router.put('/breeder-profiles/:userId/status', requireAdminOrSecret, async (req,
   }
 });
 
+router.get('/breeder-submissions', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const status = typeof req.query.status === 'string' ? req.query.status : 'pending';
+    const submissions = await listAdminBreederProfileSubmissions(status);
+    return res.json({ data: submissions });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/breeder-submissions/:submissionId/status', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const submissionId = cleanId(req.params.submissionId);
+    if (!submissionId) {
+      return res.status(400).json({ error: 'submissionId is required', code: 'MISSING_SUBMISSION_ID' });
+    }
+    const nextStatus = String(req.body?.status || req.body?.verificationStatus || '').toLowerCase();
+    const rejectionReason = String(
+      compactText(req.body?.rejectionReason ?? req.body?.rejection_reason ?? '') || '',
+    ).slice(0, 500);
+    const adminNote = String(
+      compactText(req.body?.adminNote ?? req.body?.admin_note ?? '') || '',
+    ).slice(0, 500);
+
+    if (nextStatus === 'rejected' && !rejectionReason) {
+      return res.status(400).json({
+        error: 'rejectionReason is required when rejecting a submission',
+        code: 'MISSING_REJECTION_REASON',
+      });
+    }
+
+    const before = await getAdminBreederProfileSubmissionById(submissionId);
+    const submission = await adminReviewBreederProfileSubmission(submissionId, nextStatus, {
+      rejectionReason,
+      adminNote,
+    });
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission not found', code: 'SUBMISSION_NOT_FOUND' });
+    }
+
+    const typeLabel = breederSubmissionTypeLabel(submission.submission_type);
+    if (submission.status === 'approved') {
+      void createBreederDetailReviewNotification({
+        recipientUserId: submission.user_id,
+        actorUserId: req.user?.id || 'admin',
+        breederProfileId: submission.breeder_profile_id,
+        type: 'breeder_detail_approved',
+        bodyPreview: `${typeLabel} đã được admin duyệt — điểm minh bạch sẽ cập nhật.`,
+        metadata: {
+          submission_id: submission.id,
+          submission_type: submission.submission_type,
+          cta_label: 'Xem hồ sơ trại',
+          cta_href: '/app/account/breeder',
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    } else if (submission.status === 'rejected') {
+      void createBreederDetailReviewNotification({
+        recipientUserId: submission.user_id,
+        actorUserId: req.user?.id || 'admin',
+        breederProfileId: submission.breeder_profile_id,
+        type: 'breeder_detail_rejected',
+        bodyPreview: rejectionReason || `${typeLabel} chưa được duyệt.`,
+        metadata: {
+          submission_id: submission.id,
+          submission_type: submission.submission_type,
+          rejection_reason: rejectionReason,
+          cta_label: 'Xem lý do',
+          cta_href: '/app/account/breeder',
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
+
+    await recordAdminAction({
+      ...adminActor(req),
+      action: submission.status === 'approved' ? 'breeder_submission.approve' : 'breeder_submission.reject',
+      targetType: 'breeder_profile_submission',
+      targetId: submission.id,
+      targetUserId: submission.user_id,
+      beforeState: {
+        status: before?.status || null,
+        submission_type: before?.submission_type || null,
+      },
+      afterState: {
+        status: submission.status,
+        submission_type: submission.submission_type,
+      },
+      metadata: {
+        rejection_reason: rejectionReason || undefined,
+        admin_note: adminNote || undefined,
+      },
+    });
+
+    return res.json({ data: submission });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.get('/pet-feed/posts', requireAdminOrSecret, async (req, res, next) => {
   try {
     const status = typeof req.query.status === 'string' ? req.query.status : 'pending_review';
@@ -555,6 +670,23 @@ router.put('/pet-feed/reports/:reportId/status', requireAdminOrSecret, async (re
     const report = await adminUpdatePetFeedReportStatus(reportId, req.body?.status);
     if (!report) return res.status(404).json({ error: 'Report not found', code: 'PET_FEED_REPORT_NOT_FOUND' });
     const reviewedNow = report.status === 'reviewed' && before?.status !== 'reviewed';
+    const transparencyWarning = report.transparency_warning || null;
+    if (transparencyWarning?.id) {
+      void createTransparencyWarningNotification({
+        recipientUserId: transparencyWarning.user_id,
+        actorUserId: req.user?.id || 'admin',
+        breederProfileId: transparencyWarning.breeder_profile_id,
+        type: 'transparency_warning',
+        bodyPreview: `Điểm minh bạch của bạn còn ${transparencyWarning.score_at_trigger}/100 — vui lòng xác nhận tạm khóa hoặc kháng cáo.`,
+        metadata: {
+          warning_id: transparencyWarning.id,
+          score: transparencyWarning.score_at_trigger,
+          cta_label: 'Xử lý cảnh báo',
+          cta_href: '/app/account/breeder',
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
     logAdminAction(req, {
       action: reportActionName(report.status),
       targetType: 'report',
@@ -574,9 +706,75 @@ router.put('/pet-feed/reports/:reportId/status', requireAdminOrSecret, async (re
         post_id: report.post_id || before?.post_id || null,
         breeder_profile_id: report.breeder_profile_id || before?.breeder_profile_id || null,
         penalty_applied: reviewedNow,
+        transparency_warning_id: transparencyWarning?.id || undefined,
       },
     });
-    return res.json({ data: report });
+    const { transparency_warning: _tw, ...reportData } = report;
+    return res.json({ data: reportData, transparency_warning: transparencyWarning });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/transparency-warnings', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const status = typeof req.query.status === 'string' ? req.query.status : 'appealed';
+    const warnings = await listAdminTransparencyAppeals(status);
+    return res.json({ data: warnings });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/transparency-warnings/:warningId/resolve', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const warningId = cleanId(req.params.warningId);
+    if (!warningId) {
+      return res.status(400).json({ error: 'warningId is required', code: 'MISSING_WARNING_ID' });
+    }
+    const resolution = String(req.body?.resolution || '').trim().toLowerCase();
+    const adminNote = String(
+      compactText(req.body?.adminNote ?? req.body?.admin_note ?? '') || '',
+    ).slice(0, 500);
+    const before = await getAdminTransparencyWarningById(warningId);
+    const warning = await adminResolveTransparencyWarning(warningId, resolution, {
+      adminNote,
+      adminUserId: req.user?.id || 'admin',
+    });
+    if (!warning) {
+      return res.status(404).json({ error: 'Warning not found', code: 'WARNING_NOT_FOUND' });
+    }
+
+    const upheld = warning.status === 'upheld';
+    void createTransparencyWarningNotification({
+      recipientUserId: warning.user_id,
+      actorUserId: req.user?.id || 'admin',
+      breederProfileId: warning.breeder_profile_id,
+      type: 'transparency_warning_resolved',
+      bodyPreview: upheld
+        ? 'Admin giữ quyết định tạm khóa do điểm minh bạch thấp.'
+        : 'Admin chấp nhận kháng cáo — tài khoản được khôi phục.',
+      metadata: {
+        warning_id: warning.id,
+        resolution: warning.admin_resolution,
+        cta_label: 'Xem hồ sơ trại',
+        cta_href: '/app/account/breeder',
+      },
+      accessToken: req.accessToken,
+    }).catch(() => null);
+
+    await recordAdminAction({
+      ...adminActor(req),
+      action: upheld ? 'transparency_warning.uphold' : 'transparency_warning.restore',
+      targetType: 'transparency_warning',
+      targetId: warning.id,
+      targetUserId: warning.user_id,
+      beforeState: { status: before?.status || null },
+      afterState: { status: warning.status, admin_resolution: warning.admin_resolution },
+      metadata: { admin_note: adminNote || undefined },
+    });
+
+    return res.json({ data: warning });
   } catch (err) {
     return next(err);
   }

@@ -40,7 +40,10 @@ export type { ListingDealMutation };
 type ListingDealPanelProps = {
   post: PetFeedPost;
   currentUserId?: string | null;
-  onMutate: (mutation: ListingDealMutation) => Promise<PetFeedPost | null>;
+  onMutate: (
+    mutation: ListingDealMutation,
+  ) => Promise<{ post: PetFeedPost; reviewEligible?: boolean } | null>;
+  onSubmitReview?: (payload: { rating: number; body?: string }) => Promise<void>;
 };
 
 async function pickImages(max: number): Promise<string[]> {
@@ -66,6 +69,7 @@ export function ListingDealPanel({
   post,
   currentUserId,
   onMutate,
+  onSubmitReview,
 }: ListingDealPanelProps) {
   const { t } = useTranslation();
   const deal = useMemo(() => readDealFromPostMetadata(post.metadata), [post.metadata]);
@@ -102,6 +106,9 @@ export function ListingDealPanel({
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeMessage, setDisputeMessage] = useState('');
   const [disputePhotos, setDisputePhotos] = useState<string[]>([]);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewBody, setReviewBody] = useState('');
 
   const visible =
     showDeposit ||
@@ -120,8 +127,8 @@ export function ListingDealPanel({
     setBusy(true);
     setError('');
     try {
-      const updated = await onMutate(mutation);
-      if (!updated) throw new Error(t('common.somethingWentWrong'));
+      const result = await onMutate(mutation);
+      if (!result?.post) throw new Error(t('common.somethingWentWrong'));
       setDepositOpen(false);
       setCompleteOpen(false);
       setCancelOpen(false);
@@ -132,6 +139,9 @@ export function ListingDealPanel({
       setCancelNote('');
       setDisputeMessage('');
       setSenUserId('');
+      if (mutation.type === 'complete_confirm' && result.reviewEligible && onSubmitReview) {
+        setReviewOpen(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.somethingWentWrong'));
     } finally {
@@ -477,6 +487,59 @@ export function ListingDealPanel({
                 <Text className="text-sm font-semibold text-white">
                   {t('deal.disputeSubmit')}
                 </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={reviewOpen} transparent animationType="fade" onRequestClose={() => setReviewOpen(false)}>
+        <View className="flex-1 items-center justify-center bg-black/45 px-4">
+          <View className="w-full max-w-md rounded-2xl bg-white p-5">
+            <Text className="text-base font-bold text-[#2B1E19]">{t('deal.reviewTitle')}</Text>
+            <Text className="mt-1 text-sm text-[#6E5A51]">{t('deal.reviewHint')}</Text>
+            <View className="mt-4 flex-row gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Pressable key={star} onPress={() => setReviewRating(star)}>
+                  <Text className={`text-2xl ${star <= reviewRating ? 'text-amber-500' : 'text-slate-300'}`}>
+                    ★
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <TextInput
+              value={reviewBody}
+              onChangeText={setReviewBody}
+              placeholder={t('deal.reviewPlaceholder')}
+              multiline
+              className="mt-4 min-h-[88px] rounded-xl border border-[#F0E6D8] px-3 py-2 text-sm text-[#2B1E19]"
+            />
+            <View className="mt-4 gap-2">
+              <Pressable
+                disabled={busy || !onSubmitReview}
+                onPress={() => {
+                  if (!onSubmitReview) return;
+                  void onSubmitReview({
+                    rating: reviewRating,
+                    ...(reviewBody.trim() ? { body: reviewBody.trim() } : {}),
+                  }).then(() => {
+                    setReviewOpen(false);
+                    setReviewBody('');
+                    setReviewRating(5);
+                  }).catch((err) => {
+                    setError(err instanceof Error ? err.message : t('common.somethingWentWrong'));
+                  });
+                }}
+                className="rounded-full bg-amber-600 px-4 py-3"
+              >
+                <Text className="text-center text-sm font-semibold text-white">{t('deal.reviewSubmit')}</Text>
+              </Pressable>
+              <Pressable
+                disabled={busy}
+                onPress={() => setReviewOpen(false)}
+                className="rounded-full border border-[#E8DFD0] px-4 py-3"
+              >
+                <Text className="text-center text-sm font-semibold text-[#5C4A3A]">{t('deal.reviewSkip')}</Text>
               </Pressable>
             </View>
           </View>

@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   adminRequestHref,
+  breederTransparencyNotificationHref,
+  isAdminQueueNotification,
   isDepositCancelRequestNotification,
   listingNotificationHref,
   notificationInboxCta,
@@ -15,6 +17,10 @@ const CTA_FALLBACKS = {
   listingApproved: "View listing",
   listingRejected: "View account",
   adminRequest: "View request",
+  detailApproved: "View farm profile",
+  detailRejected: "View reason",
+  transparencyWarning: "Review warning",
+  transparencyResolved: "View farm profile",
   depositCancelConfirm: "Confirm cancel deposit",
   depositConfirm: "Confirm deposit",
   dealCompleteConfirm: "Confirm handoff",
@@ -55,6 +61,20 @@ test("adminRequestHref builds focused breeder/listing/report links", () => {
     }),
     "/app/admin?section=requests&type=report&focus=rep-3",
   );
+  assert.equal(
+    adminRequestHref({
+      type: "admin_breeder_detail_pending",
+      metadata: { submission_id: "sub-1" },
+    }),
+    "/app/admin?section=requests&type=detail&focus=sub-1",
+  );
+  assert.equal(
+    adminRequestHref({
+      type: "admin_transparency_appeal",
+      metadata: { warning_id: "warn-2" },
+    }),
+    "/app/admin?section=requests&type=appeal&focus=warn-2",
+  );
 });
 
 test("adminRequestHref prefers metadata.cta_href when it includes focus", () => {
@@ -83,12 +103,48 @@ test("adminRequestHref falls back without focus ids", () => {
     adminRequestHref({ type: "admin_report_open" }),
     "/app/admin?section=requests&type=report",
   );
+  assert.equal(
+    adminRequestHref({ type: "admin_breeder_detail_pending" }),
+    "/app/admin?section=requests&type=detail",
+  );
+  assert.equal(
+    adminRequestHref({ type: "admin_transparency_appeal" }),
+    "/app/admin?section=requests&type=appeal",
+  );
   assert.equal(adminRequestHref({ type: "post_comment" }), "/app/admin?section=requests");
 });
 
 test("listing review notification types are distinct from admin queue types", () => {
   assert.equal(notificationType({ type: "listing_approved" }), "listing_approved");
   assert.equal(notificationType({ type: "listing_rejected" }), "listing_rejected");
+});
+
+test("transparency notification deep links and CTAs", () => {
+  assert.equal(isAdminQueueNotification("admin_breeder_detail_pending"), true);
+  assert.equal(isAdminQueueNotification("admin_transparency_appeal"), true);
+  assert.equal(
+    breederTransparencyNotificationHref({ type: "transparency_warning" }),
+    "/app/account/breeder",
+  );
+  assert.equal(
+    breederTransparencyNotificationHref({
+      type: "breeder_detail_approved",
+      breeder_profile_id: "bp-9",
+    }),
+    "/app/breeders/bp-9",
+  );
+  assert.equal(
+    notificationInboxCta({ type: "transparency_warning" }, CTA_FALLBACKS),
+    "Review warning",
+  );
+  assert.equal(
+    notificationInboxCta({ type: "breeder_detail_approved" }, CTA_FALLBACKS),
+    "View farm profile",
+  );
+  assert.equal(
+    notificationInboxCta({ type: "admin_transparency_appeal" }, CTA_FALLBACKS),
+    "View request",
+  );
 });
 
 test("deposit cancel notification shows a confirm CTA", () => {

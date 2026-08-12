@@ -29,8 +29,8 @@ test("mapApiBreeder normalizes verification and trust defaults", () => {
   assert.equal(mapped.verified, true);
   assert.equal(mapped.verificationStatus, "verified");
   assert.equal(mapped.breederType, "registered_kennel");
-  // Live signals: eKYC 10 + FB 4 + Zalo 3 + facility 10 + license 10 + health 5 = 42
-  assert.equal(mapped.trustScore, 42);
+  // Verified base 30 + approved business license 10
+  assert.equal(mapped.trustScore, 40);
   assert.equal(mapped.verificationTier, 3);
   assert.equal(mapped.template, "T2");
   assert.equal(mapped.activeListings, 3);
@@ -48,8 +48,8 @@ test("mapApiBreeder uses signal-based trust when metadata trust_score is absent"
     metadata: {},
   };
   const mapped = mapApiBreeder(profile, { activeListings: 0 });
-  // Verified only → +10 eKYC (Part A); not the old hardcoded 70
-  assert.equal(mapped.trustScore, 10);
+  // Verified only → 30 base transparency points
+  assert.equal(mapped.trustScore, 30);
 });
 
 test("mapApiPost formats price gender and escrow", () => {

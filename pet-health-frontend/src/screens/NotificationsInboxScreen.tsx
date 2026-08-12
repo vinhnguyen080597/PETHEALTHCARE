@@ -93,7 +93,15 @@ export function NotificationsInboxScreen({
     if (type === 'breeder_rejected') return t('petFeed.notifications.rejectedTitle');
     if (type === 'listing_approved') return t('petFeed.notifications.listingApprovedTitle');
     if (type === 'listing_rejected') return t('petFeed.notifications.listingRejectedTitle');
+    if (type === 'breeder_detail_approved') return t('petFeed.notifications.detailApprovedTitle');
+    if (type === 'breeder_detail_rejected') return t('petFeed.notifications.detailRejectedTitle');
+    if (type === 'transparency_warning') return t('petFeed.notifications.transparencyWarningTitle');
+    if (type === 'transparency_warning_resolved') {
+      return t('petFeed.notifications.transparencyResolvedTitle');
+    }
     if (type === 'admin_breeder_pending') return t('petFeed.notifications.adminBreederTitle');
+    if (type === 'admin_breeder_detail_pending') return t('petFeed.notifications.adminDetailTitle');
+    if (type === 'admin_transparency_appeal') return t('petFeed.notifications.adminAppealTitle');
     if (type === 'admin_listing_pending') return t('petFeed.notifications.adminListingTitle');
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportTitle');
     if (type === 'deposit_cancel_request') return t('petFeed.notifications.depositCancelTitle');
@@ -106,7 +114,21 @@ export function NotificationsInboxScreen({
     if (type === 'breeder_rejected') return t('petFeed.notifications.rejectedSubtitle');
     if (type === 'listing_approved') return t('petFeed.notifications.listingApprovedSubtitle');
     if (type === 'listing_rejected') return t('petFeed.notifications.listingRejectedSubtitle');
+    if (type === 'breeder_detail_approved') return t('petFeed.notifications.detailApprovedSubtitle');
+    if (type === 'breeder_detail_rejected') return t('petFeed.notifications.detailRejectedSubtitle');
+    if (type === 'transparency_warning') {
+      return t('petFeed.notifications.transparencyWarningSubtitle');
+    }
+    if (type === 'transparency_warning_resolved') {
+      return t('petFeed.notifications.transparencyResolvedSubtitle');
+    }
     if (type === 'admin_breeder_pending') return t('petFeed.notifications.adminBreederSubtitle');
+    if (type === 'admin_breeder_detail_pending') {
+      return t('petFeed.notifications.adminDetailSubtitle');
+    }
+    if (type === 'admin_transparency_appeal') {
+      return t('petFeed.notifications.adminAppealSubtitle');
+    }
     if (type === 'admin_listing_pending') return t('petFeed.notifications.adminListingSubtitle');
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportSubtitle');
     if (type === 'deposit_cancel_request') return t('petFeed.notifications.depositCancelSubtitle');
@@ -147,8 +169,30 @@ export function NotificationsInboxScreen({
         resolveRejectionNotice(item).reason || t('petFeed.notifications.listingRejectedBody')
       );
     }
+    if (type === 'breeder_detail_approved') {
+      return item.body_preview || t('petFeed.notifications.detailApprovedBody');
+    }
+    if (type === 'breeder_detail_rejected') {
+      return (
+        resolveRejectionNotice(item).reason ||
+        item.body_preview ||
+        t('petFeed.notifications.detailRejectedBody')
+      );
+    }
+    if (type === 'transparency_warning') {
+      return item.body_preview || t('petFeed.notifications.transparencyWarningBody');
+    }
+    if (type === 'transparency_warning_resolved') {
+      return item.body_preview || t('petFeed.notifications.transparencyResolvedBody');
+    }
     if (type === 'admin_breeder_pending') {
       return item.body_preview || t('petFeed.notifications.adminBreederBody');
+    }
+    if (type === 'admin_breeder_detail_pending') {
+      return item.body_preview || t('petFeed.notifications.adminDetailBody');
+    }
+    if (type === 'admin_transparency_appeal') {
+      return item.body_preview || t('petFeed.notifications.adminAppealBody');
     }
     if (type === 'admin_listing_pending') {
       return item.body_preview || t('petFeed.notifications.adminListingBody');
@@ -169,6 +213,10 @@ export function NotificationsInboxScreen({
       listingApproved: t('petFeed.notifications.listingApprovedCta'),
       listingRejected: t('petFeed.notifications.listingRejectedCta'),
       adminRequest: t('petFeed.notifications.adminRequestCta'),
+      detailApproved: t('petFeed.notifications.detailApprovedCta'),
+      detailRejected: t('petFeed.notifications.detailRejectedCta'),
+      transparencyWarning: t('petFeed.notifications.transparencyWarningCta'),
+      transparencyResolved: t('petFeed.notifications.transparencyResolvedCta'),
       depositCancelConfirm: t('petFeed.notifications.depositCancelCta'),
       depositConfirm: t('petFeed.notifications.depositRequestCta'),
       dealCompleteConfirm: t('petFeed.notifications.dealCompleteCta'),
@@ -176,10 +224,26 @@ export function NotificationsInboxScreen({
     });
 
   const iconFor = (type: string) => {
-    if (type === 'breeder_verified' || type === 'listing_approved') return 'checkmark-circle-outline' as const;
-    if (type === 'breeder_rejected' || type === 'listing_rejected') return 'close-circle-outline' as const;
+    if (
+      type === 'breeder_verified' ||
+      type === 'listing_approved' ||
+      type === 'breeder_detail_approved' ||
+      type === 'transparency_warning_resolved'
+    ) {
+      return 'checkmark-circle-outline' as const;
+    }
+    if (
+      type === 'breeder_rejected' ||
+      type === 'listing_rejected' ||
+      type === 'breeder_detail_rejected' ||
+      type === 'transparency_warning'
+    ) {
+      return 'close-circle-outline' as const;
+    }
     if (
       type === 'admin_breeder_pending' ||
+      type === 'admin_breeder_detail_pending' ||
+      type === 'admin_transparency_appeal' ||
       type === 'admin_listing_pending' ||
       type === 'admin_report_open'
     ) {
@@ -189,7 +253,11 @@ export function NotificationsInboxScreen({
   };
 
   const handleOpen = (item: PetFeedNotification) => {
-    if (notificationType(item) === 'breeder_rejected' || notificationType(item) === 'listing_rejected') {
+    if (
+      notificationType(item) === 'breeder_rejected' ||
+      notificationType(item) === 'listing_rejected' ||
+      notificationType(item) === 'breeder_detail_rejected'
+    ) {
       setReasonItem(item);
     }
     onOpenNotification(item);
@@ -301,7 +369,9 @@ export function NotificationsInboxScreen({
             <Text className="text-base font-bold text-slate-900">
               {reasonItem && notificationType(reasonItem) === 'listing_rejected'
                 ? t('petFeed.notifications.listingRejectedTitle')
-                : t('petFeed.notifications.rejectedTitle')}
+                : reasonItem && notificationType(reasonItem) === 'breeder_detail_rejected'
+                  ? t('petFeed.notifications.detailRejectedTitle')
+                  : t('petFeed.notifications.rejectedTitle')}
             </Text>
             <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">
               {t('petFeed.notifications.rejectionReason')}
@@ -310,7 +380,9 @@ export function NotificationsInboxScreen({
               {rejectionReason ||
                 (reasonItem && notificationType(reasonItem) === 'listing_rejected'
                   ? t('petFeed.notifications.listingRejectedReasonMissing')
-                  : t('petFeed.notifications.rejectedBody'))}
+                  : reasonItem && notificationType(reasonItem) === 'breeder_detail_rejected'
+                    ? t('petFeed.notifications.detailRejectedBody')
+                    : t('petFeed.notifications.rejectedBody'))}
             </Text>
             {adminAction ? (
               <>

@@ -6,9 +6,10 @@ import { getEffectiveTrust } from "@/lib/types";
 import {
   computeBreederTrustScore,
   getTrustTier,
-  qualitySignalsFromBreeder,
+  transparencyInputFromBreeder,
 } from "@/lib/breederTrust";
 import { farmTrustGuideHref } from "@/lib/farmTrustGuide";
+import { formatBreederReviewLabel } from "@/lib/breederDealReviews";
 import { t } from "@/i18n";
 import { TrustLevelChip } from "./Badges";
 import { TrustTicksGauge } from "./TrustTicksGauge";
@@ -26,15 +27,21 @@ export function FarmHealth({
   /** Owner-only CTA to the detailed trust guide. */
   isOwner?: boolean;
 }) {
-  const input = qualitySignalsFromBreeder(breeder);
+  const input = transparencyInputFromBreeder(breeder, {}, {
+    senConfirmedCompletions: breeder.petsRehomed ?? 0,
+  });
   const computed = computeBreederTrustScore(input);
   const eff = Number.isFinite(breeder.trustScore)
-    ? getEffectiveTrust(breeder.trustScore, breeder.penaltyPoints)
+    ? getEffectiveTrust(breeder.trustScore, 0)
     : computed.score;
   const tier = getTrustTier(eff);
   const tierLabel = lang === "VI" ? tier.nameVI : tier.nameEN;
   const tierMeaning = lang === "VI" ? tier.meaningVI : tier.meaningEN;
-  const transparencyPct = Math.round((computed.missionPoints / 50) * 100);
+  const reviewLabel = formatBreederReviewLabel(
+    breeder.reviewAverage ?? 0,
+    breeder.reviewCount ?? 0,
+    lang,
+  );
 
   const isPending = breeder.verificationStatus === "pending_review";
   const isRejected =
@@ -91,12 +98,15 @@ export function FarmHealth({
             <TrustLevelChip level={tier.level} label={tierLabel} />
             <p className="mt-2 text-sm text-slate-600 leading-relaxed">
               {lang === "VI"
-                ? `Mức độ minh bạch hồ sơ đạt ${transparencyPct}%`
-                : `Profile transparency at ${transparencyPct}%`}
+                ? `Điểm minh bạch: ${eff}/100`
+                : `Transparency score: ${eff}/100`}
             </p>
             <p className="mt-1 text-xs text-slate-400 leading-relaxed">
               {tierMeaning}
             </p>
+            {reviewLabel ? (
+              <p className="mt-2 text-sm font-medium text-amber-700">{reviewLabel}</p>
+            ) : null}
           </div>
 
           {isOwner ? (

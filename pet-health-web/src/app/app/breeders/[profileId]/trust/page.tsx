@@ -12,7 +12,7 @@ import type { Lang } from "@/lib/types";
 
 type Props = { params: Promise<{ profileId: string }> };
 
-export const metadata = { title: "Trust score guide" };
+export const metadata = { title: "Transparency score guide" };
 
 async function TrustGuideData({
   profileId,

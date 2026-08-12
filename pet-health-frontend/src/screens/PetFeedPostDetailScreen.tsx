@@ -39,7 +39,11 @@ type PetFeedPostDetailScreenProps = {
   onMutateListingDeal?: (
     postId: string,
     mutation: ListingDealMutation,
-  ) => Promise<PetFeedPost | null>;
+  ) => Promise<{ post: PetFeedPost; reviewEligible?: boolean } | null>;
+  onSubmitListingDealReview?: (
+    postId: string,
+    payload: { rating: number; body?: string },
+  ) => Promise<void>;
   currentUserId?: string | null;
   allowMediaDownload?: boolean;
 };
@@ -98,6 +102,7 @@ export function PetFeedPostDetailScreen({
   onSubmitPostComment,
   onDeletePostComment,
   onMutateListingDeal,
+  onSubmitListingDealReview,
   currentUserId,
   allowMediaDownload = false,
 }: PetFeedPostDetailScreenProps) {
@@ -216,10 +221,13 @@ export function PetFeedPostDetailScreen({
                 post={selectedPost}
                 currentUserId={currentUserId}
                 onMutate={async (mutation) => {
-                  const updated = await onMutateListingDeal(selectedPost.id, mutation);
-                  if (updated) replaceDetailPost(updated);
-                  return updated;
+                  const result = await onMutateListingDeal(selectedPost.id, mutation);
+                  if (result?.post) replaceDetailPost(result.post);
+                  return result;
                 }}
+                onSubmitReview={onSubmitListingDealReview
+                  ? (payload) => onSubmitListingDealReview(selectedPost.id, payload)
+                  : undefined}
               />
             ) : null}
             <View

@@ -10,6 +10,10 @@ export type NotificationInboxCtaFallbacks = {
   listingApproved: string;
   listingRejected: string;
   adminRequest: string;
+  detailApproved: string;
+  detailRejected: string;
+  transparencyWarning: string;
+  transparencyResolved: string;
   depositCancelConfirm: string;
   depositConfirm: string;
   dealCompleteConfirm: string;
@@ -22,6 +26,14 @@ const DEAL_INFO_TYPES = new Set([
   'deal_completed',
   'deal_dispute_opened',
   'deal_dispute_resolved',
+]);
+
+const ADMIN_QUEUE_TYPES = new Set([
+  'admin_breeder_pending',
+  'admin_breeder_detail_pending',
+  'admin_transparency_appeal',
+  'admin_listing_pending',
+  'admin_report_open',
 ]);
 
 function storedCtaLabel(item: NotificationInboxCtaInput) {
@@ -39,6 +51,10 @@ export function isDepositCancelRequestNotification(type: string | null | undefin
   return type === 'deposit_cancel_request';
 }
 
+export function isAdminQueueNotification(type: string | null | undefined) {
+  return ADMIN_QUEUE_TYPES.has(String(type || ''));
+}
+
 /** Visible inbox CTA. Deal cancel must not fall through as “no action”. */
 export function notificationInboxCta(
   item: NotificationInboxCtaInput,
@@ -51,13 +67,13 @@ export function notificationInboxCta(
   if (type === 'breeder_rejected') return stored || fallbacks.rejected;
   if (type === 'listing_approved') return stored || fallbacks.listingApproved;
   if (type === 'listing_rejected') return stored || fallbacks.listingRejected;
-  if (
-    type === 'admin_breeder_pending' ||
-    type === 'admin_listing_pending' ||
-    type === 'admin_report_open'
-  ) {
-    return stored || fallbacks.adminRequest;
+  if (type === 'breeder_detail_approved') return stored || fallbacks.detailApproved;
+  if (type === 'breeder_detail_rejected') return stored || fallbacks.detailRejected;
+  if (type === 'transparency_warning') return stored || fallbacks.transparencyWarning;
+  if (type === 'transparency_warning_resolved') {
+    return stored || fallbacks.transparencyResolved;
   }
+  if (isAdminQueueNotification(type)) return stored || fallbacks.adminRequest;
   if (type === 'deposit_cancel_request') return stored || fallbacks.depositCancelConfirm;
   if (type === 'deposit_request') return stored || fallbacks.depositConfirm;
   if (type === 'deal_complete_request') return stored || fallbacks.dealCompleteConfirm;

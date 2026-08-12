@@ -34,6 +34,9 @@ import {
   deleteMyWarrantyPolicy,
   updateMyWarrantyPolicy,
   listMyWarrantyPolicies,
+  createBreederProfileSubmission,
+  listMyBreederProfileSubmissions,
+  cancelMyBreederProfileSubmission,
   confirmListingDeposit,
   requestListingCancelDeposit,
   confirmListingCancelDeposit,
@@ -51,13 +54,19 @@ import {
   sendPetFeedConversationMessage,
 } from '../repositories/petFeedMessagingRepository.js';
 import {
-  countUnreadPetFeedNotifications,
   createAdminRequestNotifications,
   createDealNotification,
   createPostCommentNotification,
+  createTransparencyWarningNotification,
   listPetFeedNotifications,
   markPetFeedNotificationsRead,
+  countUnreadPetFeedNotifications,
 } from '../repositories/petFeedNotificationsRepository.js';
+import {
+  appealTransparencyWarning,
+  confirmTransparencyWarning,
+  getMyOpenTransparencyWarning,
+} from '../repositories/transparencyWarningsRepository.js';
 import { recordAdminAction } from '../repositories/adminActionLogRepository.js';
 import {
   PET_FEED_LIST_THUMB_MAX_BYTES,
@@ -72,11 +81,17 @@ import {
   createPetFeedSignedUpload,
   isOwnedPetFeedPublicMediaUrl,
   storeBreederProfileImage,
+  storeBreederTransparencyMedia,
   storePetFeedImage,
   storePetFeedThumb,
   storePetFeedVideo,
 } from '../services/imageStorageService.js';
-import { recordProductEvent } from '../services/productAnalyticsService.js';
+import { breederSubmissionTypeLabel } from '../utils/breederProfileSubmissions.js';
+import {
+  createBreederDealReview,
+  getBreederDealReviewAggregate,
+  getMyDealReviewForPost,
+} from '../repositories/breederDealReviewsRepository.js';
 
 const router = Router();
 const petFeedUpload = multer({
@@ -1109,6 +1124,180 @@ router.post('/breeder-profile/me/cancel', async (req, res, next) => {
   }
 });
 
+const BREEDER_TRANSPARENCY_LICENSE_MIMES = new Set([
+  ...SUPPORTED_IMAGE_MIMES,
+  'application/pdf',
+]);
+const BREEDER_FACILITY_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+const BREEDER_LICENSE_MAX_BYTES = 10 * 1024 * 1024;
+
+router.get('/breeder-profile/me/submissions', async (req, res, next) => {
+  try {
+    const data = await listMyBreederProfileSubmissions(req.user.id, req.accessToken);
+    return res.json({ data });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/breeder-profile/me/transparency-warning', async (req, res, next) => {
+  try {
+    const warning = await getMyOpenTransparencyWarning(req.user.id, req.accessToken);
+    return res.json({ data: warning });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/breeder-profile/me/transparency-warning/:warningId/confirm', async (req, res, next) => {
+  try {
+    const warning = await confirmTransparencyWarning(
+      req.user.id,
+      req.params.warningId,
+      req.accessToken,
+    );
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'transparency_warning_confirmed',
+      metadata: { warning_id: warning.id, score: warning.score_at_trigger },
+    });
+    return res.json({ data: warning });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/breeder-profile/me/transparency-warning/:warningId/appeal', async (req, res, next) => {
+  try {
+    const warning = await appealTransparencyWarning(
+      req.user.id,
+      req.params.warningId,
+      req.accessToken,
+    );
+    void createAdminRequestNotifications({
+      actorUserId: req.user.id,
+      type: 'admin_transparency_appeal',
+      bodyPreview: `Breeder kháng cáo cảnh báo điểm minh bạch (điểm ${warning.score_at_trigger}).`,
+      breederProfileId: warning.breeder_profile_id,
+      metadata: {
+        warning_id: warning.id,
+        title: 'Kháng cáo điểm minh bạch',
+      },
+      accessToken: req.accessToken,
+    }).catch(() => null);
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'transparency_warning_appealed',
+      metadata: { warning_id: warning.id },
+    });
+    return res.json({ data: warning });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/breeder-profile/me/submissions', async (req, res, next) => {
+  try {
+    const submission = await createBreederProfileSubmission(req.user.id, req.body ?? {}, req.accessToken);
+    void createAdminRequestNotifications({
+      actorUserId: req.user.id,
+      type: 'admin_breeder_detail_pending',
+      bodyPreview: `${breederSubmissionTypeLabel(submission.submission_type)} — chờ admin duyệt.`,
+      breederProfileId: submission.breeder_profile_id,
+      metadata: {
+        submission_id: submission.id,
+        submission_type: submission.submission_type,
+        title: breederSubmissionTypeLabel(submission.submission_type),
+      },
+      accessToken: req.accessToken,
+    }).catch(() => null);
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'breeder_detail_submitted',
+      metadata: { submission_type: submission.submission_type },
+    });
+    return res.status(201).json({ data: submission });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/breeder-profile/me/submissions/:submissionId/cancel', async (req, res, next) => {
+  try {
+    const submission = await cancelMyBreederProfileSubmission(
+      req.user.id,
+      req.params.submissionId,
+      req.accessToken,
+    );
+    return res.json({ data: submission });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post(
+  '/breeder-profile/me/submissions/upload',
+  petFeedUpload.single('file'),
+  async (req, res, next) => {
+    try {
+      const kindRaw = typeof req.body?.kind === 'string' ? req.body.kind.trim().toLowerCase() : '';
+      const kind = kindRaw === 'facility_video' || kindRaw === 'business_license' ? kindRaw : '';
+      if (!kind) {
+        return res.status(400).json({
+          error: 'kind must be facility_video or business_license',
+          code: 'INVALID_UPLOAD_KIND',
+        });
+      }
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: 'file is required', code: 'BREEDER_FILE_REQUIRED' });
+      }
+      if (kind === 'facility_video') {
+        if (!SUPPORTED_VIDEO_MIMES.has(file.mimetype)) {
+          return res.status(400).json({
+            error: 'Unsupported video type. Use MP4, MOV, WebM, or 3GP.',
+            code: 'BREEDER_UNSUPPORTED_VIDEO',
+          });
+        }
+        if (file.size > BREEDER_FACILITY_VIDEO_MAX_BYTES) {
+          return res.status(400).json({
+            error: 'Video is too large. Please use a clip under 50MB.',
+            code: 'BREEDER_VIDEO_TOO_LARGE',
+          });
+        }
+      } else {
+        if (!BREEDER_TRANSPARENCY_LICENSE_MIMES.has(file.mimetype)) {
+          return res.status(400).json({
+            error: 'Unsupported document type. Use JPEG, PNG, WebP, or PDF.',
+            code: 'BREEDER_UNSUPPORTED_LICENSE',
+          });
+        }
+        if (file.size > BREEDER_LICENSE_MAX_BYTES) {
+          return res.status(400).json({
+            error: 'Document is too large. Please use a file under 10MB.',
+            code: 'BREEDER_LICENSE_TOO_LARGE',
+          });
+        }
+      }
+      const publicUrl = await storeBreederTransparencyMedia({
+        userId: req.user.id,
+        kind,
+        file,
+        accessToken: req.accessToken,
+      });
+      if (typeof publicUrl === 'string' && publicUrl.startsWith('memory://')) {
+        return res.status(503).json({
+          error: 'Media storage is unavailable. Please retry shortly.',
+          code: 'BREEDER_MEDIA_STORAGE_UNAVAILABLE',
+        });
+      }
+      return res.status(201).json({ data: { publicUrl, kind } });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 router.get('/breeder-profile/me/warranty-policies', requireAnyRole('breeder', 'admin'), async (req, res, next) => {
   try {
     const profile = await getMyBreederProfile(req.user.id, req.accessToken);
@@ -1390,7 +1579,52 @@ router.post('/posts/:postId/complete/confirm', async (req, res, next) => {
         accessToken: req.accessToken,
       }).catch(() => null);
     }
-    return res.json({ data: result.post, both_confirmed: true });
+    return res.json({
+      data: result.post,
+      both_confirmed: true,
+      review_eligible: Boolean(result.review_eligible),
+      breeder_profile_id: result.breeder_profile_id ?? null,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/posts/:postId/review/me', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const review = await getMyDealReviewForPost(req.user.id, postId, req.accessToken);
+    return res.json({ data: review });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/posts/:postId/review', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const review = await createBreederDealReview(req.user.id, postId, req.body ?? {}, req.accessToken);
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'breeder_deal_review_created',
+      metadata: { post_id: postId, rating: review.rating },
+    });
+    return res.status(201).json({ data: review });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/breeder-profiles/:profileId/reviews', async (req, res, next) => {
+  try {
+    const profileId = cleanId(req.params.profileId);
+    if (!profileId) {
+      return res.status(400).json({ error: 'profileId is required', code: 'MISSING_PROFILE_ID' });
+    }
+    const aggregate = await getBreederDealReviewAggregate(profileId, req.accessToken);
+    return res.json({ data: aggregate });
   } catch (err) {
     return next(err);
   }

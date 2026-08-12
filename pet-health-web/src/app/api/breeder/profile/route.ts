@@ -20,11 +20,10 @@ export async function PUT(req: Request) {
     const facebook = String(contact.facebook || "").trim();
     const zalo = String(contact.zalo || "").trim();
 
-    if (!displayName || !location || !phone || !facebook || !zalo) {
+    if (!displayName || !location) {
       return NextResponse.json(
         {
-          error:
-            "displayName, location, phone, facebook, and zalo are required",
+          error: "displayName and location are required",
           code: "VALIDATION_ERROR",
         },
         { status: 400 },

@@ -23,8 +23,12 @@ import {
   type AdminReviewPost,
   type AdminReviewReport,
 } from "@/lib/admin/reviewDetail";
+import { breederSubmissionTypeLabel } from "@/lib/breederProfileSubmissions";
+import type { BreederProfileSubmission } from "@/lib/breederProfileSubmissions";
+import type { TransparencyWarning } from "@/lib/transparencyWarnings";
 import { buildListingStatusBody } from "@/lib/admin/listingReject";
 import {
+  AdminBreederDetailSubmissionReview,
   AdminBreederReviewDetail,
   AdminListingReviewDetail,
   AdminReportReviewDetail,
@@ -77,12 +81,12 @@ type ActionLogRow = {
   metadata?: Record<string, unknown>;
 };
 
-type RequestType = "all" | "breeder" | "post" | "report";
+type RequestType = "all" | "breeder" | "post" | "report" | "detail" | "appeal";
 type AnnouncementCategory = "app_update" | "health_tip" | "community" | "general";
 
 type RequestItem = {
   id: string;
-  type: "breeder" | "post" | "report";
+  type: "breeder" | "post" | "report" | "detail" | "appeal";
   status: string;
   createdAt: string;
   title: string;
@@ -91,6 +95,8 @@ type RequestItem = {
   post?: PostRow;
   profile?: BreederRow;
   report?: ReportRow;
+  detail?: BreederProfileSubmission;
+  appeal?: TransparencyWarning;
 };
 
 const PET_FEED_TAB_KEYS: FeatureKey[] = [
@@ -266,6 +272,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [breeders, setBreeders] = useState<BreederRow[]>([]);
+  const [detailSubmissions, setDetailSubmissions] = useState<BreederProfileSubmission[]>([]);
+  const [appeals, setAppeals] = useState<TransparencyWarning[]>([]);
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [flags, setFlags] = useState<FeatureFlags>(DEFAULT_FLAGS);
@@ -293,6 +301,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [rejectTarget, setRejectTarget] = useState<
     | { kind: "breeder"; userId: string }
     | { kind: "listing"; postId: string }
+    | { kind: "detail"; submissionId: string }
     | null
   >(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -321,16 +330,20 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     setLoading(true);
     setError("");
     try {
-      const [p, b, r, a, f] = await Promise.all([
+      const [p, b, r, a, f, d, w] = await Promise.all([
         adminFetch("/posts?status=").catch(() => ({ data: [] })),
         adminFetch("/breeders").catch(() => ({ data: [] })),
         adminFetch("/reports?status=").catch(() => ({ data: [] })),
         adminFetch("/accounts").catch(() => ({ data: [] })),
         adminFetch("/feature-flags").catch(() => ({ data: DEFAULT_FLAGS })),
+        adminFetch("/breeder-submissions?status=").catch(() => ({ data: [] })),
+        adminFetch("/transparency-warnings?status=").catch(() => ({ data: [] })),
       ]);
       setPosts(Array.isArray(p.data) ? p.data : []);
       setBreeders(Array.isArray(b.data) ? b.data : []);
       setReports(Array.isArray(r.data) ? r.data : []);
+      setDetailSubmissions(Array.isArray(d.data) ? d.data : []);
+      setAppeals(Array.isArray(w.data) ? w.data : []);
       setAccounts(Array.isArray(a.data) ? a.data : []);
       const flagData = f.data && typeof f.data === "object" && !Array.isArray(f.data)
         ? { ...DEFAULT_FLAGS, ...f.data }
@@ -356,11 +369,11 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     const validSections = new Set(navItems.map((item) => item.key));
     if (sectionParam && validSections.has(sectionParam as AdminSection)) {
       setSection(sectionParam as AdminSection);
-    } else if (typeParam === "breeder" || typeParam === "post" || typeParam === "report") {
+    } else     if (typeParam === "breeder" || typeParam === "post" || typeParam === "report" || typeParam === "detail" || typeParam === "appeal") {
       setSection("requests");
     }
 
-    if (typeParam === "breeder" || typeParam === "post" || typeParam === "report") {
+    if (typeParam === "breeder" || typeParam === "post" || typeParam === "report" || typeParam === "detail" || typeParam === "appeal") {
       setRequestType(typeParam);
       setRequestStatus("waiting");
     }
@@ -407,8 +420,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const pendingBreeders = breeders.filter((b) => b.verification_status === "pending_review");
   const openReports = reports.filter((r) => r.status === "open");
   const verifiedBreeders = breeders.filter((b) => b.verification_status === "verified");
+  const pendingDetailSubmissions = detailSubmissions.filter((s) => s.status === "pending");
+  const pendingAppeals = appeals.filter((s) => s.status === "appealed" || s.status === "pending_breeder_action");
   const pendingRequestCount =
-    pendingPosts.length + pendingBreeders.length + openReports.length;
+    pendingPosts.length + pendingBreeders.length + openReports.length + pendingDetailSubmissions.length + pendingAppeals.length;
 
   const requestItems = useMemo<RequestItem[]>(() => {
     const breederItems: RequestItem[] = breeders.map((profile) => ({
@@ -457,8 +472,28 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         report,
       };
     });
-    return [...breederItems, ...postItems, ...reportItems];
-  }, [breeders, posts, reports, lang]);
+    const detailItems: RequestItem[] = detailSubmissions.map((submission) => ({
+      id: `detail-${submission.id}`,
+      type: "detail",
+      status: submission.status || "pending",
+      createdAt: submission.created_at || "",
+      title: breederSubmissionTypeLabel(submission.submission_type, lang),
+      subtitle: submission.breeder_profile?.display_name || submission.user_id || "—",
+      body: submission.payload?.url || submission.payload?.note || "",
+      detail: submission,
+    }));
+    const appealItems: RequestItem[] = appeals.map((warning) => ({
+      id: `appeal-${warning.id}`,
+      type: "appeal",
+      status: warning.status || "appealed",
+      createdAt: warning.created_at || warning.breeder_action_at || "",
+      title: t(lang, "admin.requests.type.appeal"),
+      subtitle: warning.breeder_profile?.display_name || warning.user_id || "—",
+      body: `${t(lang, "admin.appeals.score")}: ${warning.score_at_trigger}/100 · ${t(lang, "admin.appeals.penalty")}: ${warning.penalty_points_at_trigger}`,
+      appeal: warning,
+    }));
+    return [...breederItems, ...postItems, ...reportItems, ...detailItems, ...appealItems];
+  }, [breeders, posts, reports, detailSubmissions, appeals, lang]);
 
   const filteredRequests = useMemo(() => {
     return sortByDate(
@@ -644,8 +679,48 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       "admin.toast.updated",
     );
 
+  const updateDetailSubmission = (
+    submissionId: string,
+    status: "approved" | "rejected",
+    extras?: { rejectionReason?: string; adminNote?: string },
+  ) =>
+    runAction(
+      `detail-${submissionId}-${status}`,
+      () =>
+        adminFetch(`/breeder-submissions/${submissionId}/status`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status,
+            ...(extras?.rejectionReason
+              ? { rejectionReason: extras.rejectionReason }
+              : {}),
+            ...(extras?.adminNote ? { adminNote: extras.adminNote } : {}),
+          }),
+        }),
+      "admin.toast.updated",
+    );
+
+  const resolveAppeal = (
+    warningId: string,
+    resolution: "uphold" | "restore",
+  ) =>
+    runAction(
+      `appeal-${warningId}-${resolution}`,
+      () =>
+        adminFetch(`/transparency-warnings/${warningId}/resolve`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resolution }),
+        }),
+      "admin.toast.updated",
+    );
+
   const openRejectModal = (
-    target: { kind: "breeder"; userId: string } | { kind: "listing"; postId: string },
+    target:
+      | { kind: "breeder"; userId: string }
+      | { kind: "listing"; postId: string }
+      | { kind: "detail"; submissionId: string },
   ) => {
     setRejectTarget(target);
     setRejectReason("");
@@ -677,6 +752,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     };
     if (target.kind === "listing") {
       await updatePost(target.postId, "archived", extras);
+      return;
+    }
+    if (target.kind === "detail") {
+      await updateDetailSubmission(target.submissionId, "rejected", extras);
       return;
     }
     await updateBreeder(target.userId, "rejected", extras);
@@ -828,6 +907,52 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         </div>
       );
     }
+    if (item.type === "detail" && item.detail?.status === "pending" && item.detail.id) {
+      return (
+        <div className="flex flex-wrap gap-2 mt-3">
+          <ActionButton
+            label={t(lang, "admin.details.approve")}
+            variant="success"
+            disabled={busyKey !== null}
+            onClick={() => void updateDetailSubmission(item.detail!.id, "approved")}
+          />
+          <ActionButton
+            label={t(lang, "admin.details.reject")}
+            variant="ghost"
+            disabled={busyKey !== null}
+            onClick={() => openRejectModal({ kind: "detail", submissionId: item.detail!.id })}
+          />
+        </div>
+      );
+    }
+    if (
+      item.type === "appeal"
+      && item.appeal?.id
+      && (item.appeal.status === "appealed" || item.appeal.status === "pending_breeder_action")
+    ) {
+      return (
+        <div className="flex flex-wrap gap-2 mt-3">
+          <ActionButton
+            label={t(lang, "admin.appeals.restore")}
+            variant="success"
+            disabled={busyKey !== null}
+            onClick={() => {
+              if (!window.confirm(t(lang, "admin.appeals.confirmRestore"))) return;
+              void resolveAppeal(item.appeal!.id, "restore");
+            }}
+          />
+          <ActionButton
+            label={t(lang, "admin.appeals.uphold")}
+            variant="danger"
+            disabled={busyKey !== null}
+            onClick={() => {
+              if (!window.confirm(t(lang, "admin.appeals.confirmUphold"))) return;
+              void resolveAppeal(item.appeal!.id, "uphold");
+            }}
+          />
+        </div>
+      );
+    }
     if (item.type === "report" && item.report?.status === "open") {
       const linkedPost =
         item.report.post_id
@@ -971,6 +1096,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   options={[
                     { value: "all", label: t(lang, "admin.filter.all") },
                     { value: "breeder", label: t(lang, "admin.requests.type.breeder") },
+                    { value: "detail", label: t(lang, "admin.requests.type.detail") },
+                    { value: "appeal", label: t(lang, "admin.requests.type.appeal") },
                     { value: "post", label: t(lang, "admin.requests.type.post") },
                     { value: "report", label: t(lang, "admin.requests.type.report") },
                   ]}
@@ -1007,6 +1134,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     ? item.profile?.id
                     : item.type === "post"
                       ? item.post?.id
+                      : item.type === "detail"
+                        ? item.detail?.id
+                        : item.type === "appeal"
+                          ? item.appeal?.id
                       : item.report?.id;
                 const focused = Boolean(focusRequestId && rawId === focusRequestId);
                 const detailsOpen = expandedReviewId === item.id;
@@ -1040,6 +1171,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                           ? verificationLabel(item.status)
                           : item.type === "report"
                             ? reportStatusLabel(item.status)
+                            : item.type === "detail"
+                              ? item.status
                             : item.status
                       }
                     />
@@ -1081,6 +1214,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                       linkedPost={linkedPost}
                       linkedProfile={linkedProfile}
                     />
+                  ) : null}
+                  {detailsOpen && item.detail ? (
+                    <AdminBreederDetailSubmissionReview lang={lang} submission={item.detail} />
                   ) : null}
                   {renderRequestActions(item)}
                 </div>

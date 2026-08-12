@@ -29,6 +29,7 @@ import {
   ownerDeleteBlockedMessage,
 } from "@/lib/listingOwnerDelete";
 import { ListingDeleteConfirmModal } from "./ListingDeleteConfirmModal";
+import { DealReviewModal } from "./DealReviewModal";
 import {
   depositHoldSenLabel,
   filterSenUserOptions,
@@ -278,6 +279,8 @@ export function ListingDetail({
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeMessage, setDisputeMessage] = useState("");
   const [disputePhotos, setDisputePhotos] = useState<File[]>([]);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
   const [attachWarrantyOpen, setAttachWarrantyOpen] = useState(false);
   const [attachWarrantyId, setAttachWarrantyId] = useState("");
   const [attachWarrantyOptions, setAttachWarrantyOptions] = useState<
@@ -630,11 +633,34 @@ export function ListingDetail({
       setDepositOpen(false);
       setDepositAck(false);
       setSenPickerOpen(false);
+      if (kind === "complete" && data.review_eligible) {
+        setReviewOpen(true);
+      }
       router.refresh();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Failed");
     } finally {
       setDealBusy(false);
+    }
+  };
+
+  const submitDealReview = async (payload: { rating: number; body?: string }) => {
+    setReviewBusy(true);
+    setActionError("");
+    try {
+      const res = await fetch(`/api/listings/${listing.id}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setReviewOpen(false);
+      router.refresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setReviewBusy(false);
     }
   };
 
@@ -2126,6 +2152,14 @@ export function ListingDetail({
           </div>
         </div>
       ) : null}
+
+      <DealReviewModal
+        lang={lang}
+        open={reviewOpen}
+        busy={reviewBusy}
+        onClose={() => setReviewOpen(false)}
+        onSubmit={submitDealReview}
+      />
 
       <WarrantyPolicyViewer
         lang={lang}

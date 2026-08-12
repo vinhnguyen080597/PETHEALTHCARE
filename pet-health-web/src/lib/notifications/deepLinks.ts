@@ -9,6 +9,8 @@ export type NotificationDeepLinkInput = {
     cta_href?: string;
     cta_label?: string;
     report_id?: string;
+    submission_id?: string;
+    warning_id?: string;
     [key: string]: unknown;
   } | null;
 };
@@ -29,12 +31,24 @@ const DEAL_INFO_NOTIFICATION_TYPES = new Set([
   "deal_dispute_resolved",
 ]);
 
+const ADMIN_QUEUE_NOTIFICATION_TYPES = new Set([
+  "admin_breeder_pending",
+  "admin_breeder_detail_pending",
+  "admin_transparency_appeal",
+  "admin_listing_pending",
+  "admin_report_open",
+]);
+
 export type NotificationInboxCtaFallbacks = {
   verified: string;
   rejected: string;
   listingApproved: string;
   listingRejected: string;
   adminRequest: string;
+  detailApproved: string;
+  detailRejected: string;
+  transparencyWarning: string;
+  transparencyResolved: string;
   depositCancelConfirm: string;
   depositConfirm: string;
   dealCompleteConfirm: string;
@@ -49,6 +63,14 @@ export function isNotificationUnread(item: NotificationDeepLinkInput) {
   if (item.read_at) return false;
   if (typeof item.is_unread === "boolean") return item.is_unread;
   return true;
+}
+
+export function isAdminQueueNotification(
+  item: NotificationDeepLinkInput | string | null | undefined,
+) {
+  const type =
+    typeof item === "string" || !item ? String(item || "") : notificationType(item);
+  return ADMIN_QUEUE_NOTIFICATION_TYPES.has(type);
 }
 
 /** Admin request notification → Admin Console deep link (with focus when possible). */
@@ -71,6 +93,23 @@ export function adminRequestHref(item: NotificationDeepLinkInput) {
       return `/app/admin?section=requests&type=report&focus=${encodeURIComponent(reportId)}`;
     }
   }
+  if (type === "admin_breeder_detail_pending") {
+    const submissionId =
+      (typeof item.metadata?.submission_id === "string" && item.metadata.submission_id) ||
+      "";
+    if (submissionId) {
+      return `/app/admin?section=requests&type=detail&focus=${encodeURIComponent(submissionId)}`;
+    }
+    return "/app/admin?section=requests&type=detail";
+  }
+  if (type === "admin_transparency_appeal") {
+    const warningId =
+      (typeof item.metadata?.warning_id === "string" && item.metadata.warning_id) || "";
+    if (warningId) {
+      return `/app/admin?section=requests&type=appeal&focus=${encodeURIComponent(warningId)}`;
+    }
+    return "/app/admin?section=requests&type=appeal";
+  }
   if (type === "admin_breeder_pending") {
     return "/app/admin?section=requests&type=breeder";
   }
@@ -81,6 +120,28 @@ export function adminRequestHref(item: NotificationDeepLinkInput) {
     return "/app/admin?section=requests&type=report";
   }
   return "/app/admin?section=requests";
+}
+
+/** Breeder-facing transparency / detail notification → account or farm page. */
+export function breederTransparencyNotificationHref(
+  item: NotificationDeepLinkInput,
+): string | null {
+  const type = notificationType(item);
+  const stored =
+    typeof item.metadata?.cta_href === "string" ? item.metadata.cta_href.trim() : "";
+  if (
+    type === "transparency_warning" ||
+    type === "transparency_warning_resolved" ||
+    type === "breeder_detail_approved" ||
+    type === "breeder_detail_rejected"
+  ) {
+    if (stored.startsWith("/app/")) return stored;
+    if (item.breeder_profile_id && type === "breeder_detail_approved") {
+      return `/app/breeders/${encodeURIComponent(item.breeder_profile_id)}`;
+    }
+    return "/app/account/breeder";
+  }
+  return null;
 }
 
 export function isDepositCancelRequestNotification(
@@ -119,11 +180,13 @@ export function notificationInboxCta(
   if (type === "breeder_rejected") return stored || fallbacks.rejected;
   if (type === "listing_approved") return stored || fallbacks.listingApproved;
   if (type === "listing_rejected") return stored || fallbacks.listingRejected;
-  if (
-    type === "admin_breeder_pending" ||
-    type === "admin_listing_pending" ||
-    type === "admin_report_open"
-  ) {
+  if (type === "breeder_detail_approved") return stored || fallbacks.detailApproved;
+  if (type === "breeder_detail_rejected") return stored || fallbacks.detailRejected;
+  if (type === "transparency_warning") return stored || fallbacks.transparencyWarning;
+  if (type === "transparency_warning_resolved") {
+    return stored || fallbacks.transparencyResolved;
+  }
+  if (isAdminQueueNotification(type)) {
     return stored || fallbacks.adminRequest;
   }
   if (type === "deposit_cancel_request") {

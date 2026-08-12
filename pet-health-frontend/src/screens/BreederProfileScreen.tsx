@@ -65,8 +65,6 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
   const registrationSectionYRef = useRef(0);
   const displayNameRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
-  const facebookRef = useRef<TextInput>(null);
-  const zaloRef = useRef<TextInput>(null);
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [location, setLocation] = useState(
     resolveProvinceSelection(profile?.location ?? ''),
@@ -84,8 +82,8 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
       metadataString(metadata, 'registration_unit'),
   });
   const [mainBreeds, setMainBreeds] = useState((profile?.main_breeds ?? []).join(', '));
-  const [facebook, setFacebook] = useState(String(profile?.contact?.facebook ?? ''));
-  const [zalo, setZalo] = useState(String(profile?.contact?.zalo ?? ''));
+  const [facebook] = useState(String(profile?.contact?.facebook ?? ''));
+  const [zalo] = useState(String(profile?.contact?.zalo ?? ''));
   const [phone, setPhone] = useState(String(profile?.contact?.phone ?? ''));
   const [breederType, setBreederType] = useState<BreederType>((metadataString(metadata, 'breederType') as BreederType) || 'home_breeder');
   const [registeredAt, setRegisteredAt] = useState(metadataString(metadata, 'registeredAt'));
@@ -118,8 +116,6 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
     setBio(profile?.bio ?? '');
     setPrimarySpecies(nextPrimary);
     setMainBreeds((profile?.main_breeds ?? []).join(', '));
-    setFacebook(String(profile?.contact?.facebook ?? ''));
-    setZalo(String(profile?.contact?.zalo ?? ''));
     setPhone(String(profile?.contact?.phone ?? ''));
     setBreederType((metadataString(nextMetadata, 'breederType') as BreederType) || 'home_breeder');
     setRegisteredAt(metadataString(nextMetadata, 'registeredAt'));
@@ -135,8 +131,6 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
     if (!displayName.trim()) return t('breederProfile.errors.displayNameRequired');
     if (!location.trim()) return t('breederProfile.errors.locationRequired');
     if (!phone.trim()) return t('breederProfile.errors.phoneRequired');
-    if (!facebook.trim()) return t('breederProfile.errors.facebookRequired');
-    if (!zalo.trim()) return t('breederProfile.errors.zaloRequired');
     return '';
   }
 
@@ -151,14 +145,6 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
     }
     if (!phone.trim()) {
       phoneRef.current?.focus();
-      return;
-    }
-    if (!facebook.trim()) {
-      facebookRef.current?.focus();
-      return;
-    }
-    if (!zalo.trim()) {
-      zaloRef.current?.focus();
     }
   }
 
@@ -257,8 +243,6 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
   const missingDisplayName = !displayName.trim();
   const missingLocation = !location.trim();
   const missingPhone = !phone.trim();
-  const missingFacebook = !facebook.trim();
-  const missingZalo = !zalo.trim();
   const showRegistrationInvalid = Boolean(registrationError);
 
   return (
@@ -355,28 +339,6 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile }: Breeder
             value={phone}
             onChangeText={(value) => {
               setPhone(value);
-              if (registrationError) setRegistrationError('');
-            }}
-          />
-          <TextInput
-            ref={facebookRef}
-            className={`mt-3 rounded-xl border bg-slate-50 px-3 py-3 text-slate-900 ${showRegistrationInvalid && missingFacebook ? 'border-red-400' : 'border-gray-200'}`}
-            placeholder={`${t('breederProfile.facebook')} *`}
-            autoCapitalize="none"
-            value={facebook}
-            onChangeText={(value) => {
-              setFacebook(value);
-              if (registrationError) setRegistrationError('');
-            }}
-          />
-          <TextInput
-            ref={zaloRef}
-            className={`mt-3 rounded-xl border bg-slate-50 px-3 py-3 text-slate-900 ${showRegistrationInvalid && missingZalo ? 'border-red-400' : 'border-gray-200'}`}
-            placeholder={`${t('breederProfile.zalo')} *`}
-            keyboardType="phone-pad"
-            value={zalo}
-            onChangeText={(value) => {
-              setZalo(value);
               if (registrationError) setRegistrationError('');
             }}
           />

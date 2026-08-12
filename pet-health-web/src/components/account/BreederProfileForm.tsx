@@ -31,6 +31,8 @@ import {
   splitRegistrationUnitForForm,
 } from "@/lib/breederRegistrationUnits";
 import { validateRegisteredKennelFields } from "@/lib/breederRegisteredKennelValidation";
+import { BreederTransparencyDetails } from "@/components/account/BreederTransparencyDetails";
+import { TransparencyWarningModal } from "@/components/account/TransparencyWarningModal";
 
 const BREEDER_TYPES = [
   "registered_kennel",
@@ -114,8 +116,8 @@ export function BreederProfileForm({
   );
   const [bio, setBio] = useState(initial?.bio || "");
   const [phone] = useState(initial?.contact?.phone || "");
-  const [facebook, setFacebook] = useState(initial?.contact?.facebook || "");
-  const [zalo, setZalo] = useState(initial?.contact?.zalo || "");
+  const [facebook] = useState(initial?.contact?.facebook || "");
+  const [zalo] = useState(initial?.contact?.zalo || "");
   const [breederType, setBreederType] = useState(
     metaString(meta, "breederType") ||
       metaString(meta, "breeder_type") ||
@@ -171,8 +173,6 @@ export function BreederProfileForm({
   const [fieldErrors, setFieldErrors] = useState<{
     displayName?: string;
     location?: string;
-    facebook?: string;
-    zalo?: string;
     species?: string;
     registrationUnit?: string;
     registrationUnitOther?: string;
@@ -262,12 +262,6 @@ export function BreederProfileForm({
     }
     if (!location.trim()) {
       nextErrors.location = t(lang, "breederForm.field.locationRequired");
-    }
-    if (!facebook.trim()) {
-      nextErrors.facebook = t(lang, "breederForm.field.facebookRequired");
-    }
-    if (!zalo.trim()) {
-      nextErrors.zalo = t(lang, "breederForm.field.zaloRequired");
     }
     if (!primarySpecies.trim()) {
       nextErrors.species = t(lang, "breederForm.field.speciesRequired");
@@ -571,40 +565,6 @@ export function BreederProfileForm({
           </select>
           <FieldError message={fieldErrors.location} />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>
-              {t(lang, "breederForm.facebook")}
-              <RequiredMark />
-            </label>
-            <input
-              className={`${inputCls} ${fieldErrors.facebook ? inputErrorCls : ""}`}
-              value={facebook}
-              onChange={(e) => {
-                setFacebook(e.target.value);
-                clearFieldError("facebook");
-              }}
-              aria-invalid={Boolean(fieldErrors.facebook)}
-            />
-            <FieldError message={fieldErrors.facebook} />
-          </div>
-          <div>
-            <label className={labelCls}>
-              {t(lang, "breederForm.zalo")}
-              <RequiredMark />
-            </label>
-            <input
-              className={`${inputCls} ${fieldErrors.zalo ? inputErrorCls : ""}`}
-              value={zalo}
-              onChange={(e) => {
-                setZalo(e.target.value);
-                clearFieldError("zalo");
-              }}
-              aria-invalid={Boolean(fieldErrors.zalo)}
-            />
-            <FieldError message={fieldErrors.zalo} />
-          </div>
-        </div>
 
         <div>
           <p className={labelCls}>
@@ -825,6 +785,9 @@ export function BreederProfileForm({
           {busy ? t(lang, "common.loading") : t(lang, "breederForm.submit")}
         </button>
       </form>
+
+      <BreederTransparencyDetails lang={lang} profile={initial} />
+      <TransparencyWarningModal lang={lang} />
     </div>
   );
 }

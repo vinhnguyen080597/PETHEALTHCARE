@@ -314,6 +314,41 @@ export async function storeBreederProfileImage({ userId, kind, file, accessToken
   return `memory://${bucketName}/${filePath}`;
 }
 
+/** Breeder transparency media — facility video or business license document. */
+export async function storeBreederTransparencyMedia({ userId, kind, file, accessToken }) {
+  const safeKind = kind === 'facility_video' ? 'facility_video' : 'business_license';
+  const mime = String(file?.mimetype || '').toLowerCase();
+  let extension = 'jpg';
+  let contentType = file.mimetype;
+
+  if (safeKind === 'facility_video') {
+    extension = videoExtension(mime);
+  } else if (mime === 'application/pdf') {
+    extension = 'pdf';
+  } else if (mime === 'image/png') {
+    extension = 'png';
+  } else if (mime === 'image/webp') {
+    extension = 'webp';
+  }
+
+  const folder = safeKind === 'facility_video' ? 'facility' : 'license';
+  const filePath = `${userId}/breeder-profile/${folder}/${Date.now()}-${randomUUID()}.${extension}`;
+  const bucketName = getPublicMediaBucketName();
+
+  const publicUrl = await uploadToImageBucket({
+    accessToken,
+    bucketName,
+    filePath,
+    buffer: file.buffer,
+    contentType,
+    publicRead: true,
+  });
+  if (publicUrl) return publicUrl;
+
+  memoryImages.set(filePath, file.buffer);
+  return `memory://${bucketName}/${filePath}`;
+}
+
 /** Warranty policy PDF/image — public path `{userId}/breeder/warranty/...` for Sen review. */
 export async function storeWarrantyPolicyFile({ userId, file, accessToken }) {
   const mime = String(file?.mimetype || '').toLowerCase();
