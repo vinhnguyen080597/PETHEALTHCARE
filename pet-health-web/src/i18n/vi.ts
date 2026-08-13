@@ -154,6 +154,12 @@ const vi: Record<EnKey, string> = {
   "farm.facility.about": "Giới thiệu trại",
   "farm.facility.env": "Môi trường chăm sóc",
   "farm.facility.scale": "Quy mô",
+  "farm.facility.social": "Mạng xã hội",
+  "farm.facility.facebook": "Facebook",
+  "farm.facility.zalo": "Zalo",
+  "farm.facility.tiktok": "TikTok",
+  "farm.facility.instagram": "Instagram",
+  "farm.facility.video": "Video cơ sở",
   "farm.facility.empty": "Thông tin cơ sở sẽ hiện khi breeder bổ sung.",
   "farm.warranty.fallback":
     "Hãy hỏi breeder về cam kết sức khỏe và điều khoản đổi trả trước khi đặt cọc.",

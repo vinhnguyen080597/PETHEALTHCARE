@@ -67,6 +67,8 @@ test("review and facility remain section labels inside overview", () => {
     "farm.tab.reviews",
     "farm.tab.facility",
     "farm.trust.scoreTitle",
+    "farm.facility.social",
+    "farm.facility.video",
   ] as const) {
     assert.ok(enDict[key], `missing EN key ${key}`);
     assert.ok(viDict[key], `missing VI key ${key}`);

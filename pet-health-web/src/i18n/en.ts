@@ -152,6 +152,12 @@ const en = {
   "farm.facility.about": "About the kennel",
   "farm.facility.env": "Care environment",
   "farm.facility.scale": "Scale",
+  "farm.facility.social": "Social",
+  "farm.facility.facebook": "Facebook",
+  "farm.facility.zalo": "Zalo",
+  "farm.facility.tiktok": "TikTok",
+  "farm.facility.instagram": "Instagram",
+  "farm.facility.video": "Facility video",
   "farm.facility.empty": "Farm details will appear here once the breeder adds them.",
   "farm.warranty.fallback":
     "Ask the breeder about health commitments and return terms before depositing.",

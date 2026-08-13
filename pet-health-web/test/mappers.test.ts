@@ -35,6 +35,7 @@ test("mapApiBreeder normalizes verification and trust defaults", () => {
   assert.equal(mapped.template, "T2");
   assert.equal(mapped.activeListings, 3);
   assert.equal(mapped.checklist[0]?.label, "Vaccine");
+  assert.equal(mapped.facilityVideoUrl, null);
 });
 
 test("mapApiBreeder uses signal-based trust when metadata trust_score is absent", () => {
@@ -50,6 +51,19 @@ test("mapApiBreeder uses signal-based trust when metadata trust_score is absent"
   const mapped = mapApiBreeder(profile, { activeListings: 0 });
   // Verified only → 30 base transparency points
   assert.equal(mapped.trustScore, 30);
+});
+
+test("mapApiBreeder exposes approved facility video on the public farm", () => {
+  const mapped = mapApiBreeder({
+    id: "bp-vid",
+    display_name: "Video Farm",
+    verification_status: "verified",
+    metadata: {
+      facility_video_trust_awarded: true,
+      facility_video_url: "https://cdn.example/tour.mp4",
+    },
+  });
+  assert.equal(mapped.facilityVideoUrl, "https://cdn.example/tour.mp4");
 });
 
 test("mapApiPost formats price gender and escrow", () => {

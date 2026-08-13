@@ -87,6 +87,8 @@ export interface BreederProfile {
   warrantyPolicies?: WarrantyPolicy[];
   /** True after first warranty policy creation (+10 trust once). */
   warrantyPolicyTrustAwarded?: boolean;
+  /** Public farm tour video (admin-approved only). */
+  facilityVideoUrl?: string | null;
 }
 
 export interface WarrantyPolicy {

@@ -18,6 +18,12 @@ import {
   type FarmDetailTab,
 } from "@/lib/farmTabs";
 import {
+  FARM_FACILITY_VIDEO_ASPECT,
+  FARM_FACILITY_VIDEO_MAX_HEIGHT_PX,
+  farmFacilityHasContent,
+  farmFacilitySocialLinks,
+} from "@/lib/farmFacility";
+import {
   countFarmPetsByAvailability,
   countFarmPetsRehomed,
   farmPetTabCount,
@@ -431,6 +437,7 @@ export function FarmDetail({
   const reviewCount = trustMetrics.reviewCount;
   const cover = coverUrl || FALLBACK_COVER;
   const bioText = (lang === "VI" ? breeder.bioVI : breeder.bio).trim();
+  const facilitySocials = farmFacilitySocialLinks(breeder.contact);
 
   const tabs: { key: FarmDetailTab; label: string }[] = FARM_DETAIL_TABS.map(
     (key) => ({
@@ -833,6 +840,91 @@ export function FarmDetail({
 
                 <section className="space-y-3">
                   <h2 className="text-base font-semibold text-[#2B1E19]">
+                    {t(lang, "farm.tab.facility")}
+                  </h2>
+                  <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5 space-y-4">
+                    {farmFacilityHasContent({
+                      bio: bioText,
+                      socialCount: facilitySocials.length,
+                      videoUrl: breeder.facilityVideoUrl,
+                    }) ? (
+                      <>
+                        {!isBlankDisplayValue(bioText) ? (
+                          <div>
+                            <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
+                              {t(lang, "farm.facility.about")}
+                            </h3>
+                            <p className="text-sm text-[#6E5A51] leading-relaxed whitespace-pre-wrap">
+                              {bioText}
+                            </p>
+                          </div>
+                        ) : null}
+                        {facilitySocials.length > 0 ? (
+                          <div>
+                            <h3 className="text-sm font-semibold text-[#2B1E19] mb-2">
+                              {t(lang, "farm.facility.social")}
+                            </h3>
+                            <ul className="space-y-1.5">
+                              {facilitySocials.map((item) => (
+                                <li
+                                  key={item.id}
+                                  className="flex items-baseline gap-2 text-sm min-w-0"
+                                >
+                                  <span className="shrink-0 font-medium text-[#2B1E19]">
+                                    {t(lang, item.labelKey)}
+                                  </span>
+                                  {item.href ? (
+                                    <a
+                                      href={item.href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="min-w-0 break-all text-[#B45309] hover:underline"
+                                    >
+                                      {item.display}
+                                    </a>
+                                  ) : (
+                                    <span className="tabular-nums text-[#6E5A51]">
+                                      {item.display}
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                        {breeder.facilityVideoUrl ? (
+                          <div>
+                            <h3 className="text-sm font-semibold text-[#2B1E19] mb-2">
+                              {t(lang, "farm.facility.video")}
+                            </h3>
+                            <div
+                              className="w-full overflow-hidden rounded-xl bg-black"
+                              style={{
+                                aspectRatio: FARM_FACILITY_VIDEO_ASPECT,
+                                maxHeight: FARM_FACILITY_VIDEO_MAX_HEIGHT_PX,
+                              }}
+                            >
+                              <video
+                                src={breeder.facilityVideoUrl}
+                                controls
+                                playsInline
+                                preload="metadata"
+                                className="h-full w-full object-contain"
+                              />
+                            </div>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className="text-sm text-[#6E5A51]">
+                        {t(lang, "farm.facility.empty")}
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                <section className="space-y-3">
+                  <h2 className="text-base font-semibold text-[#2B1E19]">
                     {t(lang, "farm.tab.reviews")}
                     {reviewCount > 0 ? ` (${reviewCount})` : ""}
                   </h2>
@@ -848,28 +940,6 @@ export function FarmDetail({
                     <p className="text-sm text-[#6E5A51] py-6 text-center">
                       {t(lang, "farm.reviews.empty")}
                     </p>
-                  </div>
-                </section>
-
-                <section className="space-y-3">
-                  <h2 className="text-base font-semibold text-[#2B1E19]">
-                    {t(lang, "farm.tab.facility")}
-                  </h2>
-                  <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5 space-y-4">
-                    {!isBlankDisplayValue(bioText) ? (
-                      <div>
-                        <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">
-                          {t(lang, "farm.facility.about")}
-                        </h3>
-                        <p className="text-sm text-[#6E5A51] leading-relaxed">
-                          {bioText}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-[#6E5A51]">
-                        {t(lang, "farm.facility.empty")}
-                      </p>
-                    )}
                   </div>
                 </section>
               </div>
