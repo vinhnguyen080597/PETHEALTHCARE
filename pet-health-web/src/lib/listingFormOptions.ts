@@ -10,6 +10,31 @@ export const LISTING_SPECIES = [
   "reptile",
 ] as const;
 
+export type ListingSpecies = (typeof LISTING_SPECIES)[number];
+
+/** Shared fallbacks on every species list. */
+export const LISTING_SHARED_BREED_KEYS = ["mixed", "other"] as const;
+
+/** Popular dog breeds for VN marketplace listings. */
+export const LISTING_DOG_BREED_KEYS = [
+  "poodle",
+  "poodle_tiny",
+  "pomeranian",
+  "golden_retriever",
+  "labrador",
+  "husky",
+  "corgi",
+  "shiba",
+  "chihuahua",
+  "pug",
+  "french_bulldog",
+  "german_shepherd",
+  "malinois",
+  "phu_quoc",
+  "mixed",
+  "other",
+] as const;
+
 export const LISTING_CAT_BREED_KEYS = [
   "meo_ta",
   "meo_muop",
@@ -28,6 +53,61 @@ export const LISTING_CAT_BREED_KEYS = [
   "mixed",
   "other",
 ] as const;
+
+export const LISTING_BIRD_BREED_KEYS = [
+  "cockatiel",
+  "budgie",
+  "lovebird",
+  "canary",
+  "parrot",
+  "mixed",
+  "other",
+] as const;
+
+export const LISTING_FISH_BREED_KEYS = [
+  "betta",
+  "goldfish",
+  "guppy",
+  "koi",
+  "mixed",
+  "other",
+] as const;
+
+export const LISTING_RABBIT_BREED_KEYS = [
+  "holland_lop",
+  "mini_rex",
+  "netherland_dwarf",
+  "mixed",
+  "other",
+] as const;
+
+export const LISTING_HAMSTER_BREED_KEYS = [
+  "syrian",
+  "winter_white",
+  "campbell",
+  "roborovski",
+  "mixed",
+  "other",
+] as const;
+
+export const LISTING_REPTILE_BREED_KEYS = [
+  "turtle",
+  "gecko",
+  "bearded_dragon",
+  "snake",
+  "mixed",
+  "other",
+] as const;
+
+const LISTING_BREEDS_BY_SPECIES: Record<ListingSpecies, readonly string[]> = {
+  dog: LISTING_DOG_BREED_KEYS,
+  cat: LISTING_CAT_BREED_KEYS,
+  bird: LISTING_BIRD_BREED_KEYS,
+  fish: LISTING_FISH_BREED_KEYS,
+  rabbit: LISTING_RABBIT_BREED_KEYS,
+  hamster: LISTING_HAMSTER_BREED_KEYS,
+  reptile: LISTING_REPTILE_BREED_KEYS,
+};
 
 export const LISTING_GENDERS = ["male", "female"] as const;
 export const LISTING_AGE_MONTHS = [2, 3, 6, 12, 24] as const;
@@ -70,13 +150,37 @@ export const LISTING_MAX_PHOTOS = 6;
 export const LISTING_MAX_HEALTH_EVIDENCE = 3;
 export const LISTING_MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
-export type ListingSpecies = (typeof LISTING_SPECIES)[number];
 export type ListingVaccineKey = (typeof LISTING_VACCINE_KEYS)[number];
 
 export function isListingSpecies(value: string | null | undefined): value is ListingSpecies {
   return (LISTING_SPECIES as readonly string[]).includes(
     String(value ?? "").trim().toLowerCase(),
   );
+}
+
+/** Breed dropdown keys for the selected species (always ends with mixed / other). */
+export function listingBreedKeysForSpecies(
+  species: string | null | undefined,
+): readonly string[] {
+  const key = String(species ?? "").trim().toLowerCase();
+  if (isListingSpecies(key)) return LISTING_BREEDS_BY_SPECIES[key];
+  return LISTING_SHARED_BREED_KEYS;
+}
+
+/**
+ * When species changes: keep the current breed if it still belongs to the new
+ * list (e.g. mixed / other); otherwise reset to the first breed of that species.
+ * Empty breed stays empty (mobile create form uses a placeholder).
+ */
+export function nextListingBreedForSpecies(
+  species: string | null | undefined,
+  currentBreed: string | null | undefined,
+): string {
+  const keys = listingBreedKeysForSpecies(species);
+  const breed = String(currentBreed ?? "").trim();
+  if (!breed) return "";
+  if (keys.includes(breed)) return breed;
+  return keys[0] ?? "other";
 }
 
 /** Card / OG emoji for a listing species slug. */

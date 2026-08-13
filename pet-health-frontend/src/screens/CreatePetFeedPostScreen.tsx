@@ -19,7 +19,7 @@ import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { ApiRequestError } from '../api';
 import type { CreatePetFeedPostMedia, CreatePetFeedPostPayload, PetFeedPost, UserRole } from '../types';
 import { ACTIVE_PET_FEED_SPECIES } from '../constants/petSpecies';
-import { POPULAR_CAT_BREED_KEYS } from '../constants/petBreeds';
+import { listingBreedKeysForSpecies, nextListingBreedForSpecies } from '../constants/petBreeds';
 import {
   formatPetFeedPriceInputDisplay,
   normalizePetFeedPriceInput,
@@ -229,9 +229,6 @@ export function CreatePetFeedPostScreen({
   const [vaccineStatus, setVaccineStatus] = useState('unknown');
   const [dewormingStatus, setDewormingStatus] = useState('unknown');
   const [paperwork, setPaperwork] = useState<string[]>(editingPost?.paperwork ?? []);
-  const [facebook, setFacebook] = useState(editingPost?.contact?.facebook ?? '');
-  const [zalo, setZalo] = useState(editingPost?.contact?.zalo ?? '');
-  const [phone, setPhone] = useState(editingPost?.contact?.phone ?? '');
   const [photoUris, setPhotoUris] = useState<string[]>(editingPost?.media_urls ?? []);
   const [healthEvidenceUris, setHealthEvidenceUris] = useState<string[]>(
     () => healthEvidenceUrlsFromMetadata(editingPost?.metadata),
@@ -262,11 +259,11 @@ export function CreatePetFeedPostScreen({
   );
   const breedOptions = useMemo<Option[]>(
     () =>
-      POPULAR_CAT_BREED_KEYS.map((value) => ({
+      listingBreedKeysForSpecies(species).map((value) => ({
         value,
         label: t(`createPetFeedPost.options.breeds.${value}`),
       })),
-    [t],
+    [species, t],
   );
   const genderOptions = useMemo<Option[]>(() => [
     { value: 'male', label: t('createPetFeedPost.options.gender.male') },
@@ -322,20 +319,24 @@ export function CreatePetFeedPostScreen({
     if (editingPost.location) {
       setLocation(resolveProvinceSelection(editingPost.location));
     }
+  }, [ageOptions, dewormingOptions, editingPost, genderOptions, locationOptions, vaccineOptions]);
+
+  useEffect(() => {
+    if (!editingPost) return;
     const storedBreed = editingPost.breed?.trim() ?? '';
-    if (storedBreed) {
-      const breedMatch = breedOptions.find(
-        (option) => option.value === storedBreed || option.label === storedBreed,
-      );
-      if (breedMatch) {
-        setBreed(breedMatch.value);
-        setCustomBreed('');
-      } else {
-        setBreed('other');
-        setCustomBreed(storedBreed);
-      }
+    if (!storedBreed) return;
+    const keys = listingBreedKeysForSpecies(editingPost.species);
+    const breedMatch = keys.find(
+      (key) => key === storedBreed || t(`createPetFeedPost.options.breeds.${key}`) === storedBreed,
+    );
+    if (breedMatch) {
+      setBreed(breedMatch);
+      setCustomBreed('');
+    } else {
+      setBreed('other');
+      setCustomBreed(storedBreed);
     }
-  }, [ageOptions, breedOptions, dewormingOptions, editingPost, genderOptions, locationOptions, vaccineOptions]);
+  }, [editingPost, t]);
 
   const selectedGenderLabel = genderOptions.find((option) => option.value === gender)?.label ?? '';
   const selectedBreedLabel =
@@ -366,7 +367,7 @@ export function CreatePetFeedPostScreen({
     paperwork,
     media_urls: photoUris,
     video_url: videoUri || null,
-    contact: { facebook, zalo, phone },
+    contact: {},
     status: isAdmin ? 'published' : isEditingPost ? (editingStatus ?? 'draft') : 'pending_review',
     metadata: {},
     breeder_profile: null,
@@ -592,7 +593,6 @@ export function CreatePetFeedPostScreen({
       vaccineStatus: selectedVaccineLabel,
       dewormingStatus: selectedDewormingLabel,
       paperwork,
-      contact: { facebook, zalo, phone },
       status,
       metadata: {
         ...(editingPost?.metadata ?? {}),
@@ -774,7 +774,19 @@ export function CreatePetFeedPostScreen({
             {fieldErrors.title ? <Text className="mb-3 text-xs font-medium text-red-600">{fieldErrors.title}</Text> : <View className="mb-3" />}
           </View>
           {speciesOptions.length > 1 ? (
-            <SelectField required label={t('createPetFeedPost.species')} value={species} options={speciesOptions} onChange={setSpecies} />
+            <SelectField
+              required
+              label={t('createPetFeedPost.species')}
+              value={species}
+              options={speciesOptions}
+              onChange={(value) => {
+                const nextBreed = nextListingBreedForSpecies(value, breed);
+                setSpecies(value);
+                setBreed(nextBreed);
+                if (nextBreed !== 'other') setCustomBreed('');
+                clearFieldError('breed');
+              }}
+            />
           ) : null}
           <View onLayout={(event) => markFieldOffset('breed', event.nativeEvent.layout.y)}>
             <SelectField
@@ -990,9 +1002,6 @@ export function CreatePetFeedPostScreen({
             value={description}
             onChangeText={setDescription}
           />
-          <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder="Facebook URL" value={facebook} onChangeText={setFacebook} />
-          <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder="Zalo" value={zalo} onChangeText={setZalo} />
-          <TextInput className="mt-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-slate-900" placeholder={t('breederProfile.phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
           {!isAdmin && canSaveDraft ? (
             <Pressable
               testID="create-pet-feed-post-save-draft-button"

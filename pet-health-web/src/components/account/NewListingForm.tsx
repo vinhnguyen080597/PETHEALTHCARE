@@ -14,8 +14,9 @@ import { buildListingPreview } from "@/lib/listingPreview";
 import {
   firstNewListingErrorField,
   LISTING_AGE_MONTHS,
-  LISTING_CAT_BREED_KEYS,
   LISTING_DEWORMING_KEYS,
+  listingBreedKeysForSpecies,
+  nextListingBreedForSpecies,
   LISTING_GENDERS,
   LISTING_LOCATIONS,
   LISTING_MAX_HEALTH_EVIDENCE,
@@ -362,9 +363,6 @@ export function NewListingForm({
   const [location, setLocation] = useState<string>(LISTING_LOCATIONS[0]);
   const [priceNote, setPriceNote] = useState("");
   const [description, setDescription] = useState("");
-  const [facebook, setFacebook] = useState("");
-  const [zalo, setZalo] = useState("");
-  const [phone, setPhone] = useState("");
   const [warrantyPolicyId, setWarrantyPolicyId] = useState("");
   const [vaccineKey, setVaccineKey] =
     useState<(typeof LISTING_VACCINE_KEYS)[number]>("unknown");
@@ -378,6 +376,11 @@ export function NewListingForm({
   const [fieldErrors, setFieldErrors] = useState<NewListingFieldErrors>({});
   const videoPreviewUrl = useObjectUrl(video);
   const coverPreviewUrl = useObjectUrl(photos[0] ?? null);
+
+  const breedKeys = useMemo(
+    () => listingBreedKeysForSpecies(species),
+    [species],
+  );
 
   const vaccineLabel = useMemo(() => {
     if (vaccineKey === "unknown") return "";
@@ -527,14 +530,6 @@ export function NewListingForm({
     fd.set("dewormingStatus", dewormingLabel);
     fd.set("personality", JSON.stringify(personality));
     fd.set("paperwork", JSON.stringify(paperwork));
-    fd.set(
-      "contact",
-      JSON.stringify({
-        facebook: facebook.trim(),
-        zalo: zalo.trim(),
-        phone: phone.trim(),
-      }),
-    );
     if (warrantyPolicyId) fd.set("warranty_policy_id", warrantyPolicyId);
     fd.set("status", "pending_review");
     for (const photo of photos) fd.append("photos", photo);
@@ -603,8 +598,16 @@ export function NewListingForm({
               <select
                 value={species}
                 onChange={(e) => {
-                  setSpecies(e.target.value);
+                  const nextSpecies = e.target.value;
+                  const nextBreed = nextListingBreedForSpecies(
+                    nextSpecies,
+                    breed,
+                  );
+                  setSpecies(nextSpecies);
+                  setBreed(nextBreed);
+                  if (nextBreed !== "other") setCustomBreed("");
                   clearFieldError("species");
+                  clearFieldError("breed");
                 }}
                 aria-invalid={Boolean(fieldErrors.species)}
                 className={`${inputCls} ${fieldErrors.species ? inputErrorCls : ""}`}
@@ -632,7 +635,7 @@ export function NewListingForm({
                 aria-invalid={Boolean(fieldErrors.breed)}
                 className={`${inputCls} ${fieldErrors.breed ? inputErrorCls : ""}`}
               >
-                {LISTING_CAT_BREED_KEYS.map((id) => (
+                {breedKeys.map((id) => (
                   <option key={id} value={id}>
                     {t(lang, `listing.new.breed.${id}` as EnKey)}
                   </option>
@@ -896,35 +899,6 @@ export function NewListingForm({
               rows={4}
               className={inputCls}
             />
-          </div>
-
-          <div>
-            <p className="text-xs font-medium text-slate-500 mb-2">
-              {t(lang, "listing.new.field.contact")}
-            </p>
-            <div className="space-y-2">
-              <input
-                value={facebook}
-                onChange={(e) => setFacebook(e.target.value)}
-                type="text"
-                placeholder={t(lang, "listing.new.field.facebook")}
-                className={inputCls}
-              />
-              <input
-                value={zalo}
-                onChange={(e) => setZalo(e.target.value)}
-                type="text"
-                placeholder={t(lang, "listing.new.field.zalo")}
-                className={inputCls}
-              />
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                type="tel"
-                placeholder={t(lang, "listing.new.field.phone")}
-                className={inputCls}
-              />
-            </div>
           </div>
         </SectionCard>
 

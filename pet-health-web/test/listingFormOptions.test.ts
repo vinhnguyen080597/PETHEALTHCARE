@@ -5,9 +5,11 @@ import vi from "../src/i18n/vi";
 import {
   firstNewListingErrorField,
   LISTING_SPECIES,
+  listingBreedKeysForSpecies,
   listingSpeciesEmoji,
   mergeListingMediaFiles,
   moveListingMediaItem,
+  nextListingBreedForSpecies,
   validateNewListingForm,
   vaccineStatusRequiresHealthEvidence,
 } from "../src/lib/listingFormOptions";
@@ -45,6 +47,22 @@ test("listing new form i18n keys exist in EN and VI", () => {
   }
   assert.equal(vi["listing.new.warrantyNone"], "Không bảo hành");
   assert.equal(en["listing.new.warrantyNone"], "No warranty");
+});
+
+test("new listing form does not collect optional listing contact", () => {
+  const enDict = en as Record<string, string>;
+  const viDict = vi as Record<string, string>;
+  for (const key of [
+    "listing.new.field.contact",
+    "listing.new.field.facebook",
+    "listing.new.field.zalo",
+    "listing.new.field.phone",
+  ]) {
+    assert.equal(enDict[key], undefined, `stale EN ${key}`);
+    assert.equal(viDict[key], undefined, `stale VI ${key}`);
+  }
+  assert.ok(en["listing.new.section.story"]);
+  assert.ok(vi["listing.new.section.story"]);
 });
 
 test("vaccine status requires health evidence like mobile", () => {
@@ -141,6 +159,42 @@ test("listing species options match mobile active set", () => {
   assert.equal(listingSpeciesEmoji("hamster"), "🐹");
   assert.equal(listingSpeciesEmoji("reptile"), "🐍");
   assert.equal(listingSpeciesEmoji("fish"), "🐠");
+});
+
+test("listing breed dropdown follows the selected species", () => {
+  const dogBreeds = listingBreedKeysForSpecies("dog");
+  const catBreeds = listingBreedKeysForSpecies("cat");
+  assert.ok(dogBreeds.includes("poodle"));
+  assert.ok(dogBreeds.includes("phu_quoc"));
+  assert.equal(dogBreeds.includes("meo_muop"), false);
+  assert.ok(catBreeds.includes("meo_muop"));
+  assert.equal(catBreeds.includes("poodle"), false);
+  assert.ok(listingBreedKeysForSpecies("bird").includes("budgie"));
+  assert.ok(listingBreedKeysForSpecies("fish").includes("betta"));
+  assert.ok(listingBreedKeysForSpecies("rabbit").includes("holland_lop"));
+  assert.ok(listingBreedKeysForSpecies("hamster").includes("syrian"));
+  assert.ok(listingBreedKeysForSpecies("reptile").includes("turtle"));
+
+  for (const species of LISTING_SPECIES) {
+    const keys = listingBreedKeysForSpecies(species);
+    assert.ok(keys.includes("mixed"), `${species} missing mixed`);
+    assert.ok(keys.includes("other"), `${species} missing other`);
+    assert.equal(keys[keys.length - 2], "mixed");
+    assert.equal(keys[keys.length - 1], "other");
+    for (const id of keys) {
+      const key = `listing.new.breed.${id}`;
+      assert.ok(en[key as keyof typeof en], `missing EN ${key}`);
+      assert.ok(vi[key as keyof typeof vi], `missing VI ${key}`);
+    }
+  }
+
+  assert.equal(nextListingBreedForSpecies("dog", "meo_muop"), "poodle");
+  assert.equal(nextListingBreedForSpecies("dog", "mixed"), "mixed");
+  assert.equal(nextListingBreedForSpecies("cat", "poodle"), "meo_ta");
+  assert.equal(nextListingBreedForSpecies("bird", ""), "");
+  assert.equal(vi["listing.new.breed.mixed"], "Giống lai");
+  assert.equal(vi["listing.new.breed.pomeranian"], "Phốc sóc");
+  assert.equal(vi["listing.new.breed.phu_quoc"], "Chó Phú Quốc");
 });
 
 test("mergeListingMediaFiles respects max", () => {
