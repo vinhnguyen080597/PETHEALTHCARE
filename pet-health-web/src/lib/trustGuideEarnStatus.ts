@@ -127,7 +127,16 @@ export function earnRowQueueStatus(
   return null;
 }
 
-export function earnRowCtaLabelKey(cta: EarnRowCta): string | null {
+export type EarnRowCtaLabelKey =
+  | "farm.trust.guide.earnPending"
+  | "farm.trust.guide.earnRejected"
+  | "farm.trust.guide.earnUpdate";
+
+export function earnRowCtaLabelKey(
+  cta: Exclude<EarnRowCta, "none">,
+): EarnRowCtaLabelKey;
+export function earnRowCtaLabelKey(cta: EarnRowCta): EarnRowCtaLabelKey | null;
+export function earnRowCtaLabelKey(cta: EarnRowCta): EarnRowCtaLabelKey | null {
   if (cta === "pending") return "farm.trust.guide.earnPending";
   if (cta === "rejected") return "farm.trust.guide.earnRejected";
   if (cta === "update") return "farm.trust.guide.earnUpdate";
@@ -350,7 +359,9 @@ export function earnModalView(state: {
   return "form";
 }
 
-export function breederSubmissionErrorI18nKey(code: string): string | null {
+export function breederSubmissionErrorI18nKey(
+  code: string,
+): "farm.trust.guide.earnAlreadyPending" | null {
   if (code === "SUBMISSION_ALREADY_PENDING") {
     return "farm.trust.guide.earnAlreadyPending";
   }

@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import en from "../src/i18n/en";
+import vi from "../src/i18n/vi";
 import { TRUST_GUIDE_HOW_TO_EARN } from "../src/lib/farmTrustGuide";
 import {
   breederSubmissionErrorI18nKey,
@@ -111,6 +113,12 @@ test("pending submission replaces arrow with a short status", () => {
   assert.equal(earnRowCtaLabelKey("rejected"), "farm.trust.guide.earnRejected");
   assert.equal(earnRowCtaLabelKey("update"), "farm.trust.guide.earnUpdate");
   assert.equal(earnRowCtaLabelKey("none"), null);
+  assert.ok(en["farm.trust.guide.earnPending"]);
+  assert.ok(vi["farm.trust.guide.earnPending"]);
+  assert.ok(en["farm.trust.guide.earnRejected"]);
+  assert.ok(vi["farm.trust.guide.earnRejected"]);
+  assert.ok(en["farm.trust.guide.earnUpdate"]);
+  assert.ok(vi["farm.trust.guide.earnUpdate"]);
   assert.equal(
     breederSubmissionErrorI18nKey("SUBMISSION_ALREADY_PENDING"),
     "farm.trust.guide.earnAlreadyPending",

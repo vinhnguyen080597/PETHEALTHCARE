@@ -281,7 +281,7 @@ export function FarmTrustGuide({
                 )}
                 {cta === "pending" ? (
                   <span className="shrink-0 text-[11px] font-semibold text-amber-800">
-                    {t(lang, earnRowCtaLabelKey(cta)!)}
+                    {t(lang, earnRowCtaLabelKey(cta))}
                   </span>
                 ) : cta === "rejected" || cta === "update" ? (
                   <button
@@ -293,7 +293,7 @@ export function FarmTrustGuide({
                         : "border border-[#D97706] text-[#D97706] hover:bg-[#FFF7ED]"
                     }`}
                   >
-                    {t(lang, earnRowCtaLabelKey(cta)!)}
+                    {t(lang, earnRowCtaLabelKey(cta))}
                   </button>
                 ) : null}
               </div>
