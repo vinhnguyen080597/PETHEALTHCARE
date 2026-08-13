@@ -108,8 +108,8 @@ export const TRUST_GUIDE_HOW_TO_EARN: TrustGuideHowToEarn[] = [
     points: TRANSPARENCY_POINTS.senConfirmedCompletion,
     titleVI: "Giao dịch hoàn thành",
     titleEN: "Completed handoffs",
-    howVI: "Mỗi bé Sen xác nhận đã nhận (+1 điểm).",
-    howEN: "Each pet the buyer confirms received (+1 point).",
+    howVI: "Mỗi bé Sen xác nhận đã nhận (+3 điểm).",
+    howEN: "Each pet the buyer confirms received (+3 points).",
   },
   {
     id: "reviews",

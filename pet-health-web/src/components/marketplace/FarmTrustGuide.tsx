@@ -7,8 +7,12 @@ import {
   computeBreederTrustScore,
   getTrustTier,
   transparencyInputFromBreeder,
-  type TrustScoreBreakdownLine,
 } from "@/lib/breederTrust";
+import {
+  formatTransparencyBreakdownPoints,
+  transparencyBreakdownLabel,
+  visibleTransparencyBreakdownLines,
+} from "@/lib/transparencyBreakdownDisplay";
 import {
   TRUST_GUIDE_HOW_TO_EARN,
   TRUST_GUIDE_IMPACT,
@@ -19,54 +23,6 @@ import {
 import { t } from "@/i18n";
 import { TrustLevelChip } from "./Badges";
 import { TrustTicksGauge } from "./TrustTicksGauge";
-
-function breakdownLabel(lang: Lang, key: string): string {
-  const map: Record<string, { vi: string; en: string }> = {
-    verifiedBase: {
-      vi: "Hồ sơ được duyệt",
-      en: "Approved profile base",
-    },
-    social: {
-      vi: "MXH đã duyệt (FB/Zalo/TT/IG)",
-      en: "Approved social links",
-    },
-    facilityVideo: {
-      vi: "Video cơ sở",
-      en: "Facility video",
-    },
-    businessLicense: {
-      vi: "Giấy phép kinh doanh",
-      en: "Business license",
-    },
-    firstWarranty: {
-      vi: "Chính sách bảo hành đầu tiên",
-      en: "First warranty policy",
-    },
-    completions: {
-      vi: "Giao dịch Sen xác nhận",
-      en: "Buyer-confirmed completions",
-    },
-    reviews: {
-      vi: "Đánh giá 5 sao",
-      en: "5★ reviews",
-    },
-    penalty: {
-      vi: "Lịch sử phạt",
-      en: "Penalty history",
-    },
-  };
-  const row = map[key];
-  return row ? (lang === "VI" ? row.vi : row.en) : key;
-}
-
-function formatLinePoints(line: TrustScoreBreakdownLine): string {
-  if (line.group === "penalty") {
-    return line.val === 0 ? "−0đ" : `${line.val}đ`;
-  }
-  const sign = line.val > 0 ? "+" : "";
-  if (line.max <= 0) return `${sign}${line.val}đ`;
-  return `${sign}${line.val} / ${line.max}đ`;
-}
 
 export function FarmTrustGuide({
   breeder,
@@ -151,7 +107,7 @@ export function FarmTrustGuide({
           {t(lang, "farm.trust.guide.breakdownHint")}
         </p>
         <ul className="space-y-1">
-          {computed.lines.map((line) => (
+          {visibleTransparencyBreakdownLines(computed.lines).map((line) => (
             <li
               key={line.key}
               className="flex items-center justify-between gap-3 py-2 border-b border-slate-50 last:border-0"
@@ -159,30 +115,18 @@ export function FarmTrustGuide({
               <div className="flex items-center gap-2 min-w-0">
                 <span
                   className={
-                    line.group === "penalty"
-                      ? line.val === 0
-                        ? "text-emerald-600"
-                        : "text-amber-600"
-                      : line.done
-                        ? "text-emerald-600"
-                        : "text-slate-300"
+                    line.done ? "text-emerald-600" : "text-slate-300"
                   }
                   aria-hidden
                 >
-                  {line.group === "penalty"
-                    ? line.val === 0
-                      ? "✓"
-                      : "⚠️"
-                    : line.done
-                      ? "✓"
-                      : "○"}
+                  {line.done ? "✓" : "○"}
                 </span>
                 <span className="text-sm text-slate-700 truncate">
-                  {breakdownLabel(lang, line.key)}
+                  {transparencyBreakdownLabel(lang, line.key)}
                 </span>
               </div>
               <span className="text-xs font-semibold tabular-nums text-slate-500 shrink-0">
-                {formatLinePoints(line)}
+                {formatTransparencyBreakdownPoints(line, lang)}
               </span>
             </li>
           ))}

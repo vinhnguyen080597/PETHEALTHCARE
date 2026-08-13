@@ -8,7 +8,7 @@ export const TRANSPARENCY_POINTS = {
   facilityVideo: 10,
   businessLicense: 10,
   firstWarranty: 10,
-  senConfirmedCompletion: 1,
+  senConfirmedCompletion: 3,
   fiveStarReview: 2,
 } as const;
 

@@ -115,4 +115,5 @@ test("social constants match spec", () => {
   assert.equal(TRANSPARENCY_POINTS.verifiedBase, 30);
   assert.equal(TRANSPARENCY_POINTS.socialPlatform, 5);
   assert.equal(TRANSPARENCY_POINTS.fiveStarReview, 2);
+  assert.equal(TRANSPARENCY_POINTS.senConfirmedCompletion, 3);
 });
