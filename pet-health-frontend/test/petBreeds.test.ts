@@ -46,3 +46,12 @@ test('create listing form description section has no contact fields copy', () =>
   assert.equal(en.createPetFeedPost.descriptionAndContact, 'Description');
   assert.equal(vi.createPetFeedPost.descriptionAndContact, 'Mô tả');
 });
+
+test('listing paperwork options are vaccine book, origin, and pedigree on request', () => {
+  const paperwork = en.createPetFeedPost.options.paperwork;
+  assert.deepEqual(Object.keys(paperwork), ['vaccineBook', 'origin', 'pedigreeOnRequest']);
+  assert.equal(vi.createPetFeedPost.options.paperwork.vaccineBook, 'Sổ tiêm');
+  assert.equal(vi.createPetFeedPost.options.paperwork.origin, 'Giấy nguồn gốc');
+  assert.equal(vi.createPetFeedPost.options.paperwork.pedigreeOnRequest, 'Làm phả theo yêu cầu');
+  assert.equal(en.createPetFeedPost.options.paperwork.pedigreeOnRequest, 'Pedigree on request');
+});

@@ -303,8 +303,7 @@ export function CreatePetFeedPostScreen({
   const paperworkOptions = useMemo<Option[]>(() => [
     { value: t('createPetFeedPost.options.paperwork.vaccineBook'), label: t('createPetFeedPost.options.paperwork.vaccineBook') },
     { value: t('createPetFeedPost.options.paperwork.origin'), label: t('createPetFeedPost.options.paperwork.origin') },
-    { value: t('createPetFeedPost.options.paperwork.microchip'), label: t('createPetFeedPost.options.paperwork.microchip') },
-    { value: t('createPetFeedPost.options.paperwork.contract'), label: t('createPetFeedPost.options.paperwork.contract') },
+    { value: t('createPetFeedPost.options.paperwork.pedigreeOnRequest'), label: t('createPetFeedPost.options.paperwork.pedigreeOnRequest') },
   ], [t]);
 
   useEffect(() => {

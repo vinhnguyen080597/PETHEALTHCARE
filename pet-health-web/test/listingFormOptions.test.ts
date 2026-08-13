@@ -4,6 +4,7 @@ import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
 import {
   firstNewListingErrorField,
+  LISTING_PAPERWORK_KEYS,
   LISTING_SPECIES,
   listingBreedKeysForSpecies,
   listingSpeciesEmoji,
@@ -63,6 +64,26 @@ test("new listing form does not collect optional listing contact", () => {
   }
   assert.ok(en["listing.new.section.story"]);
   assert.ok(vi["listing.new.section.story"]);
+});
+
+test("listing paperwork options are vaccine book, origin, and pedigree on request", () => {
+  assert.deepEqual([...LISTING_PAPERWORK_KEYS], [
+    "vaccineBook",
+    "origin",
+    "pedigreeOnRequest",
+  ]);
+  for (const id of LISTING_PAPERWORK_KEYS) {
+    const key = `listing.new.paperwork.${id}`;
+    assert.ok(en[key as keyof typeof en], `missing EN ${key}`);
+    assert.ok(vi[key as keyof typeof vi], `missing VI ${key}`);
+  }
+  assert.equal(vi["listing.new.paperwork.vaccineBook"], "Sổ tiêm");
+  assert.equal(vi["listing.new.paperwork.origin"], "Giấy nguồn gốc");
+  assert.equal(vi["listing.new.paperwork.pedigreeOnRequest"], "Làm phả theo yêu cầu");
+  const enDict = en as Record<string, string>;
+  const viDict = vi as Record<string, string>;
+  assert.equal(enDict["listing.new.paperwork.microchip"], undefined);
+  assert.equal(viDict["listing.new.paperwork.contract"], undefined);
 });
 
 test("vaccine status requires health evidence like mobile", () => {

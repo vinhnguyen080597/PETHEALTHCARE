@@ -967,8 +967,7 @@ const vi: Record<EnKey, string> = {
   "listing.new.deworming.due": "Sắp tới lịch tẩy",
   "listing.new.paperwork.vaccineBook": "Sổ tiêm",
   "listing.new.paperwork.origin": "Giấy nguồn gốc",
-  "listing.new.paperwork.microchip": "Microchip",
-  "listing.new.paperwork.contract": "Hợp đồng/thoả thuận",
+  "listing.new.paperwork.pedigreeOnRequest": "Làm phả theo yêu cầu",
 
   "messages.title": "Tin nhắn",
   "messages.empty": "Chưa có hội thoại",

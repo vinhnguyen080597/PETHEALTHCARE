@@ -142,8 +142,7 @@ export const LISTING_PERSONALITY_KEYS = [
 export const LISTING_PAPERWORK_KEYS = [
   "vaccineBook",
   "origin",
-  "microchip",
-  "contract",
+  "pedigreeOnRequest",
 ] as const;
 
 export const LISTING_MAX_PHOTOS = 6;

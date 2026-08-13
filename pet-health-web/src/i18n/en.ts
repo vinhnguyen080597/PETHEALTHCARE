@@ -963,8 +963,7 @@ const en = {
   "listing.new.deworming.due": "Deworming due soon",
   "listing.new.paperwork.vaccineBook": "Vaccine book",
   "listing.new.paperwork.origin": "Origin document",
-  "listing.new.paperwork.microchip": "Microchip",
-  "listing.new.paperwork.contract": "Contract/agreement",
+  "listing.new.paperwork.pedigreeOnRequest": "Pedigree on request",
 
   "messages.title": "Messages",
   "messages.empty": "No conversations yet",

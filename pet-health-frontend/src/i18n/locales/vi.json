@@ -1070,8 +1070,7 @@
       "paperwork": {
         "vaccineBook": "Sổ tiêm",
         "origin": "Giấy nguồn gốc",
-        "microchip": "Microchip",
-        "contract": "Hợp đồng/thoả thuận"
+        "pedigreeOnRequest": "Làm phả theo yêu cầu"
       }
     }
   },

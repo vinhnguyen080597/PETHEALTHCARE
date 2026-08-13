@@ -1070,8 +1070,7 @@
       "paperwork": {
         "vaccineBook": "Vaccine book",
         "origin": "Origin document",
-        "microchip": "Microchip",
-        "contract": "Contract/agreement"
+        "pedigreeOnRequest": "Pedigree on request"
       }
     }
   },
