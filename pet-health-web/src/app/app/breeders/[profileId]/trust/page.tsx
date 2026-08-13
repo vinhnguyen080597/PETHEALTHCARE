@@ -4,11 +4,12 @@ import { redirect } from "next/navigation";
 import { getLang } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { getPublicBreeder } from "@/lib/api/public";
-import { getMyBreederProfile } from "@/lib/api/petFeed";
+import { getMyBreederProfile, listMyBreederProfileSubmissions } from "@/lib/api/petFeed";
 import { FarmTrustGuide } from "@/components/marketplace/FarmTrustGuide";
 import { FarmHealthSkeleton } from "@/components/ui/Skeleton";
 import { ResourceNotFound } from "@/components/ResourceNotFound";
 import type { Lang } from "@/lib/types";
+import type { BreederProfileSubmission } from "@/lib/breederProfileSubmissions";
 
 type Props = { params: Promise<{ profileId: string }> };
 
@@ -41,19 +42,32 @@ async function TrustGuideData({
     redirect(`/login?next=/app/breeders/${encodeURIComponent(profileId)}/trust`);
   }
 
-  let isOwner = false;
+  let profileMetadata: Record<string, unknown> = {};
+  let submissions: BreederProfileSubmission[] = [];
   try {
     const mine = await getMyBreederProfile(session.token);
-    isOwner = mine.data?.id === profileId;
+    if (mine.data?.id !== profileId) {
+      redirect(`/app/breeders/${encodeURIComponent(profileId)}`);
+    }
+    if (mine.data?.metadata && typeof mine.data.metadata === "object") {
+      profileMetadata = mine.data.metadata as Record<string, unknown>;
+    }
+    const listed = await listMyBreederProfileSubmissions(session.token).catch(() => ({
+      data: [],
+    }));
+    submissions = Array.isArray(listed.data) ? listed.data : [];
   } catch {
-    isOwner = false;
-  }
-
-  if (!isOwner) {
     redirect(`/app/breeders/${encodeURIComponent(profileId)}`);
   }
 
-  return <FarmTrustGuide breeder={data.profile} lang={lang} />;
+  return (
+    <FarmTrustGuide
+      breeder={data.profile}
+      lang={lang}
+      profileMetadata={profileMetadata}
+      submissions={submissions}
+    />
+  );
 }
 
 export default async function BreederTrustGuidePage({ params }: Props) {

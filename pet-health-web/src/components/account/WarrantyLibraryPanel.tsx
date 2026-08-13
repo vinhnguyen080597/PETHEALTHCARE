@@ -7,6 +7,7 @@ import { t, type EnKey } from "@/i18n";
 import { WarrantyPolicyViewer } from "@/components/marketplace/WarrantyPolicyViewer";
 import { mapWarrantyPolicy } from "@/lib/mappers";
 import { farmDetailHref, warrantySaveNextHref } from "@/lib/farmTabs";
+import { DialogActions } from "@/components/ui/DialogActions";
 import { scrollFieldIntoView } from "@/lib/formFocus";
 import {
   BUYER_GUIDELINE_OPTIONS,
@@ -750,7 +751,7 @@ export function WarrantyLibraryPanel({
                 {t(lang, "warranty.library.trustAwarded")}
               </p>
             ) : null}
-            <div className="mt-6 flex flex-col-reverse sm:flex-row gap-2">
+            <DialogActions>
               <button
                 type="button"
                 onClick={() => onCreateAnotherChoice(false)}
@@ -765,7 +766,7 @@ export function WarrantyLibraryPanel({
               >
                 {t(lang, "warranty.library.createAnotherCreate")}
               </button>
-            </div>
+            </DialogActions>
           </div>
         </div>
       ) : null}

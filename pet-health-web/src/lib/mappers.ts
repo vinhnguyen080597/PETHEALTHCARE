@@ -274,6 +274,7 @@ export function mapApiBreeder(
     phone: contact.phone,
     facebook: contact.facebook,
     tiktok: contact.tiktok,
+    instagram: contact.instagram,
   };
   const penaltyPoints = parsePenalty(meta);
   const violations = Array.isArray(meta.violations)

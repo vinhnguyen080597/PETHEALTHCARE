@@ -16,6 +16,39 @@ test("validateBreederSubmissionPayload requires https social links", () => {
   assert.equal(good.payload.url, "https://facebook.com/page");
 });
 
+test("validateBreederSubmissionPayload accepts platform profile URLs only", () => {
+  assert.equal(
+    validateBreederSubmissionPayload("social_zalo", { url: "0901234567" }).ok,
+    true,
+  );
+  assert.equal(
+    validateBreederSubmissionPayload("social_zalo", { url: "0901234567" }).payload.url,
+    "0901234567",
+  );
+  assert.equal(
+    validateBreederSubmissionPayload("social_zalo", { url: "https://zalo.me/farmoa" }).ok,
+    false,
+  );
+  assert.equal(
+    validateBreederSubmissionPayload("social_tiktok", {
+      url: "https://www.tiktok.com/@petfarm",
+    }).ok,
+    true,
+  );
+  assert.equal(
+    validateBreederSubmissionPayload("social_tiktok", {
+      url: "https://www.tiktok.com/@petfarm/video/1",
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateBreederSubmissionPayload("social_instagram", {
+      url: "https://instagram.com/petfarm",
+    }).ok,
+    true,
+  );
+});
+
 test("applyApprovedBreederSubmission sets metadata flags and contact", () => {
   const profile = {
     contact: {},
@@ -27,6 +60,7 @@ test("applyApprovedBreederSubmission sets metadata flags and contact", () => {
   }, "2026-08-12T00:00:00.000Z");
   assert.equal(merged.contact.zalo, "https://zalo.me/farm");
   assert.equal(merged.metadata.social_zalo_approved, true);
+  assert.equal(merged.metadata.social_zalo_trust_awarded, true);
 
   const video = applyApprovedBreederSubmission(profile, {
     submission_type: "facility_video",
@@ -34,6 +68,24 @@ test("applyApprovedBreederSubmission sets metadata flags and contact", () => {
   }, "2026-08-12T00:00:00.000Z");
   assert.equal(video.metadata.facility_verified, true);
   assert.equal(video.metadata.facility_video_url, "https://cdn.example/v.mp4");
+  assert.equal(video.metadata.facility_video_trust_awarded, true);
+});
+
+test("re-approved submission does not reset one-time trust award", () => {
+  const profile = {
+    contact: { facebook: "https://facebook.com/old" },
+    metadata: {
+      social_facebook_approved: true,
+      social_facebook_trust_awarded: true,
+    },
+  };
+  const merged = applyApprovedBreederSubmission(profile, {
+    submission_type: "social_facebook",
+    payload: { url: "https://facebook.com/new" },
+  }, "2026-08-13T00:00:00.000Z");
+  assert.equal(merged.contact.facebook, "https://facebook.com/new");
+  assert.equal(merged.metadata.social_facebook_approved, true);
+  assert.equal(merged.metadata.social_facebook_trust_awarded, true);
 });
 
 test("normalizeBreederSubmissionType rejects unknown types", () => {

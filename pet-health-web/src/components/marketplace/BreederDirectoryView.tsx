@@ -4,10 +4,15 @@ import { useState } from "react";
 import type { BreederProfile, Lang } from "@/lib/types";
 import {
   BREEDER_SORT_KEYS,
+  BREEDER_SPECIES_FILTERS,
   DEFAULT_BREEDER_SORT,
+  DEFAULT_BREEDER_SPECIES,
+  filterBreedersBySpecies,
   parseBreederSort,
+  parseBreederSpecies,
   sortBreeders,
   type BreederSortKey,
+  type BreederSpeciesFilter,
 } from "@/lib/breederDirectorySort";
 import { BreederDirectoryCard } from "./BreederDirectoryCard";
 import { t, type EnKey } from "@/i18n";
@@ -31,8 +36,9 @@ export function BreederDirectoryView({
   lang: Lang;
   loadError?: string;
 }) {
+  const [species, setSpecies] = useState<BreederSpeciesFilter>(DEFAULT_BREEDER_SPECIES);
   const [sortBy, setSortBy] = useState<BreederSortKey>(DEFAULT_BREEDER_SORT);
-  const sorted = sortBreeders(breeders, sortBy);
+  const visible = sortBreeders(filterBreedersBySpecies(breeders, species), sortBy);
 
   return (
     <>
@@ -41,7 +47,24 @@ export function BreederDirectoryView({
           {t(lang, "breeders.title")}
         </h1>
         {breeders.length > 0 ? (
-          <div className="flex items-center">
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="breeder-species" className="sr-only">
+              {t(lang, "breeders.speciesLabel")}
+            </label>
+            <select
+              id="breeder-species"
+              value={species}
+              onChange={(e) => setSpecies(parseBreederSpecies(e.target.value))}
+              className={selectCls}
+              aria-label={t(lang, "breeders.speciesLabel")}
+            >
+              {BREEDER_SPECIES_FILTERS.map((id) => (
+                <option key={id} value={id}>
+                  {t(lang, "breeders.speciesLabel")}{" "}
+                  {t(lang, `listing.new.species.${id}` as EnKey)}
+                </option>
+              ))}
+            </select>
             <label htmlFor="breeder-sort" className="sr-only">
               {t(lang, "breeders.sortLabel")}
             </label>
@@ -70,7 +93,7 @@ export function BreederDirectoryView({
       ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {sorted.map((b) => (
+        {visible.map((b) => (
           <BreederDirectoryCard key={b.id} breeder={b} lang={lang} />
         ))}
       </div>
@@ -78,6 +101,12 @@ export function BreederDirectoryView({
       {breeders.length === 0 && !loadError ? (
         <p className="text-center text-[#6E5A51] py-16">
           {t(lang, "breeders.empty")}
+        </p>
+      ) : null}
+
+      {breeders.length > 0 && visible.length === 0 ? (
+        <p className="text-center text-[#6E5A51] py-16">
+          {t(lang, "breeders.emptySpecies")}
         </p>
       ) : null}
     </>

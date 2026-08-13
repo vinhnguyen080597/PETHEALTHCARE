@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import type { BreederProfile, Lang } from "@/lib/types";
 import { getEffectiveTrust } from "@/lib/types";
 import {
   computeBreederTrustScore,
   getTrustTier,
+  parseTransparencyActivityFromMeta,
   transparencyInputFromBreeder,
 } from "@/lib/breederTrust";
 import {
@@ -20,21 +22,75 @@ import {
   pickLangText,
   trustGuideTierSummary,
 } from "@/lib/farmTrustGuide";
+import {
+  buildTrustGuideEarnRowStates,
+  earnRowCtaLabelKey,
+  trustGuideEarnActionForId,
+} from "@/lib/trustGuideEarnStatus";
+import type { BreederProfileSubmission } from "@/lib/breederProfileSubmissions";
 import { t } from "@/i18n";
 import { TrustLevelChip } from "./Badges";
 import { TrustTicksGauge } from "./TrustTicksGauge";
+import { TrustGuideEarnModal } from "./TrustGuideEarnModal";
 
 export function FarmTrustGuide({
   breeder,
   lang,
+  profileMetadata = {},
+  submissions = [],
 }: {
   breeder: BreederProfile;
   lang: Lang;
+  profileMetadata?: Record<string, unknown>;
+  submissions?: BreederProfileSubmission[];
 }) {
-  const input = transparencyInputFromBreeder(breeder, {}, {
-    senConfirmedCompletions: breeder.petsRehomed ?? 0,
+  const [earnModalRowId, setEarnModalRowId] = useState<string | null>(null);
+  const activityMeta = parseTransparencyActivityFromMeta(profileMetadata);
+  const input = transparencyInputFromBreeder(breeder, profileMetadata, {
+    senConfirmedCompletions:
+      activityMeta.senConfirmedCompletions || (breeder.petsRehomed ?? 0),
+    fiveStarReviewCount: activityMeta.fiveStarReviewCount,
   });
   const computed = computeBreederTrustScore(input);
+  const earnRows = useMemo(
+    () =>
+      buildTrustGuideEarnRowStates(TRUST_GUIDE_HOW_TO_EARN, {
+        isVerified: breeder.verified,
+        meta: profileMetadata,
+        senConfirmedCompletions:
+          activityMeta.senConfirmedCompletions || (breeder.petsRehomed ?? 0),
+        fiveStarReviewCount: activityMeta.fiveStarReviewCount,
+        lang,
+        verificationStatus: breeder.verificationStatus,
+        submissions,
+        contact: {
+          facebook: breeder.contact.facebook,
+          zalo: breeder.contact.zalo,
+          tiktok: breeder.contact.tiktok,
+          instagram: breeder.contact.instagram,
+        },
+        warrantyPolicies: breeder.warrantyPolicies,
+      }),
+    [
+      breeder.verified,
+      breeder.verificationStatus,
+      breeder.petsRehomed,
+      breeder.contact.facebook,
+      breeder.contact.zalo,
+      breeder.contact.tiktok,
+      breeder.contact.instagram,
+      breeder.warrantyPolicies,
+      profileMetadata,
+      activityMeta.senConfirmedCompletions,
+      activityMeta.fiveStarReviewCount,
+      lang,
+      submissions,
+    ],
+  );
+  const earnModalRow = TRUST_GUIDE_HOW_TO_EARN.find((row) => row.id === earnModalRowId);
+  const earnModalAction = earnModalRowId
+    ? trustGuideEarnActionForId(earnModalRowId)
+    : null;
   const eff = Number.isFinite(breeder.trustScore)
     ? getEffectiveTrust(breeder.trustScore, 0)
     : computed.score;
@@ -163,25 +219,115 @@ export function FarmTrustGuide({
           {t(lang, "farm.trust.guide.earnIntro")}
         </p>
         <ul className="space-y-3">
-          {TRUST_GUIDE_HOW_TO_EARN.map((row) => (
+          {TRUST_GUIDE_HOW_TO_EARN.map((row) => {
+            const state = earnRows.find((item) => item.id === row.id);
+            const done = state?.done ?? false;
+            const cta = state?.cta ?? "none";
+            const pointsLabel = state?.pointsLabel ?? `+${row.points}đ`;
+            const description =
+              state?.description ?? pickLangText(lang, row.howVI, row.howEN);
+            const descriptionHref = state?.descriptionHref ?? null;
+            return (
             <li
               key={row.id}
-              className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3"
+              className={`rounded-xl border px-4 py-3 ${
+                done
+                  ? "border-emerald-100 bg-emerald-50/50"
+                  : "border-slate-100 bg-slate-50/60"
+              }`}
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold text-slate-800">
+                <p
+                  className={`text-sm font-semibold ${
+                    done ? "text-emerald-800" : "text-slate-800"
+                  }`}
+                >
                   {pickLangText(lang, row.titleVI, row.titleEN)}
                 </p>
-                <span className="text-xs font-bold text-emerald-700 shrink-0">
-                  +{row.points}đ
+                <span
+                  className={`text-xs font-bold tabular-nums shrink-0 ${
+                    done ? "text-emerald-700" : "text-slate-500"
+                  }`}
+                >
+                  {pointsLabel}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-                {pickLangText(lang, row.howVI, row.howEN)}
-              </p>
+              <div className="mt-1 flex items-start justify-between gap-3">
+                {descriptionHref ? (
+                  <a
+                    href={descriptionHref}
+                    target={descriptionHref.startsWith("tel:") ? undefined : "_blank"}
+                    rel={
+                      descriptionHref.startsWith("tel:")
+                        ? undefined
+                        : "noopener noreferrer"
+                    }
+                    className={`text-sm leading-relaxed min-w-0 break-all hover:underline ${
+                      done ? "text-emerald-700/80" : "text-slate-600"
+                    }`}
+                  >
+                    {description}
+                  </a>
+                ) : description ? (
+                  <p
+                    className={`text-sm leading-relaxed min-w-0 break-all ${
+                      done ? "text-emerald-700/80" : "text-slate-600"
+                    }`}
+                  >
+                    {description}
+                  </p>
+                ) : (
+                  <span className="min-w-0 flex-1" />
+                )}
+                {cta === "pending" ? (
+                  <span className="shrink-0 text-[11px] font-semibold text-amber-800">
+                    {t(lang, earnRowCtaLabelKey(cta)!)}
+                  </span>
+                ) : cta === "rejected" || cta === "update" ? (
+                  <button
+                    type="button"
+                    onClick={() => setEarnModalRowId(row.id)}
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                      cta === "rejected"
+                        ? "border border-red-200 text-red-700 hover:bg-red-50"
+                        : "border border-[#D97706] text-[#D97706] hover:bg-[#FFF7ED]"
+                    }`}
+                  >
+                    {t(lang, earnRowCtaLabelKey(cta)!)}
+                  </button>
+                ) : null}
+              </div>
+              {state?.mediaKind === "video" && state.mediaUrl ? (
+                <video
+                  src={state.mediaUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="mt-2 w-full max-h-56 rounded-lg bg-black"
+                >
+                  {t(lang, "farm.trust.guide.earnVideoFallback")}
+                </video>
+              ) : state?.mediaKind === "image" && state.mediaUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={state.mediaUrl}
+                  alt=""
+                  className="mt-2 max-h-56 w-full rounded-lg object-contain bg-white"
+                />
+              ) : null}
             </li>
-          ))}
+            );
+          })}
         </ul>
+        {earnModalRow && earnModalAction ? (
+          <TrustGuideEarnModal
+            lang={lang}
+            row={earnModalRow}
+            action={earnModalAction}
+            open={Boolean(earnModalRowId)}
+            onClose={() => setEarnModalRowId(null)}
+          />
+        ) : null}
       </section>
 
       {/* Rules / avoid penalties */}

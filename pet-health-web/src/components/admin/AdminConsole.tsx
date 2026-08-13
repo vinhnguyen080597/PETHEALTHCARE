@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import type { AdminSection, Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
+import { DialogActions } from "@/components/ui/DialogActions";
 import {
   HISTORY_ACTION_FILTERS,
   breederGroup,
@@ -2257,7 +2258,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             {rejectError ? (
               <p className="mt-2 text-xs font-medium text-red-600">{rejectError}</p>
             ) : null}
-            <div className="mt-4 flex gap-2">
+            <DialogActions>
               <button
                 type="button"
                 onClick={() => setRejectTarget(null)}
@@ -2278,7 +2279,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     : "admin.breeders.reject",
                 )}
               </button>
-            </div>
+            </DialogActions>
           </div>
         </div>
       ) : null}

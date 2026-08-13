@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
+import { DialogActions } from "@/components/ui/DialogActions";
 
 export function CancelBreederButton({ lang }: { lang: Lang }) {
   const router = useRouter();
@@ -78,7 +79,7 @@ export function CancelBreederButton({ lang }: { lang: Lang }) {
                 {error}
               </p>
             ) : null}
-            <div className="mt-5 flex flex-col-reverse sm:flex-row gap-2">
+            <DialogActions>
               <button
                 type="button"
                 disabled={busy}
@@ -97,7 +98,7 @@ export function CancelBreederButton({ lang }: { lang: Lang }) {
                   ? t(lang, "common.loading")
                   : t(lang, "account.senIntro.cancelConfirm")}
               </button>
-            </div>
+            </DialogActions>
           </div>
         </div>
       ) : null}

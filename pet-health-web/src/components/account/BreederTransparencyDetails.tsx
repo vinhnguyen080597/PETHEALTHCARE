@@ -6,8 +6,11 @@ import { t, type EnKey } from "@/i18n";
 import {
   BREEDER_SUBMISSION_TYPES,
   breederSubmissionTypeLabel,
+  normalizeSocialSubmissionUrl,
+  socialSubmissionPlaceholder,
+  socialSubmissionUrlError,
+  SOCIAL_URL_ERROR_I18N_KEYS,
   submissionStatusForType,
-  validateSocialSubmissionUrl,
   type BreederProfileSubmission,
   type BreederSubmissionType,
 } from "@/lib/breederProfileSubmissions";
@@ -90,10 +93,10 @@ export function BreederTransparencyDetails({
   }, [submissions]);
 
   const submitSocial = async (type: BreederSubmissionType) => {
-    const url = socialUrls[type]?.trim() || "";
-    const validation = validateSocialSubmissionUrl(url);
-    if (validation) {
-      setError(validation);
+    const url = normalizeSocialSubmissionUrl(socialUrls[type] || "", type);
+    const code = socialSubmissionUrlError(url, type);
+    if (code) {
+      setError(t(lang, SOCIAL_URL_ERROR_I18N_KEYS[code]));
       return;
     }
     setBusy(type);
@@ -257,9 +260,10 @@ export function BreederTransparencyDetails({
                     ) : (
                       <div className="flex flex-col sm:flex-row gap-2">
                         <input
-                          type="url"
+                          type={type === "social_zalo" ? "tel" : "url"}
                           className={inputCls}
-                          placeholder="https://"
+                          placeholder={socialSubmissionPlaceholder(type)}
+                          inputMode={type === "social_zalo" ? "tel" : "url"}
                           value={socialUrls[type] || ""}
                           disabled={pending || busy === type}
                           onChange={(e) =>

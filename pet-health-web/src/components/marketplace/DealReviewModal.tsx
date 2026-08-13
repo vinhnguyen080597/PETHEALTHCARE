@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
 import { validateDealReviewInput } from "@/lib/breederDealReviews";
+import { DialogActions } from "@/components/ui/DialogActions";
 
 export function DealReviewModal({
   lang,
@@ -79,15 +80,7 @@ export function DealReviewModal({
           </p>
         ) : null}
 
-        <div className="mt-5 flex flex-col sm:flex-row gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void submit()}
-            className="flex-1 py-2.5 rounded-full bg-[#D97706] text-white text-sm font-semibold disabled:opacity-60"
-          >
-            {busy ? t(lang, "common.loading") : t(lang, "deal.reviewSubmit")}
-          </button>
+        <DialogActions>
           <button
             type="button"
             disabled={busy}
@@ -96,7 +89,15 @@ export function DealReviewModal({
           >
             {t(lang, "deal.reviewSkip")}
           </button>
-        </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void submit()}
+            className="flex-1 py-2.5 rounded-full bg-[#D97706] text-white text-sm font-semibold disabled:opacity-60"
+          >
+            {busy ? t(lang, "common.loading") : t(lang, "deal.reviewSubmit")}
+          </button>
+        </DialogActions>
       </div>
     </div>
   );

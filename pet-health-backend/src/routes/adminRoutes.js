@@ -494,7 +494,7 @@ router.put('/breeder-submissions/:submissionId/status', requireAdminOrSecret, as
           submission_id: submission.id,
           submission_type: submission.submission_type,
           cta_label: 'Xem hồ sơ trại',
-          cta_href: '/app/account/breeder',
+          cta_href: `/app/breeders/${encodeURIComponent(submission.breeder_profile_id)}`,
         },
         accessToken: req.accessToken,
       }).catch(() => null);
@@ -758,7 +758,7 @@ router.put('/transparency-warnings/:warningId/resolve', requireAdminOrSecret, as
         warning_id: warning.id,
         resolution: warning.admin_resolution,
         cta_label: 'Xem hồ sơ trại',
-        cta_href: '/app/account/breeder',
+        cta_href: `/app/breeders/${encodeURIComponent(warning.breeder_profile_id)}`,
       },
       accessToken: req.accessToken,
     }).catch(() => null);

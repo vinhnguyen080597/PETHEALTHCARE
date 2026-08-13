@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   adminRequestHref,
   breederTransparencyNotificationHref,
+  farmProfileNotificationHref,
   isAdminQueueNotification,
   isDepositCancelRequestNotification,
   listingNotificationHref,
@@ -144,6 +145,47 @@ test("transparency notification deep links and CTAs", () => {
   assert.equal(
     notificationInboxCta({ type: "admin_transparency_appeal" }, CTA_FALLBACKS),
     "View request",
+  );
+});
+
+test("farm-profile CTAs ignore stored account/breeder hrefs", () => {
+  assert.equal(
+    farmProfileNotificationHref({
+      type: "breeder_detail_approved",
+      breeder_profile_id: "bp-9",
+      metadata: { cta_href: "/app/account/breeder" },
+    }),
+    "/app/breeders/bp-9",
+  );
+  assert.equal(
+    breederTransparencyNotificationHref({
+      type: "breeder_detail_approved",
+      breeder_profile_id: "bp-9",
+      metadata: { cta_href: "/app/account/breeder" },
+    }),
+    "/app/breeders/bp-9",
+  );
+  assert.equal(
+    breederTransparencyNotificationHref({
+      type: "breeder_verified",
+      breeder_profile_id: "bp-1",
+      metadata: { cta_href: "/app/account/breeder" },
+    }),
+    "/app/breeders/bp-1",
+  );
+  assert.equal(
+    breederTransparencyNotificationHref({
+      type: "transparency_warning_resolved",
+      breeder_profile_id: "bp-2",
+      metadata: { cta_href: "/app/account/breeder" },
+    }),
+    "/app/breeders/bp-2",
+  );
+  assert.equal(
+    farmProfileNotificationHref({
+      metadata: { cta_href: "/app/breeders/stored-id" },
+    }),
+    "/app/breeders/stored-id",
   );
 });
 

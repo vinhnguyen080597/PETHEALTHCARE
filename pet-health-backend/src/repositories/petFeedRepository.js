@@ -2404,6 +2404,7 @@ export async function adminUpdateBreederProfileStatus(userId, verificationStatus
       delete metadata.admin_action;
       delete metadata.rejected_at;
       metadata.verified_at = now;
+      metadata.verified_base_trust_awarded = Boolean(metadata.verified_base_trust_awarded) || true;
     }
     memoryProfiles[idx] = {
       ...existing,
@@ -2437,6 +2438,7 @@ export async function adminUpdateBreederProfileStatus(userId, verificationStatus
     delete metadata.admin_action;
     delete metadata.rejected_at;
     metadata.verified_at = now;
+    metadata.verified_base_trust_awarded = Boolean(metadata.verified_base_trust_awarded) || true;
   }
 
   const { data, error } = await supabase
@@ -3568,14 +3570,11 @@ export async function createBreederProfileSubmission(userId, payload, accessToke
         && row.status === 'pending',
     );
     if (pendingIdx >= 0) {
-      memorySubmissions[pendingIdx] = {
-        ...memorySubmissions[pendingIdx],
-        payload: validated.payload,
-        created_at: now,
-        rejection_reason: '',
-        admin_note: '',
-      };
-      return toBreederSubmission(memorySubmissions[pendingIdx]);
+      throw httpError(
+        'A pending submission already exists for this item.',
+        409,
+        'SUBMISSION_ALREADY_PENDING',
+      );
     }
     const row = {
       id: randomUUID(),
@@ -3603,19 +3602,11 @@ export async function createBreederProfileSubmission(userId, payload, accessToke
   if (pendingError) throw pendingError;
 
   if (existingPending?.id) {
-    const { data, error } = await supabase
-      .from('breeder_profile_submissions')
-      .update({
-        payload: validated.payload,
-        rejection_reason: '',
-        admin_note: '',
-        created_at: now,
-      })
-      .eq('id', existingPending.id)
-      .select('*')
-      .single();
-    if (error) throw error;
-    return toBreederSubmission(data);
+    throw httpError(
+      'A pending submission already exists for this item.',
+      409,
+      'SUBMISSION_ALREADY_PENDING',
+    );
   }
 
   const { data, error } = await supabase

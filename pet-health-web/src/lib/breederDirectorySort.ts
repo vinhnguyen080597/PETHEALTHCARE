@@ -1,3 +1,4 @@
+import { LISTING_SPECIES, type ListingSpecies } from "./listingFormOptions";
 import type { BreederProfile } from "./types";
 
 export const BREEDER_SORT_KEYS = [
@@ -6,6 +7,10 @@ export const BREEDER_SORT_KEYS = [
   "sold",
   "name",
 ] as const;
+
+export const BREEDER_SPECIES_FILTERS = LISTING_SPECIES;
+export type BreederSpeciesFilter = ListingSpecies;
+export const DEFAULT_BREEDER_SPECIES: BreederSpeciesFilter = "dog";
 
 export type BreederSortKey = (typeof BREEDER_SORT_KEYS)[number];
 
@@ -16,6 +21,30 @@ export function parseBreederSort(value: unknown): BreederSortKey {
   return (BREEDER_SORT_KEYS as readonly string[]).includes(s)
     ? (s as BreederSortKey)
     : DEFAULT_BREEDER_SORT;
+}
+
+export function parseBreederSpecies(value: unknown): BreederSpeciesFilter {
+  const s = String(value || "").trim().toLowerCase();
+  return (BREEDER_SPECIES_FILTERS as readonly string[]).includes(s)
+    ? (s as BreederSpeciesFilter)
+    : DEFAULT_BREEDER_SPECIES;
+}
+
+export function breederMatchesSpecies(
+  breeder: Pick<BreederProfile, "primarySpecies">,
+  species: unknown,
+): boolean {
+  const want = parseBreederSpecies(species);
+  const list = Array.isArray(breeder.primarySpecies) ? breeder.primarySpecies : [];
+  return list.some((item) => String(item || "").trim().toLowerCase() === want);
+}
+
+export function filterBreedersBySpecies(
+  breeders: BreederProfile[],
+  species: unknown = DEFAULT_BREEDER_SPECIES,
+): BreederProfile[] {
+  const want = parseBreederSpecies(species);
+  return breeders.filter((breeder) => breederMatchesSpecies(breeder, want));
 }
 
 function petsRehomedOf(breeder: BreederProfile): number {

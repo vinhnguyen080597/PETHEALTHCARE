@@ -3,8 +3,12 @@ import assert from "node:assert/strict";
 import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
 import {
+  BREEDER_SPECIES_FILTERS,
   DEFAULT_BREEDER_SORT,
+  DEFAULT_BREEDER_SPECIES,
+  filterBreedersBySpecies,
   parseBreederSort,
+  parseBreederSpecies,
   sortBreeders,
 } from "../src/lib/breederDirectorySort";
 import type { BreederProfile } from "../src/lib/types";
@@ -103,12 +107,52 @@ test("sortBreeders by name A–Z", () => {
   );
 });
 
+test("parseBreederSpecies defaults to dog", () => {
+  assert.equal(parseBreederSpecies(""), DEFAULT_BREEDER_SPECIES);
+  assert.equal(parseBreederSpecies("nope"), "dog");
+  assert.equal(parseBreederSpecies("cat"), "cat");
+  assert.equal(parseBreederSpecies("DOG"), "dog");
+  assert.equal(DEFAULT_BREEDER_SPECIES, "dog");
+  assert.deepEqual([...BREEDER_SPECIES_FILTERS], [
+    "dog",
+    "cat",
+    "bird",
+    "fish",
+    "rabbit",
+    "hamster",
+    "reptile",
+  ]);
+});
+
+test("filterBreedersBySpecies keeps matching primary species", () => {
+  const rows = [
+    breeder({ id: "dog-1", name: "A", primarySpecies: ["dog"] }),
+    breeder({ id: "cat-1", name: "B", primarySpecies: ["cat"] }),
+    breeder({ id: "dog-2", name: "C", primarySpecies: ["Dog"] }),
+    breeder({ id: "none", name: "D", primarySpecies: [] }),
+  ];
+  assert.deepEqual(
+    filterBreedersBySpecies(rows, "dog").map((b) => b.id),
+    ["dog-1", "dog-2"],
+  );
+  assert.deepEqual(
+    filterBreedersBySpecies(rows, "cat").map((b) => b.id),
+    ["cat-1"],
+  );
+  assert.deepEqual(
+    filterBreedersBySpecies(rows, "nope").map((b) => b.id),
+    ["dog-1", "dog-2"],
+  );
+});
+
 test("Top Breeders title and sort i18n exist in EN and VI", () => {
   const enDict = en as Record<string, string>;
   const viDict = vi as Record<string, string>;
   assert.equal(enDict["breeders.title"], "Top Breeders");
   assert.equal(viDict["breeders.title"], "Top Breeders");
   for (const key of [
+    "breeders.speciesLabel",
+    "breeders.emptySpecies",
     "breeders.sortLabel",
     "breeders.sort.trust",
     "breeders.sort.listings",
@@ -118,4 +162,7 @@ test("Top Breeders title and sort i18n exist in EN and VI", () => {
     assert.ok(enDict[key], `missing EN ${key}`);
     assert.ok(viDict[key], `missing VI ${key}`);
   }
+  assert.equal(viDict["breeders.speciesLabel"], "Loài:");
+  assert.equal(viDict["listing.new.species.dog"], "Chó");
+  assert.equal(viDict["listing.new.species.cat"], "Mèo");
 });

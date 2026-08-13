@@ -8,6 +8,7 @@ import { t, type EnKey } from "@/i18n";
 import { scrollFieldIntoView } from "@/lib/formFocus";
 import { maskVndInput } from "@/lib/formatPrice";
 import { LoadingPopup } from "@/components/ui/LoadingPopup";
+import { DialogActions } from "@/components/ui/DialogActions";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { buildListingPreview } from "@/lib/listingPreview";
 import {
@@ -1111,25 +1112,27 @@ export function NewListingForm({
                 </label>
                 <FieldError message={fieldErrors.terms} />
               </div>
-              <button
-                type="button"
-                onClick={() => setReviewOpen(false)}
-                className="w-full py-2.5 rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                {t(lang, "listing.new.edit")}
-              </button>
-              <button
-                type="button"
-                disabled={!terms || loading}
-                onClick={() => void submitForReview()}
-                className={`w-full py-3 rounded-full text-sm font-semibold text-white shadow-sm ${
-                  terms && !loading
-                    ? "bg-[#D97706] hover:bg-[#B45309]"
-                    : "bg-slate-300 cursor-not-allowed"
-                }`}
-              >
-                {t(lang, "listing.new.submit")}
-              </button>
+              <DialogActions>
+                <button
+                  type="button"
+                  onClick={() => setReviewOpen(false)}
+                  className="flex-1 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  {t(lang, "listing.new.edit")}
+                </button>
+                <button
+                  type="button"
+                  disabled={!terms || loading}
+                  onClick={() => void submitForReview()}
+                  className={`flex-1 py-3 rounded-full text-sm font-semibold text-white shadow-sm ${
+                    terms && !loading
+                      ? "bg-[#D97706] hover:bg-[#B45309]"
+                      : "bg-slate-300 cursor-not-allowed"
+                  }`}
+                >
+                  {t(lang, "listing.new.submit")}
+                </button>
+              </DialogActions>
             </footer>
           </div>
         </div>

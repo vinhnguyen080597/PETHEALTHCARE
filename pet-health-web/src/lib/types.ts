@@ -75,6 +75,7 @@ export interface BreederProfile {
     phone?: string;
     facebook?: string;
     tiktok?: string;
+    instagram?: string;
   };
   scale: string;
   careEnvironment: string;

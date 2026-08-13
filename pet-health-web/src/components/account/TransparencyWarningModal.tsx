@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
+import { DialogActions } from "@/components/ui/DialogActions";
 import {
   isPendingBreederTransparencyWarning,
   transparencyWarningBody,
@@ -99,24 +100,24 @@ export function TransparencyWarningModal({ lang }: { lang: Lang }) {
             {error}
           </p>
         ) : null}
-        <div className="mt-5 flex flex-col gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void act("confirm")}
-            className="w-full py-2.5 rounded-full bg-red-600 text-white text-sm font-semibold disabled:opacity-60"
-          >
-            {t(lang, "transparencyWarning.confirm")}
-          </button>
+        <DialogActions>
           <button
             type="button"
             disabled={busy}
             onClick={() => void act("appeal")}
-            className="w-full py-2.5 rounded-full border border-[#E8DFD0] text-sm font-semibold text-[#5C4A3A] disabled:opacity-60"
+            className="flex-1 py-2.5 rounded-full border border-[#E8DFD0] text-sm font-semibold text-[#5C4A3A] disabled:opacity-60"
           >
             {t(lang, "transparencyWarning.appeal")}
           </button>
-        </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void act("confirm")}
+            className="flex-1 py-2.5 rounded-full bg-red-600 text-white text-sm font-semibold disabled:opacity-60"
+          >
+            {t(lang, "transparencyWarning.confirm")}
+          </button>
+        </DialogActions>
       </div>
     </div>
   );

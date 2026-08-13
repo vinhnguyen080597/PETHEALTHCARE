@@ -71,19 +71,28 @@ export function computeTransparencyScoreFromProfile(profile) {
     return { score: 0, isVerified: false, penaltyPoints: 0 };
   }
   const meta = asObject(profile?.metadata);
-  const contact = asObject(profile?.contact);
+
+  function trustAwarded(trustKey, ...legacyApprovedKeys) {
+    if (flag(meta, trustKey)) return true;
+    return legacyApprovedKeys.some((k) => flag(meta, k));
+  }
 
   let social = 0;
-  if (flag(meta, 'social_facebook_approved', 'approved_social_facebook') || contact.facebook) {
-    // Only count approved flags for scoring parity with Phase 1 public score.
+  if (trustAwarded('social_facebook_trust_awarded', 'social_facebook_approved', 'approved_social_facebook')) {
+    social += POINTS.socialPlatform;
   }
-  if (flag(meta, 'social_facebook_approved', 'approved_social_facebook')) social += POINTS.socialPlatform;
-  if (flag(meta, 'social_zalo_approved', 'approved_social_zalo')) social += POINTS.socialPlatform;
-  if (flag(meta, 'social_tiktok_approved', 'approved_social_tiktok')) social += POINTS.socialPlatform;
-  if (flag(meta, 'social_instagram_approved', 'approved_social_instagram')) social += POINTS.socialPlatform;
+  if (trustAwarded('social_zalo_trust_awarded', 'social_zalo_approved', 'approved_social_zalo')) {
+    social += POINTS.socialPlatform;
+  }
+  if (trustAwarded('social_tiktok_trust_awarded', 'social_tiktok_approved', 'approved_social_tiktok')) {
+    social += POINTS.socialPlatform;
+  }
+  if (trustAwarded('social_instagram_trust_awarded', 'social_instagram_approved', 'approved_social_instagram')) {
+    social += POINTS.socialPlatform;
+  }
 
-  const facilityVideo = flag(
-    meta,
+  const facilityVideo = trustAwarded(
+    'facility_video_trust_awarded',
     'facility_verified',
     'farm_video_verified',
     'environment_verified',
@@ -91,8 +100,8 @@ export function computeTransparencyScoreFromProfile(profile) {
   )
     ? POINTS.facilityVideo
     : 0;
-  const businessLicense = flag(
-    meta,
+  const businessLicense = trustAwarded(
+    'business_license_trust_awarded',
     'business_license_verified',
     'license_verified',
     'farm_license_verified',
@@ -102,7 +111,7 @@ export function computeTransparencyScoreFromProfile(profile) {
     : 0;
   const policies = Array.isArray(meta.warranty_policies) ? meta.warranty_policies : [];
   const firstWarranty =
-    flag(meta, 'warranty_policy_trust_awarded', 'first_warranty_approved') || policies.length > 0
+    trustAwarded('warranty_policy_trust_awarded', 'first_warranty_approved') || policies.length > 0
       ? POINTS.firstWarranty
       : 0;
 

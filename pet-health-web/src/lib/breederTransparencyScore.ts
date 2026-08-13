@@ -347,22 +347,97 @@ export function parseApprovedSocialFromMeta(meta: Record<string, unknown>): {
   approvedTiktok: boolean;
   approvedInstagram: boolean;
 } {
-  const flag = (...keys: string[]) =>
-    keys.some((k) => {
-      const v = meta[k];
-      return v === true || v === 1 || v === "1" || v === "true";
-    });
+  const awarded = parseTrustAwardedFromMeta(meta);
   return {
-    approvedFacebook: flag(
+    approvedFacebook: awarded.socialFacebook,
+    approvedZalo: awarded.socialZalo,
+    approvedTiktok: awarded.socialTiktok,
+    approvedInstagram: awarded.socialInstagram,
+  };
+}
+
+export type TrustAwardedFlags = {
+  verifiedBase: boolean;
+  socialFacebook: boolean;
+  socialZalo: boolean;
+  socialTiktok: boolean;
+  socialInstagram: boolean;
+  facilityVideo: boolean;
+  businessLicense: boolean;
+  firstWarranty: boolean;
+};
+
+function metaFlag(meta: Record<string, unknown>, ...keys: string[]): boolean {
+  return keys.some((k) => {
+    const v = meta[k];
+    return v === true || v === 1 || v === "1" || v === "true";
+  });
+}
+
+function trustAwardedFromMeta(
+  meta: Record<string, unknown>,
+  trustKey: string,
+  ...legacyApprovedKeys: string[]
+): boolean {
+  if (metaFlag(meta, trustKey)) return true;
+  return legacyApprovedKeys.some((k) => metaFlag(meta, k));
+}
+
+/** One-time transparency awards — legacy approved flags count until trust_awarded is set. */
+export function parseTrustAwardedFromMeta(
+  meta: Record<string, unknown>,
+): TrustAwardedFlags {
+  const policies = Array.isArray(meta.warranty_policies)
+    ? meta.warranty_policies
+    : [];
+  return {
+    verifiedBase: metaFlag(meta, "verified_base_trust_awarded"),
+    socialFacebook: trustAwardedFromMeta(
+      meta,
+      "social_facebook_trust_awarded",
       "social_facebook_approved",
       "approved_social_facebook",
     ),
-    approvedZalo: flag("social_zalo_approved", "approved_social_zalo"),
-    approvedTiktok: flag("social_tiktok_approved", "approved_social_tiktok"),
-    approvedInstagram: flag(
+    socialZalo: trustAwardedFromMeta(
+      meta,
+      "social_zalo_trust_awarded",
+      "social_zalo_approved",
+      "approved_social_zalo",
+    ),
+    socialTiktok: trustAwardedFromMeta(
+      meta,
+      "social_tiktok_trust_awarded",
+      "social_tiktok_approved",
+      "approved_social_tiktok",
+    ),
+    socialInstagram: trustAwardedFromMeta(
+      meta,
+      "social_instagram_trust_awarded",
       "social_instagram_approved",
       "approved_social_instagram",
     ),
+    facilityVideo: trustAwardedFromMeta(
+      meta,
+      "facility_video_trust_awarded",
+      "facility_verified",
+      "farm_video_verified",
+      "environment_verified",
+      "facility_video_approved",
+    ),
+    businessLicense: trustAwardedFromMeta(
+      meta,
+      "business_license_trust_awarded",
+      "business_license_verified",
+      "license_verified",
+      "farm_license_verified",
+      "business_license_approved",
+    ),
+    firstWarranty:
+      trustAwardedFromMeta(
+        meta,
+        "warranty_policy_trust_awarded",
+        "first_warranty_approved",
+      ) || policies.length > 0,
   };
 }
 
@@ -379,14 +454,7 @@ export function parseTransparencyActivityFromMeta(
     const n = typeof v === "number" ? v : Number(v);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
   };
-  const flag = (...keys: string[]) =>
-    keys.some((k) => {
-      const v = meta[k];
-      return v === true || v === 1 || v === "1" || v === "true";
-    });
-  const policies = Array.isArray(meta.warranty_policies)
-    ? meta.warranty_policies
-    : [];
+  const awarded = parseTrustAwardedFromMeta(meta);
 
   return {
     senConfirmedCompletions: num(
@@ -398,20 +466,8 @@ export function parseTransparencyActivityFromMeta(
     fiveStarReviewCount: num(
       meta.five_star_review_count ?? meta.review_5star_count,
     ),
-    approvedFacilityVideo: flag(
-      "facility_verified",
-      "farm_video_verified",
-      "environment_verified",
-      "facility_video_approved",
-    ),
-    approvedBusinessLicense: flag(
-      "business_license_verified",
-      "license_verified",
-      "farm_license_verified",
-      "business_license_approved",
-    ),
-    approvedFirstWarranty:
-      flag("warranty_policy_trust_awarded", "first_warranty_approved") ||
-      policies.length > 0,
+    approvedFacilityVideo: awarded.facilityVideo,
+    approvedBusinessLicense: awarded.businessLicense,
+    approvedFirstWarranty: awarded.firstWarranty,
   };
 }

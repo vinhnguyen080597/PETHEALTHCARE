@@ -280,6 +280,7 @@ export {
   getTransparencyTier,
   parseApprovedSocialFromMeta,
   parseTransparencyActivityFromMeta,
+  parseTrustAwardedFromMeta,
   TRANSPARENCY_POINTS,
   TRANSPARENCY_TIERS,
 } from "./breederTransparencyScore";

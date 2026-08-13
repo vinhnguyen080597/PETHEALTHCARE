@@ -3,6 +3,7 @@
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
 import { LISTING_ACTION_MODAL_Z_CLASS } from "@/lib/listingModalLayers";
+import { DialogActions } from "@/components/ui/DialogActions";
 
 export function ListingDeleteConfirmModal({
   lang,
@@ -61,7 +62,7 @@ export function ListingDeleteConfirmModal({
             {t(lang, "detail.deleteBlockedOk")}
           </button>
         ) : (
-          <div className="mt-5 flex gap-2">
+          <DialogActions>
             <button
               type="button"
               disabled={busy}
@@ -78,7 +79,7 @@ export function ListingDeleteConfirmModal({
             >
               {busy ? t(lang, "detail.deleting") : t(lang, "detail.delete")}
             </button>
-          </div>
+          </DialogActions>
         )}
       </div>
     </div>

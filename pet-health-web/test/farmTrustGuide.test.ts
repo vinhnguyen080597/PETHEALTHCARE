@@ -43,6 +43,7 @@ test("trust guide has no CCCD/eKYC missions and covers low-score warning", () =>
     row.actionEN,
   ]).join("\n");
   assert.equal(/CCCD|eKYC|căn cước/i.test(earnBlob), false);
+  assert.equal(/không bắt buộc|optional/i.test(earnBlob), false);
   assert.equal(/CCCD|eKYC|căn cước/i.test(penaltyBlob), false);
   assert.ok(TRUST_GUIDE_HOW_TO_EARN.some((row) => row.id === "verifiedBase" && row.points === 30));
   const warning = TRUST_GUIDE_IMPACT.find((row) => row.id === "lowScoreWarning");
@@ -59,6 +60,12 @@ test("trust guide i18n keys exist in EN and VI", () => {
     "farm.trust.guide.ownerOnly",
     "farm.trust.guide.back",
     "farm.trust.guide.earnTitle",
+    "farm.trust.guide.earnAction",
+    "farm.trust.guide.earnUpdate",
+    "farm.trust.guide.earnPending",
+    "farm.trust.guide.earnRejected",
+    "farm.trust.guide.earnAlreadyPending",
+    "farm.trust.guide.earnVideoFallback",
     "farm.trust.guide.rulesTitle",
     "farm.trust.guide.impactTitle",
     "breadcrumb.farmTrust",
@@ -74,6 +81,9 @@ test("trust guide i18n keys exist in EN and VI", () => {
     assert.notEqual(viDict[key], key);
   }
   assert.equal(viDict["farm.trust.guide.cta"], "Xem chi tiết điểm & hướng dẫn");
+  assert.equal(viDict["farm.trust.guide.earnPending"], "Chờ duyệt");
+  assert.equal(viDict["farm.trust.guide.earnRejected"], "Từ chối");
+  assert.equal(viDict["farm.trust.guide.earnUpdate"], "Cập nhật");
   assert.equal(viDict["breadcrumb.farmTrust"], "Điểm minh bạch");
   assert.match(viDict["farm.warranty.createCta"], /điểm minh bạch/);
   assert.match(viDict["warranty.library.trustAwarded"], /điểm minh bạch/);

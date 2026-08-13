@@ -1,3 +1,5 @@
+import { farmDetailHref } from "../farmTabs";
+
 export type NotificationDeepLinkInput = {
   type?: string | null;
   post_id?: string | null;
@@ -38,6 +40,20 @@ const ADMIN_QUEUE_NOTIFICATION_TYPES = new Set([
   "admin_listing_pending",
   "admin_report_open",
 ]);
+
+/** CTA copy is “view farm profile” — must not land on /app/account/breeder. */
+const FARM_PROFILE_NOTIFICATION_TYPES = new Set([
+  "breeder_verified",
+  "breeder_detail_approved",
+  "transparency_warning_resolved",
+]);
+
+const ACCOUNT_BREEDER_NOTIFICATION_TYPES = new Set([
+  "transparency_warning",
+  "breeder_detail_rejected",
+]);
+
+const FARM_PROFILE_HREF = /^\/app\/breeders\/([^/?#]+)/;
 
 export type NotificationInboxCtaFallbacks = {
   verified: string;
@@ -122,23 +138,40 @@ export function adminRequestHref(item: NotificationDeepLinkInput) {
   return "/app/admin?section=requests";
 }
 
-/** Breeder-facing transparency / detail notification → account or farm page. */
+function storedCtaHref(item: NotificationDeepLinkInput) {
+  return typeof item.metadata?.cta_href === "string"
+    ? item.metadata.cta_href.trim()
+    : "";
+}
+
+/** Public farm profile for “Xem hồ sơ trại”. Ignores stored account/breeder hrefs. */
+export function farmProfileNotificationHref(
+  item: NotificationDeepLinkInput,
+): string | null {
+  const profileId = String(item.breeder_profile_id || "").trim();
+  if (profileId) return farmDetailHref(profileId);
+  const storedMatch = storedCtaHref(item).match(FARM_PROFILE_HREF);
+  if (storedMatch?.[1]) {
+    try {
+      return farmDetailHref(decodeURIComponent(storedMatch[1]));
+    } catch {
+      return farmDetailHref(storedMatch[1]);
+    }
+  }
+  return null;
+}
+
+/** Breeder-facing notification → public farm profile, or account when they need to edit. */
 export function breederTransparencyNotificationHref(
   item: NotificationDeepLinkInput,
 ): string | null {
   const type = notificationType(item);
-  const stored =
-    typeof item.metadata?.cta_href === "string" ? item.metadata.cta_href.trim() : "";
-  if (
-    type === "transparency_warning" ||
-    type === "transparency_warning_resolved" ||
-    type === "breeder_detail_approved" ||
-    type === "breeder_detail_rejected"
-  ) {
+  if (FARM_PROFILE_NOTIFICATION_TYPES.has(type)) {
+    return farmProfileNotificationHref(item) || "/app/account/breeder";
+  }
+  if (ACCOUNT_BREEDER_NOTIFICATION_TYPES.has(type)) {
+    const stored = storedCtaHref(item);
     if (stored.startsWith("/app/")) return stored;
-    if (item.breeder_profile_id && type === "breeder_detail_approved") {
-      return `/app/breeders/${encodeURIComponent(item.breeder_profile_id)}`;
-    }
     return "/app/account/breeder";
   }
   return null;
