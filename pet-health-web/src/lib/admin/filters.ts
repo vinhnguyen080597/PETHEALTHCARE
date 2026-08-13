@@ -50,7 +50,9 @@ export function requestStatusGroup(
   if (item.type === "breeder") {
     if (item.status === "verified") return "approved";
     if (item.status === "rejected" || item.status === "suspended") return "rejected";
-    return "waiting";
+    // Draft/cancelled (unverified) are not approval-queue items; Breeders tab handles them.
+    if (item.status === "pending_review") return "waiting";
+    return "resolved";
   }
   if (item.status === "published") return "approved";
   if (item.status === "archived") return "rejected";
@@ -68,6 +70,13 @@ export function breederGroup(
     return "inactive";
   }
   return "waiting";
+}
+
+/** Only pending_review breeders belong in Admin → Requests queue (with approve/reject). */
+export function isBreederVerificationQueueItem(
+  status: string | null | undefined,
+): boolean {
+  return status === "pending_review";
 }
 
 export function passesDateFilter(

@@ -4,6 +4,7 @@ import {
   HISTORY_ACTION_FILTERS,
   breederGroup,
   historyActionI18nKey,
+  isBreederVerificationQueueItem,
   passesDateFilter,
   requestStatusGroup,
   sortByDate,
@@ -15,6 +16,7 @@ test("requestStatusGroup maps request statuses for filters", () => {
   assert.equal(requestStatusGroup({ type: "breeder", status: "verified" }), "approved");
   assert.equal(requestStatusGroup({ type: "breeder", status: "rejected" }), "rejected");
   assert.equal(requestStatusGroup({ type: "breeder", status: "pending_review" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "breeder", status: "unverified" }), "resolved");
   assert.equal(requestStatusGroup({ type: "post", status: "published" }), "approved");
   assert.equal(requestStatusGroup({ type: "post", status: "archived" }), "rejected");
   assert.equal(requestStatusGroup({ type: "post", status: "pending_review" }), "waiting");
@@ -24,6 +26,14 @@ test("requestStatusGroup maps request statuses for filters", () => {
   assert.equal(requestStatusGroup({ type: "appeal", status: "appealed" }), "waiting");
   assert.equal(requestStatusGroup({ type: "appeal", status: "restored" }), "approved");
   assert.equal(requestStatusGroup({ type: "appeal", status: "upheld" }), "rejected");
+});
+
+test("isBreederVerificationQueueItem only includes pending_review", () => {
+  assert.equal(isBreederVerificationQueueItem("pending_review"), true);
+  assert.equal(isBreederVerificationQueueItem("unverified"), false);
+  assert.equal(isBreederVerificationQueueItem("verified"), false);
+  assert.equal(isBreederVerificationQueueItem("rejected"), false);
+  assert.equal(isBreederVerificationQueueItem(null), false);
 });
 
 test("breederGroup maps verification status buckets", () => {

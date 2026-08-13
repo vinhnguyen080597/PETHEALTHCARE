@@ -9,6 +9,7 @@ import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 import {
   HISTORY_ACTION_FILTERS,
   breederGroup,
+  isBreederVerificationQueueItem,
   passesDateFilter,
   requestStatusGroup,
   sortByDate,
@@ -426,7 +427,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     pendingPosts.length + pendingBreeders.length + openReports.length + pendingDetailSubmissions.length + pendingAppeals.length;
 
   const requestItems = useMemo<RequestItem[]>(() => {
-    const breederItems: RequestItem[] = breeders.map((profile) => ({
+    const breederItems: RequestItem[] = breeders
+      .filter((profile) => isBreederVerificationQueueItem(profile.verification_status))
+      .map((profile) => ({
       id: `breeder-${profile.id}`,
       type: "breeder",
       status: profile.verification_status || "unverified",
