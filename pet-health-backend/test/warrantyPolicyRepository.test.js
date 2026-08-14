@@ -15,6 +15,7 @@ const {
   updateMyWarrantyPolicy,
   updatePetFeedPost,
   confirmListingDeposit,
+  declineListingDeposit,
   cancelListingDeposit,
   requestListingCancelDeposit,
   confirmListingCancelDeposit,
@@ -58,6 +59,11 @@ async function seedVerifiedBreeder(userId) {
   }, null);
   await adminUpdateBreederProfileStatus(userId, 'verified');
   return profile;
+}
+
+async function senThenBreederConfirmDeposit(breederId, senId, postId) {
+  await confirmListingDeposit(senId, postId, { acknowledge: true }, null);
+  return confirmListingDeposit(breederId, postId, { acknowledge: true }, null);
 }
 
 test('first warranty policy awards trust flag; second does not', async () => {
@@ -123,16 +129,27 @@ test('dual deposit confirm freezes policy snapshot; cancel unfreezes', async () 
   assert.equal(post.warranty_policy?.frozen, false);
   assert.equal(post.warranty_policy?.care_parvo_coverage_days, 14);
 
-  const firstConfirm = await confirmListingDeposit(breederId, post.id, {
-    senUserId: senId,
+  await assert.rejects(
+    () => confirmListingDeposit(breederId, post.id, { senUserId: senId, acknowledge: true }, null),
+    (err) => err.code === 'DEPOSIT_SEN_MUST_REQUEST',
+  );
+
+  const firstConfirm = await confirmListingDeposit(senId, post.id, {
     acknowledge: true,
   }, null);
-  // Breeder attestation with selected Sen locks soft deposit immediately.
-  assert.equal(firstConfirm.both_confirmed, true);
-  assert.equal(firstConfirm.post.status, 'deposit_hold');
+  assert.equal(firstConfirm.both_confirmed, false);
+  assert.equal(firstConfirm.post.status, 'published');
+  assert.equal(firstConfirm.post.metadata?.deal?.status, 'pending_sen');
   assert.equal(firstConfirm.post.deal?.sen_user_id || firstConfirm.post.metadata?.deal?.sen_user_id, senId);
+  assert.equal(Boolean(firstConfirm.post.warranty_policy?.frozen), false);
 
-  const secondConfirm = await confirmListingDeposit(senId, post.id, {
+  const otherSen = `wp-other-${Date.now()}`;
+  await assert.rejects(
+    () => confirmListingDeposit(otherSen, post.id, { acknowledge: true }, null),
+    (err) => err.code === 'DEPOSIT_FORBIDDEN',
+  );
+
+  const secondConfirm = await confirmListingDeposit(breederId, post.id, {
     acknowledge: true,
   }, null);
   assert.equal(secondConfirm.both_confirmed, true);
@@ -197,6 +214,39 @@ test('dual deposit confirm freezes policy snapshot; cancel unfreezes', async () 
   assert.ok(publicProfile.profile.warranty_policies.length >= 1);
 });
 
+test('sen can withdraw a pending deposit request; breeder can decline', async () => {
+  const breederId = `wp-decline-${Date.now()}`;
+  const senId = `wp-decline-sen-${Date.now()}`;
+  await seedVerifiedBreeder(breederId);
+  let post = await createPetFeedPost(breederId, {
+    title: 'Pending kitten',
+    species: 'cat',
+    status: 'draft',
+    mediaUrls: ['https://cdn.example.com/d.jpg'],
+    videoUrl: 'https://cdn.example.com/d.mp4',
+  }, null);
+  post = await adminUpdatePetFeedPostStatus(post.id, 'published');
+
+  await confirmListingDeposit(senId, post.id, { acknowledge: true }, null);
+  const withdrawn = await declineListingDeposit(senId, post.id, null);
+  assert.equal(withdrawn.declined_by, 'sen');
+  assert.equal(withdrawn.post.status, 'published');
+  assert.notEqual(withdrawn.post.metadata?.deal?.status, 'pending_sen');
+
+  await confirmListingDeposit(senId, post.id, { acknowledge: true }, null);
+  const declined = await declineListingDeposit(breederId, post.id, null);
+  assert.equal(declined.declined_by, 'breeder');
+  assert.equal(declined.post.status, 'published');
+  assert.notEqual(declined.post.metadata?.deal?.status, 'pending_sen');
+
+  const stranger = `wp-stranger-${Date.now()}`;
+  await confirmListingDeposit(senId, post.id, { acknowledge: true }, null);
+  await assert.rejects(
+    () => declineListingDeposit(stranger, post.id, null),
+    (err) => err.code === 'DEPOSIT_DECLINE_FORBIDDEN',
+  );
+});
+
 test('breeder handoff then sen confirm moves deposit_hold to sold', async () => {
   const breederId = `wp-ok-${Date.now()}`;
   const senId = `wp-ok-sen-${Date.now()}`;
@@ -214,7 +264,7 @@ test('breeder handoff then sen confirm moves deposit_hold to sold', async () => 
     metadata: { warranty_policy_id: created.policy.id },
   }, null);
   post = await adminUpdatePetFeedPostStatus(post.id, 'published');
-  await confirmListingDeposit(breederId, post.id, { senUserId: senId, acknowledge: true }, null);
+  await senThenBreederConfirmDeposit(breederId, senId, post.id);
   await requestListingComplete(
     breederId,
     post.id,
@@ -243,7 +293,7 @@ test('sen dispute then admin force-complete resolves deal', async () => {
     metadata: { warranty_policy_id: created.policy.id },
   }, null);
   post = await adminUpdatePetFeedPostStatus(post.id, 'published');
-  await confirmListingDeposit(breederId, post.id, { senUserId: senId, acknowledge: true }, null);
+  await senThenBreederConfirmDeposit(breederId, senId, post.id);
 
   await assert.rejects(
     () => requestListingComplete(breederId, post.id, { handoffPhotoUrls: [] }, null),
@@ -321,7 +371,7 @@ test('admin force-cancel after dispute reopens listing', async () => {
     metadata: { warranty_policy_id: created.policy.id },
   }, null);
   post = await adminUpdatePetFeedPostStatus(post.id, 'published');
-  await confirmListingDeposit(breederId, post.id, { senUserId: senId, acknowledge: true }, null);
+  await senThenBreederConfirmDeposit(breederId, senId, post.id);
   await requestListingComplete(
     breederId,
     post.id,
@@ -345,7 +395,7 @@ test('admin force-cancel after dispute reopens listing', async () => {
   assert.ok(cancelled.post.metadata?.deal?.last_closed_dispute?.opened_at);
 
   // Redeposit → handoff → dispute again must succeed (no leftover opened_at poison).
-  await confirmListingDeposit(breederId, post.id, { senUserId: senId, acknowledge: true }, null);
+  await senThenBreederConfirmDeposit(breederId, senId, post.id);
   await requestListingComplete(
     breederId,
     post.id,
@@ -401,7 +451,7 @@ test('dispute before handoff and cancel while dispute are blocked', async () => 
     metadata: { warranty_policy_id: created.policy.id },
   }, null);
   post = await adminUpdatePetFeedPostStatus(post.id, 'published');
-  await confirmListingDeposit(breederId, post.id, { senUserId: senId, acknowledge: true }, null);
+  await senThenBreederConfirmDeposit(breederId, senId, post.id);
 
   await assert.rejects(
     () => requestListingDispute(senId, post.id, {
@@ -462,7 +512,7 @@ test('auto-complete expires pending_sen_complete after deadline; skips disputes'
     metadata: { warranty_policy_id: created.policy.id },
   }, null);
   post = await adminUpdatePetFeedPostStatus(post.id, 'published');
-  await confirmListingDeposit(breederId, post.id, { senUserId: senId, acknowledge: true }, null);
+  await senThenBreederConfirmDeposit(breederId, senId, post.id);
   const requested = await requestListingComplete(
     breederId,
     post.id,
@@ -501,7 +551,7 @@ test('auto-complete expires pending_sen_complete after deadline; skips disputes'
     metadata: { warranty_policy_id: created2.policy.id },
   }, null);
   post2 = await adminUpdatePetFeedPostStatus(post2.id, 'published');
-  await confirmListingDeposit(breeder2, post2.id, { senUserId: sen2, acknowledge: true }, null);
+  await senThenBreederConfirmDeposit(breeder2, sen2, post2.id);
   await requestListingComplete(
     breeder2,
     post2.id,

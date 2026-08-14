@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import {
   buildCancelDepositReasonText,
   canBreederCancelDeposit,
+  canBreederConfirmDeposit,
   canBreederRequestHandoff,
   canSenConfirmCancel,
   canSenConfirmHandoff,
   canSenOpenDispute,
+  canSenWithdrawDepositRequest,
   canShowDepositRequest,
   isDealDisputeOpen,
   readDealFromPostMetadata,
@@ -38,15 +40,23 @@ test('resolveDealHandoffPhase and gates match web contract', () => {
   );
   assert.equal(
     canShowDepositRequest({ isOwner: true, listingStatus: 'published' }),
-    true,
+    false,
   );
   assert.equal(
     canShowDepositRequest({ isOwner: false, listingStatus: 'published' }),
+    true,
+  );
+  assert.equal(
+    canShowDepositRequest({
+      isOwner: false,
+      listingStatus: 'published',
+      dealStatus: 'pending_sen',
+    }),
     false,
   );
   assert.equal(
     canShowDepositRequest({
-      isOwner: true,
+      isOwner: false,
       listingStatus: 'published',
       dealStatus: 'deposit_hold',
     }),
@@ -127,6 +137,22 @@ test('resolveDealHandoffPhase and gates match web contract', () => {
     isDealDisputeOpen({
       listingStatus: 'deposit_hold',
       dealStatus: 'dispute_open',
+    }),
+    true,
+  );
+  assert.equal(
+    canBreederConfirmDeposit({
+      isOwner: true,
+      listingStatus: 'published',
+      dealStatus: 'pending_sen',
+    }),
+    true,
+  );
+  assert.equal(
+    canSenWithdrawDepositRequest({
+      isDealSen: true,
+      listingStatus: 'published',
+      dealStatus: 'pending_sen',
     }),
     true,
   );

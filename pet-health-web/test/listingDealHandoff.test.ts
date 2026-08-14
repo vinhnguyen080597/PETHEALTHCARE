@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import {
   buildCancelDepositReasonText,
   canBreederCancelDeposit,
+  canBreederConfirmDeposit,
   canBreederRequestHandoff,
   canSenConfirmCancel,
   canSenConfirmHandoff,
   canSenOpenDispute,
+  canSenWithdrawDepositRequest,
   daysLeftUntilDeadline,
   dealPhotosDropHint,
   isDealDisputeOpen,
@@ -22,6 +24,13 @@ test("resolveDealHandoffPhase maps listing + deal status", () => {
   assert.equal(
     resolveDealHandoffPhase({ listingStatus: "published" }),
     "none",
+  );
+  assert.equal(
+    resolveDealHandoffPhase({
+      listingStatus: "published",
+      dealStatus: "pending_sen",
+    }),
+    "pending_sen",
   );
   assert.equal(
     resolveDealHandoffPhase({
@@ -106,6 +115,48 @@ test("breeder can request handoff / cancel only on deposit_hold phase", () => {
       isOwner: false,
       listingStatus: "deposit_hold",
       dealStatus: "deposit_hold",
+    }),
+    false,
+  );
+});
+
+test("sen requests deposit; breeder confirms pending_sen", () => {
+  assert.equal(
+    canBreederConfirmDeposit({
+      isOwner: true,
+      listingStatus: "published",
+      dealStatus: "pending_sen",
+    }),
+    true,
+  );
+  assert.equal(
+    canBreederConfirmDeposit({
+      isOwner: false,
+      listingStatus: "published",
+      dealStatus: "pending_sen",
+    }),
+    false,
+  );
+  assert.equal(
+    canBreederConfirmDeposit({
+      isOwner: true,
+      listingStatus: "published",
+    }),
+    false,
+  );
+  assert.equal(
+    canSenWithdrawDepositRequest({
+      isDealSen: true,
+      listingStatus: "published",
+      dealStatus: "pending_sen",
+    }),
+    true,
+  );
+  assert.equal(
+    canSenWithdrawDepositRequest({
+      isDealSen: false,
+      listingStatus: "published",
+      dealStatus: "pending_sen",
     }),
     false,
   );

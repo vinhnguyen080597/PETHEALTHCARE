@@ -44,6 +44,9 @@ test("depositHoldSenLabel prefers sen name", () => {
 test("deposit sen i18n keys exist", () => {
   for (const key of [
     "deal.confirmFreeze",
+    "deal.sendRequest",
+    "deal.pendingBadge",
+    "deal.breederConfirmDeposit",
     "deal.senUserId",
     "deal.senSearchPlaceholder",
     "deal.senRequired",

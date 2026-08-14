@@ -20,6 +20,7 @@ export function listingVisitorActions(isOwner: boolean): {
 }
 
 const DEAL_STATUSES_BLOCKING_NEW_DEPOSIT = new Set([
+  "pending_sen",
   "deposit_hold",
   "pending_cancel_confirm",
   "pending_sen_complete",
@@ -27,13 +28,13 @@ const DEAL_STATUSES_BLOCKING_NEW_DEPOSIT = new Set([
   "dispute_open",
 ]);
 
-/** Soft-deposit CTA — breeder only, and only while the listing is still open. */
+/** Soft-deposit CTA — Sen (visitor) on an open listing, not the breeder. */
 export function canShowDepositRequest(input: {
   isOwner?: boolean;
   status: string | null | undefined;
   dealStatus?: string | null;
 }): boolean {
-  if (input.isOwner === false) return false;
+  if (input.isOwner) return false;
   if (!isListingAvailableStatus(input.status)) return false;
   const deal = String(input.dealStatus || "")
     .trim()
@@ -76,7 +77,7 @@ export function listingEditHref(postId: string): string {
 }
 
 export type ListingDetailFrom = "account";
-export type ListingDealAction = "confirm-cancel";
+export type ListingDealAction = "confirm-cancel" | "confirm-deposit";
 
 /** Public listing detail URL; pass `from=account` when opened from My listings. */
 export function listingDetailHref(
@@ -90,9 +91,7 @@ export function listingDetailHref(
   const base = `/app/pet-feed/posts/${encodeURIComponent(id)}`;
   const params = new URLSearchParams();
   if (options?.from === "account") params.set("from", "account");
-  if (options?.dealAction === "confirm-cancel") {
-    params.set("dealAction", "confirm-cancel");
-  }
+  if (options?.dealAction) params.set("dealAction", options.dealAction);
   const qs = params.toString();
   return qs ? `${base}?${qs}` : base;
 }

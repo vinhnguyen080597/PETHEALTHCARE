@@ -195,6 +195,10 @@ test("deposit cancel notification shows a confirm CTA", () => {
     "Confirm cancel deposit",
   );
   assert.equal(
+    notificationInboxCta({ type: "deposit_request" }, CTA_FALLBACKS),
+    "Confirm deposit",
+  );
+  assert.equal(
     notificationInboxCta(
       {
         type: "deposit_cancel_request",
@@ -229,6 +233,13 @@ test("listingNotificationHref rewrites legacy /app/posts and adds cancel action"
       post_id: "post-2",
     }),
     "/app/pet-feed/posts/post-2",
+  );
+  assert.equal(
+    listingNotificationHref({
+      type: "deposit_request",
+      post_id: "post-3",
+    }),
+    "/app/pet-feed/posts/post-3?dealAction=confirm-deposit",
   );
   assert.equal(isDepositCancelRequestNotification("deposit_cancel_request"), true);
 });

@@ -38,6 +38,7 @@ import {
   listMyBreederProfileSubmissions,
   cancelMyBreederProfileSubmission,
   confirmListingDeposit,
+  declineListingDeposit,
   requestListingCancelDeposit,
   confirmListingCancelDeposit,
   requestListingComplete,
@@ -1401,7 +1402,7 @@ router.post('/posts/:postId/deposit/confirm', async (req, res, next) => {
     const notifyType = result.both_confirmed ? 'deposit_confirmed' : 'deposit_request';
     const preview = result.both_confirmed
       ? `Cọc đã được xác nhận cho "${notifyPreview(result.post.title)}". Chính sách bảo hành đã đóng băng.`
-      : `Yêu cầu chốt cọc cho "${notifyPreview(result.post.title)}". Vui lòng xác nhận.`;
+      : `Sen yêu cầu chốt cọc cho "${notifyPreview(result.post.title)}". Vui lòng xác nhận.`;
     if (result.notify_user_id) {
       void createDealNotification({
         recipientUserId: result.notify_user_id,
@@ -1409,11 +1410,39 @@ router.post('/posts/:postId/deposit/confirm', async (req, res, next) => {
         postId: result.post.id,
         type: notifyType,
         bodyPreview: preview,
-        metadata: dealNotifyMeta(result.post),
+        metadata: {
+          ...dealNotifyMeta(result.post),
+          ...(result.both_confirmed ? {} : { cta_label: 'Xác nhận cọc' }),
+        },
         accessToken: req.accessToken,
       }).catch(() => null);
     }
     return res.json({ data: result.post, both_confirmed: result.both_confirmed });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/posts/:postId/deposit/decline', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const result = await declineListingDeposit(req.user.id, postId, req.accessToken);
+    const preview = result.declined_by === 'breeder'
+      ? `Breeder đã từ chối yêu cầu chốt cọc cho "${notifyPreview(result.post.title)}".`
+      : `Sen đã rút yêu cầu chốt cọc cho "${notifyPreview(result.post.title)}".`;
+    if (result.notify_user_id) {
+      void createDealNotification({
+        recipientUserId: result.notify_user_id,
+        actorUserId: req.user.id,
+        postId: result.post.id,
+        type: 'deposit_cancelled',
+        bodyPreview: preview,
+        metadata: dealNotifyMeta(result.post),
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
+    return res.json({ data: result.post, declined_by: result.declined_by });
   } catch (err) {
     return next(err);
   }

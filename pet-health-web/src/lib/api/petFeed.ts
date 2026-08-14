@@ -453,6 +453,16 @@ export async function confirmListingDeposit(
   );
 }
 
+export async function declineListingDeposit(token: string, postId: string) {
+  return fetchJson<{ data: ApiPetFeedPost; declined_by?: string }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/decline`,
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
 export async function listSenUsers(
   token: string,
   options?: { search?: string; limit?: number },

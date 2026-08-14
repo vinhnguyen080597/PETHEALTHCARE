@@ -41,26 +41,34 @@ test("opensMyListingReviewPopup only for pending_review", () => {
   assert.equal(opensMyListingReviewPopup(null), false);
 });
 
-test("canShowDepositRequest is breeder-only on open listings", () => {
+test("canShowDepositRequest is Sen-only on open listings", () => {
   assert.equal(
     canShowDepositRequest({ isOwner: true, status: "published" }),
-    true,
+    false,
   );
   assert.equal(
     canShowDepositRequest({ isOwner: false, status: "published" }),
+    true,
+  );
+  assert.equal(
+    canShowDepositRequest({
+      isOwner: false,
+      status: "published",
+      dealStatus: "pending_sen",
+    }),
     false,
   );
   assert.equal(
     canShowDepositRequest({
-      isOwner: true,
+      isOwner: false,
       status: "published",
       dealStatus: "deposit_hold",
     }),
     false,
   );
-  assert.equal(canShowDepositRequest({ isOwner: true, status: "deposit_hold" }), false);
-  assert.equal(canShowDepositRequest({ isOwner: true, status: "sold" }), false);
-  assert.equal(canShowDepositRequest({ isOwner: true, status: null }), false);
+  assert.equal(canShowDepositRequest({ isOwner: false, status: "deposit_hold" }), false);
+  assert.equal(canShowDepositRequest({ isOwner: false, status: "sold" }), false);
+  assert.equal(canShowDepositRequest({ isOwner: false, status: null }), false);
 });
 
 test("isListingAvailableStatus is published only", () => {
@@ -127,6 +135,10 @@ test("listingDetailHref and back href respect from=account", () => {
   assert.equal(
     listingDetailHref("abc", { dealAction: "confirm-cancel" }),
     "/app/pet-feed/posts/abc?dealAction=confirm-cancel",
+  );
+  assert.equal(
+    listingDetailHref("abc", { dealAction: "confirm-deposit" }),
+    "/app/pet-feed/posts/abc?dealAction=confirm-deposit",
   );
   assert.equal(
     listingDetailHref("abc", { from: "account", dealAction: "confirm-cancel" }),

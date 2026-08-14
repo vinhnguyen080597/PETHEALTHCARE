@@ -2736,9 +2736,16 @@ async function listPostsLockingWarrantyPolicy(breederProfileId, policyId, access
   });
 }
 
+const DEAL_STATUSES_BLOCKING_DEPOSIT = new Set([
+  'pending_cancel_confirm',
+  'pending_sen_complete',
+  'pending_complete',
+  'dispute_open',
+]);
+
 /**
- * Soft deposit: either party confirms; when both confirmed → deposit_hold + freeze snapshot.
- * Body: { senUserId?, acknowledge?: boolean }
+ * Soft deposit: Sen requests first (pending_sen); breeder confirms → deposit_hold + freeze snapshot.
+ * Body: { acknowledge?: boolean }
  */
 export async function confirmListingDeposit(actorUserId, postId, payload = {}, accessToken) {
   const row = await loadPostRowForDeal(postId, accessToken);
@@ -2752,29 +2759,40 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
     && !meta.rejection_reason
     && !meta.rejected_at;
   const effectiveStatus = resolveEffectivePostStatus(row);
+  const deal = asObject(meta.deal);
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  const existingSen = trimText(deal.sen_user_id, 80);
+
+  if (effectiveStatus === 'deposit_hold' || dealStatus === 'deposit_hold') {
+    return { post: toPost(row), both_confirmed: true, notify_user_id: null };
+  }
   if (CLOSED_LISTING_STATUSES.has(effectiveStatus)) {
     throw httpError('Deposit can only be confirmed on an available listing.', 400, 'DEPOSIT_NOT_ALLOWED');
   }
-  if (
-    row.status !== 'published'
-    && row.status !== 'deposit_hold'
-    && effectiveStatus !== 'deposit_hold'
-    && !demotedPending
-  ) {
+  if (DEAL_STATUSES_BLOCKING_DEPOSIT.has(dealStatus)) {
+    throw httpError('Deposit can only be confirmed on an available listing.', 400, 'DEPOSIT_NOT_ALLOWED');
+  }
+  if (row.status !== 'published' && effectiveStatus !== 'published' && !demotedPending) {
     throw httpError('Deposit can only be confirmed on an available listing.', 400, 'DEPOSIT_NOT_ALLOWED');
   }
 
   const breederUserId = row.user_id;
-  const deal = asObject(meta.deal);
-  const requestedSen = trimText(payload.senUserId ?? payload.sen_user_id, 80);
   const isBreeder = actorUserId === breederUserId;
-  let senUserId = trimText(deal.sen_user_id, 80);
+  const isPendingSen = dealStatus === 'pending_sen' && Boolean(existingSen);
+  let senUserId = existingSen;
 
   if (isBreeder) {
-    senUserId = requestedSen || senUserId;
+    if (!isPendingSen) {
+      throw httpError(
+        'Buyer (Sen) must request the deposit first.',
+        400,
+        'DEPOSIT_SEN_MUST_REQUEST',
+      );
+    }
+    senUserId = existingSen;
   } else if (actorUserId !== breederUserId) {
-    if (senUserId && senUserId !== actorUserId) {
-      throw httpError('Only the assigned buyer can confirm this deposit.', 403, 'DEPOSIT_FORBIDDEN');
+    if (existingSen && existingSen !== actorUserId) {
+      throw httpError('Only the assigned buyer can request this deposit.', 403, 'DEPOSIT_FORBIDDEN');
     }
     senUserId = actorUserId;
   } else {
@@ -2858,13 +2876,9 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
     nextDeal.sen_confirmed_deposit_at = now;
   }
 
-  // Breeder selecting a Sen and confirming is enough for soft deposit hold.
-  const breederLockedHold = Boolean(
-    actorUserId === breederUserId && nextDeal.breeder_confirmed_deposit_at && senUserId,
-  );
   const bothConfirmed = Boolean(
     nextDeal.breeder_confirmed_deposit_at && nextDeal.sen_confirmed_deposit_at,
-  ) || breederLockedHold;
+  );
 
   let nextStatus = demotedPending ? 'published' : row.status;
   const nextMeta = { ...meta, deal: nextDeal };
@@ -2886,6 +2900,58 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
     post: updated,
     both_confirmed: bothConfirmed,
     notify_user_id: actorUserId === breederUserId ? senUserId : breederUserId,
+  };
+}
+
+/**
+ * Sen withdraws, or breeder declines, a pending deposit request. Listing stays published.
+ */
+export async function declineListingDeposit(actorUserId, postId, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row || normalizePostKind(row.post_kind, 'listing') !== 'listing') {
+    throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  }
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  const senUserId = trimText(deal.sen_user_id, 80);
+  if (dealStatus !== 'pending_sen' || !senUserId) {
+    throw httpError(
+      'There is no pending deposit request to decline.',
+      400,
+      'DEPOSIT_DECLINE_NOT_ALLOWED',
+    );
+  }
+  const isBreeder = actorUserId === row.user_id;
+  const isSen = actorUserId === senUserId;
+  if (!isBreeder && !isSen) {
+    throw httpError(
+      'Only the breeder or the requesting buyer can decline this deposit request.',
+      403,
+      'DEPOSIT_DECLINE_FORBIDDEN',
+    );
+  }
+
+  const nextDeal = {
+    ...deal,
+    status: null,
+    sen_user_id: null,
+    sen_display_name: null,
+    sen_email: null,
+    sen_confirmed_deposit_at: null,
+    breeder_confirmed_deposit_at: null,
+    policy_id_at_request: null,
+  };
+  const nextMeta = { ...meta, deal: nextDeal };
+  const updated = await persistPostRow(
+    postId,
+    { status: row.status === 'pending_review' ? row.status : 'published', metadata: nextMeta },
+    accessToken,
+  );
+  return {
+    post: updated,
+    declined_by: isBreeder ? 'breeder' : 'sen',
+    notify_user_id: isBreeder ? senUserId : row.user_id,
   };
 }
 

@@ -28,6 +28,10 @@ test('deposit cancel notification shows a confirm CTA', () => {
     'Confirm cancel deposit',
   );
   assert.equal(
+    notificationInboxCta({ type: 'deposit_request' }, FALLBACKS),
+    'Confirm deposit',
+  );
+  assert.equal(
     notificationInboxCta(
       { type: 'deposit_cancel_request', cta_label: 'Xác nhận hủy cọc' },
       FALLBACKS,

@@ -73,6 +73,7 @@ import {
   reportBreederProfile,
   reportPetFeedPost,
   confirmListingDeposit,
+  declineListingDeposit,
   confirmListingCancelDeposit,
   confirmListingComplete,
   requestListingCancelDeposit,
@@ -2394,6 +2395,9 @@ export function usePetHealthApp() {
             acknowledge: true,
             senUserId: mutation.senUserId,
           });
+          break;
+        case 'deposit_decline':
+          response = await declineListingDeposit(token, postId);
           break;
         case 'complete_request':
           response = await requestListingComplete(token, postId, mutation.photoUris);

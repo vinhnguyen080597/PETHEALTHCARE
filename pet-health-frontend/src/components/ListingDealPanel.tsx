@@ -15,10 +15,12 @@ import type { PetFeedPost } from '../types';
 import {
   buildCancelDepositReasonText,
   canBreederCancelDeposit,
+  canBreederConfirmDeposit,
   canBreederRequestHandoff,
   canSenConfirmCancel,
   canSenConfirmHandoff,
   canSenOpenDispute,
+  canSenWithdrawDepositRequest,
   canShowDepositRequest,
   CANCEL_DEPOSIT_MAX_PHOTOS,
   CANCEL_DEPOSIT_REASON_KEYS,
@@ -84,6 +86,9 @@ export function ListingDealPanel({
     listingStatus: post.status,
     dealStatus: deal.status,
   });
+  const showBreederConfirm = canBreederConfirmDeposit({ isOwner, ...phaseInput });
+  const showSenWithdraw = canSenWithdrawDepositRequest({ isDealSen, ...phaseInput });
+  const showPending = phaseInput.dealStatus === 'pending_sen';
   const showHandoff = canBreederRequestHandoff({ isOwner, ...phaseInput });
   const showCancel = canBreederCancelDeposit({ isOwner, ...phaseInput });
   const showSenHandoff = canSenConfirmHandoff({ isDealSen, ...phaseInput });
@@ -95,7 +100,7 @@ export function ListingDealPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [depositOpen, setDepositOpen] = useState(false);
-  const [senUserId, setSenUserId] = useState('');
+  const [depositAck, setDepositAck] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completePhotos, setCompletePhotos] = useState<string[]>([]);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -112,6 +117,9 @@ export function ListingDealPanel({
 
   const visible =
     showDeposit ||
+    showBreederConfirm ||
+    showSenWithdraw ||
+    showPending ||
     showHandoff ||
     showCancel ||
     showSenHandoff ||
@@ -130,6 +138,7 @@ export function ListingDealPanel({
       const result = await onMutate(mutation);
       if (!result?.post) throw new Error(t('common.somethingWentWrong'));
       setDepositOpen(false);
+      setDepositAck(false);
       setCompleteOpen(false);
       setCancelOpen(false);
       setDisputeOpen(false);
@@ -138,7 +147,6 @@ export function ListingDealPanel({
       setDisputePhotos([]);
       setCancelNote('');
       setDisputeMessage('');
-      setSenUserId('');
       if (mutation.type === 'complete_confirm' && result.reviewEligible && onSubmitReview) {
         setReviewOpen(true);
       }
@@ -157,6 +165,21 @@ export function ListingDealPanel({
             ? t('deal.holdBadgeWithSen', { name: deal.senDisplayName })
             : t('deal.holdBadge')}
         </Text>
+      ) : null}
+      {showPending ? (
+        <Text className="text-sm font-semibold text-amber-900">
+          {isOwner || isDealSen
+            ? deal.senDisplayName
+              ? t('deal.pendingBadgeWithSen', { name: deal.senDisplayName })
+              : t('deal.pendingBadge')
+            : t('deal.pendingBadge')}
+        </Text>
+      ) : null}
+      {showPending && isOwner ? (
+        <Text className="mt-1 text-xs text-amber-800">{t('deal.pendingHintBreeder')}</Text>
+      ) : null}
+      {showPending && isDealSen ? (
+        <Text className="mt-1 text-xs text-amber-800">{t('deal.pendingHintSen')}</Text>
       ) : null}
       {phaseInput.dealStatus === 'pending_sen_complete' ||
       phaseInput.dealStatus === 'pending_complete' ? (
@@ -185,11 +208,41 @@ export function ListingDealPanel({
         {showDeposit ? (
           <Pressable
             disabled={busy}
-            onPress={() => setDepositOpen(true)}
+            onPress={() => {
+              setDepositAck(false);
+              setDepositOpen(true);
+            }}
             className="rounded-full bg-amber-600 px-4 py-2.5 active:bg-amber-700"
           >
             <Text className="text-center text-sm font-semibold text-white">
               {t('deal.requestDeposit')}
+            </Text>
+          </Pressable>
+        ) : null}
+        {showBreederConfirm ? (
+          <Pressable
+            disabled={busy}
+            onPress={() => {
+              setDepositAck(false);
+              setDepositOpen(true);
+            }}
+            className="rounded-full bg-amber-600 px-4 py-2.5 active:bg-amber-700"
+          >
+            <Text className="text-center text-sm font-semibold text-white">
+              {t('deal.breederConfirmDeposit')}
+            </Text>
+          </Pressable>
+        ) : null}
+        {showBreederConfirm || showSenWithdraw ? (
+          <Pressable
+            disabled={busy}
+            onPress={() => void run({ type: 'deposit_decline' })}
+            className="rounded-full border border-red-200 bg-white px-4 py-2.5"
+          >
+            <Text className="text-center text-sm font-semibold text-red-600">
+              {showSenWithdraw && !showBreederConfirm
+                ? t('deal.withdrawRequest')
+                : t('deal.declineRequest')}
             </Text>
           </Pressable>
         ) : null}
@@ -272,29 +325,32 @@ export function ListingDealPanel({
         <View className="flex-1 justify-center bg-black/40 px-5">
           <View className="rounded-2xl bg-white p-5">
             <Text className="mb-2 text-base font-bold text-slate-900">
-              {t('deal.confirmTitle')}
+              {t(isOwner ? 'deal.confirmTitle' : 'deal.requestTitle')}
             </Text>
-            <Text className="mb-2 text-xs text-slate-500">{t('deal.senUserId')}</Text>
-            <TextInput
-              value={senUserId}
-              onChangeText={setSenUserId}
-              placeholder={t('deal.senUserIdPlaceholder')}
-              autoCapitalize="none"
-              className="mb-3 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            />
+            <Pressable
+              onPress={() => setDepositAck((value) => !value)}
+              className="mb-3 flex-row items-start gap-2"
+            >
+              <View
+                className={`mt-0.5 h-4 w-4 rounded border ${
+                  depositAck ? 'border-amber-600 bg-amber-600' : 'border-slate-300'
+                }`}
+              />
+              <Text className="flex-1 text-sm text-slate-700">
+                {t(isOwner ? 'deal.ackLabel' : 'deal.ackLabelRequest')}
+              </Text>
+            </Pressable>
             <View className="flex-row justify-end gap-2">
               <Pressable onPress={() => setDepositOpen(false)} className="px-4 py-2">
                 <Text className="text-sm text-slate-600">{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
-                disabled={busy || !senUserId.trim()}
-                onPress={() =>
-                  void run({ type: 'deposit_confirm', senUserId: senUserId.trim() })
-                }
+                disabled={busy || !depositAck}
+                onPress={() => void run({ type: 'deposit_confirm' })}
                 className="rounded-full bg-amber-600 px-4 py-2"
               >
                 <Text className="text-sm font-semibold text-white">
-                  {t('deal.confirmFreeze')}
+                  {t(isOwner ? 'deal.confirmFreeze' : 'deal.sendRequest')}
                 </Text>
               </Pressable>
             </View>

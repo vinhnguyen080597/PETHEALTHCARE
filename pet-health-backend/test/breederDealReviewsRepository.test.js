@@ -40,7 +40,8 @@ test('sen confirm completion + 5-star review updates breeder transparency counts
   }, null);
   post = await adminUpdatePetFeedPostStatus(post.id, 'published');
 
-  await confirmListingDeposit(breederId, post.id, { senUserId: senId, acknowledge: true }, null);
+  await confirmListingDeposit(senId, post.id, { acknowledge: true }, null);
+  await confirmListingDeposit(breederId, post.id, { acknowledge: true }, null);
   await requestListingComplete(breederId, post.id, {
     handoffPhotoUrls: ['https://cdn.example/handoff.jpg'],
   }, null);
@@ -74,7 +75,8 @@ test('duplicate review is rejected', async () => {
     status: 'draft',
   }, null);
   post = await adminUpdatePetFeedPostStatus(post.id, 'published');
-  await confirmListingDeposit(breederId, post.id, { senUserId: senId, acknowledge: true }, null);
+  await confirmListingDeposit(senId, post.id, { acknowledge: true }, null);
+  await confirmListingDeposit(breederId, post.id, { acknowledge: true }, null);
   await requestListingComplete(breederId, post.id, {
     handoffPhotoUrls: ['https://cdn.example/handoff.jpg'],
   }, null);

@@ -320,7 +320,17 @@ const en = {
   "listing.new.dewormingShort.due": "Due soon",
   "deal.holdBadge": "On deposit hold — warranty policy is frozen",
   "deal.holdBadgeWithSen": "Sen {name} has placed a deposit",
+  "deal.pendingBadge": "Waiting for the breeder to confirm the deposit",
+  "deal.pendingBadgeWithSen": "Sen {name} is waiting for deposit confirmation",
+  "deal.pendingHintSen":
+    "Your request was sent. The listing stays for sale until the breeder confirms.",
+  "deal.pendingHintBreeder":
+    "A buyer requested a deposit lock. Confirm to hold this pet for them.",
   "deal.requestDeposit": "Request deposit confirmation",
+  "deal.breederConfirmDeposit": "Confirm deposit",
+  "deal.withdrawRequest": "Withdraw request",
+  "deal.declineRequest": "Decline request",
+  "deal.requestTitle": "Send deposit request",
   "deal.confirmTitle": "Confirm deposit agreement",
   "deal.policyPreview": "Warranty policy that will be frozen",
   "deal.senUserId": "Buyer (Sen)",
@@ -328,9 +338,12 @@ const en = {
   "deal.senRequired": "Please select a buyer (Sen).",
   "deal.senEmpty": "No matching Sen users found.",
   "deal.ackLabel":
-    "I confirm both sides agreed on a direct deposit and accept the listing terms (including any warranty policy).",
+    "I confirm I received this deposit request and agree to hold the listing for this Sen (including any warranty policy).",
+  "deal.ackLabelRequest":
+    "I confirm I want to place a deposit on this listing and accept the listing terms (including any warranty policy).",
   "deal.ackRequired": "Please confirm the checkbox first.",
   "deal.confirmFreeze": "Confirm",
+  "deal.sendRequest": "Send request",
   "deal.confirming": "Confirming…",
   "deal.complete": "Confirm handoff complete",
   "deal.completeRequestTitle": "Confirm handoff to buyer",

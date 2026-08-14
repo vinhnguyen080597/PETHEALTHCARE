@@ -781,6 +781,16 @@ export async function confirmListingDeposit(
   );
 }
 
+export async function declineListingDeposit(token: string, postId: string) {
+  return requestJson<{ data: PetFeedPost; declined_by?: string }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/decline`,
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+    },
+  );
+}
+
 export async function requestListingComplete(token: string, postId: string, photoUris: string[]) {
   const formData = new FormData();
   for (let i = 0; i < photoUris.length; i += 1) {

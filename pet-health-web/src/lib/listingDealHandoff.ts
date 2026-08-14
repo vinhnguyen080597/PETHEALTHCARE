@@ -16,6 +16,7 @@ export type CancelDepositReasonKey = (typeof CANCEL_DEPOSIT_REASON_KEYS)[number]
 
 export type DealHandoffPhase =
   | "none"
+  | "pending_sen"
   | "deposit_hold"
   | "pending_sen_complete"
   | "pending_cancel_confirm"
@@ -42,10 +43,11 @@ export function resolveDealHandoffPhase(input: {
   }
   if (deal === "pending_cancel_confirm") return "pending_cancel_confirm";
   if (deal === "dispute_open") return "dispute_open";
+  if (deal === "pending_sen") return "pending_sen";
 
   const held = listing === "deposit_hold" || deal === "deposit_hold";
   if (!held) return "none";
-  if (!deal || deal === "deposit_hold" || deal === "pending_sen") {
+  if (!deal || deal === "deposit_hold") {
     return "deposit_hold";
   }
   return "other";
@@ -67,6 +69,24 @@ export function canBreederCancelDeposit(input: {
 }): boolean {
   if (!input.isOwner) return false;
   return resolveDealHandoffPhase(input) === "deposit_hold";
+}
+
+export function canBreederConfirmDeposit(input: {
+  isOwner: boolean;
+  listingStatus?: string | null;
+  dealStatus?: string | null;
+}): boolean {
+  if (!input.isOwner) return false;
+  return resolveDealHandoffPhase(input) === "pending_sen";
+}
+
+export function canSenWithdrawDepositRequest(input: {
+  isDealSen: boolean;
+  listingStatus?: string | null;
+  dealStatus?: string | null;
+}): boolean {
+  if (!input.isDealSen) return false;
+  return resolveDealHandoffPhase(input) === "pending_sen";
 }
 
 export function canSenConfirmHandoff(input: {

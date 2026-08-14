@@ -18,6 +18,7 @@ export type NotificationDeepLinkInput = {
 };
 
 export const DEPOSIT_CANCEL_DEAL_ACTION = "confirm-cancel";
+export const DEPOSIT_CONFIRM_DEAL_ACTION = "confirm-deposit";
 
 const DEAL_ACTION_NOTIFICATION_TYPES = new Set([
   "deposit_request",
@@ -185,6 +186,14 @@ export function isDepositCancelRequestNotification(
   return type === "deposit_cancel_request";
 }
 
+export function isDepositRequestNotification(
+  item: NotificationDeepLinkInput | string | null | undefined,
+) {
+  const type =
+    typeof item === "string" || !item ? String(item || "") : notificationType(item);
+  return type === "deposit_request";
+}
+
 export function isDealActionNotification(
   item: NotificationDeepLinkInput | string | null | undefined,
 ) {
@@ -246,14 +255,20 @@ function listingPathFromStoredHref(stored: string, postId: string) {
   return "";
 }
 
-/** Listing deep link for deal / comment notifications. Cancel-request adds dealAction. */
+/** Listing deep link for deal / comment notifications. Cancel-request and deposit-request add dealAction. */
 export function listingNotificationHref(item: NotificationDeepLinkInput): string | null {
   const postId = String(item.post_id || "").trim();
   const stored =
     typeof item.metadata?.cta_href === "string" ? item.metadata.cta_href : "";
   const path = listingPathFromStoredHref(stored, postId);
   if (!path) return null;
-  if (!isDepositCancelRequestNotification(item)) return path;
-  const sep = path.includes("?") ? "&" : "?";
-  return `${path}${sep}dealAction=${DEPOSIT_CANCEL_DEAL_ACTION}`;
+  if (isDepositCancelRequestNotification(item)) {
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}dealAction=${DEPOSIT_CANCEL_DEAL_ACTION}`;
+  }
+  if (isDepositRequestNotification(item)) {
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}dealAction=${DEPOSIT_CONFIRM_DEAL_ACTION}`;
+  }
+  return path;
 }

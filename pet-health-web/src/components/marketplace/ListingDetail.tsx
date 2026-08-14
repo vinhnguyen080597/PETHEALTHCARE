@@ -30,13 +30,7 @@ import {
 } from "@/lib/listingOwnerDelete";
 import { ListingDeleteConfirmModal } from "./ListingDeleteConfirmModal";
 import { DealReviewModal } from "./DealReviewModal";
-import {
-  depositHoldSenLabel,
-  filterSenUserOptions,
-  formatSenOptionLabel,
-  normalizeSenUserOptions,
-  type SenUserOption,
-} from "@/lib/listingDepositSen";
+import { depositHoldSenLabel } from "@/lib/listingDepositSen";
 import {
   mergeListingAfterWarrantyAttach,
   normalizeWarrantyPolicyOptions,
@@ -63,10 +57,12 @@ import {
 import {
   buildCancelDepositReasonText,
   canBreederCancelDeposit,
+  canBreederConfirmDeposit,
   canBreederRequestHandoff,
   canSenConfirmCancel,
   canSenConfirmHandoff,
   canSenOpenDispute,
+  canSenWithdrawDepositRequest,
   CANCEL_DEPOSIT_MAX_PHOTOS,
   CANCEL_DEPOSIT_REASON_KEYS,
   COMPLETE_HANDOFF_MAX_PHOTOS,
@@ -86,6 +82,7 @@ import {
 } from "@/lib/dealPhotoUpload";
 import { uploadDealEvidencePhotos } from "@/lib/uploadDealEvidence";
 import { DealPhotoPicker } from "./DealPhotoPicker";
+import { DialogActions } from "@/components/ui/DialogActions";
 
 const REPORT_REASONS = [
   "scam",
@@ -177,6 +174,7 @@ export function ListingDetail({
   const listingFrom = parseListingDetailFrom(searchParams.get("from"));
   const dealAction = searchParams.get("dealAction");
   const wantsSenConfirmCancel = dealAction === "confirm-cancel";
+  const wantsBreederConfirmDeposit = dealAction === "confirm-deposit";
   const backHref = listingDetailBackHref(listingFrom);
   const [listing, setListing] = useState(initialListing);
   const ownerUserId = listing.ownerUserId || listing.breeder.userId;
@@ -213,6 +211,18 @@ export function ListingDetail({
     listingStatus: listing.status,
     dealStatus: listing.deal?.status,
   });
+  const showBreederConfirmDeposit = canBreederConfirmDeposit({
+    isOwner,
+    listingStatus: listing.status,
+    dealStatus: listing.deal?.status,
+  });
+  const showSenWithdrawDeposit = canSenWithdrawDepositRequest({
+    isDealSen,
+    listingStatus: listing.status,
+    dealStatus: listing.deal?.status,
+  });
+  const showPendingDeposit =
+    String(listing.deal?.status || "").toLowerCase() === "pending_sen";
   const showSenConfirmHandoff = canSenConfirmHandoff({
     isDealSen,
     listingStatus: listing.status,
@@ -261,11 +271,6 @@ export function ListingDetail({
   const [policyOpen, setPolicyOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [depositAck, setDepositAck] = useState(false);
-  const [senUserIdInput, setSenUserIdInput] = useState("");
-  const [senSearch, setSenSearch] = useState("");
-  const [senOptions, setSenOptions] = useState<SenUserOption[]>([]);
-  const [senOptionsLoading, setSenOptionsLoading] = useState(false);
-  const [senPickerOpen, setSenPickerOpen] = useState(false);
   const [dealBusy, setDealBusy] = useState(false);
   const [dealMenuOpen, setDealMenuOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -391,6 +396,14 @@ export function ListingDetail({
   }, [wantsSenConfirmCancel, listing.deal?.status, showSenConfirmCancel]);
 
   useEffect(() => {
+    if (!wantsBreederConfirmDeposit || !showBreederConfirmDeposit) return;
+    const el = document.getElementById("listing-deal-panel");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setDepositAck(false);
+    setDepositOpen(true);
+  }, [wantsBreederConfirmDeposit, showBreederConfirmDeposit]);
+
+  useEffect(() => {
     if (!isLoggedIn) return;
     let cancelled = false;
     (async () => {
@@ -421,20 +434,11 @@ export function ListingDetail({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [dealMenuOpen]);
 
-  const filteredSenOptions = useMemo(
-    () => filterSenUserOptions(senOptions, senSearch),
-    [senOptions, senSearch],
-  );
-  const selectedSen = useMemo(
-    () => senOptions.find((u) => u.user_id === senUserIdInput) || null,
-    [senOptions, senUserIdInput],
-  );
-
   const requireLogin = () => {
     router.push(`/login?next=/app/pet-feed/posts/${listing.id}`);
   };
 
-  const openDepositModal = async () => {
+  const openDepositModal = () => {
     if (!isLoggedIn) {
       requireLogin();
       return;
@@ -442,31 +446,6 @@ export function ListingDetail({
     setActionError("");
     setDepositAck(false);
     setDepositOpen(true);
-    setSenPickerOpen(false);
-    if (!isOwner) return;
-    setSenOptionsLoading(true);
-    try {
-      const res = await fetch("/api/sen-users?limit=100");
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed");
-      const options = normalizeSenUserOptions(
-        Array.isArray(data?.data) ? data.data : [],
-      );
-      setSenOptions(options);
-      if (listing.deal?.senUserId) {
-        setSenUserIdInput(listing.deal.senUserId);
-        const existing = options.find((u) => u.user_id === listing.deal?.senUserId);
-        setSenSearch(existing ? formatSenOptionLabel(existing) : "");
-      } else {
-        setSenUserIdInput("");
-        setSenSearch("");
-      }
-    } catch (err) {
-      setSenOptions([]);
-      setActionError(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setSenOptionsLoading(false);
-    }
   };
 
   const openAttachWarranty = async () => {
@@ -586,7 +565,9 @@ export function ListingDetail({
     }
   };
 
-  const runDealAction = async (kind: "deposit" | "complete" | "cancel_confirm") => {
+  const runDealAction = async (
+    kind: "deposit" | "complete" | "cancel_confirm" | "deposit_decline",
+  ) => {
     if (!isLoggedIn) {
       requireLogin();
       return;
@@ -600,21 +581,12 @@ export function ListingDetail({
         if (!depositAck) {
           throw new Error(t(lang, "deal.ackRequired"));
         }
-        let senId = senUserIdInput.trim();
-        if (isOwner && !senId) {
-          const match = senOptions.find(
-            (u) => formatSenOptionLabel(u).toLowerCase() === senSearch.trim().toLowerCase(),
-          );
-          if (match) senId = match.user_id;
-        }
-        if (isOwner && !senId) {
-          throw new Error(t(lang, "deal.senRequired"));
-        }
         url = `/api/listings/${listing.id}/deposit/confirm`;
         body = {
           acknowledge: true,
-          ...(isOwner && senId ? { senUserId: senId } : {}),
         };
+      } else if (kind === "deposit_decline") {
+        url = `/api/listings/${listing.id}/deposit/decline`;
       } else if (kind === "cancel_confirm") {
         url = `/api/listings/${listing.id}/deposit/cancel/confirm`;
       } else {
@@ -632,7 +604,6 @@ export function ListingDetail({
       }
       setDepositOpen(false);
       setDepositAck(false);
-      setSenPickerOpen(false);
       if (kind === "complete" && data.review_eligible) {
         setReviewOpen(true);
       }
@@ -1257,6 +1228,63 @@ export function ListingDetail({
                 </div>
               )}
 
+              {showPendingDeposit ? (
+                <div id="listing-deal-panel" className={depositHoldTone.shell}>
+                  <p className={depositHoldTone.title}>
+                    {isOwner || isDealSen
+                      ? depositHoldSenLabel(
+                          listing.deal?.senDisplayName,
+                          t(lang, "deal.pendingBadge"),
+                          t(lang, "deal.pendingBadgeWithSen"),
+                        )
+                      : t(lang, "deal.pendingBadge")}
+                  </p>
+                  {isOwner ? (
+                    <p className="mt-1 text-xs text-amber-800/90">
+                      {t(lang, "deal.pendingHintBreeder")}
+                    </p>
+                  ) : null}
+                  {isDealSen ? (
+                    <p className="mt-1 text-xs text-amber-800/90">
+                      {t(lang, "deal.pendingHintSen")}
+                    </p>
+                  ) : null}
+                  {actionError && (showBreederConfirmDeposit || showSenWithdrawDeposit) ? (
+                    <p className="mt-2 text-xs text-red-600">{actionError}</p>
+                  ) : null}
+                  {showBreederConfirmDeposit ? (
+                    <div className="mt-3 space-y-2">
+                      <button
+                        type="button"
+                        disabled={dealBusy}
+                        onClick={() => openDepositModal()}
+                        className="w-full py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full disabled:opacity-60"
+                      >
+                        {t(lang, "deal.breederConfirmDeposit")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={dealBusy}
+                        onClick={() => void runDealAction("deposit_decline")}
+                        className="w-full py-2.5 border border-red-200 text-red-600 text-sm font-semibold rounded-full disabled:opacity-60"
+                      >
+                        {t(lang, "deal.declineRequest")}
+                      </button>
+                    </div>
+                  ) : null}
+                  {showSenWithdrawDeposit ? (
+                    <button
+                      type="button"
+                      disabled={dealBusy}
+                      onClick={() => void runDealAction("deposit_decline")}
+                      className="mt-3 w-full py-2.5 border border-red-200 text-red-600 text-sm font-semibold rounded-full disabled:opacity-60"
+                    >
+                      {t(lang, "deal.withdrawRequest")}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
               {listing.status === "deposit_hold" ? (
                 <div id="listing-deal-panel" className={depositHoldTone.shell}>
                   <div className="flex items-start justify-between gap-2">
@@ -1406,7 +1434,7 @@ export function ListingDetail({
               {showDepositRequest ? (
                 <button
                   type="button"
-                  onClick={() => void openDepositModal()}
+                  onClick={() => openDepositModal()}
                   className="w-full py-3 bg-[#D97706] text-white text-sm font-semibold rounded-full hover:bg-[#B45309] transition-colors"
                 >
                   🤝 {t(lang, "deal.requestDeposit")}
@@ -1650,7 +1678,7 @@ export function ListingDetail({
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-bold text-slate-900">
-              {t(lang, "deal.confirmTitle")}
+              {t(lang, isOwner ? "deal.confirmTitle" : "deal.requestTitle")}
             </h2>
             <p className="text-sm text-slate-600">
               {listing.title} · {listing.breeder.name}
@@ -1700,57 +1728,6 @@ export function ListingDetail({
                 </p>
               </div>
             )}
-            {isOwner ? (
-              <div className="relative">
-                <label className="block text-xs font-medium text-slate-500 mb-1">
-                  {t(lang, "deal.senUserId")}
-                </label>
-                <input
-                  value={
-                    senPickerOpen
-                      ? senSearch
-                      : selectedSen
-                        ? formatSenOptionLabel(selectedSen)
-                        : senSearch
-                  }
-                  onChange={(e) => {
-                    setSenSearch(e.target.value);
-                    setSenUserIdInput("");
-                    setSenPickerOpen(true);
-                  }}
-                  onFocus={() => setSenPickerOpen(true)}
-                  placeholder={t(lang, "deal.senSearchPlaceholder")}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm"
-                  autoComplete="off"
-                />
-                {senPickerOpen ? (
-                  <div className="absolute z-10 mt-1 w-full max-h-48 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
-                    {senOptionsLoading ? (
-                      <p className="px-3 py-2 text-xs text-slate-400">…</p>
-                    ) : filteredSenOptions.length === 0 ? (
-                      <p className="px-3 py-2 text-xs text-slate-400">
-                        {t(lang, "deal.senEmpty")}
-                      </p>
-                    ) : (
-                      filteredSenOptions.map((user) => (
-                        <button
-                          key={user.user_id}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-amber-50"
-                          onClick={() => {
-                            setSenUserIdInput(user.user_id);
-                            setSenSearch(formatSenOptionLabel(user));
-                            setSenPickerOpen(false);
-                          }}
-                        >
-                          {formatSenOptionLabel(user)}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
             <label className="flex items-start gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
@@ -1758,32 +1735,30 @@ export function ListingDetail({
                 checked={depositAck}
                 onChange={(e) => setDepositAck(e.target.checked)}
               />
-              <span>{t(lang, "deal.ackLabel")}</span>
+              <span>
+                {t(lang, isOwner ? "deal.ackLabel" : "deal.ackLabelRequest")}
+              </span>
             </label>
-            <div className="flex justify-end gap-2 pt-1">
+            <DialogActions>
               <button
                 type="button"
                 disabled={dealBusy}
                 onClick={() => setDepositOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-sm rounded-full min-w-[96px] disabled:opacity-60"
+                className="flex-1 py-2.5 border border-slate-200 text-sm rounded-full disabled:opacity-60"
               >
                 {t(lang, "common.cancel")}
               </button>
               <button
                 type="button"
-                disabled={
-                  dealBusy ||
-                  !depositAck ||
-                  (isOwner && !senUserIdInput.trim())
-                }
+                disabled={dealBusy || !depositAck}
                 onClick={() => void runDealAction("deposit")}
-                className="px-4 py-2 bg-[#D97706] text-white text-sm font-semibold rounded-full min-w-[120px] disabled:opacity-60"
+                className="flex-1 py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full disabled:opacity-60"
               >
                 {dealBusy
                   ? t(lang, "deal.confirming")
-                  : t(lang, "deal.confirmFreeze")}
+                  : t(lang, isOwner ? "deal.confirmFreeze" : "deal.sendRequest")}
               </button>
-            </div>
+            </DialogActions>
           </div>
         </div>
       )}
