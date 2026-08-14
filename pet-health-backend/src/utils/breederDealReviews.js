@@ -39,3 +39,24 @@ export function isSenConfirmedDeal(deal) {
   if (deal.completed_by_system === true || deal.completedBySystem === true) return false;
   return true;
 }
+
+/** Points awarded toward transparency for a single review (5★ only). */
+export function transparencyPointsForDealReview(rating) {
+  return normalizeDealReviewRating(rating) === 5 ? 2 : 0;
+}
+
+/**
+ * Breeder inbox preview after Sen reviews a completed deal.
+ * Keeps under createDealNotification's 220-char body_preview cap.
+ */
+export function buildDealReviewedNotificationPreview(input = {}) {
+  const title = trimText(input.title ?? input.postTitle, 60) || 'tin đăng';
+  const rating = normalizeDealReviewRating(input.rating) || 0;
+  const body = trimText(input.body ?? input.note ?? input.comment, 100);
+  const points = transparencyPointsForDealReview(rating);
+  const stars = rating ? `${rating}★` : '★';
+  let preview = `Sen đánh giá ${stars} cho "${title}".`;
+  if (points > 0) preview += ` +${points} điểm minh bạch.`;
+  if (body) preview += ` "${body}"`;
+  return trimText(preview, 220);
+}

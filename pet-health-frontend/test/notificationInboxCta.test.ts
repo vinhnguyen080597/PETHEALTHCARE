@@ -22,6 +22,13 @@ const FALLBACKS = {
   viewListing: 'View listing',
 };
 
+test('deal reviewed notification uses view listing CTA', () => {
+  assert.equal(
+    notificationInboxCta({ type: 'deal_reviewed' }, FALLBACKS),
+    'View listing',
+  );
+});
+
 test('deposit cancel notification shows a confirm CTA', () => {
   assert.equal(
     notificationInboxCta({ type: 'deposit_cancel_request' }, FALLBACKS),

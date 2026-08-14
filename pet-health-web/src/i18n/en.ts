@@ -401,7 +401,8 @@ const en = {
   "deal.disputeSubmit": "Submit dispute",
   "deal.completed": "Transaction completed",
   "deal.reviewTitle": "Rate this breeder",
-  "deal.reviewHint": "Your rating helps other Sen choose trusted kennels. Only 5★ reviews add transparency points (+2 each).",
+  "deal.reviewHint":
+    "Your rating helps other Sen choose trusted kennels.",
   "deal.reviewPlaceholder": "Optional comment about your experience…",
   "deal.reviewSubmit": "Submit review",
   "deal.reviewSkip": "Skip for now",

@@ -48,14 +48,20 @@ test('sen confirm completion + 5-star review updates breeder transparency counts
   const done = await confirmListingComplete(senId, post.id, null);
   assert.equal(done.review_eligible, true);
 
-  const review = await createBreederDealReview(senId, post.id, { rating: 5, body: 'Great!' }, null);
-  assert.equal(review.rating, 5);
+  const reviewResult = await createBreederDealReview(senId, post.id, { rating: 5, body: 'Great!' }, null);
+  assert.equal(reviewResult.review.rating, 5);
+  assert.equal(reviewResult.transparency_points_awarded, 2);
+  assert.equal(reviewResult.notify_user_id, breederId);
 
   const agg = await getBreederDealReviewAggregate(profile.id, null);
   assert.equal(agg.review_count, 1);
   assert.equal(agg.five_star_review_count, 1);
   assert.equal(agg.sen_confirmed_completions, 1);
   assert.equal(agg.review_avg, 5);
+
+  const refreshed = await getMyBreederProfile(breederId, null);
+  assert.equal(refreshed.metadata?.five_star_review_count, 1);
+  assert.equal(refreshed.metadata?.review_count, 1);
 });
 
 test('duplicate review is rejected', async () => {

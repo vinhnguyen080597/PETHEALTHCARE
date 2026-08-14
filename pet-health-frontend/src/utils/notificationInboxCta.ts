@@ -24,6 +24,7 @@ const DEAL_INFO_TYPES = new Set([
   'deposit_confirmed',
   'deposit_cancelled',
   'deal_completed',
+  'deal_reviewed',
   'deal_dispute_opened',
   'deal_dispute_resolved',
 ]);

@@ -94,6 +94,7 @@ import {
   getBreederDealReviewAggregate,
   getMyDealReviewForPost,
 } from '../repositories/breederDealReviewsRepository.js';
+import { buildDealReviewedNotificationPreview } from '../utils/breederDealReviews.js';
 import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 const router = Router();
@@ -1667,13 +1668,45 @@ router.post('/posts/:postId/review', async (req, res, next) => {
   try {
     const postId = cleanId(req.params.postId);
     if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const review = await createBreederDealReview(req.user.id, postId, req.body ?? {}, req.accessToken);
+    const result = await createBreederDealReview(req.user.id, postId, req.body ?? {}, req.accessToken);
+    if (result.notify_user_id) {
+      void createDealNotification({
+        recipientUserId: result.notify_user_id,
+        actorUserId: req.user.id,
+        postId,
+        type: 'deal_reviewed',
+        bodyPreview: buildDealReviewedNotificationPreview({
+          title: result.post_title,
+          rating: result.review.rating,
+          body: result.review.body,
+        }),
+        metadata: {
+          ...dealNotifyMeta({
+            id: postId,
+            title: result.post_title,
+            breeder_profile_id: result.breeder_profile_id,
+          }),
+          rating: result.review.rating,
+          review_body: result.review.body || '',
+          transparency_points_awarded: result.transparency_points_awarded,
+          cta_label: 'Xem tin đăng',
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
     void recordProductEvent({
       userId: req.user.id,
       event: 'breeder_deal_review_created',
-      metadata: { post_id: postId, rating: review.rating },
+      metadata: {
+        post_id: postId,
+        rating: result.review.rating,
+        transparency_points_awarded: result.transparency_points_awarded,
+      },
     });
-    return res.status(201).json({ data: review });
+    return res.status(201).json({
+      data: result.review,
+      transparency_points_awarded: result.transparency_points_awarded,
+    });
   } catch (err) {
     return next(err);
   }

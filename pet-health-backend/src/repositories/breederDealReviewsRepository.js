@@ -5,15 +5,23 @@ import { isOwnerDeletedListing } from '../utils/listingOwnerDelete.js';
 import {
   isSenConfirmedDeal,
   normalizeDealReviewRating,
+  transparencyPointsForDealReview,
   validateDealReviewInput,
 } from '../utils/breederDealReviews.js';
 
 const memoryReviews = [];
 const memoryPostsRef = { getter: () => [] };
+const memoryProfilesRef = { getter: () => [], setter: null };
 
 /** Wire memory posts from petFeedRepository in tests. */
 export function bindBreederDealReviewMemoryPosts(getter) {
   memoryPostsRef.getter = getter;
+}
+
+/** Wire memory breeder profiles so recompute persists five_star_review_count without Supabase. */
+export function bindBreederDealReviewMemoryProfiles(getter, setter) {
+  memoryProfilesRef.getter = getter;
+  memoryProfilesRef.setter = setter;
 }
 
 function getSupabase(accessToken) {
@@ -138,7 +146,25 @@ export async function recomputeBreederDealActivity(breederProfileId, accessToken
   };
 
   const supabase = getSupabase(accessToken);
-  if (!supabase) return patch;
+  if (!supabase) {
+    const profiles = memoryProfilesRef.getter();
+    const idx = profiles.findIndex((profile) => profile.id === safeId);
+    if (idx < 0) return patch;
+    const next = {
+      ...profiles[idx],
+      metadata: {
+        ...asObject(profiles[idx].metadata),
+        ...patch,
+      },
+      updated_at: new Date().toISOString(),
+    };
+    if (typeof memoryProfilesRef.setter === 'function') {
+      memoryProfilesRef.setter(idx, next);
+    } else {
+      profiles[idx] = next;
+    }
+    return next.metadata;
+  }
 
   const { data: existing, error: existingError } = await supabase
     .from('breeder_profiles')
@@ -270,7 +296,13 @@ export async function createBreederDealReview(senUserId, postId, payload, access
   }
 
   await recomputeBreederDealActivity(breederProfileId, accessToken);
-  return toReview(row);
+  return {
+    review: toReview(row),
+    notify_user_id: trimText(post.user_id, 80) || null,
+    post_title: trimText(post.title, 200),
+    breeder_profile_id: breederProfileId,
+    transparency_points_awarded: transparencyPointsForDealReview(validated.rating),
+  };
 }
 
 export function resetBreederDealReviewMemoryForTests() {

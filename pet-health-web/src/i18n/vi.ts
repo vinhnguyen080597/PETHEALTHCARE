@@ -402,7 +402,7 @@ const vi: Record<EnKey, string> = {
   "deal.disputeSubmit": "Gửi khiếu nại",
   "deal.completed": "Giao dịch đã hoàn thành",
   "deal.reviewTitle": "Đánh giá trại",
-  "deal.reviewHint": "Đánh giá giúp Sen khác chọn trại uy tín. Chỉ đánh giá 5★ mới cộng điểm minh bạch (+2/lần).",
+  "deal.reviewHint": "Đánh giá giúp Sen khác chọn trại uy tín.",
   "deal.reviewPlaceholder": "Nhận xét thêm (không bắt buộc)…",
   "deal.reviewSubmit": "Gửi đánh giá",
   "deal.reviewSkip": "Bỏ qua",

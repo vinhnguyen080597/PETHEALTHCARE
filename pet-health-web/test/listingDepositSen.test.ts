@@ -56,9 +56,11 @@ test("deposit sen i18n keys exist", () => {
     "deal.senAbandonTitle",
     "deal.senAbandonHint",
     "deal.actionsMenu",
+    "deal.reviewHint",
   ] as const) {
     assert.ok(en[key], `missing EN ${key}`);
     assert.ok(vi[key], `missing VI ${key}`);
   }
   assert.equal(vi["deal.confirmFreeze"], "Xác nhận");
+  assert.equal(vi["deal.reviewHint"], "Đánh giá giúp Sen khác chọn trại uy tín.");
 });

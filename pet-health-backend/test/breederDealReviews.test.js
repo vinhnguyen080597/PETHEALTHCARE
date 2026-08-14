@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildDealReviewedNotificationPreview,
   formatReviewAverage,
   isSenConfirmedDeal,
   normalizeDealReviewRating,
+  transparencyPointsForDealReview,
   validateDealReviewInput,
 } from '../src/utils/breederDealReviews.js';
 
@@ -30,4 +32,29 @@ test('formatReviewAverage', () => {
 
 test('normalizeDealReviewRating rounds', () => {
   assert.equal(normalizeDealReviewRating(4.6), 5);
+});
+
+test('transparency points only for 5-star reviews', () => {
+  assert.equal(transparencyPointsForDealReview(5), 2);
+  assert.equal(transparencyPointsForDealReview(4), 0);
+});
+
+test('buildDealReviewedNotificationPreview includes note and points for 5★', () => {
+  const preview = buildDealReviewedNotificationPreview({
+    title: 'Persian kitten',
+    rating: 5,
+    body: 'Rất tuyệt vời',
+  });
+  assert.match(preview, /5★/);
+  assert.match(preview, /\+2 điểm minh bạch/);
+  assert.match(preview, /Rất tuyệt vời/);
+  assert.match(preview, /Persian kitten/);
+
+  const fourStar = buildDealReviewedNotificationPreview({
+    title: 'Cat',
+    rating: 4,
+    body: '',
+  });
+  assert.match(fourStar, /4★/);
+  assert.equal(fourStar.includes('+2'), false);
 });

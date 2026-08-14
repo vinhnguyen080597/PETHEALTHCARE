@@ -138,6 +138,7 @@ export function NotificationsInboxScreen({
       type === 'deposit_cancelled' ||
       type === 'deal_complete_request' ||
       type === 'deal_completed' ||
+      type === 'deal_reviewed' ||
       type === 'deal_dispute_opened' ||
       type === 'deal_dispute_resolved'
     ) {

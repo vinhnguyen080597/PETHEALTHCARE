@@ -254,10 +254,12 @@ test('sen abandon i18n keys exist in EN and VI', () => {
     'senAbandonTitle',
     'senAbandonHint',
     'actionsMenu',
+    'reviewHint',
   ]) {
     assert.ok(en.deal[key], `missing EN deal.${key}`);
     assert.ok(vi.deal[key], `missing VI deal.${key}`);
   }
   assert.equal(vi.deal.senConfirmReceipt, 'Xác nhận đã nhận bé');
   assert.equal(vi.deal.senAbandonDeposit, 'Huỷ cọc');
+  assert.equal(vi.deal.reviewHint, 'Đánh giá giúp Sen khác chọn trại uy tín.');
 });

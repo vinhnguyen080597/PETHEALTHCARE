@@ -35,6 +35,7 @@ import {
 } from '../utils/breederProfileSubmissions.js';
 import {
   bindBreederDealReviewMemoryPosts,
+  bindBreederDealReviewMemoryProfiles,
   recomputeBreederDealActivity,
 } from './breederDealReviewsRepository.js';
 import {
@@ -57,6 +58,12 @@ const memoryComments = [];
 const memoryBlockedBreeders = [];
 const memorySubmissions = [];
 bindBreederDealReviewMemoryPosts(() => memoryPosts);
+bindBreederDealReviewMemoryProfiles(
+  () => memoryProfiles,
+  (idx, next) => {
+    memoryProfiles[idx] = next;
+  },
+);
 bindTransparencyWarningMemoryProfiles(
   () => memoryProfiles,
   (idx, next) => {

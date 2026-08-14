@@ -30,6 +30,7 @@ const DEAL_NOTIFICATION_TYPES = new Set([
   'deposit_cancelled',
   'deal_complete_request',
   'deal_completed',
+  'deal_reviewed',
   'deal_dispute_opened',
   'deal_dispute_resolved',
 ]);
