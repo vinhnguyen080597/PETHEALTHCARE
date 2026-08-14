@@ -91,6 +91,12 @@ Tuyên bố quan trọng: Chúng tôi KHÔNG phải là người bán, không s�
 - Nghiêm cấm mua bán các loài động vật thuộc danh mục động vật hoang dã, động vật nguy cấp, quý, hiếm bị cấm giao dịch theo pháp luật Việt Nam.
 - Khi nhận được báo cáo vi phạm (lừa đảo cọc, hình ảnh giả mạo, nội dung cấm) từ người dùng hoặc cơ quan chức năng, Ban quản trị cam kết thẩm định và gỡ bỏ tin đăng vi phạm trong vòng 24 giờ.
 
+### Cơ chế miễn trừ trách nhiệm nội dung
+
+Ban quản trị PetCare: Pet Marketplace vận hành hệ thống kiểm duyệt tin đăng dựa trên thiện chí và các công cụ kỹ thuật hiện có. Do sự đa dạng của các loài vật nuôi, Ban quản trị không có nghĩa vụ và không đủ chuyên môn để thẩm định tính pháp lý chuyên sâu về nguồn gốc sinh học của từng cá thể động vật do người dùng tải lên.
+
+Khi phát hiện hoặc nhận được báo cáo về tin đăng có dấu hiệu vi phạm quy định về động vật hoang dã/trái phép, Ban quản trị sẽ tiến hành gỡ bỏ tin đăng trong vòng 24 giờ và hủy bỏ tài khoản vi phạm mà không cần báo trước. Người dùng vi phạm sẽ phải tự chịu mọi hình phạt hành chính hoặc hình sự trước cơ quan nhà nước có thẩm quyền.
+
 ### Ảnh, video và truyền thông
 
 Khi bạn tải ảnh hoặc video thú cưng lên PetCare: Pet Marketplace (gồm tin đăng, hồ sơ trại và media bàn giao), bạn cấp cho PetCare: Pet Marketplace quyền không độc quyền, miễn phí bản quyền để sử dụng, sao chép, chỉnh sửa nhẹ (cắt, ghép, gắn watermark) và công bố nội dung đó nhằm vận hành sản phẩm cũng như quảng bá, truyền thông. Bạn xác nhận mình có quyền cấp phép này và nội dung không xâm phạm quyền của bên thứ ba.
@@ -117,6 +123,14 @@ Nội quy Marketplace áp dụng cho Sen, Breeder và mọi người dùng tin �
 - Khai đúng tuổi, giống, giới tính, vaccine, sức khỏe, giá, khu vực và bảo hành. Ảnh / video phải đúng bé đang chào bán.
 - Gắn chính sách bảo hành rõ ràng trước khi chốt cọc khi sản phẩm yêu cầu.
 - Hồ sơ Breeder / trại phải phản ánh thực tế chăm sóc; không giả mạo xác minh hay tín hiệu uy tín.
+
+### Danh mục động vật cấm giao dịch và bảo hành trách nhiệm
+
+Nghiêm cấm tuyệt đối: nghiêm cấm đăng tải, mua bán, giao dịch tất cả các loài động vật hoang dã, động vật nguy cấp, quý, hiếm thuộc Danh mục Sách Đỏ Việt Nam, Danh mục CITES, hoặc bất kỳ loài động vật nào bị cấm khai thác, cấm kinh doanh theo quy định của pháp luật Việt Nam và quốc tế.
+
+- Người đăng tin (Breeder/Người bán) phải tự chịu hoàn toàn trách nhiệm trước pháp luật về nguồn gốc, tính hợp pháp và quyền sở hữu đối với thú cưng/vật nuôi do mình đăng bán.
+- Người đăng tin cam kết vật nuôi không thuộc danh mục cấm, không phải là động vật săn bắt trái phép, và có đầy đủ giấy tờ chứng minh nguồn gốc hợp pháp (đối với các dòng yêu cầu giấy tờ).
+- Trong mọi trường hợp, PetCare: Pet Marketplace được miễn trừ toàn bộ trách nhiệm liên quan đến các vi phạm pháp luật về bảo tồn động vật do Người đăng tin cố tình giả mạo thông tin, gian lận hoặc cung cấp sai sự thật.
 
 ### Miễn trừ trách nhiệm dịch vụ vận chuyển
 

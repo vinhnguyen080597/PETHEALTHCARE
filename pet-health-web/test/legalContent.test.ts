@@ -44,12 +44,18 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(termsVi, /bảo hành/);
   assert.match(termsVi, /quảng bá, truyền thông/);
   assert.match(flattenLegalDoc(termsOfServiceContent.EN), /marketing or communications/i);
-  assert.match(flattenLegalDoc(termsOfServiceContent.EN), /NOT the seller/);
+  assert.match(termsVi, /không đủ chuyên môn/);
+  assert.match(termsVi, /hủy bỏ tài khoản vi phạm/);
+  assert.match(flattenLegalDoc(termsOfServiceContent.EN), /Content liability disclaimer/);
+  assert.match(flattenLegalDoc(termsOfServiceContent.EN), /without prior notice/);
 
   const guideVi = flattenLegalDoc(marketplaceGuidelinesContent.VI);
   assert.match(guideVi, /bàn giao/);
   assert.match(guideVi, /tranh chấp/);
-  assert.match(guideVi, /động vật hoang dã/);
+  assert.match(guideVi, /Sách Đỏ Việt Nam/);
+  assert.match(guideVi, /CITES/);
+  assert.match(guideVi, /miễn trừ toàn bộ trách nhiệm/);
+  assert.match(flattenLegalDoc(marketplaceGuidelinesContent.EN), /CITES/);
   assert.match(guideVi, /KHÔNG trực tiếp cung cấp dịch vụ vận chuyển/);
   assert.match(guideVi, /03 ngày làm việc/);
   assert.match(guideVi, /quảng bá, truyền thông/);
@@ -84,7 +90,8 @@ test("Vietnamese legal markdown export includes BCT operator and process section
   assert.match(md, /Nghị định 13\/2023/);
   assert.match(md, /Quy trình 4 bước/);
   assert.match(md, /support@pet-marketplace\.org/);
-  assert.match(md, /contact@pet-marketplace\.org/);
+  assert.match(md, /CITES/);
+  assert.match(md, /Cơ chế miễn trừ trách nhiệm nội dung/);
 });
 
 test("footer legal labels stay in EN/VI parity", () => {

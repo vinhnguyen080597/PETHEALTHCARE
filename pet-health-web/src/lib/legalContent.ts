@@ -173,6 +173,13 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
         ],
       },
       {
+        heading: "Content liability disclaimer",
+        paragraphs: [
+          "PetCare: Pet Marketplace administration operates listing review in good faith with the technical tools available. Because of the diversity of companion animals, the administration has no duty and does not have specialist expertise to make an in-depth legal assessment of the biological origin of each animal a user uploads.",
+          "If we detect or receive a report of a listing that appears to involve wildlife or otherwise illegal animals, the administration will remove the listing within 24 hours and terminate the violating account without prior notice. The violating user remains solely liable for any administrative or criminal sanctions imposed by competent state authorities.",
+        ],
+      },
+      {
         heading: "Photos, videos, and promotion",
         paragraphs: [
           "By uploading pet photos or videos to PetCare: Pet Marketplace (including listings, farm profiles, and handoff media), you grant PetCare: Pet Marketplace a non-exclusive, royalty-free license to use, reproduce, lightly edit (crop, compose, watermark), and publish that media to operate the product and for marketing or communications. You confirm you have the right to grant this license and that the content does not infringe third-party rights.",
@@ -221,6 +228,13 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
         ],
       },
       {
+        heading: "Cơ chế miễn trừ trách nhiệm nội dung",
+        paragraphs: [
+          "Ban quản trị PetCare: Pet Marketplace vận hành hệ thống kiểm duyệt tin đăng dựa trên thiện chí và các công cụ kỹ thuật hiện có. Do sự đa dạng của các loài vật nuôi, Ban quản trị không có nghĩa vụ và không đủ chuyên môn để thẩm định tính pháp lý chuyên sâu về nguồn gốc sinh học của từng cá thể động vật do người dùng tải lên.",
+          "Khi phát hiện hoặc nhận được báo cáo về tin đăng có dấu hiệu vi phạm quy định về động vật hoang dã/trái phép, Ban quản trị sẽ tiến hành gỡ bỏ tin đăng trong vòng 24 giờ và hủy bỏ tài khoản vi phạm mà không cần báo trước. Người dùng vi phạm sẽ phải tự chịu mọi hình phạt hành chính hoặc hình sự trước cơ quan nhà nước có thẩm quyền.",
+        ],
+      },
+      {
         heading: "Ảnh, video và truyền thông",
         paragraphs: [
           "Khi bạn tải ảnh hoặc video thú cưng lên PetCare: Pet Marketplace (gồm tin đăng, hồ sơ trại và media bàn giao), bạn cấp cho PetCare: Pet Marketplace quyền không độc quyền, miễn phí bản quyền để sử dụng, sao chép, chỉnh sửa nhẹ (cắt, ghép, gắn watermark) và công bố nội dung đó nhằm vận hành sản phẩm cũng như quảng bá, truyền thông. Bạn xác nhận mình có quyền cấp phép này và nội dung không xâm phạm quyền của bên thứ ba.",
@@ -253,6 +267,17 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
           "Describe age, breed, sex, vaccines, health, price, location, and warranty honestly. Photos and videos must match the pet offered.",
           "Attach a clear warranty policy before confirming a deposit when the product requires it.",
           "Breeder / farm profiles must reflect real care practices; do not fake verification or trust signals.",
+        ],
+      },
+      {
+        heading: "Prohibited animals and poster liability",
+        paragraphs: [
+          "Absolute prohibition: it is strictly forbidden to post, buy, sell, or otherwise trade any wildlife, endangered, rare, or precious species listed in Vietnam’s Red Data Book, the CITES Appendices, or any species whose harvest or commercial trade is prohibited under Vietnamese or international law.",
+        ],
+        bullets: [
+          "The listing poster (Breeder / Seller) is solely legally responsible for the origin, lawfulness, and ownership of the pet or animal they list.",
+          "The poster warrants that the animal is not a prohibited species, was not illegally captured, and (where documents are required) is accompanied by lawful proof of origin.",
+          "In all cases, PetCare: Pet Marketplace is fully released from liability for wildlife-conservation offences caused by a poster’s intentional misrepresentation, fraud, or false information.",
         ],
       },
       {
@@ -314,6 +339,17 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
           "Khai đúng tuổi, giống, giới tính, vaccine, sức khỏe, giá, khu vực và bảo hành. Ảnh / video phải đúng bé đang chào bán.",
           "Gắn chính sách bảo hành rõ ràng trước khi chốt cọc khi sản phẩm yêu cầu.",
           "Hồ sơ Breeder / trại phải phản ánh thực tế chăm sóc; không giả mạo xác minh hay tín hiệu uy tín.",
+        ],
+      },
+      {
+        heading: "Danh mục động vật cấm giao dịch và bảo hành trách nhiệm",
+        paragraphs: [
+          "Nghiêm cấm tuyệt đối: nghiêm cấm đăng tải, mua bán, giao dịch tất cả các loài động vật hoang dã, động vật nguy cấp, quý, hiếm thuộc Danh mục Sách Đỏ Việt Nam, Danh mục CITES, hoặc bất kỳ loài động vật nào bị cấm khai thác, cấm kinh doanh theo quy định của pháp luật Việt Nam và quốc tế.",
+        ],
+        bullets: [
+          "Người đăng tin (Breeder/Người bán) phải tự chịu hoàn toàn trách nhiệm trước pháp luật về nguồn gốc, tính hợp pháp và quyền sở hữu đối với thú cưng/vật nuôi do mình đăng bán.",
+          "Người đăng tin cam kết vật nuôi không thuộc danh mục cấm, không phải là động vật săn bắt trái phép, và có đầy đủ giấy tờ chứng minh nguồn gốc hợp pháp (đối với các dòng yêu cầu giấy tờ).",
+          "Trong mọi trường hợp, PetCare: Pet Marketplace được miễn trừ toàn bộ trách nhiệm liên quan đến các vi phạm pháp luật về bảo tồn động vật do Người đăng tin cố tình giả mạo thông tin, gian lận hoặc cung cấp sai sự thật.",
         ],
       },
       {
