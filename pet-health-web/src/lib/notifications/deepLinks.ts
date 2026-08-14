@@ -19,6 +19,7 @@ export type NotificationDeepLinkInput = {
 
 export const DEPOSIT_CANCEL_DEAL_ACTION = "confirm-cancel";
 export const DEPOSIT_CONFIRM_DEAL_ACTION = "confirm-deposit";
+export const HANDOFF_CONFIRM_DEAL_ACTION = "confirm-receipt";
 
 const DEAL_ACTION_NOTIFICATION_TYPES = new Set([
   "deposit_request",
@@ -195,6 +196,14 @@ export function isDepositRequestNotification(
   return type === "deposit_request";
 }
 
+export function isDealCompleteRequestNotification(
+  item: NotificationDeepLinkInput | string | null | undefined,
+) {
+  const type =
+    typeof item === "string" || !item ? String(item || "") : notificationType(item);
+  return type === "deal_complete_request";
+}
+
 export function isDealActionNotification(
   item: NotificationDeepLinkInput | string | null | undefined,
 ) {
@@ -270,6 +279,10 @@ export function listingNotificationHref(item: NotificationDeepLinkInput): string
   if (isDepositRequestNotification(item)) {
     const sep = path.includes("?") ? "&" : "?";
     return `${path}${sep}dealAction=${DEPOSIT_CONFIRM_DEAL_ACTION}`;
+  }
+  if (isDealCompleteRequestNotification(item)) {
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}dealAction=${HANDOFF_CONFIRM_DEAL_ACTION}`;
   }
   return path;
 }

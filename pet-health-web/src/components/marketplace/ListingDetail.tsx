@@ -63,6 +63,7 @@ import {
   canSenConfirmCancel,
   canSenConfirmHandoff,
   canSenAbandonHandoff,
+  canSenRespondToHandoffRequest,
   canSenWithdrawDepositRequest,
   CANCEL_DEPOSIT_MAX_PHOTOS,
   CANCEL_DEPOSIT_REASON_KEYS,
@@ -177,6 +178,7 @@ export function ListingDetail({
   const dealAction = searchParams.get("dealAction");
   const wantsSenConfirmCancel = dealAction === "confirm-cancel";
   const wantsBreederConfirmDeposit = dealAction === "confirm-deposit";
+  const wantsSenConfirmReceipt = dealAction === "confirm-receipt";
   const backHref = listingDetailBackHref(listingFrom);
   const [listing, setListing] = useState(initialListing);
   const ownerUserId = listing.ownerUserId || listing.breeder.userId;
@@ -236,6 +238,14 @@ export function ListingDetail({
     dealStatus: listing.deal?.status,
   });
   const showSenHandoffMenu = showSenConfirmHandoff || showSenAbandonHandoff;
+  const showSenHandoffFromNotify =
+    wantsSenConfirmReceipt &&
+    canSenRespondToHandoffRequest({
+      isDealSen,
+      listingStatus: listing.status,
+      dealStatus: listing.deal?.status,
+      allowLoggedInDeepLink: Boolean(isLoggedIn && wantsSenConfirmReceipt),
+    });
   const showSenConfirmCancel = canSenConfirmCancel({
     isDealSen,
     listingStatus: listing.status,
@@ -393,11 +403,17 @@ export function ListingDetail({
   }, [isLoggedIn, initialListing.id]);
 
   useEffect(() => {
-    if (!wantsSenConfirmCancel) return;
+    if (!wantsSenConfirmCancel && !wantsSenConfirmReceipt) return;
     const el = document.getElementById("listing-deal-panel");
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [wantsSenConfirmCancel, listing.deal?.status, showSenConfirmCancel]);
+  }, [
+    wantsSenConfirmCancel,
+    wantsSenConfirmReceipt,
+    listing.deal?.status,
+    showSenConfirmCancel,
+    showSenHandoffFromNotify,
+  ]);
 
   useEffect(() => {
     if (!wantsBreederConfirmDeposit || !showBreederConfirmDeposit) return;
@@ -1417,6 +1433,32 @@ export function ListingDetail({
                         ? ` — ${listing.deal.disputeMessage}`
                         : ""}
                     </p>
+                  ) : null}
+                  {showSenHandoffFromNotify ? (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-amber-800/90">
+                        {waitingForSenMessage(
+                          t(lang, "deal.completeWaitingBadge"),
+                          handoffDaysLeft,
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={dealBusy}
+                        onClick={() => void runDealAction("complete")}
+                        className="w-full py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full disabled:opacity-60"
+                      >
+                        {t(lang, "deal.senConfirmReceipt")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={dealBusy}
+                        onClick={() => setSenAbandonOpen(true)}
+                        className="w-full py-2.5 border border-red-200 text-red-600 text-sm font-semibold rounded-full disabled:opacity-60"
+                      >
+                        {t(lang, "deal.senOpenDispute")}
+                      </button>
+                    </div>
                   ) : null}
                   {showSenConfirmCancel ? (
                     <div className="mt-3 space-y-2">

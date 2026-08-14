@@ -9,6 +9,7 @@ import {
   canSenAbandonHandoff,
   canSenConfirmHandoff,
   canSenOpenDispute,
+  canSenRespondToHandoffRequest,
   canSenWithdrawDepositRequest,
   daysLeftUntilDeadline,
   dealPhotosDropHint,
@@ -171,6 +172,14 @@ test("sen can confirm handoff, cancel, or open dispute by phase", () => {
       listingStatus: "deposit_hold",
       dealStatus: "pending_sen_complete",
     }),
+    false,
+  );
+  assert.equal(
+    canSenConfirmHandoff({
+      isDealSen: true,
+      listingStatus: "deposit_hold",
+      dealStatus: "deposit_hold",
+    }),
     true,
   );
   assert.equal(
@@ -187,7 +196,7 @@ test("sen can confirm handoff, cancel, or open dispute by phase", () => {
       listingStatus: "deposit_hold",
       dealStatus: "pending_sen_complete",
     }),
-    true,
+    false,
   );
   assert.equal(
     canSenAbandonHandoff({
@@ -203,6 +212,22 @@ test("sen can confirm handoff, cancel, or open dispute by phase", () => {
       listingStatus: "deposit_hold",
       dealStatus: "deposit_hold",
     }),
+    true,
+  );
+  assert.equal(
+    canSenConfirmHandoff({
+      isDealSen: true,
+      listingStatus: "deposit_hold",
+      dealStatus: "deposit_hold",
+    }),
+    true,
+  );
+  assert.equal(
+    canSenAbandonHandoff({
+      isDealSen: true,
+      listingStatus: "published",
+      dealStatus: "pending_sen",
+    }),
     false,
   );
   assert.equal(
@@ -218,6 +243,31 @@ test("sen can confirm handoff, cancel, or open dispute by phase", () => {
       isDealSen: true,
       listingStatus: "deposit_hold",
       dealStatus: "pending_sen_complete",
+    }),
+    false,
+  );
+  assert.equal(
+    canSenRespondToHandoffRequest({
+      isDealSen: true,
+      listingStatus: "deposit_hold",
+      dealStatus: "pending_sen_complete",
+    }),
+    true,
+  );
+  assert.equal(
+    canSenRespondToHandoffRequest({
+      isDealSen: false,
+      listingStatus: "deposit_hold",
+      dealStatus: "pending_sen_complete",
+      allowLoggedInDeepLink: true,
+    }),
+    true,
+  );
+  assert.equal(
+    canSenRespondToHandoffRequest({
+      isDealSen: true,
+      listingStatus: "deposit_hold",
+      dealStatus: "deposit_hold",
     }),
     false,
   );

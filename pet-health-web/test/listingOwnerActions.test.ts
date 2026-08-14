@@ -157,6 +157,10 @@ test("listingDetailHref and back href respect from=account", () => {
     "/app/pet-feed/posts/abc?dealAction=confirm-deposit",
   );
   assert.equal(
+    listingDetailHref("abc", { dealAction: "confirm-receipt" }),
+    "/app/pet-feed/posts/abc?dealAction=confirm-receipt",
+  );
+  assert.equal(
     listingDetailHref("abc", { from: "account", dealAction: "confirm-cancel" }),
     "/app/pet-feed/posts/abc?from=account&dealAction=confirm-cancel",
   );

@@ -149,7 +149,7 @@ export function canSenConfirmHandoff(input: {
   dealStatus?: string | null;
 }): boolean {
   if (!input.isDealSen) return false;
-  return resolveDealHandoffPhase(input) === 'pending_sen_complete';
+  return resolveDealHandoffPhase(input) === 'deposit_hold';
 }
 
 export function canSenAbandonHandoff(input: {
@@ -158,6 +158,17 @@ export function canSenAbandonHandoff(input: {
   dealStatus?: string | null;
 }): boolean {
   return canSenConfirmHandoff(input);
+}
+
+/** After breeder handoff request — Sen responds from notification (not the ⋮ menu). */
+export function canSenRespondToHandoffRequest(input: {
+  isDealSen: boolean;
+  listingStatus?: string | null;
+  dealStatus?: string | null;
+  allowLoggedInDeepLink?: boolean;
+}): boolean {
+  if (!input.isDealSen && !input.allowLoggedInDeepLink) return false;
+  return resolveDealHandoffPhase(input) === 'pending_sen_complete';
 }
 
 /** Countdown is for the breeder (and others); Sen uses the ⋮ menu instead. */

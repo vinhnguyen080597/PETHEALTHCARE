@@ -3228,14 +3228,19 @@ export async function confirmListingComplete(actorUserId, postId, accessToken) {
   }
 
   const dealStatus = String(deal.status || '').trim().toLowerCase();
-  const awaitingSen =
-    dealStatus === 'pending_sen_complete'
+  const canConfirm =
+    dealStatus === 'deposit_hold'
+    || dealStatus === 'pending_sen_complete'
     || dealStatus === 'pending_complete'
     || Boolean(deal.breeder_confirmed_complete_at);
-  if (!awaitingSen) {
-    throw httpError('Breeder has not requested handoff confirmation yet.', 400, 'COMPLETE_NOT_REQUESTED');
+  if (!canConfirm) {
+    throw httpError(
+      'Receipt confirmation is only available after the deposit is locked.',
+      400,
+      'COMPLETE_NOT_ALLOWED',
+    );
   }
-  if (dealStatus === 'dispute_open') {
+  if (dealStatus === 'dispute_open' || isActiveDealDispute(deal)) {
     throw httpError('Handoff is under admin dispute review.', 400, 'COMPLETE_DISPUTE_OPEN');
   }
   if (deal.sen_confirmed_complete_at) {
@@ -3246,6 +3251,7 @@ export async function confirmListingComplete(actorUserId, postId, accessToken) {
   const nextDeal = {
     ...deal,
     status: 'completed',
+    breeder_confirmed_complete_at: deal.breeder_confirmed_complete_at || now,
     sen_confirmed_complete_at: now,
     completed_at: now,
   };
@@ -3294,9 +3300,14 @@ export async function abandonListingHandoffBySen(actorUserId, postId, accessToke
     );
   }
   const dealStatus = String(deal.status || '').trim().toLowerCase();
-  if (dealStatus !== 'pending_sen_complete' && dealStatus !== 'pending_complete') {
+  const canAbandon =
+    dealStatus === 'deposit_hold'
+    || dealStatus === 'pending_sen_complete'
+    || dealStatus === 'pending_complete'
+    || !dealStatus;
+  if (!canAbandon) {
     throw httpError(
-      'Abandon is only allowed after the breeder requested handoff confirmation.',
+      'Abandon is only allowed while the deposit hold is active.',
       400,
       'HANDOFF_ABANDON_NOT_ALLOWED',
     );

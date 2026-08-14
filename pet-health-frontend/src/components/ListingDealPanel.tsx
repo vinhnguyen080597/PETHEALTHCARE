@@ -20,6 +20,7 @@ import {
   canSenAbandonHandoff,
   canSenConfirmCancel,
   canSenConfirmHandoff,
+  canSenRespondToHandoffRequest,
   canSenWithdrawDepositRequest,
   canShowDepositRequest,
   CANCEL_DEPOSIT_MAX_PHOTOS,
@@ -95,6 +96,10 @@ export function ListingDealPanel({
   const showSenHandoff = canSenConfirmHandoff({ isDealSen, ...phaseInput });
   const showSenAbandon = canSenAbandonHandoff({ isDealSen, ...phaseInput });
   const showSenHandoffMenu = showSenHandoff || showSenAbandon;
+  const showSenHandoffFromNotify = canSenRespondToHandoffRequest({
+    isDealSen,
+    ...phaseInput,
+  });
   const showSenCancel = canSenConfirmCancel({ isDealSen, ...phaseInput });
   const showDisputeOpen = isDealDisputeOpen(phaseInput);
   const daysLeft = daysLeftUntilDeadline(deal.completeDeadlineAt);
@@ -126,7 +131,8 @@ export function ListingDealPanel({
     showPending ||
     showHandoff ||
     showCancel ||
-    showSenHandoff ||
+    showSenHandoffMenu ||
+    showSenHandoffFromNotify ||
     showSenCancel ||
     showDisputeOpen ||
     post.status === 'deposit_hold' ||
@@ -260,6 +266,34 @@ export function ListingDealPanel({
       </View>
 
       {error ? <Text className="mt-2 text-xs text-red-600">{error}</Text> : null}
+
+      {showSenHandoffFromNotify ? (
+        <View className="mt-3 gap-2">
+          <Text className="text-xs text-amber-800">
+            {t('deal.completeWaitingBadge', {
+              days: Math.max(0, daysLeft ?? COMPLETE_HANDOFF_DEADLINE_DAYS),
+            })}
+          </Text>
+          <Pressable
+            disabled={busy}
+            onPress={() => void run({ type: 'complete_confirm' })}
+            className="rounded-full bg-amber-600 px-4 py-2.5"
+          >
+            <Text className="text-center text-sm font-semibold text-white">
+              {t('deal.senConfirmReceipt')}
+            </Text>
+          </Pressable>
+          <Pressable
+            disabled={busy}
+            onPress={() => setSenAbandonOpen(true)}
+            className="rounded-full border border-red-200 bg-white px-4 py-2.5"
+          >
+            <Text className="text-center text-sm font-semibold text-red-600">
+              {t('deal.senOpenDispute')}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {showDeposit ||
       showBreederConfirm ||

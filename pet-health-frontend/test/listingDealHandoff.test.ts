@@ -9,6 +9,7 @@ import {
   canSenAbandonHandoff,
   canSenConfirmHandoff,
   canSenOpenDispute,
+  canSenRespondToHandoffRequest,
   canSenWithdrawDepositRequest,
   canShowDepositRequest,
   isDealDisputeOpen,
@@ -103,7 +104,7 @@ test('resolveDealHandoffPhase and gates match web contract', () => {
       listingStatus: 'deposit_hold',
       dealStatus: 'pending_sen_complete',
     }),
-    true,
+    false,
   );
   assert.equal(
     canSenAbandonHandoff({
@@ -111,7 +112,7 @@ test('resolveDealHandoffPhase and gates match web contract', () => {
       listingStatus: 'deposit_hold',
       dealStatus: 'pending_sen_complete',
     }),
-    true,
+    false,
   );
   assert.equal(
     canSenAbandonHandoff({
@@ -123,6 +124,38 @@ test('resolveDealHandoffPhase and gates match web contract', () => {
   );
   assert.equal(
     canSenAbandonHandoff({
+      isDealSen: true,
+      listingStatus: 'deposit_hold',
+      dealStatus: 'deposit_hold',
+    }),
+    true,
+  );
+  assert.equal(
+    canSenConfirmHandoff({
+      isDealSen: true,
+      listingStatus: 'deposit_hold',
+      dealStatus: 'deposit_hold',
+    }),
+    true,
+  );
+  assert.equal(
+    canSenAbandonHandoff({
+      isDealSen: true,
+      listingStatus: 'published',
+      dealStatus: 'pending_sen',
+    }),
+    false,
+  );
+  assert.equal(
+    canSenRespondToHandoffRequest({
+      isDealSen: true,
+      listingStatus: 'deposit_hold',
+      dealStatus: 'pending_sen_complete',
+    }),
+    true,
+  );
+  assert.equal(
+    canSenRespondToHandoffRequest({
       isDealSen: true,
       listingStatus: 'deposit_hold',
       dealStatus: 'deposit_hold',

@@ -248,5 +248,12 @@ test("listingNotificationHref rewrites legacy /app/posts and adds cancel action"
     }),
     "/app/pet-feed/posts/post-3?dealAction=confirm-deposit",
   );
+  assert.equal(
+    listingNotificationHref({
+      type: "deal_complete_request",
+      post_id: "post-4",
+    }),
+    "/app/pet-feed/posts/post-4?dealAction=confirm-receipt",
+  );
   assert.equal(isDepositCancelRequestNotification("deposit_cancel_request"), true);
 });

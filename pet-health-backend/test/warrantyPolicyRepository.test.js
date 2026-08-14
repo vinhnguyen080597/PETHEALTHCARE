@@ -277,7 +277,7 @@ test('breeder handoff then sen confirm moves deposit_hold to sold', async () => 
   assert.equal(done.post.status, 'sold');
 });
 
-test('sen abandon after handoff republishes listing and stamps escrow forfeit', async () => {
+test('sen abandon after deposit lock republishes listing and stamps escrow forfeit', async () => {
   const breederId = `wp-abandon-${Date.now()}`;
   const senId = `wp-abandon-sen-${Date.now()}`;
   await seedVerifiedBreeder(breederId);
@@ -297,18 +297,6 @@ test('sen abandon after handoff republishes listing and stamps escrow forfeit', 
   await senThenBreederConfirmDeposit(breederId, senId, post.id);
 
   await assert.rejects(
-    () => abandonListingHandoffBySen(senId, post.id, null),
-    (err) => err.code === 'HANDOFF_ABANDON_NOT_ALLOWED',
-  );
-
-  await requestListingComplete(
-    breederId,
-    post.id,
-    { handoffPhotoUrls: ['https://cdn.example.com/handoff-abandon.jpg'] },
-    null,
-  );
-
-  await assert.rejects(
     () => abandonListingHandoffBySen(breederId, post.id, null),
     (err) => err.code === 'HANDOFF_ABANDON_FORBIDDEN',
   );
@@ -321,6 +309,30 @@ test('sen abandon after handoff republishes listing and stamps escrow forfeit', 
   assert.equal(abandoned.post.metadata?.deal?.status, null);
   assert.equal(abandoned.post.metadata?.deal?.last_abandoned_handoff?.escrow_forfeit_to_breeder, true);
   assert.ok(!abandoned.post.metadata?.warranty_policy_snapshot);
+});
+
+test('sen can confirm receipt right after deposit lock without handoff photos', async () => {
+  const breederId = `wp-early-${Date.now()}`;
+  const senId = `wp-early-sen-${Date.now()}`;
+  await seedVerifiedBreeder(breederId);
+  const created = await createMyWarrantyPolicy(breederId, {
+    ...samplePolicy,
+    title: 'Policy Early',
+  }, null);
+  let post = await createPetFeedPost(breederId, {
+    title: 'Cat Early',
+    species: 'cat',
+    status: 'draft',
+    mediaUrls: ['https://cdn.example.com/early.jpg'],
+    videoUrl: 'https://cdn.example.com/early.mp4',
+    metadata: { warranty_policy_id: created.policy.id },
+  }, null);
+  post = await adminUpdatePetFeedPostStatus(post.id, 'published');
+  await senThenBreederConfirmDeposit(breederId, senId, post.id);
+  const done = await confirmListingComplete(senId, post.id, null);
+  assert.equal(done.both_confirmed, true);
+  assert.equal(done.post.status, 'sold');
+  assert.equal(done.review_eligible, true);
 });
 
 test('sen dispute then admin force-complete resolves deal', async () => {

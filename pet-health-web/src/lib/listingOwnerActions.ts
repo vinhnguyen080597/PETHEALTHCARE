@@ -88,7 +88,10 @@ export function listingEditHref(postId: string): string {
 }
 
 export type ListingDetailFrom = "account";
-export type ListingDealAction = "confirm-cancel" | "confirm-deposit";
+export type ListingDealAction =
+  | "confirm-cancel"
+  | "confirm-deposit"
+  | "confirm-receipt";
 
 /** Public listing detail URL; pass `from=account` when opened from My listings. */
 export function listingDetailHref(

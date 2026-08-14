@@ -95,7 +95,8 @@ export function canSenConfirmHandoff(input: {
   dealStatus?: string | null;
 }): boolean {
   if (!input.isDealSen) return false;
-  return resolveDealHandoffPhase(input) === "pending_sen_complete";
+  // Listing ⋮ menu: only while deposit is locked (before breeder handoff request).
+  return resolveDealHandoffPhase(input) === "deposit_hold";
 }
 
 /** Sen overflow: confirm receipt or abandon (relist). Same phase as confirm handoff. */
@@ -105,6 +106,20 @@ export function canSenAbandonHandoff(input: {
   dealStatus?: string | null;
 }): boolean {
   return canSenConfirmHandoff(input);
+}
+
+/**
+ * After breeder requests handoff, Sen confirms received / not received from the
+ * notification deep link (not the listing ⋮ menu).
+ */
+export function canSenRespondToHandoffRequest(input: {
+  isDealSen: boolean;
+  listingStatus?: string | null;
+  dealStatus?: string | null;
+  allowLoggedInDeepLink?: boolean;
+}): boolean {
+  if (!input.isDealSen && !input.allowLoggedInDeepLink) return false;
+  return resolveDealHandoffPhase(input) === "pending_sen_complete";
 }
 
 /** Countdown is for the breeder (and others); Sen uses the ⋮ menu instead. */
