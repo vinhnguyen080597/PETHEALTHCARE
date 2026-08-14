@@ -152,6 +152,14 @@ export function canSenConfirmHandoff(input: {
   return resolveDealHandoffPhase(input) === 'pending_sen_complete';
 }
 
+export function canSenAbandonHandoff(input: {
+  isDealSen: boolean;
+  listingStatus?: string | null;
+  dealStatus?: string | null;
+}): boolean {
+  return canSenConfirmHandoff(input);
+}
+
 export function canSenConfirmCancel(input: {
   isDealSen: boolean;
   listingStatus?: string | null;
@@ -246,6 +254,7 @@ export type ListingDealMutation =
   | { type: 'deposit_decline' }
   | { type: 'complete_request'; photoUris: string[] }
   | { type: 'complete_confirm' }
+  | { type: 'handoff_abandon' }
   | { type: 'complete_dispute'; message: string; photoUris: string[] }
   | { type: 'cancel_request'; reason: string; photoUris: string[] }
   | { type: 'cancel_confirm' };

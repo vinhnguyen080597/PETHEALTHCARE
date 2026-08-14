@@ -362,6 +362,10 @@ const vi: Record<EnKey, string> = {
     "Sen có tối đa {days} ngày để xác nhận đã nhận bé. Nếu không phản hồi kịp, giao dịch sẽ tự hoàn thành.",
   "deal.completeWaitingBadge": "Chờ Sen xác nhận · còn {days} ngày",
   "deal.senConfirmReceipt": "Xác nhận đã nhận bé",
+  "deal.senAbandonDeposit": "Huỷ cọc",
+  "deal.senAbandonTitle": "Huỷ cọc?",
+  "deal.senAbandonHint":
+    "Tin đăng sẽ trở lại đang bán. Khi có Escrow, tiền cọc sẽ được cộng cho breeder vì Sen bỏ cọc.",
   "deal.cancel": "Hủy cọc",
   "deal.cancelRequestTitle": "Yêu cầu hủy cọc",
   "deal.cancelRequestHint":

@@ -61,7 +61,7 @@ import {
   canBreederRequestHandoff,
   canSenConfirmCancel,
   canSenConfirmHandoff,
-  canSenOpenDispute,
+  canSenAbandonHandoff,
   canSenWithdrawDepositRequest,
   CANCEL_DEPOSIT_MAX_PHOTOS,
   CANCEL_DEPOSIT_REASON_KEYS,
@@ -228,16 +228,17 @@ export function ListingDetail({
     listingStatus: listing.status,
     dealStatus: listing.deal?.status,
   });
+  const showSenAbandonHandoff = canSenAbandonHandoff({
+    isDealSen,
+    listingStatus: listing.status,
+    dealStatus: listing.deal?.status,
+  });
+  const showSenHandoffMenu = showSenConfirmHandoff || showSenAbandonHandoff;
   const showSenConfirmCancel = canSenConfirmCancel({
     isDealSen,
     listingStatus: listing.status,
     dealStatus: listing.deal?.status,
     allowLoggedInDeepLink: Boolean(isLoggedIn && wantsSenConfirmCancel),
-  });
-  const showSenOpenDispute = canSenOpenDispute({
-    isDealSen,
-    listingStatus: listing.status,
-    dealStatus: listing.deal?.status,
   });
   const showDisputeOpen = isDealDisputeOpen({
     listingStatus: listing.status,
@@ -273,6 +274,7 @@ export function ListingDetail({
   const [depositAck, setDepositAck] = useState(false);
   const [dealBusy, setDealBusy] = useState(false);
   const [dealMenuOpen, setDealMenuOpen] = useState(false);
+  const [senAbandonOpen, setSenAbandonOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completePhotos, setCompletePhotos] = useState<File[]>([]);
   const [completeWaitingOpen, setCompleteWaitingOpen] = useState(false);
@@ -566,7 +568,7 @@ export function ListingDetail({
   };
 
   const runDealAction = async (
-    kind: "deposit" | "complete" | "cancel_confirm" | "deposit_decline",
+    kind: "deposit" | "complete" | "cancel_confirm" | "deposit_decline" | "handoff_abandon",
   ) => {
     if (!isLoggedIn) {
       requireLogin();
@@ -587,6 +589,8 @@ export function ListingDetail({
         };
       } else if (kind === "deposit_decline") {
         url = `/api/listings/${listing.id}/deposit/decline`;
+      } else if (kind === "handoff_abandon") {
+        url = `/api/listings/${listing.id}/complete/abandon`;
       } else if (kind === "cancel_confirm") {
         url = `/api/listings/${listing.id}/deposit/cancel/confirm`;
       } else {
@@ -604,6 +608,7 @@ export function ListingDetail({
       }
       setDepositOpen(false);
       setDepositAck(false);
+      setSenAbandonOpen(false);
       if (kind === "complete" && data.review_eligible) {
         setReviewOpen(true);
       }
@@ -1316,7 +1321,7 @@ export function ListingDetail({
                         </p>
                       ) : null}
                     </div>
-                    {(showBreederHandoff || showBreederCancel) ? (
+                    {(showBreederHandoff || showBreederCancel || showSenHandoffMenu) ? (
                       <div className="relative shrink-0" data-deal-menu>
                         <button
                           type="button"
@@ -1360,6 +1365,32 @@ export function ListingDetail({
                                 {t(lang, "deal.cancel")}
                               </button>
                             ) : null}
+                            {showSenConfirmHandoff ? (
+                              <button
+                                type="button"
+                                disabled={dealBusy}
+                                onClick={() => {
+                                  setDealMenuOpen(false);
+                                  void runDealAction("complete");
+                                }}
+                                className="block w-full px-3 py-2 text-left text-sm font-medium text-slate-800 hover:bg-amber-50 disabled:opacity-50"
+                              >
+                                {t(lang, "deal.senConfirmReceipt")}
+                              </button>
+                            ) : null}
+                            {showSenAbandonHandoff ? (
+                              <button
+                                type="button"
+                                disabled={dealBusy}
+                                onClick={() => {
+                                  setDealMenuOpen(false);
+                                  setSenAbandonOpen(true);
+                                }}
+                                className="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              >
+                                {t(lang, "deal.senOpenDispute")}
+                              </button>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>
@@ -1381,32 +1412,6 @@ export function ListingDetail({
                         ? ` — ${listing.deal.disputeMessage}`
                         : ""}
                     </p>
-                  ) : null}
-                  {showSenConfirmHandoff ? (
-                    <div className="mt-3 space-y-2">
-                      <button
-                        type="button"
-                        disabled={dealBusy}
-                        onClick={() => void runDealAction("complete")}
-                        className="w-full py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full disabled:opacity-60"
-                      >
-                        {t(lang, "deal.senConfirmReceipt")}
-                      </button>
-                      {showSenOpenDispute ? (
-                        <button
-                          type="button"
-                          disabled={dealBusy}
-                          onClick={() => {
-                            setDisputeMessage("");
-                            setDisputePhotos([]);
-                            setDisputeOpen(true);
-                          }}
-                          className="w-full py-2.5 border border-red-200 text-red-600 text-sm font-semibold rounded-full disabled:opacity-60"
-                        >
-                          {t(lang, "deal.senOpenDispute")}
-                        </button>
-                      ) : null}
-                    </div>
                   ) : null}
                   {showSenConfirmCancel ? (
                     <div className="mt-3 space-y-2">
@@ -1762,6 +1767,51 @@ export function ListingDetail({
           </div>
         </div>
       )}
+
+      {senAbandonOpen ? (
+        <div
+          className={`fixed inset-0 ${LISTING_ACTION_MODAL_Z_CLASS} flex items-center justify-center p-4`}
+          onClick={() => {
+            if (!dealBusy) setSenAbandonOpen(false);
+          }}
+        >
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-bold text-slate-900">
+              {t(lang, "deal.senAbandonTitle")}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {t(lang, "deal.senAbandonHint")}
+            </p>
+            {actionError ? (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                {actionError}
+              </p>
+            ) : null}
+            <DialogActions>
+              <button
+                type="button"
+                disabled={dealBusy}
+                onClick={() => setSenAbandonOpen(false)}
+                className="flex-1 py-2.5 border border-slate-200 text-sm rounded-full disabled:opacity-60"
+              >
+                {t(lang, "common.cancel")}
+              </button>
+              <button
+                type="button"
+                disabled={dealBusy}
+                onClick={() => void runDealAction("handoff_abandon")}
+                className="flex-1 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-full disabled:opacity-60"
+              >
+                {t(lang, "deal.senAbandonDeposit")}
+              </button>
+            </DialogActions>
+          </div>
+        </div>
+      ) : null}
 
       <ListingDeleteConfirmModal
         lang={lang}

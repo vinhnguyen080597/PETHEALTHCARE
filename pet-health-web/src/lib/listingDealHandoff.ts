@@ -98,6 +98,15 @@ export function canSenConfirmHandoff(input: {
   return resolveDealHandoffPhase(input) === "pending_sen_complete";
 }
 
+/** Sen overflow: confirm receipt or abandon (relist). Same phase as confirm handoff. */
+export function canSenAbandonHandoff(input: {
+  isDealSen: boolean;
+  listingStatus?: string | null;
+  dealStatus?: string | null;
+}): boolean {
+  return canSenConfirmHandoff(input);
+}
+
 export function canSenConfirmCancel(input: {
   isDealSen: boolean;
   listingStatus?: string | null;

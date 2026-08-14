@@ -6,6 +6,7 @@ import {
   canBreederConfirmDeposit,
   canBreederRequestHandoff,
   canSenConfirmCancel,
+  canSenAbandonHandoff,
   canSenConfirmHandoff,
   canSenOpenDispute,
   canSenWithdrawDepositRequest,
@@ -176,6 +177,30 @@ test("sen can confirm handoff, cancel, or open dispute by phase", () => {
       isDealSen: false,
       listingStatus: "deposit_hold",
       dealStatus: "pending_sen_complete",
+    }),
+    false,
+  );
+  assert.equal(
+    canSenAbandonHandoff({
+      isDealSen: true,
+      listingStatus: "deposit_hold",
+      dealStatus: "pending_sen_complete",
+    }),
+    true,
+  );
+  assert.equal(
+    canSenAbandonHandoff({
+      isDealSen: false,
+      listingStatus: "deposit_hold",
+      dealStatus: "pending_sen_complete",
+    }),
+    false,
+  );
+  assert.equal(
+    canSenAbandonHandoff({
+      isDealSen: true,
+      listingStatus: "deposit_hold",
+      dealStatus: "deposit_hold",
     }),
     false,
   );

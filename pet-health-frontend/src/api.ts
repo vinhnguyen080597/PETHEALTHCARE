@@ -828,6 +828,19 @@ export async function confirmListingComplete(token: string, postId: string) {
   );
 }
 
+export async function abandonListingHandoffBySen(token: string, postId: string) {
+  return requestJson<{
+    data: PetFeedPost;
+    escrow_forfeit_to_breeder?: boolean;
+  }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/complete/abandon`,
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+    },
+  );
+}
+
 export async function submitDealReview(
   token: string,
   postId: string,

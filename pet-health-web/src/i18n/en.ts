@@ -361,6 +361,10 @@ const en = {
     "Sen has up to {days} days to confirm they received the pet. If they do not respond in time, the deal will complete automatically.",
   "deal.completeWaitingBadge": "Waiting for Sen · {days} days left",
   "deal.senConfirmReceipt": "Confirm I received the pet",
+  "deal.senAbandonDeposit": "Cancel deposit",
+  "deal.senAbandonTitle": "Cancel this deposit?",
+  "deal.senAbandonHint":
+    "The listing will go back on sale. When Escrow is live, the held deposit is credited to the breeder because the buyer walked away.",
   "deal.cancel": "Cancel deposit",
   "deal.cancelRequestTitle": "Request deposit cancel",
   "deal.cancelRequestHint":

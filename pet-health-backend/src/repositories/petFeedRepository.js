@@ -3262,6 +3262,81 @@ export async function confirmListingComplete(actorUserId, postId, accessToken) {
   };
 }
 
+/**
+ * Sen abandons after breeder requested handoff → listing republished.
+ * Future escrow (when live) is forfeited to the breeder.
+ */
+export async function abandonListingHandoffBySen(actorUserId, postId, accessToken) {
+  const row = await loadPostRowForDeal(postId, accessToken);
+  if (!row) throw httpError('Listing not found.', 404, 'PET_FEED_POST_NOT_FOUND');
+  if (resolveEffectivePostStatus(row) !== 'deposit_hold') {
+    throw httpError(
+      'Abandon is only available while the listing is on deposit hold.',
+      400,
+      'HANDOFF_ABANDON_NOT_ALLOWED',
+    );
+  }
+  const meta = asObject(row.metadata);
+  const deal = asObject(meta.deal);
+  const senUserId = trimText(deal.sen_user_id, 80);
+  if (!senUserId || actorUserId !== senUserId) {
+    throw httpError(
+      'Only the assigned buyer (Sen) can abandon this handoff.',
+      403,
+      'HANDOFF_ABANDON_FORBIDDEN',
+    );
+  }
+  const dealStatus = String(deal.status || '').trim().toLowerCase();
+  if (dealStatus !== 'pending_sen_complete' && dealStatus !== 'pending_complete') {
+    throw httpError(
+      'Abandon is only allowed after the breeder requested handoff confirmation.',
+      400,
+      'HANDOFF_ABANDON_NOT_ALLOWED',
+    );
+  }
+  if (isActiveDealDispute(deal)) {
+    throw httpError('Handoff is under admin dispute review.', 400, 'HANDOFF_ABANDON_DISPUTE_OPEN');
+  }
+
+  const now = new Date().toISOString();
+  const nextDeal = {
+    ...deal,
+    status: null,
+    sen_user_id: null,
+    sen_display_name: null,
+    sen_email: null,
+    sen_confirmed_deposit_at: null,
+    breeder_confirmed_deposit_at: null,
+    breeder_confirmed_complete_at: null,
+    sen_confirmed_complete_at: null,
+    policy_id_at_request: null,
+    handoff_photos: [],
+    complete_requested_at: null,
+    complete_deadline_at: null,
+    cancel_reason: null,
+    cancel_photos: [],
+    cancel_requested_at: null,
+    dispute: null,
+    last_abandoned_handoff: {
+      abandoned_at: now,
+      abandoned_by: actorUserId,
+      escrow_forfeit_to_breeder: true,
+    },
+  };
+  const nextMeta = clearClosedListingMetadata({ ...meta, deal: nextDeal });
+  delete nextMeta.warranty_policy_snapshot;
+  const updated = await persistPostRow(
+    postId,
+    { status: 'published', metadata: nextMeta },
+    accessToken,
+  );
+  return {
+    post: updated,
+    notify_user_id: row.user_id,
+    escrow_forfeit_to_breeder: true,
+  };
+}
+
 export const DEAL_DISPUTE_MAX_PHOTOS = 5;
 export const DEAL_DISPUTE_MESSAGE_MAX = 1200;
 

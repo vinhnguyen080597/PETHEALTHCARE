@@ -43,6 +43,7 @@ import {
   confirmListingCancelDeposit,
   requestListingComplete,
   confirmListingComplete,
+  abandonListingHandoffBySen,
   requestListingDispute,
   COMPLETE_HANDOFF_DEADLINE_DAYS,
 } from '../repositories/petFeedRepository.js';
@@ -1619,6 +1620,32 @@ router.post('/posts/:postId/complete/confirm', async (req, res, next) => {
       both_confirmed: true,
       review_eligible: Boolean(result.review_eligible),
       breeder_profile_id: result.breeder_profile_id ?? null,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/posts/:postId/complete/abandon', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const result = await abandonListingHandoffBySen(req.user.id, postId, req.accessToken);
+    if (result.notify_user_id) {
+      void createDealNotification({
+        recipientUserId: result.notify_user_id,
+        actorUserId: req.user.id,
+        postId: result.post.id,
+        type: 'deposit_cancelled',
+        bodyPreview:
+          `Sen đã hủy cọc cho "${notifyPreview(result.post.title)}". Tin đăng đã mở lại để bán.`,
+        metadata: dealNotifyMeta(result.post),
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
+    return res.json({
+      data: result.post,
+      escrow_forfeit_to_breeder: Boolean(result.escrow_forfeit_to_breeder),
     });
   } catch (err) {
     return next(err);

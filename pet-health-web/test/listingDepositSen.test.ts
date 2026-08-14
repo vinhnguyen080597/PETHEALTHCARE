@@ -51,6 +51,12 @@ test("deposit sen i18n keys exist", () => {
     "deal.senSearchPlaceholder",
     "deal.senRequired",
     "deal.holdBadgeWithSen",
+    "deal.senConfirmReceipt",
+    "deal.senOpenDispute",
+    "deal.senAbandonDeposit",
+    "deal.senAbandonTitle",
+    "deal.senAbandonHint",
+    "deal.actionsMenu",
   ] as const) {
     assert.ok(en[key], `missing EN ${key}`);
     assert.ok(vi[key], `missing VI ${key}`);

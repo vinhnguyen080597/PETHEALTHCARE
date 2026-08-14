@@ -17,9 +17,9 @@ import {
   canBreederCancelDeposit,
   canBreederConfirmDeposit,
   canBreederRequestHandoff,
+  canSenAbandonHandoff,
   canSenConfirmCancel,
   canSenConfirmHandoff,
-  canSenOpenDispute,
   canSenWithdrawDepositRequest,
   canShowDepositRequest,
   CANCEL_DEPOSIT_MAX_PHOTOS,
@@ -92,8 +92,9 @@ export function ListingDealPanel({
   const showHandoff = canBreederRequestHandoff({ isOwner, ...phaseInput });
   const showCancel = canBreederCancelDeposit({ isOwner, ...phaseInput });
   const showSenHandoff = canSenConfirmHandoff({ isDealSen, ...phaseInput });
+  const showSenAbandon = canSenAbandonHandoff({ isDealSen, ...phaseInput });
+  const showSenHandoffMenu = showSenHandoff || showSenAbandon;
   const showSenCancel = canSenConfirmCancel({ isDealSen, ...phaseInput });
-  const showSenDispute = canSenOpenDispute({ isDealSen, ...phaseInput });
   const showDisputeOpen = isDealDisputeOpen(phaseInput);
   const daysLeft = daysLeftUntilDeadline(deal.completeDeadlineAt);
 
@@ -108,6 +109,8 @@ export function ListingDealPanel({
     useState<CancelDepositReasonKey>('no_contact');
   const [cancelNote, setCancelNote] = useState('');
   const [cancelPhotos, setCancelPhotos] = useState<string[]>([]);
+  const [dealMenuOpen, setDealMenuOpen] = useState(false);
+  const [senAbandonOpen, setSenAbandonOpen] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeMessage, setDisputeMessage] = useState('');
   const [disputePhotos, setDisputePhotos] = useState<string[]>([]);
@@ -141,6 +144,8 @@ export function ListingDealPanel({
       setDepositAck(false);
       setCompleteOpen(false);
       setCancelOpen(false);
+      setDealMenuOpen(false);
+      setSenAbandonOpen(false);
       setDisputeOpen(false);
       setCompletePhotos([]);
       setCancelPhotos([]);
@@ -159,51 +164,105 @@ export function ListingDealPanel({
 
   return (
     <View className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-      {post.status === 'deposit_hold' ? (
-        <Text className="text-sm font-semibold text-amber-900">
-          {deal.senDisplayName
-            ? t('deal.holdBadgeWithSen', { name: deal.senDisplayName })
-            : t('deal.holdBadge')}
-        </Text>
-      ) : null}
-      {showPending ? (
-        <Text className="text-sm font-semibold text-amber-900">
-          {isOwner || isDealSen
-            ? deal.senDisplayName
-              ? t('deal.pendingBadgeWithSen', { name: deal.senDisplayName })
-              : t('deal.pendingBadge')
-            : t('deal.pendingBadge')}
-        </Text>
-      ) : null}
-      {showPending && isOwner ? (
-        <Text className="mt-1 text-xs text-amber-800">{t('deal.pendingHintBreeder')}</Text>
-      ) : null}
-      {showPending && isDealSen ? (
-        <Text className="mt-1 text-xs text-amber-800">{t('deal.pendingHintSen')}</Text>
-      ) : null}
-      {phaseInput.dealStatus === 'pending_sen_complete' ||
-      phaseInput.dealStatus === 'pending_complete' ? (
-        <Text className="mt-1 text-xs text-amber-800">
-          {t('deal.completeWaitingBadge', {
-            days: Math.max(0, daysLeft ?? COMPLETE_HANDOFF_DEADLINE_DAYS),
-          })}
-        </Text>
-      ) : null}
-      {phaseInput.dealStatus === 'pending_cancel_confirm' ? (
-        <Text className="mt-1 text-xs text-amber-800">{t('deal.cancelPendingBadge')}</Text>
-      ) : null}
-      {showDisputeOpen ? (
-        <Text className="mt-1 text-xs text-amber-800">{t('deal.disputeOpenBadge')}</Text>
-      ) : null}
-      {post.status === 'sold' ? (
-        <Text className="text-sm font-semibold text-emerald-800">{t('deal.completed')}</Text>
-      ) : null}
-      {post.status === 'cancelled' ? (
-        <Text className="text-sm font-semibold text-rose-800">{t('deal.cancelledClosed')}</Text>
-      ) : null}
+      <View className="flex-row items-start justify-between gap-2">
+        <View className="min-w-0 flex-1">
+          {post.status === 'deposit_hold' ? (
+            <Text className="text-sm font-semibold text-amber-900">
+              {deal.senDisplayName
+                ? t('deal.holdBadgeWithSen', { name: deal.senDisplayName })
+                : t('deal.holdBadge')}
+            </Text>
+          ) : null}
+          {showPending ? (
+            <Text className="text-sm font-semibold text-amber-900">
+              {isOwner || isDealSen
+                ? deal.senDisplayName
+                  ? t('deal.pendingBadgeWithSen', { name: deal.senDisplayName })
+                  : t('deal.pendingBadge')
+                : t('deal.pendingBadge')}
+            </Text>
+          ) : null}
+          {showPending && isOwner ? (
+            <Text className="mt-1 text-xs text-amber-800">{t('deal.pendingHintBreeder')}</Text>
+          ) : null}
+          {showPending && isDealSen ? (
+            <Text className="mt-1 text-xs text-amber-800">{t('deal.pendingHintSen')}</Text>
+          ) : null}
+          {phaseInput.dealStatus === 'pending_sen_complete' ||
+          phaseInput.dealStatus === 'pending_complete' ? (
+            <Text className="mt-1 text-xs text-amber-800">
+              {t('deal.completeWaitingBadge', {
+                days: Math.max(0, daysLeft ?? COMPLETE_HANDOFF_DEADLINE_DAYS),
+              })}
+            </Text>
+          ) : null}
+          {phaseInput.dealStatus === 'pending_cancel_confirm' ? (
+            <Text className="mt-1 text-xs text-amber-800">{t('deal.cancelPendingBadge')}</Text>
+          ) : null}
+          {showDisputeOpen ? (
+            <Text className="mt-1 text-xs text-amber-800">{t('deal.disputeOpenBadge')}</Text>
+          ) : null}
+          {post.status === 'sold' ? (
+            <Text className="text-sm font-semibold text-emerald-800">{t('deal.completed')}</Text>
+          ) : null}
+          {post.status === 'cancelled' ? (
+            <Text className="text-sm font-semibold text-rose-800">{t('deal.cancelledClosed')}</Text>
+          ) : null}
+        </View>
+        {showSenHandoffMenu ? (
+          <View className="relative shrink-0">
+            <Pressable
+              accessibilityLabel={t('deal.actionsMenu')}
+              disabled={busy}
+              onPress={() => setDealMenuOpen((open) => !open)}
+              className="h-8 w-8 items-center justify-center rounded-full border border-amber-200 bg-white"
+            >
+              <Text className="text-base font-bold text-amber-900">⋮</Text>
+            </Pressable>
+            {dealMenuOpen ? (
+              <View className="absolute right-0 top-9 z-10 w-56 overflow-hidden rounded-xl border border-amber-200 bg-white shadow-lg">
+                {showSenHandoff ? (
+                  <Pressable
+                    disabled={busy}
+                    onPress={() => {
+                      setDealMenuOpen(false);
+                      void run({ type: 'complete_confirm' });
+                    }}
+                    className="px-3 py-2.5"
+                  >
+                    <Text className="text-sm font-medium text-slate-800">
+                      {t('deal.senConfirmReceipt')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {showSenAbandon ? (
+                  <Pressable
+                    disabled={busy}
+                    onPress={() => {
+                      setDealMenuOpen(false);
+                      setSenAbandonOpen(true);
+                    }}
+                    className="border-t border-amber-100 px-3 py-2.5"
+                  >
+                    <Text className="text-sm font-medium text-red-600">
+                      {t('deal.senOpenDispute')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
 
       {error ? <Text className="mt-2 text-xs text-red-600">{error}</Text> : null}
 
+      {showDeposit ||
+      showBreederConfirm ||
+      showSenWithdraw ||
+      showHandoff ||
+      showCancel ||
+      showSenCancel ? (
       <View className="mt-3 gap-2">
         {showDeposit ? (
           <Pressable
@@ -276,32 +335,6 @@ export function ListingDealPanel({
             </Text>
           </Pressable>
         ) : null}
-        {showSenHandoff ? (
-          <Pressable
-            disabled={busy}
-            onPress={() => void run({ type: 'complete_confirm' })}
-            className="rounded-full bg-amber-600 px-4 py-2.5"
-          >
-            <Text className="text-center text-sm font-semibold text-white">
-              {t('deal.senConfirmReceipt')}
-            </Text>
-          </Pressable>
-        ) : null}
-        {showSenDispute ? (
-          <Pressable
-            disabled={busy}
-            onPress={() => {
-              setDisputeMessage('');
-              setDisputePhotos([]);
-              setDisputeOpen(true);
-            }}
-            className="rounded-full border border-red-200 bg-white px-4 py-2.5"
-          >
-            <Text className="text-center text-sm font-semibold text-red-600">
-              {t('deal.senOpenDispute')}
-            </Text>
-          </Pressable>
-        ) : null}
         {showSenCancel ? (
           <Pressable
             disabled={busy}
@@ -314,6 +347,7 @@ export function ListingDealPanel({
           </Pressable>
         ) : null}
       </View>
+      ) : null}
 
       {busy ? (
         <View className="mt-3 items-center">
@@ -484,6 +518,35 @@ export function ListingDealPanel({
                 </Pressable>
               </View>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={senAbandonOpen} transparent animationType="fade">
+        <View className="flex-1 justify-center bg-black/40 px-5">
+          <View className="rounded-2xl bg-white p-5">
+            <Text className="mb-2 text-base font-bold text-slate-900">
+              {t('deal.senAbandonTitle')}
+            </Text>
+            <Text className="mb-3 text-sm text-slate-600">{t('deal.senAbandonHint')}</Text>
+            <View className="flex-row justify-end gap-2">
+              <Pressable
+                disabled={busy}
+                onPress={() => setSenAbandonOpen(false)}
+                className="px-4 py-2"
+              >
+                <Text className="text-sm text-slate-600">{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                disabled={busy}
+                onPress={() => void run({ type: 'handoff_abandon' })}
+                className="rounded-full bg-red-600 px-4 py-2"
+              >
+                <Text className="text-sm font-semibold text-white">
+                  {t('deal.senAbandonDeposit')}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>

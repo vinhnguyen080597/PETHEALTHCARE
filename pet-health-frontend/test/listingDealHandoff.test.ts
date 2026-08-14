@@ -6,6 +6,7 @@ import {
   canBreederConfirmDeposit,
   canBreederRequestHandoff,
   canSenConfirmCancel,
+  canSenAbandonHandoff,
   canSenConfirmHandoff,
   canSenOpenDispute,
   canSenWithdrawDepositRequest,
@@ -18,6 +19,8 @@ import {
   validateHandoffPhotos,
   waitingForSenMessage,
 } from '../src/utils/listingDealHandoff.ts';
+import en from '../src/i18n/locales/en.json' with { type: 'json' };
+import vi from '../src/i18n/locales/vi.json' with { type: 'json' };
 
 test('resolveDealHandoffPhase and gates match web contract', () => {
   assert.equal(
@@ -100,6 +103,30 @@ test('resolveDealHandoffPhase and gates match web contract', () => {
       dealStatus: 'pending_sen_complete',
     }),
     true,
+  );
+  assert.equal(
+    canSenAbandonHandoff({
+      isDealSen: true,
+      listingStatus: 'deposit_hold',
+      dealStatus: 'pending_sen_complete',
+    }),
+    true,
+  );
+  assert.equal(
+    canSenAbandonHandoff({
+      isDealSen: false,
+      listingStatus: 'deposit_hold',
+      dealStatus: 'pending_sen_complete',
+    }),
+    false,
+  );
+  assert.equal(
+    canSenAbandonHandoff({
+      isDealSen: true,
+      listingStatus: 'deposit_hold',
+      dealStatus: 'deposit_hold',
+    }),
+    false,
   );
   assert.equal(
     canSenConfirmCancel({
@@ -201,4 +228,20 @@ test('validation and deal metadata helpers', () => {
   assert.equal(deal.status, 'dispute_open');
   assert.equal(deal.senUserId, 'sen-1');
   assert.equal(deal.disputeMessage, 'missing');
+});
+
+test('sen abandon i18n keys exist in EN and VI', () => {
+  for (const key of [
+    'senConfirmReceipt',
+    'senOpenDispute',
+    'senAbandonDeposit',
+    'senAbandonTitle',
+    'senAbandonHint',
+    'actionsMenu',
+  ]) {
+    assert.ok(en.deal[key], `missing EN deal.${key}`);
+    assert.ok(vi.deal[key], `missing VI deal.${key}`);
+  }
+  assert.equal(vi.deal.senConfirmReceipt, 'Xác nhận đã nhận bé');
+  assert.equal(vi.deal.senOpenDispute, 'Tôi chưa nhận được bé');
 });

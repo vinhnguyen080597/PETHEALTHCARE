@@ -76,6 +76,7 @@ import {
   declineListingDeposit,
   confirmListingCancelDeposit,
   confirmListingComplete,
+  abandonListingHandoffBySen,
   requestListingCancelDeposit,
   requestListingComplete,
   requestListingDispute,
@@ -2404,6 +2405,9 @@ export function usePetHealthApp() {
           break;
         case 'complete_confirm':
           response = await confirmListingComplete(token, postId);
+          break;
+        case 'handoff_abandon':
+          response = await abandonListingHandoffBySen(token, postId);
           break;
         case 'complete_dispute':
           response = await requestListingDispute(token, postId, {

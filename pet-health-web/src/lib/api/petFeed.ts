@@ -547,6 +547,17 @@ export async function confirmListingComplete(token: string, postId: string) {
   });
 }
 
+/** Sen walks away after handoff request → listing republished; future escrow forfeits to breeder. */
+export async function abandonListingHandoffBySen(token: string, postId: string) {
+  return fetchJson<{
+    data: ApiPetFeedPost;
+    escrow_forfeit_to_breeder?: boolean;
+  }>(`/pet-feed/posts/${encodeURIComponent(postId)}/complete/abandon`, {
+    method: "POST",
+    token,
+  });
+}
+
 export async function getMyDealReview(token: string, postId: string) {
   return fetchJson<{ data: import("../breederDealReviews").BreederDealReview | null }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/review/me`,
