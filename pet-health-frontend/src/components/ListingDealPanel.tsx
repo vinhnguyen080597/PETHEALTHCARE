@@ -29,6 +29,7 @@ import {
   daysLeftUntilDeadline,
   isDealDisputeOpen,
   readDealFromPostMetadata,
+  shouldShowCompleteWaitingBadge,
   validateCancelDepositRequest,
   validateDisputeRequest,
   validateHandoffPhotos,
@@ -188,8 +189,11 @@ export function ListingDealPanel({
           {showPending && isDealSen ? (
             <Text className="mt-1 text-xs text-amber-800">{t('deal.pendingHintSen')}</Text>
           ) : null}
-          {phaseInput.dealStatus === 'pending_sen_complete' ||
-          phaseInput.dealStatus === 'pending_complete' ? (
+          {shouldShowCompleteWaitingBadge({
+            isDealSen,
+            listingStatus: post.status,
+            dealStatus: deal.status,
+          }) ? (
             <Text className="mt-1 text-xs text-amber-800">
               {t('deal.completeWaitingBadge', {
                 days: Math.max(0, daysLeft ?? COMPLETE_HANDOFF_DEADLINE_DAYS),
@@ -245,7 +249,7 @@ export function ListingDealPanel({
                     className="border-t border-amber-100 px-3 py-2.5"
                   >
                     <Text className="text-sm font-medium text-red-600">
-                      {t('deal.senOpenDispute')}
+                      {t('deal.senAbandonDeposit')}
                     </Text>
                   </Pressable>
                 ) : null}

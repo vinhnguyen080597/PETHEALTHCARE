@@ -19,6 +19,7 @@ import {
   canShowWarrantyUpdateCta,
   isListingOwner,
   listingDetailBackHref,
+  listingDetailShareActionsCols,
   listingEditHref,
   listingVisitorActions,
   parseListingDetailFrom,
@@ -70,6 +71,7 @@ import {
   daysLeftUntilDeadline,
   dealPhotosDropHint,
   isDealDisputeOpen,
+  shouldShowCompleteWaitingBadge,
   validateCancelDepositRequest,
   validateDisputeRequest,
   validateHandoffPhotos,
@@ -1301,8 +1303,11 @@ export function ListingDetail({
                           t(lang, "deal.holdBadgeWithSen"),
                         )}
                       </p>
-                      {listing.deal?.status === "pending_sen_complete" ||
-                      listing.deal?.status === "pending_complete" ? (
+                      {shouldShowCompleteWaitingBadge({
+                        isDealSen,
+                        listingStatus: listing.status,
+                        dealStatus: listing.deal?.status,
+                      }) ? (
                         <p className="text-xs text-amber-800/90">
                           {waitingForSenMessage(
                             t(lang, "deal.completeWaitingBadge"),
@@ -1388,7 +1393,7 @@ export function ListingDetail({
                                 }}
                                 className="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                               >
-                                {t(lang, "deal.senOpenDispute")}
+                                {t(lang, "deal.senAbandonDeposit")}
                               </button>
                             ) : null}
                           </div>
@@ -1463,19 +1468,24 @@ export function ListingDetail({
                   💬 {t(lang, "detail.message")}
                 </button>
               ) : null}
+              {showUpdateDetails ? (
+                <Link
+                  href={listingEditHref(listing.id)}
+                  className="w-full py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-full hover:border-slate-300 transition-colors text-center"
+                >
+                  {t(lang, "detail.updateDetails")}
+                </Link>
+              ) : null}
               <div
                 className={`grid gap-2 ${
-                  showReport || showUpdateDetails ? "grid-cols-2" : "grid-cols-1"
+                  listingDetailShareActionsCols({
+                    showDelete,
+                    showReport,
+                  }) === 2
+                    ? "grid-cols-2"
+                    : "grid-cols-1"
                 }`}
               >
-                {showUpdateDetails ? (
-                  <Link
-                    href={listingEditHref(listing.id)}
-                    className="py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-full hover:border-slate-300 transition-colors text-center"
-                  >
-                    {t(lang, "detail.updateDetails")}
-                  </Link>
-                ) : null}
                 <button
                   type="button"
                   onClick={() => void shareListing()}
@@ -1487,6 +1497,23 @@ export function ListingDetail({
                 >
                   {shareNotice || t(lang, "detail.share")}
                 </button>
+                {showDelete ? (
+                  <button
+                    type="button"
+                    disabled={busy === "delete"}
+                    onClick={() => {
+                      if (deleteClickAction === "hidden") return;
+                      setDeleteModalMode(
+                        deleteClickAction === "blocked" ? "blocked" : "confirm",
+                      );
+                    }}
+                    className="py-2.5 border border-red-200 text-red-600 text-sm font-medium rounded-full hover:bg-red-50 transition-colors disabled:opacity-50"
+                  >
+                    {busy === "delete"
+                      ? t(lang, "detail.deleting")
+                      : t(lang, "detail.delete")}
+                  </button>
+                ) : null}
                 {showReport ? (
                   <button
                     type="button"
@@ -1503,23 +1530,6 @@ export function ListingDetail({
                   </button>
                 ) : null}
               </div>
-              {showDelete ? (
-                <button
-                  type="button"
-                  disabled={busy === "delete"}
-                  onClick={() => {
-                    if (deleteClickAction === "hidden") return;
-                    setDeleteModalMode(
-                      deleteClickAction === "blocked" ? "blocked" : "confirm",
-                    );
-                  }}
-                  className="w-full py-2.5 border border-red-200 text-red-600 text-sm font-medium rounded-full hover:bg-red-50 transition-colors disabled:opacity-50"
-                >
-                  {busy === "delete"
-                    ? t(lang, "detail.deleting")
-                    : t(lang, "detail.delete")}
-                </button>
-              ) : null}
             </div>
           </div>
         </div>

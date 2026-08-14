@@ -52,7 +52,6 @@ test("deposit sen i18n keys exist", () => {
     "deal.senRequired",
     "deal.holdBadgeWithSen",
     "deal.senConfirmReceipt",
-    "deal.senOpenDispute",
     "deal.senAbandonDeposit",
     "deal.senAbandonTitle",
     "deal.senAbandonHint",

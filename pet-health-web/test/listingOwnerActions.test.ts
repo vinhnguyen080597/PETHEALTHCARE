@@ -10,6 +10,7 @@ import {
   listingDetailHref,
   listingEditHref,
   listingVisitorActions,
+  listingDetailShareActionsCols,
   opensMyListingReviewPopup,
   parseListingDetailFrom,
 } from "../src/lib/listingOwnerActions";
@@ -31,6 +32,21 @@ test("listing owner does not see message or report actions", () => {
     showMessage: true,
     showReport: true,
   });
+});
+
+test("share actions sit beside delete or report", () => {
+  assert.equal(
+    listingDetailShareActionsCols({ showDelete: true, showReport: false }),
+    2,
+  );
+  assert.equal(
+    listingDetailShareActionsCols({ showDelete: false, showReport: true }),
+    2,
+  );
+  assert.equal(
+    listingDetailShareActionsCols({ showDelete: false, showReport: false }),
+    1,
+  );
 });
 
 test("opensMyListingReviewPopup only for pending_review", () => {

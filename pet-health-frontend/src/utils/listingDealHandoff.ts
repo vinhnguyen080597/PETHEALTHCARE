@@ -160,6 +160,16 @@ export function canSenAbandonHandoff(input: {
   return canSenConfirmHandoff(input);
 }
 
+/** Countdown is for the breeder (and others); Sen uses the ⋮ menu instead. */
+export function shouldShowCompleteWaitingBadge(input: {
+  isDealSen: boolean;
+  listingStatus?: string | null;
+  dealStatus?: string | null;
+}): boolean {
+  if (input.isDealSen) return false;
+  return resolveDealHandoffPhase(input) === 'pending_sen_complete';
+}
+
 export function canSenConfirmCancel(input: {
   isDealSen: boolean;
   listingStatus?: string | null;

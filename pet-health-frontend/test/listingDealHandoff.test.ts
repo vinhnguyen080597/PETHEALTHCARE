@@ -14,6 +14,7 @@ import {
   isDealDisputeOpen,
   readDealFromPostMetadata,
   resolveDealHandoffPhase,
+  shouldShowCompleteWaitingBadge,
   validateCancelDepositRequest,
   validateDisputeRequest,
   validateHandoffPhotos,
@@ -129,6 +130,22 @@ test('resolveDealHandoffPhase and gates match web contract', () => {
     false,
   );
   assert.equal(
+    shouldShowCompleteWaitingBadge({
+      isDealSen: false,
+      listingStatus: 'deposit_hold',
+      dealStatus: 'pending_sen_complete',
+    }),
+    true,
+  );
+  assert.equal(
+    shouldShowCompleteWaitingBadge({
+      isDealSen: true,
+      listingStatus: 'deposit_hold',
+      dealStatus: 'pending_sen_complete',
+    }),
+    false,
+  );
+  assert.equal(
     canSenConfirmCancel({
       isDealSen: true,
       listingStatus: 'deposit_hold',
@@ -233,7 +250,6 @@ test('validation and deal metadata helpers', () => {
 test('sen abandon i18n keys exist in EN and VI', () => {
   for (const key of [
     'senConfirmReceipt',
-    'senOpenDispute',
     'senAbandonDeposit',
     'senAbandonTitle',
     'senAbandonHint',
@@ -243,5 +259,5 @@ test('sen abandon i18n keys exist in EN and VI', () => {
     assert.ok(vi.deal[key], `missing VI deal.${key}`);
   }
   assert.equal(vi.deal.senConfirmReceipt, 'Xác nhận đã nhận bé');
-  assert.equal(vi.deal.senOpenDispute, 'Tôi chưa nhận được bé');
+  assert.equal(vi.deal.senAbandonDeposit, 'Huỷ cọc');
 });

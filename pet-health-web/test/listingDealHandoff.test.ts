@@ -15,6 +15,7 @@ import {
   isDealDisputeOpen,
   mergeDealPhotoFiles,
   resolveDealHandoffPhase,
+  shouldShowCompleteWaitingBadge,
   validateCancelDepositRequest,
   validateDisputeRequest,
   validateHandoffPhotos,
@@ -201,6 +202,22 @@ test("sen can confirm handoff, cancel, or open dispute by phase", () => {
       isDealSen: true,
       listingStatus: "deposit_hold",
       dealStatus: "deposit_hold",
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowCompleteWaitingBadge({
+      isDealSen: false,
+      listingStatus: "deposit_hold",
+      dealStatus: "pending_sen_complete",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldShowCompleteWaitingBadge({
+      isDealSen: true,
+      listingStatus: "deposit_hold",
+      dealStatus: "pending_sen_complete",
     }),
     false,
   );

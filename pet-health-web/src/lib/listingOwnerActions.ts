@@ -19,6 +19,17 @@ export function listingVisitorActions(isOwner: boolean): {
   };
 }
 
+/**
+ * Share sits beside Delete (owner) or Report (visitor).
+ * Update-details stays on its own row above when shown.
+ */
+export function listingDetailShareActionsCols(input: {
+  showDelete: boolean;
+  showReport: boolean;
+}): 1 | 2 {
+  return input.showDelete || input.showReport ? 2 : 1;
+}
+
 const DEAL_STATUSES_BLOCKING_NEW_DEPOSIT = new Set([
   "pending_sen",
   "deposit_hold",
