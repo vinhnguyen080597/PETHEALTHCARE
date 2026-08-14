@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-const SUPPORT_EMAIL = 'cattieshealthcare@gmail.com';
+const SUPPORT_EMAIL = 'support@pet-marketplace.org';
+const CONTACT_EMAIL = 'contact@pet-marketplace.org';
 const SITE_ORIGIN = (process.env.EXPO_PUBLIC_SITE_ORIGIN || 'https://pet-marketplace.org').replace(
   /\/+$/,
   '',
@@ -10,27 +11,27 @@ const PAGES = [
   {
     name: 'Legal Center',
     url: `${SITE_ORIGIN}/`,
-    mustContain: [SUPPORT_EMAIL, 'Legal Center'],
+    mustContain: ['Privacy Policy', 'Terms of Service'],
   },
   {
     name: 'Privacy Policy',
     url: `${SITE_ORIGIN}/privacy-policy/`,
-    mustContain: [SUPPORT_EMAIL, 'Privacy Policy', '13. Contact'],
+    mustContain: [CONTACT_EMAIL, 'Privacy Policy', 'Decree 13'],
   },
   {
     name: 'Terms of Service',
     url: `${SITE_ORIGIN}/terms-of-service/`,
-    mustContain: [SUPPORT_EMAIL, 'Terms of Service', '16. Contact'],
+    mustContain: [CONTACT_EMAIL, 'Terms of Service', 'NOT the seller'],
   },
   {
     name: 'Marketplace Guidelines',
     url: `${SITE_ORIGIN}/marketplace-guidelines/`,
-    mustContain: [SUPPORT_EMAIL, 'Marketplace Guidelines'],
+    mustContain: ['Marketplace Guidelines', 'does NOT itself provide pet shipping'],
   },
   {
     name: 'Support',
     url: `${SITE_ORIGIN}/support/`,
-    mustContain: [SUPPORT_EMAIL, 'Contact Support', 'mailto:'],
+    mustContain: [SUPPORT_EMAIL, CONTACT_EMAIL, 'mailto:'],
   },
 ];
 

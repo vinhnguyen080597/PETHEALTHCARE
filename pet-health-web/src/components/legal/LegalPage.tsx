@@ -1,21 +1,36 @@
 import type { Lang } from "@/lib/types";
 import type { LegalDoc } from "@/lib/legalContent";
-import { LEGAL_SUPPORT_EMAIL } from "@/lib/legalContent";
+import { LEGAL_EMAILS } from "@/lib/legalContent";
+
+const EMAIL_PATTERN = new RegExp(
+  `(${LEGAL_EMAILS.map((email) => email.replace(/\./g, "\\.")).join("|")})`,
+  "g",
+);
 
 function linkifySupportEmail(text: string) {
-  if (!text.includes(LEGAL_SUPPORT_EMAIL)) return text;
-  const [before, after] = text.split(LEGAL_SUPPORT_EMAIL);
+  if (!LEGAL_EMAILS.some((email) => text.includes(email))) return text;
+  const nodes: Array<string | ReturnType<typeof mailtoLink>> = [];
+  let last = 0;
+  for (const match of text.matchAll(EMAIL_PATTERN)) {
+    const email = match[0];
+    const index = match.index ?? 0;
+    if (index > last) nodes.push(text.slice(last, index));
+    nodes.push(mailtoLink(email, `${email}-${index}`));
+    last = index + email.length;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return <>{nodes}</>;
+}
+
+function mailtoLink(email: string, key: string) {
   return (
-    <>
-      {before}
-      <a
-        className="text-[#D97706] underline underline-offset-2"
-        href={`mailto:${LEGAL_SUPPORT_EMAIL}`}
-      >
-        {LEGAL_SUPPORT_EMAIL}
-      </a>
-      {after}
-    </>
+    <a
+      key={key}
+      className="text-[#D97706] underline underline-offset-2"
+      href={`mailto:${email}`}
+    >
+      {email}
+    </a>
   );
 }
 
@@ -37,7 +52,7 @@ export function LegalDocBody({ doc }: { doc: LegalDoc }) {
           {section.bullets?.length ? (
             <ul className="list-disc pl-5 space-y-2">
               {section.bullets.map((item) => (
-                <li key={item.slice(0, 48)}>{item}</li>
+                <li key={item.slice(0, 48)}>{linkifySupportEmail(item)}</li>
               ))}
             </ul>
           ) : null}
