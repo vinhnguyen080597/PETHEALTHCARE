@@ -87,9 +87,7 @@ export function farmProfileFromAccountHref(profileId: string): string {
 export function warrantySaveNextHref(
   createAnother: boolean,
   profileId: string,
-  options?: FarmDetailHrefOptions & {
-    from?: WarrantyLibraryNavFrom | null;
-  },
+  options?: { from?: WarrantyLibraryNavFrom | null },
 ): string | null {
   if (createAnother) return null;
   if (options?.from === "new-listing") return NEW_LISTING_HREF;
