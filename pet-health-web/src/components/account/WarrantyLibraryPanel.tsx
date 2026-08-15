@@ -6,7 +6,8 @@ import type { Lang, WarrantyPolicy } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { WarrantyPolicyViewer } from "@/components/marketplace/WarrantyPolicyViewer";
 import { mapWarrantyPolicy } from "@/lib/mappers";
-import { farmDetailHref, warrantySaveNextHref } from "@/lib/farmTabs";
+import { farmDetailHref, warrantyLibraryHref, warrantySaveNextHref } from "@/lib/farmTabs";
+import type { WarrantyLibraryNavFrom } from "@/lib/farmTabs";
 import { DialogActions } from "@/components/ui/DialogActions";
 import { scrollFieldIntoView } from "@/lib/formFocus";
 import {
@@ -122,6 +123,8 @@ export function WarrantyLibraryPanel({
   profileId,
   primarySpecies = [],
   editPolicyId = null,
+  from = null,
+  farm = null,
 }: {
   lang: Lang;
   initialPolicies: WarrantyPolicy[];
@@ -129,8 +132,14 @@ export function WarrantyLibraryPanel({
   profileId: string;
   primarySpecies?: string[];
   editPolicyId?: string | null;
+  from?: WarrantyLibraryNavFrom | null;
+  farm?: string | null;
 }) {
   const router = useRouter();
+  const libraryHrefOpts = {
+    from,
+    farm: farm || (from === "account" ? profileId : null),
+  } as const;
   const farmSpecies = resolveWarrantyFarmSpecies({ primarySpecies });
   const vaccinePresets = warrantyVaccinePresetIds(farmSpecies);
   const [policies, setPolicies] = useState(initialPolicies);
@@ -174,7 +183,7 @@ export function WarrantyLibraryPanel({
     setForm(defaultWarrantyFormValues());
     setTitleError("");
     setError("");
-    router.replace("/app/account/warranty");
+    router.replace(warrantyLibraryHref(libraryHrefOpts));
   };
 
   const startEdit = (policy: WarrantyPolicy) => {
@@ -182,7 +191,7 @@ export function WarrantyLibraryPanel({
     setForm(warrantyPolicyToFormValues(policy));
     setTitleError("");
     setError("");
-    router.replace(`/app/account/warranty?edit=${encodeURIComponent(policy.id)}`);
+    router.replace(warrantyLibraryHref({ ...libraryHrefOpts, edit: policy.id }));
     requestAnimationFrame(() => {
       scrollFieldIntoView(document.getElementById(WARRANTY_TITLE_FIELD_ID));
     });
@@ -221,7 +230,10 @@ export function WarrantyLibraryPanel({
         }
         setEditingId(null);
         setForm(defaultWarrantyFormValues());
-        router.push(farmDetailHref(profileId, "warranty"));
+        const next =
+          warrantySaveNextHref(false, profileId, { from }) ??
+          farmDetailHref(profileId, "warranty");
+        router.push(next);
         router.refresh();
         return;
       }
@@ -249,7 +261,7 @@ export function WarrantyLibraryPanel({
   const onCreateAnotherChoice = (createAnother: boolean) => {
     setAskCreateAnother(false);
     setTrustAwardedOnSave(false);
-    const next = warrantySaveNextHref(createAnother, profileId);
+    const next = warrantySaveNextHref(createAnother, profileId, { from });
     if (next) {
       router.push(next);
       router.refresh();

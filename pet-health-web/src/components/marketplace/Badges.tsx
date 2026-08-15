@@ -1,6 +1,8 @@
 import type { TrustLevel, VerificationTier } from "@/lib/types";
+import { SHOW_BREEDER_VERIFICATION_BADGES } from "@/lib/breederVerificationUi";
 
 export function VerifiedBadge({ size = "sm" }: { size?: "sm" | "xs" }) {
+  if (!SHOW_BREEDER_VERIFICATION_BADGES) return null;
   const cls =
     size === "sm" ? "text-xs px-2 py-0.5" : "text-[10px] px-1.5 py-0.5";
   return (

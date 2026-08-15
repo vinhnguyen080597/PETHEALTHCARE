@@ -23,6 +23,7 @@ const REAL_PAGE_PREFIXES = [
   "/app/account/breeder",
   "/app/account/breeder/template",
   "/app/account/listings/new",
+  "/app/account/warranty",
   "/app/messages",
   "/app/notifications",
   "/app/admin",
@@ -155,6 +156,69 @@ test("new listing skips /listings folder link", () => {
     crumbs.map((c) => c.href),
     ["/", "/app/account", "/app/account/listings/new"],
   );
+});
+
+test("warranty library from new listing parents Đăng tin mới", () => {
+  const crumbs = buildSiteBreadcrumbs("/app/account/warranty", {
+    from: "new-listing",
+  });
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    [
+      "/",
+      "/app/account/listings/new",
+      "/app/account/warranty?from=new-listing",
+    ],
+  );
+  assert.equal(crumbs[1]?.labelKey, "account.newListing");
+  assert.equal(crumbs[2]?.labelKey, "listing.new.warrantyManage");
+});
+
+test("warranty library from farm Account trail includes Hồ sơ trại", () => {
+  const crumbs = buildSiteBreadcrumbs("/app/account/warranty", {
+    from: "account",
+    farmProfileId: FARM_ID,
+  });
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    [
+      "/",
+      "/app/account",
+      `/app/breeders/${FARM_ID}?tab=warranty&from=account`,
+      `/app/account/warranty?from=account&farm=${FARM_ID}`,
+    ],
+  );
+  assert.equal(crumbs[2]?.labelKey, "breadcrumb.farmProfile");
+  assert.equal(crumbs[3]?.labelKey, "account.breederTrust.warrantyLibrary");
+});
+
+test("warranty library from farm public trail parents Top Breeders", () => {
+  const crumbs = buildSiteBreadcrumbs("/app/account/warranty", {
+    farmProfileId: FARM_ID,
+  });
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    [
+      "/",
+      "/app/breeders",
+      `/app/breeders/${FARM_ID}?tab=warranty`,
+      `/app/account/warranty?farm=${FARM_ID}`,
+    ],
+  );
+  assert.equal(crumbs[2]?.labelKey, "breadcrumb.farmProfile");
+});
+
+test("warranty library default trail stays under Account", () => {
+  const crumbs = buildSiteBreadcrumbs("/app/account/warranty");
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    ["/", "/app/account", "/app/account/warranty"],
+  );
+  assert.equal(crumbs[2]?.labelKey, "account.breederTrust.warrantyLibrary");
 });
 
 test("edit listing trail links detail then edit", () => {

@@ -39,6 +39,12 @@ const KEYS = [
   "listing.new.submitting",
   "listing.new.reviewNote",
   "listing.new.previewUntitled",
+  "listing.new.termsBefore",
+  "listing.new.termsAnd",
+  "listing.new.termsAfter",
+  "listing.new.field.termsRequired",
+  "legal.terms",
+  "legal.guidelines",
 ] as const;
 
 test("listing new form i18n keys exist in EN and VI", () => {
@@ -48,6 +54,23 @@ test("listing new form i18n keys exist in EN and VI", () => {
   }
   assert.equal(vi["listing.new.warrantyNone"], "Không bảo hành");
   assert.equal(en["listing.new.warrantyNone"], "No warranty");
+});
+
+test("listing preview terms copy names Terms and Marketplace Guidelines", () => {
+  assert.match(vi["listing.new.termsBefore"], /đã đọc và đồng ý/i);
+  assert.match(vi["listing.new.termsAfter"], /chính xác và trung thực/i);
+  assert.doesNotMatch(vi["listing.new.termsAfter"], /thông tin tin tin/);
+  assert.equal(vi["legal.terms"], "Điều khoản dịch vụ");
+  assert.equal(vi["legal.guidelines"], "Nội quy Marketplace");
+  assert.match(vi["listing.new.field.termsRequired"], /Điều khoản dịch vụ/);
+  assert.match(vi["listing.new.field.termsRequired"], /Nội quy Marketplace/);
+
+  assert.match(en["listing.new.termsBefore"], /read and agree/i);
+  assert.match(en["listing.new.termsAfter"], /accurate and truthful/i);
+  assert.equal(en["legal.terms"], "Terms of Service");
+  assert.equal(en["legal.guidelines"], "Marketplace Guidelines");
+  assert.match(en["listing.new.field.termsRequired"], /Terms of Service/);
+  assert.match(en["listing.new.field.termsRequired"], /Marketplace Guidelines/);
 });
 
 test("new listing form does not collect optional listing contact", () => {

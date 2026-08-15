@@ -32,6 +32,7 @@ import {
   vaccineStatusRequiresHealthEvidence,
   type NewListingFieldErrors,
 } from "@/lib/listingFormOptions";
+import { warrantyLibraryHref } from "@/lib/farmTabs";
 
 const inputCls =
   "w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D97706]/20 focus:border-[#D97706]";
@@ -840,17 +841,9 @@ export function NewListingForm({
           </div>
 
           <div>
-            <div className="flex items-center justify-between gap-3 mb-1">
-              <label className="block text-xs font-medium text-slate-500">
-                {t(lang, "listing.new.warranty")}
-              </label>
-              <Link
-                href="/app/account/warranty"
-                className="text-xs font-semibold text-[#B45309] hover:underline shrink-0"
-              >
-                + {t(lang, "listing.new.warrantyCreate")}
-              </Link>
-            </div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">
+              {t(lang, "listing.new.warranty")}
+            </label>
             <select
               value={warrantyPolicyId}
               onChange={(e) => setWarrantyPolicyId(e.target.value)}
@@ -867,7 +860,7 @@ export function NewListingForm({
               <p className="mt-1.5 text-xs text-amber-700">
                 {t(lang, "listing.new.warrantyHint")}{" "}
                 <Link
-                  href="/app/account/warranty"
+                  href={warrantyLibraryHref({ from: "new-listing" })}
                   className="underline font-medium"
                 >
                   {t(lang, "listing.new.warrantyManage")}
@@ -1080,7 +1073,25 @@ export function NewListingForm({
                     className="mt-1 accent-[#D97706]"
                   />
                   <span>
-                    {t(lang, "listing.new.terms")}
+                    {t(lang, "listing.new.termsBefore")}
+                    <Link
+                      href="/terms-of-service"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-[#D97706] underline underline-offset-2"
+                    >
+                      {t(lang, "legal.terms")}
+                    </Link>
+                    {t(lang, "listing.new.termsAnd")}
+                    <Link
+                      href="/marketplace-guidelines"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-[#D97706] underline underline-offset-2"
+                    >
+                      {t(lang, "legal.guidelines")}
+                    </Link>
+                    {t(lang, "listing.new.termsAfter")}
                     <RequiredMark />
                   </span>
                 </label>

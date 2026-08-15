@@ -863,8 +863,10 @@ const vi: Record<EnKey, string> = {
   "listing.new.reviewNote":
     "Bài đăng sẽ ở trạng thái chờ duyệt. Hãy mô tả minh bạch, tránh cam kết sức khỏe tuyệt đối hoặc nội dung gây hiểu nhầm.",
   "listing.new.previewUntitled": "Bài đăng chưa có tiêu đề",
-  "listing.new.terms":
-    "Tôi đồng ý với Nội quy Marketplace và xác nhận thông tin tin đăng là chính xác.",
+  "listing.new.termsBefore": "Tôi đã đọc và đồng ý với ",
+  "listing.new.termsAnd": " và ",
+  "listing.new.termsAfter":
+    ", đồng thời xác nhận thông tin tin đăng là chính xác và trung thực.",
   "listing.new.photos": "Ảnh (tối đa 6)",
   "listing.new.photosHint": "Ảnh rõ mặt + toàn thân giúp duyệt nhanh hơn.",
   "listing.new.video": "Video ngắn (bắt buộc)",
@@ -896,7 +898,8 @@ const vi: Record<EnKey, string> = {
   "listing.new.field.videoRequired": "Vui lòng chọn video (tối đa 50MB).",
   "listing.new.field.healthEvidenceRequired":
     "Vui lòng tải ít nhất một ảnh sổ tiêm / dấu tiêm khi khai đã tiêm vaccine.",
-  "listing.new.field.termsRequired": "Vui lòng đồng ý Nội quy Marketplace.",
+  "listing.new.field.termsRequired":
+    "Vui lòng đồng ý Điều khoản dịch vụ và Nội quy Marketplace.",
   "listing.new.species.dog": "Chó",
   "listing.new.species.cat": "Mèo",
   "listing.new.species.bird": "Chim",

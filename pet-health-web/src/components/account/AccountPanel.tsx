@@ -20,6 +20,7 @@ import {
 import { ListingDeleteConfirmModal } from "@/components/marketplace/ListingDeleteConfirmModal";
 import { TransparencyWarningModal } from "@/components/account/TransparencyWarningModal";
 import { shouldShowSenDepositedSection } from "@/lib/senDepositedListings";
+import { showAccountBreederStatusBadge } from "@/lib/accountBreederStatusBadge";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 
 export type AccountListingItem = {
@@ -305,11 +306,13 @@ export function AccountPanel({
                       displayName ||
                       t(lang, "account.breederTrust.untitled")}
                   </h2>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusTone(breederStatus)}`}
-                  >
-                    {t(lang, breederStatusKey(breederStatus))}
-                  </span>
+                  {showAccountBreederStatusBadge(breederStatus) ? (
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusTone(breederStatus)}`}
+                    >
+                      {t(lang, breederStatusKey(breederStatus))}
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-2 text-sm text-[#5C4A3A]">
                   {[

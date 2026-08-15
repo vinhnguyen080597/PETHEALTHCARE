@@ -15,6 +15,8 @@ import {
   parseFarmDetailFrom,
   parseFarmDetailTab,
   warrantyLibraryEditHref,
+  warrantyLibraryHref,
+  type FarmDetailFrom,
   type FarmDetailTab,
 } from "@/lib/farmTabs";
 import {
@@ -34,15 +36,13 @@ import {
 } from "@/lib/farmPets";
 import { t } from "@/i18n";
 import { farmTemplateHref } from "@/lib/siteBreadcrumbs";
+import { SHOW_BREEDER_VERIFICATION_BADGES } from "@/lib/breederVerificationUi";
 import { ListingCard } from "./ListingCard";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { FarmHealth } from "./FarmHealth";
 import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
 
 const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
-
-/** Temporary: hide verification chrome until the real eligibility rules ship. */
-const SHOW_BREEDER_VERIFICATION_BADGES = false;
 
 const BREEDER_REPORT_REASONS = [
   "scam",
@@ -66,11 +66,15 @@ function FarmWarrantyTab({
   lang,
   policies,
   isOwner,
+  profileId,
+  farmFrom = null,
   primarySpecies = [],
 }: {
   lang: Lang;
   policies: WarrantyPolicy[];
   isOwner: boolean;
+  profileId: string;
+  farmFrom?: FarmDetailFrom | null;
   primarySpecies?: string[];
 }) {
   const router = useRouter();
@@ -78,6 +82,10 @@ function FarmWarrantyTab({
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const warrantyHrefOpts = {
+    farm: profileId,
+    from: farmFrom,
+  } as const;
 
   useEffect(() => {
     if (!menuOpenId) return;
@@ -127,7 +135,7 @@ function FarmWarrantyTab({
           </h3>
           {isOwner ? (
             <Link
-              href="/app/account/warranty"
+              href={warrantyLibraryHref(warrantyHrefOpts)}
               className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-full bg-[#D97706] text-white text-xs font-semibold hover:bg-[#B45309] transition-colors"
             >
               {t(lang, "farm.warranty.createButton")}
@@ -181,7 +189,7 @@ function FarmWarrantyTab({
                       {menuOpenId === p.id ? (
                         <div className="absolute right-0 top-9 z-20 min-w-[9.5rem] rounded-xl border border-[#F3E2C8] bg-white py-1 shadow-lg">
                           <Link
-                            href={warrantyLibraryEditHref(p.id)}
+                            href={warrantyLibraryEditHref(p.id, warrantyHrefOpts)}
                             className="block w-full px-3 py-2 text-left text-sm text-[#2B1E19] hover:bg-[#FFF8EF]"
                             onClick={() => setMenuOpenId(null)}
                           >
@@ -990,6 +998,8 @@ export function FarmDetail({
                 lang={lang}
                 policies={breeder.warrantyPolicies ?? []}
                 isOwner={isOwner}
+                profileId={breeder.id}
+                farmFrom={farmFrom}
                 primarySpecies={breeder.primarySpecies}
               />
             )}

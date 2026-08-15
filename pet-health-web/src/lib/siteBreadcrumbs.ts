@@ -2,7 +2,9 @@ import type { EnKey } from "@/i18n";
 import {
   farmDetailHref,
   parseFarmDetailFrom,
+  parseWarrantyLibraryFrom,
   type FarmDetailFrom,
+  type WarrantyLibraryFrom,
 } from "./farmTabs";
 
 export type SiteBreadcrumbCrumb = {
@@ -11,6 +13,8 @@ export type SiteBreadcrumbCrumb = {
   labelKey?: EnKey;
   rawLabel?: string;
 };
+
+export type SiteBreadcrumbFrom = FarmDetailFrom | WarrantyLibraryFrom;
 
 const SEGMENT_LABEL: Record<string, EnKey> = {
   app: "nav.brand",
@@ -121,13 +125,18 @@ function defaultTrail(pathname: string): SiteBreadcrumbCrumb[] {
  */
 export function buildSiteBreadcrumbs(
   pathname: string,
-  options?: { farmProfileId?: string | null; from?: FarmDetailFrom | null },
+  options?: {
+    farmProfileId?: string | null;
+    from?: SiteBreadcrumbFrom | null;
+  },
 ): SiteBreadcrumbCrumb[] | null {
   if (shouldHideSiteBreadcrumbs(pathname)) return null;
 
   const path = pathname.split("?")[0] || pathname;
   const farmId = parseFarmBreadcrumbId(options?.farmProfileId);
   const fromAccount = parseFarmDetailFrom(options?.from) === "account";
+  const fromNewListing =
+    parseWarrantyLibraryFrom(options?.from) === "new-listing";
 
   // Farm profile opened from Account (owner shortcut)
   {
@@ -249,6 +258,47 @@ export function buildSiteBreadcrumbs(
   }
 
   if (path === "/app/account/warranty") {
+    if (fromNewListing) {
+      return [
+        { href: "/", labelKey: "breadcrumb.home" },
+        {
+          href: "/app/account/listings/new",
+          labelKey: "account.newListing",
+        },
+        {
+          href: "/app/account/warranty?from=new-listing",
+          labelKey: "listing.new.warrantyManage",
+        },
+      ];
+    }
+    if (farmId) {
+      if (fromAccount) {
+        return [
+          { href: "/", labelKey: "breadcrumb.home" },
+          { href: "/app/account", labelKey: "nav.account" },
+          {
+            href: farmDetailHref(farmId, "warranty", { from: "account" }),
+            labelKey: "breadcrumb.farmProfile",
+          },
+          {
+            href: `/app/account/warranty?from=account&farm=${encodeURIComponent(farmId)}`,
+            labelKey: "account.breederTrust.warrantyLibrary",
+          },
+        ];
+      }
+      return [
+        { href: "/", labelKey: "breadcrumb.home" },
+        { href: "/app/breeders", labelKey: "nav.breeders" },
+        {
+          href: farmDetailHref(farmId, "warranty"),
+          labelKey: "breadcrumb.farmProfile",
+        },
+        {
+          href: `/app/account/warranty?farm=${encodeURIComponent(farmId)}`,
+          labelKey: "account.breederTrust.warrantyLibrary",
+        },
+      ];
+    }
     return [
       { href: "/", labelKey: "breadcrumb.home" },
       { href: "/app/account", labelKey: "nav.account" },

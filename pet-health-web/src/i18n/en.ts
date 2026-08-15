@@ -862,8 +862,10 @@ const en = {
   "listing.new.reviewNote":
     "Listings are submitted for review. Be transparent and avoid absolute health claims or misleading content.",
   "listing.new.previewUntitled": "Untitled listing",
-  "listing.new.terms":
-    "I agree to the Marketplace Guidelines and confirm listing information is accurate.",
+  "listing.new.termsBefore": "I have read and agree to the ",
+  "listing.new.termsAnd": " and ",
+  "listing.new.termsAfter":
+    ", and confirm that listing information is accurate and truthful.",
   "listing.new.photos": "Photos (up to 6)",
   "listing.new.photosHint": "Clear face + body photos help approval.",
   "listing.new.video": "Short video (required)",
@@ -895,7 +897,8 @@ const en = {
   "listing.new.field.videoRequired": "Please select a video (max 50MB).",
   "listing.new.field.healthEvidenceRequired":
     "Please upload at least one vaccine book or stamp photo when claiming vaccination.",
-  "listing.new.field.termsRequired": "Please accept Marketplace Guidelines.",
+  "listing.new.field.termsRequired":
+    "Please accept the Terms of Service and Marketplace Guidelines.",
   "listing.new.species.dog": "Dog",
   "listing.new.species.cat": "Cat",
   "listing.new.species.bird": "Bird",

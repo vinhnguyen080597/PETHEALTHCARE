@@ -8,7 +8,10 @@ import {
   farmProfileFromAccountHref,
   farmTabI18nKey,
   parseFarmDetailTab,
+  parseWarrantyLibraryFrom,
   farmNameMarginClass,
+  warrantyLibraryHref,
+  warrantyLibraryEditHref,
   warrantySaveNextHref,
 } from "../src/lib/farmTabs";
 
@@ -35,6 +38,39 @@ test("warranty save Không returns farm warranty deep link", () => {
     "/app/breeders/bp1?tab=warranty",
   );
   assert.equal(farmDetailHref("bp1", "overview"), "/app/breeders/bp1");
+});
+
+test("warranty save from new listing returns create listing page", () => {
+  assert.equal(parseWarrantyLibraryFrom("new-listing"), "new-listing");
+  assert.equal(parseWarrantyLibraryFrom("account"), null);
+  assert.equal(
+    warrantySaveNextHref(false, "bp1", { from: "new-listing" }),
+    "/app/account/listings/new",
+  );
+  assert.equal(
+    warrantyLibraryHref({ from: "new-listing" }),
+    "/app/account/warranty?from=new-listing",
+  );
+  assert.equal(warrantyLibraryHref(), "/app/account/warranty");
+  assert.equal(
+    warrantyLibraryEditHref("p1"),
+    "/app/account/warranty?edit=p1",
+  );
+});
+
+test("warranty library from farm profile keeps farm + from query", () => {
+  assert.equal(
+    warrantyLibraryHref({ from: "account", farm: "bp1" }),
+    "/app/account/warranty?from=account&farm=bp1",
+  );
+  assert.equal(
+    warrantyLibraryEditHref("p1", { from: "account", farm: "bp1" }),
+    "/app/account/warranty?from=account&farm=bp1&edit=p1",
+  );
+  assert.equal(
+    warrantySaveNextHref(false, "bp1", { from: "account" }),
+    "/app/breeders/bp1?tab=warranty&from=account",
+  );
 });
 
 test("farm profile from Account href sets from=account", () => {
