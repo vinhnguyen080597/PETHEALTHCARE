@@ -2000,9 +2000,15 @@ export async function favoritePetFeedPost(userId, postId, accessToken) {
     }
     return true;
   }
-  const { error } = await supabase.from('pet_feed_favorites').upsert({ user_id: userId, post_id: postId }, { onConflict: 'user_id,post_id' });
-  if (error) throw error;
-  return true;
+  // Prefer INSERT over UPSERT: RLS has insert/delete but no update policy.
+  // Upsert-on-conflict requires UPDATE and returns 42501 INTERNAL_ERROR when the row exists.
+  const { error } = await supabase
+    .from('pet_feed_favorites')
+    .insert({ user_id: userId, post_id: postId });
+  if (!error) return true;
+  if (error.code === '23505') return true;
+  if (/duplicate|unique/i.test(String(error.message || ''))) return true;
+  throw error;
 }
 
 export async function unfavoritePetFeedPost(userId, postId, accessToken) {
@@ -2015,6 +2021,24 @@ export async function unfavoritePetFeedPost(userId, postId, accessToken) {
   const { error } = await supabase.from('pet_feed_favorites').delete().eq('user_id', userId).eq('post_id', postId);
   if (error) throw error;
   return true;
+}
+
+/** True when this user favorited the post (works for listing + announcement). */
+export async function isPetFeedPostFavorited(userId, postId, accessToken) {
+  const safePostId = trimText(postId, 80);
+  if (!userId || !safePostId) return false;
+  const supabase = getFeedSupabase(accessToken);
+  if (!supabase) {
+    return memoryFavorites.some((row) => row.user_id === userId && row.post_id === safePostId);
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_favorites')
+    .select('post_id')
+    .eq('user_id', userId)
+    .eq('post_id', safePostId)
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean(data?.post_id);
 }
 
 export async function listFavoritePetFeedPosts(userId, accessToken) {

@@ -172,6 +172,14 @@ export interface Listing {
   ownerUserId?: string;
   saved: boolean;
   postKind?: string;
+  /** ISO created time when provided by API (news cards). */
+  createdAt?: string;
+  /** Announcement category when `postKind === "announcement"`. */
+  announcementCategory?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  favoriteCount?: number;
+  commentCount?: number;
   /** Listing accepts PetCare escrow deposit (Phase B UI). */
   escrowEnabled: boolean;
   /** True when archive/sold metadata marks a completed rehome. */

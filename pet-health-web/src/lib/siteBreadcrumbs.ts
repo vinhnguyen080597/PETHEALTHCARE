@@ -21,6 +21,7 @@ const SEGMENT_LABEL: Record<string, EnKey> = {
   "pet-feed": "nav.browse",
   posts: "breadcrumb.listing",
   breeders: "nav.breeders",
+  news: "nav.news",
   health: "breadcrumb.farmHealth",
   trust: "breadcrumb.farmTrust",
   account: "nav.account",

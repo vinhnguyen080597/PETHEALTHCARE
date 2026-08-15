@@ -10,6 +10,7 @@ import { BrandWordmark } from "@/components/BrandWordmark";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
 import { MessagesUnreadBadge } from "@/components/MessagesUnreadBadge";
+import { SITE_MAIN_NAV } from "@/lib/siteNav";
 
 export function SiteHeader({
   lang,
@@ -29,9 +30,6 @@ export function SiteHeader({
     pathname === "/signup" ||
     pathname.startsWith("/login/") ||
     pathname.startsWith("/signup/");
-
-  const browseHref = "/app/pet-feed";
-  const breedersHref = "/app/breeders";
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -67,12 +65,15 @@ export function SiteHeader({
 
         {!isAuthRoute && (
           <nav className="hidden md:flex items-center gap-1 flex-1">
-            <Link href={browseHref} className={navCls("/app/pet-feed")}>
-              {t(lang, "nav.browse")}
-            </Link>
-            <Link href={breedersHref} className={navCls("/app/breeders")}>
-              {t(lang, "nav.breeders")}
-            </Link>
+            {SITE_MAIN_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={navCls(item.matchHref)}
+              >
+                {t(lang, item.labelKey)}
+              </Link>
+            ))}
           </nav>
         )}
         {isAuthRoute && <div className="flex-1" />}
@@ -141,20 +142,16 @@ export function SiteHeader({
         <div className="md:hidden border-t border-[#F0E6D8] bg-[#FDFBF7] px-5 py-3 flex flex-col gap-1">
           {!isAuthRoute && (
             <>
-              <Link
-                href={browseHref}
-                onClick={() => setMenuOpen(false)}
-                className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
-              >
-                {t(lang, "nav.browse")}
-              </Link>
-              <Link
-                href={breedersHref}
-                onClick={() => setMenuOpen(false)}
-                className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
-              >
-                {t(lang, "nav.breeders")}
-              </Link>
+              {SITE_MAIN_NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
+                >
+                  {t(lang, item.labelKey)}
+                </Link>
+              ))}
             </>
           )}
           {isLoggedIn && (

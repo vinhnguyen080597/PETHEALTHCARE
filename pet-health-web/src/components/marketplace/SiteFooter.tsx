@@ -31,6 +31,12 @@ export function SiteFooter({ lang }: { lang: Lang }) {
             </p>
             <div className="space-y-2">
               <Link
+                href="/app/news"
+                className="block text-stone-400 text-sm hover:text-amber-200 transition-colors"
+              >
+                {t(lang, "nav.news")}
+              </Link>
+              <Link
                 href="/app/pet-feed"
                 className="block text-stone-400 text-sm hover:text-amber-200 transition-colors"
               >

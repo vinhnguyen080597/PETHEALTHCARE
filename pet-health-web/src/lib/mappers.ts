@@ -454,6 +454,15 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     ownerUserId,
     saved: Boolean(post.is_favorited),
     postKind: post.post_kind,
+    createdAt: String(post.created_at || "").trim() || undefined,
+    announcementCategory:
+      String(post.post_kind || "").toLowerCase() === "announcement"
+        ? String(meta.category || meta.announcement_category || "general")
+        : undefined,
+    ctaLabel: String(meta.ctaLabel || meta.cta_label || "").trim() || undefined,
+    ctaUrl: String(meta.ctaUrl || meta.cta_url || "").trim() || undefined,
+    favoriteCount: Number(post.favorite_count) || 0,
+    commentCount: Number(post.comment_count) || 0,
     escrowEnabled: parseEscrowEnabled(meta),
     metadataSold: !ownerDeleted && (status === "sold" || metadataSold),
     metadataCancelled:

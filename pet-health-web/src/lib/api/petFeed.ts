@@ -38,6 +38,29 @@ export async function unfavoritePost(token: string, postId: string) {
   });
 }
 
+export async function getPostFavoriteStatus(token: string, postId: string) {
+  return fetchJson<{ data: { favorited: boolean } }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/favorite`,
+    { token, cache: "no-store" },
+  );
+}
+
+/** Authenticated feed page (includes `is_favorited` for the current user). */
+export async function listFeedPosts(
+  token: string,
+  options?: { limit?: number; cursor?: string | null; kind?: string },
+) {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.cursor) params.set("cursor", String(options.cursor));
+  if (options?.kind) params.set("kind", String(options.kind));
+  const qs = params.toString();
+  return fetchJson<PageResult<ApiPetFeedPost>>(
+    `/pet-feed/posts${qs ? `?${qs}` : ""}`,
+    { token, cache: "no-store" },
+  );
+}
+
 export async function listComments(token: string | null, postId: string) {
   return fetchJson<{ data: unknown[] }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/comments`,

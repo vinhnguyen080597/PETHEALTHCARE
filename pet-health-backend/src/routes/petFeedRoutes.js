@@ -13,6 +13,7 @@ import {
   favoritePetFeedPost,
   getMyBreederProfile,
   getPetFeedPost,
+  isPetFeedPostFavorited,
   listFavoritePetFeedPosts,
   countMyPetFeedPostStats,
   listMyAnnouncementPosts,
@@ -802,6 +803,17 @@ router.post('/posts/:postId/favorite', async (req, res, next) => {
     await favoritePetFeedPost(req.user.id, postId, req.accessToken);
     void recordProductEvent({ userId: req.user.id, event: 'pet_feed_post_favorited', metadata: { postId } });
     return res.status(204).send();
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/posts/:postId/favorite', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    const favorited = await isPetFeedPostFavorited(req.user.id, postId, req.accessToken);
+    return res.json({ data: { favorited } });
   } catch (err) {
     return next(err);
   }

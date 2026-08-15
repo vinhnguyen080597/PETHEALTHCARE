@@ -16,6 +16,7 @@ const POST_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 /** Real pages that non-terminal crumbs may link to. */
 const REAL_PAGE_PREFIXES = [
   "/",
+  "/app/news",
   "/app/pet-feed",
   "/app/breeders",
   "/app/account",
@@ -269,6 +270,7 @@ test("account subpages link only to real parents", () => {
 });
 
 test("marketplace and legal trails have real parent links", () => {
+  assertLinksAreRealPages("/app/news");
   assertLinksAreRealPages("/app/pet-feed");
   assertLinksAreRealPages(`/app/pet-feed/posts/${POST_ID}`);
   assertLinksAreRealPages("/app/breeders");
@@ -281,6 +283,16 @@ test("marketplace and legal trails have real parent links", () => {
   assertLinksAreRealPages("/privacy-policy");
   assertLinksAreRealPages("/terms-of-service");
   assertLinksAreRealPages("/marketplace-guidelines");
+});
+
+test("news trail is Home / Tin tức", () => {
+  const crumbs = buildSiteBreadcrumbs("/app/news");
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    ["/", "/app/news"],
+  );
+  assert.equal(crumbs[1]?.labelKey, "nav.news");
 });
 
 test("breadcrumb.farmTrust i18n exists EN/VI", () => {
