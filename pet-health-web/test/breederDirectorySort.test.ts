@@ -149,7 +149,7 @@ test("Top Breeders title and sort i18n exist in EN and VI", () => {
   const enDict = en as Record<string, string>;
   const viDict = vi as Record<string, string>;
   assert.equal(enDict["breeders.title"], "Top Breeders");
-  assert.equal(viDict["breeders.title"], "Top Breeders");
+  assert.equal(viDict["breeders.title"], "Trại giống");
   for (const key of [
     "breeders.speciesLabel",
     "breeders.emptySpecies",

@@ -1,21 +1,9 @@
-import { cookies } from "next/headers";
-import { getLang } from "@/i18n";
-import { COOKIE_LANG } from "@/lib/session";
-import { LegalPage } from "@/components/legal/LegalPage";
-import { supportContent } from "@/lib/legalContent";
+import { redirect } from "next/navigation";
+import { SUPPORT_HUB_HREF } from "@/lib/supportHub";
 
 export const metadata = { title: "Support · PetCare: Pet Marketplace" };
 
-export default async function SupportPage() {
-  const jar = await cookies();
-  const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
-  return (
-    <LegalPage
-      lang={lang}
-      title="Support"
-      titleVI="Hỗ trợ"
-      docEN={supportContent.EN}
-      docVI={supportContent.VI}
-    />
-  );
+/** Legacy /support URL → Support Hub */
+export default function SupportRedirectPage() {
+  redirect(SUPPORT_HUB_HREF);
 }

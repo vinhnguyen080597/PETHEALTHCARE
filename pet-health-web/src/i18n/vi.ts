@@ -1,9 +1,10 @@
 import type { EnKey } from "./en";
 
 const vi: Record<EnKey, string> = {
-  "nav.browse": "New Pets",
-  "nav.breeders": "Top Breeders",
+  "nav.browse": "Thú cưng",
+  "nav.breeders": "Trại giống",
   "nav.news": "Tin tức",
+  "nav.support": "Hỗ trợ",
   "nav.messages": "Tin nhắn",
   "nav.notifications": "Thông báo",
   "nav.account": "Tài khoản",
@@ -63,7 +64,7 @@ const vi: Record<EnKey, string> = {
   "landing.footer.blurb":
     "Marketplace thú cưng — đồng hành tìm bé phù hợp từ breeder uy tín, so sánh thông tin, liên hệ minh bạch hơn.",
   "landing.footer.legal": "Pháp lý",
-  "landing.footer.browse": "Bé cưng",
+  "landing.footer.browse": "Thú cưng",
   "landing.footer.create": "Đăng tin",
   "landing.footer.disclaimer":
     "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán; đặt cọc theo điều khoản trên tin.",
@@ -153,11 +154,126 @@ const vi: Record<EnKey, string> = {
   "news.comments.authorBadge": "Tác giả",
   "news.comments.loadError": "Không tải được bình luận.",
   "news.comments.postError": "Không gửi được bình luận.",
+
+  "supportHub.title": "Trung tâm hỗ trợ",
+  "supportHub.subtitle":
+    "Hướng dẫn, góp ý sản phẩm và báo cáo lừa đảo — thường chỉ 1–2 cú click.",
+  "supportHub.searchPlaceholder":
+    "Bạn cần PetCare giúp gì hôm nay? (hướng dẫn, SĐT, STK…)",
+  "supportHub.searchHint":
+    "Gợi ý: tìm chủ đề, hoặc dán SĐT / link Facebook / STK để tra cứu danh sách công khai mẫu.",
+  "supportHub.contactHours":
+    "Giờ hỗ trợ: 08:30 – 17:30 (T2–T6). Thường phản hồi trong 24–48 giờ làm việc.",
+  "supportHub.section.guides": "Hướng dẫn sử dụng",
+  "supportHub.section.guidesBlurb": "Giữ cọc an toàn, kiểm tra khi nhận, kích hoạt bảo hành.",
+  "supportHub.section.guides.point1": "Dành cho Sen",
+  "supportHub.section.guides.point2": "Dành cho Breeder",
+  "supportHub.section.feedback": "Hòm thư góp ý",
+  "supportHub.section.feedbackBlurb": "Đóng góp tính năng hoặc bình chọn ý tưởng cộng đồng.",
+  "supportHub.section.feedback.point1": "Đóng góp tính năng",
+  "supportHub.section.feedback.point2": "Bình chọn ý tưởng",
+  "supportHub.section.scam": "Báo cáo lừa đảo",
+  "supportHub.section.scamBlurb": "Tra cứu danh sách công khai hoặc gửi báo cáo kèm bằng chứng.",
+  "supportHub.section.scam.point1": "Báo cáo tài khoản",
+  "supportHub.section.scam.point2": "Tra cứu danh sách đen",
+  "supportHub.audience.buyer": "Dành cho Sen",
+  "supportHub.audience.breeder": "Dành cho Breeder",
+  "supportHub.guide.empty": "Không có hướng dẫn khớp tìm kiếm.",
+  "supportHub.guide.buyerDeposit.title": "Quy trình giữ cọc an toàn 4 bước",
+  "supportHub.guide.buyerDeposit.body":
+    "Giữ tiền và chat trên PetCare đến khi bàn giao. Đừng chuyển khoản ngoài bảng cọc cho các “giữ chỗ” không có nhật ký sàn.",
+  "supportHub.guide.buyerDeposit.steps":
+    "1. Kiểm tra bảo hành tin đăng và hồ sơ Breeder.\n2. Đặt cọc trong bảng cọc của tin.\n3. Giữ mọi thương lượng trong chat PetCare.\n4. Hoàn tất checklist bàn giao trước khi giải ngân phần còn lại.",
+  "supportHub.guide.buyerHandoff.title": "Cách kiểm tra bé cưng khi nhận",
+  "supportHub.guide.buyerHandoff.body":
+    "Gặp ở nơi an toàn, đối chiếu chip/sổ tiêm nếu tin có nêu, quay video bàn giao ngắn, và so với ảnh tin đăng trước khi xác nhận đã nhận.",
+  "supportHub.guide.buyerWarranty.title": "Hướng dẫn kích hoạt gói bảo hành",
+  "supportHub.guide.buyerWarranty.body":
+    "Sau giao dịch xong, mở Tài khoản → Bảo hành (hoặc link bảo hành trên tin). Giữ biên nhận và giấy khám nếu cần khiếu nại.",
+  "supportHub.guide.breederVerify.title": "Cách xác minh hồ sơ Breeder",
+  "supportHub.guide.breederVerify.body":
+    "Điền hồ sơ trại, tải giấy tờ xác minh từ Tài khoản → Breeder, và giữ tin đăng chính xác. PetCare sẽ duyệt hồ sơ.",
+  "supportHub.guide.breederWarranty.title": "Gắn chính sách bảo hành vào tin đăng",
+  "supportHub.guide.breederWarranty.body":
+    "Tạo hoặc chọn chính sách trong thư viện Bảo hành, rồi gắn khi đăng/sửa tin để Sen thấy phạm vi trước khi cọc.",
+  "supportHub.guide.breederPayout.title": "Quy trình giải ngân cọc",
+  "supportHub.guide.breederPayout.body":
+    "Tiền cọc đi theo trạng thái giao dịch đến khi đủ điều kiện bàn giao. Dùng trạng thái và chat trong app; không yêu cầu Sen chuyển tiền mặt ngoài sàn cho cùng khoản giữ chỗ.",
+  "supportHub.feedback.formTitle": "Gửi góp ý",
+  "supportHub.feedback.category": "Phân loại",
+  "supportHub.feedback.cat.ui": "Cải tiến UI/UX",
+  "supportHub.feedback.cat.feature": "Tính năng mới",
+  "supportHub.feedback.cat.bug": "Báo lỗi (Bug)",
+  "supportHub.feedback.cat.other": "Góp ý khác",
+  "supportHub.feedback.title": "Tiêu đề",
+  "supportHub.feedback.titlePh": "Tóm tắt ngắn",
+  "supportHub.feedback.body": "Nội dung chi tiết",
+  "supportHub.feedback.bodyPh": "Bạn muốn thay đổi gì, vì sao?",
+  "supportHub.feedback.media": "Ảnh / video minh họa (tùy chọn)",
+  "supportHub.feedback.mediaHint":
+    "Đính kèm trong email sau khi bấm Gửi. Trang này chưa tải file trực tiếp.",
+  "supportHub.feedback.submit": "Mở bản nháp email",
+  "supportHub.feedback.required": "Vui lòng nhập tiêu đề và nội dung.",
+  "supportHub.ideas.title": "Ý tưởng cộng đồng",
+  "supportHub.ideas.blurb":
+    "Các ý tưởng đã duyệt. Lượt upvote trên trang này lưu trên trình duyệt của bạn cho đến khi bảng live sẵn sàng.",
+  "supportHub.ideas.upvote": "+1 Upvote",
+  "supportHub.ideas.upvoted": "Bạn đã upvote",
+  "supportHub.ideas.commentPh": "Để lại bình luận ngắn…",
+  "supportHub.ideas.commentAdd": "Bình luận",
+  "supportHub.ideas.commentsEmpty": "Chưa có bình luận.",
+  "supportHub.ideaStatus.reviewing": "Đang xem xét",
+  "supportHub.ideaStatus.planned": "Đã lên kế hoạch",
+  "supportHub.ideaStatus.done": "Đã hoàn thành",
+  "supportHub.idea.depositTimeline.title": "Timeline cọc rõ hơn trên tin đăng",
+  "supportHub.idea.depositTimeline.body":
+    "Hiển thị từng bước cọc và thời gian dự kiến để Sen và Breeder cùng hiểu.",
+  "supportHub.idea.warrantyCompare.title": "So sánh chính sách bảo hành",
+  "supportHub.idea.warrantyCompare.body":
+    "Cho Sen so thời hạn và điều khoản loại trừ trước khi đặt cọc.",
+  "supportHub.idea.chatTranslate.title": "Dịch chat tùy chọn",
+  "supportHub.idea.chatTranslate.body":
+    "Giúp Sen và Breeder đọc tin EN/VI mà không rời khỏi hội thoại.",
+  "supportHub.blacklist.title": "Tra cứu danh sách đen (mẫu công khai)",
+  "supportHub.blacklist.blurb":
+    "Tìm SĐT, link Facebook hoặc STK trên danh sách mẫu công khai nhỏ. “Không khớp” không có nghĩa là an toàn — luôn kiểm tra trực tiếp.",
+  "supportHub.blacklist.placeholder": "SĐT / link Facebook / STK ngân hàng",
+  "supportHub.blacklist.check": "Tra cứu",
+  "supportHub.blacklist.hit": "Có trong danh sách mẫu công khai",
+  "supportHub.blacklist.miss":
+    "Chưa thấy trong danh sách mẫu. Vẫn nên cẩn thận và báo cáo nếu nghi ngờ.",
+  "supportHub.blacklist.tooShort": "Nhập ít nhất 6 ký tự để tra cứu.",
+  "supportHub.blacklist.samplePhone": "SĐT mẫu bị gắn cờ",
+  "supportHub.blacklist.sampleBank": "STK mẫu bị gắn cờ",
+  "supportHub.blacklist.sampleNote":
+    "Mục demo cho giao diện — không phải hồ sơ xử lý thật.",
+  "supportHub.scam.formTitle": "Báo cáo lừa đảo / giả mạo",
+  "supportHub.scam.targetType": "Đối tượng báo cáo",
+  "supportHub.scam.type.account": "Tài khoản trên Sàn",
+  "supportHub.scam.type.phone": "SĐT / Zalo lừa đảo",
+  "supportHub.scam.type.facebook": "Facebook / Fanpage giả mạo",
+  "supportHub.scam.type.bank": "STK ngân hàng lừa đảo",
+  "supportHub.scam.identifier": "SĐT / link FB / STK / hồ sơ",
+  "supportHub.scam.identifierPh": "Dán thông tin đối tượng",
+  "supportHub.scam.relatedUrl": "Link tin đăng hoặc hồ sơ liên quan",
+  "supportHub.scam.relatedUrlPh": "https://…",
+  "supportHub.scam.details": "Thông tin vi phạm",
+  "supportHub.scam.detailsPh": "Mốc thời gian, số tiền, cách bị liên hệ.",
+  "supportHub.scam.evidence": "Bằng chứng (bắt buộc)",
+  "supportHub.scam.evidenceHint":
+    "Đính kèm ảnh chat, bill chuyển khoản và ảnh giao dịch trong email. Không chuyển thêm tiền để “chứng minh” vụ việc.",
+  "supportHub.scam.anonymous": "Báo cáo ẩn danh (ẩn thông tin liên hệ trong tóm tắt hồ sơ)",
+  "supportHub.scam.submit": "Mở email báo cáo",
+  "supportHub.scam.required": "Cần mã định danh, mô tả và xác nhận đính kèm bằng chứng.",
+  "supportHub.scam.evidenceConfirm": "Tôi sẽ đính kèm bằng chứng trong email.",
+  "supportHub.scam.privacy":
+    "Báo cáo gửi tới hộp thư pháp lý PetCare. Bằng chứng chỉ dùng để kiểm duyệt và yêu cầu hợp pháp.",
+
   "feed.loadError": "Không tải được danh sách tin",
   "feed.loadMore": "Tải thêm",
   "feed.activeListings": "tin đang đăng",
 
-  "breeders.title": "Top Breeders",
+  "breeders.title": "Trại giống",
   "breeders.subtitle": "Danh bạ breeder đã xác minh",
   "breeders.empty": "Chưa có breeder công khai",
   "breeders.emptySpecies": "Chưa có breeder cho loài này",

@@ -38,7 +38,7 @@ const SEGMENT_LABEL: Record<string, EnKey> = {
   "privacy-policy": "legal.privacy",
   "terms-of-service": "legal.terms",
   "marketplace-guidelines": "legal.guidelines",
-  support: "legal.support",
+  support: "nav.support",
 };
 
 /**

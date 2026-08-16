@@ -19,6 +19,7 @@ const REAL_PAGE_PREFIXES = [
   "/app/news",
   "/app/pet-feed",
   "/app/breeders",
+  "/app/support",
   "/app/account",
   "/app/account/saved",
   "/app/account/breeder",
@@ -276,6 +277,7 @@ test("marketplace and legal trails have real parent links", () => {
   assertLinksAreRealPages("/app/breeders");
   assertLinksAreRealPages(`/app/breeders/${FARM_ID}`);
   assertLinksAreRealPages(`/app/breeders/${FARM_ID}/trust`);
+  assertLinksAreRealPages("/app/support");
   assertLinksAreRealPages("/app/messages");
   assertLinksAreRealPages("/app/notifications");
   assertLinksAreRealPages("/app/admin");
@@ -293,6 +295,16 @@ test("news trail is Home / Tin tức", () => {
     ["/", "/app/news"],
   );
   assert.equal(crumbs[1]?.labelKey, "nav.news");
+});
+
+test("support hub trail is Home / Hỗ trợ", () => {
+  const crumbs = buildSiteBreadcrumbs("/app/support");
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    ["/", "/app/support"],
+  );
+  assert.equal(crumbs[1]?.labelKey, "nav.support");
 });
 
 test("breadcrumb.farmTrust i18n exists EN/VI", () => {
