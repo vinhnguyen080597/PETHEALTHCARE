@@ -142,6 +142,18 @@ export function toSupportBlacklistHit(raw: {
     noteKey: typeof raw?.note_key === "string" ? raw.note_key : null,
   };
 }
+
+export type SupportThanksKind = "feedback" | "scam";
+
+/** i18n keys for the post-submit thank-you dialog. */
+export function supportThanksCopyKeys(kind: SupportThanksKind) {
+  return {
+    titleKey: "supportHub.thanks.title",
+    bodyKey:
+      kind === "feedback" ? "supportHub.thanks.feedbackBody" : "supportHub.thanks.scamBody",
+    closeKey: "supportHub.thanks.close",
+  } as const;
+}
 export function parseSupportSection(raw: string | null | undefined): SupportSectionId {
   const v = String(raw || "").trim().toLowerCase();
   if (v === "feedback" || v === "scam" || v === "guides") return v;

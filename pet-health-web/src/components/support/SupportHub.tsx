@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { loginHref } from "@/lib/loginHref";
+import { DialogActions } from "@/components/ui/DialogActions";
 import { DealPhotoPicker } from "@/components/marketplace/DealPhotoPicker";
 import { dealSubmitErrorMessage } from "@/lib/dealPhotoUpload";
 import { dealPhotosDropHint } from "@/lib/listingDealHandoff";
@@ -24,12 +25,14 @@ import {
   pickSupportSection,
   supportHubLoginNext,
   supportHubPathWithState,
+  supportThanksCopyKeys,
   toSupportBlacklistHit,
   type FeedbackCategory,
   type GuideAudience,
   type ScamTargetType,
   type SupportBlacklistHit,
   type SupportSectionId,
+  type SupportThanksKind,
 } from "@/lib/supportHub";
 
 function fieldClass() {
@@ -64,8 +67,8 @@ export function SupportHub({
   const [fbBody, setFbBody] = useState("");
   const [fbPhotos, setFbPhotos] = useState<File[]>([]);
   const [fbError, setFbError] = useState("");
-  const [fbSuccess, setFbSuccess] = useState(false);
   const [fbBusy, setFbBusy] = useState(false);
+  const [thanksKind, setThanksKind] = useState<SupportThanksKind | null>(null);
 
   const [blacklistQ, setBlacklistQ] = useState("");
   const [blacklistChecked, setBlacklistChecked] = useState(false);
@@ -79,7 +82,6 @@ export function SupportHub({
   const [scamEvidence, setScamEvidence] = useState(false);
   const [scamPhotos, setScamPhotos] = useState<File[]>([]);
   const [scamError, setScamError] = useState("");
-  const [scamSuccess, setScamSuccess] = useState(false);
   const [scamBusy, setScamBusy] = useState(false);
 
   const matchedSections = useMemo(
@@ -119,7 +121,6 @@ export function SupportHub({
       return;
     }
     setFbError("");
-    setFbSuccess(false);
     setFbBusy(true);
     try {
       const evidenceUrls =
@@ -144,7 +145,7 @@ export function SupportHub({
       setFbTitle("");
       setFbBody("");
       setFbPhotos([]);
-      setFbSuccess(true);
+      setThanksKind("feedback");
     } catch (err) {
       setFbError(
         dealSubmitErrorMessage(err, () => t(lang, "deal.photosTooLarge")) ||
@@ -174,7 +175,6 @@ export function SupportHub({
       return;
     }
     setScamError("");
-    setScamSuccess(false);
     setScamBusy(true);
     try {
       const evidenceUrls = await uploadDealEvidencePhotos(scamPhotos);
@@ -204,7 +204,7 @@ export function SupportHub({
       setScamEvidence(false);
       setScamAnon(false);
       setScamPhotos([]);
-      setScamSuccess(true);
+      setThanksKind("scam");
     } catch (err) {
       setScamError(
         dealSubmitErrorMessage(err, () => t(lang, "deal.photosTooLarge")) ||
@@ -477,9 +477,6 @@ export function SupportHub({
             />
           </div>
           {fbError ? <p className="text-xs text-red-600">{fbError}</p> : null}
-          {fbSuccess ? (
-            <p className="text-xs text-emerald-700">{t(lang, "supportHub.feedback.success")}</p>
-          ) : null}
           <button
             type="button"
             onClick={() => void submitFeedback()}
@@ -672,9 +669,6 @@ export function SupportHub({
             </label>
             <p className="text-[11px] text-stone-500">{t(lang, "supportHub.scam.privacy")}</p>
             {scamError ? <p className="text-xs text-red-600">{scamError}</p> : null}
-            {scamSuccess ? (
-              <p className="text-xs text-emerald-700">{t(lang, "supportHub.scam.success")}</p>
-            ) : null}
             <button
               type="button"
               onClick={() => void submitScam()}
@@ -688,6 +682,40 @@ export function SupportHub({
           </div>
         </section>
       )}
+
+      {thanksKind ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-[#2B1E19]/45 backdrop-blur-[2px] p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="support-thanks-title"
+          onClick={() => setThanksKind(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-[#F0E6D8] bg-white p-5 sm:p-6 shadow-xl text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2
+              id="support-thanks-title"
+              className="text-lg font-bold text-[#2B1E19]"
+            >
+              {t(lang, supportThanksCopyKeys(thanksKind).titleKey)}
+            </h2>
+            <p className="mt-2 text-sm text-[#5C4A3A] leading-relaxed" role="status">
+              {t(lang, supportThanksCopyKeys(thanksKind).bodyKey)}
+            </p>
+            <DialogActions>
+              <button
+                type="button"
+                onClick={() => setThanksKind(null)}
+                className="flex-1 rounded-xl bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309]"
+              >
+                {t(lang, supportThanksCopyKeys(thanksKind).closeKey)}
+              </button>
+            </DialogActions>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

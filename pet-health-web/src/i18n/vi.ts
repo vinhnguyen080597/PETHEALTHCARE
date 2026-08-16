@@ -226,7 +226,12 @@ const vi: Record<EnKey, string> = {
     "Thêm tối đa 3 ảnh để admin dễ hiểu vấn đề.",
   "supportHub.feedback.submit": "Gửi tới admin",
   "supportHub.feedback.required": "Vui lòng nhập tiêu đề và nội dung.",
-  "supportHub.feedback.success": "Cảm ơn — góp ý đã vào hàng đợi admin.",
+  "supportHub.thanks.title": "Cảm ơn bạn",
+  "supportHub.thanks.feedbackBody":
+    "Đã nhận góp ý của bạn. Admin PetCare sẽ xem xét và phản hồi khi cần.",
+  "supportHub.thanks.scamBody":
+    "Đã nhận báo cáo của bạn. Admin PetCare sẽ xem xét bằng chứng và xử lý nếu phù hợp.",
+  "supportHub.thanks.close": "Đã hiểu",
   "supportHub.blacklist.title": "Tra cứu công khai",
   "supportHub.blacklist.liveBadge": "Live + demo",
   "supportHub.blacklist.liveDisclaimer":
@@ -270,7 +275,6 @@ const vi: Record<EnKey, string> = {
   "supportHub.scam.evidenceConfirm": "Tôi xác nhận các ảnh này là bằng chứng chính xác.",
   "supportHub.scam.privacy":
     "Báo cáo gửi tới admin PetCare. Bằng chứng chỉ dùng để kiểm duyệt và yêu cầu hợp pháp.",
-  "supportHub.scam.success": "Đã nhận báo cáo — admin sẽ xem trong hàng đợi yêu cầu.",
 
   "feed.loadError": "Không tải được danh sách tin",
   "feed.loadMore": "Tải thêm",
@@ -1278,6 +1282,8 @@ const vi: Record<EnKey, string> = {
   "admin.support.reporter": "Người gửi",
   "admin.support.reporterHidden": "Ẩn thông tin người gửi (ẩn danh)",
   "admin.support.evidence": "Bằng chứng",
+  "admin.support.markReviewed": "Đã review",
+  "admin.support.dismiss": "Hủy",
   "admin.requests.status.waiting": "Đang chờ",
   "admin.requests.status.approved": "Đã duyệt",
   "admin.requests.status.rejected": "Từ chối / ẩn",

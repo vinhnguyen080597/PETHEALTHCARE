@@ -17,6 +17,7 @@ import {
   supportHubLoginNext,
   supportHubPathWithState,
   supportHubSearchHref,
+  supportThanksCopyKeys,
   toSupportBlacklistHit,
 } from "../src/lib/supportHub";
 import { loginHref } from "../src/lib/loginHref";
@@ -57,6 +58,19 @@ test("toSupportBlacklistHit maps API payload", () => {
     },
   );
   assert.equal(toSupportBlacklistHit({ too_short: true }).tooShort, true);
+});
+
+test("supportThanksCopyKeys maps feedback and scam dialogs", () => {
+  assert.deepEqual(supportThanksCopyKeys("feedback"), {
+    titleKey: "supportHub.thanks.title",
+    bodyKey: "supportHub.thanks.feedbackBody",
+    closeKey: "supportHub.thanks.close",
+  });
+  assert.equal(supportThanksCopyKeys("scam").bodyKey, "supportHub.thanks.scamBody");
+  assert.equal(en["supportHub.thanks.title"], "Thank you");
+  assert.equal(vi["supportHub.thanks.title"], "Cảm ơn bạn");
+  assert.match(en["supportHub.thanks.scamBody"], /admins will review/i);
+  assert.match(vi["supportHub.thanks.scamBody"], /Admin PetCare sẽ xem xét/i);
 });
 
 test("support evidence limits", () => {
@@ -123,6 +137,10 @@ test("support hub i18n parity for core keys", () => {
   assert.match(vi["supportHub.blacklist.miss"], /không có nghĩa là an toàn/i);
   assert.ok(en["admin.support.evidence"]);
   assert.ok(vi["admin.support.evidence"]);
+  assert.equal(en["admin.support.markReviewed"], "Mark reviewed");
+  assert.equal(vi["admin.support.markReviewed"], "Đã review");
+  assert.equal(en["admin.support.dismiss"], "Cancel");
+  assert.equal(vi["admin.support.dismiss"], "Hủy");
   for (const section of SUPPORT_SECTIONS) {
     assert.ok(en[section.titleKey as keyof typeof en]);
     assert.ok(vi[section.titleKey as keyof typeof vi]);

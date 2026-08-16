@@ -223,7 +223,12 @@ const en = {
     "Add up to 3 images to help admins understand the issue.",
   "supportHub.feedback.submit": "Send to admins",
   "supportHub.feedback.required": "Please add a title and details.",
-  "supportHub.feedback.success": "Thanks — your feedback is in the admin queue.",
+  "supportHub.thanks.title": "Thank you",
+  "supportHub.thanks.feedbackBody":
+    "We received your feedback. PetCare admins will review it and follow up when needed.",
+  "supportHub.thanks.scamBody":
+    "We received your report. PetCare admins will review the evidence and take action if appropriate.",
+  "supportHub.thanks.close": "Got it",
   "supportHub.blacklist.title": "Public lookup",
   "supportHub.blacklist.liveBadge": "Live + demo",
   "supportHub.blacklist.liveDisclaimer":
@@ -267,7 +272,6 @@ const en = {
   "supportHub.scam.evidenceConfirm": "I confirm these photos are accurate evidence.",
   "supportHub.scam.privacy":
     "Reports go to PetCare admins. We use evidence only for moderation and lawful requests.",
-  "supportHub.scam.success": "Report received — admins will review it in the request queue.",
   "feed.loadError": "Could not load listings",
   "feed.loadMore": "Load more",
   "feed.activeListings": "active listings",
@@ -1276,6 +1280,8 @@ const en = {
   "admin.support.reporter": "Reporter",
   "admin.support.reporterHidden": "Reporter hidden (anonymous)",
   "admin.support.evidence": "Evidence",
+  "admin.support.markReviewed": "Mark reviewed",
+  "admin.support.dismiss": "Cancel",
   "admin.requests.status.waiting": "Waiting",
   "admin.requests.status.approved": "Approved",
   "admin.requests.status.rejected": "Rejected / archived",

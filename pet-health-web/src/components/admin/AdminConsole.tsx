@@ -1101,16 +1101,16 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       return (
         <div className="flex flex-wrap gap-2 mt-3">
           <ActionButton
-            label={t(lang, "admin.reports.markReviewed")}
-            variant="danger"
-            disabled={busyKey !== null}
-            onClick={() => void updateSupportTicket(item.ticket!.id, "reviewed")}
-          />
-          <ActionButton
-            label={t(lang, "admin.reports.dismiss")}
+            label={t(lang, "admin.support.dismiss")}
             variant="ghost"
             disabled={busyKey !== null}
             onClick={() => void updateSupportTicket(item.ticket!.id, "dismissed")}
+          />
+          <ActionButton
+            label={t(lang, "admin.support.markReviewed")}
+            variant="success"
+            disabled={busyKey !== null}
+            onClick={() => void updateSupportTicket(item.ticket!.id, "reviewed")}
           />
         </div>
       );
