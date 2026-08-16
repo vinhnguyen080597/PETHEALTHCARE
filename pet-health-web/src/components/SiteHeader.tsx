@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
 import { BRAND_AVATAR_PATH } from "@/lib/brand";
@@ -25,11 +25,20 @@ export function SiteHeader({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [headerQ, setHeaderQ] = useState("");
   const isAuthRoute =
     pathname === "/login" ||
     pathname === "/signup" ||
     pathname.startsWith("/login/") ||
     pathname.startsWith("/signup/");
+
+  useEffect(() => {
+    if (pathname.startsWith("/app/pet-feed")) {
+      setHeaderQ(searchParams.get("q") || "");
+    }
+  }, [pathname, searchParams]);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -40,6 +49,15 @@ export function SiteHeader({
         ? "bg-amber-50 text-amber-800"
         : "text-stone-600 hover:bg-amber-50/60 hover:text-stone-900"
     }`;
+
+  const submitHeaderSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const q = headerQ.trim();
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    const qs = params.toString();
+    router.push(qs ? `/app/pet-feed?${qs}` : "/app/pet-feed");
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-[#F0E6D8]">
@@ -64,7 +82,7 @@ export function SiteHeader({
         </Link>
 
         {!isAuthRoute && (
-          <nav className="hidden md:flex items-center gap-1 flex-1">
+          <nav className="hidden md:flex items-center gap-1 flex-1 min-w-0">
             {SITE_MAIN_NAV.map((item) => (
               <Link
                 key={item.href}
@@ -79,6 +97,31 @@ export function SiteHeader({
         {isAuthRoute && <div className="flex-1" />}
 
         <div className="flex items-center gap-1 ml-auto">
+          {!isAuthRoute ? (
+            <form
+              onSubmit={submitHeaderSearch}
+              className="hidden md:flex items-center mr-1"
+              role="search"
+            >
+              <label htmlFor="header-pet-search" className="sr-only">
+                {t(lang, "feed.search")}
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6E5A51]/70 text-xs">
+                  🔍
+                </span>
+                <input
+                  id="header-pet-search"
+                  type="search"
+                  value={headerQ}
+                  onChange={(e) => setHeaderQ(e.target.value)}
+                  placeholder={t(lang, "feed.search")}
+                  className="w-[180px] xl:w-[220px] h-9 rounded-full border border-[#F3E2C8] bg-white pl-8 pr-3 text-sm text-[#2B1E19] placeholder:text-[#6E5A51]/55 focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-[#D97706]"
+                />
+              </div>
+            </form>
+          ) : null}
+
           {isLoggedIn && (
             <>
               <MessagesUnreadBadge label={t(lang, "nav.messages")} />
@@ -142,6 +185,22 @@ export function SiteHeader({
         <div className="md:hidden border-t border-[#F0E6D8] bg-[#FDFBF7] px-5 py-3 flex flex-col gap-1">
           {!isAuthRoute && (
             <>
+              <form
+                onSubmit={(e) => {
+                  submitHeaderSearch(e);
+                  setMenuOpen(false);
+                }}
+                className="px-1 pb-2"
+                role="search"
+              >
+                <input
+                  type="search"
+                  value={headerQ}
+                  onChange={(e) => setHeaderQ(e.target.value)}
+                  placeholder={t(lang, "feed.search")}
+                  className="w-full h-10 rounded-xl border border-[#F3E2C8] bg-white px-3 text-sm text-[#2B1E19] placeholder:text-[#6E5A51]/55 focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-[#D97706]"
+                />
+              </form>
               {SITE_MAIN_NAV.map((item) => (
                 <Link
                   key={item.href}

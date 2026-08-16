@@ -10,12 +10,18 @@ export function MarketplaceListingRail({
   subtitle,
   listings,
   showFavorite = true,
+  onFavoriteChange,
 }: {
   lang: Lang;
   title: string;
   subtitle?: string;
   listings: Listing[];
   showFavorite?: boolean;
+  onFavoriteChange?: (next: {
+    listingId: string;
+    saved: boolean;
+    favoriteCount: number;
+  }) => void;
 }) {
   if (!listings.length) return null;
 
@@ -45,6 +51,7 @@ export function MarketplaceListingRail({
               lang={lang}
               showFavorite={showFavorite}
               compact
+              onFavoriteChange={onFavoriteChange}
             />
           </div>
         ))}

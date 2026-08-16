@@ -7,7 +7,12 @@ import {
   listingPreviewImages,
   listingTrustTags,
 } from "../src/lib/marketplaceSocialProof";
-import { buildLiveTickerItems } from "../src/lib/marketplaceLiveTicker";
+import { buildLiveTickerItems, DEMO_LIVE_TICKER_ITEMS, liveTickerDisplayText } from "../src/lib/marketplaceLiveTicker";
+import {
+  feedExtraToEscrowOnly,
+  feedExtraToGender,
+  parseFeedExtraFilter,
+} from "../src/lib/marketplaceFeedFilters";
 import {
   groupBreederPetThumbs,
   pickHallOfFameBreeders,
@@ -255,6 +260,30 @@ test("pickHallOfFameBreeders assigns gold silver bronze by reviews", () => {
       ["bronze", "bronze"],
     ],
   );
+});
+
+test("buildLiveTickerItems pads with 10 demo pulses when quiet", () => {
+  const items = buildLiveTickerItems([], Date.now(), 10);
+  assert.equal(items.length, 10);
+  assert.ok(items.every((i) => i.kind === "demo"));
+  assert.ok(items[0]?.messageVI);
+});
+
+test("liveTickerDisplayText prefers demo bilingual copy", () => {
+  const text = liveTickerDisplayText(DEMO_LIVE_TICKER_ITEMS[0]!, "VI", {
+    deposit: "",
+    sold: "",
+    newListing: "",
+    newBatch: "",
+  });
+  assert.match(text, /Sen Lan/);
+});
+
+test("feed extra filter merges gender and escrow", () => {
+  assert.equal(parseFeedExtraFilter("escrow"), "escrow");
+  assert.equal(feedExtraToEscrowOnly("escrow"), true);
+  assert.equal(feedExtraToGender("male"), "male");
+  assert.equal(feedExtraToGender("escrow"), "all");
 });
 
 test("breederActivityCue never claims online presence", () => {

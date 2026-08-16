@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Lang, Listing } from "@/lib/types";
-import { t } from "@/i18n";
+import { t, type EnKey } from "@/i18n";
 import { parsePriceVnd } from "@/lib/formatPrice";
 import { listingMatchesProvince, resolveProvinceSelection } from "@/lib/vietnamProvinceSelection";
+import { VIETNAM_PROVINCES } from "@/constants/vietnamProvinces";
+import { LISTING_SPECIES } from "@/lib/listingFormOptions";
 import {
   pickJustArrivedListings,
   pickTopInterestedListings,
@@ -16,25 +18,13 @@ import {
 } from "@/lib/marketplaceQuickCategories";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { ListingCard } from "./ListingCard";
-import { LiveActivityTicker } from "./LiveActivityTicker";
 import { MarketplaceListingRail } from "./MarketplaceListingRail";
 import { MarketplaceQuickCategories } from "./MarketplaceQuickCategories";
-import { MarketplaceSearchBar } from "./MarketplaceSearchBar";
-
-type PriceFilter = "all" | "under5" | "5to15" | "over15";
-
-function matchesPrice(listing: Listing, filter: PriceFilter): boolean {
-  if (filter === "all") return true;
-  const n = parsePriceVnd(listing.price);
-  if (n == null) return true;
-  if (filter === "under5") return n < 5_000_000;
-  if (filter === "5to15") return n >= 5_000_000 && n <= 15_000_000;
-  if (filter === "over15") return n > 15_000_000;
-  return true;
-}
 
 const filterSelectCls =
   "appearance-none pl-3 pr-10 py-2 bg-white border border-[#F3E2C8] rounded-xl text-sm text-[#2B1E19] focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-[#D97706]";
+
+type FavState = { saved: boolean; favoriteCount: number };
 
 export function FeedView({
   lang,
@@ -55,30 +45,65 @@ export function FeedView({
   const [activeSpecies, setActiveSpecies] = useState(
     initialSpecies && initialSpecies !== "" ? initialSpecies : "all",
   );
-  const [activeGender, setActiveGender] = useState("all");
-  const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
-  const [escrowOnly, setEscrowOnly] = useState(false);
   const [sortBy, setSortBy] = useState("date");
-  const [q, setQ] = useState(initialQ);
+  const [q] = useState(initialQ);
   const [province, setProvince] = useState(resolveProvinceSelection(initialProvince));
   const [quickCategory, setQuickCategory] = useState<QuickCategoryId>("all");
+  const [favById, setFavById] = useState<Record<string, FavState>>(() => {
+    const init: Record<string, FavState> = {};
+    for (const listing of listings) {
+      init[listing.id] = {
+        saved: Boolean(listing.saved),
+        favoriteCount: Math.max(0, Math.floor(Number(listing.favoriteCount) || 0)),
+      };
+    }
+    return init;
+  });
+
+  const applyFavorite = useCallback(
+    (next: { listingId: string; saved: boolean; favoriteCount: number }) => {
+      setFavById((prev) => ({
+        ...prev,
+        [next.listingId]: {
+          saved: next.saved,
+          favoriteCount: next.favoriteCount,
+        },
+      }));
+    },
+    [],
+  );
+
+  const withFavorite = useCallback(
+    (listing: Listing): Listing => {
+      const fav = favById[listing.id];
+      if (!fav) return listing;
+      return {
+        ...listing,
+        saved: fav.saved,
+        favoriteCount: fav.favoriteCount,
+      };
+    },
+    [favById],
+  );
+
+  const listingsWithFav = useMemo(
+    () => listings.map(withFavorite),
+    [listings, withFavorite],
+  );
 
   const topListings = useMemo(
-    () => pickTopInterestedListings(listings, 8),
-    [listings],
+    () => pickTopInterestedListings(listingsWithFav, 8),
+    [listingsWithFav],
   );
   const arrivedListings = useMemo(
-    () => pickJustArrivedListings(listings, 8),
-    [listings],
+    () => pickJustArrivedListings(listingsWithFav, 8),
+    [listingsWithFav],
   );
 
   const filtered = useMemo(() => {
-    let rows = listings.filter((l) => {
+    let rows = listingsWithFav.filter((l) => {
       if (activeSpecies !== "all" && l.species !== activeSpecies) return false;
-      if (activeGender !== "all" && l.gender !== activeGender) return false;
       if (province && !listingMatchesProvince(l, province)) return false;
-      if (!matchesPrice(l, priceFilter)) return false;
-      if (escrowOnly && !l.escrowEnabled) return false;
       if (!listingMatchesQuickCategory(l, quickCategory)) return false;
       if (q.trim()) {
         const needle = q.trim().toLowerCase();
@@ -100,24 +125,11 @@ export function FeedView({
       );
     }
     return rows;
-  }, [
-    listings,
-    activeSpecies,
-    activeGender,
-    priceFilter,
-    escrowOnly,
-    sortBy,
-    q,
-    province,
-    quickCategory,
-  ]);
+  }, [listingsWithFav, activeSpecies, sortBy, q, province, quickCategory]);
 
   const showMarketSections =
     !q.trim() &&
     activeSpecies === "all" &&
-    activeGender === "all" &&
-    priceFilter === "all" &&
-    !escrowOnly &&
     !province &&
     quickCategory === "all";
 
@@ -129,22 +141,6 @@ export function FeedView({
             <DisclaimerBanner lang={lang} />
           </div>
         ) : null}
-
-        <LiveActivityTicker lang={lang} listings={listings} />
-
-        <div className="mb-5 w-full">
-          <MarketplaceSearchBar
-            lang={lang}
-            variant="feed"
-            controlled
-            q={q}
-            species={activeSpecies}
-            province={province}
-            onQChange={setQ}
-            onSpeciesChange={setActiveSpecies}
-            onProvinceChange={(value) => setProvince(resolveProvinceSelection(value))}
-          />
-        </div>
 
         <MarketplaceQuickCategories
           lang={lang}
@@ -159,91 +155,89 @@ export function FeedView({
               title={`🔥 ${t(lang, "feed.section.top.title")}`}
               subtitle={t(lang, "feed.section.top.subtitle")}
               listings={topListings}
+              onFavoriteChange={applyFavorite}
             />
             <MarketplaceListingRail
               lang={lang}
               title={`✨ ${t(lang, "feed.section.arrived.title")}`}
               subtitle={t(lang, "feed.section.arrived.subtitle")}
               listings={arrivedListings}
+              onFavoriteChange={applyFavorite}
             />
           </>
         ) : null}
 
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
-          <div>
-            <h2 className="font-display text-lg font-semibold text-[#2B1E19]">
-              {t(lang, "feed.section.grid.title")}
-            </h2>
-            <p className="text-sm text-[#6E5A51] shrink-0 mt-0.5">
-              {t(lang, "feed.showingPrefix")}{" "}
-              <span className="font-semibold text-[#2B1E19]">
-                {filtered.length}
-              </span>{" "}
-              {t(lang, "feed.showingSuffix")}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={activeGender}
-              onChange={(e) => setActiveGender(e.target.value)}
-              className={filterSelectCls}
-              aria-label={t(lang, "feed.gender")}
-            >
-              <option value="all">
-                {t(lang, "feed.gender")}: {t(lang, "feed.all")}
-              </option>
-              <option value="male">
-                {t(lang, "feed.gender")}: {t(lang, "feed.male")}
-              </option>
-              <option value="female">
-                {t(lang, "feed.gender")}: {t(lang, "feed.female")}
-              </option>
-            </select>
-            <select
-              value={priceFilter}
-              onChange={(e) => setPriceFilter(e.target.value as PriceFilter)}
-              className={filterSelectCls}
-              aria-label={t(lang, "feed.price")}
-            >
-              <option value="all">{t(lang, "feed.price.all")}</option>
-              <option value="under5">{t(lang, "feed.price.under5")}</option>
-              <option value="5to15">{t(lang, "feed.price.5to15")}</option>
-              <option value="over15">{t(lang, "feed.price.over15")}</option>
-            </select>
-            <select
-              value={escrowOnly ? "escrow" : "all"}
-              onChange={(e) => setEscrowOnly(e.target.value === "escrow")}
-              className={filterSelectCls}
-              aria-label={t(lang, "feed.perks")}
-            >
-              <option value="all">
-                {t(lang, "feed.perks")}: {t(lang, "feed.all")}
-              </option>
-              <option value="escrow">🛡️ {t(lang, "feed.escrow")}</option>
-            </select>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className={filterSelectCls}
-              aria-label={t(lang, "feed.sortLabel")}
-            >
-              <option value="date">
-                {t(lang, "feed.sortLabel")} {t(lang, "feed.sort.newest")}
-              </option>
-              <option value="price">
-                {t(lang, "feed.sortLabel")} {t(lang, "feed.sort.priceAsc")}
-              </option>
-              <option value="trust">
-                {t(lang, "feed.sortLabel")} {t(lang, "feed.sort.trust")}
-              </option>
-            </select>
+        <div className="mb-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="min-w-0 shrink-0">
+              <h2 className="font-display text-lg font-semibold text-[#2B1E19]">
+                {t(lang, "feed.section.grid.title")}
+              </h2>
+              <p className="text-sm text-[#6E5A51] mt-0.5">
+                {t(lang, "feed.showingPrefix")}{" "}
+                <span className="font-semibold text-[#2B1E19]">
+                  {filtered.length}
+                </span>{" "}
+                {t(lang, "feed.showingSuffix")}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 lg:justify-end lg:max-w-[70%]">
+              <select
+                value={activeSpecies}
+                onChange={(e) => setActiveSpecies(e.target.value)}
+                className={filterSelectCls}
+                aria-label={t(lang, "feed.species")}
+              >
+                <option value="all">{t(lang, "landing.species.all")}</option>
+                {LISTING_SPECIES.map((id) => (
+                  <option key={id} value={id}>
+                    {t(lang, `listing.new.species.${id}` as EnKey)}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={province}
+                onChange={(e) => setProvince(resolveProvinceSelection(e.target.value))}
+                className={filterSelectCls}
+                aria-label={t(lang, "feed.province")}
+              >
+                <option value="">{t(lang, "feed.province.all")}</option>
+                {VIETNAM_PROVINCES.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className={filterSelectCls}
+                aria-label={t(lang, "feed.sortLabel")}
+              >
+                <option value="date">
+                  {t(lang, "feed.sortLabel")} {t(lang, "feed.sort.newest")}
+                </option>
+                <option value="price">
+                  {t(lang, "feed.sortLabel")} {t(lang, "feed.sort.priceAsc")}
+                </option>
+                <option value="trust">
+                  {t(lang, "feed.sortLabel")} {t(lang, "feed.sort.trust")}
+                </option>
+              </select>
+            </div>
           </div>
         </div>
 
         {filtered.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 feed-results-enter">
             {filtered.map((l) => (
-              <ListingCard key={l.id} listing={l} lang={lang} showFavorite />
+              <ListingCard
+                key={l.id}
+                listing={l}
+                lang={lang}
+                showFavorite
+                onFavoriteChange={applyFavorite}
+              />
             ))}
           </div>
         ) : (

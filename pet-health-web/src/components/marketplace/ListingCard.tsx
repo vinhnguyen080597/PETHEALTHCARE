@@ -48,6 +48,7 @@ export function ListingCard({
   showFavorite = false,
   interactive = true,
   compact = false,
+  onFavoriteChange,
 }: {
   listing: Listing;
   lang: Lang;
@@ -56,6 +57,12 @@ export function ListingCard({
   interactive?: boolean;
   /** Narrower rail cards (horizontal marketplace sections). */
   compact?: boolean;
+  /** Lift favorite state so rails + grid stay in sync for the same post. */
+  onFavoriteChange?: (next: {
+    listingId: string;
+    saved: boolean;
+    favoriteCount: number;
+  }) => void;
 }) {
   const router = useRouter();
   const [saved, setSaved] = useState(Boolean(listing.saved));
@@ -66,6 +73,11 @@ export function ListingCard({
   const [chatBusy, setChatBusy] = useState(false);
   const [mediaIndex, setMediaIndex] = useState(0);
   const [hovering, setHovering] = useState(false);
+
+  useEffect(() => {
+    setSaved(Boolean(listing.saved));
+    setFavCount(Math.max(0, Math.floor(Number(listing.favoriteCount) || 0)));
+  }, [listing.id, listing.saved, listing.favoriteCount]);
 
   const title = lang === "VI" ? listing.titleVI : listing.title;
   const speciesSlug = listing.species?.trim().toLowerCase() ?? "";
@@ -118,8 +130,14 @@ export function ListingCard({
     e.stopPropagation();
     if (favBusy) return;
     const next = !saved;
+    const nextCount = Math.max(0, favCount + (next ? 1 : -1));
     setSaved(next);
-    setFavCount((c) => Math.max(0, c + (next ? 1 : -1)));
+    setFavCount(nextCount);
+    onFavoriteChange?.({
+      listingId: listing.id,
+      saved: next,
+      favoriteCount: nextCount,
+    });
     setFavBusy(true);
     try {
       const res = await fetch(`/api/listings/${listing.id}/favorite`, {
@@ -127,17 +145,32 @@ export function ListingCard({
       });
       if (res.status === 401) {
         setSaved(!next);
-        setFavCount((c) => Math.max(0, c + (next ? -1 : 1)));
+        setFavCount(favCount);
+        onFavoriteChange?.({
+          listingId: listing.id,
+          saved: !next,
+          favoriteCount: favCount,
+        });
         window.location.href = `/login?next=/app/pet-feed/posts/${listing.id}`;
         return;
       }
       if (!res.ok && res.status !== 204) {
         setSaved(!next);
-        setFavCount((c) => Math.max(0, c + (next ? -1 : 1)));
+        setFavCount(favCount);
+        onFavoriteChange?.({
+          listingId: listing.id,
+          saved: !next,
+          favoriteCount: favCount,
+        });
       }
     } catch {
       setSaved(!next);
-      setFavCount((c) => Math.max(0, c + (next ? -1 : 1)));
+      setFavCount(favCount);
+      onFavoriteChange?.({
+        listingId: listing.id,
+        saved: !next,
+        favoriteCount: favCount,
+      });
     } finally {
       setFavBusy(false);
     }

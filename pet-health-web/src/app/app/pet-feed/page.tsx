@@ -1,19 +1,43 @@
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { getLang, t } from "@/i18n";
-import { COOKIE_LANG } from "@/lib/session";
+import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { listPublicPosts } from "@/lib/api/public";
+import { listFeedPosts } from "@/lib/api/petFeed";
+import { mapApiPosts } from "@/lib/mappers";
 import { FeedView } from "@/components/marketplace/FeedView";
 import { DisclaimerBanner } from "@/components/marketplace/DisclaimerBanner";
+import { LiveActivityTicker } from "@/components/marketplace/LiveActivityTicker";
 import { ListingGridSkeleton } from "@/components/ui/Skeleton";
-import type { Lang } from "@/lib/types";
+import type { Lang, Listing } from "@/lib/types";
 import { resolveProvinceSelection } from "@/lib/vietnamProvinceSelection";
 
 export const metadata = {
   title: "Browse listings",
 };
 
-export const revalidate = 30;
+/** Prefer auth feed when logged in so saved / is_favorited survives refresh. */
+export const dynamic = "force-dynamic";
+
+async function loadListings(lang: Lang): Promise<{
+  listings: Listing[];
+  loadError: string;
+}> {
+  try {
+    const user = await getSessionUser();
+    if (user.token) {
+      const page = await listFeedPosts(user.token, { limit: 48 });
+      return { listings: mapApiPosts(page.data || []), loadError: "" };
+    }
+    const postsPage = await listPublicPosts({ limit: 48 });
+    return { listings: postsPage.listings, loadError: "" };
+  } catch (err) {
+    return {
+      listings: [],
+      loadError: err instanceof Error ? err.message : t(lang, "feed.loadError"),
+    };
+  }
+}
 
 async function PetFeedListings({
   lang,
@@ -26,23 +50,19 @@ async function PetFeedListings({
   initialQ: string;
   initialProvince: string;
 }) {
-  let listings: Awaited<ReturnType<typeof listPublicPosts>>["listings"] = [];
-  let loadError = "";
-  try {
-    const postsPage = await listPublicPosts({ limit: 48 });
-    listings = postsPage.listings;
-  } catch (err) {
-    loadError =
-      err instanceof Error ? err.message : t(lang, "feed.loadError");
-  }
+  const { listings, loadError } = await loadListings(lang);
 
   return (
     <>
+      <LiveActivityTicker lang={lang} listings={listings} className="mb-3" />
       {loadError ? (
-        <div className="mb-5 rounded-xl border border-amber-200 bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
+        <div className="mb-4 rounded-xl border border-amber-200 bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
           {t(lang, "feed.loadError")}: {loadError}
         </div>
       ) : null}
+      <div className="mb-4">
+        <DisclaimerBanner lang={lang} />
+      </div>
       <FeedView
         lang={lang}
         listings={listings}
@@ -70,10 +90,7 @@ export default async function PetFeedPage({
 
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
-      <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6">
-        <div className="mb-5">
-          <DisclaimerBanner lang={lang} />
-        </div>
+      <div className="max-w-[1200px] mx-auto px-5 lg:px-8 pt-2 pb-6">
         <Suspense fallback={<ListingGridSkeleton count={9} />}>
           <PetFeedListings
             lang={lang}

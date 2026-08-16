@@ -73,7 +73,7 @@ const vi: Record<EnKey, string> = {
     "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. Đặt cọc theo điều khoản trên tin. Hãy kiểm tra trực tiếp và đọc ",
   "feed.guidelines": "Nội quy Marketplace",
   "feed.disclaimerEnd": " trước khi quyết định.",
-  "feed.search": "Tìm giống, breeder, khu vực…",
+  "feed.search": "Bạn đang tìm bé thú cưng nào?",
   "feed.sort.newest": "Mới nhất",
   "feed.sort.price": "Theo giá",
   "feed.sort.priceAsc": "Giá: Thấp đến Cao",
