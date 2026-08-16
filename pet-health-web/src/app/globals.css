@@ -131,6 +131,49 @@ select:disabled,
   animation-delay: 0.12s;
 }
 
+@keyframes live-ticker-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.live-ticker-marquee {
+  animation-name: live-ticker-marquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.mask-live-ticker:hover .live-ticker-marquee {
+  animation-play-state: paused;
+}
+
+.mask-live-ticker {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 12px,
+    #000 calc(100% - 16px),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 12px,
+    #000 calc(100% - 16px),
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-ticker-marquee {
+    animation: none;
+    transform: none;
+  }
+}
+
 ::view-transition-old(marketplace-search),
 ::view-transition-new(marketplace-search) {
   animation-duration: 0.45s;

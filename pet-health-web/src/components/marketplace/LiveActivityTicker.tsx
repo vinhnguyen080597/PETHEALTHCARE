@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import type { Lang, Listing } from "@/lib/types";
 import { t } from "@/i18n";
@@ -18,6 +18,12 @@ function tickerEmoji(kind: LiveTickerItem["kind"]): string {
   return "✨";
 }
 
+function itemHref(item: LiveTickerItem): string {
+  return item.listingId != null
+    ? `/app/pet-feed/posts/${item.listingId}`
+    : "/app/pet-feed";
+}
+
 export function LiveActivityTicker({
   lang,
   listings,
@@ -29,33 +35,38 @@ export function LiveActivityTicker({
   labelKey?: "feed.live.label" | "breeders.live.label";
   className?: string;
 }) {
-  const items = useMemo(() => buildLiveTickerItems(listings, Date.now(), 10), [listings]);
-  const [index, setIndex] = useState(0);
+  const items = useMemo(
+    () => buildLiveTickerItems(listings, Date.now(), 10),
+    [listings],
+  );
 
-  useEffect(() => {
-    if (items.length <= 1) return;
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % items.length);
-    }, 4200);
-    return () => window.clearInterval(id);
-  }, [items.length]);
+  const templates = useMemo(
+    () => ({
+      deposit: t(lang, "feed.live.deposit"),
+      sold: t(lang, "feed.live.sold"),
+      newListing: t(lang, "feed.live.newListing"),
+      newBatch: t(lang, "feed.live.newBatch"),
+    }),
+    [lang],
+  );
 
-  const current = items[index] ?? null;
-  const href =
-    current?.listingId != null
-      ? `/app/pet-feed/posts/${current.listingId}`
-      : "/app/pet-feed";
+  const labels = useMemo(
+    () =>
+      items.map((item) => {
+        const text = liveTickerDisplayText(item, lang, templates);
+        const emoji = tickerEmoji(item.kind);
+        return {
+          id: item.id,
+          href: itemHref(item),
+          label: emoji ? `${emoji} ${text}` : text,
+        };
+      }),
+    [items, lang, templates],
+  );
 
-  const text = current
-    ? liveTickerDisplayText(current, lang, {
-        deposit: t(lang, "feed.live.deposit"),
-        sold: t(lang, "feed.live.sold"),
-        newListing: t(lang, "feed.live.newListing"),
-        newBatch: t(lang, "feed.live.newBatch"),
-      })
-    : t(lang, "feed.live.empty");
-
-  const emoji = current ? tickerEmoji(current.kind) : "";
+  // Duplicate track for a seamless right→left loop.
+  const track = labels.length > 0 ? [...labels, ...labels] : [];
+  const durationSec = Math.max(60, labels.length * 9);
 
   return (
     <div
@@ -63,24 +74,36 @@ export function LiveActivityTicker({
       role="status"
       aria-live="polite"
     >
-      <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-[#EA580C] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+      <span className="shrink-0 z-10 inline-flex items-center gap-1.5 rounded-full bg-[#EA580C] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
         <span className="relative flex h-1.5 w-1.5">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80 opacity-75" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
         </span>
         {t(lang, labelKey)}
       </span>
-      {current ? (
-        <Link
-          href={href}
-          className="min-w-0 flex-1 truncate text-sm text-[#2B1E19] hover:text-[#B45309] transition-colors"
-        >
-          {emoji ? <span className="mr-1.5">{emoji}</span> : null}
-          {text}
-        </Link>
-      ) : (
-        <p className="min-w-0 flex-1 truncate text-sm text-[#6E5A51]">{text}</p>
-      )}
+
+      <div className="relative min-w-0 flex-1 overflow-hidden mask-live-ticker">
+        {track.length > 0 ? (
+          <div
+            className="live-ticker-marquee flex w-max items-center gap-10 whitespace-nowrap will-change-transform"
+            style={{ animationDuration: `${durationSec}s` }}
+          >
+            {track.map((row, i) => (
+              <Link
+                key={`${row.id}-${i}`}
+                href={row.href}
+                className="inline-flex shrink-0 text-sm text-[#2B1E19] hover:text-[#B45309] transition-colors"
+              >
+                {row.label}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="truncate text-sm text-[#6E5A51]">
+            {t(lang, "feed.live.empty")}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
