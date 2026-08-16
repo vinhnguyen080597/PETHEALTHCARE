@@ -136,6 +136,8 @@ test("news feed i18n keys exist EN/VI", () => {
     "news.action.like",
     "news.share.copy",
     "news.comments.send",
+    "news.comments.reply",
+    "news.comments.replyingTo",
     "news.readMore",
     "news.readLess",
   ] as const;
@@ -145,4 +147,5 @@ test("news feed i18n keys exist EN/VI", () => {
   }
   assert.match(vi["news.filter.all"], /Tất cả/i);
   assert.match(vi["news.readLess"], /Thu gọn/i);
+  assert.match(vi["news.comments.reply"], /Phản hồi/i);
 });

@@ -72,11 +72,15 @@ export async function createComment(
   token: string,
   postId: string,
   body: string,
+  parentId?: string | null,
 ) {
+  const payload: { body: string; parentId?: string } = { body };
+  const parent = String(parentId || "").trim();
+  if (parent) payload.parentId = parent;
   return fetchJson(`/pet-feed/posts/${encodeURIComponent(postId)}/comments`, {
     method: "POST",
     token,
-    body: { body },
+    body: payload,
   });
 }
 

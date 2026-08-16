@@ -32,7 +32,13 @@ export async function POST(req: Request, { params }: Props) {
         (body as { text?: string }).text ||
         "",
     );
-    const result = await createComment(token, postId, text);
+    const parentId =
+      String(
+        (body as { parentId?: string; parent_id?: string }).parentId ||
+          (body as { parent_id?: string }).parent_id ||
+          "",
+      ).trim() || null;
+    const result = await createComment(token, postId, text, parentId);
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     return jsonError(err, "Failed to post comment");

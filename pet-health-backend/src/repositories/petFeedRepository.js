@@ -702,7 +702,7 @@ function toReport(row) {
   };
 }
 
-function toComment(row, authorDisplayName = '') {
+function toComment(row, authorDisplayName = '', authorAvatarUrl = null) {
   if (!row) return row;
   return {
     id: row.id,
@@ -711,6 +711,7 @@ function toComment(row, authorDisplayName = '') {
     parent_id: row.parent_id ?? null,
     body: row.body,
     author_display_name: authorDisplayName || 'Pet Health user',
+    author_avatar_url: authorAvatarUrl || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -730,6 +731,36 @@ async function authorDisplayNamesForUserIds(userIds) {
   const { data, error } = await supabase.from('app_user_profiles').select('user_id, display_name').in('user_id', unique);
   if (error) throw error;
   return new Map((data ?? []).map((row) => [row.user_id, trimText(row.display_name, 160) || 'Pet Health user']));
+}
+
+/** Breeder farm avatars keyed by account user_id (best-effort public photo for comments). */
+async function authorAvatarUrlsForUserIds(userIds) {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  if (unique.length === 0) return new Map();
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return new Map();
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .select('user_id, avatar_url')
+    .in('user_id', unique);
+  if (error) throw error;
+  return new Map(
+    (data ?? [])
+      .map((row) => [row.user_id, trimText(row.avatar_url, 1000) || null])
+      .filter((entry) => Boolean(entry[1])),
+  );
+}
+
+async function enrichCommentsWithAuthors(rows) {
+  const list = rows ?? [];
+  const userIds = list.map((row) => row.user_id);
+  const [names, avatars] = await Promise.all([
+    authorDisplayNamesForUserIds(userIds),
+    authorAvatarUrlsForUserIds(userIds),
+  ]);
+  return list.map((row) =>
+    toComment(row, names.get(row.user_id), avatars.get(row.user_id) || null),
+  );
 }
 
 async function commentCountsForPostIds(postIds, accessToken) {
@@ -815,8 +846,7 @@ export async function listPetFeedPostComments(postId, accessToken, options = {})
       .filter((row) => row.post_id === safePostId)
       .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
       .slice(0, limit);
-    const names = await authorDisplayNamesForUserIds(rows.map((row) => row.user_id));
-    return rows.map((row) => toComment(row, names.get(row.user_id)));
+    return enrichCommentsWithAuthors(rows);
   }
   const { data, error } = await supabase
     .from('pet_feed_comments')
@@ -825,8 +855,7 @@ export async function listPetFeedPostComments(postId, accessToken, options = {})
     .order('created_at', { ascending: true })
     .limit(limit);
   if (error) throw error;
-  const names = await authorDisplayNamesForUserIds((data ?? []).map((row) => row.user_id));
-  return (data ?? []).map((row) => toComment(row, names.get(row.user_id)));
+  return enrichCommentsWithAuthors(data ?? []);
 }
 
 export async function createPetFeedPostComment(userId, postId, body, accessToken, options = {}) {
@@ -896,13 +925,13 @@ export async function createPetFeedPostComment(userId, postId, body, accessToken
   const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
   if (!supabase) {
     memoryComments.push(row);
-    const names = await authorDisplayNamesForUserIds([userId]);
-    return toComment(row, names.get(userId));
+    const [enriched] = await enrichCommentsWithAuthors([row]);
+    return enriched;
   }
   const { data, error } = await supabase.from('pet_feed_comments').insert(row).select('*').single();
   if (error) throw error;
-  const names = await authorDisplayNamesForUserIds([userId]);
-  return toComment(data, names.get(userId));
+  const [enriched] = await enrichCommentsWithAuthors([data]);
+  return enriched;
 }
 
 export async function deletePetFeedPostComment(userId, commentId, accessToken) {

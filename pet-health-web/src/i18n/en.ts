@@ -149,10 +149,16 @@ const en = {
   "news.comments.title": "Comments",
   "news.comments.empty": "Be the first to comment.",
   "news.comments.placeholder": "Write a comment…",
+  "news.comments.replyPlaceholder": "Write a reply…",
   "news.comments.send": "Send",
+  "news.comments.reply": "Reply",
+  "news.comments.replyingTo": "Replying to {{name}}",
+  "news.comments.cancelReply": "Cancel",
   "news.comments.authorBadge": "Author",
   "news.comments.loadError": "Could not load comments.",
   "news.comments.postError": "Could not post comment.",
+  "news.comments.viewReplies": "View {{n}} replies",
+  "news.comments.hideReplies": "Hide replies",
 
   "supportHub.title": "Support Hub",
   "supportHub.subtitle":

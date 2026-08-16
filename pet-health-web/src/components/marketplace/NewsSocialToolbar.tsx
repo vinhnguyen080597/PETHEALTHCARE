@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Lang, Listing } from "@/lib/types";
 import { t } from "@/i18n";
@@ -13,20 +13,105 @@ import {
   writeNewsBookmarks,
 } from "@/lib/newsFeed";
 import {
+  formatNewsCommentRelativeTime,
+  groupNewsCommentThreads,
   mapNewsCommentRows,
+  newsCommentInitials,
   newsEngageLoginHref,
   newsShareExternalUrl,
   shouldPreferNativeShare,
   withOptimisticLikeCount,
+  type NewsCommentRow,
 } from "@/lib/newsEngage";
+import { NewsCommentsSkeleton } from "@/components/ui/Skeleton";
 
-export type NewsToolbarComment = {
-  id: string;
-  body: string;
-  author_display_name?: string;
-  user_id?: string;
-  created_at?: string;
-};
+export type NewsToolbarComment = NewsCommentRow;
+
+function CommentAvatar({
+  name,
+  src,
+  size = "md",
+}: {
+  name: string;
+  src?: string | null;
+  size?: "sm" | "md";
+}) {
+  const dim = size === "sm" ? "h-7 w-7 text-[10px]" : "h-9 w-9 text-xs";
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        className={`${dim} shrink-0 rounded-full object-cover bg-[#E8DFD0]`}
+      />
+    );
+  }
+  return (
+    <span
+      className={`${dim} shrink-0 inline-flex items-center justify-center rounded-full bg-[#D97706] font-bold text-white`}
+      aria-hidden
+    >
+      {newsCommentInitials(name)}
+    </span>
+  );
+}
+
+function CommentBubble({
+  lang,
+  comment,
+  ownerUserId,
+  isReply = false,
+  onReply,
+}: {
+  lang: Lang;
+  comment: NewsCommentRow;
+  ownerUserId?: string | null;
+  isReply?: boolean;
+  onReply?: (comment: NewsCommentRow) => void;
+}) {
+  const name = comment.author_display_name || "—";
+  const isAuthor =
+    ownerUserId && comment.user_id && comment.user_id === ownerUserId;
+  const timeLabel = formatNewsCommentRelativeTime(comment.created_at, lang);
+
+  return (
+    <div className={`flex gap-2 ${isReply ? "ml-11" : ""}`}>
+      <CommentAvatar
+        name={name}
+        src={comment.author_avatar_url}
+        size={isReply ? "sm" : "md"}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="inline-block max-w-full rounded-2xl bg-[#F0E6D8]/70 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-sm font-bold text-[#2B1E19]">{name}</span>
+            {isAuthor ? (
+              <span className="text-[10px] font-bold uppercase text-[#D97706]">
+                {t(lang, "news.comments.authorBadge")}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-sm text-[#3F322C] leading-relaxed whitespace-pre-line">
+            {comment.body}
+          </p>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-3 px-1 text-[11px] font-semibold text-[#8B7355]">
+          {timeLabel ? <span>{timeLabel}</span> : null}
+          {!isReply && onReply ? (
+            <button
+              type="button"
+              className="hover:text-[#D97706] hover:underline"
+              onClick={() => onReply(comment)}
+            >
+              {t(lang, "news.comments.reply")}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function NewsSocialToolbar({
   lang,
@@ -55,11 +140,10 @@ export function NewsSocialToolbar({
     () => Boolean(skipFavoriteHydrate || post.saved || !isLoggedInProp),
   );
   const [bookmarked, setBookmarked] = useState(false);
-  const [bookmarkNotice, setBookmarkNotice] = useState("");
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState("");
-  const [comments, setComments] = useState<NewsToolbarComment[]>(
+  const [comments, setComments] = useState<NewsCommentRow[]>(
     () => initialComments || [],
   );
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -67,13 +151,24 @@ export function NewsSocialToolbar({
   const [commentText, setCommentText] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [replyTo, setReplyTo] = useState<NewsCommentRow | null>(null);
+  const [collapsedReplies, setCollapsedReplies] = useState<Record<string, boolean>>(
+    {},
+  );
   /** When parent passed SSR comments (incl. empty), skip the list fetch. */
   const [commentsFetched, setCommentsFetched] = useState(
     () => initialComments !== undefined,
   );
   const shareRef = useRef<HTMLDivElement | null>(null);
+  const commentInputRef = useRef<HTMLInputElement | null>(null);
   const shareUrl = newsShareUrl(post.id);
   const loginHref = newsEngageLoginHref();
+
+  const threads = useMemo(() => groupNewsCommentThreads(comments), [comments]);
+  const totalCommentCount = Math.max(post.commentCount || 0, comments.length);
+  /** First open only — cached comments skip skeleton on reopen. */
+  const showCommentsSkeleton =
+    commentsOpen && !commentsFetched && !commentsError;
 
   useEffect(() => {
     setLoggedIn(isLoggedInProp);
@@ -169,6 +264,16 @@ export function NewsSocialToolbar({
     };
   }, [commentsOpen, commentsFetched, post.id, lang]);
 
+  const openCommentsPanel = () => {
+    setCommentsOpen((open) => {
+      const next = !open;
+      if (next && !commentsFetched) {
+        setCommentsError("");
+        setCommentsLoading(true);
+      }
+      return next;
+    });
+  };
   const goLogin = () => {
     window.location.href = loginHref;
   };
@@ -216,10 +321,6 @@ export function NewsSocialToolbar({
     );
     writeNewsBookmarks(next);
     setBookmarked(on);
-    setBookmarkNotice(
-      on ? t(lang, "news.action.saved") : t(lang, "news.action.unsaved"),
-    );
-    window.setTimeout(() => setBookmarkNotice(""), 1800);
   };
 
   const copyLink = async () => {
@@ -250,19 +351,33 @@ export function NewsSocialToolbar({
     setShareOpen((v) => !v);
   };
 
+  const startReply = (comment: NewsCommentRow) => {
+    if (!loggedIn) {
+      goLogin();
+      return;
+    }
+    setReplyTo(comment);
+    setCollapsedReplies((prev) => ({ ...prev, [comment.id]: false }));
+    window.setTimeout(() => commentInputRef.current?.focus(), 0);
+  };
+
   const postComment = async () => {
     const body = commentText.trim();
     if (!body || commentBusy) return;
     setCommentBusy(true);
     setCommentsError("");
     setActionError("");
+    const parentId = replyTo?.id || null;
     try {
       const res = await fetch(
         `/api/listings/${encodeURIComponent(post.id)}/comments`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body }),
+          body: JSON.stringify({
+            body,
+            ...(parentId ? { parentId } : {}),
+          }),
         },
       );
       const data = await res.json().catch(() => ({}));
@@ -272,19 +387,22 @@ export function NewsSocialToolbar({
       }
       if (!res.ok) throw new Error(data.error || "Failed");
       const created = (data.data || data) as Record<string, unknown>;
-      setComments((prev) => [
-        {
-          id: String(created.id || `local-${Date.now()}`),
-          body: String(created.body || body),
-          author_display_name: String(
-            created.author_display_name || t(lang, "nav.account"),
-          ),
-          user_id: String(created.user_id || ""),
-          created_at: String(created.created_at || new Date().toISOString()),
-        },
-        ...prev,
-      ]);
+      const row: NewsCommentRow = {
+        id: String(created.id || `local-${Date.now()}`),
+        body: String(created.body || body),
+        author_display_name: String(
+          created.author_display_name || t(lang, "nav.account"),
+        ),
+        author_avatar_url: String(created.author_avatar_url || "").trim() || null,
+        user_id: String(created.user_id || ""),
+        parent_id: parentId
+          ? parentId
+          : String(created.parent_id || "").trim() || null,
+        created_at: String(created.created_at || new Date().toISOString()),
+      };
+      setComments((prev) => [...prev, row]);
       setCommentText("");
+      setReplyTo(null);
       setLoggedIn(true);
     } catch {
       setCommentsError(t(lang, "news.comments.postError"));
@@ -316,13 +434,13 @@ export function NewsSocialToolbar({
         <button
           type="button"
           className={`${btnCls} ${commentsOpen ? "bg-[#FFF8EF] text-[#D97706]" : ""}`}
-          onClick={() => setCommentsOpen((v) => !v)}
+          onClick={openCommentsPanel}
           aria-expanded={commentsOpen}
         >
           <span aria-hidden>💬</span>
           <span>
-            {Math.max(post.commentCount || 0, comments.length) > 0
-              ? Math.max(post.commentCount || 0, comments.length)
+            {totalCommentCount > 0
+              ? totalCommentCount
               : t(lang, "news.action.comment")}
           </span>
         </button>
@@ -372,7 +490,11 @@ export function NewsSocialToolbar({
           aria-pressed={bookmarked}
         >
           <span aria-hidden>{bookmarked ? "🔖" : "📑"}</span>
-          <span>{bookmarkNotice || t(lang, "news.action.save")}</span>
+          <span>
+            {bookmarked
+              ? t(lang, "news.action.saved")
+              : t(lang, "news.action.save")}
+          </span>
         </button>
       </div>
 
@@ -388,64 +510,119 @@ export function NewsSocialToolbar({
       ) : null}
 
       {commentsOpen ? (
-        <div className="rounded-xl border border-[#F3E2C8] bg-[#FDFBF7] p-3 space-y-3">
+        <div className="rounded-xl border border-[#F3E2C8] bg-white p-3 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8B7355]">
             {t(lang, "news.comments.title")}
           </p>
-          {commentsLoading ? (
-            <p className="text-xs text-stone-400">…</p>
+          {showCommentsSkeleton || commentsLoading ? (
+            <NewsCommentsSkeleton />
           ) : commentsError ? (
             <p className="text-xs text-red-600">{commentsError}</p>
-          ) : comments.length === 0 ? (
+          ) : threads.length === 0 ? (
             <p className="text-xs text-stone-500">{t(lang, "news.comments.empty")}</p>
           ) : (
-            <ul className="space-y-2 max-h-48 overflow-y-auto">
-              {comments.slice(0, 8).map((c) => {
-                const isAuthor =
-                  ownerUserId && c.user_id && c.user_id === ownerUserId;
+            <ul className="space-y-3 max-h-72 overflow-y-auto pr-1">
+              {threads.map((thread) => {
+                const repliesHidden = Boolean(collapsedReplies[thread.root.id]);
+                const replyCount = thread.replies.length;
                 return (
-                  <li key={c.id} className="text-sm text-[#2B1E19]">
-                    <span className="font-semibold">
-                      {c.author_display_name || "—"}
-                    </span>
-                    {isAuthor ? (
-                      <span className="ml-1.5 text-[10px] font-bold uppercase text-[#D97706]">
-                        {t(lang, "news.comments.authorBadge")}
-                      </span>
+                  <li key={thread.root.id} className="space-y-2">
+                    <CommentBubble
+                      lang={lang}
+                      comment={thread.root}
+                      ownerUserId={ownerUserId}
+                      onReply={startReply}
+                    />
+                    {replyCount > 0 ? (
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          className="ml-11 text-[11px] font-semibold text-[#D97706] hover:underline"
+                          onClick={() =>
+                            setCollapsedReplies((prev) => ({
+                              ...prev,
+                              [thread.root.id]: !repliesHidden,
+                            }))
+                          }
+                        >
+                          {repliesHidden
+                            ? t(lang, "news.comments.viewReplies").replace(
+                                "{{n}}",
+                                String(replyCount),
+                              )
+                            : t(lang, "news.comments.hideReplies")}
+                        </button>
+                        {!repliesHidden
+                          ? thread.replies.map((reply) => (
+                              <CommentBubble
+                                key={reply.id}
+                                lang={lang}
+                                comment={reply}
+                                ownerUserId={ownerUserId}
+                                isReply
+                              />
+                            ))
+                          : null}
+                      </div>
                     ) : null}
-                    <p className="mt-0.5 text-[#5C4A3A] leading-relaxed">
-                      {c.body}
-                    </p>
                   </li>
                 );
               })}
             </ul>
           )}
+
           {loggedIn ? (
-            <div className="flex gap-2">
-              <input
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder={t(lang, "news.comments.placeholder")}
-                className="flex-1 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none focus:border-[#D97706]"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void postComment();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                disabled={commentBusy || !commentText.trim()}
-                onClick={() => void postComment()}
-                className="shrink-0 rounded-full bg-[#D97706] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#B45309] disabled:opacity-50"
-              >
-                {t(lang, "news.comments.send")}
-              </button>
+            <div className="space-y-2 border-t border-[#F3E2C8] pt-3">
+              {replyTo ? (
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-[#FFF8EF] px-2.5 py-1.5 text-xs text-[#6E5A51]">
+                  <span>
+                    {t(lang, "news.comments.replyingTo").replace(
+                      "{{name}}",
+                      replyTo.author_display_name || "—",
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    className="font-semibold text-[#D97706] hover:underline"
+                    onClick={() => setReplyTo(null)}
+                  >
+                    {t(lang, "news.comments.cancelReply")}
+                  </button>
+                </div>
+              ) : null}
+              <div className="flex items-start gap-2">
+                <CommentAvatar name={t(lang, "nav.account")} />
+                <div className="flex min-w-0 flex-1 gap-2">
+                  <input
+                    ref={commentInputRef}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder={
+                      replyTo
+                        ? t(lang, "news.comments.replyPlaceholder")
+                        : t(lang, "news.comments.placeholder")
+                    }
+                    className="flex-1 rounded-full border border-[#E8DFD0] bg-[#FDFBF7] px-3.5 py-2 text-sm outline-none focus:border-[#D97706]"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void postComment();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={commentBusy || !commentText.trim()}
+                    onClick={() => void postComment()}
+                    className="shrink-0 rounded-full bg-[#D97706] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#B45309] disabled:opacity-50"
+                  >
+                    {t(lang, "news.comments.send")}
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-stone-500 border-t border-[#F3E2C8] pt-3">
               <Link
                 href={loginHref}
                 className="text-[#D97706] font-semibold underline"

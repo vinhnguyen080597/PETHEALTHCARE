@@ -151,10 +151,16 @@ const vi: Record<EnKey, string> = {
   "news.comments.title": "Bình luận",
   "news.comments.empty": "Hãy là người bình luận đầu tiên.",
   "news.comments.placeholder": "Viết bình luận…",
+  "news.comments.replyPlaceholder": "Viết phản hồi…",
   "news.comments.send": "Gửi",
+  "news.comments.reply": "Phản hồi",
+  "news.comments.replyingTo": "Đang trả lời {{name}}",
+  "news.comments.cancelReply": "Hủy",
   "news.comments.authorBadge": "Tác giả",
   "news.comments.loadError": "Không tải được bình luận.",
   "news.comments.postError": "Không gửi được bình luận.",
+  "news.comments.viewReplies": "Xem {{n}} phản hồi",
+  "news.comments.hideReplies": "Ẩn phản hồi",
 
   "supportHub.title": "Trung tâm hỗ trợ",
   "supportHub.subtitle":
