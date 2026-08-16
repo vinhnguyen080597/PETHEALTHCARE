@@ -672,7 +672,7 @@ export function AccountPanel({
                 {t(lang, "legal.guidelines")} →
               </Link>
               <Link
-                href="/support"
+                href="/app/support"
                 className="mt-2 block text-sm font-medium text-[#D97706] hover:text-[#B45309]"
               >
                 {t(lang, "legal.support")} →

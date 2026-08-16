@@ -12,6 +12,7 @@ import coreCareRoutes from './routes/coreCareRoutes.js';
 import petFeedRoutes from './routes/petFeedRoutes.js';
 import featureFlagRoutes from './routes/featureFlagRoutes.js';
 import publicPetFeedRoutes from './routes/publicPetFeedRoutes.js';
+import supportRoutes from './routes/supportRoutes.js';
 import shareRoutes from './routes/shareRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -68,6 +69,7 @@ export function createApp() {
   app.use('/api/v1/public/pet-feed', publicPetFeedRoutes);
   app.use('/api/v1/pet-feed', petFeedRoutes);
   app.use('/api/v1/feature-flags', featureFlagRoutes);
+  app.use('/api/v1/support', supportRoutes);
   app.use('/api/v1/admin', adminRoutes);
   app.use('/share', shareRoutes);
 

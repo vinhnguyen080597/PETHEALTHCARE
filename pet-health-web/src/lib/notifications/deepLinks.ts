@@ -42,6 +42,8 @@ const ADMIN_QUEUE_NOTIFICATION_TYPES = new Set([
   "admin_transparency_appeal",
   "admin_listing_pending",
   "admin_report_open",
+  "admin_feedback_open",
+  "admin_scam_open",
 ]);
 
 /** CTA copy is “view farm profile” — must not land on /app/account/breeder. */
@@ -112,6 +114,22 @@ export function adminRequestHref(item: NotificationDeepLinkInput) {
       return `/app/admin?section=requests&type=report&focus=${encodeURIComponent(reportId)}`;
     }
   }
+  if (type === "admin_feedback_open") {
+    const ticketId =
+      (typeof item.metadata?.ticket_id === "string" && item.metadata.ticket_id) || "";
+    if (ticketId) {
+      return `/app/admin?section=requests&type=feedback&focus=${encodeURIComponent(ticketId)}`;
+    }
+    return "/app/admin?section=requests&type=feedback";
+  }
+  if (type === "admin_scam_open") {
+    const ticketId =
+      (typeof item.metadata?.ticket_id === "string" && item.metadata.ticket_id) || "";
+    if (ticketId) {
+      return `/app/admin?section=requests&type=scam&focus=${encodeURIComponent(ticketId)}`;
+    }
+    return "/app/admin?section=requests&type=scam";
+  }
   if (type === "admin_breeder_detail_pending") {
     const submissionId =
       (typeof item.metadata?.submission_id === "string" && item.metadata.submission_id) ||
@@ -137,6 +155,12 @@ export function adminRequestHref(item: NotificationDeepLinkInput) {
   }
   if (type === "admin_report_open") {
     return "/app/admin?section=requests&type=report";
+  }
+  if (type === "admin_feedback_open") {
+    return "/app/admin?section=requests&type=feedback";
+  }
+  if (type === "admin_scam_open") {
+    return "/app/admin?section=requests&type=scam";
   }
   return "/app/admin?section=requests";
 }

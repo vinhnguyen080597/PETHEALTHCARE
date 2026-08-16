@@ -1,4 +1,3 @@
-import { LEGAL_CONTACT_EMAIL, LEGAL_SUPPORT_EMAIL } from "./legalContent";
 import { SUPPORT_HREF } from "./siteNav";
 
 export const SUPPORT_HUB_HREF = SUPPORT_HREF;
@@ -7,7 +6,6 @@ export type SupportSectionId = "guides" | "feedback" | "scam";
 export type GuideAudience = "buyer" | "breeder";
 export type FeedbackCategory = "ui" | "feature" | "bug" | "other";
 export type ScamTargetType = "account" | "phone" | "facebook" | "bank";
-export type IdeaStatus = "reviewing" | "planned" | "done";
 
 export type GuideTopic = {
   id: string;
@@ -15,14 +13,8 @@ export type GuideTopic = {
   titleKey: string;
   bodyKey: string;
   stepsKey?: string;
-};
-
-export type CommunityIdea = {
-  id: string;
-  titleKey: string;
-  bodyKey: string;
-  status: IdeaStatus;
-  seedVotes: number;
+  /** In-app deep link shown when the guide is expanded */
+  href?: string;
 };
 
 export type BlacklistSample = {
@@ -66,6 +58,7 @@ export const GUIDE_TOPICS: GuideTopic[] = [
     titleKey: "supportHub.guide.buyerDeposit.title",
     bodyKey: "supportHub.guide.buyerDeposit.body",
     stepsKey: "supportHub.guide.buyerDeposit.steps",
+    href: "/app/pet-feed",
   },
   {
     id: "buyer-handoff",
@@ -78,18 +71,21 @@ export const GUIDE_TOPICS: GuideTopic[] = [
     audience: "buyer",
     titleKey: "supportHub.guide.buyerWarranty.title",
     bodyKey: "supportHub.guide.buyerWarranty.body",
+    href: "/app/account/warranty",
   },
   {
     id: "breeder-verify",
     audience: "breeder",
     titleKey: "supportHub.guide.breederVerify.title",
     bodyKey: "supportHub.guide.breederVerify.body",
+    href: "/app/account/breeder",
   },
   {
     id: "breeder-warranty",
     audience: "breeder",
     titleKey: "supportHub.guide.breederWarranty.title",
     bodyKey: "supportHub.guide.breederWarranty.body",
+    href: "/app/account/warranty",
   },
   {
     id: "breeder-payout",
@@ -103,31 +99,11 @@ export const FEEDBACK_CATEGORIES: FeedbackCategory[] = ["ui", "feature", "bug", 
 
 export const SCAM_TARGET_TYPES: ScamTargetType[] = ["account", "phone", "facebook", "bank"];
 
-export const COMMUNITY_IDEAS: CommunityIdea[] = [
-  {
-    id: "idea-deposit-timeline",
-    titleKey: "supportHub.idea.depositTimeline.title",
-    bodyKey: "supportHub.idea.depositTimeline.body",
-    status: "planned",
-    seedVotes: 42,
-  },
-  {
-    id: "idea-warranty-compare",
-    titleKey: "supportHub.idea.warrantyCompare.title",
-    bodyKey: "supportHub.idea.warrantyCompare.body",
-    status: "reviewing",
-    seedVotes: 28,
-  },
-  {
-    id: "idea-chat-translate",
-    titleKey: "supportHub.idea.chatTranslate.title",
-    bodyKey: "supportHub.idea.chatTranslate.body",
-    status: "done",
-    seedVotes: 61,
-  },
-];
+export const SUPPORT_SCAM_MAX_EVIDENCE = 5;
+export const SUPPORT_SCAM_MIN_EVIDENCE = 1;
+export const SUPPORT_FEEDBACK_MAX_EVIDENCE = 3;
 
-/** Public sample entries for UX demos — not a live moderation database. */
+/** Public sample entries for UX demos — also mirrored on the backend blacklist API. */
 export const BLACKLIST_SAMPLES: BlacklistSample[] = [
   {
     id: "sample-phone",
@@ -143,6 +119,29 @@ export const BLACKLIST_SAMPLES: BlacklistSample[] = [
   },
 ];
 
+export type SupportBlacklistHit = {
+  hit: boolean;
+  source: "demo" | "live" | null;
+  tooShort: boolean;
+  labelKey: string | null;
+  noteKey: string | null;
+};
+
+export function toSupportBlacklistHit(raw: {
+  hit?: boolean;
+  source?: "demo" | "live" | null;
+  too_short?: boolean;
+  label_key?: string | null;
+  note_key?: string | null;
+} | null | undefined): SupportBlacklistHit {
+  return {
+    hit: Boolean(raw?.hit),
+    source: raw?.source === "demo" || raw?.source === "live" ? raw.source : null,
+    tooShort: Boolean(raw?.too_short),
+    labelKey: typeof raw?.label_key === "string" ? raw.label_key : null,
+    noteKey: typeof raw?.note_key === "string" ? raw.note_key : null,
+  };
+}
 export function parseSupportSection(raw: string | null | undefined): SupportSectionId {
   const v = String(raw || "").trim().toLowerCase();
   if (v === "feedback" || v === "scam" || v === "guides") return v;
@@ -194,50 +193,13 @@ export function filterSupportSections(
   }).map((s) => s.id);
 }
 
-export function ideaStatusLabelKey(status: IdeaStatus): string {
-  if (status === "planned") return "supportHub.ideaStatus.planned";
-  if (status === "done") return "supportHub.ideaStatus.done";
-  return "supportHub.ideaStatus.reviewing";
-}
-
-export function feedbackMailto(opts: {
-  category: FeedbackCategory;
-  title: string;
-  body: string;
-  email?: string;
-}): string {
-  const subject = encodeURIComponent(`[PetCare Feedback · ${opts.category}] ${opts.title.trim() || "Untitled"}`);
-  const lines = [
-    `Category: ${opts.category}`,
-    `Title: ${opts.title.trim()}`,
-    "",
-    opts.body.trim(),
-  ];
-  const body = encodeURIComponent(lines.join("\n"));
-  return `mailto:${opts.email || LEGAL_SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
-}
-
-export function scamReportMailto(opts: {
-  targetType: ScamTargetType;
-  identifier: string;
-  listingOrProfileUrl: string;
-  details: string;
-  anonymous: boolean;
-  email?: string;
-}): string {
-  const subject = encodeURIComponent(`[PetCare Scam Report · ${opts.targetType}]`);
-  const lines = [
-    `Target type: ${opts.targetType}`,
-    `Identifier: ${opts.identifier.trim()}`,
-    `Related listing/profile: ${opts.listingOrProfileUrl.trim() || "(none)"}`,
-    `Anonymous: ${opts.anonymous ? "yes" : "no"}`,
-    "",
-    opts.details.trim(),
-    "",
-    "Evidence: attach screenshots / transfer bills in your email reply.",
-  ];
-  const body = encodeURIComponent(lines.join("\n"));
-  return `mailto:${opts.email || LEGAL_CONTACT_EMAIL}?subject=${subject}&body=${body}`;
+/** Keep the active section if it still matches; otherwise first match (or guides). */
+export function pickSupportSection(
+  current: SupportSectionId,
+  matched: SupportSectionId[],
+): SupportSectionId {
+  if (matched.includes(current)) return current;
+  return matched[0] || "guides";
 }
 
 export function supportHubSearchHref(query: string, section?: SupportSectionId): string {
@@ -247,4 +209,13 @@ export function supportHubSearchHref(query: string, section?: SupportSectionId):
   if (section) params.set("section", section);
   const qs = params.toString();
   return qs ? `${SUPPORT_HUB_HREF}?${qs}` : SUPPORT_HUB_HREF;
+}
+
+export function supportHubLoginNext(section?: SupportSectionId): string {
+  return supportHubSearchHref("", section);
+}
+
+/** Path + query only — for history.replaceState without full navigation. */
+export function supportHubPathWithState(query: string, section: SupportSectionId): string {
+  return supportHubSearchHref(query, section);
 }

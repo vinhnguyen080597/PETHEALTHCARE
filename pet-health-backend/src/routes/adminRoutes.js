@@ -39,6 +39,11 @@ import {
   getAdminTransparencyWarningById,
   listAdminTransparencyAppeals,
 } from '../repositories/transparencyWarningsRepository.js';
+import {
+  adminUpdateSupportTicketStatus,
+  getAdminSupportTicketById,
+  listAdminSupportTickets,
+} from '../repositories/supportTicketsRepository.js';
 import { runAutoCompleteHandoffsJob } from '../services/autoCompleteHandoffsJob.js';
 import { listAdminActionLogs, recordAdminAction } from '../repositories/adminActionLogRepository.js';
 import { createPetForUser, getPetByIdForUser, listPetsByUser, updatePetForUser } from '../repositories/petRepository.js';
@@ -712,6 +717,60 @@ router.put('/pet-feed/reports/:reportId/status', requireAdminOrSecret, async (re
     const { transparency_warning: _tw, ...reportData } = report;
     return res.json({ data: reportData, transparency_warning: transparencyWarning });
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/support-tickets', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const status = typeof req.query.status === 'string' ? req.query.status : 'open';
+    const kind = typeof req.query.kind === 'string' ? req.query.kind : '';
+    const tickets = await listAdminSupportTickets({ status, kind });
+    return res.json({ data: tickets });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/support-tickets/:ticketId/status', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const ticketId = cleanId(req.params.ticketId);
+    if (!ticketId) {
+      return res.status(400).json({ error: 'ticketId is required', code: 'MISSING_TICKET_ID' });
+    }
+    const before = await getAdminSupportTicketById(ticketId);
+    const ticket = await adminUpdateSupportTicketStatus(ticketId, req.body?.status);
+    if (!ticket) {
+      return res.status(404).json({ error: 'Support ticket not found', code: 'SUPPORT_TICKET_NOT_FOUND' });
+    }
+    logAdminAction(req, {
+      action:
+        ticket.status === 'reviewed'
+          ? 'support_ticket.review'
+          : ticket.status === 'dismissed'
+            ? 'support_ticket.dismiss'
+            : `support_ticket.${ticket.status || 'update'}`,
+      targetType: 'support_ticket',
+      targetId: ticket.id,
+      targetUserId: ticket.user_id || before?.user_id || null,
+      beforeState: {
+        status: before?.status || null,
+        kind: before?.kind || null,
+      },
+      afterState: {
+        status: ticket.status,
+        kind: ticket.kind,
+      },
+      metadata: {
+        category: ticket.category || null,
+        scam_target_type: ticket.scam_target_type || null,
+      },
+    });
+    return res.json({ data: ticket });
+  } catch (err) {
+    if (err?.status) {
+      return res.status(err.status).json({ error: err.message, code: err.code });
+    }
     return next(err);
   }
 });

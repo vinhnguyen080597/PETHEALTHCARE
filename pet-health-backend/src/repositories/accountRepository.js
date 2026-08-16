@@ -314,6 +314,7 @@ export async function deleteAccountData(userId) {
 
   await deleteFrom('pet_feed_blocked_breeders');
   await deleteFrom('pet_feed_reports');
+  await deleteFrom('support_tickets');
   await deleteFrom('pet_feed_favorites');
   await deleteFrom('pet_feed_posts');
   await deleteFrom('breeder_profiles');

@@ -3,19 +3,23 @@ import assert from "node:assert/strict";
 import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
 import {
-  COMMUNITY_IDEAS,
   GUIDE_TOPICS,
+  SUPPORT_FEEDBACK_MAX_EVIDENCE,
+  SUPPORT_SCAM_MAX_EVIDENCE,
+  SUPPORT_SCAM_MIN_EVIDENCE,
   SUPPORT_SECTIONS,
-  feedbackMailto,
   filterGuideTopics,
-  ideaStatusLabelKey,
+  filterSupportSections,
   lookupBlacklistSample,
   normalizeLookupQuery,
   parseSupportSection,
-  scamReportMailto,
+  pickSupportSection,
+  supportHubLoginNext,
+  supportHubPathWithState,
   supportHubSearchHref,
+  toSupportBlacklistHit,
 } from "../src/lib/supportHub";
-import { LEGAL_CONTACT_EMAIL, LEGAL_SUPPORT_EMAIL } from "../src/lib/legalContent";
+import { loginHref } from "../src/lib/loginHref";
 
 test("parseSupportSection defaults to guides", () => {
   assert.equal(parseSupportSection(undefined), "guides");
@@ -35,6 +39,32 @@ test("lookupBlacklistSample matches demo phone", () => {
   assert.equal(lookupBlacklistSample("0911222333"), null);
 });
 
+test("toSupportBlacklistHit maps API payload", () => {
+  assert.deepEqual(
+    toSupportBlacklistHit({
+      hit: true,
+      source: "live",
+      too_short: false,
+      label_key: "supportHub.blacklist.liveHit",
+      note_key: "supportHub.blacklist.liveNote",
+    }),
+    {
+      hit: true,
+      source: "live",
+      tooShort: false,
+      labelKey: "supportHub.blacklist.liveHit",
+      noteKey: "supportHub.blacklist.liveNote",
+    },
+  );
+  assert.equal(toSupportBlacklistHit({ too_short: true }).tooShort, true);
+});
+
+test("support evidence limits", () => {
+  assert.equal(SUPPORT_SCAM_MIN_EVIDENCE, 1);
+  assert.equal(SUPPORT_SCAM_MAX_EVIDENCE, 5);
+  assert.equal(SUPPORT_FEEDBACK_MAX_EVIDENCE, 3);
+});
+
 test("filterGuideTopics respects audience and query", () => {
   const resolve = (key: string) => en[key as keyof typeof en] || key;
   const buyer = filterGuideTopics(GUIDE_TOPICS, "buyer", "", resolve);
@@ -44,24 +74,21 @@ test("filterGuideTopics respects audience and query", () => {
   assert.ok(deposit.some((g) => g.id === "buyer-deposit"));
 });
 
-test("feedbackMailto and scamReportMailto use legal inboxes", () => {
-  const fb = feedbackMailto({
-    category: "bug",
-    title: "Broken like",
-    body: "Details here",
-  });
-  assert.ok(fb.startsWith(`mailto:${LEGAL_SUPPORT_EMAIL}?`));
-  assert.ok(fb.includes(encodeURIComponent("[PetCare Feedback · bug] Broken like")));
+test("filterSupportSections and pickSupportSection", () => {
+  const resolve = (key: string) => en[key as keyof typeof en] || key;
+  assert.deepEqual(filterSupportSections("", resolve), ["guides", "feedback", "scam"]);
+  const feedbackOnly = filterSupportSections("feedback", resolve);
+  assert.ok(feedbackOnly.includes("feedback"));
+  assert.equal(pickSupportSection("scam", feedbackOnly), "feedback");
+  assert.equal(pickSupportSection("feedback", feedbackOnly), "feedback");
+  assert.equal(pickSupportSection("guides", []), "guides");
+});
 
-  const scam = scamReportMailto({
-    targetType: "phone",
-    identifier: "0900111222",
-    listingOrProfileUrl: "https://example.com/p/1",
-    details: "Asked for off-platform deposit",
-    anonymous: true,
-  });
-  assert.ok(scam.startsWith(`mailto:${LEGAL_CONTACT_EMAIL}?`));
-  assert.ok(scam.includes(encodeURIComponent("Anonymous: yes")));
+test("guide topics expose deep links where expected", () => {
+  const warranty = GUIDE_TOPICS.find((g) => g.id === "buyer-warranty");
+  assert.equal(warranty?.href, "/app/account/warranty");
+  const verify = GUIDE_TOPICS.find((g) => g.id === "breeder-verify");
+  assert.equal(verify?.href, "/app/account/breeder");
 });
 
 test("supportHubSearchHref builds query string", () => {
@@ -70,24 +97,35 @@ test("supportHubSearchHref builds query string", () => {
     supportHubSearchHref("cọc", "guides"),
     "/app/support?q=c%E1%BB%8Dc&section=guides",
   );
+  assert.equal(supportHubPathWithState("bug", "feedback"), "/app/support?q=bug&section=feedback");
 });
 
-test("ideaStatusLabelKey maps statuses", () => {
-  assert.equal(ideaStatusLabelKey("reviewing"), "supportHub.ideaStatus.reviewing");
-  assert.equal(ideaStatusLabelKey("planned"), "supportHub.ideaStatus.planned");
-  assert.equal(ideaStatusLabelKey("done"), "supportHub.ideaStatus.done");
+test("supportHubLoginNext and loginHref preserve section", () => {
+  assert.equal(supportHubLoginNext("feedback"), "/app/support?section=feedback");
+  assert.equal(
+    loginHref(supportHubLoginNext("scam")),
+    `/login?next=${encodeURIComponent("/app/support?section=scam")}`,
+  );
 });
 
 test("support hub i18n parity for core keys", () => {
   assert.equal(vi["nav.support"], "Hỗ trợ");
   assert.equal(en["nav.support"], "Support");
+  assert.equal(en["supportHub.feedback.submit"], "Send to admins");
+  assert.equal(vi["supportHub.feedback.submit"], "Gửi tới admin");
+  assert.equal(en["supportHub.scam.submit"], "Send report to admins");
+  assert.equal(vi["supportHub.scam.submit"], "Gửi báo cáo tới admin");
+  assert.equal(en["supportHub.blacklist.liveBadge"], "Live + demo");
+  assert.equal(vi["supportHub.blacklist.liveBadge"], "Live + demo");
+  assert.ok(en["supportHub.blacklist.liveHit"]);
+  assert.ok(vi["supportHub.blacklist.liveHit"]);
+  assert.match(en["supportHub.blacklist.miss"], /does not mean safe/i);
+  assert.match(vi["supportHub.blacklist.miss"], /không có nghĩa là an toàn/i);
+  assert.ok(en["admin.support.evidence"]);
+  assert.ok(vi["admin.support.evidence"]);
   for (const section of SUPPORT_SECTIONS) {
     assert.ok(en[section.titleKey as keyof typeof en]);
     assert.ok(vi[section.titleKey as keyof typeof vi]);
-  }
-  for (const idea of COMMUNITY_IDEAS) {
-    assert.ok(en[idea.titleKey as keyof typeof en]);
-    assert.ok(vi[idea.titleKey as keyof typeof vi]);
   }
   for (const topic of GUIDE_TOPICS) {
     assert.ok(en[topic.titleKey as keyof typeof en]);

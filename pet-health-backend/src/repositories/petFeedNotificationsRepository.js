@@ -22,6 +22,8 @@ const ADMIN_NOTIFICATION_TYPES = new Set([
   'admin_transparency_appeal',
   'admin_listing_pending',
   'admin_report_open',
+  'admin_feedback_open',
+  'admin_scam_open',
 ]);
 const DEAL_NOTIFICATION_TYPES = new Set([
   'deposit_request',
@@ -40,6 +42,8 @@ const ADMIN_DEFAULT_CTA = {
   admin_transparency_appeal: { label: 'Xem kháng cáo', href: '/app/admin?section=requests&type=appeal' },
   admin_listing_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=post' },
   admin_report_open: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=report' },
+  admin_feedback_open: { label: 'Xem góp ý', href: '/app/admin?section=requests&type=feedback' },
+  admin_scam_open: { label: 'Xem báo cáo scam', href: '/app/admin?section=requests&type=scam' },
 };
 
 function getNotificationsSupabase(accessToken) {
@@ -519,6 +523,7 @@ export async function createAdminRequestNotifications({
   const safePostId = trimText(postId, 64) || null;
   const safeBreederId = trimText(breederProfileId, 64) || null;
   const reportId = trimText(metadata?.report_id, 64) || null;
+  const ticketId = trimText(metadata?.ticket_id, 64) || null;
 
   let ctaHref = trimText(metadata?.cta_href, 240) || defaults.href;
   if (safeType === 'admin_breeder_pending' && safeBreederId) {
@@ -537,6 +542,10 @@ export async function createAdminRequestNotifications({
     ctaHref = `/app/admin?section=requests&type=post&focus=${encodeURIComponent(safePostId)}`;
   } else if (safeType === 'admin_report_open' && reportId) {
     ctaHref = `/app/admin?section=requests&type=report&focus=${encodeURIComponent(reportId)}`;
+  } else if (safeType === 'admin_feedback_open' && ticketId) {
+    ctaHref = `/app/admin?section=requests&type=feedback&focus=${encodeURIComponent(ticketId)}`;
+  } else if (safeType === 'admin_scam_open' && ticketId) {
+    ctaHref = `/app/admin?section=requests&type=scam&focus=${encodeURIComponent(ticketId)}`;
   }
 
   const meta = {
@@ -552,7 +561,11 @@ export async function createAdminRequestNotifications({
             ? 'appeal'
         : safeType === 'admin_listing_pending'
           ? 'listing'
-          : 'report',
+          : safeType === 'admin_feedback_open'
+            ? 'feedback'
+            : safeType === 'admin_scam_open'
+              ? 'scam'
+              : 'report',
   };
   const now = new Date().toISOString();
   const preview = trimText(bodyPreview, 220);

@@ -25,7 +25,7 @@ export type DateFilter = "newest" | "oldest" | "today" | "week";
 export type BreederGroup = "all" | "active" | "inactive" | "waiting";
 
 export type RequestStatusInput = {
-  type: "breeder" | "post" | "report" | "detail" | "appeal";
+  type: "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam";
   status: string;
 };
 
@@ -36,7 +36,9 @@ export type BreederGroupInput = {
 export function requestStatusGroup(
   item: RequestStatusInput,
 ): Exclude<RequestStatus, "all"> {
-  if (item.type === "report") return item.status === "open" ? "waiting" : "resolved";
+  if (item.type === "report" || item.type === "feedback" || item.type === "scam") {
+    return item.status === "open" ? "waiting" : "resolved";
+  }
   if (item.type === "detail") {
     if (item.status === "approved") return "approved";
     if (item.status === "rejected" || item.status === "cancelled") return "rejected";

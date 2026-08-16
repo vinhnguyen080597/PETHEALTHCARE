@@ -83,12 +83,29 @@ type ActionLogRow = {
   metadata?: Record<string, unknown>;
 };
 
-type RequestType = "all" | "breeder" | "post" | "report" | "detail" | "appeal";
+type RequestType = "all" | "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam";
 type AnnouncementCategory = "app_update" | "health_tip" | "community" | "general";
+
+type SupportTicketRow = {
+  id: string;
+  user_id?: string;
+  kind: "feedback" | "scam" | string;
+  category?: string | null;
+  title?: string | null;
+  body?: string;
+  scam_target_type?: string | null;
+  identifier?: string | null;
+  related_url?: string | null;
+  anonymous?: boolean;
+  evidence_confirmed?: boolean;
+  evidence_urls?: string[];
+  status?: string;
+  created_at?: string;
+};
 
 type RequestItem = {
   id: string;
-  type: "breeder" | "post" | "report" | "detail" | "appeal";
+  type: "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam";
   status: string;
   createdAt: string;
   title: string;
@@ -99,6 +116,7 @@ type RequestItem = {
   report?: ReportRow;
   detail?: BreederProfileSubmission;
   appeal?: TransparencyWarning;
+  ticket?: SupportTicketRow;
 };
 
 const PET_FEED_TAB_KEYS: FeatureKey[] = [
@@ -277,6 +295,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [detailSubmissions, setDetailSubmissions] = useState<BreederProfileSubmission[]>([]);
   const [appeals, setAppeals] = useState<TransparencyWarning[]>([]);
   const [reports, setReports] = useState<ReportRow[]>([]);
+  const [supportTickets, setSupportTickets] = useState<SupportTicketRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [flags, setFlags] = useState<FeatureFlags>(DEFAULT_FLAGS);
   const [toast, setToast] = useState("");
@@ -332,7 +351,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     setLoading(true);
     setError("");
     try {
-      const [p, b, r, a, f, d, w] = await Promise.all([
+      const [p, b, r, a, f, d, w, st] = await Promise.all([
         adminFetch("/posts?status=").catch(() => ({ data: [] })),
         adminFetch("/breeders").catch(() => ({ data: [] })),
         adminFetch("/reports?status=").catch(() => ({ data: [] })),
@@ -340,10 +359,12 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         adminFetch("/feature-flags").catch(() => ({ data: DEFAULT_FLAGS })),
         adminFetch("/breeder-submissions?status=").catch(() => ({ data: [] })),
         adminFetch("/transparency-warnings?status=").catch(() => ({ data: [] })),
+        adminFetch("/support-tickets?status=").catch(() => ({ data: [] })),
       ]);
       setPosts(Array.isArray(p.data) ? p.data : []);
       setBreeders(Array.isArray(b.data) ? b.data : []);
       setReports(Array.isArray(r.data) ? r.data : []);
+      setSupportTickets(Array.isArray(st.data) ? st.data : []);
       setDetailSubmissions(Array.isArray(d.data) ? d.data : []);
       setAppeals(Array.isArray(w.data) ? w.data : []);
       setAccounts(Array.isArray(a.data) ? a.data : []);
@@ -371,11 +392,27 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     const validSections = new Set(navItems.map((item) => item.key));
     if (sectionParam && validSections.has(sectionParam as AdminSection)) {
       setSection(sectionParam as AdminSection);
-    } else     if (typeParam === "breeder" || typeParam === "post" || typeParam === "report" || typeParam === "detail" || typeParam === "appeal") {
+    } else if (
+      typeParam === "breeder" ||
+      typeParam === "post" ||
+      typeParam === "report" ||
+      typeParam === "detail" ||
+      typeParam === "appeal" ||
+      typeParam === "feedback" ||
+      typeParam === "scam"
+    ) {
       setSection("requests");
     }
 
-    if (typeParam === "breeder" || typeParam === "post" || typeParam === "report" || typeParam === "detail" || typeParam === "appeal") {
+    if (
+      typeParam === "breeder" ||
+      typeParam === "post" ||
+      typeParam === "report" ||
+      typeParam === "detail" ||
+      typeParam === "appeal" ||
+      typeParam === "feedback" ||
+      typeParam === "scam"
+    ) {
       setRequestType(typeParam);
       setRequestStatus("waiting");
     }
@@ -421,11 +458,17 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const pendingPosts = posts.filter((p) => p.status === "pending_review");
   const pendingBreeders = breeders.filter((b) => b.verification_status === "pending_review");
   const openReports = reports.filter((r) => r.status === "open");
+  const openSupportTickets = supportTickets.filter((r) => r.status === "open");
   const verifiedBreeders = breeders.filter((b) => b.verification_status === "verified");
   const pendingDetailSubmissions = detailSubmissions.filter((s) => s.status === "pending");
   const pendingAppeals = appeals.filter((s) => s.status === "appealed" || s.status === "pending_breeder_action");
   const pendingRequestCount =
-    pendingPosts.length + pendingBreeders.length + openReports.length + pendingDetailSubmissions.length + pendingAppeals.length;
+    pendingPosts.length +
+    pendingBreeders.length +
+    openReports.length +
+    openSupportTickets.length +
+    pendingDetailSubmissions.length +
+    pendingAppeals.length;
 
   const requestItems = useMemo<RequestItem[]>(() => {
     const breederItems: RequestItem[] = breeders
@@ -496,8 +539,28 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       body: `${t(lang, "admin.appeals.score")}: ${warning.score_at_trigger}/100 · ${t(lang, "admin.appeals.penalty")}: ${warning.penalty_points_at_trigger}`,
       appeal: warning,
     }));
-    return [...breederItems, ...postItems, ...reportItems, ...detailItems, ...appealItems];
-  }, [breeders, posts, reports, detailSubmissions, appeals, lang]);
+    const ticketItems: RequestItem[] = supportTickets.map((ticket) => {
+      const isFeedback = ticket.kind === "feedback";
+      const type = isFeedback ? ("feedback" as const) : ("scam" as const);
+      const title = isFeedback
+        ? ticket.title || t(lang, "admin.requests.type.feedback")
+        : ticket.identifier || t(lang, "admin.requests.type.scam");
+      const subtitle = isFeedback
+        ? `${t(lang, "admin.requests.type.feedback")}: ${ticket.category || "—"}`
+        : `${t(lang, "admin.requests.type.scam")}: ${ticket.scam_target_type || "—"}`;
+      return {
+        id: `ticket-${ticket.id}`,
+        type,
+        status: ticket.status || "open",
+        createdAt: ticket.created_at || "",
+        title,
+        subtitle,
+        body: ticket.body || "",
+        ticket,
+      };
+    });
+    return [...breederItems, ...postItems, ...reportItems, ...detailItems, ...appealItems, ...ticketItems];
+  }, [breeders, posts, reports, detailSubmissions, appeals, supportTickets, lang]);
 
   const filteredRequests = useMemo(() => {
     return sortByDate(
@@ -520,7 +583,13 @@ export function AdminConsole({ lang }: { lang: Lang }) {
           ? item.profile?.id
           : item.type === "post"
             ? item.post?.id
-            : item.report?.id;
+            : item.type === "detail"
+              ? item.detail?.id
+              : item.type === "appeal"
+                ? item.appeal?.id
+                : item.type === "feedback" || item.type === "scam"
+                  ? item.ticket?.id
+                  : item.report?.id;
       return rawId === focusRequestId;
     });
     if (matched) setExpandedReviewId(matched.id);
@@ -634,6 +703,18 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       `report-${reportId}-${status}`,
       () =>
         adminFetch(`/reports/${reportId}/status`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        }),
+      "admin.toast.updated",
+    );
+
+  const updateSupportTicket = (ticketId: string, status: string) =>
+    runAction(
+      `ticket-${ticketId}-${status}`,
+      () =>
+        adminFetch(`/support-tickets/${ticketId}/status`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status }),
@@ -1013,6 +1094,27 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         </div>
       );
     }
+    if (
+      (item.type === "feedback" || item.type === "scam") &&
+      item.ticket?.status === "open"
+    ) {
+      return (
+        <div className="flex flex-wrap gap-2 mt-3">
+          <ActionButton
+            label={t(lang, "admin.reports.markReviewed")}
+            variant="danger"
+            disabled={busyKey !== null}
+            onClick={() => void updateSupportTicket(item.ticket!.id, "reviewed")}
+          />
+          <ActionButton
+            label={t(lang, "admin.reports.dismiss")}
+            variant="ghost"
+            disabled={busyKey !== null}
+            onClick={() => void updateSupportTicket(item.ticket!.id, "dismissed")}
+          />
+        </div>
+      );
+    }
     return null;
   };
 
@@ -1104,6 +1206,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     { value: "appeal", label: t(lang, "admin.requests.type.appeal") },
                     { value: "post", label: t(lang, "admin.requests.type.post") },
                     { value: "report", label: t(lang, "admin.requests.type.report") },
+                    { value: "feedback", label: t(lang, "admin.requests.type.feedback") },
+                    { value: "scam", label: t(lang, "admin.requests.type.scam") },
                   ]}
                 />
                 <FilterSelect
@@ -1142,7 +1246,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                         ? item.detail?.id
                         : item.type === "appeal"
                           ? item.appeal?.id
-                      : item.report?.id;
+                          : item.type === "feedback" || item.type === "scam"
+                            ? item.ticket?.id
+                            : item.report?.id;
                 const focused = Boolean(focusRequestId && rawId === focusRequestId);
                 const detailsOpen = expandedReviewId === item.id;
                 const linkedPost =
@@ -1152,6 +1258,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 const linkedProfile =
                   item.type === "report" && item.report?.breeder_profile_id
                     ? breeders.find((b) => b.id === item.report?.breeder_profile_id)
+                    : undefined;
+                const reporterAccount =
+                  item.ticket && !item.ticket.anonymous
+                    ? accounts.find((a) => a.user_id === item.ticket?.user_id)
                     : undefined;
                 return (
                 <div
@@ -1173,7 +1283,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                       label={
                         item.type === "breeder"
                           ? verificationLabel(item.status)
-                          : item.type === "report"
+                          : item.type === "report" ||
+                              item.type === "feedback" ||
+                              item.type === "scam"
                             ? reportStatusLabel(item.status)
                             : item.type === "detail"
                               ? item.status
@@ -1221,6 +1333,94 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   ) : null}
                   {detailsOpen && item.detail ? (
                     <AdminBreederDetailSubmissionReview lang={lang} submission={item.detail} />
+                  ) : null}
+                  {detailsOpen && item.ticket ? (
+                    <div className="mt-3 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FDFBF7] p-3 text-sm text-[#5C4A3A]">
+                      {item.ticket.kind === "feedback" ? (
+                        <>
+                          <p>
+                            <span className="font-semibold text-[#2B1E19]">
+                              {t(lang, "admin.support.category")}:{" "}
+                            </span>
+                            {item.ticket.category || "—"}
+                          </p>
+                          <p>
+                            <span className="font-semibold text-[#2B1E19]">
+                              {t(lang, "admin.support.title")}:{" "}
+                            </span>
+                            {item.ticket.title || "—"}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p>
+                            <span className="font-semibold text-[#2B1E19]">
+                              {t(lang, "admin.support.targetType")}:{" "}
+                            </span>
+                            {item.ticket.scam_target_type || "—"}
+                          </p>
+                          <p>
+                            <span className="font-semibold text-[#2B1E19]">
+                              {t(lang, "admin.support.identifier")}:{" "}
+                            </span>
+                            {item.ticket.identifier || "—"}
+                          </p>
+                          {item.ticket.related_url ? (
+                            <p className="break-all">
+                              <span className="font-semibold text-[#2B1E19]">
+                                {t(lang, "admin.support.relatedUrl")}:{" "}
+                              </span>
+                              {item.ticket.related_url}
+                            </p>
+                          ) : null}
+                          <p>
+                            <span className="font-semibold text-[#2B1E19]">
+                              {t(lang, "admin.support.anonymous")}:{" "}
+                            </span>
+                            {item.ticket.anonymous
+                              ? t(lang, "admin.support.yes")
+                              : t(lang, "admin.support.no")}
+                          </p>
+                        </>
+                      )}
+                      <p className="whitespace-pre-wrap">{item.ticket.body || "—"}</p>
+                      {Array.isArray(item.ticket.evidence_urls) &&
+                      item.ticket.evidence_urls.length > 0 ? (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8B7355]">
+                            {t(lang, "admin.support.evidence")}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {item.ticket.evidence_urls.map((url) => (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <a
+                                key={url}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block"
+                              >
+                                <img
+                                  src={url}
+                                  alt=""
+                                  className="h-16 w-16 rounded-lg object-cover border border-[#E8DFD0] bg-white"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      <p className="text-xs text-[#8B7355]">
+                        {item.ticket.anonymous
+                          ? t(lang, "admin.support.reporterHidden")
+                          : `${t(lang, "admin.support.reporter")}: ${
+                              reporterAccount?.display_name ||
+                              reporterAccount?.email ||
+                              item.ticket.user_id ||
+                              "—"
+                            }`}
+                      </p>
+                    </div>
                   ) : null}
                   {renderRequestActions(item)}
                 </div>

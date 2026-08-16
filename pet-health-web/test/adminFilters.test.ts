@@ -13,6 +13,10 @@ import {
 test("requestStatusGroup maps request statuses for filters", () => {
   assert.equal(requestStatusGroup({ type: "report", status: "open" }), "waiting");
   assert.equal(requestStatusGroup({ type: "report", status: "reviewed" }), "resolved");
+  assert.equal(requestStatusGroup({ type: "feedback", status: "open" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "feedback", status: "dismissed" }), "resolved");
+  assert.equal(requestStatusGroup({ type: "scam", status: "open" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "scam", status: "reviewed" }), "resolved");
   assert.equal(requestStatusGroup({ type: "breeder", status: "verified" }), "approved");
   assert.equal(requestStatusGroup({ type: "breeder", status: "rejected" }), "rejected");
   assert.equal(requestStatusGroup({ type: "breeder", status: "pending_review" }), "waiting");

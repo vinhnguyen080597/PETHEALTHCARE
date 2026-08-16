@@ -64,6 +64,20 @@ test("adminRequestHref builds focused breeder/listing/report links", () => {
   );
   assert.equal(
     adminRequestHref({
+      type: "admin_feedback_open",
+      metadata: { ticket_id: "fb-1" },
+    }),
+    "/app/admin?section=requests&type=feedback&focus=fb-1",
+  );
+  assert.equal(
+    adminRequestHref({
+      type: "admin_scam_open",
+      metadata: { ticket_id: "sc-2" },
+    }),
+    "/app/admin?section=requests&type=scam&focus=sc-2",
+  );
+  assert.equal(
+    adminRequestHref({
       type: "admin_breeder_detail_pending",
       metadata: { submission_id: "sub-1" },
     }),
@@ -105,6 +119,14 @@ test("adminRequestHref falls back without focus ids", () => {
     "/app/admin?section=requests&type=report",
   );
   assert.equal(
+    adminRequestHref({ type: "admin_feedback_open" }),
+    "/app/admin?section=requests&type=feedback",
+  );
+  assert.equal(
+    adminRequestHref({ type: "admin_scam_open" }),
+    "/app/admin?section=requests&type=scam",
+  );
+  assert.equal(
     adminRequestHref({ type: "admin_breeder_detail_pending" }),
     "/app/admin?section=requests&type=detail",
   );
@@ -130,6 +152,8 @@ test("listing review notification types are distinct from admin queue types", ()
 test("transparency notification deep links and CTAs", () => {
   assert.equal(isAdminQueueNotification("admin_breeder_detail_pending"), true);
   assert.equal(isAdminQueueNotification("admin_transparency_appeal"), true);
+  assert.equal(isAdminQueueNotification("admin_feedback_open"), true);
+  assert.equal(isAdminQueueNotification("admin_scam_open"), true);
   assert.equal(
     breederTransparencyNotificationHref({ type: "transparency_warning" }),
     "/app/account/breeder",
