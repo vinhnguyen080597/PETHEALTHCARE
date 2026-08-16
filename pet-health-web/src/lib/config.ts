@@ -19,6 +19,11 @@ export function listingShareUrl(postId: string): string {
   return `${SHARE_ORIGIN}/app/pet-feed/posts/${encodeURIComponent(postId)}`;
 }
 
+/** Canonical share URL for announcements (Tin tức tab). */
+export function newsShareUrl(postId: string): string {
+  return `${SHARE_ORIGIN}/app/news/${encodeURIComponent(postId)}`;
+}
+
 /** Absolute https URL for OG images; skips data: placeholders. */
 export function absoluteMediaUrl(
   url: string | null | undefined,

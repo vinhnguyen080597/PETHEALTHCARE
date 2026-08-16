@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
@@ -14,6 +15,14 @@ export const metadata = {
 
 /** Prefer auth feed when logged in so `saved` / is_favorited is correct on first paint. */
 export const dynamic = "force-dynamic";
+
+function NewsFeedFallback({ lang }: { lang: "EN" | "VI" }) {
+  return (
+    <div className="rounded-2xl border border-[#F3E2C8] bg-white px-6 py-14 text-center">
+      <p className="text-sm text-[#6E5A51]">{t(lang, "news.title")}…</p>
+    </div>
+  );
+}
 
 export default async function NewsPage({
   searchParams,
@@ -63,12 +72,14 @@ export default async function NewsPage({
           </div>
         ) : null}
 
-        <NewsFeedView
-          lang={lang}
-          posts={posts}
-          isLoggedIn={Boolean(user.isLoggedIn && user.token)}
-          initialFilter={sp.category || "all"}
-        />
+        <Suspense fallback={<NewsFeedFallback lang={lang} />}>
+          <NewsFeedView
+            lang={lang}
+            posts={posts}
+            isLoggedIn={Boolean(user.isLoggedIn && user.token)}
+            initialFilter={sp.category || "all"}
+          />
+        </Suspense>
       </div>
     </div>
   );

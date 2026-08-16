@@ -10,38 +10,46 @@ import {
 } from "@/lib/api/public";
 import { getListingDetail } from "@/lib/api/petFeed";
 import { mapApiPost } from "@/lib/mappers";
-import { ListingDetail } from "@/components/marketplace/ListingDetail";
+import { NewsDetail } from "@/components/marketplace/NewsDetail";
 import { ListingDetailSkeleton } from "@/components/ui/Skeleton";
 import { ResourceNotFound } from "@/components/ResourceNotFound";
-import { listingShareUrl, newsShareUrl } from "@/lib/config";
-import { buildListingOgCopy, listingOgPhotoUrl } from "@/lib/listingOg";
-import { newsPostDetailHref, shouldRenderNewsDetail } from "@/lib/newsDetail";
-import type { Lang } from "@/lib/types";
+import { newsShareUrl } from "@/lib/config";
+import { listingOgPhotoUrl } from "@/lib/listingOg";
+import {
+  buildNewsOgCopy,
+  newsDetailBackHref,
+  shouldRenderNewsDetail,
+} from "@/lib/newsDetail";
+import type { Lang, Listing } from "@/lib/types";
 
 type Props = { params: Promise<{ postId: string }> };
 
+async function loadPost(postId: string): Promise<Listing | null> {
+  const session = await getSessionUser();
+  if (session.token) {
+    try {
+      const fresh = await getListingDetail(session.token, postId);
+      if (fresh?.data) return mapApiPost(fresh.data);
+    } catch {
+      /* fall through */
+    }
+  }
+  return getPublicPostDetail(postId).catch(() => null);
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { postId } = await params;
-  const canonical = listingShareUrl(postId);
+  const canonical = newsShareUrl(postId);
   try {
     const listing = await getPublicPostDetail(postId);
-    if (!listing) {
+    if (!listing || !shouldRenderNewsDetail(listing)) {
       return {
-        title: "Listing not found",
+        title: "News not found",
         robots: { index: false, follow: false },
       };
     }
 
-    // Announcements live under /app/news/[id] — keep OG on that route.
-    if (shouldRenderNewsDetail(listing)) {
-      return {
-        title: listing.title || "News",
-        alternates: { canonical: newsShareUrl(postId) },
-        robots: { index: false, follow: true },
-      };
-    }
-
-    const { title, description } = buildListingOgCopy(listing);
+    const { title, description } = buildNewsOgCopy(listing);
     const photo = listingOgPhotoUrl(listing);
     const images = photo
       ? [
@@ -49,10 +57,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             url: photo,
             width: 1200,
             height: 630,
-            alt:
-              listing.breed ||
-              listing.title ||
-              "PetCare: Pet Marketplace listing",
+            alt: listing.title || "PetCare news",
           },
         ]
       : undefined;
@@ -79,14 +84,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   } catch {
     return {
-      title: "Pet listing",
+      title: "News",
       alternates: { canonical },
       openGraph: { url: canonical, siteName: "PetCare: Pet Marketplace" },
     };
   }
 }
 
-async function PostDetailData({
+async function NewsPostData({
   postId,
   lang,
 }: {
@@ -94,58 +99,39 @@ async function PostDetailData({
   lang: Lang;
 }) {
   const session = await getSessionUser();
-  let listing = null;
-  if (session.token) {
-    try {
-      const fresh = await getListingDetail(session.token, postId);
-      if (fresh?.data) listing = mapApiPost(fresh.data);
-    } catch {
-      listing = null;
-    }
-  }
-  if (!listing) {
-    listing = await getPublicPostDetail(postId).catch(() => null);
-  }
+  const listing = await loadPost(postId);
+
   if (!listing) {
     return (
       <ResourceNotFound
         lang={lang}
         titleKey="notFound.listing.title"
         bodyKey="notFound.listing.body"
-        primaryHref="/app/pet-feed"
-        primaryLabelKey="nav.browse"
-        secondaryHref="/app/breeders"
-        secondaryLabelKey="nav.breeders"
+        primaryHref={newsDetailBackHref()}
+        primaryLabelKey="nav.news"
+        secondaryHref="/app/pet-feed"
+        secondaryLabelKey="nav.browse"
       />
     );
   }
 
-  if (shouldRenderNewsDetail(listing)) {
-    redirect(newsPostDetailHref(postId));
+  if (!shouldRenderNewsDetail(listing)) {
+    redirect(`/app/pet-feed/posts/${encodeURIComponent(postId)}`);
   }
 
   const comments = await listPublicPostComments(postId).catch(() => []);
-  const currentUserId =
-    session.account && typeof session.account === "object"
-      ? String(
-          (session.account as { user_id?: string; id?: string }).user_id ||
-            (session.account as { id?: string }).id ||
-            "",
-        ) || null
-      : null;
+
   return (
-    <ListingDetail
+    <NewsDetail
       listing={listing}
       lang={lang}
       isLoggedIn={session.isLoggedIn}
-      isAdmin={session.isAdmin}
-      currentUserId={currentUserId}
       initialComments={comments}
     />
   );
 }
 
-export default async function PostDetailPage({ params }: Props) {
+export default async function NewsPostPage({ params }: Props) {
   const { postId } = await params;
   const jar = await cookies();
   const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
@@ -153,12 +139,12 @@ export default async function PostDetailPage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6">
+        <div className="max-w-[760px] mx-auto px-5 lg:px-8 py-6">
           <ListingDetailSkeleton />
         </div>
       }
     >
-      <PostDetailData postId={postId} lang={lang} />
+      <NewsPostData postId={postId} lang={lang} />
     </Suspense>
   );
 }

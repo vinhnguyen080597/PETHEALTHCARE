@@ -1,4 +1,5 @@
 import type { Listing } from "./types";
+import { newsPostDetailHref as newsPostDetailHrefFromDetail } from "./newsDetail";
 
 /** Prefer popover share menu on desktop; native share only on clear mobile UAs. */
 export function shouldPreferNativeShare(
@@ -12,9 +13,7 @@ export function newsEngageLoginHref(): string {
   return `/login?next=${encodeURIComponent("/app/news")}`;
 }
 
-export function newsPostDetailHref(postId: string): string {
-  return `/app/pet-feed/posts/${encodeURIComponent(postId)}`;
-}
+export const newsPostDetailHref = newsPostDetailHrefFromDetail;
 
 /** Normalize comment API payloads (auth + public shapes). */
 export function mapNewsCommentRows(payload: unknown): Array<{

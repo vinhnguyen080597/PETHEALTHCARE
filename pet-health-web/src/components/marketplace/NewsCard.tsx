@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import type { Lang, Listing } from "@/lib/types";
 import { t } from "@/i18n";
 import {
@@ -9,8 +9,11 @@ import {
 } from "@/lib/siteNav";
 import {
   estimateReadMinutes,
+  newsBodyNeedsExpand,
   newsCoverUrl,
 } from "@/lib/newsFeed";
+import { newsAuthorLabel } from "@/lib/newsDetail";
+import { buildListingGalleryItems } from "@/lib/listingGallery";
 import { NewsSocialToolbar } from "./NewsSocialToolbar";
 
 function formatNewsDate(value: string | undefined, lang: Lang): string {
@@ -36,33 +39,116 @@ export function NewsCard({
   post,
   featured = false,
   isLoggedIn = false,
+  expanded: expandedProp,
+  onExpandedChange,
 }: {
   lang: Lang;
   post: Listing;
   featured?: boolean;
   isLoggedIn?: boolean;
+  /** Controlled expand (e.g. from trending click). */
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }) {
+  const [uncontrolledExpanded, setUncontrolledExpanded] = useState(false);
+  const controlled = typeof expandedProp === "boolean";
+  const expanded = controlled ? Boolean(expandedProp) : uncontrolledExpanded;
+  const setExpanded = (next: boolean) => {
+    if (!controlled) setUncontrolledExpanded(next);
+    onExpandedChange?.(next);
+  };
+
+  const [fullDescription, setFullDescription] = useState<string | null>(null);
+  const [fullMediaUrls, setFullMediaUrls] = useState<string[] | null>(null);
+  const [fullLoading, setFullLoading] = useState(false);
+  const [fullError, setFullError] = useState("");
+
   const category = parseAnnouncementCategory(post.announcementCategory);
   const categoryLabel = t(lang, announcementCategoryLabelKey(category));
   const dateLabel = formatNewsDate(post.createdAt, lang);
-  const cover = newsCoverUrl(post);
-  const detailHref = `/app/pet-feed/posts/${encodeURIComponent(post.id)}`;
+  const author = newsAuthorLabel(post, t(lang, "news.author"));
   const ctaLabel = post.ctaLabel?.trim() || "";
   const ctaUrl = post.ctaUrl?.trim() || "";
-  const minutes = estimateReadMinutes(post.description);
+
+  const displayDescription = fullDescription ?? post.description;
+  const displayMediaUrls = fullMediaUrls ?? post.mediaUrls;
+  const displayPost: Listing = {
+    ...post,
+    description: displayDescription,
+    mediaUrls: displayMediaUrls,
+    mediaUrl: displayMediaUrls[0] || post.mediaUrl,
+  };
+  const cover = newsCoverUrl(displayPost);
+  const minutes = estimateReadMinutes(displayDescription);
+  const canExpand = newsBodyNeedsExpand(post.description, featured, {
+    mediaCount: post.mediaCount || post.mediaUrls?.length || 0,
+  });
+
+  useEffect(() => {
+    if (!expanded || fullDescription !== null) return;
+
+    let cancelled = false;
+    setFullLoading(true);
+    setFullError("");
+    void fetch(`/api/news/${encodeURIComponent(post.id)}`, { cache: "no-store" })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Failed");
+        const detail = (data.data || data) as Listing;
+        if (cancelled) return;
+        setFullDescription(String(detail.description || post.description || ""));
+        setFullMediaUrls(
+          Array.isArray(detail.mediaUrls) && detail.mediaUrls.length
+            ? detail.mediaUrls
+            : post.mediaUrls || [],
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Still unclamp whatever the list payload already has.
+        setFullDescription(post.description || "");
+        setFullMediaUrls(post.mediaUrls || []);
+        setFullError(t(lang, "news.loadError"));
+      })
+      .finally(() => {
+        if (!cancelled) setFullLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [expanded, fullDescription, lang, post.description, post.id, post.mediaUrls]);
+
+  const gallery = buildListingGalleryItems({
+    mediaUrls: displayMediaUrls,
+    mediaUrl: displayPost.mediaUrl,
+    videoUrl: post.videoUrl,
+  }).filter((item) => item.type === "image");
+  const extraImages = expanded
+    ? gallery.map((g) => g.url).filter((url) => url && url !== cover)
+    : [];
+
+  const toggleExpand = () => {
+    if (!canExpand && !expanded) return;
+    setExpanded(!expanded);
+  };
 
   return (
     <article
+      id={`news-post-${post.id}`}
       className={`rounded-2xl border border-[#F3E2C8] bg-white shadow-sm shadow-amber-100/30 ${
         featured ? "ring-1 ring-amber-200/80" : ""
       }`}
     >
       {cover ? (
-        <Link
-          href={detailHref}
-          className={`block relative overflow-hidden rounded-t-2xl bg-[#FDFBF7] ${
+        <button
+          type="button"
+          onClick={toggleExpand}
+          className={`block w-full relative overflow-hidden rounded-t-2xl bg-[#FDFBF7] text-left ${
             featured ? "aspect-[16/9]" : "aspect-[2/1] sm:aspect-[16/9]"
-          }`}
+          } ${canExpand || expanded ? "cursor-pointer" : "cursor-default"}`}
+          aria-expanded={expanded}
+          disabled={!canExpand && !expanded}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={cover} alt="" className="h-full w-full object-cover" />
@@ -71,7 +157,7 @@ export function NewsCard({
               🔥 {t(lang, "news.featured")}
             </span>
           ) : null}
-        </Link>
+        </button>
       ) : featured ? (
         <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-amber-50 to-[#FDFBF7] px-6">
           <span className="inline-flex items-center rounded-full bg-[#2B1E19] px-2.5 py-1 text-[11px] font-bold text-amber-100">
@@ -85,9 +171,7 @@ export function NewsCard({
           <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-800 border border-amber-100">
             {categoryLabel}
           </span>
-          <span className="font-medium text-[#6E5A51]">
-            {t(lang, "news.author")}
-          </span>
+          <span className="font-medium text-[#6E5A51]">{author}</span>
           {dateLabel ? <span>· {dateLabel}</span> : null}
           <span>· ⏱️ {readMinutesLabel(lang, minutes)}</span>
         </div>
@@ -97,31 +181,70 @@ export function NewsCard({
             featured ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
           }`}
         >
-          <Link
-            href={detailHref}
-            className="hover:text-[#D97706] transition-colors"
-          >
-            {post.title}
-          </Link>
+          {canExpand || expanded ? (
+            <button
+              type="button"
+              onClick={toggleExpand}
+              className="text-left hover:text-[#D97706] transition-colors"
+              aria-expanded={expanded}
+            >
+              {post.title}
+            </button>
+          ) : (
+            post.title
+          )}
         </h2>
 
-        {post.description ? (
+        {displayDescription ? (
           <p
             className={`text-sm text-[#5C4A3A] leading-relaxed whitespace-pre-line ${
-              featured ? "line-clamp-3" : "line-clamp-2"
+              expanded
+                ? ""
+                : featured
+                  ? "line-clamp-3"
+                  : "line-clamp-2"
             }`}
           >
-            {post.description}
+            {displayDescription}
           </p>
         ) : null}
 
+        {expanded && fullLoading ? (
+          <p className="text-xs text-stone-400">{t(lang, "news.title")}…</p>
+        ) : null}
+        {expanded && fullError ? (
+          <p className="text-xs text-amber-700" role="alert">
+            {fullError}
+          </p>
+        ) : null}
+
+        {extraImages.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {extraImages.map((url) => (
+              <div
+                key={url}
+                className="overflow-hidden rounded-xl border border-[#F3E2C8] aspect-[4/3] bg-[#FDFBF7]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="h-full w-full object-cover" />
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href={detailHref}
-            className="text-sm font-semibold text-[#D97706] hover:text-[#B45309]"
-          >
-            {t(lang, "news.readMore")} →
-          </Link>
+          {canExpand || expanded ? (
+            <button
+              type="button"
+              onClick={toggleExpand}
+              className="text-sm font-semibold text-[#D97706] hover:text-[#B45309]"
+              aria-expanded={expanded}
+            >
+              {expanded
+                ? t(lang, "news.readLess")
+                : `${t(lang, "news.readMore")} →`}
+            </button>
+          ) : null}
           {ctaLabel && ctaUrl ? (
             <a
               href={ctaUrl}
@@ -136,9 +259,10 @@ export function NewsCard({
 
         <NewsSocialToolbar
           lang={lang}
-          post={post}
+          post={displayPost}
           isLoggedIn={isLoggedIn}
           ownerUserId={post.ownerUserId}
+          skipFavoriteHydrate
         />
       </div>
     </article>

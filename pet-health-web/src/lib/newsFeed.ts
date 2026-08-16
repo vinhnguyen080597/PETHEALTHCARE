@@ -114,6 +114,31 @@ export function newsStandardPosts(
   return posts.filter((p) => p.id !== featuredId);
 }
 
+/** Whether the card body is long enough to need an expand control. */
+export function newsBodyNeedsExpand(
+  text: string | null | undefined,
+  featured = false,
+  options?: { mediaCount?: number },
+): boolean {
+  if ((options?.mediaCount || 0) > 1) return true;
+  const s = String(text || "").trim();
+  if (!s) return false;
+  // Legacy list DTO truncated at 280 — always offer expand so we can fetch full body.
+  if (s.length >= 280) return true;
+  const lines = s.split(/\n/).filter((line) => line.trim().length > 0);
+  const maxLines = featured ? 3 : 2;
+  if (lines.length > maxLines) return true;
+  const maxChars = featured ? 220 : 140;
+  return s.length > maxChars;
+}
+
+/** True when list payload likely truncated the announcement body. */
+export function newsDescriptionLooksTruncated(
+  text: string | null | undefined,
+): boolean {
+  return String(text || "").trim().length >= 280;
+}
+
 export function isValidAnnouncementCategory(
   value: string,
 ): value is AnnouncementCategory {

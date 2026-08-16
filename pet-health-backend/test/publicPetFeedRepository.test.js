@@ -35,8 +35,8 @@ test('listPublicPetFeedPostPage returns published announcements without contact'
   const page = await listPublicPetFeedPostPage({ limit: 50, kind: 'announcement' });
   const item = page.data.find((post) => post.id === created.id);
   assert.ok(item);
-  assert.equal(item.media_urls.length, 1);
-  assert.equal(item.description.length, 280);
+  assert.equal(item.media_urls.length, 2);
+  assert.equal(item.description.length, 320);
   assert.deepEqual(item.contact, {});
   assert.equal(item.is_favorited, false);
 });

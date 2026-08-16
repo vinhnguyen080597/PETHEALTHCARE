@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang, Listing } from "@/lib/types";
 import { t } from "@/i18n";
 import {
@@ -14,6 +15,7 @@ import {
   pickTrendingNewsPosts,
   type NewsCategoryFilter,
 } from "@/lib/newsFeed";
+import { newsCategoryHref } from "@/lib/newsDetail";
 import { NewsCard } from "./NewsCard";
 
 export function NewsFeedView({
@@ -27,9 +29,32 @@ export function NewsFeedView({
   isLoggedIn?: boolean;
   initialFilter?: string;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
   const [filter, setFilter] = useState<NewsCategoryFilter>(() =>
     parseNewsCategoryFilter(initialFilter),
   );
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFilter(parseNewsCategoryFilter(categoryParam || initialFilter));
+  }, [categoryParam, initialFilter]);
+
+  const setFilterAndUrl = (next: NewsCategoryFilter) => {
+    setFilter(next);
+    router.replace(newsCategoryHref(next), { scroll: false });
+  };
+
+  const expandPostInFeed = (postId: string) => {
+    setExpandedPostId(postId);
+    // Wait a tick so the card mounts/expands before scrolling.
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(`news-post-${postId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const filtered = useMemo(
     () => filterNewsPosts(posts, filter),
@@ -68,7 +93,7 @@ export function NewsFeedView({
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setFilter(item.id)}
+                onClick={() => setFilterAndUrl(item.id)}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-colors ${
                   active
                     ? "bg-[#D97706] border-[#D97706] text-white"
@@ -95,6 +120,10 @@ export function NewsFeedView({
                 post={featured}
                 featured
                 isLoggedIn={isLoggedIn}
+                expanded={expandedPostId === featured.id}
+                onExpandedChange={(on) =>
+                  setExpandedPostId(on ? featured.id : null)
+                }
               />
             ) : null}
             <div className="space-y-4">
@@ -104,6 +133,10 @@ export function NewsFeedView({
                   lang={lang}
                   post={post}
                   isLoggedIn={isLoggedIn}
+                  expanded={expandedPostId === post.id}
+                  onExpandedChange={(on) =>
+                    setExpandedPostId(on ? post.id : null)
+                  }
                 />
               ))}
             </div>
@@ -121,7 +154,7 @@ export function NewsFeedView({
               <button
                 key={topic.id}
                 type="button"
-                onClick={() => setFilter(topic.filter)}
+                onClick={() => setFilterAndUrl(topic.filter)}
                 className="rounded-full bg-[#FFF8EF] border border-amber-100 px-2.5 py-1 text-[11px] font-semibold text-[#B45309] hover:bg-amber-50"
               >
                 {t(lang, topic.labelKey)}
@@ -143,12 +176,22 @@ export function NewsFeedView({
                   <span className="shrink-0 w-6 h-6 rounded-full bg-amber-50 text-[#D97706] text-xs font-bold flex items-center justify-center">
                     {index + 1}
                   </span>
-                  <Link
-                    href={`/app/pet-feed/posts/${encodeURIComponent(post.id)}`}
-                    className="min-w-0 text-sm font-semibold text-[#2B1E19] hover:text-[#D97706] leading-snug line-clamp-2"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Ensure the post is visible under current filter.
+                      const cat = parseNewsCategoryFilter(
+                        post.announcementCategory,
+                      );
+                      if (filter !== "all" && filter !== cat) {
+                        setFilterAndUrl("all");
+                      }
+                      expandPostInFeed(post.id);
+                    }}
+                    className="min-w-0 text-left text-sm font-semibold text-[#2B1E19] hover:text-[#D97706] leading-snug line-clamp-2"
                   >
                     {post.title}
-                  </Link>
+                  </button>
                 </li>
               ))}
             </ol>

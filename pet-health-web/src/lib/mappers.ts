@@ -448,6 +448,7 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     mediaUrl: media[0] || PLACEHOLDER_MEDIA,
     mediaUrls: media.length ? media : [PLACEHOLDER_MEDIA],
     videoUrl: post.video_url?.trim() || null,
+    mediaCount: Number(post.media_count) || media.length || 0,
     evidenceUrls: evidence.length ? evidence : undefined,
     status,
     breeder,
@@ -458,6 +459,11 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     announcementCategory:
       String(post.post_kind || "").toLowerCase() === "announcement"
         ? String(meta.category || meta.announcement_category || "general")
+        : undefined,
+    authorLabel:
+      String(post.post_kind || "").toLowerCase() === "announcement"
+        ? String(meta.authorLabel || meta.author_label || "").trim() ||
+          undefined
         : undefined,
     ctaLabel: String(meta.ctaLabel || meta.cta_label || "").trim() || undefined,
     ctaUrl: String(meta.ctaUrl || meta.cta_url || "").trim() || undefined,

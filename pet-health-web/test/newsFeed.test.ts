@@ -8,6 +8,8 @@ import {
   estimateReadMinutes,
   filterNewsPosts,
   initialNewsLikedState,
+  newsBodyNeedsExpand,
+  newsDescriptionLooksTruncated,
   newsStandardPosts,
   parseNewsCategoryFilter,
   pickFeaturedNewsPost,
@@ -107,6 +109,23 @@ test("initialNewsLikedState prefers server saved then local cache", () => {
   assert.equal(initialNewsLikedState("a", false, ["b"]), false);
 });
 
+test("newsBodyNeedsExpand based on length and lines", () => {
+  assert.equal(newsBodyNeedsExpand("short"), false);
+  assert.equal(newsBodyNeedsExpand("a".repeat(150)), true);
+  assert.equal(
+    newsBodyNeedsExpand("one\n\ntwo\n\nthree\n\nfour", false),
+    true,
+  );
+  assert.equal(newsBodyNeedsExpand("ok ".repeat(30), true), false);
+  assert.equal(newsBodyNeedsExpand("x".repeat(280)), true);
+  assert.equal(newsBodyNeedsExpand("short", false, { mediaCount: 3 }), true);
+});
+
+test("newsDescriptionLooksTruncated detects list DTO cap", () => {
+  assert.equal(newsDescriptionLooksTruncated("short"), false);
+  assert.equal(newsDescriptionLooksTruncated("y".repeat(280)), true);
+});
+
 test("news feed i18n keys exist EN/VI", () => {
   const keys = [
     "news.filter.all",
@@ -117,10 +136,13 @@ test("news feed i18n keys exist EN/VI", () => {
     "news.action.like",
     "news.share.copy",
     "news.comments.send",
+    "news.readMore",
+    "news.readLess",
   ] as const;
   for (const key of keys) {
     assert.ok(en[key], `missing EN ${key}`);
     assert.ok(vi[key], `missing VI ${key}`);
   }
   assert.match(vi["news.filter.all"], /Tất cả/i);
+  assert.match(vi["news.readLess"], /Thu gọn/i);
 });

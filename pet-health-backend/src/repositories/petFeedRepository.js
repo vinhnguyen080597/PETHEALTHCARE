@@ -655,11 +655,20 @@ function toListPost(row, favoriteIds = new Set(), profilesById = new Map()) {
   const listThumb =
     post.metadata && typeof post.metadata.list_thumb_url === 'string' ? post.metadata.list_thumb_url.trim() : '';
   const profile = post.breeder_profile;
+  const isAnnouncement = normalizePostKind(post.post_kind, 'listing') === 'announcement';
+  const announcementMedia = listThumb
+    ? [listThumb, ...media.filter((url) => url !== listThumb)]
+    : media;
   return {
     ...post,
-    media_urls: listThumb ? [listThumb] : media.slice(0, 1),
+    // Announcements expand in-feed — keep full body + gallery. Listings stay slim.
+    media_urls: isAnnouncement
+      ? announcementMedia
+      : (listThumb ? [listThumb] : media.slice(0, 1)),
     media_count: media.length,
-    description: typeof post.description === 'string' ? post.description.slice(0, 280) : post.description,
+    description: isAnnouncement
+      ? post.description
+      : (typeof post.description === 'string' ? post.description.slice(0, 280) : post.description),
     breeder_profile: profile
       ? {
           id: profile.id,

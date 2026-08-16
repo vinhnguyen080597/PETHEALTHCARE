@@ -158,6 +158,8 @@ export interface Listing {
   mediaUrls: string[];
   /** Short listing video when provided. */
   videoUrl?: string | null;
+  /** Total media count when list DTO only returns first image. */
+  mediaCount?: number;
   evidenceUrls?: string[];
   status:
     | "published"
@@ -176,6 +178,8 @@ export interface Listing {
   createdAt?: string;
   /** Announcement category when `postKind === "announcement"`. */
   announcementCategory?: string;
+  /** Display author for announcements (from metadata.authorLabel). */
+  authorLabel?: string;
   ctaLabel?: string;
   ctaUrl?: string;
   favoriteCount?: number;

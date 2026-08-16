@@ -13,6 +13,7 @@ const en = {
   "breadcrumb.home": "Home",
   "breadcrumb.listing": "Listings",
   "breadcrumb.listingDetail": "Pet details",
+  "breadcrumb.newsDetail": "Article",
   "breadcrumb.farmProfile": "Farm profile",
   "breadcrumb.farmHealth": "Farm health",
   "breadcrumb.farmTrust": "Transparency score",
@@ -114,6 +115,7 @@ const en = {
   "news.emptyFiltered": "No posts in this topic yet.",
   "news.loadError": "Could not load news",
   "news.readMore": "Read more",
+  "news.readLess": "Show less",
   "news.author": "PetCare Admin",
   "news.featured": "Featured",
   "news.readMinutes": "{{n}} min read",
@@ -152,6 +154,7 @@ const en = {
   "news.comments.authorBadge": "Author",
   "news.comments.loadError": "Could not load comments.",
   "news.comments.postError": "Could not post comment.",
+  "news.detail.back": "Back to News",
 
   "supportHub.title": "Support Hub",
   "supportHub.subtitle":

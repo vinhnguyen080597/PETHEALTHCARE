@@ -67,9 +67,9 @@ test('getPetFeedPost returns full media while list page stays slim', async () =>
   const listPage = await listPublishedPetFeedPostPage(userId, null, { limit: 50, kind: 'announcement' });
   const listItem = listPage.data.find((post) => post.id === created.id);
   assert.ok(listItem);
-  assert.deepEqual(listItem.media_urls, [mediaUrls[0]]);
+  assert.deepEqual(listItem.media_urls, mediaUrls);
   assert.equal(listItem.media_count, 3);
-  assert.equal(listItem.description.length, 280);
+  assert.equal(listItem.description, longDescription);
 
   const detail = await getPetFeedPost(userId, created.id, null);
   assert.ok(detail);
@@ -95,7 +95,7 @@ test('list page prefers metadata.list_thumb_url when present', async () => {
   const listPage = await listPublishedPetFeedPostPage(userId, null, { limit: 50, kind: 'announcement' });
   const listItem = listPage.data.find((post) => post.id === created.id);
   assert.ok(listItem);
-  assert.deepEqual(listItem.media_urls, [listThumb]);
+  assert.deepEqual(listItem.media_urls, [listThumb, mediaUrls[0], mediaUrls[1]]);
   assert.equal(listItem.media_count, 2);
 });
 

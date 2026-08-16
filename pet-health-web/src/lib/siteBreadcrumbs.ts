@@ -230,6 +230,22 @@ export function buildSiteBreadcrumbs(
     }
   }
 
+  // News article: Home / Tin tức / Article
+  {
+    const newsMatch = path.match(/^\/app\/news\/([^/]+)\/?$/);
+    if (newsMatch) {
+      const postId = newsMatch[1];
+      return [
+        { href: "/", labelKey: "breadcrumb.home" },
+        { href: "/app/news", labelKey: "nav.news" },
+        {
+          href: `/app/news/${postId}`,
+          labelKey: "breadcrumb.newsDetail",
+        },
+      ];
+    }
+  }
+
   // New listing: Home / Account / Create listing (skip /listings folder)
   if (path === "/app/account/listings/new") {
     return [

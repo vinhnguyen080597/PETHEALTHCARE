@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Lang, Listing } from "@/lib/types";
 import { t } from "@/i18n";
-import { listingShareUrl } from "@/lib/config";
+import { newsShareUrl } from "@/lib/config";
 import {
   initialNewsLikedState,
   readNewsBookmarks,
@@ -20,7 +20,7 @@ import {
   withOptimisticLikeCount,
 } from "@/lib/newsEngage";
 
-type CommentRow = {
+export type NewsToolbarComment = {
   id: string;
   body: string;
   author_display_name?: string;
@@ -33,11 +33,16 @@ export function NewsSocialToolbar({
   post,
   isLoggedIn: isLoggedInProp,
   ownerUserId,
+  initialComments,
+  /** Trust SSR `saved` + local cache; skip per-card favorite GET (list perf). */
+  skipFavoriteHydrate = false,
 }: {
   lang: Lang;
   post: Listing;
   isLoggedIn: boolean;
   ownerUserId?: string | null;
+  initialComments?: NewsToolbarComment[];
+  skipFavoriteHydrate?: boolean;
 }) {
   const [loggedIn, setLoggedIn] = useState(isLoggedInProp);
   const [liked, setLiked] = useState(() =>
@@ -46,20 +51,28 @@ export function NewsSocialToolbar({
   const [likeCount, setLikeCount] = useState(post.favoriteCount || 0);
   const [likeBusy, setLikeBusy] = useState(false);
   const [likeBounce, setLikeBounce] = useState(false);
-  const [likeHydrated, setLikeHydrated] = useState(() => Boolean(post.saved));
+  const [likeHydrated, setLikeHydrated] = useState(
+    () => Boolean(skipFavoriteHydrate || post.saved || !isLoggedInProp),
+  );
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkNotice, setBookmarkNotice] = useState("");
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState("");
-  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [comments, setComments] = useState<NewsToolbarComment[]>(
+    () => initialComments || [],
+  );
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsError, setCommentsError] = useState("");
   const [commentText, setCommentText] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  /** When parent passed SSR comments (incl. empty), skip the list fetch. */
+  const [commentsFetched, setCommentsFetched] = useState(
+    () => initialComments !== undefined,
+  );
   const shareRef = useRef<HTMLDivElement | null>(null);
-  const shareUrl = listingShareUrl(post.id);
+  const shareUrl = newsShareUrl(post.id);
   const loginHref = newsEngageLoginHref();
 
   useEffect(() => {
@@ -67,36 +80,22 @@ export function NewsSocialToolbar({
   }, [isLoggedInProp]);
 
   useEffect(() => {
-    let cancelled = false;
-    void fetch("/api/auth/me", { cache: "no-store" })
-      .then((res) => {
-        if (!cancelled) setLoggedIn(res.ok);
-      })
-      .catch(() => {
-        /* keep prop */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    // Prefer server `saved` when present; never flash hollow if local cache says liked.
     setLiked(initialNewsLikedState(post.id, Boolean(post.saved)));
     setLikeCount(post.favoriteCount || 0);
     if (post.saved) {
       setLikeHydrated(true);
       setNewsLikedInCache(post.id, true);
+    } else if (skipFavoriteHydrate || !isLoggedInProp) {
+      setLikeHydrated(true);
     }
-  }, [post.id, post.saved, post.favoriteCount]);
+  }, [post.id, post.saved, post.favoriteCount, skipFavoriteHydrate, isLoggedInProp]);
 
   useEffect(() => {
-    let cancelled = false;
-    // Skip network round-trip when SSR already marked favorited.
-    if (post.saved) {
+    if (skipFavoriteHydrate || !isLoggedInProp || post.saved) {
       setLikeHydrated(true);
       return;
     }
+    let cancelled = false;
     void fetch(`/api/listings/${encodeURIComponent(post.id)}/favorite`, {
       cache: "no-store",
     })
@@ -127,7 +126,7 @@ export function NewsSocialToolbar({
     return () => {
       cancelled = true;
     };
-  }, [post.id, post.saved]);
+  }, [post.id, post.saved, skipFavoriteHydrate, isLoggedInProp]);
 
   useEffect(() => {
     setBookmarked(readNewsBookmarks().includes(post.id));
@@ -144,7 +143,7 @@ export function NewsSocialToolbar({
   }, [shareOpen]);
 
   useEffect(() => {
-    if (!commentsOpen) return;
+    if (!commentsOpen || commentsFetched) return;
     let cancelled = false;
     setCommentsLoading(true);
     setCommentsError("");
@@ -154,7 +153,10 @@ export function NewsSocialToolbar({
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Failed");
-        if (!cancelled) setComments(mapNewsCommentRows(data));
+        if (!cancelled) {
+          setComments(mapNewsCommentRows(data));
+          setCommentsFetched(true);
+        }
       })
       .catch(() => {
         if (!cancelled) setCommentsError(t(lang, "news.comments.loadError"));
@@ -165,7 +167,7 @@ export function NewsSocialToolbar({
     return () => {
       cancelled = true;
     };
-  }, [commentsOpen, post.id, lang]);
+  }, [commentsOpen, commentsFetched, post.id, lang]);
 
   const goLogin = () => {
     window.location.href = loginHref;

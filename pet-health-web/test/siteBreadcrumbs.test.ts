@@ -43,7 +43,8 @@ function assertLinksAreRealPages(path: string, farmId?: string) {
     const ok =
       REAL_PAGE_PREFIXES.includes(pathOnly) ||
       /^\/app\/breeders\/[^/]+$/.test(pathOnly) ||
-      /^\/app\/pet-feed\/posts\/[^/]+$/.test(pathOnly);
+      /^\/app\/pet-feed\/posts\/[^/]+$/.test(pathOnly) ||
+      /^\/app\/news\/[^/]+$/.test(pathOnly);
     assert.ok(ok, `dead breadcrumb link on ${path}: ${href}`);
   }
   // Never link to folder-only paths
@@ -295,6 +296,18 @@ test("news trail is Home / Tin tức", () => {
     ["/", "/app/news"],
   );
   assert.equal(crumbs[1]?.labelKey, "nav.news");
+});
+
+test("news article trail is Home / Tin tức / Article", () => {
+  const crumbs = buildSiteBreadcrumbs(`/app/news/${POST_ID}`);
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    ["/", "/app/news", `/app/news/${POST_ID}`],
+  );
+  assert.equal(crumbs[1]?.labelKey, "nav.news");
+  assert.equal(crumbs[2]?.labelKey, "breadcrumb.newsDetail");
+  assertLinksAreRealPages(`/app/news/${POST_ID}`);
 });
 
 test("support hub trail is Home / Hỗ trợ", () => {
