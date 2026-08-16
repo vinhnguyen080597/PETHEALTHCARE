@@ -6,6 +6,8 @@ import {
   BREEDER_SPECIES_FILTERS,
   DEFAULT_BREEDER_SORT,
   DEFAULT_BREEDER_SPECIES,
+  breederMatchesProvince,
+  filterBreedersByProvince,
   filterBreedersBySpecies,
   parseBreederSort,
   parseBreederSpecies,
@@ -107,13 +109,14 @@ test("sortBreeders by name A–Z", () => {
   );
 });
 
-test("parseBreederSpecies defaults to dog", () => {
+test("parseBreederSpecies defaults to all", () => {
   assert.equal(parseBreederSpecies(""), DEFAULT_BREEDER_SPECIES);
-  assert.equal(parseBreederSpecies("nope"), "dog");
+  assert.equal(parseBreederSpecies("nope"), "all");
   assert.equal(parseBreederSpecies("cat"), "cat");
   assert.equal(parseBreederSpecies("DOG"), "dog");
-  assert.equal(DEFAULT_BREEDER_SPECIES, "dog");
+  assert.equal(DEFAULT_BREEDER_SPECIES, "all");
   assert.deepEqual([...BREEDER_SPECIES_FILTERS], [
+    "all",
     "dog",
     "cat",
     "bird",
@@ -140,8 +143,24 @@ test("filterBreedersBySpecies keeps matching primary species", () => {
     ["cat-1"],
   );
   assert.deepEqual(
+    filterBreedersBySpecies(rows, "all").map((b) => b.id),
+    ["dog-1", "cat-1", "dog-2", "none"],
+  );
+  assert.deepEqual(
     filterBreedersBySpecies(rows, "nope").map((b) => b.id),
-    ["dog-1", "dog-2"],
+    ["dog-1", "cat-1", "dog-2", "none"],
+  );
+});
+
+test("filterBreedersByProvince matches location needles", () => {
+  const rows = [
+    breeder({ id: "hn", name: "A", location: "Hà Đông, Hà Nội" }),
+    breeder({ id: "hcm", name: "B", location: "Q.9, TP. Hồ Chí Minh" }),
+  ];
+  assert.equal(breederMatchesProvince(rows[0]!, "TP. Hà Nội"), true);
+  assert.deepEqual(
+    filterBreedersByProvince(rows, "TP. Hồ Chí Minh").map((b) => b.id),
+    ["hcm"],
   );
 });
 
@@ -152,12 +171,16 @@ test("Top Breeders title and sort i18n exist in EN and VI", () => {
   assert.equal(viDict["breeders.title"], "Trại giống");
   for (const key of [
     "breeders.speciesLabel",
+    "breeders.species.all",
+    "breeders.provinceLabel",
     "breeders.emptySpecies",
     "breeders.sortLabel",
     "breeders.sort.trust",
     "breeders.sort.listings",
     "breeders.sort.sold",
     "breeders.sort.name",
+    "breeders.hall.title",
+    "breeders.card.message",
   ]) {
     assert.ok(enDict[key], `missing EN ${key}`);
     assert.ok(viDict[key], `missing VI ${key}`);

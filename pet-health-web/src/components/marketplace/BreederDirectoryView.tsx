@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import type { BreederProfile, Lang } from "@/lib/types";
+import { useMemo, useState } from "react";
+import type { BreederProfile, Lang, Listing } from "@/lib/types";
 import {
   BREEDER_SORT_KEYS,
   BREEDER_SPECIES_FILTERS,
   DEFAULT_BREEDER_SORT,
   DEFAULT_BREEDER_SPECIES,
+  filterBreedersByProvince,
   filterBreedersBySpecies,
   parseBreederSort,
   parseBreederSpecies,
@@ -14,7 +15,17 @@ import {
   type BreederSortKey,
   type BreederSpeciesFilter,
 } from "@/lib/breederDirectorySort";
+import {
+  groupBreederPetThumbs,
+  pickHallOfFameBreeders,
+} from "@/lib/marketplaceFeedSections";
+import {
+  resolveProvinceSelection,
+} from "@/lib/vietnamProvinceSelection";
+import { VIETNAM_PROVINCES } from "@/constants/vietnamProvinces";
 import { BreederDirectoryCard } from "./BreederDirectoryCard";
+import { BreederHallOfFame } from "./BreederHallOfFame";
+import { LiveActivityTicker } from "./LiveActivityTicker";
 import { t, type EnKey } from "@/i18n";
 
 const SORT_I18N: Record<BreederSortKey, EnKey> = {
@@ -31,60 +42,52 @@ export function BreederDirectoryView({
   breeders,
   lang,
   loadError = "",
+  listings = [],
 }: {
   breeders: BreederProfile[];
   lang: Lang;
   loadError?: string;
+  /** Optional public listings used for live ticker + pet mini-gallery. */
+  listings?: Listing[];
 }) {
   const [species, setSpecies] = useState<BreederSpeciesFilter>(DEFAULT_BREEDER_SPECIES);
   const [sortBy, setSortBy] = useState<BreederSortKey>(DEFAULT_BREEDER_SORT);
-  const visible = sortBreeders(filterBreedersBySpecies(breeders, species), sortBy);
+  const [province, setProvince] = useState("");
+
+  const hallOfFame = useMemo(
+    () => pickHallOfFameBreeders(breeders, 3),
+    [breeders],
+  );
+
+  const visible = useMemo(() => {
+    const bySpecies = filterBreedersBySpecies(breeders, species);
+    const byProvince = filterBreedersByProvince(bySpecies, province);
+    return sortBreeders(byProvince, sortBy);
+  }, [breeders, species, province, sortBy]);
+
+  const thumbsByBreeder = useMemo(
+    () => groupBreederPetThumbs(listings, 4),
+    [listings],
+  );
 
   return (
     <>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="mb-2">
         <h1 className="font-display text-2xl lg:text-3xl font-semibold text-[#2B1E19] tracking-tight">
           {t(lang, "breeders.title")}
         </h1>
-        {breeders.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <label htmlFor="breeder-species" className="sr-only">
-              {t(lang, "breeders.speciesLabel")}
-            </label>
-            <select
-              id="breeder-species"
-              value={species}
-              onChange={(e) => setSpecies(parseBreederSpecies(e.target.value))}
-              className={selectCls}
-              aria-label={t(lang, "breeders.speciesLabel")}
-            >
-              {BREEDER_SPECIES_FILTERS.map((id) => (
-                <option key={id} value={id}>
-                  {t(lang, "breeders.speciesLabel")}{" "}
-                  {t(lang, `listing.new.species.${id}` as EnKey)}
-                </option>
-              ))}
-            </select>
-            <label htmlFor="breeder-sort" className="sr-only">
-              {t(lang, "breeders.sortLabel")}
-            </label>
-            <select
-              id="breeder-sort"
-              value={sortBy}
-              onChange={(e) => setSortBy(parseBreederSort(e.target.value))}
-              className={selectCls}
-              aria-label={t(lang, "breeders.sortLabel")}
-            >
-              {BREEDER_SORT_KEYS.map((key) => (
-                <option key={key} value={key}>
-                  {t(lang, "breeders.sortLabel")} {t(lang, SORT_I18N[key])}
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null}
+        <p className="text-sm text-[#6E5A51] mt-1 mb-4">
+          {t(lang, "breeders.subtitle")}
+        </p>
       </div>
-      <p className="text-sm text-[#6E5A51] mb-7">{t(lang, "breeders.subtitle")}</p>
+
+      {listings.length > 0 ? (
+        <LiveActivityTicker
+          lang={lang}
+          listings={listings}
+          labelKey="breeders.live.label"
+        />
+      ) : null}
 
       {loadError ? (
         <div className="mb-6 rounded-xl border border-amber-200 bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
@@ -92,9 +95,84 @@ export function BreederDirectoryView({
         </div>
       ) : null}
 
+      <BreederHallOfFame lang={lang} entries={hallOfFame} />
+
+      {breeders.length > 0 ? (
+        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-[#F3E2C8] bg-white/80 px-3 py-3">
+          <span className="text-xs font-semibold uppercase tracking-wide text-[#9A3412] mr-1">
+            🔍
+          </span>
+          <label htmlFor="breeder-species" className="sr-only">
+            {t(lang, "breeders.speciesLabel")}
+          </label>
+          <select
+            id="breeder-species"
+            value={species}
+            onChange={(e) => setSpecies(parseBreederSpecies(e.target.value))}
+            className={selectCls}
+            aria-label={t(lang, "breeders.speciesLabel")}
+          >
+            {BREEDER_SPECIES_FILTERS.map((id) => (
+              <option key={id} value={id}>
+                {t(lang, "breeders.speciesLabel")}{" "}
+                {id === "all"
+                  ? t(lang, "breeders.species.all")
+                  : t(lang, `listing.new.species.${id}` as EnKey)}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="breeder-province" className="sr-only">
+            {t(lang, "breeders.provinceLabel")}
+          </label>
+          <select
+            id="breeder-province"
+            value={province}
+            onChange={(e) =>
+              setProvince(resolveProvinceSelection(e.target.value))
+            }
+            className={selectCls}
+            aria-label={t(lang, "breeders.provinceLabel")}
+          >
+            <option value="">
+              {t(lang, "breeders.provinceLabel")} {t(lang, "feed.province.all")}
+            </option>
+            {VIETNAM_PROVINCES.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="breeder-sort" className="sr-only">
+            {t(lang, "breeders.sortLabel")}
+          </label>
+          <select
+            id="breeder-sort"
+            value={sortBy}
+            onChange={(e) => setSortBy(parseBreederSort(e.target.value))}
+            className={selectCls}
+            aria-label={t(lang, "breeders.sortLabel")}
+          >
+            {BREEDER_SORT_KEYS.map((key) => (
+              <option key={key} value={key}>
+                {t(lang, "breeders.sortLabel")} {t(lang, SORT_I18N[key])}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      <h2 className="font-display text-lg font-semibold text-[#2B1E19] mb-4">
+        {t(lang, "breeders.grid.title")}
+      </h2>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {visible.map((b) => (
-          <BreederDirectoryCard key={b.id} breeder={b} lang={lang} />
+          <BreederDirectoryCard
+            key={b.id}
+            breeder={b}
+            lang={lang}
+            petThumbs={thumbsByBreeder[b.id] || []}
+          />
         ))}
       </div>
 

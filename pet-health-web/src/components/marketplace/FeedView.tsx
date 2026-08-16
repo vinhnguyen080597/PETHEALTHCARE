@@ -5,8 +5,20 @@ import type { Lang, Listing } from "@/lib/types";
 import { t } from "@/i18n";
 import { parsePriceVnd } from "@/lib/formatPrice";
 import { listingMatchesProvince, resolveProvinceSelection } from "@/lib/vietnamProvinceSelection";
+import {
+  pickJustArrivedListings,
+  pickTopInterestedListings,
+} from "@/lib/marketplaceFeedSections";
+import {
+  listingMatchesQuickCategory,
+  parseQuickCategory,
+  type QuickCategoryId,
+} from "@/lib/marketplaceQuickCategories";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { ListingCard } from "./ListingCard";
+import { LiveActivityTicker } from "./LiveActivityTicker";
+import { MarketplaceListingRail } from "./MarketplaceListingRail";
+import { MarketplaceQuickCategories } from "./MarketplaceQuickCategories";
 import { MarketplaceSearchBar } from "./MarketplaceSearchBar";
 
 type PriceFilter = "all" | "under5" | "5to15" | "over15";
@@ -49,6 +61,16 @@ export function FeedView({
   const [sortBy, setSortBy] = useState("date");
   const [q, setQ] = useState(initialQ);
   const [province, setProvince] = useState(resolveProvinceSelection(initialProvince));
+  const [quickCategory, setQuickCategory] = useState<QuickCategoryId>("all");
+
+  const topListings = useMemo(
+    () => pickTopInterestedListings(listings, 8),
+    [listings],
+  );
+  const arrivedListings = useMemo(
+    () => pickJustArrivedListings(listings, 8),
+    [listings],
+  );
 
   const filtered = useMemo(() => {
     let rows = listings.filter((l) => {
@@ -57,6 +79,7 @@ export function FeedView({
       if (province && !listingMatchesProvince(l, province)) return false;
       if (!matchesPrice(l, priceFilter)) return false;
       if (escrowOnly && !l.escrowEnabled) return false;
+      if (!listingMatchesQuickCategory(l, quickCategory)) return false;
       if (q.trim()) {
         const needle = q.trim().toLowerCase();
         const hay =
@@ -86,7 +109,17 @@ export function FeedView({
     sortBy,
     q,
     province,
+    quickCategory,
   ]);
+
+  const showMarketSections =
+    !q.trim() &&
+    activeSpecies === "all" &&
+    activeGender === "all" &&
+    priceFilter === "all" &&
+    !escrowOnly &&
+    !province &&
+    quickCategory === "all";
 
   return (
     <div className={hideDisclaimer ? undefined : "min-h-screen bg-[#FDFBF7]"}>
@@ -96,6 +129,8 @@ export function FeedView({
             <DisclaimerBanner lang={lang} />
           </div>
         ) : null}
+
+        <LiveActivityTicker lang={lang} listings={listings} />
 
         <div className="mb-5 w-full">
           <MarketplaceSearchBar
@@ -111,14 +146,42 @@ export function FeedView({
           />
         </div>
 
+        <MarketplaceQuickCategories
+          lang={lang}
+          value={quickCategory}
+          onChange={(id) => setQuickCategory(parseQuickCategory(id))}
+        />
+
+        {showMarketSections ? (
+          <>
+            <MarketplaceListingRail
+              lang={lang}
+              title={`🔥 ${t(lang, "feed.section.top.title")}`}
+              subtitle={t(lang, "feed.section.top.subtitle")}
+              listings={topListings}
+            />
+            <MarketplaceListingRail
+              lang={lang}
+              title={`✨ ${t(lang, "feed.section.arrived.title")}`}
+              subtitle={t(lang, "feed.section.arrived.subtitle")}
+              listings={arrivedListings}
+            />
+          </>
+        ) : null}
+
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
-          <p className="text-sm text-[#6E5A51] shrink-0">
-            {t(lang, "feed.showingPrefix")}{" "}
-            <span className="font-semibold text-[#2B1E19]">
-              {filtered.length}
-            </span>{" "}
-            {t(lang, "feed.showingSuffix")}
-          </p>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-[#2B1E19]">
+              {t(lang, "feed.section.grid.title")}
+            </h2>
+            <p className="text-sm text-[#6E5A51] shrink-0 mt-0.5">
+              {t(lang, "feed.showingPrefix")}{" "}
+              <span className="font-semibold text-[#2B1E19]">
+                {filtered.length}
+              </span>{" "}
+              {t(lang, "feed.showingSuffix")}
+            </p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={activeGender}

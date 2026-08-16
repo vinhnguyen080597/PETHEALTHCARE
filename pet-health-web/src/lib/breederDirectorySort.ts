@@ -1,5 +1,6 @@
-import { LISTING_SPECIES, type ListingSpecies } from "./listingFormOptions";
+import { LISTING_SPECIES } from "./listingFormOptions";
 import type { BreederProfile } from "./types";
+import { provinceMatchNeedles } from "./vietnamProvinceSelection";
 
 export const BREEDER_SORT_KEYS = [
   "trust",
@@ -8,9 +9,12 @@ export const BREEDER_SORT_KEYS = [
   "name",
 ] as const;
 
-export const BREEDER_SPECIES_FILTERS = LISTING_SPECIES;
-export type BreederSpeciesFilter = ListingSpecies;
-export const DEFAULT_BREEDER_SPECIES: BreederSpeciesFilter = "dog";
+export const BREEDER_SPECIES_FILTERS = [
+  "all",
+  ...LISTING_SPECIES,
+] as const;
+export type BreederSpeciesFilter = (typeof BREEDER_SPECIES_FILTERS)[number];
+export const DEFAULT_BREEDER_SPECIES: BreederSpeciesFilter = "all";
 
 export type BreederSortKey = (typeof BREEDER_SORT_KEYS)[number];
 
@@ -35,6 +39,7 @@ export function breederMatchesSpecies(
   species: unknown,
 ): boolean {
   const want = parseBreederSpecies(species);
+  if (want === "all") return true;
   const list = Array.isArray(breeder.primarySpecies) ? breeder.primarySpecies : [];
   return list.some((item) => String(item || "").trim().toLowerCase() === want);
 }
@@ -43,8 +48,38 @@ export function filterBreedersBySpecies(
   breeders: BreederProfile[],
   species: unknown = DEFAULT_BREEDER_SPECIES,
 ): BreederProfile[] {
-  const want = parseBreederSpecies(species);
-  return breeders.filter((breeder) => breederMatchesSpecies(breeder, want));
+  return breeders.filter((breeder) => breederMatchesSpecies(breeder, species));
+}
+
+function compactLocation(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function breederMatchesProvince(
+  breeder: Pick<BreederProfile, "location">,
+  province: string,
+): boolean {
+  const needles = provinceMatchNeedles(province);
+  if (!needles.length) return true;
+  const haystack = compactLocation(String(breeder.location || ""));
+  if (!haystack) return false;
+  return needles.some((needle) => haystack.includes(needle));
+}
+
+export function filterBreedersByProvince(
+  breeders: BreederProfile[],
+  province: string,
+): BreederProfile[] {
+  const trimmed = String(province || "").trim();
+  if (!trimmed) return breeders;
+  return breeders.filter((b) => breederMatchesProvince(b, trimmed));
 }
 
 function petsRehomedOf(breeder: BreederProfile): number {

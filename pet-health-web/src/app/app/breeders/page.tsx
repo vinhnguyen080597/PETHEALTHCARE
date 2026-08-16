@@ -2,10 +2,10 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { getLang, t } from "@/i18n";
 import { COOKIE_LANG } from "@/lib/session";
-import { listPublicBreeders } from "@/lib/api/public";
+import { listPublicBreeders, listPublicPosts } from "@/lib/api/public";
 import { BreederDirectoryView } from "@/components/marketplace/BreederDirectoryView";
 import { BreederGridSkeleton } from "@/components/ui/Skeleton";
-import type { Lang } from "@/lib/types";
+import type { Lang, Listing } from "@/lib/types";
 
 export const metadata = { title: "Top Breeders" };
 
@@ -13,9 +13,15 @@ export const revalidate = 30;
 
 async function BreedersGrid({ lang }: { lang: Lang }) {
   let breeders: Awaited<ReturnType<typeof listPublicBreeders>> = [];
+  let listings: Listing[] = [];
   let loadError = "";
   try {
-    breeders = await listPublicBreeders({ limit: 48 });
+    const [breederRows, postsPage] = await Promise.all([
+      listPublicBreeders({ limit: 48 }),
+      listPublicPosts({ limit: 48 }).catch(() => ({ listings: [] as Listing[] })),
+    ]);
+    breeders = breederRows;
+    listings = postsPage.listings;
   } catch (err) {
     loadError =
       err instanceof Error ? err.message : t(lang, "breeders.loadError");
@@ -26,6 +32,7 @@ async function BreedersGrid({ lang }: { lang: Lang }) {
       breeders={breeders}
       lang={lang}
       loadError={loadError}
+      listings={listings}
     />
   );
 }

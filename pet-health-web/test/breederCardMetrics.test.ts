@@ -83,8 +83,16 @@ test("breeder card trust index i18n aligned", () => {
   const viDict = vi as Record<string, string>;
   assert.equal(viDict["breeders.card.trustIndex"], "Điểm minh bạch");
   assert.ok(enDict["breeders.card.trustIndex"]);
-  assert.equal(viDict["breeders.card.cta"], "Xem Trại Giống");
+  assert.equal(viDict["breeders.card.cta"], "Ghé Trại Giống");
   assert.doesNotMatch(viDict["breeders.card.cta"], /đang đăng/i);
-  assert.equal(enDict["breeders.card.cta"], "View kennel");
+  assert.equal(enDict["breeders.card.cta"], "Visit kennel");
   assert.equal(viDict["breeders.card.ctaListings"], undefined);
+  assert.ok(enDict["breeders.card.fastResponse"]);
+  assert.ok(viDict["breeders.card.fastResponse"]);
+  assert.equal(viDict["breeders.card.activeKennel"], "Trực tuyến");
+  assert.equal(viDict["breeders.card.message"], "Nhắn tin");
+  assert.ok(enDict["breeders.hall.title"]);
+  assert.ok(viDict["breeders.hall.title"]);
+  assert.ok(enDict["breeders.section.featured.title"]);
+  assert.ok(viDict["breeders.section.featured.title"]);
 });
