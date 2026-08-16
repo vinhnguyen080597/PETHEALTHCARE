@@ -65,7 +65,7 @@ export function SupportHub({
   initialSection?: string;
   initialQuery?: string;
 }) {
-  const resolve = (key: EnKey) => t(lang, key);
+  const resolve = (key: string) => t(lang, key as EnKey);
   const [query, setQuery] = useState(initialQuery);
   const [section, setSection] = useState<SupportSectionId>(() =>
     parseSupportSection(initialSection),
