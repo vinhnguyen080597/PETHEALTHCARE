@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       };
     }
 
-    // Announcements live under /app/news/[id] — keep OG on that route.
+    // Announcements open on the Tin tức feed via ?post=.
     if (shouldRenderNewsDetail(listing)) {
       return {
         title: listing.title || "News",

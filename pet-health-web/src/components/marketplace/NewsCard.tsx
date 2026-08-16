@@ -39,6 +39,7 @@ export function NewsCard({
   post,
   featured = false,
   isLoggedIn = false,
+  highlighted = false,
   expanded: expandedProp,
   onExpandedChange,
 }: {
@@ -46,6 +47,8 @@ export function NewsCard({
   post: Listing;
   featured?: boolean;
   isLoggedIn?: boolean;
+  /** Visual mark when opened from a share / deep link. */
+  highlighted?: boolean;
   /** Controlled expand (e.g. from trending click). */
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
@@ -136,9 +139,11 @@ export function NewsCard({
   return (
     <article
       id={`news-post-${post.id}`}
-      className={`rounded-2xl border border-[#F3E2C8] bg-white shadow-sm shadow-amber-100/30 ${
-        featured ? "ring-1 ring-amber-200/80" : ""
-      }`}
+      className={`rounded-2xl border bg-white shadow-sm shadow-amber-100/30 scroll-mt-24 ${
+        highlighted
+          ? "border-[#D97706] ring-2 ring-[#D97706]/40"
+          : "border-[#F3E2C8]"
+      } ${featured && !highlighted ? "ring-1 ring-amber-200/80" : ""}`}
     >
       {cover ? (
         <button

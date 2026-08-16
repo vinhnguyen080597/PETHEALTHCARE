@@ -15,7 +15,6 @@ const vi: Record<EnKey, string> = {
   "breadcrumb.home": "Trang chủ",
   "breadcrumb.listing": "Tin đăng",
   "breadcrumb.listingDetail": "Chi tiết thú cưng",
-  "breadcrumb.newsDetail": "Bài viết",
   "breadcrumb.farmProfile": "Hồ sơ trại",
   "breadcrumb.farmHealth": "Farm health",
   "breadcrumb.farmTrust": "Điểm minh bạch",
@@ -156,7 +155,6 @@ const vi: Record<EnKey, string> = {
   "news.comments.authorBadge": "Tác giả",
   "news.comments.loadError": "Không tải được bình luận.",
   "news.comments.postError": "Không gửi được bình luận.",
-  "news.detail.back": "Quay lại Tin tức",
 
   "supportHub.title": "Trung tâm hỗ trợ",
   "supportHub.subtitle":

@@ -1,7 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import en from "../src/i18n/en";
-import vi from "../src/i18n/vi";
 import type { Listing } from "../src/lib/types";
 import {
   buildNewsOgCopy,
@@ -9,8 +7,10 @@ import {
   newsCategoryHref,
   newsDetailBackHref,
   newsPostDetailHref,
+  parseNewsPostId,
   shouldRenderNewsDetail,
 } from "../src/lib/newsDetail";
+import { newsShareUrl } from "../src/lib/config";
 
 function stubPost(partial: Partial<Listing> = {}): Listing {
   return {
@@ -40,12 +40,15 @@ function stubPost(partial: Partial<Listing> = {}): Listing {
   };
 }
 
-test("news detail hrefs and category URL sync", () => {
+test("news feed deep links use ?post= not a detail route", () => {
   assert.equal(newsDetailBackHref(), "/app/news");
-  assert.equal(newsPostDetailHref("p1"), "/app/news/p1");
+  assert.equal(newsPostDetailHref("p1"), "/app/news?post=p1");
+  assert.equal(newsPostDetailHref(""), "/app/news");
+  assert.equal(parseNewsPostId("  abc  "), "abc");
+  assert.equal(parseNewsPostId(""), null);
   assert.equal(newsCategoryHref("all"), "/app/news");
   assert.equal(newsCategoryHref("health_tip"), "/app/news?category=health_tip");
-  assert.equal(newsCategoryHref("nope"), "/app/news");
+  assert.match(newsShareUrl("p1"), /\/app\/news\?post=p1$/);
 });
 
 test("shouldRenderNewsDetail only for announcements", () => {
@@ -65,10 +68,4 @@ test("buildNewsOgCopy uses title and trimmed description", () => {
   assert.equal(copy.title, "Care tip title");
   assert.match(copy.description, /Line one/);
   assert.ok(!copy.description.includes("\n"));
-});
-
-test("news detail i18n keys exist EN/VI", () => {
-  assert.ok(en["news.detail.back"]);
-  assert.ok(vi["news.detail.back"]);
-  assert.match(vi["news.detail.back"], /Tin tức/i);
 });

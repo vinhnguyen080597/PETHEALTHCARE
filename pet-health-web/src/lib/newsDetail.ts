@@ -6,20 +6,32 @@ import {
   parseNewsCategoryFilter,
 } from "./newsFeed";
 
-/** Canonical back link from an announcement detail page. */
+/** Canonical news feed URL. */
 export function newsDetailBackHref(): string {
   return NEWS_HREF;
 }
 
-/** In-app href for a news post (stays under Tin tức nav). */
+/**
+ * Deep link to a post on the Tin tức feed (expand + scroll).
+ * Example: `/app/news?post=<id>`
+ */
 export function newsPostDetailHref(postId: string): string {
   const id = String(postId || "").trim();
-  return `${NEWS_HREF}/${encodeURIComponent(id)}`;
+  if (!id) return NEWS_HREF;
+  return `${NEWS_HREF}?post=${encodeURIComponent(id)}`;
 }
 
-/** Absolute share URL for announcements. */
+/** Absolute share URL for announcements (feed deep link). */
 export function newsPostShareUrl(postId: string): string {
   return newsShareUrl(postId);
+}
+
+/** Parse `?post=` from the news feed query string. */
+export function parseNewsPostId(
+  value: string | null | undefined,
+): string | null {
+  const id = String(value || "").trim();
+  return id || null;
 }
 
 /** Build `/app/news` or `/app/news?category=…` for filter deep links. */

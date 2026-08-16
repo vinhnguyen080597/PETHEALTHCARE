@@ -15,7 +15,11 @@ import {
   pickTrendingNewsPosts,
   type NewsCategoryFilter,
 } from "@/lib/newsFeed";
-import { newsCategoryHref } from "@/lib/newsDetail";
+import {
+  newsCategoryHref,
+  newsPostDetailHref,
+  parseNewsPostId,
+} from "@/lib/newsDetail";
 import { NewsCard } from "./NewsCard";
 
 export function NewsFeedView({
@@ -23,32 +27,69 @@ export function NewsFeedView({
   posts,
   isLoggedIn = false,
   initialFilter = "all",
+  initialPostId = null,
 }: {
   lang: Lang;
   posts: Listing[];
   isLoggedIn?: boolean;
   initialFilter?: string;
+  /** Deep-linked post from `?post=` (share / legacy redirect). */
+  initialPostId?: string | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
+  const postParam = parseNewsPostId(searchParams.get("post")) || initialPostId;
   const [filter, setFilter] = useState<NewsCategoryFilter>(() =>
     parseNewsCategoryFilter(initialFilter),
   );
-  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(
+    () => postParam,
+  );
+  const [focusPostId, setFocusPostId] = useState<string | null>(
+    () => postParam,
+  );
 
   useEffect(() => {
     setFilter(parseNewsCategoryFilter(categoryParam || initialFilter));
   }, [categoryParam, initialFilter]);
 
+  // Share / deep link: show all categories, expand, mark, and scroll to the post.
+  useEffect(() => {
+    const id = postParam;
+    if (!id) {
+      setFocusPostId(null);
+      return;
+    }
+    const post = posts.find((p) => p.id === id);
+    if (!post) return;
+    setFilter("all");
+    setExpandedPostId(id);
+    setFocusPostId(id);
+  }, [postParam, posts]);
+
+  useEffect(() => {
+    if (!focusPostId) return;
+    const timer = window.setTimeout(() => {
+      document
+        .getElementById(`news-post-${focusPostId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [focusPostId, filter, posts]);
+
   const setFilterAndUrl = (next: NewsCategoryFilter) => {
     setFilter(next);
+    setFocusPostId(null);
     router.replace(newsCategoryHref(next), { scroll: false });
   };
 
-  const expandPostInFeed = (postId: string) => {
+  const expandPostInFeed = (postId: string, opts?: { mark?: boolean }) => {
     setExpandedPostId(postId);
-    // Wait a tick so the card mounts/expands before scrolling.
+    if (opts?.mark) {
+      setFocusPostId(postId);
+      router.replace(newsPostDetailHref(postId), { scroll: false });
+    }
     window.requestAnimationFrame(() => {
       document
         .getElementById(`news-post-${postId}`)
@@ -120,6 +161,7 @@ export function NewsFeedView({
                 post={featured}
                 featured
                 isLoggedIn={isLoggedIn}
+                highlighted={focusPostId === featured.id}
                 expanded={expandedPostId === featured.id}
                 onExpandedChange={(on) =>
                   setExpandedPostId(on ? featured.id : null)
@@ -133,6 +175,7 @@ export function NewsFeedView({
                   lang={lang}
                   post={post}
                   isLoggedIn={isLoggedIn}
+                  highlighted={focusPostId === post.id}
                   expanded={expandedPostId === post.id}
                   onExpandedChange={(on) =>
                     setExpandedPostId(on ? post.id : null)
@@ -179,14 +222,13 @@ export function NewsFeedView({
                   <button
                     type="button"
                     onClick={() => {
-                      // Ensure the post is visible under current filter.
                       const cat = parseNewsCategoryFilter(
                         post.announcementCategory,
                       );
                       if (filter !== "all" && filter !== cat) {
-                        setFilterAndUrl("all");
+                        setFilter("all");
                       }
-                      expandPostInFeed(post.id);
+                      expandPostInFeed(post.id, { mark: true });
                     }}
                     className="min-w-0 text-left text-sm font-semibold text-[#2B1E19] hover:text-[#D97706] leading-snug line-clamp-2"
                   >
