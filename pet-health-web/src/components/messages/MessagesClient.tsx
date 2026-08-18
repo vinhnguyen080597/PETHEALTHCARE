@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
-import { formatPriceVnd } from "@/lib/formatPrice";
 import {
   conversationListingThumb,
   conversationListingTitle,
@@ -12,96 +11,25 @@ import {
   conversationPreview,
   formatInboxTime,
   formatMessageTime,
-  isConversationBreederViewer,
   isMineMessage,
   mergeConversationLists,
   mergeMessageLists,
+  MESSAGE_MAX_LEN,
+  messageHasSendableContent,
+  inboxPreviewFromMessage,
   MESSAGES_POLL_MS,
   normalizeConversations,
   normalizeMessages,
-  resolveConversationPostSummary,
   type MessageConversation,
   type MessageItem,
 } from "@/lib/messages";
 import { MessageThreadSkeleton } from "@/components/ui/Skeleton";
+import { ListingContextCard } from "@/components/messages/ListingContextCard";
+import { ChatComposer } from "@/components/messages/ChatComposer";
+import { ChatMessageMedia } from "@/components/messages/ChatMessageMedia";
 import { brandUi } from "@/lib/brand";
-
-const MESSAGE_MAX_LEN = 2000;
-
-function ListingContextCard({
-  lang,
-  conversation,
-  currentUserId,
-}: {
-  lang: Lang;
-  conversation: MessageConversation;
-  currentUserId: string | null;
-}) {
-  const summary = resolveConversationPostSummary(conversation);
-  if (!summary?.id) return null;
-
-  const isBreeder = isConversationBreederViewer(conversation, currentUserId);
-  const unavailable = summary.status && summary.status !== "published";
-  const price = formatPriceVnd(summary.price_note || "") || summary.price_note || "";
-  const detailLine = [summary.breed || summary.species, summary.location, price]
-    .filter(Boolean)
-    .join(" · ");
-  const thumb = summary.thumb_url;
-
-  const body = (
-    <div className="rounded-2xl border border-[#F0E6D8] bg-white p-3">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8B7355]">
-        {t(
-          lang,
-          isBreeder
-            ? "messages.contextCardTitleBreeder"
-            : "messages.contextCardTitle",
-        )}
-      </p>
-      <div className="mt-2.5 flex gap-3">
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-          {thumb ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={thumb} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className={`flex h-full w-full items-center justify-center text-lg ${brandUi.primaryText}`}>
-              🐾
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-slate-900 line-clamp-2">
-            {summary.title || t(lang, "messages.listingFallback")}
-          </p>
-          {detailLine ? (
-            <p className="mt-1 text-xs text-slate-500 line-clamp-2">{detailLine}</p>
-          ) : null}
-          {unavailable ? (
-            <p className="mt-1 text-xs font-semibold text-amber-700">
-              {t(lang, "messages.listingUnavailable")}
-            </p>
-          ) : null}
-        </div>
-        {!unavailable ? (
-          <span className="self-center text-slate-300" aria-hidden>
-            ›
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-
-  if (unavailable) return body;
-  return (
-    <Link
-      href={`/app/pet-feed/posts/${encodeURIComponent(summary.id)}`}
-      className="block hover:opacity-95"
-      aria-label={t(lang, "messages.openListing")}
-    >
-      {body}
-    </Link>
-  );
-}
+import { uploadChatMediaFiles } from "@/lib/uploadChatMedia";
+import { DealSubmitError } from "@/lib/dealPhotoUpload";
 
 export function MessagesClient({
   lang,
@@ -122,6 +50,7 @@ export function MessagesClient({
   );
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [draft, setDraft] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
@@ -135,6 +64,7 @@ export function MessagesClient({
   useEffect(() => {
     if (!activeId) {
       setMessages([]);
+      setFiles([]);
       return;
     }
     let cancelled = false;
@@ -239,18 +169,25 @@ export function MessagesClient({
   const send = async () => {
     if (!activeId || sending) return;
     const body = draft.trim().slice(0, MESSAGE_MAX_LEN);
-    if (!body) return;
+    const pendingFiles = files;
+    if (!messageHasSendableContent(body, pendingFiles.length)) return;
     setDraft("");
+    setFiles([]);
     setSending(true);
     setSendError("");
     try {
+      let mediaUrls: string[] = [];
+      if (pendingFiles.length) {
+        mediaUrls = await uploadChatMediaFiles(pendingFiles);
+      }
       const res = await fetch(`/api/messages/${encodeURIComponent(activeId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, media_urls: mediaUrls }),
       });
       if (!res.ok) {
         setDraft(body);
+        setFiles(pendingFiles);
         setSendError(t(lang, "messages.sendFailed"));
         return;
       }
@@ -258,17 +195,20 @@ export function MessagesClient({
       const msg: MessageItem = data.data || {
         id: String(Date.now()),
         body,
+        media_urls: mediaUrls,
         sender_user_id: currentUserId || undefined,
         created_at: new Date().toISOString(),
       };
+      msg.media_urls = msg.media_urls || mediaUrls;
+      const preview = inboxPreviewFromMessage(body, msg.media_urls || mediaUrls);
       setMessages((prev) => [...prev, msg]);
       setConversations((prev) => {
         const next = prev.map((c) =>
           c.id === activeId
             ? {
                 ...c,
-                last_message_preview: body.slice(0, 160),
-                last_message: body.slice(0, 160),
+                last_message_preview: preview,
+                last_message: preview,
                 last_message_at: msg.created_at || new Date().toISOString(),
                 last_message_sender_user_id: currentUserId,
                 has_unread: false,
@@ -281,9 +221,17 @@ export function MessagesClient({
           ),
         );
       });
-    } catch {
+    } catch (err) {
       setDraft(body);
-      setSendError(t(lang, "messages.sendFailed"));
+      setFiles(pendingFiles);
+      const code = err instanceof DealSubmitError ? err.code : "";
+      setSendError(
+        err instanceof DealSubmitError
+          ? code === "PET_FEED_VIDEO_TOO_LARGE"
+            ? t(lang, "messages.videoTooLarge")
+            : t(lang, "messages.uploadFailed")
+          : t(lang, "messages.sendFailed"),
+      );
     } finally {
       setSending(false);
     }
@@ -320,6 +268,10 @@ export function MessagesClient({
                 const preview = conversationPreview(
                   c,
                   t(lang, "messages.noMessagesYet"),
+                  {
+                    photo: t(lang, "messages.photo"),
+                    video: t(lang, "messages.video"),
+                  },
                 );
                 const thumb = conversationListingThumb(c);
                 const time = formatInboxTime(c.last_message_at || c.updated_at, lang);
@@ -432,22 +384,27 @@ export function MessagesClient({
                 ) : null}
                 {messages.map((m) => {
                   const mine = isMineMessage(m, currentUserId);
+                  const media = m.media_urls || [];
+                  const text = String(m.body || "").trim();
                   return (
                     <div
                       key={m.id}
-                      className={`flex flex-col ${mine ? "items-end" : "items-start"}`}
+                      className={`flex flex-col gap-1 ${mine ? "items-end" : "items-start"}`}
                     >
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-5 ${
-                          mine
-                            ? `${brandUi.primaryBg} text-white rounded-br-md`
-                            : "bg-slate-100 text-slate-800 rounded-bl-md"
-                        }`}
-                      >
-                        {m.body}
-                      </div>
+                      {media.length ? <ChatMessageMedia urls={media} /> : null}
+                      {text ? (
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-5 ${
+                            mine
+                              ? `${brandUi.primaryBg} text-white rounded-br-md`
+                              : "bg-slate-100 text-slate-800 rounded-bl-md"
+                          }`}
+                        >
+                          {text}
+                        </div>
+                      ) : null}
                       {m.created_at ? (
-                        <span className="mt-1 text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-400">
                           {formatMessageTime(m.created_at, lang)}
                         </span>
                       ) : null}
@@ -457,34 +414,16 @@ export function MessagesClient({
                 <div ref={threadEndRef} />
               </div>
 
-              <div className="border-t border-slate-100 p-3 space-y-2">
-                {sendError ? (
-                  <p className="text-xs text-red-600">{sendError}</p>
-                ) : null}
-                <div className="flex gap-2">
-                  <input
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value.slice(0, MESSAGE_MAX_LEN))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        void send();
-                      }
-                    }}
-                    placeholder={t(lang, "messages.placeholder")}
-                    disabled={sending}
-                    className={`flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 ${brandUi.primaryFocusRing} disabled:opacity-60`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void send()}
-                    disabled={sending || !draft.trim()}
-                    className={`px-4 py-2.5 ${brandUi.primaryBg} ${brandUi.primaryBgHover} text-white text-sm font-semibold rounded-full disabled:opacity-50`}
-                  >
-                    {t(lang, "detail.send")}
-                  </button>
-                </div>
-              </div>
+              <ChatComposer
+                lang={lang}
+                draft={draft}
+                onDraftChange={setDraft}
+                files={files}
+                onFilesChange={setFiles}
+                sending={sending}
+                sendError={sendError}
+                onSend={() => void send()}
+              />
             </>
           )}
         </section>

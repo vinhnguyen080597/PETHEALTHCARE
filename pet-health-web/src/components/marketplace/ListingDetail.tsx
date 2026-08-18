@@ -86,6 +86,7 @@ import {
 import { uploadDealEvidencePhotos } from "@/lib/uploadDealEvidence";
 import { DealPhotoPicker } from "./DealPhotoPicker";
 import { DialogActions } from "@/components/ui/DialogActions";
+import { openConversationUi } from "@/lib/messages";
 
 const REPORT_REASONS = [
   "scam",
@@ -573,11 +574,7 @@ export function ListingDetail({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed");
       const conversationId = data?.data?.id;
-      router.push(
-        conversationId
-          ? `/app/messages?c=${encodeURIComponent(conversationId)}`
-          : "/app/messages",
-      );
+      openConversationUi(conversationId, (href) => router.push(href));
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Failed");
     } finally {

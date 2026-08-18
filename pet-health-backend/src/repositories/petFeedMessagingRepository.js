@@ -1,10 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
 import { getPetFeedPost, isPetFeedPostOpenForEngagement } from './petFeedRepository.js';
+import { isOwnedPetFeedPublicMediaUrl } from '../services/imageStorageService.js';
 
 const memoryConversations = [];
 const memoryMessages = [];
 const MAX_MESSAGE_BODY = 2000;
+const MAX_CHAT_MEDIA = 4;
+const CHAT_MEDIA_PREVIEW_PHOTO = '[Photo]';
+const CHAT_MEDIA_PREVIEW_VIDEO = '[Video]';
 const DEFAULT_MESSAGE_LIMIT = 100;
 const MAX_MESSAGE_LIMIT = 200;
 
@@ -69,13 +73,58 @@ async function isBreederBlockedBySen(senUserId, breederProfileId, accessToken) {
   return Boolean(data);
 }
 
+function isChatVideoUrl(url) {
+  const value = String(url || '').trim().toLowerCase();
+  if (!value) return false;
+  if (value.includes('/pet-feed/videos/')) return true;
+  try {
+    return /\.(mp4|mov|webm|3gp|m4v)(\?|$)/i.test(new URL(value).pathname);
+  } catch {
+    return /\.(mp4|mov|webm|3gp|m4v)(\?|$)/i.test(value);
+  }
+}
+
+function normalizeMessageMediaUrls(userId, raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const item of raw) {
+    if (out.length >= MAX_CHAT_MEDIA) break;
+    const url = typeof item === 'string' ? item.trim() : '';
+    if (!url) continue;
+    const isHttp = /^https?:\/\//i.test(url);
+    const isMemory = url.startsWith('memory://');
+    if (!isHttp && !isMemory) continue;
+    const looksStored = url.includes('/storage/v1/object/public/') || isMemory;
+    if (looksStored) {
+      const owned =
+        isOwnedPetFeedPublicMediaUrl(userId, url, 'photo') ||
+        isOwnedPetFeedPublicMediaUrl(userId, url, 'video');
+      if (!owned) continue;
+    }
+    out.push(url);
+  }
+  return out;
+}
+
+function inboxPreviewFromContent(body, mediaUrls) {
+  const text = trimText(body, 160);
+  if (text) return text;
+  if (mediaUrls.some(isChatVideoUrl)) return CHAT_MEDIA_PREVIEW_VIDEO;
+  if (mediaUrls.length) return CHAT_MEDIA_PREVIEW_PHOTO;
+  return '';
+}
+
 function toMessage(row) {
   if (!row) return row;
+  const media = Array.isArray(row.media_urls)
+    ? row.media_urls.filter((item) => typeof item === 'string' && item.trim())
+    : [];
   return {
     id: row.id,
     conversation_id: row.conversation_id,
     sender_user_id: row.sender_user_id,
-    body: row.body,
+    body: row.body ?? '',
+    media_urls: media,
     created_at: row.created_at,
   };
 }
@@ -334,10 +383,11 @@ export async function listPetFeedConversationMessages(userId, conversationId, ac
   return (data ?? []).map(toMessage);
 }
 
-export async function sendPetFeedConversationMessage(userId, conversationId, body, accessToken) {
+export async function sendPetFeedConversationMessage(userId, conversationId, body, accessToken, options = {}) {
   const row = await getConversationRowForParticipant(userId, conversationId, accessToken);
   const trimmed = trimText(body, MAX_MESSAGE_BODY);
-  if (!trimmed) {
+  const mediaUrls = normalizeMessageMediaUrls(userId, options.mediaUrls ?? options.media_urls);
+  if (!trimmed && mediaUrls.length === 0) {
     const err = new Error('Message cannot be empty.');
     err.status = 400;
     err.code = 'PET_FEED_MESSAGE_EMPTY';
@@ -354,18 +404,22 @@ export async function sendPetFeedConversationMessage(userId, conversationId, bod
     }
   }
 
-  const now = new Date().toISOString();
+  const prevMs = Date.parse(row.last_message_at || '') || 0;
+  const nowMs = Math.max(Date.now(), Number.isFinite(prevMs) ? prevMs + 1 : Date.now());
+  const now = new Date(nowMs).toISOString();
+  const preview = inboxPreviewFromContent(trimmed, mediaUrls);
   const message = {
     id: randomUUID(),
     conversation_id: row.id,
     sender_user_id: userId,
     body: trimmed,
+    media_urls: mediaUrls,
     created_at: now,
   };
   const supabase = getMessagingSupabase(accessToken);
   const conversationPatch = {
     last_message_at: now,
-    last_message_preview: trimmed.slice(0, 160),
+    last_message_preview: preview.slice(0, 160),
     last_message_sender_user_id: userId,
     updated_at: now,
     ...(userId === row.sen_user_id ? { sen_last_read_at: now } : { breeder_last_read_at: now }),

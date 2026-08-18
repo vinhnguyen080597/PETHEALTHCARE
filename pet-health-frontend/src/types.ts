@@ -352,6 +352,7 @@ export type PetFeedMessage = {
   conversation_id: string;
   sender_user_id: string;
   body: string;
+  media_urls?: string[];
   created_at: string;
 };
 

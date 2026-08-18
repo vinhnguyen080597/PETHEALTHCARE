@@ -495,6 +495,48 @@ router.post('/uploads/deal-photo', petFeedUpload.single('file'), async (req, res
   }
 });
 
+/** Chat attachments: Sen or breeder, photo or short video. */
+router.post('/uploads/chat-media', petFeedUpload.single('file'), async (req, res, next) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'file is required', code: 'PET_FEED_FILE_REQUIRED' });
+    }
+    const kindRaw = typeof req.body?.kind === 'string' ? req.body.kind.trim().toLowerCase() : '';
+    const kind = kindRaw === 'video' || (file.mimetype || '').startsWith('video/') ? 'video' : 'photo';
+    if (kind === 'video') {
+      if (!SUPPORTED_VIDEO_MIMES.has(file.mimetype)) {
+        return res.status(400).json({ error: 'Unsupported video type.', code: 'PET_FEED_UNSUPPORTED_VIDEO' });
+      }
+      if (file.size > PET_FEED_VIDEO_MAX_BYTES) {
+        return res.status(400).json({
+          error: `Video is too large. Please use a clip under ${petFeedVideoMaxLabel()}.`,
+          code: 'PET_FEED_VIDEO_TOO_LARGE',
+        });
+      }
+      const publicUrl = await storePetFeedVideo({ userId: req.user.id, file, accessToken: req.accessToken });
+      return res.status(201).json({ data: { publicUrl, kind: 'video' } });
+    }
+    if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
+      return res.status(400).json({ error: 'Unsupported photo type.', code: 'PET_FEED_UNSUPPORTED_PHOTO' });
+    }
+    if (file.size > PET_FEED_PHOTO_MAX_BYTES) {
+      return res.status(400).json({
+        error: `Photo is too large. Please use photos under ${petFeedPhotoMaxLabel()}.`,
+        code: 'PET_FEED_PHOTO_TOO_LARGE',
+      });
+    }
+    const publicUrl = await storePetFeedImage({
+      userId: req.user.id,
+      file,
+      accessToken: req.accessToken,
+    });
+    return res.status(201).json({ data: { publicUrl, kind: 'photo' } });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.post('/posts', requireAnyRole('breeder'), petFeedUpload.fields([
   { name: 'photos', maxCount: 6 },
   { name: 'video', maxCount: 1 },
@@ -941,7 +983,14 @@ router.post('/conversations/:conversationId/messages', async (req, res, next) =>
     const conversationId = cleanId(req.params.conversationId);
     if (!conversationId) return res.status(400).json({ error: 'conversationId is required', code: 'MISSING_CONVERSATION_ID' });
     const body = typeof req.body?.body === 'string' ? req.body.body : typeof req.body?.text === 'string' ? req.body.text : '';
-    const message = await sendPetFeedConversationMessage(req.user.id, conversationId, body, req.accessToken);
+    const mediaUrls = Array.isArray(req.body?.media_urls)
+      ? req.body.media_urls
+      : Array.isArray(req.body?.mediaUrls)
+        ? req.body.mediaUrls
+        : [];
+    const message = await sendPetFeedConversationMessage(req.user.id, conversationId, body, req.accessToken, {
+      mediaUrls,
+    });
     void recordProductEvent({
       userId: req.user.id,
       event: 'pet_feed_message_sent',

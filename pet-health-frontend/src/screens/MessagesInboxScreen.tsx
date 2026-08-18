@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PetFeedConversation } from '../types';
+import { formatChatInboxPreview } from '../utils/chatMedia';
 
 const PRIMARY = '#1E6FE8';
 
@@ -143,7 +144,11 @@ export function MessagesInboxScreen({
                   className={`mt-1 text-sm ${item.has_unread ? 'font-semibold text-slate-800' : 'text-slate-600'}`}
                   numberOfLines={2}
                 >
-                  {item.last_message_preview || t('petFeed.messages.noMessagesYet')}
+                  {formatChatInboxPreview(
+                    item.last_message_preview,
+                    t('petFeed.messages.noMessagesYet'),
+                    { photo: t('petFeed.messages.photo'), video: t('petFeed.messages.video') },
+                  )}
                 </Text>
               </View>
             </Pressable>

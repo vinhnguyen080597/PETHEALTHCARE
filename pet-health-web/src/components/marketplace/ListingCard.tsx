@@ -17,6 +17,7 @@ import {
   listingPreviewImages,
   listingTrustTags,
 } from "@/lib/marketplaceSocialProof";
+import { openConversationUi } from "@/lib/messages";
 
 function depositLabel(price: string, lang: Lang): string | null {
   const n = parsePriceVnd(price);
@@ -195,11 +196,7 @@ export function ListingCard({
         return;
       }
       const conversationId = data?.data?.id;
-      router.push(
-        conversationId
-          ? `/app/messages?c=${encodeURIComponent(conversationId)}`
-          : "/app/messages",
-      );
+      openConversationUi(conversationId, (href) => router.push(href));
     } catch {
       router.push(detailHref);
     } finally {

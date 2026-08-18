@@ -130,3 +130,56 @@ test('sen can open conversation on deposit_hold listing', async () => {
   );
   assert.equal(message.body, 'When can I pick up?');
 });
+
+test('chat messages can be media-only and keep a photo preview', async () => {
+  const breederId = `msg-media-breeder-${Date.now()}`;
+  const senId = `msg-media-sen-${Date.now()}`;
+
+  await upsertMyBreederProfile(breederId, {
+    displayName: 'Media Chat Farm',
+    location: 'HCMC',
+    primarySpecies: ['cat'],
+  }, null);
+  await adminUpdateBreederProfileStatus(breederId, 'verified');
+
+  const post = await createPetFeedPost(breederId, {
+    title: 'Media chat kitten',
+    species: 'cat',
+    breed: 'Mix',
+    status: 'pending_review',
+    mediaUrls: ['https://cdn.example/photo.jpg'],
+  }, null);
+  const published = await adminUpdatePetFeedPostStatus(post.id, 'published');
+  const conversation = await openPetFeedConversation(senId, published.id, null);
+
+  await assert.rejects(
+    () => sendPetFeedConversationMessage(senId, conversation.id, '   ', null),
+    (error) => error?.code === 'PET_FEED_MESSAGE_EMPTY',
+  );
+
+  const photo = await sendPetFeedConversationMessage(senId, conversation.id, '', null, {
+    mediaUrls: ['https://cdn.example/chat.jpg', 'javascript:alert(1)'],
+  });
+  assert.equal(photo.body, '');
+  assert.deepEqual(photo.media_urls, ['https://cdn.example/chat.jpg']);
+
+  const video = await sendPetFeedConversationMessage(senId, conversation.id, '', null, {
+    mediaUrls: ['https://cdn.example/clip.mp4'],
+  });
+  assert.equal(video.media_urls[0], 'https://cdn.example/clip.mp4');
+
+  const inbox = await listPetFeedConversations(senId, null);
+  const row = inbox.find((item) => item.id === conversation.id);
+  assert.equal(row.last_message_preview, '[Video]');
+
+  const captioned = await sendPetFeedConversationMessage(
+    senId,
+    conversation.id,
+    'Look at this',
+    null,
+    { mediaUrls: ['https://cdn.example/chat2.jpg'] },
+  );
+  assert.equal(captioned.body, 'Look at this');
+  const after = await listPetFeedConversations(senId, null);
+  assert.equal(after.find((item) => item.id === conversation.id)?.last_message_preview, 'Look at this');
+});

@@ -109,13 +109,26 @@ export async function sendMessage(
   token: string,
   conversationId: string,
   body: string,
+  mediaUrls: string[] = [],
 ) {
   return fetchJson(
     `/pet-feed/conversations/${encodeURIComponent(conversationId)}/messages`,
     {
       method: "POST",
       token,
-      body: { body },
+      body: { body, media_urls: mediaUrls },
+    },
+  );
+}
+
+export async function uploadChatMedia(token: string, formData: FormData) {
+  return fetchJson<{ data: { publicUrl: string; kind: string } }>(
+    "/pet-feed/uploads/chat-media",
+    {
+      method: "POST",
+      token,
+      formData,
+      timeoutMs: UPLOAD_TIMEOUT_MS,
     },
   );
 }

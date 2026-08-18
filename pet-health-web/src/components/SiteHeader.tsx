@@ -11,6 +11,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
 import { MessagesUnreadBadge } from "@/components/MessagesUnreadBadge";
 import { SITE_MAIN_NAV } from "@/lib/siteNav";
+import { requestToggleInbox } from "@/lib/messages";
 
 export function SiteHeader({
   lang,
@@ -215,13 +216,16 @@ export function SiteHeader({
           )}
           {isLoggedIn && (
             <>
-              <Link
-                href="/app/messages"
-                onClick={() => setMenuOpen(false)}
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  requestToggleInbox();
+                }}
                 className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
               >
                 {t(lang, "nav.messages")}
-              </Link>
+              </button>
               <Link
                 href="/app/notifications"
                 onClick={() => setMenuOpen(false)}

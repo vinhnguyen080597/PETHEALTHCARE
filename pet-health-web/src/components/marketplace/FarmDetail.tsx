@@ -37,6 +37,7 @@ import {
 import { t } from "@/i18n";
 import { farmTemplateHref } from "@/lib/siteBreadcrumbs";
 import { SHOW_BREEDER_VERIFICATION_BADGES } from "@/lib/breederVerificationUi";
+import { openConversationUi, MESSAGES_PAGE_HREF } from "@/lib/messages";
 import { ListingCard } from "./ListingCard";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { FarmHealth } from "./FarmHealth";
@@ -523,7 +524,7 @@ export function FarmDetail({
     }
     const listingId = listings[0]?.id;
     if (!listingId) {
-      router.push("/app/messages");
+      router.push(MESSAGES_PAGE_HREF);
       return;
     }
     setMessageBusy(true);
@@ -534,13 +535,9 @@ export function FarmDetail({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed");
       const conversationId = data?.data?.id;
-      router.push(
-        conversationId
-          ? `/app/messages?c=${encodeURIComponent(conversationId)}`
-          : "/app/messages",
-      );
+      openConversationUi(conversationId, (href) => router.push(href));
     } catch {
-      router.push("/app/messages");
+      router.push(MESSAGES_PAGE_HREF);
     } finally {
       setMessageBusy(false);
     }

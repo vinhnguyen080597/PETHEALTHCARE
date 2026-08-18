@@ -6,6 +6,8 @@ import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { HeaderWithSession } from "@/components/HeaderWithSession";
 import { SiteBreadcrumbs } from "@/components/SiteBreadcrumbs";
+import { ChatDockProvider } from "@/components/messages/ChatDockProvider";
+import { FloatingChatWindow } from "@/components/messages/FloatingChatWindow";
 import { getLang } from "@/i18n";
 import { COOKIE_LANG } from "@/lib/session";
 import { SHARE_ORIGIN } from "@/lib/config";
@@ -59,22 +61,25 @@ export default async function RootLayout({
       <body
         className={`${inter.variable} ${fraunces.variable} font-sans antialiased bg-[#FDFBF7] text-stone-900`}
       >
-        <Suspense
-          fallback={
-            <SiteHeader
-              lang={lang}
-              isAdmin={false}
-              isLoggedIn={false}
-              unreadNotificationCount={0}
-            />
-          }
-        >
-          <HeaderWithSession lang={lang} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <SiteBreadcrumbs lang={lang} />
-        </Suspense>
-        {children}
+        <ChatDockProvider lang={lang}>
+          <Suspense
+            fallback={
+              <SiteHeader
+                lang={lang}
+                isAdmin={false}
+                isLoggedIn={false}
+                unreadNotificationCount={0}
+              />
+            }
+          >
+            <HeaderWithSession lang={lang} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <SiteBreadcrumbs lang={lang} />
+          </Suspense>
+          {children}
+          <FloatingChatWindow />
+        </ChatDockProvider>
       </body>
     </html>
   );

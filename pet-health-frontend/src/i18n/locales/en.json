@@ -251,7 +251,9 @@
       "contextCardTitle": "Listing you're asking about",
       "contextCardTitleBreeder": "About this listing",
       "openListing": "View listing {{title}}",
-      "listingUnavailable": "This listing is no longer public"
+      "listingUnavailable": "This listing is no longer public",
+      "photo": "Photo",
+      "video": "Video"
     },
     "notifications": {
       "inboxTitle": "Notifications",

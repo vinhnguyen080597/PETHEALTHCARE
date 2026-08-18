@@ -251,7 +251,9 @@
       "contextCardTitle": "Thông tin bạn đang hỏi",
       "contextCardTitleBreeder": "Thông tin bài đăng",
       "openListing": "Xem bài đăng {{title}}",
-      "listingUnavailable": "Bài đăng không còn hiển thị công khai"
+      "listingUnavailable": "Bài đăng không còn hiển thị công khai",
+      "photo": "Ảnh",
+      "video": "Video"
     },
     "notifications": {
       "inboxTitle": "Thông báo",

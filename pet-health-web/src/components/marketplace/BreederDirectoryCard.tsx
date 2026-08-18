@@ -14,6 +14,7 @@ import { formatPriceVnd, parsePriceVnd } from "@/lib/formatPrice";
 import { listingSpeciesEmoji } from "@/lib/listingFormOptions";
 import type { BreederPetThumb } from "@/lib/marketplaceFeedSections";
 import { t } from "@/i18n";
+import { openConversationUi } from "@/lib/messages";
 
 const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
 
@@ -72,11 +73,7 @@ export function BreederDirectoryCard({
         return;
       }
       const conversationId = data?.data?.id;
-      router.push(
-        conversationId
-          ? `/app/messages?c=${encodeURIComponent(conversationId)}`
-          : "/app/messages",
-      );
+      openConversationUi(conversationId, (href) => router.push(href));
     } catch {
       router.push(href);
     } finally {

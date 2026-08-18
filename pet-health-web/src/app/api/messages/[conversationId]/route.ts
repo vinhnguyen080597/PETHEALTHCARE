@@ -33,7 +33,17 @@ export async function POST(req: Request, { params }: Props) {
   const { conversationId } = await params;
   try {
     const body = await req.json();
-    const result = await sendMessage(token, conversationId, String(body.body || ""));
+    const mediaUrls = Array.isArray(body.media_urls)
+      ? body.media_urls
+      : Array.isArray(body.mediaUrls)
+        ? body.mediaUrls
+        : [];
+    const result = await sendMessage(
+      token,
+      conversationId,
+      String(body.body || ""),
+      mediaUrls.map((item: unknown) => String(item || "")),
+    );
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {

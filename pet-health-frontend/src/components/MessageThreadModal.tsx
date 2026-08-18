@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Linking,
   Modal,
   Pressable,
   RefreshControl,
@@ -15,7 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
 import type { PetFeedConversation, PetFeedMessage } from '../types';
 import { modalBottomInset, modalTopInset } from '../utils/modalSafeArea';
-import { MessageListingContextCard } from './MessageListingContextCard';
+import { Image } from 'expo-image';
+import { isChatVideoUrl, normalizeMessageMedia } from '../utils/chatMedia';
 
 const PRIMARY = '#1E6FE8';
 
@@ -159,11 +161,38 @@ export function MessageThreadView({
           }
           renderItem={({ item }) => {
             const mine = Boolean(currentUserId && item.sender_user_id === currentUserId);
+            const media = normalizeMessageMedia(item.media_urls);
+            const text = String(item.body || '').trim();
             return (
               <View className={`mb-2 max-w-[82%] ${mine ? 'self-end' : 'self-start'}`}>
-                <View className={`rounded-2xl px-3 py-2 ${mine ? 'bg-blue-600' : 'bg-white border border-gray-200'}`}>
-                  <Text className={`text-sm leading-5 ${mine ? 'text-white' : 'text-slate-800'}`}>{item.body}</Text>
-                </View>
+                {media.length ? (
+                  <View className={`mb-1 gap-1.5 ${mine ? 'items-end' : 'items-start'}`}>
+                    {media.map((url) =>
+                      isChatVideoUrl(url) ? (
+                        <Pressable
+                          key={url}
+                          accessibilityRole="button"
+                          onPress={() => void Linking.openURL(url)}
+                          className="h-40 w-[220px] items-center justify-center overflow-hidden rounded-2xl bg-slate-900"
+                        >
+                          <Ionicons name="play-circle" size={42} color="#fff" />
+                        </Pressable>
+                      ) : (
+                        <Image
+                          key={url}
+                          source={{ uri: url }}
+                          className="h-40 w-[220px] rounded-2xl bg-slate-200"
+                          contentFit="cover"
+                        />
+                      ),
+                    )}
+                  </View>
+                ) : null}
+                {text ? (
+                  <View className={`rounded-2xl px-3 py-2 ${mine ? 'bg-blue-600' : 'bg-white border border-gray-200'}`}>
+                    <Text className={`text-sm leading-5 ${mine ? 'text-white' : 'text-slate-800'}`}>{text}</Text>
+                  </View>
+                ) : null}
                 <Text className={`mt-1 text-[10px] text-slate-400 ${mine ? 'text-right' : 'text-left'}`}>
                   {formatMessageTime(item.created_at, i18n.language)}
                 </Text>

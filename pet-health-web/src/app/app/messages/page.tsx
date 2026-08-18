@@ -7,6 +7,7 @@ import { listConversations } from "@/lib/api/petFeed";
 import { MessagesClient } from "@/components/messages/MessagesClient";
 import { ConversationsSkeleton } from "@/components/ui/Skeleton";
 import { normalizeConversations } from "@/lib/messages";
+import { sessionAccountUserId } from "@/lib/sessionUser";
 import type { Lang } from "@/lib/types";
 
 export const metadata = { title: "Messages" };
@@ -64,14 +65,9 @@ export default async function MessagesPage({
     );
   }
 
-  const currentUserId =
-    session.account && typeof session.account === "object"
-      ? String(
-          (session.account as { user_id?: string; id?: string }).user_id ||
-            (session.account as { id?: string }).id ||
-            "",
-        ) || null
-      : null;
+  const currentUserId = sessionAccountUserId(
+    session.account && typeof session.account === "object" ? session.account : null,
+  );
 
   return (
     <Suspense
