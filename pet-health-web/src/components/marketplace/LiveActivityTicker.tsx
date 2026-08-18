@@ -7,6 +7,7 @@ import { t } from "@/i18n";
 import {
   buildLiveTickerItems,
   liveTickerDisplayText,
+  MARKETPLACE_BLOCK_GAP_CLASS,
   type LiveTickerItem,
 } from "@/lib/marketplaceLiveTicker";
 
@@ -28,7 +29,7 @@ export function LiveActivityTicker({
   lang,
   listings,
   labelKey = "feed.live.label",
-  className = "",
+  className = MARKETPLACE_BLOCK_GAP_CLASS,
 }: {
   lang: Lang;
   listings: Listing[];

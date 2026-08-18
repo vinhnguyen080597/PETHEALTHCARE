@@ -6,6 +6,12 @@ import {
 } from "./marketplaceSocialProof";
 import { farmPetAvailability } from "./farmPets";
 
+/** 20px — same as filter chips / directory filters (`mb-5`). */
+export const MARKETPLACE_BLOCK_GAP_CLASS = "mb-5";
+/** Matches `MARKETPLACE_BLOCK_GAP_CLASS` so breadcrumb→ticker equals ticker→next block. */
+export const MARKETPLACE_PAGE_TOP_GAP_CLASS = "pt-5";
+export const MARKETPLACE_PAGE_SHELL_CLASS = `max-w-[1200px] mx-auto px-5 lg:px-8 ${MARKETPLACE_PAGE_TOP_GAP_CLASS} pb-6`;
+
 export type LiveTickerKind =
   | "deposit"
   | "sold"

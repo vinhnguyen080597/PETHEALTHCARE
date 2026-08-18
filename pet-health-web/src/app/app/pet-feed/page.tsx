@@ -11,6 +11,7 @@ import { DisclaimerBanner } from "@/components/marketplace/DisclaimerBanner";
 import { LiveActivityTicker } from "@/components/marketplace/LiveActivityTicker";
 import { ListingGridSkeleton } from "@/components/ui/Skeleton";
 import type { Lang, Listing } from "@/lib/types";
+import { MARKETPLACE_PAGE_SHELL_CLASS } from "@/lib/marketplaceLiveTicker";
 import { resolveProvinceSelection } from "@/lib/vietnamProvinceSelection";
 
 export const metadata = {
@@ -59,15 +60,13 @@ async function PetFeedListings({
 
   return (
     <>
-      <LiveActivityTicker lang={lang} listings={listings} className="mb-3" />
+      <LiveActivityTicker lang={lang} listings={listings} />
       {loadError ? (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
+        <div className="mb-5 rounded-xl border border-amber-200 bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
           {t(lang, "feed.loadError")}: {loadError}
         </div>
       ) : null}
-      <div className="mb-4">
-        <DisclaimerBanner lang={lang} />
-      </div>
+      <DisclaimerBanner lang={lang} className="mb-5" />
       <FeedView
         lang={lang}
         listings={listings}
@@ -95,7 +94,7 @@ export default async function PetFeedPage({
 
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
-      <div className="max-w-[1200px] mx-auto px-5 lg:px-8 pt-2 pb-6">
+      <div className={MARKETPLACE_PAGE_SHELL_CLASS}>
         <Suspense fallback={<ListingGridSkeleton count={9} />}>
           <PetFeedListings
             lang={lang}

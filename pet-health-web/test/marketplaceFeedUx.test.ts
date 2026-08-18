@@ -7,7 +7,7 @@ import {
   listingPreviewImages,
   listingTrustTags,
 } from "../src/lib/marketplaceSocialProof";
-import { buildLiveTickerItems, DEMO_LIVE_TICKER_ITEMS, liveTickerDisplayText } from "../src/lib/marketplaceLiveTicker";
+import { buildLiveTickerItems, DEMO_LIVE_TICKER_ITEMS, liveTickerDisplayText, MARKETPLACE_BLOCK_GAP_CLASS, MARKETPLACE_PAGE_SHELL_CLASS, MARKETPLACE_PAGE_TOP_GAP_CLASS } from "../src/lib/marketplaceLiveTicker";
 import {
   feedExtraToEscrowOnly,
   feedExtraToGender,
@@ -260,6 +260,13 @@ test("pickHallOfFameBreeders assigns gold silver bronze by reviews", () => {
       ["bronze", "bronze"],
     ],
   );
+});
+
+test("live ticker uses the same vertical gap above and below as other marketplace blocks", () => {
+  assert.equal(MARKETPLACE_BLOCK_GAP_CLASS, "mb-5");
+  assert.equal(MARKETPLACE_PAGE_TOP_GAP_CLASS, "pt-5");
+  assert.ok(MARKETPLACE_PAGE_SHELL_CLASS.includes(MARKETPLACE_PAGE_TOP_GAP_CLASS));
+  assert.ok(MARKETPLACE_PAGE_SHELL_CLASS.includes("pb-6"));
 });
 
 test("buildLiveTickerItems pads with 10 demo pulses when quiet", () => {

@@ -5,6 +5,7 @@ import { COOKIE_LANG } from "@/lib/session";
 import { listPublicBreeders, listPublicPosts } from "@/lib/api/public";
 import { BreederDirectoryView } from "@/components/marketplace/BreederDirectoryView";
 import { BreederGridSkeleton } from "@/components/ui/Skeleton";
+import { MARKETPLACE_PAGE_SHELL_CLASS } from "@/lib/marketplaceLiveTicker";
 import type { Lang, Listing } from "@/lib/types";
 
 export const metadata = { title: "Top Breeders" };
@@ -37,18 +38,8 @@ async function BreedersGrid({ lang }: { lang: Lang }) {
   );
 }
 
-function BreedersHeaderSkeleton({ lang }: { lang: Lang }) {
-  return (
-    <>
-      <h1 className="font-display text-2xl lg:text-3xl font-semibold text-[#2B1E19] mb-2 tracking-tight">
-        {t(lang, "breeders.title")}
-      </h1>
-      <p className="text-sm text-[#6E5A51] mb-7">
-        {t(lang, "breeders.subtitle")}
-      </p>
-      <BreederGridSkeleton count={6} />
-    </>
-  );
+function BreedersHeaderSkeleton() {
+  return <BreederGridSkeleton count={6} />;
 }
 
 export default async function BreedersPage() {
@@ -57,8 +48,8 @@ export default async function BreedersPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
-      <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-8">
-        <Suspense fallback={<BreedersHeaderSkeleton lang={lang} />}>
+      <div className={MARKETPLACE_PAGE_SHELL_CLASS}>
+        <Suspense fallback={<BreedersHeaderSkeleton />}>
           <BreedersGrid lang={lang} />
         </Suspense>
       </div>

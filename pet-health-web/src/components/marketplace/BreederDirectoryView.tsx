@@ -27,6 +27,7 @@ import { BreederDirectoryCard } from "./BreederDirectoryCard";
 import { BreederHallOfFame } from "./BreederHallOfFame";
 import { LiveActivityTicker } from "./LiveActivityTicker";
 import { t, type EnKey } from "@/i18n";
+import { breedersDirectoryHeading } from "@/lib/breedersPageChrome";
 
 const SORT_I18N: Record<BreederSortKey, EnKey> = {
   trust: "breeders.sort.trust",
@@ -70,17 +71,10 @@ export function BreederDirectoryView({
     [listings],
   );
 
+  const directoryHeading = breedersDirectoryHeading();
+
   return (
     <>
-      <div className="mb-2">
-        <h1 className="font-display text-2xl lg:text-3xl font-semibold text-[#2B1E19] tracking-tight">
-          {t(lang, "breeders.title")}
-        </h1>
-        <p className="text-sm text-[#6E5A51] mt-1 mb-4">
-          {t(lang, "breeders.subtitle")}
-        </p>
-      </div>
-
       {listings.length > 0 ? (
         <LiveActivityTicker
           lang={lang}
@@ -161,9 +155,14 @@ export function BreederDirectoryView({
         </div>
       ) : null}
 
-      <h2 className="font-display text-lg font-semibold text-[#2B1E19] mb-4">
-        {t(lang, "breeders.grid.title")}
-      </h2>
+      <div className="mb-4">
+        <h2 className="font-display text-lg font-semibold text-[#2B1E19]">
+          {t(lang, directoryHeading.titleKey)}
+        </h2>
+        <p className="text-sm text-[#6E5A51] mt-1">
+          {t(lang, directoryHeading.subtitleKey)}
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {visible.map((b) => (

@@ -7,7 +7,13 @@ import { t } from "@/i18n";
 
 const DISMISSED_KEY = "pet-marketplace:disclaimer-dismissed:v1";
 
-export function DisclaimerBanner({ lang }: { lang: Lang }) {
+export function DisclaimerBanner({
+  lang,
+  className = "",
+}: {
+  lang: Lang;
+  className?: string;
+}) {
   const [visible, setVisible] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -32,7 +38,7 @@ export function DisclaimerBanner({ lang }: { lang: Lang }) {
   return (
     <div
       role="alert"
-      className="relative flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl pl-4 pr-2 py-3 text-sm text-amber-900 leading-relaxed"
+      className={`relative flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl pl-4 pr-2 py-3 text-sm text-amber-900 leading-relaxed ${className}`}
     >
       <p className="min-w-0 flex-1 pr-1">
         <span className="font-semibold mr-1">⚠</span>

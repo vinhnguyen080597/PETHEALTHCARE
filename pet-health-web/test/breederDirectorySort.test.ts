@@ -13,6 +13,7 @@ import {
   parseBreederSpecies,
   sortBreeders,
 } from "../src/lib/breederDirectorySort";
+import { breedersDirectoryHeading } from "../src/lib/breedersPageChrome";
 import type { BreederProfile } from "../src/lib/types";
 
 function breeder(
@@ -167,8 +168,14 @@ test("filterBreedersByProvince matches location needles", () => {
 test("Top Breeders title and sort i18n exist in EN and VI", () => {
   const enDict = en as Record<string, string>;
   const viDict = vi as Record<string, string>;
+  assert.deepEqual(breedersDirectoryHeading(), {
+    titleKey: "breeders.title",
+    subtitleKey: "breeders.subtitle",
+  });
   assert.equal(enDict["breeders.title"], "Top Breeders");
   assert.equal(viDict["breeders.title"], "Trại giống");
+  assert.equal(enDict["breeders.subtitle"], "Verified breeder directory");
+  assert.equal(viDict["breeders.subtitle"], "Danh bạ breeder đã xác minh");
   for (const key of [
     "breeders.speciesLabel",
     "breeders.species.all",
