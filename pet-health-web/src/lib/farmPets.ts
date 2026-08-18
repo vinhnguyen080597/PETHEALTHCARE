@@ -69,7 +69,8 @@ export function listingTrustOutcome(
   return null;
 }
 
-export type FarmPetListingFields = Pick<Listing, "status"> & {
+export type FarmPetListingFields = {
+  status?: Listing["status"] | string | null;
   metadataSold?: boolean;
   metadataCancelled?: boolean;
   ownerDeleted?: boolean;

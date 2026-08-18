@@ -38,7 +38,7 @@ export type MessageConversationPostSummary = {
 
 export type MessageConversation = {
   id: string;
-  post_id?: string;
+  post_id?: string | null;
   sen_user_id?: string;
   breeder_user_id?: string;
   last_message_at?: string | null;

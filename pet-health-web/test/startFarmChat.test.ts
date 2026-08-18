@@ -10,6 +10,7 @@ import {
 import {
   MESSAGES_PAGE_HREF,
   withConversationEntryContext,
+  type MessageConversation,
 } from "../src/lib/messages";
 import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
@@ -73,8 +74,11 @@ test("startChatMessageKey maps farm chat errors", () => {
 
 test("openFarmChatUi prefers dock openChat over page navigation", () => {
   const opened: Array<{ id: string; name?: string; entry?: string }> = [];
-  const navigated: string[] = [];
-  const conversation = { id: "c1", peer_display_name: "Lucastalina" };
+  const conversation: MessageConversation = {
+    id: "c1",
+    peer_display_name: "Lucastalina",
+  };
+  const skippedNav: string[] = [];
   openFarmChatUi(conversation, {
     openChat: (id, row) =>
       opened.push({
@@ -82,20 +86,24 @@ test("openFarmChatUi prefers dock openChat over page navigation", () => {
         name: row?.peer_display_name,
         entry: row?.entry_context,
       }),
-    navigate: (href) => navigated.push(href),
+    navigate: (href: string) => skippedNav.push(href),
   });
   assert.deepEqual(opened, [{ id: "c1", name: "Lucastalina", entry: "breeder" }]);
-  assert.deepEqual(navigated, []);
+  assert.deepEqual(skippedNav, []);
 
+  const navigated: string[] = [];
   openFarmChatUi(conversation, {
-    navigate: (href) => navigated.push(href),
+    navigate: (href: string) => navigated.push(href),
   });
   assert.deepEqual(navigated, [`${MESSAGES_PAGE_HREF}?c=c1`]);
 });
 
 test("withConversationEntryContext tags breeder-origin chat ui", () => {
   assert.deepEqual(
-    withConversationEntryContext({ id: "c1", peer_display_name: "Farm A" }, "breeder"),
+    withConversationEntryContext(
+      { id: "c1", peer_display_name: "Farm A" } satisfies MessageConversation,
+      "breeder",
+    ),
     { id: "c1", peer_display_name: "Farm A", entry_context: "breeder" },
   );
 });
