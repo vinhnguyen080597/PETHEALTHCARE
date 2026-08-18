@@ -323,6 +323,7 @@ const en = {
   "breeders.card.activeKennel": "Online",
   "breeders.card.petsPreview": "Litter on sale",
   "breeders.card.petsPreviewCount": "Litter on sale ({{n}} pets):",
+  "breeders.card.petsPreviewEmpty": "No pets currently for sale",
   "breeders.card.message": "Message",
   "breeders.provinceLabel": "Province:",
   "breeders.species.all": "All species",

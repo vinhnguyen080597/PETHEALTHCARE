@@ -20,6 +20,14 @@ import {
 } from "@/lib/startFarmChat";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
 import { canShowBreederMessageAction } from "@/lib/listingOwnerActions";
+import {
+  BREEDER_CARD_ACTIONS_CLASS,
+  BREEDER_CARD_ACTION_BTN_CLASS,
+  BREEDER_CARD_PETS_PREVIEW_CLASS,
+  breederCardHasPetPreview,
+  breederCardPetsPreviewTitleKey,
+  breederCardVisitCtaClass,
+} from "@/lib/breederDirectoryCard";
 
 const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
 
@@ -92,7 +100,7 @@ export function BreederDirectoryCard({
 
   return (
     <article
-      className={`group bg-white rounded-2xl border overflow-hidden hover:shadow-[0_16px_40px_-22px_rgba(217,119,6,0.4)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col ${
+      className={`group bg-white rounded-2xl border overflow-hidden hover:shadow-[0_16px_40px_-22px_rgba(217,119,6,0.4)] hover:-translate-y-0.5 transition-all duration-200 flex h-full flex-col ${
         featured
           ? "border-amber-300 ring-1 ring-amber-200/70"
           : "border-[#F3E2C8]"
@@ -188,14 +196,14 @@ export function BreederDirectoryCard({
           </div>
         </div>
 
-        {petThumbs.length > 0 ? (
-          <div className="mt-4">
-            <p className="text-[11px] font-medium text-[#6E5A51] mb-2">
-              {t(lang, "breeders.card.petsPreviewCount").replaceAll(
-                "{{n}}",
-                String(petThumbs.length),
-              )}
-            </p>
+        <div className={BREEDER_CARD_PETS_PREVIEW_CLASS}>
+          <p className="text-[11px] font-medium text-[#6E5A51] mb-2">
+            {t(lang, breederCardPetsPreviewTitleKey(petThumbs.length)).replaceAll(
+              "{{n}}",
+              String(petThumbs.length),
+            )}
+          </p>
+          {breederCardHasPetPreview(petThumbs.length) ? (
             <div className="flex flex-wrap gap-2">
               {petThumbs.map((pet) => {
                 const price = shortPriceLabel(pet.price);
@@ -224,23 +232,30 @@ export function BreederDirectoryCard({
                 );
               })}
             </div>
-          </div>
-        ) : null}
+          ) : (
+            <div
+              className="h-11 rounded-xl border border-dashed border-[#F3E2C8] bg-[#FDFBF7]"
+              aria-hidden
+            />
+          )}
+        </div>
 
-        <div className="mt-5 flex gap-2">
+        <div className={BREEDER_CARD_ACTIONS_CLASS}>
           {showMessageButton ? (
             <button
               type="button"
               onClick={startMessage}
               disabled={messageBusy}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#F3E2C8] bg-white py-2.5 text-sm font-semibold text-[#2B1E19] hover:bg-[#FDFBF7] transition-colors disabled:opacity-60"
+              className={`${BREEDER_CARD_ACTION_BTN_CLASS} border border-[#F3E2C8] bg-white text-[#2B1E19] hover:bg-[#FDFBF7] transition-colors disabled:opacity-60`}
             >
               💬 {t(lang, "breeders.card.message")}
             </button>
-          ) : null}
+          ) : (
+            <span aria-hidden />
+          )}
           <Link
             href={href}
-            className={`${showMessageButton ? "flex-1" : "w-full"} inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309] transition-colors shadow-sm shadow-amber-200/60`}
+            className={`${BREEDER_CARD_ACTION_BTN_CLASS} ${breederCardVisitCtaClass()} bg-[#D97706] text-white hover:bg-[#B45309] transition-colors shadow-sm shadow-amber-200/60`}
           >
             🏪 {t(lang, "breeders.card.cta")}
           </Link>

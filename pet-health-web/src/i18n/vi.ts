@@ -327,6 +327,7 @@ const vi: Record<EnKey, string> = {
   "breeders.card.activeKennel": "Trực tuyến",
   "breeders.card.petsPreview": "Lứa mới đang mở bán",
   "breeders.card.petsPreviewCount": "Lứa mới đang mở bán ({{n}} bé):",
+  "breeders.card.petsPreviewEmpty": "Chưa có bé đang mở bán",
   "breeders.card.message": "Nhắn tin",
   "breeders.provinceLabel": "Tỉnh/Thành:",
   "breeders.species.all": "Mọi loài",

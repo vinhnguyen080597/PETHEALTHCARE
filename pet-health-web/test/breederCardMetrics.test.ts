@@ -91,6 +91,7 @@ test("breeder card trust index i18n aligned", () => {
   assert.ok(viDict["breeders.card.fastResponse"]);
   assert.equal(viDict["breeders.card.activeKennel"], "Trực tuyến");
   assert.equal(viDict["breeders.card.message"], "Nhắn tin");
+  assert.equal(viDict["breeders.card.petsPreviewEmpty"], "Chưa có bé đang mở bán");
   assert.ok(enDict["breeders.hall.title"]);
   assert.ok(viDict["breeders.hall.title"]);
   assert.ok(enDict["breeders.section.featured.title"]);
