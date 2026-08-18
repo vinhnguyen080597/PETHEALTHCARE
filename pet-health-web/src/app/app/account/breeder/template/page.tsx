@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { getAccessToken } from "@/lib/session";
+import { peekAccessToken } from "@/lib/session";
 import { getMyBreederProfile } from "@/lib/api/petFeed";
 import { TemplatePicker } from "@/components/marketplace/TemplatePicker";
 import { isTemplateId } from "@/lib/types";
@@ -20,7 +20,7 @@ export default async function TemplatePickerPage({ searchParams }: Props) {
     ? farmTemplateHref(farmId)
     : "/app/account/breeder/template";
 
-  const token = await getAccessToken();
+  const token = await peekAccessToken();
   if (!token) redirect(`/login?next=${encodeURIComponent(loginNext)}`);
 
   let currentTemplate: "T1" | "T2" | "T3" | "T4" | "T5" = "T1";

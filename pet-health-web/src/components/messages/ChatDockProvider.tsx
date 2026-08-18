@@ -20,6 +20,7 @@ import {
   PHC_TOGGLE_INBOX_EVENT,
   type MessageConversation,
 } from "@/lib/messages";
+import { fetchWithSession } from "@/lib/fetchWithSession";
 
 type ChatDockContextValue = {
   lang: Lang;
@@ -63,7 +64,7 @@ export function useOptionalChatDock(): ChatDockContextValue | null {
 }
 
 async function fetchInbox(): Promise<MessageConversation[]> {
-  const res = await fetch("/api/messages", { cache: "no-store" });
+  const res = await fetchWithSession("/api/messages", { cache: "no-store" });
   if (!res.ok) return [];
   const data = await res.json().catch(() => ({ data: [] }));
   return normalizeConversations(data.data);
@@ -187,7 +188,7 @@ export function ChatDockProvider({
   }, [openChat, toggleInbox]);
 
   useEffect(() => {
-    if (!inboxOpen) return;
+    if (!inboxOpen || !currentUserId) return;
     let cancelled = false;
     setInboxLoading(conversations.length === 0);
     (async () => {
@@ -207,10 +208,10 @@ export function ChatDockProvider({
     };
     // Fetch when the dropdown opens — do not refetch on every inbox row patch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inboxOpen]);
+  }, [inboxOpen, currentUserId]);
 
   useEffect(() => {
-    if (!pollingEnabled) return;
+    if (!pollingEnabled || !currentUserId) return;
     let cancelled = false;
 
     const tick = async () => {
@@ -244,7 +245,7 @@ export function ChatDockProvider({
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
     };
-  }, [pollingEnabled, inboxOpen, activeChatId]);
+  }, [pollingEnabled, inboxOpen, activeChatId, currentUserId]);
 
   const value = useMemo<ChatDockContextValue>(
     () => ({

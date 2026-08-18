@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { formatNotificationBadge, HEADER_UNREAD_BADGE_CLASS } from "@/lib/notifications/badge";
+import { fetchWithSession } from "@/lib/fetchWithSession";
 
 const POLL_MS = 30_000;
 
@@ -18,7 +19,7 @@ export function NotificationBell({
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications/unread-count", {
+      const res = await fetchWithSession("/api/notifications/unread-count", {
         cache: "no-store",
       });
       if (!res.ok) return;

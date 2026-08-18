@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getLang, t } from "@/i18n";
-import { COOKIE_LANG, getAccessToken, getSessionUser } from "@/lib/session";
+import { COOKIE_LANG, peekAccessToken, getSessionUser } from "@/lib/session";
 import { getMyBreederProfile } from "@/lib/api/petFeed";
 import { mapWarrantyPolicies } from "@/lib/mappers";
 import { WarrantyLibraryPanel } from "@/components/account/WarrantyLibraryPanel";
@@ -21,7 +21,7 @@ export default async function WarrantyLibraryPage({ searchParams }: Props) {
   const cookieStore = await cookies();
   const lang = getLang({ cookie: cookieStore.get(COOKIE_LANG)?.value });
   const user = await getSessionUser();
-  const token = await getAccessToken();
+  const token = await peekAccessToken();
   const params = await searchParams;
   const from = parseWarrantyLibraryNavFrom(params.from);
   const farm = parseFarmBreadcrumbId(params.farm);

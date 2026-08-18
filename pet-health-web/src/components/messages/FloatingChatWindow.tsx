@@ -29,6 +29,7 @@ import { ChatMessageMedia } from "@/components/messages/ChatMessageMedia";
 import { MessageThreadSkeleton } from "@/components/ui/Skeleton";
 import { uploadChatMediaFiles } from "@/lib/uploadChatMedia";
 import { DealSubmitError } from "@/lib/dealPhotoUpload";
+import { fetchWithSession } from "@/lib/fetchWithSession";
 
 export function FloatingChatWindow() {
   const dock = useOptionalChatDock();
@@ -55,7 +56,7 @@ export function FloatingChatWindow() {
       setLoading(true);
       setSendError("");
       try {
-        const res = await fetch(
+        const res = await fetchWithSession(
           `/api/messages/${encodeURIComponent(conversationId)}`,
         );
         const data = await res.json().catch(() => ({ data: [] }));
@@ -88,7 +89,7 @@ export function FloatingChatWindow() {
         return;
       }
       try {
-        const res = await fetch(
+        const res = await fetchWithSession(
           `/api/messages/${encodeURIComponent(conversationId)}`,
           { cache: "no-store" },
         );
@@ -144,7 +145,7 @@ export function FloatingChatWindow() {
       if (pendingFiles.length) {
         mediaUrls = await uploadChatMediaFiles(pendingFiles);
       }
-      const res = await fetch(
+      const res = await fetchWithSession(
         `/api/messages/${encodeURIComponent(conversationId)}`,
         {
           method: "POST",

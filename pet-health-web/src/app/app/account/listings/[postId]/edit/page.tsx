@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getLang } from "@/i18n";
-import { COOKIE_LANG, getAccessToken, getSessionUser } from "@/lib/session";
+import { COOKIE_LANG, peekAccessToken, getSessionUser } from "@/lib/session";
 import { getPublicPostDetail } from "@/lib/api/public";
 import { canAccessListingEditPage } from "@/lib/listingEdit";
 import { EditListingForm } from "@/components/account/EditListingForm";
@@ -12,7 +12,7 @@ type Props = { params: Promise<{ postId: string }> };
 
 export default async function EditListingPage({ params }: Props) {
   const { postId } = await params;
-  const token = await getAccessToken();
+  const token = await peekAccessToken();
   const next = `/app/account/listings/${encodeURIComponent(postId)}/edit`;
   if (!token) redirect(`/login?next=${encodeURIComponent(next)}`);
 

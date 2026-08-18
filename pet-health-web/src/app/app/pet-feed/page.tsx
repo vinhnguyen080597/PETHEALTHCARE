@@ -5,6 +5,7 @@ import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { listPublicPosts } from "@/lib/api/public";
 import { listFeedPosts } from "@/lib/api/petFeed";
 import { mapApiPosts } from "@/lib/mappers";
+import { isExpiredAuthError } from "@/lib/sessionTokens";
 import { FeedView } from "@/components/marketplace/FeedView";
 import { DisclaimerBanner } from "@/components/marketplace/DisclaimerBanner";
 import { LiveActivityTicker } from "@/components/marketplace/LiveActivityTicker";
@@ -26,8 +27,12 @@ async function loadListings(lang: Lang): Promise<{
   try {
     const user = await getSessionUser();
     if (user.token) {
-      const page = await listFeedPosts(user.token, { limit: 48 });
-      return { listings: mapApiPosts(page.data || []), loadError: "" };
+      try {
+        const page = await listFeedPosts(user.token, { limit: 48 });
+        return { listings: mapApiPosts(page.data || []), loadError: "" };
+      } catch (err) {
+        if (!isExpiredAuthError(err)) throw err;
+      }
     }
     const postsPage = await listPublicPosts({ limit: 48 });
     return { listings: postsPage.listings, loadError: "" };

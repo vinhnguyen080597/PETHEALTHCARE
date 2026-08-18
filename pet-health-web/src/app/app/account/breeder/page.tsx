@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getLang } from "@/i18n";
-import { COOKIE_LANG, getAccessToken } from "@/lib/session";
+import { COOKIE_LANG, peekAccessToken } from "@/lib/session";
 import { getMyBreederProfile } from "@/lib/api/petFeed";
 import { BreederProfileForm } from "@/components/account/BreederProfileForm";
 
 export const metadata = { title: "Breeder profile" };
 
 export default async function BreederProfilePage() {
-  const token = await getAccessToken();
+  const token = await peekAccessToken();
   if (!token) redirect("/login?next=/app/account/breeder");
 
   const jar = await cookies();

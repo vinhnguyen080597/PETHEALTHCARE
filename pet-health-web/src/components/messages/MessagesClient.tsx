@@ -35,6 +35,7 @@ import { ChatMessageMedia } from "@/components/messages/ChatMessageMedia";
 import { brandUi } from "@/lib/brand";
 import { uploadChatMediaFiles } from "@/lib/uploadChatMedia";
 import { DealSubmitError } from "@/lib/dealPhotoUpload";
+import { fetchWithSession } from "@/lib/fetchWithSession";
 
 export function MessagesClient({
   lang,
@@ -77,7 +78,7 @@ export function MessagesClient({
       setLoading(true);
       setSendError("");
       try {
-        const res = await fetch(`/api/messages/${encodeURIComponent(activeId)}`);
+        const res = await fetchWithSession(`/api/messages/${encodeURIComponent(activeId)}`);
         const data = await res.json().catch(() => ({ data: [] }));
         if (!cancelled) {
           setMessages(normalizeMessages(data.data));
@@ -119,7 +120,7 @@ export function MessagesClient({
         return;
       }
       try {
-        const inboxRes = await fetch("/api/messages", { cache: "no-store" });
+        const inboxRes = await fetchWithSession("/api/messages", { cache: "no-store" });
         if (inboxRes.ok) {
           const inboxJson = await inboxRes.json().catch(() => ({ data: [] }));
           const remoteInbox = normalizeConversations(inboxJson.data);
@@ -133,7 +134,7 @@ export function MessagesClient({
 
       if (!activeId || cancelled) return;
       try {
-        const threadRes = await fetch(
+        const threadRes = await fetchWithSession(
           `/api/messages/${encodeURIComponent(activeId)}`,
           { cache: "no-store" },
         );
@@ -185,7 +186,7 @@ export function MessagesClient({
       if (pendingFiles.length) {
         mediaUrls = await uploadChatMediaFiles(pendingFiles);
       }
-      const res = await fetch(`/api/messages/${encodeURIComponent(activeId)}`, {
+      const res = await fetchWithSession(`/api/messages/${encodeURIComponent(activeId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body, media_urls: mediaUrls }),
