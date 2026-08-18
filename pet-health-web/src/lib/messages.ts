@@ -53,6 +53,7 @@ export type MessageConversation = {
   has_unread?: boolean;
   title?: string;
   updated_at?: string;
+  entry_context?: "listing" | "breeder";
 };
 
 export type MessageItem = {
@@ -79,7 +80,7 @@ export function conversationPeerName(
 }
 
 export function conversationListingTitle(
-  conversation: Pick<MessageConversation, "post_title" | "post_summary" | "title">,
+  conversation: Pick<MessageConversation, "post_id" | "post_title" | "post_summary" | "title">,
   listingFallback: string,
 ): string {
   const fromSummary = String(conversation.post_summary?.title || "").trim();
@@ -88,6 +89,7 @@ export function conversationListingTitle(
   if (fromPost) return fromPost;
   const title = String(conversation.title || "").trim();
   if (title) return title;
+  if (!String(conversation.post_id || "").trim()) return "";
   return listingFallback;
 }
 
@@ -330,13 +332,34 @@ export function messagesPageHref(
   return `${MESSAGES_PAGE_HREF}?c=${encodeURIComponent(id)}`;
 }
 
+export function conversationFromStartPayload(raw: unknown): MessageConversation | null {
+  if (!raw || typeof raw !== "object") return null;
+  const nested = (raw as { data?: unknown }).data;
+  const row =
+    nested && typeof nested === "object" ? nested : raw;
+  if (!row || typeof row !== "object") return null;
+  const id = String((row as { id?: unknown }).id || "").trim();
+  if (!id) return null;
+  return { ...(row as MessageConversation), id };
+}
+
+export function withConversationEntryContext(
+  conversation: MessageConversation,
+  entryContext: MessageConversation["entry_context"],
+): MessageConversation {
+  return { ...conversation, entry_context: entryContext };
+}
+
 export function requestOpenChat(
   conversationId: string | null | undefined,
+  conversation?: MessageConversation | null,
 ): boolean {
-  const id = String(conversationId || "").trim();
+  const id = String(conversationId || conversation?.id || "").trim();
   if (!id || typeof window === "undefined") return false;
   window.dispatchEvent(
-    new CustomEvent(PHC_OPEN_CHAT_EVENT, { detail: { conversationId: id } }),
+    new CustomEvent(PHC_OPEN_CHAT_EVENT, {
+      detail: { conversationId: id, conversation: conversation ?? undefined },
+    }),
   );
   return true;
 }
@@ -350,9 +373,10 @@ export function requestToggleInbox(): void {
 export function openConversationUi(
   conversationId: string | null | undefined,
   navigate: (href: string) => void,
+  conversation?: MessageConversation | null,
 ): void {
-  if (requestOpenChat(conversationId)) return;
-  navigate(messagesPageHref(conversationId));
+  if (requestOpenChat(conversationId, conversation)) return;
+  navigate(messagesPageHref(conversationId || conversation?.id));
 }
 
 export function conversationSearchHaystack(

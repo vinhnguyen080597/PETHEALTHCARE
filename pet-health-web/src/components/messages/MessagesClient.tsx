@@ -321,9 +321,11 @@ export function MessagesClient({
                               </span>
                             ) : null}
                           </div>
-                          <p className="mt-0.5 truncate text-xs text-slate-500">
-                            {listing}
-                          </p>
+                          {listing ? (
+                            <p className="mt-0.5 truncate text-xs text-slate-500">
+                              {listing}
+                            </p>
+                          ) : null}
                           <p
                             className={`mt-0.5 truncate text-xs ${
                               c.has_unread
@@ -357,12 +359,17 @@ export function MessagesClient({
                     t(lang, "messages.peerFallback"),
                   )}
                 </p>
-                <p className="text-xs text-slate-500 truncate">
-                  {conversationListingTitle(
-                    activeConversation,
-                    t(lang, "messages.listingFallback"),
-                  )}
-                </p>
+                {conversationListingTitle(
+                  activeConversation,
+                  t(lang, "messages.listingFallback"),
+                ) ? (
+                  <p className="text-xs text-slate-500 truncate">
+                    {conversationListingTitle(
+                      activeConversation,
+                      t(lang, "messages.listingFallback"),
+                    )}
+                  </p>
+                ) : null}
               </header>
 
               <div className="px-4 pt-3">

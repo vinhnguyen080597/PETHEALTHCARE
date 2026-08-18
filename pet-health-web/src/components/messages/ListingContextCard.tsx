@@ -16,12 +16,43 @@ export function ListingContextCard({
   conversation,
   currentUserId,
   compact = false,
+  variant = "listing",
 }: {
   lang: Lang;
   conversation: MessageConversation;
   currentUserId: string | null;
   compact?: boolean;
+  variant?: "listing" | "breeder";
 }) {
+  if (variant === "breeder") {
+    return (
+      <div
+        className={`rounded-2xl border border-[#F0E6D8] bg-white ${compact ? "p-2.5" : "p-3"}`}
+      >
+        {!compact ? (
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8B7355]">
+            {t(lang, "messages.chatWithFarm")}
+          </p>
+        ) : null}
+        <div className={`${compact ? "" : "mt-2.5"} flex gap-3`}>
+          <div
+            className={`${compact ? "h-12 w-12 text-sm" : "h-16 w-16 text-lg"} flex shrink-0 items-center justify-center rounded-xl bg-amber-50 ${brandUi.primaryText}`}
+          >
+            🏪
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-slate-900 line-clamp-2">
+              {conversation.peer_display_name || t(lang, "messages.peerFallback")}
+            </p>
+            <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+              {t(lang, "messages.chatWithFarm")}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const summary = resolveConversationPostSummary(conversation);
   if (!summary?.id) return null;
 

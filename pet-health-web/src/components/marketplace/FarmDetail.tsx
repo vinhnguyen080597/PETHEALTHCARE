@@ -37,7 +37,12 @@ import {
 import { t } from "@/i18n";
 import { farmTemplateHref } from "@/lib/siteBreadcrumbs";
 import { SHOW_BREEDER_VERIFICATION_BADGES } from "@/lib/breederVerificationUi";
-import { openConversationUi, MESSAGES_PAGE_HREF } from "@/lib/messages";
+import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
+import {
+  openFarmChatUi,
+  startChatMessageKey,
+  startFarmChatRequest,
+} from "@/lib/startFarmChat";
 import { ListingCard } from "./ListingCard";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { FarmHealth } from "./FarmHealth";
@@ -396,6 +401,7 @@ export function FarmDetail({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const dock = useOptionalChatDock();
   const farmFrom = parseFarmDetailFrom(searchParams.get("from"));
   const [tab, setTab] = useState<FarmDetailTab>(
     () => parseFarmDetailTab(searchParams.get("tab")) ?? "overview",
@@ -419,6 +425,7 @@ export function FarmDetail({
   const [reportError, setReportError] = useState("");
   const [reportDone, setReportDone] = useState(false);
   const [messageBusy, setMessageBusy] = useState(false);
+  const [messageError, setMessageError] = useState("");
   const [petFilter, setPetFilter] =
     useState<FarmPetAvailabilityFilter>("all");
   const [petFilterOpen, setPetFilterOpen] = useState(false);
@@ -522,22 +529,26 @@ export function FarmDetail({
       requireLogin();
       return;
     }
-    const listingId = listings[0]?.id;
-    if (!listingId) {
-      router.push(MESSAGES_PAGE_HREF);
-      return;
-    }
     setMessageBusy(true);
+    setMessageError("");
     try {
-      const res = await fetch(`/api/listings/${listingId}/conversations`, {
-        method: "POST",
+      const result = await startFarmChatRequest({
+        breederId: breeder.id,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed");
-      const conversationId = data?.data?.id;
-      openConversationUi(conversationId, (href) => router.push(href));
+      if (!result.ok) {
+        if (result.status === 401) {
+          requireLogin();
+          return;
+        }
+        setMessageError(t(lang, startChatMessageKey(result.status, result.code)));
+        return;
+      }
+      openFarmChatUi(result.conversation, {
+        openChat: dock?.openChat,
+        navigate: (next) => router.push(next),
+      });
     } catch {
-      router.push(MESSAGES_PAGE_HREF);
+      setMessageError(t(lang, "messages.startChatFailed"));
     } finally {
       setMessageBusy(false);
     }
@@ -1014,6 +1025,9 @@ export function FarmDetail({
                 >
                   💬 {t(lang, "farm.cta.message")}
                 </button>
+                {messageError ? (
+                  <p className="text-[11px] text-red-600">{messageError}</p>
+                ) : null}
                 <span
                   className="block w-full"
                   title={t(lang, "farm.cta.videoSoon")}

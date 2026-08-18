@@ -16,6 +16,7 @@ const {
   listPetFeedConversationMessages,
   listPetFeedConversations,
   openPetFeedConversation,
+  openPetFeedConversationForBreeder,
   sendPetFeedConversationMessage,
 } = await import('../src/repositories/petFeedMessagingRepository.js');
 
@@ -182,4 +183,104 @@ test('chat messages can be media-only and keep a photo preview', async () => {
   assert.equal(captioned.body, 'Look at this');
   const after = await listPetFeedConversations(senId, null);
   assert.equal(after.find((item) => item.id === conversation.id)?.last_message_preview, 'Look at this');
+});
+
+test('sen can open a direct farm conversation without a listing id', async () => {
+  const breederId = `msg-farm-breeder-${Date.now()}`;
+  const senId = `msg-farm-sen-${Date.now()}`;
+
+  const profile = await upsertMyBreederProfile(breederId, {
+    displayName: 'Directory Cattery',
+    location: 'Hanoi',
+    primarySpecies: ['cat'],
+  }, null);
+  await adminUpdateBreederProfileStatus(breederId, 'verified');
+
+  const first = await openPetFeedConversationForBreeder(senId, profile.id, null);
+  assert.equal(first.post_id, null);
+  assert.equal(first.breeder_profile_id, profile.id);
+  assert.equal(first.sen_user_id, senId);
+  assert.equal(first.breeder_user_id, breederId);
+  assert.equal(first.peer_display_name, 'Pet Health user');
+
+  const soldPost = await createPetFeedPost(breederId, {
+    title: 'Already rehomed',
+    species: 'cat',
+    breed: 'Mix',
+    status: 'pending_review',
+    mediaUrls: ['https://cdn.example/sold.jpg'],
+  }, null);
+  await adminUpdatePetFeedPostStatus(soldPost.id, 'published');
+  await adminUpdatePetFeedPostStatus(soldPost.id, 'sold');
+
+  const again = await openPetFeedConversationForBreeder(senId, profile.id, null);
+  assert.equal(again.id, first.id);
+  assert.equal(again.post_id, null);
+
+  const livePost = await createPetFeedPost(breederId, {
+    title: 'Open kitten',
+    species: 'cat',
+    breed: 'British',
+    status: 'pending_review',
+    mediaUrls: ['https://cdn.example/live.jpg'],
+  }, null);
+  await adminUpdatePetFeedPostStatus(livePost.id, 'published');
+
+  const conversation = await openPetFeedConversationForBreeder(senId, profile.id, null);
+  assert.equal(conversation.id, first.id);
+  assert.equal(conversation.post_id, null);
+  assert.equal(conversation.breeder_profile_id, profile.id);
+  assert.equal(conversation.sen_user_id, senId);
+  assert.equal(conversation.breeder_user_id, breederId);
+
+  const sent = await sendPetFeedConversationMessage(senId, first.id, 'Hello farm', null);
+  assert.equal(sent.body, 'Hello farm');
+  const farmMessages = await listPetFeedConversationMessages(senId, first.id, null);
+  assert.equal(farmMessages.length, 1);
+
+  const fromListing = await openPetFeedConversation(senId, livePost.id, null);
+  assert.equal(fromListing.id, first.id);
+  assert.equal(fromListing.post_id, livePost.id);
+});
+
+test('one sen and one farm share a single thread across listings', async () => {
+  const breederId = `msg-one-farm-${Date.now()}`;
+  const senId = `msg-one-farm-sen-${Date.now()}`;
+  const profile = await upsertMyBreederProfile(breederId, {
+    displayName: 'One Thread Farm',
+    location: 'Da Nang',
+    primarySpecies: ['dog'],
+  }, null);
+  await adminUpdateBreederProfileStatus(breederId, 'verified');
+
+  const firstPost = await createPetFeedPost(breederId, {
+    title: 'First puppy',
+    species: 'dog',
+    breed: 'Corgi',
+    status: 'pending_review',
+    mediaUrls: ['https://cdn.example/one.jpg'],
+  }, null);
+  const firstPublished = await adminUpdatePetFeedPostStatus(firstPost.id, 'published');
+  const secondPost = await createPetFeedPost(breederId, {
+    title: 'Second puppy',
+    species: 'dog',
+    breed: 'Poodle',
+    status: 'pending_review',
+    mediaUrls: ['https://cdn.example/two.jpg'],
+  }, null);
+  const secondPublished = await adminUpdatePetFeedPostStatus(secondPost.id, 'published');
+
+  const firstThread = await openPetFeedConversation(senId, firstPublished.id, null);
+  await sendPetFeedConversationMessage(senId, firstThread.id, 'About the first baby', null);
+  const secondThread = await openPetFeedConversation(senId, secondPublished.id, null);
+  assert.equal(secondThread.id, firstThread.id);
+  assert.equal(secondThread.post_id, secondPublished.id);
+
+  const farmThread = await openPetFeedConversationForBreeder(senId, profile.id, null);
+  assert.equal(farmThread.id, firstThread.id);
+  assert.equal(farmThread.post_id, secondPublished.id);
+
+  const messages = await listPetFeedConversationMessages(senId, firstThread.id, null);
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].body, 'About the first baby');
 });

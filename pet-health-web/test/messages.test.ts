@@ -5,6 +5,7 @@ import {
   chatMediaKindFromFile,
   CHAT_MEDIA_PREVIEW_PHOTO,
   CHAT_MEDIA_PREVIEW_VIDEO,
+  conversationFromStartPayload,
   conversationListingThumb,
   conversationListingTitle,
   conversationPeerName,
@@ -48,6 +49,13 @@ test("conversation labels prefer peer name, listing title, and preview", () => {
       "Listing",
     ),
     "British Shorthair",
+  );
+  assert.equal(
+    conversationListingTitle(
+      { post_id: null, post_title: "", title: "" },
+      "Listing",
+    ),
+    "",
   );
   assert.equal(
     conversationPreview({ last_message_preview: "Xin chào" }, "No messages"),
@@ -144,6 +152,11 @@ test("messages i18n parity keys exist EN/VI", () => {
     "messages.mediaUnsupported",
     "messages.videoTooLarge",
     "messages.uploadFailed",
+    "messages.startChatFailed",
+    "messages.noListingToMessage",
+    "messages.startChatSelf",
+    "messages.startChatBlocked",
+    "messages.chatWithFarm",
   ] as const) {
     assert.ok(enDict[key], `missing EN ${key}`);
     assert.ok(viDict[key], `missing VI ${key}`);
@@ -160,6 +173,18 @@ test("messagesPageHref and openConversationUi fall back to the inbox page", () =
   openConversationUi(null, (href) => navigated.push(href));
   openConversationUi("c9", (href) => navigated.push(href));
   assert.deepEqual(navigated, [MESSAGES_PAGE_HREF, "/app/messages?c=c9"]);
+});
+
+test("conversationFromStartPayload reads the started thread", () => {
+  assert.equal(conversationFromStartPayload(null), null);
+  assert.equal(conversationFromStartPayload({}), null);
+  assert.deepEqual(
+    conversationFromStartPayload({
+      data: { id: "c1", peer_display_name: "Lucastalina" },
+    }),
+    { id: "c1", peer_display_name: "Lucastalina" },
+  );
+  assert.equal(conversationFromStartPayload({ id: "c2" })?.id, "c2");
 });
 
 test("filterInboxConversations matches query and unread", () => {

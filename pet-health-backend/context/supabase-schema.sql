@@ -584,7 +584,8 @@ create index if not exists idx_pet_feed_reports_comment on public.pet_feed_repor
 
 create table if not exists public.pet_feed_conversations (
   id uuid primary key default gen_random_uuid(),
-  post_id uuid not null references public.pet_feed_posts(id) on delete cascade,
+  post_id uuid references public.pet_feed_posts(id) on delete set null,
+  breeder_profile_id uuid references public.breeder_profiles(id) on delete set null,
   sen_user_id text not null,
   breeder_user_id text not null,
   last_message_at timestamptz,
@@ -594,8 +595,11 @@ create table if not exists public.pet_feed_conversations (
   breeder_last_read_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (post_id, sen_user_id)
+  check (post_id is not null or breeder_profile_id is not null)
 );
+create unique index if not exists uq_pet_feed_conversations_breeder_sen
+  on public.pet_feed_conversations(breeder_profile_id, sen_user_id)
+  where breeder_profile_id is not null;
 
 create table if not exists public.pet_feed_messages (
   id uuid primary key default gen_random_uuid(),
@@ -776,17 +780,32 @@ on public.pet_feed_conversations for insert
 to authenticated
 with check (
   auth.uid()::text = sen_user_id
-  and exists (
-    select 1 from public.pet_feed_posts p
-    where p.id = post_id
-      and p.user_id = breeder_user_id
-      and (
-        p.status in ('published', 'deposit_hold')
-        or (
-          p.status = 'archived'
-          and coalesce(p.metadata->>'soft_status', '') = 'deposit_hold'
-        )
+  and (
+    (
+      post_id is not null
+      and exists (
+        select 1 from public.pet_feed_posts p
+        where p.id = post_id
+          and p.user_id = breeder_user_id
+          and (
+            p.status in ('published', 'deposit_hold')
+            or (
+              p.status = 'archived'
+              and coalesce(p.metadata->>'soft_status', '') = 'deposit_hold'
+            )
+          )
       )
+    )
+    or (
+      post_id is null
+      and breeder_profile_id is not null
+      and exists (
+        select 1 from public.breeder_profiles bp
+        where bp.id = breeder_profile_id
+          and bp.user_id = breeder_user_id
+          and bp.verification_status = 'verified'
+      )
+    )
   )
 );
 

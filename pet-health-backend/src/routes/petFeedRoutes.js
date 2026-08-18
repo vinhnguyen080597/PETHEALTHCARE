@@ -54,6 +54,7 @@ import {
   listPetFeedConversations,
   markPetFeedConversationRead,
   openPetFeedConversation,
+  openPetFeedConversationForBreeder,
   sendPetFeedConversationMessage,
 } from '../repositories/petFeedMessagingRepository.js';
 import {
@@ -318,6 +319,22 @@ router.get('/breeders', async (req, res, next) => {
   try {
     const profiles = await listVerifiedBreederProfiles(req.user.id, req.accessToken);
     return res.json({ data: profiles });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/breeders/:profileId/conversations', async (req, res, next) => {
+  try {
+    const profileId = cleanId(req.params.profileId);
+    if (!profileId) return res.status(400).json({ error: 'profileId is required', code: 'MISSING_PROFILE_ID' });
+    const conversation = await openPetFeedConversationForBreeder(req.user.id, profileId, req.accessToken);
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'pet_feed_conversation_opened',
+      metadata: { profileId, postId: conversation.post_id, conversationId: conversation.id },
+    });
+    return res.status(201).json({ data: conversation });
   } catch (err) {
     return next(err);
   }

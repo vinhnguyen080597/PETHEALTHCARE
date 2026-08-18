@@ -120,6 +120,7 @@ export function FloatingChatWindow() {
     conversation || { id: conversationId },
     t(lang, "messages.peerFallback"),
   );
+  const isFarmEntry = conversation?.entry_context === "breeder";
   const listing = conversation
     ? conversationListingTitle(conversation, t(lang, "messages.listingFallback"))
     : "";
@@ -225,7 +226,11 @@ export function FloatingChatWindow() {
       <header className="flex items-center gap-2 border-b border-[#F0E6D8] px-3 py-2.5">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold text-slate-900">{peer}</p>
-          {listing ? (
+          {isFarmEntry ? (
+            <p className="truncate text-xs text-slate-500">
+              {t(lang, "messages.chatWithFarm")}
+            </p>
+          ) : listing ? (
             <p className="truncate text-xs text-slate-500">{listing}</p>
           ) : null}
         </div>
@@ -254,6 +259,7 @@ export function FloatingChatWindow() {
             conversation={conversation}
             currentUserId={currentUserId}
             compact
+            variant={isFarmEntry ? "breeder" : "listing"}
           />
         </div>
       ) : null}

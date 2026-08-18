@@ -14,7 +14,13 @@ import { formatPriceVnd, parsePriceVnd } from "@/lib/formatPrice";
 import { listingSpeciesEmoji } from "@/lib/listingFormOptions";
 import type { BreederPetThumb } from "@/lib/marketplaceFeedSections";
 import { t } from "@/i18n";
-import { openConversationUi } from "@/lib/messages";
+import {
+  openFarmChatUi,
+  startChatMessageKey,
+  startFarmChatRequest,
+} from "@/lib/startFarmChat";
+import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
+import { canShowBreederMessageAction } from "@/lib/listingOwnerActions";
 
 const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
 
@@ -43,39 +49,42 @@ export function BreederDirectoryCard({
   featured?: boolean;
 }) {
   const router = useRouter();
+  const dock = useOptionalChatDock();
   const [messageBusy, setMessageBusy] = useState(false);
+  const [messageError, setMessageError] = useState("");
   const cover = breeder.coverUrl || FALLBACK_COVER;
   const card = getBreederCardMetrics(breeder);
   const activity = breederActivityCue(breeder);
   const href = `/app/breeders/${breeder.id}`;
+  const showMessageButton = canShowBreederMessageAction(
+    dock?.currentUserId,
+    breeder.userId,
+  );
 
   const startMessage = async (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (messageBusy) return;
     setMessageBusy(true);
+    setMessageError("");
     try {
-      const listingId = petThumbs[0]?.listingId;
-      if (!listingId) {
-        router.push(href);
-        return;
-      }
-      const res = await fetch(`/api/listings/${listingId}/conversations`, {
-        method: "POST",
+      const result = await startFarmChatRequest({
+        breederId: breeder.id,
       });
-      if (res.status === 401) {
-        window.location.href = `/login?next=${encodeURIComponent(href)}`;
+      if (!result.ok) {
+        if (result.status === 401) {
+          window.location.href = `/login?next=${encodeURIComponent(href)}`;
+          return;
+        }
+        setMessageError(t(lang, startChatMessageKey(result.status, result.code)));
         return;
       }
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        router.push(href);
-        return;
-      }
-      const conversationId = data?.data?.id;
-      openConversationUi(conversationId, (href) => router.push(href));
+      openFarmChatUi(result.conversation, {
+        openChat: dock?.openChat,
+        navigate: (next) => router.push(next),
+      });
     } catch {
-      router.push(href);
+      setMessageError(t(lang, "messages.startChatFailed"));
     } finally {
       setMessageBusy(false);
     }
@@ -219,21 +228,26 @@ export function BreederDirectoryCard({
         ) : null}
 
         <div className="mt-5 flex gap-2">
-          <button
-            type="button"
-            onClick={startMessage}
-            disabled={messageBusy}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#F3E2C8] bg-white py-2.5 text-sm font-semibold text-[#2B1E19] hover:bg-[#FDFBF7] transition-colors disabled:opacity-60"
-          >
-            💬 {t(lang, "breeders.card.message")}
-          </button>
+          {showMessageButton ? (
+            <button
+              type="button"
+              onClick={startMessage}
+              disabled={messageBusy}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#F3E2C8] bg-white py-2.5 text-sm font-semibold text-[#2B1E19] hover:bg-[#FDFBF7] transition-colors disabled:opacity-60"
+            >
+              💬 {t(lang, "breeders.card.message")}
+            </button>
+          ) : null}
           <Link
             href={href}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309] transition-colors shadow-sm shadow-amber-200/60"
+            className={`${showMessageButton ? "flex-1" : "w-full"} inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309] transition-colors shadow-sm shadow-amber-200/60`}
           >
             🏪 {t(lang, "breeders.card.cta")}
           </Link>
         </div>
+        {showMessageButton && messageError ? (
+          <p className="mt-2 text-[11px] text-red-600">{messageError}</p>
+        ) : null}
       </div>
     </article>
   );

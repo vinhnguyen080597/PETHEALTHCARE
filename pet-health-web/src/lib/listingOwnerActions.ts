@@ -9,6 +9,14 @@ export function isListingOwner(
   return Boolean(current && owner && current === owner);
 }
 
+/** Breeder directory / farm cards should not show "Message" on your own farm. */
+export function canShowBreederMessageAction(
+  currentUserId: string | null | undefined,
+  breederUserId: string | null | undefined,
+): boolean {
+  return !isListingOwner(currentUserId, breederUserId);
+}
+
 export function listingVisitorActions(isOwner: boolean): {
   showMessage: boolean;
   showReport: boolean;

@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
-import { getPetFeedPost, isPetFeedPostOpenForEngagement } from './petFeedRepository.js';
+import {
+  getPetFeedPost,
+  getVerifiedBreederProfileForMessaging,
+  isPetFeedPostOpenForEngagement,
+} from './petFeedRepository.js';
 import { isOwnedPetFeedPublicMediaUrl } from '../services/imageStorageService.js';
 
 const memoryConversations = [];
@@ -152,6 +156,7 @@ function toConversation(row, extras = {}) {
   return {
     id: row.id,
     post_id: row.post_id,
+    breeder_profile_id: row.breeder_profile_id ?? null,
     sen_user_id: row.sen_user_id,
     breeder_user_id: row.breeder_user_id,
     last_message_at: row.last_message_at ?? null,
@@ -171,9 +176,11 @@ function toConversation(row, extras = {}) {
 }
 
 async function enrichConversation(row, viewerUserId, accessToken) {
-  const post = await getPetFeedPost(viewerUserId, row.post_id, accessToken);
   const peerUserId = viewerUserId === row.sen_user_id ? row.breeder_user_id : row.sen_user_id;
   const names = await authorDisplayNamesForUserIds([peerUserId]);
+  const post = row.post_id
+    ? await getPetFeedPost(viewerUserId, row.post_id, accessToken)
+    : null;
   return toConversation(row, {
     viewer_user_id: viewerUserId,
     post_title: post?.title ?? '',
@@ -181,6 +188,169 @@ async function enrichConversation(row, viewerUserId, accessToken) {
     post_summary: postSummaryFromPost(post),
     peer_display_name: names.get(peerUserId) || 'Pet Health user',
     peer_user_id: peerUserId,
+  });
+}
+
+function findMemorySenBreederConversation(senUserId, breederProfileId, postId) {
+  if (breederProfileId) {
+    return memoryConversations.find(
+      (row) => row.sen_user_id === senUserId && row.breeder_profile_id === breederProfileId,
+    ) ?? null;
+  }
+  if (postId) {
+    return memoryConversations.find(
+      (row) => row.sen_user_id === senUserId && row.post_id === postId,
+    ) ?? null;
+  }
+  return null;
+}
+
+async function findStoredSenBreederConversation(supabase, senUserId, breederProfileId, postId) {
+  if (breederProfileId) {
+    const { data, error } = await supabase
+      .from('pet_feed_conversations')
+      .select('*')
+      .eq('breeder_profile_id', breederProfileId)
+      .eq('sen_user_id', senUserId)
+      .order('last_message_at', { ascending: false, nullsFirst: false })
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  if (postId) {
+    const { data, error } = await supabase
+      .from('pet_feed_conversations')
+      .select('*')
+      .eq('post_id', postId)
+      .eq('sen_user_id', senUserId)
+      .maybeSingle();
+    if (error) throw error;
+    return data ?? null;
+  }
+  return null;
+}
+
+async function ensureSenBreederConversation({
+  userId,
+  breederUserId,
+  breederProfileId,
+  postId = undefined,
+  accessToken,
+}) {
+  const supabase = getMessagingSupabase(accessToken);
+  const nextPostId = postId === undefined ? undefined : (postId || null);
+
+  if (!supabase) {
+    let existing = findMemorySenBreederConversation(userId, breederProfileId, nextPostId);
+    if (!existing) {
+      const now = new Date().toISOString();
+      existing = {
+        id: randomUUID(),
+        post_id: nextPostId ?? null,
+        breeder_profile_id: breederProfileId || null,
+        sen_user_id: userId,
+        breeder_user_id: breederUserId,
+        last_message_at: null,
+        last_message_preview: '',
+        last_message_sender_user_id: null,
+        sen_last_read_at: null,
+        breeder_last_read_at: null,
+        created_at: now,
+        updated_at: now,
+      };
+      memoryConversations.push(existing);
+    } else if (nextPostId && existing.post_id !== nextPostId) {
+      existing.post_id = nextPostId;
+      existing.updated_at = new Date().toISOString();
+    }
+    return enrichConversation(existing, userId, accessToken);
+  }
+
+  let existing = await findStoredSenBreederConversation(
+    supabase,
+    userId,
+    breederProfileId,
+    nextPostId,
+  );
+  if (existing) {
+    if (nextPostId && existing.post_id !== nextPostId) {
+      const { data: patched, error: patchError } = await supabase
+        .from('pet_feed_conversations')
+        .update({ post_id: nextPostId, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+        .select('*')
+        .single();
+      if (patchError) throw patchError;
+      existing = patched;
+    }
+    return enrichConversation(existing, userId, accessToken);
+  }
+
+  const now = new Date().toISOString();
+  const row = {
+    id: randomUUID(),
+    post_id: nextPostId ?? null,
+    breeder_profile_id: breederProfileId || null,
+    sen_user_id: userId,
+    breeder_user_id: breederUserId,
+    last_message_at: null,
+    last_message_preview: '',
+    last_message_sender_user_id: null,
+    sen_last_read_at: null,
+    breeder_last_read_at: null,
+    created_at: now,
+    updated_at: now,
+  };
+  const { data, error } = await supabase.from('pet_feed_conversations').insert(row).select('*').single();
+  if (error) {
+    if (error.code === '23505') {
+      const raced = await findStoredSenBreederConversation(
+        supabase,
+        userId,
+        breederProfileId,
+        nextPostId,
+      );
+      if (raced) return enrichConversation(raced, userId, accessToken);
+    }
+    throw error;
+  }
+  return enrichConversation(data, userId, accessToken);
+}
+
+export async function openPetFeedConversationForBreeder(userId, profileId, accessToken) {
+  const safeId = trimText(profileId, 80);
+  if (!safeId) {
+    const err = new Error('profileId is required');
+    err.status = 400;
+    err.code = 'MISSING_PROFILE_ID';
+    throw err;
+  }
+  const profile = await getVerifiedBreederProfileForMessaging(safeId, accessToken);
+  if (!profile?.user_id) {
+    const err = new Error('Breeder profile not found.');
+    err.status = 404;
+    err.code = 'BREEDER_PROFILE_NOT_FOUND';
+    throw err;
+  }
+  if (profile.user_id === userId) {
+    const err = new Error('You cannot message your own farm.');
+    err.status = 400;
+    err.code = 'PET_FEED_MESSAGE_SELF';
+    throw err;
+  }
+  if (await isBreederBlockedBySen(userId, safeId, accessToken)) {
+    const err = new Error('This breeder is hidden from your Pet Feed.');
+    err.status = 403;
+    err.code = 'PET_FEED_BREEDER_BLOCKED';
+    throw err;
+  }
+
+  return ensureSenBreederConversation({
+    userId,
+    breederUserId: profile.user_id,
+    breederProfileId: safeId,
+    accessToken,
   });
 }
 
@@ -205,75 +375,21 @@ export async function openPetFeedConversation(userId, postId, accessToken) {
     err.code = 'PET_FEED_MESSAGE_SELF';
     throw err;
   }
-  if (post.breeder_profile_id && (await isBreederBlockedBySen(userId, post.breeder_profile_id, accessToken))) {
+  const breederProfileId = post.breeder_profile_id ?? post.breeder_profile?.id ?? null;
+  if (breederProfileId && (await isBreederBlockedBySen(userId, breederProfileId, accessToken))) {
     const err = new Error('This breeder is hidden from your Pet Feed.');
     err.status = 403;
     err.code = 'PET_FEED_BREEDER_BLOCKED';
     throw err;
   }
 
-  const supabase = getMessagingSupabase(accessToken);
-  if (!supabase) {
-    let existing = memoryConversations.find((row) => row.post_id === safePostId && row.sen_user_id === userId);
-    if (!existing) {
-      const now = new Date().toISOString();
-      existing = {
-        id: randomUUID(),
-        post_id: safePostId,
-        sen_user_id: userId,
-        breeder_user_id: post.user_id,
-        last_message_at: null,
-        last_message_preview: '',
-        last_message_sender_user_id: null,
-        sen_last_read_at: null,
-        breeder_last_read_at: null,
-        created_at: now,
-        updated_at: now,
-      };
-      memoryConversations.push(existing);
-    }
-    return enrichConversation(existing, userId, accessToken);
-  }
-
-  const { data: existing, error: findError } = await supabase
-    .from('pet_feed_conversations')
-    .select('*')
-    .eq('post_id', safePostId)
-    .eq('sen_user_id', userId)
-    .maybeSingle();
-  if (findError) throw findError;
-  if (existing) return enrichConversation(existing, userId, accessToken);
-
-  const now = new Date().toISOString();
-  const row = {
-    id: randomUUID(),
-    post_id: safePostId,
-    sen_user_id: userId,
-    breeder_user_id: post.user_id,
-    last_message_at: null,
-    last_message_preview: '',
-    last_message_sender_user_id: null,
-    sen_last_read_at: null,
-    breeder_last_read_at: null,
-    created_at: now,
-    updated_at: now,
-  };
-  const { data, error } = await supabase.from('pet_feed_conversations').insert(row).select('*').single();
-  if (error) {
-    // Race: another request created the same unique (post_id, sen_user_id).
-    if (error.code === '23505') {
-      const { data: raced, error: racedError } = await supabase
-        .from('pet_feed_conversations')
-        .select('*')
-        .eq('post_id', safePostId)
-        .eq('sen_user_id', userId)
-        .maybeSingle();
-      if (racedError) throw racedError;
-      if (raced) return enrichConversation(raced, userId, accessToken);
-    }
-    throw error;
-  }
-  return enrichConversation(data, userId, accessToken);
+  return ensureSenBreederConversation({
+    userId,
+    breederUserId: post.user_id,
+    breederProfileId,
+    postId: safePostId,
+    accessToken,
+  });
 }
 
 export async function listPetFeedConversations(userId, accessToken) {
@@ -394,9 +510,10 @@ export async function sendPetFeedConversationMessage(userId, conversationId, bod
     throw err;
   }
 
-  const post = await getPetFeedPost(userId, row.post_id, accessToken);
-  if (post?.breeder_profile_id && row.sen_user_id === userId) {
-    if (await isBreederBlockedBySen(userId, post.breeder_profile_id, accessToken)) {
+  const blockedProfileId = row.breeder_profile_id
+    || (row.post_id ? (await getPetFeedPost(userId, row.post_id, accessToken))?.breeder_profile_id : null);
+  if (blockedProfileId && row.sen_user_id === userId) {
+    if (await isBreederBlockedBySen(userId, blockedProfileId, accessToken)) {
       const err = new Error('This breeder is hidden from your Pet Feed.');
       err.status = 403;
       err.code = 'PET_FEED_BREEDER_BLOCKED';

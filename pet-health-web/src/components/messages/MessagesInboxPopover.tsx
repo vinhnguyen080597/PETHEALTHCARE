@@ -179,9 +179,11 @@ export function MessagesInboxPopover() {
                       >
                         {peer}
                       </p>
-                      <p className="truncate text-[11px] text-slate-500">
-                        {listing}
-                      </p>
+                      {listing ? (
+                        <p className="truncate text-[11px] text-slate-500">
+                          {listing}
+                        </p>
+                      ) : null}
                       <p
                         className={`mt-0.5 truncate text-xs ${
                           c.has_unread

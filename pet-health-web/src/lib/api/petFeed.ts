@@ -143,6 +143,16 @@ export async function startConversation(token: string, postId: string) {
   );
 }
 
+export async function startBreederConversation(token: string, profileId: string) {
+  return fetchJson<{ data: { id: string } }>(
+    `/pet-feed/breeders/${encodeURIComponent(profileId)}/conversations`,
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
 export async function reportPost(
   token: string,
   postId: string,

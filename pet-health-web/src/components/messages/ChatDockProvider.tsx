@@ -33,7 +33,10 @@ type ChatDockContextValue = {
   unreadCount: number;
   activeChatId: string | null;
   chatMinimized: boolean;
-  openChat: (conversationId: string) => void;
+  openChat: (
+    conversationId: string,
+    conversation?: MessageConversation | null,
+  ) => void;
   closeChat: () => void;
   setChatMinimized: (minimized: boolean) => void;
   enableInboxPolling: () => void;
@@ -96,9 +99,14 @@ export function ChatDockProvider({
   }, []);
 
   const openChat = useCallback(
-    (conversationId: string) => {
-      const id = String(conversationId || "").trim();
+    (conversationId: string, conversation?: MessageConversation | null) => {
+      const id = String(conversationId || conversation?.id || "").trim();
       if (!id) return;
+      if (conversation?.id) {
+        setConversations((prev) =>
+          mergeConversationLists(prev, [{ ...conversation, id }]),
+        );
+      }
       setInboxOpen(false);
       setActiveChatId(id);
       setChatMinimized(false);
@@ -158,11 +166,16 @@ export function ChatDockProvider({
 
   useEffect(() => {
     const onOpenChat = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          conversationId?: string;
+          conversation?: MessageConversation | null;
+        }>
+      ).detail;
       const id = String(
-        (event as CustomEvent<{ conversationId?: string }>).detail
-          ?.conversationId || "",
+        detail?.conversationId || detail?.conversation?.id || "",
       ).trim();
-      if (id) openChat(id);
+      if (id) openChat(id, detail?.conversation);
     };
     const onToggleInbox = () => toggleInbox();
     window.addEventListener(PHC_OPEN_CHAT_EVENT, onOpenChat);

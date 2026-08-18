@@ -501,6 +501,33 @@ export function isPetFeedPostOpenForEngagement(statusOrPost) {
   return s === 'published' || s === 'deposit_hold';
 }
 
+/** Latest live listing for a farm, used when Sen messages the breeder directory card. */
+export async function findLatestOpenListingIdForBreeder(profileId, accessToken) {
+  const safeId = trimText(profileId, 80);
+  if (!safeId) return null;
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    const post = memoryPosts
+      .filter((row) =>
+        row.breeder_profile_id === safeId
+        && normalizePostKind(row.post_kind, 'listing') === 'listing'
+        && isPetFeedPostOpenForEngagement(row))
+      .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))[0];
+    return post?.id ?? null;
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_posts')
+    .select('id, status, metadata, post_kind, created_at')
+    .eq('breeder_profile_id', safeId)
+    .eq('post_kind', 'listing')
+    .in('status', ['published', 'deposit_hold'])
+    .order('created_at', { ascending: false })
+    .limit(24);
+  if (error) throw error;
+  const row = (data ?? []).find((post) => isPetFeedPostOpenForEngagement(post));
+  return row?.id ?? null;
+}
+
 function isStatusCheckViolation(err) {
   const code = String(err?.code ?? '');
   const msg = String(err?.message ?? '');
@@ -1537,6 +1564,31 @@ export async function getPublicBreederProfile(profileId) {
     profile: enrichPublicProfileWithFarmPetCounts(publicProfile, listingsWithEngagement),
     listings: listingsWithEngagement,
   };
+}
+
+/** Verified breeder profile for direct farm chat routing. */
+export async function getVerifiedBreederProfileForMessaging(profileId, accessToken) {
+  const safeId = trimText(profileId, 80);
+  if (!safeId) return null;
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    return toProfile(
+      memoryProfiles.find(
+        (row) => row.id === safeId && row.verification_status === 'verified',
+      ) ?? null,
+    );
+  }
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .select('*')
+    .eq('id', safeId)
+    .eq('verification_status', 'verified')
+    .maybeSingle();
+  if (error) {
+    if (error.code === '22P02' || error.code === 'PGRST116') return null;
+    throw error;
+  }
+  return toProfile(data);
 }
 
 export async function getMyBreederProfile(userId, accessToken) {

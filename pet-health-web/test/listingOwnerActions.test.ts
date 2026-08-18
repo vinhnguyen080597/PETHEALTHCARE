@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  canShowBreederMessageAction,
   canShowDepositRequest,
   canShowListingUpdateDetails,
   canShowWarrantyUpdateCta,
@@ -32,6 +33,14 @@ test("listing owner does not see message or report actions", () => {
     showMessage: true,
     showReport: true,
   });
+});
+
+test("own breeder cards hide the message action", () => {
+  assert.equal(canShowBreederMessageAction(null, "u1"), true);
+  assert.equal(canShowBreederMessageAction("u1", null), true);
+  assert.equal(canShowBreederMessageAction("u1", "u2"), true);
+  assert.equal(canShowBreederMessageAction("u1", "u1"), false);
+  assert.equal(canShowBreederMessageAction(" u1 ", "u1"), false);
 });
 
 test("share actions sit beside delete or report", () => {
