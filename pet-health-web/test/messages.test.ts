@@ -5,6 +5,11 @@ import {
   chatMediaKindFromFile,
   CHAT_MEDIA_PREVIEW_PHOTO,
   CHAT_MEDIA_PREVIEW_VIDEO,
+  CHAT_LISTING_SHARE_PREVIEW,
+  CHAT_MESSAGE_ROW_CLASS,
+  CHAT_TEXT_WRAP_CLASS,
+  CHAT_THREAD_SCROLL_CLASS,
+  chatBubbleMaxWidthClass,
   conversationFromStartPayload,
   conversationListingThumb,
   conversationListingTitle,
@@ -17,6 +22,7 @@ import {
   formatMessageTime,
   INBOX_FILTER_UNREAD,
   inboxPreviewFromMessage,
+  listingShareFromMessage,
   isChatVideoUrl,
   isConversationBreederViewer,
   isMineMessage,
@@ -26,9 +32,11 @@ import {
   messagesPageHref,
   MESSAGES_PAGE_HREF,
   normalizeConversations,
+  normalizeListingShare,
   normalizeMessageMedia,
   openConversationUi,
   resolveConversationPostSummary,
+  withConversationPeerLabel,
 } from "../src/lib/messages";
 import { sessionAccountUserId } from "../src/lib/sessionUser";
 import en from "../src/i18n/en";
@@ -41,6 +49,13 @@ test("conversation labels prefer peer name, listing title, and preview", () => {
       "User",
     ),
     "Minh Nghi",
+  );
+  assert.equal(
+    conversationPeerName(
+      { id: "c1", peer_display_name: "Nguyen Trung Vinh", farm_display_name: "CattiesHouse" },
+      "User",
+    ),
+    "CattiesHouse",
   );
   assert.equal(conversationPeerName({ id: "c1" }, "User"), "User");
   assert.equal(
@@ -68,6 +83,21 @@ test("conversation labels prefer peer name, listing title, and preview", () => {
       post_summary: { id: "p1", title: "A", thumb_url: "https://cdn/x.jpg" },
     }),
     "https://cdn/x.jpg",
+  );
+});
+
+test("withConversationPeerLabel stamps the farm or counterpart label", () => {
+  assert.deepEqual(
+    withConversationPeerLabel({ id: "c1", peer_display_name: "Nguyen" }, "CattiesHouse"),
+    {
+      id: "c1",
+      peer_display_name: "CattiesHouse",
+      farm_display_name: "CattiesHouse",
+    },
+  );
+  assert.deepEqual(
+    withConversationPeerLabel({ id: "c1", peer_display_name: "Nguyen" }, "  "),
+    { id: "c1", peer_display_name: "Nguyen" },
   );
 });
 
@@ -298,12 +328,46 @@ test("chat media helpers classify files, URLs, and inbox preview", () => {
     CHAT_MEDIA_PREVIEW_PHOTO,
   );
   assert.equal(
+    inboxPreviewFromMessage("", [], { id: "p1", title: "British Shorthair", thumb_url: null }),
+    "British Shorthair",
+  );
+  assert.equal(
+    inboxPreviewFromMessage("", [], { id: "p1", title: "", thumb_url: null }),
+    CHAT_LISTING_SHARE_PREVIEW,
+  );
+  assert.deepEqual(
+    normalizeListingShare({ id: " p1 ", title: "  aaa  ", thumb_url: "https://cdn/x.jpg", breed: "Mix" }),
+    {
+      id: "p1",
+      title: "aaa",
+      thumb_url: "https://cdn/x.jpg",
+      price_note: "",
+      species: "",
+      breed: "Mix",
+      location: "",
+      status: "published",
+    },
+  );
+  assert.equal(listingShareFromMessage({ listing_share: { title: "x" } }), null);
+  assert.equal(
+    listingShareFromMessage({ listing_share: { id: "p9", title: "Kitten" } })?.title,
+    "Kitten",
+  );
+  assert.equal(
     conversationPreview(
       { last_message_preview: CHAT_MEDIA_PREVIEW_PHOTO },
       "empty",
       { photo: "Ảnh", video: "Video" },
     ),
     "Ảnh",
+  );
+  assert.equal(
+    conversationPreview(
+      { last_message_preview: CHAT_LISTING_SHARE_PREVIEW },
+      "empty",
+      { photo: "Ảnh", video: "Video", listing: "Tin đăng" },
+    ),
+    "Tin đăng",
   );
 });
 
@@ -324,4 +388,13 @@ test("appendChatMediaFiles caps count and rejects bad types", () => {
   const large = appendChatMediaFiles([], [huge]);
   assert.equal(large.files.length, 0);
   assert.equal(large.error, "video_too_large");
+});
+
+test("chat pane classes keep the dock from stretching horizontally", () => {
+  assert.ok(CHAT_THREAD_SCROLL_CLASS.includes("overflow-x-hidden"));
+  assert.ok(CHAT_THREAD_SCROLL_CLASS.includes("min-w-0"));
+  assert.ok(CHAT_MESSAGE_ROW_CLASS.includes("max-w-full"));
+  assert.ok(CHAT_TEXT_WRAP_CLASS.includes("wrap-anywhere"));
+  assert.equal(chatBubbleMaxWidthClass(true), "max-w-[min(82%,100%)]");
+  assert.equal(chatBubbleMaxWidthClass(), "max-w-[min(80%,100%)]");
 });

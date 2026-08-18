@@ -80,6 +80,7 @@ test("openFarmChatUi prefers dock openChat over page navigation", () => {
   };
   const skippedNav: string[] = [];
   openFarmChatUi(conversation, {
+    farmName: "CattiesHouse",
     openChat: (id, row) =>
       opened.push({
         id,
@@ -88,7 +89,7 @@ test("openFarmChatUi prefers dock openChat over page navigation", () => {
       }),
     navigate: (href: string) => skippedNav.push(href),
   });
-  assert.deepEqual(opened, [{ id: "c1", name: "Lucastalina", entry: "breeder" }]);
+  assert.deepEqual(opened, [{ id: "c1", name: "CattiesHouse", entry: "breeder" }]);
   assert.deepEqual(skippedNav, []);
 
   const navigated: string[] = [];

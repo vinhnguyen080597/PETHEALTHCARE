@@ -16,9 +16,22 @@ export const CHAT_MEDIA_MAX = 4;
 export const CHAT_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
 export const CHAT_MEDIA_PREVIEW_PHOTO = "[Photo]";
 export const CHAT_MEDIA_PREVIEW_VIDEO = "[Video]";
+export const CHAT_LISTING_SHARE_PREVIEW = "[Listing]";
 export const CHAT_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
 export const CHAT_VIDEO_ACCEPT = "video/mp4,video/quicktime,video/webm,video/3gpp";
 export const CHAT_MEDIA_ACCEPT = `${CHAT_IMAGE_ACCEPT},${CHAT_VIDEO_ACCEPT}`;
+
+/** Dock thread: vertical scroll only. */
+export const CHAT_THREAD_SCROLL_CLASS =
+  "min-h-0 min-w-0 overflow-x-hidden overflow-y-auto";
+/** Keep one message row inside the pane. */
+export const CHAT_MESSAGE_ROW_CLASS = "max-w-full min-w-0";
+/** Unbroken strings/emojis wrap instead of stretching the popup. */
+export const CHAT_TEXT_WRAP_CLASS = "min-w-0 break-words wrap-anywhere";
+
+export function chatBubbleMaxWidthClass(compact = false): string {
+  return compact ? "max-w-[min(82%,100%)]" : "max-w-[min(80%,100%)]";
+}
 
 /** Open the floating chat dock for one conversation (header / listing CTAs). */
 export const PHC_OPEN_CHAT_EVENT = "phc:open-chat";
@@ -49,6 +62,7 @@ export type MessageConversation = {
   post_thumb_url?: string | null;
   post_summary?: MessageConversationPostSummary | null;
   peer_display_name?: string;
+  farm_display_name?: string | null;
   peer_user_id?: string | null;
   has_unread?: boolean;
   title?: string;
@@ -60,6 +74,7 @@ export type MessageItem = {
   id: string;
   body?: string;
   media_urls?: string[];
+  listing_share?: MessageConversationPostSummary | null;
   sender_user_id?: string;
   sender_id?: string;
   created_at?: string;
@@ -69,14 +84,32 @@ export type MessageItem = {
 export type ChatMediaPickError = "unsupported" | "too_many" | "video_too_large";
 
 export function conversationPeerName(
-  conversation: Pick<MessageConversation, "peer_display_name" | "title" | "id">,
+  conversation: Pick<
+    MessageConversation,
+    "peer_display_name" | "farm_display_name" | "title" | "id"
+  >,
   peerFallback: string,
 ): string {
+  const farm = String(conversation.farm_display_name || "").trim();
+  if (farm) return farm;
   const peer = String(conversation.peer_display_name || "").trim();
   if (peer) return peer;
   const title = String(conversation.title || "").trim();
   if (title) return title;
   return peerFallback;
+}
+
+export function withConversationPeerLabel(
+  conversation: MessageConversation,
+  peerLabel?: string | null,
+): MessageConversation {
+  const name = String(peerLabel || "").trim();
+  if (!name) return conversation;
+  return {
+    ...conversation,
+    farm_display_name: name,
+    peer_display_name: name,
+  };
 }
 
 export function conversationListingTitle(
@@ -106,7 +139,7 @@ export function conversationListingThumb(
 export function conversationPreview(
   conversation: Pick<MessageConversation, "last_message_preview" | "last_message">,
   emptyFallback: string,
-  mediaLabels?: { photo: string; video: string },
+  mediaLabels?: { photo: string; video: string; listing?: string },
 ): string {
   const preview = String(
     conversation.last_message_preview || conversation.last_message || "",
@@ -117,6 +150,9 @@ export function conversationPreview(
   }
   if (preview === CHAT_MEDIA_PREVIEW_VIDEO) {
     return mediaLabels?.video || preview;
+  }
+  if (preview === CHAT_LISTING_SHARE_PREVIEW) {
+    return mediaLabels?.listing || preview;
   }
   return preview;
 }
@@ -180,12 +216,40 @@ export function messageHasSendableContent(
 export function inboxPreviewFromMessage(
   body: string,
   mediaUrls: string[],
+  listingShare?: MessageConversationPostSummary | null,
 ): string {
   const text = String(body || "").trim();
   if (text) return text.slice(0, 160);
+  const shareTitle = String(listingShare?.title || "").trim();
+  if (shareTitle) return shareTitle.slice(0, 160);
+  if (listingShare?.id) return CHAT_LISTING_SHARE_PREVIEW;
   if (mediaUrls.some(isChatVideoUrl)) return CHAT_MEDIA_PREVIEW_VIDEO;
   if (mediaUrls.length) return CHAT_MEDIA_PREVIEW_PHOTO;
   return "";
+}
+
+export function normalizeListingShare(raw: unknown): MessageConversationPostSummary | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const id = String(row.id || "").trim();
+  if (!id) return null;
+  const thumb = typeof row.thumb_url === "string" ? row.thumb_url.trim() : "";
+  return {
+    id,
+    title: String(row.title || "").trim(),
+    thumb_url: thumb || null,
+    price_note: String(row.price_note || "").trim(),
+    species: String(row.species || "").trim(),
+    breed: String(row.breed || "").trim(),
+    location: String(row.location || "").trim(),
+    status: String(row.status || "").trim() || "published",
+  };
+}
+
+export function listingShareFromMessage(
+  message: Pick<MessageItem, "listing_share"> | null | undefined,
+): MessageConversationPostSummary | null {
+  return normalizeListingShare(message?.listing_share);
 }
 
 export function appendChatMediaFiles(
@@ -315,6 +379,9 @@ export function normalizeMessages(raw: unknown): MessageItem[] {
     .map((row) => ({
       ...row,
       media_urls: normalizeMessageMedia(row.media_urls),
+      listing_share: normalizeListingShare(
+        (row as MessageItem).listing_share,
+      ),
     }));
 }
 

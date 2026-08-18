@@ -5,7 +5,7 @@ import { isChatVideoUrl } from "@/lib/messages";
 export function ChatMessageMedia({ urls }: { urls: string[] }) {
   if (!urls.length) return null;
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-w-0 max-w-full flex-col gap-1.5">
       {urls.map((url) =>
         isChatVideoUrl(url) ? (
           <video
@@ -13,7 +13,7 @@ export function ChatMessageMedia({ urls }: { urls: string[] }) {
             src={url}
             controls
             playsInline
-            className="max-h-52 w-full max-w-[240px] rounded-xl bg-black"
+            className="max-h-52 w-full min-w-0 max-w-full rounded-xl bg-black"
           />
         ) : (
           <a
@@ -21,13 +21,13 @@ export function ChatMessageMedia({ urls }: { urls: string[] }) {
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="block overflow-hidden rounded-xl bg-slate-100"
+            className="block min-w-0 max-w-full overflow-hidden rounded-xl bg-slate-100"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={url}
               alt=""
-              className="max-h-52 w-full max-w-[240px] object-cover"
+              className="max-h-52 w-full max-w-full object-cover"
             />
           </a>
         ),

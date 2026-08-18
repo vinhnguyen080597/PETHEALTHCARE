@@ -29,18 +29,22 @@ export function resolveConversationPostSummary(
 }
 
 type MessageListingContextCardProps = {
-  conversation: PetFeedConversation | null;
+  conversation?: PetFeedConversation | null;
+  summary?: PetFeedConversationPostSummary | null;
   currentUserId: string | null;
+  compact?: boolean;
   onOpenListing?: (postId: string) => void;
 };
 
 export function MessageListingContextCard({
-  conversation,
+  conversation = null,
+  summary: summaryProp,
   currentUserId,
+  compact = false,
   onOpenListing,
 }: MessageListingContextCardProps) {
   const { t, i18n } = useTranslation();
-  const summary = resolveConversationPostSummary(conversation);
+  const summary = summaryProp || resolveConversationPostSummary(conversation);
   if (!summary?.id) return null;
 
   const isBreeder = Boolean(currentUserId && conversation?.breeder_user_id === currentUserId);
@@ -51,12 +55,14 @@ export function MessageListingContextCard({
   const speciesLabel = summary.species ? t(speciesKey) : '';
   const resolvedSpecies = speciesLabel === speciesKey ? summary.species : speciesLabel;
   const detailLine = [summary.breed || resolvedSpecies, summary.location, priceLabel].filter(Boolean).join(' · ');
-  const timeLabel = formatPetFeedPostTimeLabel(summary, t, i18n.language);
+  const timeLabel = compact ? '' : formatPetFeedPostTimeLabel(summary, t, i18n.language);
 
   const content = (
-    <View className="mx-4 mt-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm shadow-slate-200/60">
-      <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">{t(titleKey)}</Text>
-      <View className="mt-2.5 flex-row gap-3">
+    <View className={`${compact ? '' : 'mx-4 mt-3'} rounded-2xl border border-gray-200 bg-white p-3 ${compact ? '' : 'shadow-sm shadow-slate-200/60'}`}>
+      {!compact ? (
+        <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">{t(titleKey)}</Text>
+      ) : null}
+      <View className={`${compact ? '' : 'mt-2.5'} flex-row gap-3`}>
         <View className="h-16 w-16 overflow-hidden rounded-xl bg-slate-100">
           {summary.thumb_url ? (
             <Image

@@ -18,6 +18,7 @@ import type { PetFeedConversation, PetFeedMessage } from '../types';
 import { modalBottomInset, modalTopInset } from '../utils/modalSafeArea';
 import { Image } from 'expo-image';
 import { isChatVideoUrl, normalizeMessageMedia } from '../utils/chatMedia';
+import { MessageListingContextCard } from './MessageListingContextCard';
 
 const PRIMARY = '#1E6FE8';
 
@@ -113,7 +114,7 @@ export function MessageThreadView({
           </Pressable>
           <View className="min-w-0 flex-1 items-center px-1">
             <Text className="text-[15px] font-semibold leading-5 text-slate-900" numberOfLines={1}>
-              {conversation?.peer_display_name || t('petFeed.messages.peerFallback')}
+              {conversation?.farm_display_name || conversation?.peer_display_name || t('petFeed.messages.peerFallback')}
             </Text>
             <Text className="text-[11px] leading-4 text-slate-500" numberOfLines={1}>
               {conversation?.post_title || t('petFeed.messages.listingFallback')}
@@ -122,12 +123,6 @@ export function MessageThreadView({
           <View className="w-11" />
         </View>
       </View>
-
-      <MessageListingContextCard
-        conversation={conversation}
-        currentUserId={currentUserId}
-        onOpenListing={onOpenListing}
-      />
 
       {loading && messages.length === 0 ? (
         <View className="flex-1 gap-3 px-4 py-5">
@@ -163,8 +158,20 @@ export function MessageThreadView({
             const mine = Boolean(currentUserId && item.sender_user_id === currentUserId);
             const media = normalizeMessageMedia(item.media_urls);
             const text = String(item.body || '').trim();
+            const listingShare = item.listing_share;
             return (
               <View className={`mb-2 max-w-[82%] ${mine ? 'self-end' : 'self-start'}`}>
+                {listingShare?.id ? (
+                  <View className="mb-1">
+                    <MessageListingContextCard
+                      conversation={conversation}
+                      summary={listingShare}
+                      currentUserId={currentUserId}
+                      compact
+                      onOpenListing={onOpenListing}
+                    />
+                  </View>
+                ) : null}
                 {media.length ? (
                   <View className={`mb-1 gap-1.5 ${mine ? 'items-end' : 'items-start'}`}>
                     {media.map((url) =>

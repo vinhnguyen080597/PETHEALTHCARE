@@ -80,6 +80,7 @@ export function BreederDirectoryCard({
         return;
       }
       openFarmChatUi(result.conversation, {
+        farmName: breeder.name,
         openChat: dock?.openChat,
         navigate: (next) => router.push(next),
       });

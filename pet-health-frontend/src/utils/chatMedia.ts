@@ -1,5 +1,6 @@
 export const CHAT_MEDIA_PREVIEW_PHOTO = '[Photo]';
 export const CHAT_MEDIA_PREVIEW_VIDEO = '[Video]';
+export const CHAT_LISTING_SHARE_PREVIEW = '[Listing]';
 
 export function isChatVideoUrl(url: string): boolean {
   const value = String(url || '').trim().toLowerCase();
@@ -23,11 +24,12 @@ export function normalizeMessageMedia(raw: unknown): string[] {
 export function formatChatInboxPreview(
   preview: string | null | undefined,
   emptyFallback: string,
-  mediaLabels: { photo: string; video: string },
+  mediaLabels: { photo: string; video: string; listing?: string },
 ): string {
   const value = String(preview || '').trim();
   if (!value) return emptyFallback;
   if (value === CHAT_MEDIA_PREVIEW_PHOTO) return mediaLabels.photo;
   if (value === CHAT_MEDIA_PREVIEW_VIDEO) return mediaLabels.video;
+  if (value === CHAT_LISTING_SHARE_PREVIEW) return mediaLabels.listing || emptyFallback;
   return value;
 }

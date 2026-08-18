@@ -86,7 +86,7 @@ import {
 import { uploadDealEvidencePhotos } from "@/lib/uploadDealEvidence";
 import { DealPhotoPicker } from "./DealPhotoPicker";
 import { DialogActions } from "@/components/ui/DialogActions";
-import { conversationFromStartPayload, openConversationUi, withConversationEntryContext } from "@/lib/messages";
+import { conversationFromStartPayload, openConversationUi, withConversationEntryContext, withConversationPeerLabel } from "@/lib/messages";
 
 const REPORT_REASONS = [
   "scam",
@@ -577,7 +577,12 @@ export function ListingDetail({
       openConversationUi(
         conversation?.id,
         (href) => router.push(href),
-        conversation ? withConversationEntryContext(conversation, "listing") : conversation,
+        conversation
+          ? withConversationPeerLabel(
+              withConversationEntryContext(conversation, "listing"),
+              listing.breeder.name,
+            )
+          : conversation,
       );
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Failed");

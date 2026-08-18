@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../config/supabase.js';
 import {
+  getMyBreederProfile,
   getPetFeedPost,
   getVerifiedBreederProfileForMessaging,
   isPetFeedPostOpenForEngagement,
@@ -13,6 +14,7 @@ const MAX_MESSAGE_BODY = 2000;
 const MAX_CHAT_MEDIA = 4;
 const CHAT_MEDIA_PREVIEW_PHOTO = '[Photo]';
 const CHAT_MEDIA_PREVIEW_VIDEO = '[Video]';
+const CHAT_LISTING_SHARE_PREVIEW = '[Listing]';
 const DEFAULT_MESSAGE_LIMIT = 100;
 const MAX_MESSAGE_LIMIT = 200;
 
@@ -110,9 +112,29 @@ function normalizeMessageMediaUrls(userId, raw) {
   return out;
 }
 
-function inboxPreviewFromContent(body, mediaUrls) {
+function normalizeListingShare(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const id = trimText(raw.id, 64);
+  if (!id) return null;
+  const thumb = typeof raw.thumb_url === 'string' ? raw.thumb_url.trim() : '';
+  return {
+    id,
+    title: trimText(raw.title, 120),
+    thumb_url: thumb || null,
+    price_note: trimText(raw.price_note, 80),
+    species: trimText(raw.species, 40),
+    breed: trimText(raw.breed, 80),
+    location: trimText(raw.location, 80),
+    status: trimText(raw.status, 40) || 'published',
+  };
+}
+
+function inboxPreviewFromContent(body, mediaUrls, listingShare = null) {
   const text = trimText(body, 160);
   if (text) return text;
+  const shareTitle = trimText(listingShare?.title, 160);
+  if (shareTitle) return shareTitle;
+  if (listingShare?.id) return CHAT_LISTING_SHARE_PREVIEW;
   if (mediaUrls.some(isChatVideoUrl)) return CHAT_MEDIA_PREVIEW_VIDEO;
   if (mediaUrls.length) return CHAT_MEDIA_PREVIEW_PHOTO;
   return '';
@@ -129,6 +151,7 @@ function toMessage(row) {
     sender_user_id: row.sender_user_id,
     body: row.body ?? '',
     media_urls: media,
+    listing_share: normalizeListingShare(row.listing_share),
     created_at: row.created_at,
   };
 }
@@ -170,23 +193,50 @@ function toConversation(row, extras = {}) {
     post_thumb_url: extras.post_thumb_url ?? null,
     post_summary: extras.post_summary ?? null,
     peer_display_name: extras.peer_display_name ?? 'Pet Health user',
+    farm_display_name: extras.farm_display_name ?? null,
     peer_user_id: extras.peer_user_id ?? null,
     has_unread: viewerUserId ? conversationHasUnread(row, viewerUserId) : false,
   };
 }
 
+async function farmDisplayNameForConversation(row, accessToken) {
+  try {
+    if (row.breeder_profile_id) {
+      const profile = await getVerifiedBreederProfileForMessaging(row.breeder_profile_id, accessToken);
+      const named = trimText(profile?.display_name, 160);
+      if (named) return named;
+    }
+    if (row.breeder_user_id) {
+      const profile = await getMyBreederProfile(row.breeder_user_id, accessToken);
+      const named = trimText(profile?.display_name, 160);
+      if (named) return named;
+    }
+  } catch {
+    return '';
+  }
+  return '';
+}
+
 async function enrichConversation(row, viewerUserId, accessToken) {
   const peerUserId = viewerUserId === row.sen_user_id ? row.breeder_user_id : row.sen_user_id;
   const names = await authorDisplayNamesForUserIds([peerUserId]);
+  const userName = names.get(peerUserId) || '';
+  const viewingFarm = viewerUserId === row.sen_user_id;
+  const farmName = viewingFarm ? await farmDisplayNameForConversation(row, accessToken) : '';
   const post = row.post_id
     ? await getPetFeedPost(viewerUserId, row.post_id, accessToken)
     : null;
+  const postFarmName = viewingFarm
+    ? trimText(post?.breeder_profile?.display_name, 160)
+    : '';
+  const resolvedFarmName = farmName || postFarmName;
   return toConversation(row, {
     viewer_user_id: viewerUserId,
     post_title: post?.title ?? '',
     post_thumb_url: listThumbFromPost(post),
     post_summary: postSummaryFromPost(post),
-    peer_display_name: names.get(peerUserId) || 'Pet Health user',
+    peer_display_name: (viewingFarm ? resolvedFarmName : '') || userName || 'Pet Health user',
+    farm_display_name: resolvedFarmName || null,
     peer_user_id: peerUserId,
   });
 }
@@ -383,13 +433,16 @@ export async function openPetFeedConversation(userId, postId, accessToken) {
     throw err;
   }
 
-  return ensureSenBreederConversation({
+  const conversation = await ensureSenBreederConversation({
     userId,
     breederUserId: post.user_id,
     breederProfileId,
     postId: safePostId,
     accessToken,
   });
+  const row = await getConversationRowForParticipant(userId, conversation.id, accessToken);
+  await appendListingShareToConversation(userId, row, post, accessToken);
+  return getPetFeedConversation(userId, conversation.id, accessToken);
 }
 
 export async function listPetFeedConversations(userId, accessToken) {
@@ -443,6 +496,84 @@ async function getConversationRowForParticipant(userId, conversationId, accessTo
 export async function getPetFeedConversation(userId, conversationId, accessToken) {
   const row = await getConversationRowForParticipant(userId, conversationId, accessToken);
   return enrichConversation(row, userId, accessToken);
+}
+
+async function lastConversationMessage(conversationId, accessToken) {
+  const supabase = getMessagingSupabase(accessToken);
+  if (!supabase) {
+    const rows = memoryMessages
+      .filter((item) => item.conversation_id === conversationId)
+      .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+    return rows[rows.length - 1] ?? null;
+  }
+  const { data, error } = await supabase
+    .from('pet_feed_messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
+
+async function persistConversationMessage(row, userId, accessToken, fields) {
+  const prevMs = Date.parse(row.last_message_at || '') || 0;
+  const nowMs = Math.max(Date.now(), Number.isFinite(prevMs) ? prevMs + 1 : Date.now());
+  const now = new Date(nowMs).toISOString();
+  const body = fields.body ?? '';
+  const mediaUrls = fields.mediaUrls ?? [];
+  const listingShare = fields.listingShare ?? null;
+  const preview = inboxPreviewFromContent(body, mediaUrls, listingShare);
+  const message = {
+    id: randomUUID(),
+    conversation_id: row.id,
+    sender_user_id: userId,
+    body,
+    media_urls: mediaUrls,
+    created_at: now,
+    ...(listingShare ? { listing_share: listingShare } : {}),
+  };
+  const conversationPatch = {
+    last_message_at: now,
+    last_message_preview: preview.slice(0, 160),
+    last_message_sender_user_id: userId,
+    updated_at: now,
+    ...(userId === row.sen_user_id ? { sen_last_read_at: now } : { breeder_last_read_at: now }),
+  };
+  const supabase = getMessagingSupabase(accessToken);
+  if (!supabase) {
+    memoryMessages.push(message);
+    const idx = memoryConversations.findIndex((item) => item.id === row.id);
+    if (idx >= 0) {
+      memoryConversations[idx] = {
+        ...memoryConversations[idx],
+        ...conversationPatch,
+      };
+    }
+    return toMessage(message);
+  }
+
+  const { data, error } = await supabase.from('pet_feed_messages').insert(message).select('*').single();
+  if (error) throw error;
+  const { error: updateError } = await supabase
+    .from('pet_feed_conversations')
+    .update(conversationPatch)
+    .eq('id', row.id);
+  if (updateError) throw updateError;
+  return toMessage(data);
+}
+
+async function appendListingShareToConversation(userId, row, post, accessToken) {
+  const listingShare = postSummaryFromPost(post);
+  if (!listingShare?.id) return null;
+  const last = await lastConversationMessage(row.id, accessToken);
+  if (normalizeListingShare(last?.listing_share)?.id === listingShare.id) return null;
+  return persistConversationMessage(row, userId, accessToken, {
+    body: '',
+    mediaUrls: [],
+    listingShare,
+  });
 }
 
 export async function markPetFeedConversationRead(userId, conversationId, accessToken) {
@@ -521,45 +652,8 @@ export async function sendPetFeedConversationMessage(userId, conversationId, bod
     }
   }
 
-  const prevMs = Date.parse(row.last_message_at || '') || 0;
-  const nowMs = Math.max(Date.now(), Number.isFinite(prevMs) ? prevMs + 1 : Date.now());
-  const now = new Date(nowMs).toISOString();
-  const preview = inboxPreviewFromContent(trimmed, mediaUrls);
-  const message = {
-    id: randomUUID(),
-    conversation_id: row.id,
-    sender_user_id: userId,
+  return persistConversationMessage(row, userId, accessToken, {
     body: trimmed,
-    media_urls: mediaUrls,
-    created_at: now,
-  };
-  const supabase = getMessagingSupabase(accessToken);
-  const conversationPatch = {
-    last_message_at: now,
-    last_message_preview: preview.slice(0, 160),
-    last_message_sender_user_id: userId,
-    updated_at: now,
-    ...(userId === row.sen_user_id ? { sen_last_read_at: now } : { breeder_last_read_at: now }),
-  };
-
-  if (!supabase) {
-    memoryMessages.push(message);
-    const idx = memoryConversations.findIndex((item) => item.id === row.id);
-    if (idx >= 0) {
-      memoryConversations[idx] = {
-        ...memoryConversations[idx],
-        ...conversationPatch,
-      };
-    }
-    return toMessage(message);
-  }
-
-  const { data, error } = await supabase.from('pet_feed_messages').insert(message).select('*').single();
-  if (error) throw error;
-  const { error: updateError } = await supabase
-    .from('pet_feed_conversations')
-    .update(conversationPatch)
-    .eq('id', row.id);
-  if (updateError) throw updateError;
-  return toMessage(data);
+    mediaUrls,
+  });
 }

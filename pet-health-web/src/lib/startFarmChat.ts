@@ -3,6 +3,7 @@ import {
   conversationFromStartPayload,
   openConversationUi,
   withConversationEntryContext,
+  withConversationPeerLabel,
   type MessageConversation,
 } from "./messages";
 
@@ -121,13 +122,17 @@ export async function startFarmChatRequest(options: {
 export function openFarmChatUi(
   conversation: MessageConversation,
   options: {
+    farmName?: string | null;
     openChat?:
       | ((id: string, conversation?: MessageConversation | null) => void)
       | null;
     navigate: (href: string) => void;
   },
 ): void {
-  const farmConversation = withConversationEntryContext(conversation, "breeder");
+  const farmConversation = withConversationPeerLabel(
+    withConversationEntryContext(conversation, "breeder"),
+    options.farmName,
+  );
   if (options.openChat) {
     options.openChat(farmConversation.id, farmConversation);
     return;

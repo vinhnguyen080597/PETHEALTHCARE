@@ -1,6 +1,8 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../config';
 import type { PetFeedConversation, PetFeedMessage } from '../types';
+import { normalizeMessageMedia } from '../utils/chatMedia';
+import { normalizeListingShare } from '../utils/listingShare';
 
 let sharedClient: SupabaseClient | null = null;
 let currentAccessToken = '';
@@ -33,12 +35,17 @@ function toMessage(row: Record<string, unknown>): PetFeedMessage | null {
   const senderUserId = typeof row.sender_user_id === 'string' ? row.sender_user_id : '';
   const body = typeof row.body === 'string' ? row.body : '';
   const createdAt = typeof row.created_at === 'string' ? row.created_at : '';
-  if (!id || !conversationId || !senderUserId || !body || !createdAt) return null;
+  const mediaUrls = normalizeMessageMedia(row.media_urls);
+  const listingShare = normalizeListingShare(row.listing_share);
+  if (!id || !conversationId || !senderUserId || !createdAt) return null;
+  if (!body && mediaUrls.length === 0 && !listingShare) return null;
   return {
     id,
     conversation_id: conversationId,
     sender_user_id: senderUserId,
     body,
+    media_urls: mediaUrls,
+    listing_share: listingShare,
     created_at: createdAt,
   };
 }

@@ -9,10 +9,15 @@ import {
   formatMessageTime,
   inboxPreviewFromMessage,
   isMineMessage,
+  listingShareFromMessage,
   mergeMessageLists,
   MESSAGE_MAX_LEN,
   messageHasSendableContent,
   MESSAGES_POLL_MS,
+  CHAT_MESSAGE_ROW_CLASS,
+  CHAT_TEXT_WRAP_CLASS,
+  CHAT_THREAD_SCROLL_CLASS,
+  chatBubbleMaxWidthClass,
   normalizeMessageMedia,
   normalizeMessages,
   type MessageItem,
@@ -220,7 +225,7 @@ export function FloatingChatWindow() {
 
   return (
     <section
-      className="fixed z-40 flex flex-col overflow-hidden border border-[#F0E6D8] bg-white shadow-[0_18px_50px_-18px_rgba(43,30,25,0.45)] max-md:inset-x-0 max-md:bottom-0 max-md:top-16 max-md:rounded-none md:right-5 md:bottom-0 md:h-[min(32rem,calc(100vh-5.5rem))] md:w-[22.5rem] md:rounded-t-xl"
+      className="fixed z-40 flex w-full max-w-full min-w-0 flex-col overflow-hidden border border-[#F0E6D8] bg-white shadow-[0_18px_50px_-18px_rgba(43,30,25,0.45)] max-md:inset-x-0 max-md:bottom-0 max-md:top-16 max-md:rounded-none md:right-5 md:bottom-0 md:h-[min(32rem,calc(100vh-5.5rem))] md:w-[22.5rem] md:rounded-t-xl"
       aria-label={peer}
     >
       <header className="flex items-center gap-2 border-b border-[#F0E6D8] px-3 py-2.5">
@@ -252,19 +257,7 @@ export function FloatingChatWindow() {
         </button>
       </header>
 
-      {conversation ? (
-        <div className="px-3 pt-2.5">
-          <ListingContextCard
-            lang={lang}
-            conversation={conversation}
-            currentUserId={currentUserId}
-            compact
-            variant={isFarmEntry ? "breeder" : "listing"}
-          />
-        </div>
-      ) : null}
-
-      <div className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
+      <div className={`flex-1 space-y-3 px-3 py-3 ${CHAT_THREAD_SCROLL_CLASS}`}>
         {loading && messages.length === 0 ? <MessageThreadSkeleton /> : null}
         {!loading && messages.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-400">
@@ -275,15 +268,27 @@ export function FloatingChatWindow() {
           const mine = isMineMessage(m, currentUserId);
           const media = m.media_urls || [];
           const text = String(m.body || "").trim();
+          const listingShare = listingShareFromMessage(m);
           return (
             <div
               key={m.id}
-              className={`flex flex-col gap-1 ${mine ? "items-end" : "items-start"}`}
+              className={`flex flex-col gap-1 ${CHAT_MESSAGE_ROW_CLASS} ${mine ? "items-end" : "items-start"}`}
             >
+              {listingShare ? (
+                <div className={`w-[min(100%,16.5rem)] ${CHAT_MESSAGE_ROW_CLASS}`}>
+                  <ListingContextCard
+                    lang={lang}
+                    conversation={conversation}
+                    summary={listingShare}
+                    currentUserId={currentUserId}
+                    compact
+                  />
+                </div>
+              ) : null}
               {media.length ? <ChatMessageMedia urls={media} /> : null}
               {text ? (
                 <div
-                  className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm leading-5 ${
+                  className={`${chatBubbleMaxWidthClass(true)} ${CHAT_TEXT_WRAP_CLASS} rounded-2xl px-3 py-2 text-sm leading-5 ${
                     mine
                       ? `${brandUi.primaryBg} text-white rounded-br-md`
                       : "bg-slate-100 text-slate-800 rounded-bl-md"

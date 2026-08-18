@@ -17,7 +17,7 @@ import {
   listingPreviewImages,
   listingTrustTags,
 } from "@/lib/marketplaceSocialProof";
-import { conversationFromStartPayload, openConversationUi, withConversationEntryContext } from "@/lib/messages";
+import { conversationFromStartPayload, openConversationUi, withConversationEntryContext, withConversationPeerLabel } from "@/lib/messages";
 
 function depositLabel(price: string, lang: Lang): string | null {
   const n = parsePriceVnd(price);
@@ -199,7 +199,12 @@ export function ListingCard({
       openConversationUi(
         conversation?.id,
         (next) => router.push(next),
-        conversation ? withConversationEntryContext(conversation, "listing") : conversation,
+        conversation
+          ? withConversationPeerLabel(
+              withConversationEntryContext(conversation, "listing"),
+              listing.breeder.name,
+            )
+          : conversation,
       );
     } catch {
       router.push(detailHref);

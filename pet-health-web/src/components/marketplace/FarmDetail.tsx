@@ -544,6 +544,7 @@ export function FarmDetail({
         return;
       }
       openFarmChatUi(result.conversation, {
+        farmName: breeder.name,
         openChat: dock?.openChat,
         navigate: (next) => router.push(next),
       });

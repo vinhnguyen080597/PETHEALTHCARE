@@ -17,7 +17,12 @@ import {
   MESSAGE_MAX_LEN,
   messageHasSendableContent,
   inboxPreviewFromMessage,
+  listingShareFromMessage,
   MESSAGES_POLL_MS,
+  CHAT_MESSAGE_ROW_CLASS,
+  CHAT_TEXT_WRAP_CLASS,
+  CHAT_THREAD_SCROLL_CLASS,
+  chatBubbleMaxWidthClass,
   normalizeConversations,
   normalizeMessages,
   type MessageConversation,
@@ -271,6 +276,7 @@ export function MessagesClient({
                   {
                     photo: t(lang, "messages.photo"),
                     video: t(lang, "messages.video"),
+                    listing: t(lang, "messages.listingFallback"),
                   },
                 );
                 const thumb = conversationListingThumb(c);
@@ -372,15 +378,7 @@ export function MessagesClient({
                 ) : null}
               </header>
 
-              <div className="px-4 pt-3">
-                <ListingContextCard
-                  lang={lang}
-                  conversation={activeConversation}
-                  currentUserId={currentUserId}
-                />
-              </div>
-
-              <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 max-h-[360px]">
+              <div className={`flex-1 space-y-3 px-4 py-4 max-h-[360px] ${CHAT_THREAD_SCROLL_CLASS}`}>
                 {loading && messages.length === 0 ? (
                   <MessageThreadSkeleton />
                 ) : null}
@@ -393,15 +391,27 @@ export function MessagesClient({
                   const mine = isMineMessage(m, currentUserId);
                   const media = m.media_urls || [];
                   const text = String(m.body || "").trim();
+                  const listingShare = listingShareFromMessage(m);
                   return (
                     <div
                       key={m.id}
-                      className={`flex flex-col gap-1 ${mine ? "items-end" : "items-start"}`}
+                      className={`flex flex-col gap-1 ${CHAT_MESSAGE_ROW_CLASS} ${mine ? "items-end" : "items-start"}`}
                     >
+                      {listingShare ? (
+                        <div className={`w-[min(100%,18rem)] ${CHAT_MESSAGE_ROW_CLASS}`}>
+                          <ListingContextCard
+                            lang={lang}
+                            conversation={activeConversation}
+                            summary={listingShare}
+                            currentUserId={currentUserId}
+                            compact
+                          />
+                        </div>
+                      ) : null}
                       {media.length ? <ChatMessageMedia urls={media} /> : null}
                       {text ? (
                         <div
-                          className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-5 ${
+                          className={`${chatBubbleMaxWidthClass()} ${CHAT_TEXT_WRAP_CLASS} rounded-2xl px-3.5 py-2 text-sm leading-5 ${
                             mine
                               ? `${brandUi.primaryBg} text-white rounded-br-md`
                               : "bg-slate-100 text-slate-800 rounded-bl-md"

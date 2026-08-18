@@ -8,18 +8,21 @@ import {
   isConversationBreederViewer,
   resolveConversationPostSummary,
   type MessageConversation,
+  type MessageConversationPostSummary,
 } from "@/lib/messages";
 import { brandUi } from "@/lib/brand";
 
 export function ListingContextCard({
   lang,
-  conversation,
+  conversation = null,
+  summary: summaryProp,
   currentUserId,
   compact = false,
   variant = "listing",
 }: {
   lang: Lang;
-  conversation: MessageConversation;
+  conversation?: MessageConversation | null;
+  summary?: MessageConversationPostSummary | null;
   currentUserId: string | null;
   compact?: boolean;
   variant?: "listing" | "breeder";
@@ -27,7 +30,7 @@ export function ListingContextCard({
   if (variant === "breeder") {
     return (
       <div
-        className={`rounded-2xl border border-[#F0E6D8] bg-white ${compact ? "p-2.5" : "p-3"}`}
+        className={`min-w-0 max-w-full overflow-hidden rounded-2xl border border-[#F0E6D8] bg-white ${compact ? "p-2.5" : "p-3"}`}
       >
         {!compact ? (
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#8B7355]">
@@ -41,8 +44,8 @@ export function ListingContextCard({
             🏪
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-slate-900 line-clamp-2">
-              {conversation.peer_display_name || t(lang, "messages.peerFallback")}
+            <p className="text-sm font-bold text-slate-900 line-clamp-2 wrap-anywhere">
+              {conversation?.peer_display_name || t(lang, "messages.peerFallback")}
             </p>
             <p className="mt-1 text-xs text-slate-500 line-clamp-2">
               {t(lang, "messages.chatWithFarm")}
@@ -53,7 +56,7 @@ export function ListingContextCard({
     );
   }
 
-  const summary = resolveConversationPostSummary(conversation);
+  const summary = summaryProp || resolveConversationPostSummary(conversation);
   if (!summary?.id) return null;
 
   const isBreeder = isConversationBreederViewer(conversation, currentUserId);
@@ -67,7 +70,7 @@ export function ListingContextCard({
 
   const body = (
     <div
-      className={`rounded-2xl border border-[#F0E6D8] bg-white ${compact ? "p-2.5" : "p-3"}`}
+      className={`min-w-0 max-w-full overflow-hidden rounded-2xl border border-[#F0E6D8] bg-white ${compact ? "p-2.5" : "p-3"}`}
     >
       {!compact ? (
         <p className="text-[10px] font-bold uppercase tracking-wide text-[#8B7355]">
@@ -93,11 +96,11 @@ export function ListingContextCard({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-slate-900 line-clamp-2">
+          <p className="text-sm font-bold text-slate-900 line-clamp-2 wrap-anywhere">
             {summary.title || t(lang, "messages.listingFallback")}
           </p>
           {detailLine ? (
-            <p className="mt-1 text-xs text-slate-500 line-clamp-2">{detailLine}</p>
+            <p className="mt-1 text-xs text-slate-500 line-clamp-2 wrap-anywhere">{detailLine}</p>
           ) : null}
           {unavailable ? (
             <p className="mt-1 text-xs font-semibold text-amber-700">
@@ -118,7 +121,7 @@ export function ListingContextCard({
   return (
     <Link
       href={`/app/pet-feed/posts/${encodeURIComponent(summary.id)}`}
-      className="block hover:opacity-95"
+      className="block min-w-0 max-w-full hover:opacity-95"
       aria-label={t(lang, "messages.openListing")}
     >
       {body}

@@ -103,7 +103,7 @@ export function ChatComposer({
   const sendPad = compact ? "px-3.5 py-2" : "px-4 py-2.5";
 
   return (
-    <div className={`border-t border-[#F0E6D8] ${pad} space-y-2`}>
+    <div className={`min-w-0 border-t border-[#F0E6D8] ${pad} space-y-2`}>
       {files.length > 0 ? (
         <div className="flex gap-2 overflow-x-auto pb-0.5">
           {files.map((file, index) => (
@@ -122,7 +122,7 @@ export function ChatComposer({
       {sendError || pickError ? (
         <p className="text-xs text-red-600">{sendError || pickError}</p>
       ) : null}
-      <div className="flex items-end gap-1.5">
+      <div className="flex min-w-0 items-end gap-1.5">
         <button
           type="button"
           disabled={sending || files.length >= CHAT_MEDIA_MAX}
@@ -172,13 +172,13 @@ export function ChatComposer({
           }}
           placeholder={t(lang, "messages.placeholder")}
           disabled={sending}
-          className={`flex-1 ${inputPad} bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 ${brandUi.primaryFocusRing} disabled:opacity-60`}
+          className={`min-w-0 flex-1 ${inputPad} bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 ${brandUi.primaryFocusRing} disabled:opacity-60`}
         />
         <button
           type="button"
           onClick={onSend}
           disabled={!canSend}
-          className={`${sendPad} ${brandUi.primaryBg} ${brandUi.primaryBgHover} text-white text-sm font-semibold rounded-full disabled:opacity-50`}
+          className={`shrink-0 ${sendPad} ${brandUi.primaryBg} ${brandUi.primaryBgHover} text-white text-sm font-semibold rounded-full disabled:opacity-50`}
         >
           {t(lang, "detail.send")}
         </button>

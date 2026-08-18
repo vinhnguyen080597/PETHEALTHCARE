@@ -70,9 +70,20 @@ test('sen and breeder can exchange messages on a listing', async () => {
   assert.equal(conversation.post_summary.id, published.id);
   assert.equal(conversation.post_summary.breed, 'British');
   assert.ok(conversation.post_summary.thumb_url);
+  assert.equal(conversation.peer_display_name, 'Message Cattery');
+  assert.equal(conversation.farm_display_name, 'Message Cattery');
+  assert.equal(conversation.last_message_preview, 'Kitten for chat');
+
+  const seeded = await listPetFeedConversationMessages(senId, conversation.id, null);
+  assert.equal(seeded.length, 1);
+  assert.equal(seeded[0].listing_share?.id, published.id);
+  assert.equal(seeded[0].listing_share?.title, 'Kitten for chat');
+  assert.equal(seeded[0].body, '');
 
   const again = await openPetFeedConversation(senId, post.id, null);
   assert.equal(again.id, conversation.id);
+  const stillOne = await listPetFeedConversationMessages(senId, conversation.id, null);
+  assert.equal(stillOne.length, 1);
 
   const first = await sendPetFeedConversationMessage(senId, conversation.id, 'Is this baby still available?', null);
   assert.equal(first.body, 'Is this baby still available?');
@@ -85,9 +96,10 @@ test('sen and breeder can exchange messages on a listing', async () => {
   assert.equal(breederInbox.find((item) => item.id === conversation.id)?.has_unread, false);
 
   const messages = await listPetFeedConversationMessages(senId, conversation.id, null);
-  assert.equal(messages.length, 2);
-  assert.equal(messages[0].body, 'Is this baby still available?');
-  assert.equal(messages[1].body, 'Yes, still available.');
+  assert.equal(messages.length, 3);
+  assert.equal(messages[0].listing_share?.id, published.id);
+  assert.equal(messages[1].body, 'Is this baby still available?');
+  assert.equal(messages[2].body, 'Yes, still available.');
 
   senInbox = await listPetFeedConversations(senId, null);
   breederInbox = await listPetFeedConversations(breederId, null);
@@ -201,7 +213,11 @@ test('sen can open a direct farm conversation without a listing id', async () =>
   assert.equal(first.breeder_profile_id, profile.id);
   assert.equal(first.sen_user_id, senId);
   assert.equal(first.breeder_user_id, breederId);
-  assert.equal(first.peer_display_name, 'Pet Health user');
+  assert.equal(first.peer_display_name, 'Directory Cattery');
+  assert.equal(first.farm_display_name, 'Directory Cattery');
+
+  const breederView = await listPetFeedConversations(breederId, null);
+  assert.equal(breederView.find((item) => item.id === first.id)?.peer_display_name, 'Pet Health user');
 
   const soldPost = await createPetFeedPost(breederId, {
     title: 'Already rehomed',
@@ -241,6 +257,10 @@ test('sen can open a direct farm conversation without a listing id', async () =>
   const fromListing = await openPetFeedConversation(senId, livePost.id, null);
   assert.equal(fromListing.id, first.id);
   assert.equal(fromListing.post_id, livePost.id);
+  const afterListing = await listPetFeedConversationMessages(senId, first.id, null);
+  assert.equal(afterListing.length, 2);
+  assert.equal(afterListing[0].body, 'Hello farm');
+  assert.equal(afterListing[1].listing_share?.id, livePost.id);
 });
 
 test('one sen and one farm share a single thread across listings', async () => {
@@ -281,6 +301,8 @@ test('one sen and one farm share a single thread across listings', async () => {
   assert.equal(farmThread.post_id, secondPublished.id);
 
   const messages = await listPetFeedConversationMessages(senId, firstThread.id, null);
-  assert.equal(messages.length, 1);
-  assert.equal(messages[0].body, 'About the first baby');
+  assert.equal(messages.length, 3);
+  assert.equal(messages[0].listing_share?.id, firstPublished.id);
+  assert.equal(messages[1].body, 'About the first baby');
+  assert.equal(messages[2].listing_share?.id, secondPublished.id);
 });

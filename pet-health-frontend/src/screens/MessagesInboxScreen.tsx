@@ -130,7 +130,7 @@ export function MessagesInboxScreen({
                     className={`min-w-0 flex-1 text-sm ${item.has_unread ? 'font-black text-slate-900' : 'font-bold text-slate-900'}`}
                     numberOfLines={1}
                   >
-                    {item.peer_display_name || t('petFeed.messages.peerFallback')}
+                    {item.farm_display_name || item.peer_display_name || t('petFeed.messages.peerFallback')}
                   </Text>
                   <View className="flex-row items-center gap-1.5">
                     <Text className="text-xs text-slate-400">{formatInboxTime(item.last_message_at, i18n.language)}</Text>
@@ -147,7 +147,7 @@ export function MessagesInboxScreen({
                   {formatChatInboxPreview(
                     item.last_message_preview,
                     t('petFeed.messages.noMessagesYet'),
-                    { photo: t('petFeed.messages.photo'), video: t('petFeed.messages.video') },
+                    { photo: t('petFeed.messages.photo'), video: t('petFeed.messages.video'), listing: t('petFeed.messages.listingFallback') },
                   )}
                 </Text>
               </View>

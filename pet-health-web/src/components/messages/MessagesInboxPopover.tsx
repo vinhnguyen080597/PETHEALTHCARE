@@ -134,6 +134,7 @@ export function MessagesInboxPopover() {
                 {
                   photo: t(lang, "messages.photo"),
                   video: t(lang, "messages.video"),
+                  listing: t(lang, "messages.listingFallback"),
                 },
               );
               const thumb = conversationListingThumb(c);

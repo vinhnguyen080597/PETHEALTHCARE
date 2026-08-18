@@ -342,6 +342,7 @@ export type PetFeedConversation = {
   post_thumb_url: string | null;
   post_summary?: PetFeedConversationPostSummary | null;
   peer_display_name: string;
+  farm_display_name?: string | null;
   peer_user_id: string | null;
   /** True when peer sent the latest message after this viewer's last read. */
   has_unread?: boolean;
@@ -353,6 +354,7 @@ export type PetFeedMessage = {
   sender_user_id: string;
   body: string;
   media_urls?: string[];
+  listing_share?: PetFeedConversationPostSummary | null;
   created_at: string;
 };
 

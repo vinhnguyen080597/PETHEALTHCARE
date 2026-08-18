@@ -605,8 +605,15 @@ create table if not exists public.pet_feed_messages (
   id uuid primary key default gen_random_uuid(),
   conversation_id uuid not null references public.pet_feed_conversations(id) on delete cascade,
   sender_user_id text not null,
-  body text not null check (char_length(trim(body)) >= 1),
-  created_at timestamptz not null default now()
+  body text not null default '',
+  media_urls text[] not null default '{}',
+  listing_share jsonb,
+  created_at timestamptz not null default now(),
+  check (
+    char_length(trim(body)) >= 1
+    or coalesce(cardinality(media_urls), 0) > 0
+    or listing_share is not null
+  )
 );
 
 create index if not exists idx_pet_feed_conversations_sen
