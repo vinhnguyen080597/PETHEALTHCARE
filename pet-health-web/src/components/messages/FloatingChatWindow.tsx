@@ -9,6 +9,7 @@ import {
   formatMessageTime,
   inboxPreviewFromMessage,
   isMineMessage,
+  isPendingChatId,
   listingShareFromMessage,
   mergeMessageLists,
   MESSAGE_MAX_LEN,
@@ -34,6 +35,7 @@ import { fetchWithSession } from "@/lib/fetchWithSession";
 export function FloatingChatWindow() {
   const dock = useOptionalChatDock();
   const conversationId = dock?.activeChatId || null;
+  const pending = isPendingChatId(conversationId);
   const conversation =
     dock?.conversations.find((c) => c.id === conversationId) || null;
   const [messages, setMessages] = useState<MessageItem[]>([]);
@@ -45,10 +47,11 @@ export function FloatingChatWindow() {
   const threadEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!conversationId) {
+    if (!conversationId || pending) {
       setMessages([]);
       setDraft("");
       setFiles([]);
+      if (pending) setLoading(true);
       return;
     }
     let cancelled = false;
@@ -75,14 +78,14 @@ export function FloatingChatWindow() {
     };
     // Load this thread only — dock identity is stable for the session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId]);
+  }, [conversationId, pending]);
 
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, loading]);
 
   useEffect(() => {
-    if (!conversationId || dock?.chatMinimized) return;
+    if (!conversationId || pending || dock?.chatMinimized) return;
     let cancelled = false;
     const refresh = async () => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible") {
@@ -110,7 +113,7 @@ export function FloatingChatWindow() {
       window.clearInterval(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, dock?.chatMinimized]);
+  }, [conversationId, pending, dock?.chatMinimized]);
 
   if (!dock || !conversationId) return null;
 
@@ -132,7 +135,7 @@ export function FloatingChatWindow() {
     : "";
 
   const send = async () => {
-    if (sending) return;
+    if (sending || pending) return;
     const body = draft.trim().slice(0, MESSAGE_MAX_LEN);
     const pendingFiles = files;
     if (!messageHasSendableContent(body, pendingFiles.length)) return;
@@ -259,8 +262,10 @@ export function FloatingChatWindow() {
       </header>
 
       <div className={`flex-1 space-y-3 px-3 py-3 ${CHAT_THREAD_SCROLL_CLASS}`}>
-        {loading && messages.length === 0 ? <MessageThreadSkeleton /> : null}
-        {!loading && messages.length === 0 ? (
+        {pending || (loading && messages.length === 0) ? (
+          <MessageThreadSkeleton />
+        ) : null}
+        {!pending && !loading && messages.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-400">
             {t(lang, "messages.threadEmpty")}
           </p>
@@ -315,7 +320,7 @@ export function FloatingChatWindow() {
         onDraftChange={setDraft}
         files={files}
         onFilesChange={setFiles}
-        sending={sending}
+        sending={sending || pending}
         sendError={sendError}
         compact
         onSend={() => void send()}

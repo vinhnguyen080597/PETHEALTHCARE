@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  beginOptimisticChatOpen,
   farmConversationStartUrls,
+  finishOptimisticChatOpen,
   openFarmChatUi,
   preferredListingIdForFarmChat,
   shouldRetryFarmChatFallback,
@@ -70,6 +72,45 @@ test("startChatMessageKey maps farm chat errors", () => {
   assert.equal(startChatMessageKey(400, "PET_FEED_MESSAGE_SELF"), "messages.startChatSelf");
   assert.equal(startChatMessageKey(403, "PET_FEED_BREEDER_BLOCKED"), "messages.startChatBlocked");
   assert.equal(startChatMessageKey(500), "messages.startChatFailed");
+});
+
+test("optimistic chat opens the dock before the conversation id exists", () => {
+  const opened: Array<{ id: string; name?: string }> = [];
+  const pending = {
+    id: "pending:breeder:b1",
+    farm_display_name: "CattiesHouse",
+    peer_display_name: "CattiesHouse",
+    entry_context: "breeder" as const,
+  };
+  assert.equal(
+    beginOptimisticChatOpen(pending, (id, row) =>
+      opened.push({ id, name: row?.farm_display_name || undefined }),
+    ),
+    true,
+  );
+  assert.deepEqual(opened, [{ id: "pending:breeder:b1", name: "CattiesHouse" }]);
+  assert.equal(beginOptimisticChatOpen(pending, null), false);
+
+  const replaced: Array<{ pendingId: string; id: string }> = [];
+  finishOptimisticChatOpen({
+    pendingId: pending.id,
+    openedOptimistic: true,
+    conversation: { id: "c-real", farm_display_name: "CattiesHouse" },
+    replaceChat: (pendingId, row) => replaced.push({ pendingId, id: row.id }),
+    navigate: () => {
+      throw new Error("should not navigate");
+    },
+  });
+  assert.deepEqual(replaced, [{ pendingId: pending.id, id: "c-real" }]);
+
+  const navigated: string[] = [];
+  finishOptimisticChatOpen({
+    pendingId: pending.id,
+    openedOptimistic: false,
+    conversation: { id: "c-real" },
+    navigate: (href) => navigated.push(href),
+  });
+  assert.deepEqual(navigated, [`${MESSAGES_PAGE_HREF}?c=c-real`]);
 });
 
 test("openFarmChatUi prefers dock openChat over page navigation", () => {

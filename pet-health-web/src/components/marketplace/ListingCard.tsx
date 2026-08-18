@@ -17,7 +17,8 @@ import {
   listingPreviewImages,
   listingTrustTags,
 } from "@/lib/marketplaceSocialProof";
-import { conversationFromStartPayload, openConversationUi, withConversationEntryContext, withConversationPeerLabel } from "@/lib/messages";
+import { startChatAndOpenUi } from "@/lib/startFarmChat";
+import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
 
 function depositLabel(price: string, lang: Lang): string | null {
   const n = parsePriceVnd(price);
@@ -66,6 +67,7 @@ export function ListingCard({
   }) => void;
 }) {
   const router = useRouter();
+  const dock = useOptionalChatDock();
   const [saved, setSaved] = useState(Boolean(listing.saved));
   const [favCount, setFavCount] = useState(
     Math.max(0, Math.floor(Number(listing.favoriteCount) || 0)),
@@ -183,29 +185,22 @@ export function ListingCard({
     if (chatBusy || !interactive) return;
     setChatBusy(true);
     try {
-      const res = await fetch(`/api/listings/${listing.id}/conversations`, {
-        method: "POST",
+      const result = await startChatAndOpenUi({
+        listingId: listing.id,
+        farmName: listing.breeder.name,
+        listingTitle: title,
+        openChat: dock?.openChat,
+        replaceChat: dock?.replaceChat,
+        abortChat: dock?.abortChat,
+        navigate: (next) => router.push(next),
       });
-      if (res.status === 401) {
-        window.location.href = `/login?next=${encodeURIComponent(detailHref)}`;
-        return;
-      }
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      if (!result.ok) {
+        if (result.status === 401) {
+          window.location.href = `/login?next=${encodeURIComponent(detailHref)}`;
+          return;
+        }
         router.push(detailHref);
-        return;
       }
-      const conversation = conversationFromStartPayload(data);
-      openConversationUi(
-        conversation?.id,
-        (next) => router.push(next),
-        conversation
-          ? withConversationPeerLabel(
-              withConversationEntryContext(conversation, "listing"),
-              listing.breeder.name,
-            )
-          : conversation,
-      );
     } catch {
       router.push(detailHref);
     } finally {

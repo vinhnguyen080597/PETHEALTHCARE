@@ -15,9 +15,8 @@ import { listingSpeciesEmoji } from "@/lib/listingFormOptions";
 import type { BreederPetThumb } from "@/lib/marketplaceFeedSections";
 import { t } from "@/i18n";
 import {
-  openFarmChatUi,
+  startChatAndOpenUi,
   startChatMessageKey,
-  startFarmChatRequest,
 } from "@/lib/startFarmChat";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
 import { canShowBreederMessageAction } from "@/lib/listingOwnerActions";
@@ -68,8 +67,13 @@ export function BreederDirectoryCard({
     setMessageBusy(true);
     setMessageError("");
     try {
-      const result = await startFarmChatRequest({
+      const result = await startChatAndOpenUi({
         breederId: breeder.id,
+        farmName: breeder.name,
+        openChat: dock?.openChat,
+        replaceChat: dock?.replaceChat,
+        abortChat: dock?.abortChat,
+        navigate: (next) => router.push(next),
       });
       if (!result.ok) {
         if (result.status === 401) {
@@ -79,11 +83,6 @@ export function BreederDirectoryCard({
         setMessageError(t(lang, startChatMessageKey(result.status, result.code)));
         return;
       }
-      openFarmChatUi(result.conversation, {
-        farmName: breeder.name,
-        openChat: dock?.openChat,
-        navigate: (next) => router.push(next),
-      });
     } catch {
       setMessageError(t(lang, "messages.startChatFailed"));
     } finally {

@@ -39,9 +39,8 @@ import { farmTemplateHref } from "@/lib/siteBreadcrumbs";
 import { SHOW_BREEDER_VERIFICATION_BADGES } from "@/lib/breederVerificationUi";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
 import {
-  openFarmChatUi,
+  startChatAndOpenUi,
   startChatMessageKey,
-  startFarmChatRequest,
 } from "@/lib/startFarmChat";
 import { ListingCard } from "./ListingCard";
 import { DisclaimerBanner } from "./DisclaimerBanner";
@@ -532,8 +531,13 @@ export function FarmDetail({
     setMessageBusy(true);
     setMessageError("");
     try {
-      const result = await startFarmChatRequest({
+      const result = await startChatAndOpenUi({
         breederId: breeder.id,
+        farmName: breeder.name,
+        openChat: dock?.openChat,
+        replaceChat: dock?.replaceChat,
+        abortChat: dock?.abortChat,
+        navigate: (next) => router.push(next),
       });
       if (!result.ok) {
         if (result.status === 401) {
@@ -543,11 +547,6 @@ export function FarmDetail({
         setMessageError(t(lang, startChatMessageKey(result.status, result.code)));
         return;
       }
-      openFarmChatUi(result.conversation, {
-        farmName: breeder.name,
-        openChat: dock?.openChat,
-        navigate: (next) => router.push(next),
-      });
     } catch {
       setMessageError(t(lang, "messages.startChatFailed"));
     } finally {

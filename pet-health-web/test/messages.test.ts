@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  abortPendingChat,
   appendChatMediaFiles,
   chatMediaKindFromFile,
   CHAT_MEDIA_PREVIEW_PHOTO,
@@ -22,6 +23,7 @@ import {
   formatMessageTime,
   INBOX_FILTER_UNREAD,
   inboxPreviewFromMessage,
+  isPendingChatId,
   listingShareFromMessage,
   isChatVideoUrl,
   isConversationBreederViewer,
@@ -35,6 +37,9 @@ import {
   normalizeListingShare,
   normalizeMessageMedia,
   openConversationUi,
+  optimisticChatConversation,
+  pendingChatId,
+  replacePendingChat,
   resolveConversationPostSummary,
   withConversationPeerLabel,
 } from "../src/lib/messages";
@@ -104,11 +109,18 @@ test("withConversationPeerLabel stamps the farm or counterpart label", () => {
 test("unread count and mine/breeder helpers", () => {
   assert.equal(
     countUnreadConversations([
-      { has_unread: true },
-      { has_unread: false },
-      { has_unread: true },
+      { id: "c1", has_unread: true },
+      { id: "c2", has_unread: false },
+      { id: "c3", has_unread: true },
     ]),
     2,
+  );
+  assert.equal(
+    countUnreadConversations([
+      { id: "pending:breeder:b1", has_unread: true },
+      { id: "c1", has_unread: true },
+    ]),
+    1,
   );
   assert.equal(
     isMineMessage({ id: "m1", sender_user_id: "u1" }, "u1"),
@@ -242,6 +254,13 @@ test("filterInboxConversations matches query and unread", () => {
     ["c2"],
   );
   assert.equal(filterInboxConversations(rows, { query: "nope" }).length, 0);
+  assert.deepEqual(
+    filterInboxConversations(
+      [...rows, { id: "pending:listing:p1", peer_display_name: "CattiesHouse" }],
+      {},
+    ).map((c) => c.id),
+    ["c1", "c2"],
+  );
 });
 
 test("formatInboxRelativeTime uses compact FB-style units", () => {
@@ -397,4 +416,47 @@ test("chat pane classes keep the dock from stretching horizontally", () => {
   assert.ok(CHAT_TEXT_WRAP_CLASS.includes("wrap-anywhere"));
   assert.equal(chatBubbleMaxWidthClass(true), "max-w-[min(82%,100%)]");
   assert.equal(chatBubbleMaxWidthClass(), "max-w-[min(80%,100%)]");
+});
+
+test("optimistic chat opens with a pending id then swaps to the real thread", () => {
+  assert.equal(pendingChatId("breeder", "b1"), "pending:breeder:b1");
+  assert.equal(isPendingChatId("pending:listing:p1"), true);
+  assert.equal(isPendingChatId("c-real"), false);
+  const pending = optimisticChatConversation({
+    kind: "breeder",
+    sourceId: "b1",
+    farmName: "CattiesHouse",
+  });
+  assert.equal(pending?.id, "pending:breeder:b1");
+  assert.equal(pending?.farm_display_name, "CattiesHouse");
+  assert.equal(pending?.entry_context, "breeder");
+  const listingPending = optimisticChatConversation({
+    kind: "listing",
+    sourceId: "p1",
+    farmName: "CattiesHouse",
+    listingTitle: "British Shorthair",
+  });
+  assert.equal(listingPending?.post_title, "British Shorthair");
+  assert.equal(listingPending?.entry_context, "listing");
+  const replaced = replacePendingChat(
+    [pending!],
+    pending!.id,
+    pending!.id,
+    { id: "c-real", farm_display_name: "CattiesHouse", entry_context: "breeder" },
+  );
+  assert.equal(replaced.activeChatId, "c-real");
+  assert.deepEqual(
+    replaced.conversations.map((c) => c.id),
+    ["c-real"],
+  );
+  const aborted = abortPendingChat([pending!], pending!.id, pending!.id);
+  assert.equal(aborted.activeChatId, null);
+  assert.equal(aborted.conversations.length, 0);
+  const kept = replacePendingChat(
+    [pending!, { id: "other" }],
+    "other",
+    pending!.id,
+    { id: "c-real" },
+  );
+  assert.equal(kept.activeChatId, "other");
 });

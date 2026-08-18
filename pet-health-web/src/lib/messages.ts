@@ -286,10 +286,84 @@ export function appendChatMediaFiles(
   return { files, error };
 }
 
+export const PENDING_CHAT_PREFIX = "pending:";
+
+export function pendingChatId(
+  kind: "listing" | "breeder",
+  sourceId: string,
+): string | null {
+  const id = String(sourceId || "").trim();
+  if (!id) return null;
+  return `${PENDING_CHAT_PREFIX}${kind}:${encodeURIComponent(id)}`;
+}
+
+export function isPendingChatId(id: string | null | undefined): boolean {
+  return String(id || "").startsWith(PENDING_CHAT_PREFIX);
+}
+
+export function optimisticChatConversation(input: {
+  kind: "listing" | "breeder";
+  sourceId: string;
+  farmName?: string | null;
+  listingTitle?: string | null;
+  listingId?: string | null;
+}): MessageConversation | null {
+  const id = pendingChatId(input.kind, input.sourceId);
+  if (!id) return null;
+  const listingId = String(
+    input.listingId || (input.kind === "listing" ? input.sourceId : ""),
+  ).trim();
+  const listingTitle = String(input.listingTitle || "").trim();
+  return withConversationPeerLabel(
+    withConversationEntryContext(
+      {
+        id,
+        post_id: listingId || null,
+        post_title: listingTitle || undefined,
+      },
+      input.kind === "breeder" ? "breeder" : "listing",
+    ),
+    input.farmName,
+  );
+}
+
+export function replacePendingChat(
+  conversations: MessageConversation[],
+  activeChatId: string | null,
+  pendingId: string,
+  real: MessageConversation,
+): { conversations: MessageConversation[]; activeChatId: string | null } {
+  const id = String(pendingId || "").trim();
+  const nextId = String(real?.id || "").trim();
+  if (!id || !nextId) {
+    return { conversations, activeChatId };
+  }
+  return {
+    conversations: mergeConversationLists(
+      conversations.filter((row) => row.id !== id),
+      [real],
+    ),
+    activeChatId: activeChatId === id ? nextId : activeChatId,
+  };
+}
+
+export function abortPendingChat(
+  conversations: MessageConversation[],
+  activeChatId: string | null,
+  pendingId: string,
+): { conversations: MessageConversation[]; activeChatId: string | null } {
+  const id = String(pendingId || "").trim();
+  if (!id) return { conversations, activeChatId };
+  return {
+    conversations: conversations.filter((row) => row.id !== id),
+    activeChatId: activeChatId === id ? null : activeChatId,
+  };
+}
+
 export function countUnreadConversations(
-  conversations: Array<Pick<MessageConversation, "has_unread">>,
+  conversations: Array<Pick<MessageConversation, "id" | "has_unread">>,
 ): number {
-  return conversations.filter((c) => c.has_unread).length;
+  return conversations.filter((c) => c.has_unread && !isPendingChatId(c.id)).length;
 }
 
 export function messageSenderId(message: MessageItem): string {
@@ -465,6 +539,7 @@ export function filterInboxConversations(
   const query = String(options.query || "").trim().toLowerCase();
   const unreadOnly = options.filter === INBOX_FILTER_UNREAD;
   return conversations.filter((c) => {
+    if (isPendingChatId(c.id)) return false;
     if (unreadOnly && !c.has_unread) return false;
     if (!query) return true;
     return conversationSearchHaystack(c).includes(query);

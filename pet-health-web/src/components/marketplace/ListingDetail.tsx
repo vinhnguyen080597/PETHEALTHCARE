@@ -86,7 +86,8 @@ import {
 import { uploadDealEvidencePhotos } from "@/lib/uploadDealEvidence";
 import { DealPhotoPicker } from "./DealPhotoPicker";
 import { DialogActions } from "@/components/ui/DialogActions";
-import { conversationFromStartPayload, openConversationUi, withConversationEntryContext, withConversationPeerLabel } from "@/lib/messages";
+import { startChatAndOpenUi, startChatMessageKey } from "@/lib/startFarmChat";
+import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
 
 const REPORT_REASONS = [
   "scam",
@@ -174,6 +175,7 @@ export function ListingDetail({
   initialComments?: PublicComment[];
 }) {
   const router = useRouter();
+  const dock = useOptionalChatDock();
   const searchParams = useSearchParams();
   const listingFrom = parseListingDetailFrom(searchParams.get("from"));
   const dealAction = searchParams.get("dealAction");
@@ -568,22 +570,22 @@ export function ListingDetail({
     setBusy("message");
     setActionError("");
     try {
-      const res = await fetch(`/api/listings/${listing.id}/conversations`, {
-        method: "POST",
+      const result = await startChatAndOpenUi({
+        listingId: listing.id,
+        farmName: listing.breeder.name,
+        listingTitle: title,
+        openChat: dock?.openChat,
+        replaceChat: dock?.replaceChat,
+        abortChat: dock?.abortChat,
+        navigate: (href) => router.push(href),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed");
-      const conversation = conversationFromStartPayload(data);
-      openConversationUi(
-        conversation?.id,
-        (href) => router.push(href),
-        conversation
-          ? withConversationPeerLabel(
-              withConversationEntryContext(conversation, "listing"),
-              listing.breeder.name,
-            )
-          : conversation,
-      );
+      if (!result.ok) {
+        if (result.status === 401) {
+          requireLogin();
+          return;
+        }
+        setActionError(t(lang, startChatMessageKey(result.status, result.code)));
+      }
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Failed");
     } finally {

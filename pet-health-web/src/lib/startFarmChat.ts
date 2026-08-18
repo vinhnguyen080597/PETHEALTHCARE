@@ -1,7 +1,10 @@
 import { farmPetAvailability } from "./farmPets";
+import { fetchWithSession } from "./fetchWithSession";
 import {
   conversationFromStartPayload,
+  messagesPageHref,
   openConversationUi,
+  optimisticChatConversation,
   withConversationEntryContext,
   withConversationPeerLabel,
   type MessageConversation,
@@ -98,7 +101,7 @@ export async function startFarmChatRequest(options: {
     code: "PET_FEED_NO_LISTING_TO_MESSAGE",
   };
   for (let i = 0; i < urls.length; i += 1) {
-    const res = await fetch(urls[i], { method: "POST" });
+    const res = await fetchWithSession(urls[i], { method: "POST" });
     const data = (await res.json().catch(() => ({}))) as {
       data?: unknown;
       code?: string;
@@ -117,6 +120,95 @@ export async function startFarmChatRequest(options: {
     return { ok: false, status: res.status, code };
   }
   return { ok: false, ...last };
+}
+
+export function beginOptimisticChatOpen(
+  pending: MessageConversation | null,
+  openChat?:
+    | ((id: string, conversation?: MessageConversation | null) => void)
+    | null,
+): boolean {
+  const id = String(pending?.id || "").trim();
+  if (!id || !openChat) return false;
+  openChat(id, pending);
+  return true;
+}
+
+export function finishOptimisticChatOpen(options: {
+  pendingId?: string | null;
+  openedOptimistic: boolean;
+  conversation: MessageConversation;
+  replaceChat?:
+    | ((pendingId: string, conversation: MessageConversation) => void)
+    | null;
+  openChat?:
+    | ((id: string, conversation?: MessageConversation | null) => void)
+    | null;
+  navigate: (href: string) => void;
+}): void {
+  const pendingId = String(options.pendingId || "").trim();
+  if (options.openedOptimistic && pendingId && options.replaceChat) {
+    options.replaceChat(pendingId, options.conversation);
+    return;
+  }
+  if (options.openChat) {
+    options.openChat(options.conversation.id, options.conversation);
+    return;
+  }
+  options.navigate(messagesPageHref(options.conversation.id));
+}
+
+export async function startChatAndOpenUi(options: {
+  listingId?: string | null;
+  breederId?: string | null;
+  farmName?: string | null;
+  listingTitle?: string | null;
+  openChat?:
+    | ((id: string, conversation?: MessageConversation | null) => void)
+    | null;
+  replaceChat?:
+    | ((pendingId: string, conversation: MessageConversation) => void)
+    | null;
+  abortChat?: ((pendingId: string) => void) | null;
+  navigate: (href: string) => void;
+}): Promise<
+  | { ok: true }
+  | { ok: false; status: number; code?: string }
+> {
+  const kind = String(options.breederId || "").trim() ? "breeder" : "listing";
+  const sourceId = String(options.breederId || options.listingId || "").trim();
+  const pending = optimisticChatConversation({
+    kind,
+    sourceId,
+    farmName: options.farmName,
+    listingTitle: options.listingTitle,
+    listingId: options.listingId,
+  });
+  const openedOptimistic = beginOptimisticChatOpen(pending, options.openChat);
+  const result = await startFarmChatRequest({
+    listingId: options.listingId,
+    breederId: options.breederId,
+  });
+  if (!result.ok) {
+    if (openedOptimistic && pending) options.abortChat?.(pending.id);
+    return result;
+  }
+  const conversation = withConversationPeerLabel(
+    withConversationEntryContext(
+      result.conversation,
+      kind === "breeder" ? "breeder" : "listing",
+    ),
+    options.farmName,
+  );
+  finishOptimisticChatOpen({
+    pendingId: pending?.id,
+    openedOptimistic,
+    conversation,
+    replaceChat: options.replaceChat,
+    openChat: options.openChat,
+    navigate: options.navigate,
+  });
+  return { ok: true };
 }
 
 export function openFarmChatUi(

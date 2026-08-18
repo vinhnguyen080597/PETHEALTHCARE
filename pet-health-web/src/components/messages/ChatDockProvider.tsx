@@ -12,12 +12,14 @@ import {
 import type { Lang } from "@/lib/types";
 import {
   countUnreadConversations,
+  isPendingChatId,
   mergeConversationLists,
   MESSAGES_POLL_MS,
   MESSAGES_UNREAD_POLL_MS,
   normalizeConversations,
   PHC_OPEN_CHAT_EVENT,
   PHC_TOGGLE_INBOX_EVENT,
+  replacePendingChat,
   type MessageConversation,
 } from "@/lib/messages";
 import { fetchWithSession } from "@/lib/fetchWithSession";
@@ -38,6 +40,8 @@ type ChatDockContextValue = {
     conversationId: string,
     conversation?: MessageConversation | null,
   ) => void;
+  replaceChat: (pendingId: string, conversation: MessageConversation) => void;
+  abortChat: (pendingId: string) => void;
   closeChat: () => void;
   setChatMinimized: (minimized: boolean) => void;
   enableInboxPolling: () => void;
@@ -111,10 +115,31 @@ export function ChatDockProvider({
       setInboxOpen(false);
       setActiveChatId(id);
       setChatMinimized(false);
-      void refreshInbox();
+      if (!isPendingChatId(id)) void refreshInbox();
     },
     [refreshInbox],
   );
+
+  const replaceChat = useCallback(
+    (pendingId: string, conversation: MessageConversation) => {
+      setConversations(
+        (prev) =>
+          replacePendingChat(prev, pendingId, pendingId, conversation)
+            .conversations,
+      );
+      setActiveChatId((prev) =>
+        prev === String(pendingId || "").trim() ? conversation.id : prev,
+      );
+      setChatMinimized(false);
+    },
+    [],
+  );
+
+  const abortChat = useCallback((pendingId: string) => {
+    const id = String(pendingId || "").trim();
+    setConversations((prev) => prev.filter((row) => row.id !== id));
+    setActiveChatId((prev) => (prev === id ? null : prev));
+  }, []);
 
   const closeChat = useCallback(() => {
     setActiveChatId(null);
@@ -261,6 +286,8 @@ export function ChatDockProvider({
       activeChatId,
       chatMinimized,
       openChat,
+      replaceChat,
+      abortChat,
       closeChat,
       setChatMinimized,
       enableInboxPolling,
@@ -279,6 +306,8 @@ export function ChatDockProvider({
       activeChatId,
       chatMinimized,
       openChat,
+      replaceChat,
+      abortChat,
       closeChat,
       enableInboxPolling,
       refreshInbox,
