@@ -82,6 +82,7 @@
   "signupOtp": {
     "title": "Xác thực OTP",
     "subtitle": "Chúng mình đã gửi mã dùng một lần đến {{email}}.",
+    "subtitleMaskedPrefix": "Mã gồm 8 chữ số đã được gửi đến email",
     "displayNameLabel": "Tên hiển thị",
     "displayNamePlaceholder": "Tên dùng khi chat và bình luận",
     "displayNameHelper": "Tên này sẽ hiện khi bạn nhắn tin và bình luận trên Pet Feed.",
@@ -91,6 +92,9 @@
     "otpRequired": "Vui lòng nhập mã OTP đã gửi về email.",
     "otpInvalidLength": "Mã OTP phải gồm đúng 8 chữ số như trong email.",
     "helper": "Mã gồm 8 chữ số. Nếu chưa thấy email, vui lòng kiểm tra mục Spam/Junk.",
+    "spamNote": "Lưu ý kiểm tra thêm trong thư mục Spam/Junk.",
+    "resendReady": "Chưa nhận được mã? Gửi lại",
+    "resendCountdown": "Chưa nhận được mã? Gửi lại ({{seconds}}s)",
     "verifyButton": "Xác thực OTP",
     "backButton": "Quay lại đăng ký",
     "errors": {
@@ -99,6 +103,15 @@
       "rateLimit": "Vui lòng đợi {{seconds}} giây trước khi gửi lại mã.",
       "generic": "Xác thực thất bại. Vui lòng thử lại."
     }
+  },
+  "completeProfile": {
+    "title": "Hoàn thiện thông tin",
+    "subtitle": "Chọn tên hiển thị để dùng khi chat và bình luận trên Pet Feed.",
+    "displayNameLabel": "Tên hiển thị",
+    "displayNamePlaceholder": "Tên dùng khi chat và bình luận",
+    "displayNameHelper": "Tên này sẽ hiện khi bạn nhắn tin và bình luận trên Pet Feed.",
+    "displayNameRequired": "Vui lòng nhập tên hiển thị.",
+    "submit": "Tiếp tục"
   },
   "legal": {
     "title": "Hỗ trợ và chính sách",
@@ -1316,7 +1329,7 @@
   "onboarding": {
     "introTitle": "Sen ơi!",
     "introBubbleWelcome": "👋 Chào mừng bạn đến với\nPetCare: Pet Marketplace.",
-    "introBubbleMission": "Với PetCare: Pet Marketplace, mỗi bé thú cưng không chỉ là một người bạn nhỏ, mà là một thành viên trong gia đình. Chúng mình mong được cùng Sen lưu lại từng thay đổi, từng thói quen và từng khoảnh khắc chăm sóc để các bé luôn được yêu thương đúng lúc.",
+    "introBubbleMission": "Nơi mỗi bé thú cưng không chỉ là một người bạn nhỏ, mà là một thành viên trong gia đình. Chúng mình mong được kết nối Sen đến với các trại giống uy tín, tâm huyết. Và cùng nhau lưu lại từng thay đổi, từng thói quen và từng khoảnh khắc chăm sóc để các bé luôn được yêu thương đúng lúc.",
     "go": "Khám phá ngay",
     "createPetProfile": "Tạo hồ sơ thú cưng",
     "profileGuideByMai": "Sen ơi, hãy giúp mình điền các thông tin của bé nhé!",

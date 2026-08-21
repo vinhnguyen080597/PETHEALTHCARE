@@ -2,6 +2,7 @@ export type AppScreen =
   | 'login'
   | 'forgot-password'
   | 'signup-otp-verification'
+  | 'complete-profile'
   | 'pet-feed'
   | 'pet-feed-detail'
   | 'breeder-detail'

@@ -177,6 +177,22 @@ export async function adminUpdateAccountProfile(userId, payload) {
   return toAccount(data);
 }
 
+export async function updateSelfDisplayName(userId, displayName) {
+  const existing = await getAccountProfile(userId);
+  if (!existing) return null;
+  const nextName = trimText(displayName, 160);
+  if (!nextName) return existing;
+  const patch = {
+    display_name: nextName,
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) return memoryUpsert({ ...existing, ...patch });
+  const { data, error } = await supabase.from('app_user_profiles').update(patch).eq('user_id', userId).select('*').maybeSingle();
+  if (error) throw error;
+  return toAccount(data);
+}
+
 export async function updateSelfAccountLogin(userId, { email, loginIdentifier }) {
   const existing = await getAccountProfile(userId);
   if (!existing) return null;

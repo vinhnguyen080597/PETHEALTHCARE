@@ -82,6 +82,7 @@
   "signupOtp": {
     "title": "Verify OTP",
     "subtitle": "We sent a one-time code to {{email}}.",
+    "subtitleMaskedPrefix": "An 8-digit code was sent to",
     "displayNameLabel": "Display name",
     "displayNamePlaceholder": "Name for chat and comments",
     "displayNameHelper": "This name appears when you message and comment on Pet Feed.",
@@ -91,6 +92,9 @@
     "otpRequired": "Please enter the OTP code sent to your email.",
     "otpInvalidLength": "The OTP must be exactly 8 digits as shown in your email.",
     "helper": "The code is 8 digits. If you don't see it, check Spam/Junk.",
+    "spamNote": "Tip: also check your Spam/Junk folder.",
+    "resendReady": "Didn't get a code? Resend",
+    "resendCountdown": "Didn't get a code? Resend ({{seconds}}s)",
     "verifyButton": "Verify OTP",
     "backButton": "Back to sign up",
     "errors": {
@@ -99,6 +103,15 @@
       "rateLimit": "Please wait {{seconds}} seconds before requesting another code.",
       "generic": "Verification failed. Please try again."
     }
+  },
+  "completeProfile": {
+    "title": "Complete your profile",
+    "subtitle": "Choose a display name for chat and comments on Pet Feed.",
+    "displayNameLabel": "Display name",
+    "displayNamePlaceholder": "Name for chat and comments",
+    "displayNameHelper": "This name appears when you message and comment on Pet Feed.",
+    "displayNameRequired": "Please enter a display name.",
+    "submit": "Continue"
   },
   "legal": {
     "title": "Support and policies",
@@ -1319,7 +1332,7 @@
   "onboarding": {
     "introTitle": "Hey there!",
     "introBubbleWelcome": "👋 Welcome to\nPetCare: Pet Marketplace.",
-    "introBubbleMission": "At PetCare: Pet Marketplace, every pet is more than a little companion — they are family. We hope to help you keep every change, habit, and care moment close, so your pets can be loved at the right time.",
+    "introBubbleMission": "Where every pet is more than a little companion — they are family. We hope to connect you with trusted, dedicated breeders, and to keep every change, habit, and care moment close so your pets can be loved at the right time.",
     "go": "Explore now",
     "createPetProfile": "Create your pet's profile",
     "profileGuideByMai": "Dear pet parent, please help me fill in your pet's details.",

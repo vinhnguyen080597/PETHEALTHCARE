@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supabase.js';
-import { deleteAccountData, ensureAccountProfile } from '../repositories/accountRepository.js';
+import { deleteAccountData, ensureAccountProfile, updateSelfDisplayName } from '../repositories/accountRepository.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail, requireSignupEmail } from '../services/authIdentifierService.js';
 import { getPendingSignUpLoginBlockCode, requestEmailSignUpOtp } from '../services/signupAuthService.js';
 import {
@@ -342,6 +342,37 @@ router.post('/oauth/apple', async (req, res, next) => {
 
 router.get('/me', requireUser, async (req, res) => {
   return res.json({ data: req.account });
+});
+
+router.patch('/me', requireUser, async (req, res, next) => {
+  try {
+    const displayNameInput = req.body?.displayName ?? req.body?.display_name;
+    if (typeof displayNameInput !== 'string' || !displayNameInput.trim()) {
+      return res.status(400).json({ error: 'displayName is required', code: 'DISPLAY_NAME_REQUIRED' });
+    }
+    const account = await updateSelfDisplayName(req.user.id, displayNameInput);
+    if (!account) {
+      return res.status(404).json({ error: 'Account profile not found' });
+    }
+
+    const admin = getSupabaseServiceClient();
+    if (admin && req.user?.id) {
+      try {
+        await admin.auth.admin.updateUserById(req.user.id, {
+          user_metadata: {
+            ...(req.user.user_metadata ?? {}),
+            full_name: account.display_name,
+          },
+        });
+      } catch {
+        /* profile row is source of truth for app UI */
+      }
+    }
+
+    return res.json({ data: account });
+  } catch (err) {
+    return next(err);
+  }
 });
 
 router.post('/account/verify-request', requireUser, async (req, res, next) => {

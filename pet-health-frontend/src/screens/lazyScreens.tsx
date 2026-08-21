@@ -57,6 +57,7 @@ export const SignUpOtpVerificationScreen = lazyNamed(
   () => import('./SignUpOtpVerificationScreen'),
   'SignUpOtpVerificationScreen',
 );
+export const CompleteProfileScreen = lazyNamed(() => import('./CompleteProfileScreen'), 'CompleteProfileScreen');
 export const OnboardingIntroScreen = lazyNamed(() => import('./OnboardingIntroScreen'), 'OnboardingIntroScreen');
 export const OnboardingHealthPromptScreen = lazyNamed(
   () => import('./OnboardingHealthPromptScreen'),

@@ -93,6 +93,7 @@ import {
   applyForgotPassword,
   requestPasswordRecovery,
   verifySignUpOtp,
+  updateMyDisplayName,
   updateAdminUserCoreCareRecord,
   updateAdminUserPet,
   updateCoreCareRecord,
@@ -115,6 +116,10 @@ import { PENDING_INITIAL_ONBOARDING_KEY } from '../constants/auth';
 import { DEFAULT_TEMPLATE_ID, isBreederTemplateId } from '../constants/breederTemplates';
 import { isBreedRecognitionSpecies, type BreedRecognitionSlot } from '../constants/petBreedRecognitionSlots';
 import { normalizeAuthSession } from '../utils/authSession';
+import {
+  SIGNUP_OTP_RESEND_COOLDOWN_MS,
+  provisionalDisplayNameFromEmail,
+} from '../utils/otpPin';
 import {
   activateAuthSession,
   bindAuthSessionListener,
@@ -313,7 +318,11 @@ export function usePetHealthApp() {
   const [signUpOtp, setSignUpOtp] = useState('');
   const [signUpDisplayName, setSignUpDisplayName] = useState('');
   const [signUpOtpError, setSignUpOtpError] = useState('');
-  const [signUpOtpFieldErrors, setSignUpOtpFieldErrors] = useState<{ displayName?: string; otp?: string }>({});
+  const [signUpOtpFieldErrors, setSignUpOtpFieldErrors] = useState<{ otp?: string }>({});
+  const [signUpOtpResendAvailableAtMs, setSignUpOtpResendAvailableAtMs] = useState(0);
+  const [signUpOtpResendLoading, setSignUpOtpResendLoading] = useState(false);
+  const [completeProfileError, setCompleteProfileError] = useState('');
+  const [completeProfileFieldError, setCompleteProfileFieldError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [pendingSignUpEmail, setPendingSignUpEmail] = useState('');
   const [pendingSignUpPassword, setPendingSignUpPassword] = useState('');
@@ -1080,7 +1089,16 @@ export function usePetHealthApp() {
     }
   }
 
-  async function navigateAfterAuthenticatedSession(options?: { startInitialOnboarding?: boolean }) {
+  async function navigateAfterAuthenticatedSession(options?: {
+    startInitialOnboarding?: boolean;
+    completeProfileFirst?: boolean;
+  }) {
+    if (options?.completeProfileFirst) {
+      setCompleteProfileError('');
+      setCompleteProfileFieldError('');
+      setScreen('complete-profile');
+      return;
+    }
     if (options?.startInitialOnboarding) {
       await AsyncStorage.setItem(PENDING_INITIAL_ONBOARDING_KEY, '1');
       setInitialOnboarding(true);
@@ -1176,7 +1194,10 @@ export function usePetHealthApp() {
   }
 
   const applySession = useCallback(
-    async (sessionInput: AuthSession | null | undefined, options?: { startInitialOnboarding?: boolean }) => {
+    async (
+      sessionInput: AuthSession | null | undefined,
+      options?: { startInitialOnboarding?: boolean; completeProfileFirst?: boolean },
+    ) => {
       const session = normalizeAuthSession(sessionInput ?? null);
       if (!session) {
         throw new Error('Missing auth session');
@@ -1252,14 +1273,12 @@ export function usePetHealthApp() {
 
   function changeSignUpDisplayName(value: string) {
     setSignUpDisplayName(value.slice(0, 160));
-    if (signUpOtpError) setSignUpOtpError('');
-    if (signUpOtpFieldErrors.displayName) {
-      setSignUpOtpFieldErrors((prev) => {
-        const next = { ...prev };
-        delete next.displayName;
-        return next;
-      });
-    }
+    if (completeProfileError) setCompleteProfileError('');
+    if (completeProfileFieldError) setCompleteProfileFieldError('');
+  }
+
+  function armSignUpOtpResendCooldown() {
+    setSignUpOtpResendAvailableAtMs(Date.now() + SIGNUP_OTP_RESEND_COOLDOWN_MS);
   }
 
   async function submitAuth() {
@@ -1303,6 +1322,7 @@ export function usePetHealthApp() {
         setSignUpDisplayName('');
         setSignUpOtpError('');
         setSignUpOtpFieldErrors({});
+        armSignUpOtpResendCooldown();
         setAuthError('');
         setScreen('signup-otp-verification');
         return;
@@ -1332,6 +1352,7 @@ export function usePetHealthApp() {
           setSignUpDisplayName('');
           setSignUpOtpError('');
           setSignUpOtpFieldErrors({});
+          armSignUpOtpResendCooldown();
           setAuthError('');
           setScreen('signup-otp-verification');
           return;
@@ -1360,10 +1381,7 @@ export function usePetHealthApp() {
       setSignUpOtpError(i18n.t('common.somethingWentWrong'));
       return;
     }
-    const fieldErrors: { displayName?: string; otp?: string } = {};
-    if (!signUpDisplayName.trim()) {
-      fieldErrors.displayName = i18n.t('signupOtp.displayNameRequired');
-    }
+    const fieldErrors: { otp?: string } = {};
     if (!signUpOtp.trim()) {
       fieldErrors.otp = i18n.t('signupOtp.otpRequired');
     } else if (signUpOtp.trim().length !== SIGNUP_OTP_LENGTH) {
@@ -1382,7 +1400,7 @@ export function usePetHealthApp() {
         email: pendingSignUpEmail,
         otp: signUpOtp.trim(),
         password: pendingSignUpPassword,
-        displayName: signUpDisplayName.trim(),
+        displayName: provisionalDisplayNameFromEmail(pendingSignUpEmail),
       });
       const signUpSession = normalizeAuthSession(signUpRes.data.session ?? null);
       if (!signUpSession) {
@@ -1396,13 +1414,59 @@ export function usePetHealthApp() {
       setPendingSignUpEmail('');
       setPendingSignUpPassword('');
       setConfirmPassword('');
-      await applySession(signUpSession, { startInitialOnboarding: true });
+      await applySession(signUpSession, { completeProfileFirst: true });
+    } catch (error: unknown) {
+      setSignUpOtpError(resolveSignUpOtpErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resendSignUpOtp() {
+    if (!pendingSignUpEmail || !pendingSignUpPassword) {
+      setSignUpOtpError(i18n.t('common.somethingWentWrong'));
+      return;
+    }
+    if (Date.now() < signUpOtpResendAvailableAtMs) return;
+    setSignUpOtpResendLoading(true);
+    setSignUpOtpError('');
+    try {
+      await requestSignUpOtp({ email: pendingSignUpEmail, password: pendingSignUpPassword });
+      setSignUpOtp('');
+      setSignUpOtpFieldErrors({});
+      armSignUpOtpResendCooldown();
+    } catch (error: unknown) {
+      setSignUpOtpError(resolveSignUpOtpErrorMessage(error));
+    } finally {
+      setSignUpOtpResendLoading(false);
+    }
+  }
+
+  async function submitCompleteProfile() {
+    const name = signUpDisplayName.trim();
+    if (!name) {
+      setCompleteProfileFieldError(i18n.t('completeProfile.displayNameRequired'));
+      setCompleteProfileError('');
+      return;
+    }
+    if (!token) {
+      setCompleteProfileError(i18n.t('common.somethingWentWrong'));
+      return;
+    }
+    setLoading(true);
+    setCompleteProfileError('');
+    setCompleteProfileFieldError('');
+    try {
+      const response = await updateMyDisplayName(token, name);
+      setAccountProfile(response.data);
+      setSignUpDisplayName('');
+      await navigateAfterAuthenticatedSession({ startInitialOnboarding: true });
     } catch (error: unknown) {
       if (error instanceof ApiRequestError && error.code === 'DISPLAY_NAME_REQUIRED') {
-        setSignUpOtpFieldErrors({ displayName: i18n.t('signupOtp.displayNameRequired') });
-        setSignUpOtpError('');
+        setCompleteProfileFieldError(i18n.t('completeProfile.displayNameRequired'));
+        setCompleteProfileError('');
       } else {
-        setSignUpOtpError(resolveSignUpOtpErrorMessage(error));
+        setCompleteProfileError(error instanceof Error ? error.message : i18n.t('common.somethingWentWrong'));
       }
     } finally {
       setLoading(false);
@@ -4439,6 +4503,10 @@ export function usePetHealthApp() {
     changeSignUpDisplayName,
     signUpOtpError,
     signUpOtpFieldErrors,
+    signUpOtpResendAvailableAtMs,
+    signUpOtpResendLoading,
+    completeProfileError,
+    completeProfileFieldError,
     isSignUp,
     pendingSignUpEmail,
     toggleLoginSignUpMode,
@@ -4530,6 +4598,8 @@ export function usePetHealthApp() {
     forgotPasswordRecoverFieldErrors,
     forgotPasswordRateLimitSeconds,
     submitSignUpOtpVerification,
+    resendSignUpOtp,
+    submitCompleteProfile,
     backToSignUpFromOtpVerification,
     handleAddPet,
     handleUpdatePet,

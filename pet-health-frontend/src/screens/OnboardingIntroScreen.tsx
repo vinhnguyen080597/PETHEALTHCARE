@@ -4,19 +4,13 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MAI_AND_PETS } from '../assets/maiOnboardingAssets';
+import { BRAND } from '../theme/brand';
 
-const PRIMARY = '#1E6FE8';
-const BUBBLE_BG = '#F0F7FF';
-const BUBBLE_BORDER = '#BFDBFE';
+const BUBBLE_BG = '#FFF7ED';
+const BUBBLE_BORDER = '#FED7AA';
 
 type OnboardingIntroScreenProps = {
   onGo: () => void;
-};
-
-const titleShadow = {
-  textShadowColor: 'rgba(255,255,255,0.95)',
-  textShadowOffset: { width: 0, height: 0 },
-  textShadowRadius: 10,
 };
 
 /** First-login welcome before the user chooses their own next step. */
@@ -42,18 +36,11 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           flexGrow: 1,
-          paddingTop: Math.max(insets.top, compact ? 8 : 12),
+          paddingTop: Math.max(insets.top, 12) + (compact ? 28 : 40),
           paddingHorizontal: 20,
           paddingBottom: 16,
         }}
       >
-        <Text
-          className={`text-center font-bold text-slate-900 ${compact ? 'mb-2 text-base' : 'mb-2 text-lg'}`}
-          style={titleShadow}
-        >
-          {t('onboarding.introTitle')}
-        </Text>
-
         <View className="items-center">
           <View
             className={`w-full max-w-md rounded-3xl border ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}
@@ -64,7 +51,7 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
             >
               {t('onboarding.introBubbleWelcome')}
             </Text>
-            <View className="mx-auto my-3 h-px w-16 bg-blue-200" />
+            <View className="mx-auto my-3 h-px w-16" style={{ backgroundColor: '#FDBA74' }} />
             <Text
               className={`text-center font-medium leading-[23px] text-slate-800 ${compact ? 'text-sm' : 'text-[15px]'}`}
             >
@@ -101,7 +88,7 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
           accessibilityRole="button"
           accessibilityLabel="Go to home"
           className={`rounded-xl active:opacity-90 ${compact ? 'py-3.5' : 'py-4'}`}
-          style={{ backgroundColor: PRIMARY }}
+          style={{ backgroundColor: BRAND.primary }}
           onPress={onGo}
         >
           <Text className="text-center text-base font-bold text-white">{t('onboarding.go')}</Text>

@@ -341,6 +341,17 @@ export async function getMe(token: string) {
   });
 }
 
+export async function updateMyDisplayName(token: string, displayName: string) {
+  return requestJson<{ data: AccountProfile }>('/auth/me', {
+    method: 'PATCH',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ displayName }),
+  });
+}
+
 export async function deleteMyAccount(token: string) {
   await requestJson<null>('/auth/me', {
     method: 'DELETE',

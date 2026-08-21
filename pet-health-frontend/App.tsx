@@ -58,6 +58,7 @@ import {
   PetProfileScreen,
   ResultsScreen,
   SignUpOtpVerificationScreen,
+  CompleteProfileScreen,
   TemplatePickerScreen,
   UpdateAccountChangeLoginScreen,
   UpdateAccountChangePasswordScreen,
@@ -274,7 +275,7 @@ function AppContent() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style={app.screen === 'login' || app.screen === 'forgot-password' || app.screen === 'signup-otp-verification' ? 'light' : 'dark'} />
+      <StatusBar style="dark" />
       {app.screen === 'login' ? (
         <LoginScreen
           backendHealth={app.backendHealth}
@@ -324,15 +325,25 @@ function AppContent() {
       ) : app.screen === 'signup-otp-verification' ? (
         <SignUpOtpVerificationScreen
           email={app.pendingSignUpEmail || app.email}
-          displayName={app.signUpDisplayName}
           otp={app.signUpOtp}
           error={app.signUpOtpError}
           fieldErrors={app.signUpOtpFieldErrors}
           loading={app.loading}
-          onChangeDisplayName={app.changeSignUpDisplayName}
+          resendLoading={app.signUpOtpResendLoading}
+          resendAvailableAtMs={app.signUpOtpResendAvailableAtMs}
           onChangeOtp={app.changeSignUpOtp}
           onBack={app.backToSignUpFromOtpVerification}
           onSubmit={app.submitSignUpOtpVerification}
+          onResend={() => void app.resendSignUpOtp()}
+        />
+      ) : app.screen === 'complete-profile' ? (
+        <CompleteProfileScreen
+          displayName={app.signUpDisplayName}
+          error={app.completeProfileError}
+          fieldError={app.completeProfileFieldError}
+          loading={app.loading}
+          onChangeDisplayName={app.changeSignUpDisplayName}
+          onSubmit={() => void app.submitCompleteProfile()}
         />
       ) : (
         <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right']}>
