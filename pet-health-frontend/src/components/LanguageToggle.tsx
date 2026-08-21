@@ -1,46 +1,57 @@
-import { Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { setAppLanguage } from '../i18n';
+import { BRAND } from '../theme/brand';
+import {
+  findAppLanguage,
+  resolveAppLanguageCode,
+} from '../utils/appLanguages';
+import { LanguageBottomSheet } from './LanguageBottomSheet';
+import { LanguageCountryFlag } from './LanguageCountryFlag';
 
-const ACTIVE = '#ffffff';
-const INACTIVE = 'rgba(255,255,255,0.65)';
+type LanguageHeaderChipProps = {
+  /** Absolute top-right overlay; default true for auth screens. */
+  absolute?: boolean;
+};
 
-export function LanguageToggle() {
+/**
+ * Compact header language control: small flag + chevron.
+ * Positions with safe-area inset so it clears status-bar icons.
+ */
+export function LanguageHeaderChip({ absolute = true }: LanguageHeaderChipProps) {
   const { t, i18n } = useTranslation();
-  const isVi = i18n.language.startsWith('vi');
+  const insets = useSafeAreaInsets();
+  const [open, setOpen] = useState(false);
+  const current = findAppLanguage(resolveAppLanguageCode(i18n.language));
+  // Clear status bar / notch, then nudge down a bit more for tap comfort.
+  const topOffset = insets.top + 12;
 
   return (
-    <View className="mb-4 flex-row justify-center gap-2">
-      <Pressable
-        testID="language-english-button"
-        accessibilityRole="button"
-        accessibilityLabel="Switch language to English"
-        className="rounded-full border px-4 py-2 active:opacity-90"
-        style={{
-          borderColor: isVi ? INACTIVE : ACTIVE,
-          backgroundColor: isVi ? 'transparent' : 'rgba(255,255,255,0.2)',
-        }}
-        onPress={() => void setAppLanguage('en')}
+    <>
+      <View
+        className={absolute ? 'absolute right-4 z-20' : undefined}
+        style={absolute ? { top: topOffset } : undefined}
+        pointerEvents="box-none"
       >
-        <Text className="text-sm font-semibold" style={{ color: isVi ? INACTIVE : ACTIVE }}>
-          {t('language.english')}
-        </Text>
-      </Pressable>
-      <Pressable
-        testID="language-vietnamese-button"
-        accessibilityRole="button"
-        accessibilityLabel="Switch language to Vietnamese"
-        className="rounded-full border px-4 py-2 active:opacity-90"
-        style={{
-          borderColor: isVi ? ACTIVE : INACTIVE,
-          backgroundColor: isVi ? 'rgba(255,255,255,0.2)' : 'transparent',
-        }}
-        onPress={() => void setAppLanguage('vi')}
-      >
-        <Text className="text-sm font-semibold" style={{ color: isVi ? ACTIVE : INACTIVE }}>
-          {t('language.vietnamese')}
-        </Text>
-      </Pressable>
-    </View>
+        <Pressable
+          testID="language-header-chip"
+          accessibilityRole="button"
+          accessibilityLabel={t('language.openPicker')}
+          className="flex-row items-center gap-1 rounded-full border border-[#E2E8F0] bg-white px-2 py-1 active:bg-orange-50"
+          onPress={() => setOpen(true)}
+        >
+          <LanguageCountryFlag isoCode={current.countryIsoCode} size={12} />
+          <Ionicons name="chevron-down" size={12} color={BRAND.textMuted} />
+        </Pressable>
+      </View>
+      <LanguageBottomSheet visible={open} onClose={() => setOpen(false)} />
+    </>
   );
+}
+
+/** @deprecated Prefer LanguageHeaderChip — kept for existing imports. */
+export function LanguageToggle() {
+  return <LanguageHeaderChip absolute={false} />;
 }

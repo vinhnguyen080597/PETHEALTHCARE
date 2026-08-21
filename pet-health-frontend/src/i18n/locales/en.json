@@ -18,7 +18,11 @@
     "vietnamese": "Tiếng Việt",
     "vietnameseDisplay": "Việt Nam",
     "selectionTitle": "Language selection",
-    "selectionSubtitle": "Choose the language you want to use in the app."
+    "selectionSubtitle": "Choose the language you want to use in the app.",
+    "sheetTitle": "Choose language",
+    "openPicker": "Change language",
+    "searchPlaceholder": "Search language",
+    "searchEmpty": "No matching languages."
   },
   "health": {
     "checking": "Checking backend...",
@@ -27,7 +31,7 @@
   },
   "login": {
     "appName": "PetCare: Pet Marketplace",
-    "tagline": "Your pet wellness companion",
+    "tagline": "✨ Welcome your new family member with peace of mind",
     "createAccount": "Create Account",
     "welcomeBack": "Welcome Back",
     "email": "Email",
@@ -536,6 +540,9 @@
     "subtitle": "Manage your role, saved posts, and app session.",
     "adminSubtitle": "Manage requests, breeders, listings, and community safety.",
     "breederSubtitle": "Manage your trusted profile, Pet Feed posts, and review status.",
+    "profile": {
+      "verified": "Verified"
+    },
     "deleteAccount": {
       "cardTitle": "Delete account",
       "cardBody": "Request permanent deletion of your account and app data. This action cannot be restored from the app.",

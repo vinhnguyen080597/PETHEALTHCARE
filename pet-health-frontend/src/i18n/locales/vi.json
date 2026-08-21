@@ -18,7 +18,11 @@
     "vietnamese": "Tiếng Việt",
     "vietnameseDisplay": "Việt Nam",
     "selectionTitle": "Lựa chọn ngôn ngữ",
-    "selectionSubtitle": "Chọn ngôn ngữ Sen muốn dùng trong ứng dụng."
+    "selectionSubtitle": "Chọn ngôn ngữ Sen muốn dùng trong ứng dụng.",
+    "sheetTitle": "Chọn ngôn ngữ",
+    "openPicker": "Đổi ngôn ngữ",
+    "searchPlaceholder": "Tìm ngôn ngữ",
+    "searchEmpty": "Không tìm thấy ngôn ngữ phù hợp."
   },
   "health": {
     "checking": "Đang kiểm tra máy chủ...",
@@ -27,7 +31,7 @@
   },
   "login": {
     "appName": "PetCare: Pet Marketplace",
-    "tagline": "Trợ lý chăm sóc sức khỏe thú cưng",
+    "tagline": "✨ An tâm đón thành viên mới",
     "createAccount": "Tạo tài khoản",
     "welcomeBack": "Chào mừng trở lại",
     "email": "Email",
@@ -536,6 +540,9 @@
     "subtitle": "Quản lý vai trò, bài đã lưu và phiên đăng nhập.",
     "adminSubtitle": "Quản lý request, breeder, bài đăng và an toàn cộng đồng.",
     "breederSubtitle": "Quản lý hồ sơ uy tín, bài đăng Pet Feed và trạng thái duyệt.",
+    "profile": {
+      "verified": "Đã xác minh"
+    },
     "deleteAccount": {
       "cardTitle": "Xóa tài khoản",
       "cardBody": "Yêu cầu xóa vĩnh viễn tài khoản và dữ liệu trong app. Thao tác này không thể khôi phục trong ứng dụng.",

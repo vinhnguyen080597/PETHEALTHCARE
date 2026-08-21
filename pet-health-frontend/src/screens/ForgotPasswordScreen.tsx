@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AuthWarmBackdrop } from '../components/AuthWarmBackdrop';
+import { BRAND } from '../theme/brand';
 
 type ForgotPasswordScreenProps = {
   email: string;
@@ -41,6 +43,12 @@ type ForgotPasswordScreenProps = {
   onSubmitRecover: () => void;
 };
 
+function inputBorderClass(hasError: boolean, focused: boolean) {
+  if (hasError) return 'border-red-400';
+  if (focused) return 'border-[#F97316]';
+  return 'border-[#E2E8F0]';
+}
+
 function PasswordField({
   label,
   value,
@@ -55,17 +63,20 @@ function PasswordField({
   testID: string;
 }) {
   const [visible, setVisible] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm text-slate-700">{label}</Text>
-      <View className={`flex-row items-center rounded-xl border bg-white ${error ? 'border-red-400' : 'border-gray-300'}`}>
+      <View className={`flex-row items-center rounded-xl border bg-white ${inputBorderClass(Boolean(error), focused)}`}>
         <TextInput
           testID={testID}
           className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
           secureTextEntry={!visible}
           value={value}
           onChangeText={onChangeText}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
         <Pressable className="px-3 py-3" onPress={() => setVisible((v) => !v)}>
           <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={22} color="#64748b" />
@@ -99,9 +110,13 @@ export function ForgotPasswordScreen({
   onSubmitRecover,
 }: ForgotPasswordScreenProps) {
   const { t } = useTranslation();
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [otpFocused, setOtpFocused] = useState(false);
+  const sendDisabled = loading || Boolean(rateLimitSeconds && rateLimitSeconds > 0);
 
   return (
-    <SafeAreaView className="flex-1 bg-blue-600" edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView className="flex-1 bg-[#FCFBFA]" edges={['top', 'bottom', 'left', 'right']}>
+      <AuthWarmBackdrop />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
         <ScrollView
           className="flex-1"
@@ -110,13 +125,20 @@ export function ForgotPasswordScreen({
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-1 items-center justify-center pb-6">
-            <View className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-white shadow-lg">
-              <Ionicons name="key-outline" size={44} color="#2563eb" />
+            <View
+              className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-white shadow-md"
+              style={{ borderWidth: 2, borderColor: '#FED7AA' }}
+            >
+              <Ionicons name="key-outline" size={40} color={BRAND.primary} />
             </View>
-            <Text className="mb-2 text-center text-3xl font-semibold text-white">{t('login.forgotPasswordTitle')}</Text>
-            <Text className="mb-6 max-w-sm text-center text-base text-blue-100">{t('login.forgotPasswordBody')}</Text>
+            <Text className="mb-2 text-center text-3xl font-semibold" style={{ color: BRAND.text }}>
+              {t('login.forgotPasswordTitle')}
+            </Text>
+            <Text className="mb-6 max-w-sm text-center text-base" style={{ color: BRAND.textMuted }}>
+              {t('login.forgotPasswordBody')}
+            </Text>
 
-            <View className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <View className="w-full max-w-sm rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
               {error ? (
                 <View testID="forgot-password-error" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                   <Text className="text-sm font-medium text-red-700">{error}</Text>
@@ -132,15 +154,18 @@ export function ForgotPasswordScreen({
               <TextInput
                 testID="forgot-password-email-input"
                 accessibilityLabel={t('login.email')}
-                className={`mb-1 rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${
-                  fieldErrors?.email ? 'border-red-400' : 'border-gray-300'
-                }`}
+                className={`mb-1 rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${inputBorderClass(
+                  Boolean(fieldErrors?.email),
+                  emailFocused,
+                )}`}
                 placeholder={t('login.placeholderEmail')}
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor="#94a3b8"
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
                 onChangeText={onChangeEmail}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
               />
               {fieldErrors?.email ? (
                 <Text className="mb-4 text-xs font-medium text-red-600">{fieldErrors.email}</Text>
@@ -151,10 +176,9 @@ export function ForgotPasswordScreen({
               <Pressable
                 testID="forgot-password-send-otp-button"
                 accessibilityRole="button"
-                disabled={loading || Boolean(rateLimitSeconds && rateLimitSeconds > 0)}
-                className={`mb-3 w-full rounded-xl py-3 ${
-                  loading || (rateLimitSeconds && rateLimitSeconds > 0) ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'
-                }`}
+                disabled={sendDisabled}
+                className="mb-3 w-full rounded-xl py-3"
+                style={{ backgroundColor: sendDisabled ? '#FDBA74' : BRAND.primary }}
                 onPress={onSubmitSendOtp}
               >
                 <Text className="text-center text-base font-semibold text-white">{t('login.forgotPasswordSendOtp')}</Text>
@@ -163,7 +187,7 @@ export function ForgotPasswordScreen({
               <Pressable
                 testID="forgot-password-back-button"
                 accessibilityRole="button"
-                className="rounded-xl border border-gray-200 bg-white py-3 active:bg-slate-50"
+                className="rounded-xl border border-[#E2E8F0] bg-white py-3 active:bg-slate-50"
                 onPress={onBack}
               >
                 <Text className="text-center text-sm font-semibold text-slate-700">{t('login.forgotPasswordBack')}</Text>
@@ -194,15 +218,18 @@ export function ForgotPasswordScreen({
               <Text className="mb-2 mt-4 text-sm text-slate-700">{t('account.updateAccount.recoverOtpLabel')}</Text>
               <TextInput
                 testID="forgot-password-otp-input"
-                className={`rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${
-                  fieldErrors?.otp || otpError ? 'border-red-400' : 'border-gray-300'
-                }`}
+                className={`rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${inputBorderClass(
+                  Boolean(fieldErrors?.otp || otpError),
+                  otpFocused,
+                )}`}
                 placeholder={t('account.updateAccount.recoverOtpPlaceholder')}
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor="#94a3b8"
                 keyboardType="number-pad"
                 maxLength={8}
                 value={otp}
                 onChangeText={onChangeOtp}
+                onFocus={() => setOtpFocused(true)}
+                onBlur={() => setOtpFocused(false)}
               />
               {fieldErrors?.otp ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.otp}</Text> : null}
               <Text className="mt-2 text-xs text-slate-500">{t('account.updateAccount.recoverOtpHelper')}</Text>
@@ -228,7 +255,8 @@ export function ForgotPasswordScreen({
               <Pressable
                 testID="forgot-password-otp-verify-button"
                 disabled={loading}
-                className={`rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600 active:bg-blue-700'}`}
+                className="rounded-xl py-3"
+                style={{ backgroundColor: loading ? '#FDBA74' : BRAND.primary }}
                 onPress={onSubmitRecover}
               >
                 <Text className="text-center text-base font-semibold text-white">
@@ -237,7 +265,7 @@ export function ForgotPasswordScreen({
               </Pressable>
               <Pressable
                 testID="forgot-password-otp-cancel-button"
-                className="mt-3 rounded-xl border border-gray-200 bg-white py-3 active:bg-slate-50"
+                className="mt-3 rounded-xl border border-[#E2E8F0] bg-white py-3 active:bg-slate-50"
                 onPress={onCloseOtpModal}
               >
                 <Text className="text-center text-sm font-semibold text-slate-700">{t('account.updateAccount.emailOtpCancel')}</Text>

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Alert, InteractionManager, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PET_MARKET_AVATAR } from '../assets/brandAssets';
 import { MAI_GUIDING } from '../assets/maiAssets';
 import { APP_LINKS } from '../config';
 import type { AccountProfile, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
@@ -21,8 +22,10 @@ import { modalTopInset } from '../utils/modalSafeArea';
 import { opensMyListingReviewPopup } from '../utils/myListingReviewPopup';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
+import { BRAND } from '../theme/brand';
+import { accountShowsVerifiedBadge } from '../utils/accountProfileDisplay';
 
-const PRIMARY = '#1E6FE8';
+const PRIMARY = BRAND.primary;
 
 function notifyUser(title: string, message: string) {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -442,11 +445,15 @@ export function AccountScreen({
     }
   }
 
+  const profileName = account?.display_name?.trim() || account?.login_identifier || t(`account.roles.${role}.title`);
+  const profileSubtitle = account?.email || account?.login_identifier || '';
+  const showVerifiedBadge = accountShowsVerifiedBadge(role, breederStatus);
+
   return (
     <>
     <ScrollView
       testID="account-screen"
-      className="flex-1 bg-[#F2F4F8]"
+      className="flex-1 bg-[#FCFBFA]"
       contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, paddingTop: 20 }}
       refreshControl={
         isAdmin && onRefreshAdmin ? (
@@ -468,12 +475,67 @@ export function AccountScreen({
             testID="account-menu-button"
             accessibilityRole="button"
             accessibilityLabel={t('account.menu.open')}
-            className="h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white active:bg-slate-100"
+            className="h-10 w-10 items-center justify-center rounded-full border border-[#E2E8F0] bg-white active:bg-orange-50"
             onPress={() => setMenuOpen(true)}
           >
             <Ionicons name="menu-outline" size={22} color="#334155" />
           </Pressable>
         ) : null}
+      </View>
+
+      <View
+        testID="account-profile-card"
+        className="mt-5 rounded-2xl border border-[#E2E8F0] bg-white p-4"
+      >
+        <View className="flex-row items-center gap-3">
+          <View
+            testID="account-profile-avatar"
+            className="h-16 w-16 overflow-hidden rounded-full bg-orange-50"
+            style={{ borderWidth: 3, borderColor: BRAND.primary }}
+          >
+            <Image
+              source={PET_MARKET_AVATAR}
+              style={{ height: '100%', width: '100%' }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          </View>
+          <View className="min-w-0 flex-1">
+            <View className="flex-row flex-wrap items-center gap-2">
+              <Text className="text-base font-bold text-slate-900" numberOfLines={1}>
+                {profileName}
+              </Text>
+              {showVerifiedBadge ? (
+                <View
+                  testID="account-verified-badge"
+                  className="flex-row items-center gap-1 rounded-full px-2.5 py-1"
+                  style={{ backgroundColor: BRAND.verifiedSoft }}
+                >
+                  <Ionicons name="checkmark-circle" size={14} color={BRAND.verified} />
+                  <Text className="text-xs font-bold" style={{ color: BRAND.verified }}>
+                    {t('account.profile.verified')}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            {profileSubtitle ? (
+              <Text className="mt-1 text-sm text-slate-500" numberOfLines={1}>
+                {profileSubtitle}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+        <Pressable
+          testID="account-logout-button"
+          accessibilityRole="button"
+          accessibilityLabel={t('account.menu.logout')}
+          className="mt-4 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
+          style={{ backgroundColor: BRAND.logout }}
+          onPress={onLogout}
+        >
+          <Ionicons name="log-out-outline" size={18} color="#fff" />
+          <Text className="text-sm font-bold text-white">{t('account.menu.logout')}</Text>
+        </Pressable>
       </View>
 
       {isSen ? (

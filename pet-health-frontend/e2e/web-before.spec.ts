@@ -111,7 +111,9 @@ test.describe('Web feature smoke coverage', () => {
 
     await test.step('sign up, land on home, and create first pet when ready', async () => {
       await verify(page, expect(page.getByTestId('login-email-input')).toBeVisible());
+      await page.getByTestId('language-header-chip').click();
       await page.getByTestId('language-vietnamese-button').click();
+      await page.getByTestId('language-header-chip').click();
       await page.getByTestId('language-english-button').click();
 
       await page.getByTestId('signup-mode-button').click();
