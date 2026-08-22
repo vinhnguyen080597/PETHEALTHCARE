@@ -2,6 +2,7 @@ import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ACTIVE_PET_FEED_SPECIES, type ActivePetFeedSpecies } from '../constants/petSpecies';
+import { BRAND } from '../theme/brand';
 import type { PetTypeFilter } from '../utils/petType';
 
 type PetTypeIconSpec =
@@ -11,11 +12,8 @@ type PetTypeIconSpec =
 const PET_TYPE_ICONS: Record<ActivePetFeedSpecies, PetTypeIconSpec> = {
   dog: { library: 'fa5', name: 'dog' },
   cat: { library: 'fa5', name: 'cat' },
-  bird: { library: 'fa5', name: 'dove' },
-  fish: { library: 'fa5', name: 'fish' },
-  rabbit: { library: 'mci', name: 'rabbit' },
   hamster: { library: 'mci', name: 'rodent' },
-  reptile: { library: 'mci', name: 'snake' },
+  fish: { library: 'fa5', name: 'fish' },
 };
 
 function PetTypeIcon({ spec, color }: { spec: PetTypeIconSpec; color: string }) {
@@ -42,7 +40,7 @@ export function PetTypeFilterRow({ value, onChange }: PetTypeFilterRowProps) {
     >
       {ACTIVE_PET_FEED_SPECIES.map((petType) => {
         const active = value === petType;
-        const iconColor = active ? '#1E6FE8' : '#64748b';
+        const iconColor = active ? BRAND.btnPrimary : BRAND.textMuted;
         return (
           <Pressable
             key={petType}
@@ -54,13 +52,19 @@ export function PetTypeFilterRow({ value, onChange }: PetTypeFilterRowProps) {
             onPress={() => onChange(active ? 'all' : petType)}
           >
             <View
-              className={`h-8 w-8 items-center justify-center rounded-full border ${
-                active ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-slate-50'
-              }`}
+              className="h-8 w-8 items-center justify-center rounded-full"
+              style={{
+                borderWidth: 1,
+                borderColor: active ? BRAND.btnPrimary : '#E5E7EB',
+                backgroundColor: active ? BRAND.surfaceLight : '#F8FAFC',
+              }}
             >
               <PetTypeIcon spec={PET_TYPE_ICONS[petType]} color={iconColor} />
             </View>
-            <Text className={`text-[10px] font-semibold ${active ? 'text-blue-700' : 'text-slate-500'}`}>
+            <Text
+              className="text-[10px] font-semibold"
+              style={{ color: active ? BRAND.textBrandLink : BRAND.textMuted }}
+            >
               {t(`petFeed.filters.${petType}`)}
             </Text>
           </Pressable>

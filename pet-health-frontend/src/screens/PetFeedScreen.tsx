@@ -44,6 +44,7 @@ import {
 } from '../utils/petType';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
 import { modalTopInset } from '../utils/modalSafeArea';
+import { BRAND } from '../theme/brand';
 
 const PRIMARY = '#1E6FE8';
 const DEFAULT_PET_TYPE_FILTER: SpeciesFilter = 'cat';
@@ -710,12 +711,15 @@ export function PetFeedScreen({
               accessibilityRole="button"
               accessibilityLabel={t('petFeed.accessibility.openFilters')}
               accessibilityState={{ selected: hasActiveFilters }}
-              className={`h-9 w-9 items-center justify-center rounded-xl border ${
-                hasActiveFilters ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-slate-50'
-              }`}
+              className="h-9 w-9 items-center justify-center rounded-xl"
+              style={{
+                borderWidth: 1,
+                borderColor: hasActiveFilters ? BRAND.btnPrimary : '#E5E7EB',
+                backgroundColor: hasActiveFilters ? BRAND.surfaceLight : '#F8FAFC',
+              }}
               onPress={() => setFilterVisible(true)}
             >
-              <Ionicons name="menu-outline" size={22} color={hasActiveFilters ? PRIMARY : '#64748b'} />
+              <Ionicons name="menu-outline" size={22} color={hasActiveFilters ? BRAND.btnPrimary : BRAND.textMuted} />
             </Pressable>
             ) : (
               <View className="h-9 w-9" />
@@ -732,7 +736,14 @@ export function PetFeedScreen({
 
           {visibleTabs.length > 1 ? (
           <View className="mb-3 border-b border-gray-200 bg-white px-2 pb-2">
-            <View className="flex-row rounded-xl border border-blue-100 bg-blue-50/40 p-0.5">
+            <View
+              className="flex-row rounded-xl p-0.5"
+              style={{
+                borderWidth: 1,
+                borderColor: BRAND.borderBrand,
+                backgroundColor: BRAND.btnSecondary,
+              }}
+            >
               {([
                 { key: 'news' as const, label: t('petFeed.tabs.news'), count: showListSkeleton ? undefined : tabCounts.news, icon: 'megaphone-outline' as const },
                 { key: 'feed' as const, label: t('petFeed.tabs.feed'), count: showListSkeleton ? undefined : tabCounts.feed, icon: 'newspaper-outline' as const },
@@ -748,21 +759,26 @@ export function PetFeedScreen({
                     accessibilityState={{ selected: active }}
                     className={`min-w-0 flex-1 items-center justify-center rounded-lg ${
                       compactTabs ? 'px-1 py-2' : 'px-2 py-2.5'
-                    } ${active ? 'bg-blue-600' : 'bg-transparent'}`}
+                    }`}
+                    style={active ? { backgroundColor: BRAND.btnPrimary } : undefined}
                     onPress={() => setActiveTab(item.key)}
                   >
                     <View className={`max-w-full flex-row items-center justify-center ${compactTabs ? 'gap-0.5' : 'gap-1.5'}`}>
-                      <Ionicons name={item.icon} size={compactTabs ? 14 : 15} color={active ? '#fff' : PRIMARY} />
+                      <Ionicons name={item.icon} size={compactTabs ? 14 : 15} color={active ? BRAND.textInverse : BRAND.btnPrimary} />
                       <Text
                         numberOfLines={1}
                         adjustsFontSizeToFit
                         minimumFontScale={0.8}
-                        className={`shrink font-bold ${compactTabs ? 'text-[10px]' : 'text-xs'} ${active ? 'text-white' : 'text-blue-700'}`}
+                        className={`shrink font-bold ${compactTabs ? 'text-[10px]' : 'text-xs'}`}
+                        style={{ color: active ? BRAND.textInverse : BRAND.textBrandLink }}
                       >
                         {item.label}
                       </Text>
                       {typeof item.count === 'number' ? (
-                        <Text className={`font-bold ${compactTabs ? 'text-[9px]' : 'text-[10px]'} ${active ? 'text-blue-100' : 'text-slate-400'}`}>
+                        <Text
+                          className={`font-bold ${compactTabs ? 'text-[9px]' : 'text-[10px]'}`}
+                          style={{ color: active ? BRAND.btnSecondaryPressed : BRAND.textMuted }}
+                        >
                           {item.count}
                         </Text>
                       ) : null}

@@ -193,7 +193,7 @@
       "emptyTitle": "No top breeders yet",
       "emptyBody": "After approved listings are available, active breeders will be summarized here."
     },
-    "searchPlaceholder": "Search breed, breeder, age, location...",
+    "searchPlaceholder": "Which pet are you looking for?",
     "filtersTitle": "Quick filters",
     "filterProvinceTitle": "Area",
     "filters": {
