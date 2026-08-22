@@ -767,11 +767,10 @@ function AppContent() {
                 petName={app.selectedPet.name}
                 showBreedService={breedRecognitionEnabled}
                 showHealthService={healthAnalysisEnabled}
-                onBack={app.careServicesShowBack ? app.closeCareServices : undefined}
+                onBack={app.careServicesShowBack ? app.closeCareServices : app.dismissServicesPrompt}
                 onExploreBreed={() => app.openBreedRecognition('onboarding-health-prompt')}
                 onCheckHealth={app.goToHealthCheckFromServicesPrompt}
                 onManageVaccines={app.goToCoreCareFromServicesPrompt}
-                onSkip={app.dismissServicesPrompt}
               />
             ) : null}
 

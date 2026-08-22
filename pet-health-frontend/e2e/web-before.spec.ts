@@ -145,7 +145,7 @@ test.describe('Web feature smoke coverage', () => {
       await page.getByTestId('add-pet-submit-button').click();
 
       await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
-      await page.getByTestId('onboarding-health-prompt-skip-button').click();
+      await page.getByTestId('onboarding-health-prompt-back-button').click();
       await verify(page, expect(page.getByTestId('home-pet-card-pet-1')).toBeVisible());
       await verify(page, expect(page.getByText('Luna')).toBeVisible());
     });
@@ -240,7 +240,7 @@ test.describe('Web feature smoke coverage', () => {
       await verify(page, expect(page.getByText('British Shorthair mix', { exact: true })).toBeVisible());
       await page.getByTestId('breed-recognition-apply-profile-button').click();
       await verify(page, expect(page.getByTestId('onboarding-health-prompt-screen')).toBeVisible());
-      await page.getByTestId('onboarding-health-prompt-skip-button').click();
+      await page.getByTestId('onboarding-health-prompt-back-button').click();
       await verify(page, expect(page.getByTestId('home-screen')).toBeVisible());
       await page.getByTestId('home-view-profile-button-pet-1').click();
       await verify(page, expect(page.getByTestId('pet-profile-screen')).toBeVisible());
