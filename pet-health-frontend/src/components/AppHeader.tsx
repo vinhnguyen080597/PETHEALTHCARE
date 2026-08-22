@@ -1,15 +1,18 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { PET_MARKET_AVATAR } from '../assets/brandAssets';
+import { BRAND } from '../theme/brand';
+import { buttonContainerStyle } from '../theme/buttonStyles';
+import { splitBrandName } from '../utils/brandDisplay';
 
-const HEADER_BLUE = '#1E6FE8';
-const BADGE_RED = '#EF4444';
-
-type AppHeaderVariant = 'default' | 'marketplace';
+const BADGE_RED = BRAND.logout;
 
 type AppHeaderProps = {
   titleKey?: string;
-  variant?: AppHeaderVariant;
+  /** @deprecated Icon is always the brand avatar; kept for call-site compatibility. */
+  variant?: 'default' | 'marketplace';
   unreadMessageCount?: number;
   unreadNotificationCount?: number;
   onOpenMessages?: () => void;
@@ -40,12 +43,13 @@ function HeaderActionButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={showBadge ? `${label}, ${badgeCount}` : label}
-      className="h-9 w-9 items-center justify-center rounded-full active:bg-white/15"
+      className="h-9 w-9 items-center justify-center rounded-full active:opacity-80"
+      style={({ pressed }) => buttonContainerStyle('secondary', pressed)}
       hitSlop={4}
       onPress={onPress}
     >
       <View className="relative items-center justify-center">
-        <Feather name={icon} size={21} color="#ffffff" />
+        <Feather name={icon} size={20} color={BRAND.btnPrimary} />
         {showBadge ? (
           <View
             className="absolute items-center justify-center rounded-full"
@@ -72,28 +76,45 @@ function HeaderActionButton({
   );
 }
 
+/** Clean minimalist header — white surface, orange accent icons. */
 export function AppHeader({
   titleKey = 'login.appName',
-  variant = 'default',
   unreadMessageCount = 0,
   unreadNotificationCount = 0,
   onOpenMessages,
   onOpenNotifications,
 }: AppHeaderProps) {
   const { t } = useTranslation();
-  const isMarketplace = variant === 'marketplace';
-  const leadingIcon = isMarketplace ? 'home' : 'medkit';
+  const title = t(titleKey);
+  const { lead, rest } = splitBrandName(title);
 
   return (
-    <View className="px-5 py-3" style={{ backgroundColor: HEADER_BLUE }}>
+    <View
+      testID="app-header"
+      className="border-b px-5 py-3"
+      style={{ backgroundColor: BRAND.card, borderBottomWidth: 1, borderBottomColor: BRAND.borderLight }}
+    >
       <View className="flex-row items-center gap-2.5">
-        <View className="h-8 w-8 items-center justify-center rounded-full bg-white/20">
-          <Ionicons name={leadingIcon} size={17} color="#ffffff" />
+        <View
+          testID="app-header-brand-avatar"
+          className="h-9 w-9 items-center justify-center overflow-hidden rounded-full p-0.5"
+          style={{ backgroundColor: BRAND.surfaceLight }}
+        >
+          <View className="h-full w-full overflow-hidden rounded-full">
+            <Image
+              source={PET_MARKET_AVATAR}
+              style={{ height: '100%', width: '100%' }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              accessibilityLabel={t('login.appName')}
+            />
+          </View>
         </View>
-        <Text className="min-w-0 flex-1 text-lg font-bold text-white" numberOfLines={1}>
-          {t(titleKey)}
+        <Text className="min-w-0 flex-1 text-lg font-bold" numberOfLines={1}>
+          <Text style={{ color: BRAND.btnPrimary }}>{lead}</Text>
+          {rest ? <Text style={{ color: BRAND.textPrimary }}>{rest}</Text> : null}
         </Text>
-        <View className="flex-row items-center">
+        <View className="flex-row items-center gap-1.5">
           <HeaderActionButton
             icon="message-circle"
             label={t('petFeed.accessibility.openMessages')}

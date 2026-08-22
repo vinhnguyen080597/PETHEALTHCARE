@@ -66,7 +66,7 @@ const baseConfig = {
     ],
   },
   web: {
-    favicon: './assets/favicon.png',
+    favicon: './assets/brand/PetMarketAvatar.png',
     bundler: 'metro',
   },
   plugins: [

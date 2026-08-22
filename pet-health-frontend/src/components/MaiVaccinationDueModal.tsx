@@ -1,8 +1,7 @@
 import { Image, Modal, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { MAI_NOTI } from '../assets/maiAssets';
-
-const PRIMARY_BLUE = '#1E6FE8';
+import { BRAND } from '../theme/brand';
 
 type MaiVaccinationDueModalProps = {
   visible: boolean;
@@ -40,7 +39,7 @@ export function MaiVaccinationDueModal({ visible, topOffset, onDismiss }: MaiVac
             accessibilityRole="button"
             accessibilityLabel={t('home.vaccinationDuePopupAction')}
             className="mt-6 w-full rounded-full py-3.5 active:opacity-90"
-            style={{ backgroundColor: PRIMARY_BLUE }}
+            style={{ backgroundColor: BRAND.primary }}
             onPress={onDismiss}
           >
             <Text className="text-center text-sm font-bold text-white">

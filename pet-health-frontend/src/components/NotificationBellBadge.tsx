@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Text, View } from 'react-native';
-
-const PRIMARY_BLUE = '#1E6FE8';
+import { BRAND } from '../theme/brand';
 const BADGE_RED = '#EF4444';
 const SHAKE_DURATION_MS = 2000;
 const SHAKE_SWING_MS = 70;
@@ -76,7 +75,7 @@ export function NotificationBellBadge({ count, size = 22, testID }: Notification
   return (
     <View testID={testID} className="relative items-center justify-center">
       <Animated.View style={rotateStyle}>
-        <Ionicons name="notifications" size={size} color={PRIMARY_BLUE} />
+        <Ionicons name="notifications" size={size} color={BRAND.primary} />
       </Animated.View>
       {showBadge ? (
         <View

@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BRAND } from '../theme/brand';
+import { tabActiveContainerStyle } from '../theme/buttonStyles';
 import type { AppScreen } from '../screens/types';
 
 type BottomTabBarProps = {
@@ -12,6 +14,42 @@ type BottomTabBarProps = {
   accountTabMode?: 'account' | 'features';
 };
 
+function TabItem({
+  testID,
+  accessibilityLabel,
+  active,
+  disabled,
+  icon,
+  label,
+  onPress,
+}: {
+  testID: string;
+  accessibilityLabel: string;
+  active: boolean;
+  disabled: boolean;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ selected: active, disabled }}
+      className="flex-1 items-center rounded-full py-2"
+      style={active ? tabActiveContainerStyle() : undefined}
+      disabled={disabled}
+      onPress={onPress}
+    >
+      <Ionicons name={icon} size={22} color={active ? BRAND.btnPrimary : BRAND.textMuted} />
+      <Text className="text-xs font-medium" style={{ color: active ? BRAND.textBrandLink : BRAND.textMuted }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount, accountTabMode = 'account' }: BottomTabBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -19,53 +57,44 @@ export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount, accou
   const petFeedTabActive = activeScreen === 'pet-feed';
   const homeTabActive = activeScreen === 'home';
   const accountTabActive = isFeaturesTab ? activeScreen === 'admin-features' : activeScreen === 'account';
+
   return (
     <View
-      className="flex-row border-t border-slate-200 bg-white px-2 pt-2"
-      style={{ paddingBottom: Math.max(insets.bottom, 8) }}
+      className="flex-row border-t px-2 pt-2"
+      style={{
+        backgroundColor: BRAND.card,
+        borderTopWidth: 1,
+        borderTopColor: BRAND.borderLight,
+        paddingBottom: Math.max(insets.bottom, 8),
+      }}
     >
-      <Pressable
+      <TabItem
         testID="bottom-tab-pet-feed-button"
-        accessibilityRole="button"
         accessibilityLabel="Open pet feed tab"
-        accessibilityState={{ selected: petFeedTabActive, disabled: petFeedTabActive }}
-        className={`flex-1 items-center rounded-xl py-2 ${petFeedTabActive ? 'bg-blue-50' : ''}`}
+        active={petFeedTabActive}
         disabled={petFeedTabActive}
+        icon="newspaper-outline"
+        label={t('tabs.petFeed')}
         onPress={petFeedTabActive ? undefined : onPetFeed}
-      >
-        <Ionicons name="newspaper-outline" size={22} color={petFeedTabActive ? '#2563eb' : '#64748b'} />
-        <Text className={`text-xs font-medium ${petFeedTabActive ? 'text-blue-600' : 'text-slate-600'}`}>
-          {t('tabs.petFeed')}
-        </Text>
-      </Pressable>
-      <Pressable
+      />
+      <TabItem
         testID="bottom-tab-home-button"
-        accessibilityRole="button"
         accessibilityLabel="Open home tab"
-        accessibilityState={{ selected: homeTabActive, disabled: homeTabActive }}
-        className={`flex-1 items-center rounded-xl py-2 ${homeTabActive ? 'bg-blue-50' : ''}`}
+        active={homeTabActive}
         disabled={homeTabActive}
+        icon="home-outline"
+        label={t('tabs.home')}
         onPress={homeTabActive ? undefined : onHome}
-      >
-        <Ionicons name="home-outline" size={22} color={homeTabActive ? '#2563eb' : '#64748b'} />
-        <Text className={`text-xs font-medium ${homeTabActive ? 'text-blue-600' : 'text-slate-600'}`}>
-          {t('tabs.home')}
-        </Text>
-      </Pressable>
-      <Pressable
+      />
+      <TabItem
         testID="bottom-tab-account-button"
-        accessibilityRole="button"
         accessibilityLabel={isFeaturesTab ? 'Open app features management' : 'Open account tab'}
-        accessibilityState={{ selected: accountTabActive, disabled: accountTabActive }}
-        className={`flex-1 items-center rounded-xl py-2 ${accountTabActive ? 'bg-blue-50' : ''}`}
+        active={accountTabActive}
         disabled={accountTabActive}
+        icon={isFeaturesTab ? 'options-outline' : 'person-circle-outline'}
+        label={t(isFeaturesTab ? 'tabs.features' : 'tabs.account')}
         onPress={accountTabActive ? undefined : onAccount}
-      >
-        <Ionicons name={isFeaturesTab ? 'options-outline' : 'person-circle-outline'} size={22} color={accountTabActive ? '#2563eb' : '#64748b'} />
-        <Text className={`text-xs font-medium ${accountTabActive ? 'text-blue-600' : 'text-slate-600'}`}>
-          {t(isFeaturesTab ? 'tabs.features' : 'tabs.account')}
-        </Text>
-      </Pressable>
+      />
     </View>
   );
 }
