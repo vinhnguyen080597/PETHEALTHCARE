@@ -1,6 +1,9 @@
 /** Launch scope: cat-only until dog health flows are fully tested. */
 export const ACTIVE_PET_SPECIES = ['cat'] as const;
 
+/** Add / edit pet form — dog and cat picker (UI always shows both). */
+export const ADD_PET_SPECIES_OPTIONS = ['dog', 'cat'] as const;
+
 export type ActivePetSpecies = (typeof ACTIVE_PET_SPECIES)[number];
 
 export const DEFAULT_PET_SPECIES: ActivePetSpecies = 'cat';

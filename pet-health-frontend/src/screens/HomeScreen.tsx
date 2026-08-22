@@ -231,11 +231,13 @@ export function HomeScreen({
                       testID={`home-view-profile-button-${pet.id}`}
                       accessibilityRole="button"
                       accessibilityLabel={`View profile for ${pet.name}`}
-                      className="min-w-0 flex-1 items-center justify-center rounded-xl py-3 active:opacity-95"
-                      style={({ pressed }) => buttonContainerStyle('outline', pressed)}
+                      className="min-w-0 flex-1 items-center justify-center rounded-xl bg-orange-500 py-3 active:opacity-95"
+                      style={({ pressed }) => ({
+                        backgroundColor: pressed ? BRAND.btnPrimaryActive : BRAND.btnPrimary,
+                      })}
                       onPress={() => onViewProfile(pet.id)}
                     >
-                      <Text className="text-[13px] font-semibold" style={buttonLabelStyle('outline')}>
+                      <Text className="text-[13px] font-semibold" style={{ color: BRAND.textPrimary }}>
                         {t('home.viewProfile')}
                       </Text>
                     </Pressable>

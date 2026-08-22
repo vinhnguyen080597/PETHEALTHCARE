@@ -151,7 +151,7 @@
     "vaccinationDueNotification": "{{name}} has {{count}} due reminders",
     "vaccinationDuePopupMessage": "We have a vaccination schedule today — please don't forget!",
     "vaccinationDuePopupAction": "Check now",
-    "openCareServices": "Care services",
+    "openCareServices": "Care",
     "uploadAvatar": "Upload profile photo",
     "petFallback": "Pet",
     "yearOld": "{{count}} month old",

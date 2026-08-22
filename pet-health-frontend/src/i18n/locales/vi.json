@@ -151,7 +151,7 @@
     "vaccinationDueNotification": "{{name}} có {{count}} nhắc lịch đến hạn",
     "vaccinationDuePopupMessage": "Hôm nay chúng ta có lịch tiêm, Sen chú ý đừng quên nhé!",
     "vaccinationDuePopupAction": "Kiểm tra ngay",
-    "openCareServices": "Dịch vụ chăm sóc",
+    "openCareServices": "Chăm sóc",
     "uploadAvatar": "Tải ảnh đại diện",
     "petFallback": "Thú cưng",
     "yearOld": "{{count}} tháng tuổi",

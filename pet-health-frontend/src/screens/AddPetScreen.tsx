@@ -7,14 +7,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
 import { FormDateField } from '../components/FormDateField';
+import { SubScreenHeader } from '../components/SubScreenHeader';
+import { BRAND } from '../theme/brand';
+import { buttonContainerStyle, buttonLabelStyle } from '../theme/buttonStyles';
 import { isBirthDateInFuture } from '../utils/petAge';
 import { modalBottomInset } from '../utils/modalSafeArea';
 
 type PetFormVariant = 'create' | 'edit';
 
-import { ACTIVE_PET_SPECIES } from '../constants/petSpecies';
+import { ADD_PET_SPECIES_OPTIONS } from '../constants/petSpecies';
 
-export const PET_SPECIES_VALUES = ACTIVE_PET_SPECIES;
+export const PET_SPECIES_VALUES = ADD_PET_SPECIES_OPTIONS;
 export const PET_GENDER_VALUES = ['male', 'female'] as const;
 
 type SelectOption = { value: string; label: string };
@@ -28,7 +31,7 @@ type PetFormFieldErrors = {
 
 function RequiredLabel({ children }: { children: string }) {
   return (
-    <Text className="mb-2 text-sm font-semibold text-slate-900">
+    <Text className="mb-2 text-sm font-semibold" style={{ color: BRAND.textPrimary }}>
       {children} <Text className="text-red-500">*</Text>
     </Text>
   );
@@ -50,13 +53,9 @@ type AddPetScreenProps = {
   onPickAvatar: () => void;
   onSubmit: () => void;
   onCancel: () => void;
-  /** Shown on edit only — remove pet from account (confirmation in handler). */
   onDeletePet?: () => void;
-  /** Overrides default "Add New Pet" / "Edit Pet" title (e.g. first-time onboarding). */
   headerTitle?: string;
-  /** Overrides default submit label ("Add Pet" / "Update Pet"). */
   submitButtonLabel?: string;
-  /** Optional onboarding helper sentence shown under header. */
   helperMessage?: string;
 };
 
@@ -86,20 +85,19 @@ function FormSelect({
 
   return (
     <View className="mb-5">
-      {required ? <RequiredLabel>{label}</RequiredLabel> : <Text className="mb-2 text-sm font-semibold text-slate-900">{label}</Text>}
+      {required ? <RequiredLabel>{label}</RequiredLabel> : <Text className="mb-2 text-sm font-semibold" style={{ color: BRAND.textPrimary }}>{label}</Text>}
       <Pressable
         testID={testID}
-        className={`flex-row items-center justify-between rounded-xl border bg-white px-4 py-3 active:bg-gray-50 ${
-          error ? 'border-red-400' : 'border-gray-300'
-        }`}
+        className="flex-row items-center justify-between rounded-xl border bg-white px-4 py-3 active:opacity-95"
+        style={{ borderColor: error ? '#F87171' : BRAND.borderCard }}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={`${label} picker`}
       >
-        <Text className={`text-base ${selectedLabel ? 'text-slate-900' : 'text-gray-400'}`}>
+        <Text className="text-base" style={{ color: selectedLabel ? BRAND.textPrimary : BRAND.textMuted }}>
           {selectedLabel ?? placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#64748b" />
+        <Ionicons name="chevron-down" size={20} color={BRAND.textMuted} />
       </Pressable>
       {error ? <Text className="mt-1.5 text-xs font-medium text-red-600">{error}</Text> : null}
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -117,11 +115,11 @@ function FormSelect({
                   setOpen(false);
                 }}
               >
-                <Text className="text-center text-base text-slate-900">{opt.label}</Text>
+                <Text className="text-center text-base" style={{ color: BRAND.textPrimary }}>{opt.label}</Text>
               </Pressable>
             ))}
             <Pressable className="mt-2 py-3" onPress={() => setOpen(false)}>
-              <Text className="text-center text-base text-blue-600">{t('common.cancel')}</Text>
+              <Text className="text-center text-base" style={{ color: BRAND.textBrandLink }}>{t('common.cancel')}</Text>
             </Pressable>
           </View>
         </View>
@@ -130,7 +128,7 @@ function FormSelect({
   );
 }
 
-/** Add / edit pet — layout aligned with `figma/UI/AddNewPet1.png`. */
+/** Add / edit pet — orange tokens, unified header, sticky primary submit. */
 export function AddPetScreen({
   variant,
   petName,
@@ -153,6 +151,7 @@ export function AddPetScreen({
   helperMessage,
 }: AddPetScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const title = headerTitle ?? (variant === 'create' ? t('addPet.addNewPet') : t('addPet.editPet'));
   const submitLabel = submitButtonLabel ?? (variant === 'create' ? t('addPet.addPet') : t('addPet.updatePet'));
 
@@ -182,8 +181,6 @@ export function AddPetScreen({
   const [fieldErrors, setFieldErrors] = useState<PetFormFieldErrors>({});
   const hasAvatarUri = Boolean(petAvatarUrl?.trim());
   const showAvatarImage = hasAvatarUri && !avatarLoadFailed;
-  const showSpeciesSelect = speciesOptions.length > 1;
-
   useEffect(() => {
     setAvatarLoadFailed(false);
   }, [petAvatarUrl]);
@@ -206,7 +203,7 @@ export function AddPetScreen({
       nextErrors.petBirthDate = t('addPet.fieldErrors.birthDateFuture');
     }
     if (!petGender.trim()) nextErrors.petGender = t('addPet.fieldErrors.genderRequired');
-    if (showSpeciesSelect && !petSpecies.trim()) {
+    if (!petSpecies.trim()) {
       nextErrors.petSpecies = t('addPet.fieldErrors.petTypeRequired');
     }
 
@@ -220,26 +217,16 @@ export function AddPetScreen({
   }
 
   return (
-    <View className="flex-1 bg-gray-100">
-      <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-3">
-        <Pressable
-          testID="add-pet-back-button"
-          className="h-10 w-10 items-center justify-center rounded-lg active:bg-gray-100"
-          onPress={onCancel}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
-        </Pressable>
-        <Text className="flex-1 text-center text-lg font-semibold text-slate-900" numberOfLines={1}>
-          {title}
-        </Text>
-        <View className="h-10 w-10" />
-      </View>
+    <View className="flex-1" style={{ backgroundColor: BRAND.appBackground }}>
+      <SubScreenHeader title={title} onBack={onCancel} backTestID="add-pet-back-button" />
+
       {helperMessage ? (
-        <View className="flex-row items-center gap-3 border-b border-gray-200 bg-[#F8FAFF] px-4 py-3">
+        <View
+          className="flex-row items-center gap-3 border-b px-4 py-3"
+          style={{ backgroundColor: BRAND.surfaceLight, borderBottomColor: BRAND.borderLight }}
+        >
           <ExpoImage source={MAI_GREETING} className="h-16 w-16 shrink-0 rounded-2xl" contentFit="cover" cachePolicy="memory-disk" accessibilityLabel="Mai" />
-          <Text className="flex-1 text-sm font-medium leading-5 text-slate-700">{helperMessage}</Text>
+          <Text className="flex-1 text-sm font-medium leading-5" style={{ color: BRAND.textSecondary }}>{helperMessage}</Text>
         </View>
       ) : null}
 
@@ -250,90 +237,94 @@ export function AddPetScreen({
       >
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-        <View className="mb-6 items-center">
-          <Pressable
-            testID="add-pet-avatar-button"
-            onPress={onPickAvatar}
-            className="items-center active:opacity-90"
-            accessibilityRole="button"
-            accessibilityLabel="Pick pet avatar from library"
-          >
-            <View className="h-28 w-28 overflow-hidden rounded-full bg-blue-600 shadow-md">
-              {showAvatarImage ? (
-                <Image
-                  source={{ uri: petAvatarUrl.trim() }}
-                  className="h-full w-full"
-                  resizeMode="cover"
-                  onError={() => setAvatarLoadFailed(true)}
-                />
-              ) : (
-                <View className="h-full w-full items-center justify-center">
-                  <Ionicons name="paw" size={52} color="#ffffff" />
-                </View>
-              )}
-            </View>
-            <Text className="mt-2 text-center text-sm text-gray-500">{t('addPet.clickAvatar')}</Text>
-          </Pressable>
-        </View>
+          <View className="mb-6 items-center">
+            <Pressable
+              testID="add-pet-avatar-button"
+              onPress={onPickAvatar}
+              className="items-center active:opacity-90"
+              accessibilityRole="button"
+              accessibilityLabel="Pick pet avatar from library"
+            >
+              <View
+                className="h-28 w-28 overflow-hidden rounded-full shadow-md"
+                style={{ backgroundColor: BRAND.surfaceLight, borderWidth: 2, borderColor: BRAND.borderBrand }}
+              >
+                {showAvatarImage ? (
+                  <Image
+                    source={{ uri: petAvatarUrl.trim() }}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                    onError={() => setAvatarLoadFailed(true)}
+                  />
+                ) : (
+                  <View className="h-full w-full items-center justify-center" style={{ backgroundColor: BRAND.btnPrimary }}>
+                    <Ionicons name="paw" size={52} color={BRAND.textInverse} />
+                  </View>
+                )}
+              </View>
+              <Text className="mt-2 text-center text-sm" style={{ color: BRAND.textMuted }}>{t('addPet.clickAvatar')}</Text>
+            </Pressable>
+          </View>
 
-        <View className="mb-5">
-          <RequiredLabel>{t('addPet.petName')}</RequiredLabel>
-          <TextInput
-            testID="add-pet-name-input"
-            accessibilityLabel="Pet name"
-            className={`rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${
-              fieldErrors.petName ? 'border-red-400' : 'border-gray-300'
-            }`}
-            placeholder={t('addPet.enterPetName')}
-            placeholderTextColor="#9ca3af"
-            value={petName}
-            onChangeText={(value) => {
-              clearFieldError('petName');
-              onChangeName(value);
+          <View className="mb-5">
+            <RequiredLabel>{t('addPet.petName')}</RequiredLabel>
+            <TextInput
+              testID="add-pet-name-input"
+              accessibilityLabel="Pet name"
+              className="rounded-xl border bg-white px-4 py-3 text-base"
+              style={{
+                color: BRAND.textPrimary,
+                borderColor: fieldErrors.petName ? '#F87171' : BRAND.borderCard,
+              }}
+              placeholder={t('addPet.enterPetName')}
+              placeholderTextColor={BRAND.textMuted}
+              value={petName}
+              onChangeText={(value) => {
+                clearFieldError('petName');
+                onChangeName(value);
+              }}
+            />
+            {fieldErrors.petName ? (
+              <Text testID="add-pet-name-error" className="mt-1.5 text-xs font-medium text-red-600">
+                {fieldErrors.petName}
+              </Text>
+            ) : null}
+          </View>
+
+          <FormDateField
+            label={t('addPet.birthDate')}
+            value={petBirthDate}
+            placeholder={t('addPet.birthDatePlaceholder')}
+            maximumDate={new Date()}
+            testID="add-pet-birth-date-field"
+            required
+            readOnly={variant === 'edit'}
+            helperText={variant === 'edit' ? t('addPet.birthDateLockedHint') : undefined}
+            error={fieldErrors.petBirthDate}
+            onChange={(value) => {
+              clearFieldError('petBirthDate');
+              onChangeBirthDate(value);
             }}
           />
-          {fieldErrors.petName ? (
-            <Text testID="add-pet-name-error" className="mt-1.5 text-xs font-medium text-red-600">
-              {fieldErrors.petName}
-            </Text>
-          ) : null}
-        </View>
 
-        <FormDateField
-          label={t('addPet.birthDate')}
-          value={petBirthDate}
-          placeholder={t('addPet.birthDatePlaceholder')}
-          maximumDate={new Date()}
-          testID="add-pet-birth-date-field"
-          required
-          readOnly={variant === 'edit'}
-          helperText={variant === 'edit' ? t('addPet.birthDateLockedHint') : undefined}
-          error={fieldErrors.petBirthDate}
-          onChange={(value) => {
-            clearFieldError('petBirthDate');
-            onChangeBirthDate(value);
-          }}
-        />
+          <FormSelect
+            label={t('addPet.gender')}
+            value={petGender}
+            options={genderOptions}
+            onChange={(value) => {
+              clearFieldError('petGender');
+              onChangeGender(value);
+            }}
+            placeholder={t('addPet.selectGender')}
+            testID="add-pet-gender-select"
+            required
+            error={fieldErrors.petGender}
+          />
 
-        <FormSelect
-          label={t('addPet.gender')}
-          value={petGender}
-          options={genderOptions}
-          onChange={(value) => {
-            clearFieldError('petGender');
-            onChangeGender(value);
-          }}
-          placeholder={t('addPet.selectGender')}
-          testID="add-pet-gender-select"
-          required
-          error={fieldErrors.petGender}
-        />
-
-        {showSpeciesSelect ? (
           <FormSelect
             label={t('addPet.petType')}
             value={petSpecies}
@@ -347,50 +338,56 @@ export function AddPetScreen({
             required
             error={fieldErrors.petSpecies}
           />
-        ) : (
-          <View className="mb-5">
-            <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.petType')}</Text>
-            <View className="rounded-xl border border-gray-200 bg-slate-50 px-4 py-3">
-              <Text className="text-base font-medium text-slate-900">{speciesOptions[0]?.label ?? t('petTypes.cat')}</Text>
-            </View>
+
+          <View className="mb-2">
+            <Text className="mb-2 text-sm font-semibold" style={{ color: BRAND.textPrimary }}>{t('addPet.breed')}</Text>
+            <TextInput
+              testID="add-pet-breed-input"
+              accessibilityLabel="Pet breed"
+              className="rounded-xl border bg-white px-4 py-3 text-base"
+              style={{ color: BRAND.textPrimary, borderColor: BRAND.borderCard }}
+              placeholder={t('addPet.enterBreed')}
+              placeholderTextColor={BRAND.textMuted}
+              value={petBreed}
+              onChangeText={onChangeBreed}
+            />
           </View>
-        )}
 
-        <View className="mb-5">
-          <Text className="mb-2 text-sm font-semibold text-slate-900">{t('addPet.breed')}</Text>
-          <TextInput
-            testID="add-pet-breed-input"
-            accessibilityLabel="Pet breed"
-            className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-slate-900"
-            placeholder={t('addPet.enterBreed')}
-            placeholderTextColor="#9ca3af"
-            value={petBreed}
-            onChangeText={onChangeBreed}
-          />
-        </View>
-
-        <Pressable
-          testID={variant === 'create' ? 'add-pet-submit-button' : 'edit-pet-submit-button'}
-          accessibilityRole="button"
-          accessibilityLabel={submitLabel}
-          className="mt-2 rounded-xl bg-blue-600 py-3.5 active:bg-blue-700"
-          onPress={submitWithRequiredFields}
-        >
-          <Text className="text-center text-base font-semibold text-white">{submitLabel}</Text>
-        </Pressable>
-
-        {variant === 'edit' && onDeletePet ? (
-          <Pressable
-            testID="edit-pet-delete-button"
-            className="mt-6 py-3 active:opacity-80"
-            onPress={onDeletePet}
-            accessibilityRole="button"
-            accessibilityLabel="Remove pet"
-          >
-            <Text className="text-center text-base font-medium text-red-600">{t('addPet.removePet')}</Text>
-          </Pressable>
-        ) : null}
+          {variant === 'edit' && onDeletePet ? (
+            <Pressable
+              testID="edit-pet-delete-button"
+              className="mt-4 py-3 active:opacity-80"
+              onPress={onDeletePet}
+              accessibilityRole="button"
+              accessibilityLabel="Remove pet"
+            >
+              <Text className="text-center text-base font-medium text-red-600">{t('addPet.removePet')}</Text>
+            </Pressable>
+          ) : null}
         </ScrollView>
+
+        <View
+          className="border-t px-5 pt-3"
+          style={{
+            backgroundColor: BRAND.card,
+            borderTopColor: BRAND.borderLight,
+            borderTopWidth: 1,
+            paddingBottom: Math.max(insets.bottom, 12),
+          }}
+        >
+          <Pressable
+            testID={variant === 'create' ? 'add-pet-submit-button' : 'edit-pet-submit-button'}
+            accessibilityRole="button"
+            accessibilityLabel={submitLabel}
+            className="rounded-xl bg-orange-500 py-3.5 active:opacity-95"
+            style={({ pressed }) => buttonContainerStyle('primary', pressed)}
+            onPress={submitWithRequiredFields}
+          >
+            <Text className="text-center text-base font-semibold" style={buttonLabelStyle('primary')}>
+              {submitLabel}
+            </Text>
+          </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
