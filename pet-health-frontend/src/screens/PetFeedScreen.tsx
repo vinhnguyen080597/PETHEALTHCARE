@@ -38,21 +38,28 @@ import {
   type PetFeedScreenTab,
 } from '../constants/petFeedTabFlags';
 import {
+  DEFAULT_PET_FEED_SORT_DIRECTION,
+  DEFAULT_PET_FEED_SORT_FIELD,
+  PET_FEED_SORT_CHIP_FIELDS,
+  type PetFeedSortChipField,
+  type PetFeedSortField,
+} from '../constants/petFeedSort';
+import {
   breederMatchesPetType,
   postMatchesPetType,
   type PetTypeFilter,
 } from '../utils/petType';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
+import { isPetFeedQuickFilterActive } from '../utils/petFeedQuickFilters';
 import { modalTopInset } from '../utils/modalSafeArea';
 import { BRAND } from '../theme/brand';
 
-const PRIMARY = '#1E6FE8';
 const DEFAULT_PET_TYPE_FILTER: SpeciesFilter = 'cat';
 const WEB_SEARCH_INPUT_STYLE =
   Platform.OS === 'web' ? ({ outlineStyle: 'none', boxShadow: 'none' } as unknown as TextStyle) : undefined;
 
 type SpeciesFilter = PetTypeFilter;
-type SortField = 'date' | 'age' | 'price';
+type SortField = PetFeedSortField;
 type SortDirection = 'asc' | 'desc';
 type FeedTab = PetFeedScreenTab;
 type ChipItem<T extends string> = {
@@ -211,8 +218,8 @@ export function PetFeedScreen({
   const [petTypeFilter, setPetTypeFilter] = useState<SpeciesFilter>(DEFAULT_PET_TYPE_FILTER);
   const [provinceFilter, setProvinceFilter] = useState<ProvinceFilter>(ALL_PROVINCES_FILTER);
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortField, setSortField] = useState<SortField>(DEFAULT_PET_FEED_SORT_FIELD);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(DEFAULT_PET_FEED_SORT_DIRECTION);
   const [filterVisible, setFilterVisible] = useState(false);
   const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
@@ -249,13 +256,13 @@ export function PetFeedScreen({
     ];
   }, [provinceMatchedPosts, t]);
 
-  function toggleSort(field: SortField) {
+  function toggleSort(field: PetFeedSortChipField) {
     if (sortField === field) {
-      setSortDirection((current) => current === 'asc' ? 'desc' : 'asc');
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
       return;
     }
     setSortField(field);
-    setSortDirection(field === 'date' ? 'desc' : 'asc');
+    setSortDirection('asc');
   }
 
   const translatedOption = useCallback((namespace: string, value: string) => {
@@ -266,19 +273,25 @@ export function PetFeedScreen({
     return translated === key ? value : translated;
   }, [t]);
 
-  const sortItems = useMemo<ChipItem<SortField>[]>(() => [
-    { key: 'date', label: t('petFeed.sort.date'), icon: 'time-outline' },
-    { key: 'age', label: t('petFeed.sort.age'), icon: 'calendar-outline' },
-    { key: 'price', label: t('petFeed.sort.price'), icon: 'cash-outline' },
-  ], [t]);
+  const sortItems = useMemo<ChipItem<PetFeedSortChipField>[]>(() => (
+    PET_FEED_SORT_CHIP_FIELDS.map((key) => ({
+      key,
+      label: t(`petFeed.sort.${key}`),
+      icon: key === 'age' ? 'calendar-outline' : 'cash-outline',
+    }))
+  ), [t]);
 
   const filteredPosts = useMemo(() => {
     const byGender = genderFilter === 'all'
       ? provinceMatchedPosts
       : provinceMatchedPosts.filter((post) => postMatchesGender(post, genderFilter));
     return [...byGender].sort((a, b) => {
-      if (sortField === 'age') return compareMaybeNumber(a.age_months, b.age_months, sortDirection);
-      if (sortField === 'price') return compareMaybeNumber(parsePetFeedPriceToVnd(a.price_note), parsePetFeedPriceToVnd(b.price_note), sortDirection);
+      if (sortField === 'age') {
+        return compareMaybeNumber(a.age_months, b.age_months, sortDirection);
+      }
+      if (sortField === 'price') {
+        return compareMaybeNumber(parsePetFeedPriceToVnd(a.price_note), parsePetFeedPriceToVnd(b.price_note), sortDirection);
+      }
       return sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a);
     });
   }, [genderFilter, provinceMatchedPosts, sortDirection, sortField]);
@@ -361,11 +374,12 @@ export function PetFeedScreen({
   const filterPanelWidth = Math.min(Math.round(windowWidth * 0.76), 330);
   const filterPanelMaxHeight = Math.min(Math.round(windowHeight * 0.58), 480);
   const filterPanelTopOffset = modalTopInset(insets.top) + 112;
-  const hasActiveFilters = petTypeFilter !== DEFAULT_PET_TYPE_FILTER
-    || provinceFilter !== ALL_PROVINCES_FILTER
-    || genderFilter !== 'all'
-    || sortField !== 'date'
-    || sortDirection !== 'desc';
+  const hasActiveFilters = isPetFeedQuickFilterActive({
+    provinceFilter,
+    genderFilter,
+    sortField,
+    sortDirection,
+  });
   const showListSkeleton =
     (activeTab === 'feed' && initialLoading)
     || (activeTab === 'news' && announcementInitialLoading)
@@ -415,8 +429,8 @@ export function PetFeedScreen({
       setPetTypeFilter('all');
       setProvinceFilter(ALL_PROVINCES_FILTER);
       setGenderFilter('all');
-      setSortField('date');
-      setSortDirection('desc');
+      setSortField(DEFAULT_PET_FEED_SORT_FIELD);
+      setSortDirection(DEFAULT_PET_FEED_SORT_DIRECTION);
       return;
     }
 
@@ -450,8 +464,8 @@ export function PetFeedScreen({
     setPetTypeFilter(DEFAULT_PET_TYPE_FILTER);
     setProvinceFilter(ALL_PROVINCES_FILTER);
     setGenderFilter('all');
-    setSortField('date');
-    setSortDirection('desc');
+    setSortField(DEFAULT_PET_FEED_SORT_FIELD);
+    setSortDirection(DEFAULT_PET_FEED_SORT_DIRECTION);
   }, []);
 
   const renderListItem = useCallback(({ item }: { item: FeedListItem }) => {
@@ -531,7 +545,7 @@ export function PetFeedScreen({
         return (
           <View className="px-5">
             <View className="items-center rounded-2xl border border-gray-200 bg-white px-5 py-12">
-              <Ionicons name="megaphone-outline" size={42} color={PRIMARY} />
+              <Ionicons name="megaphone-outline" size={42} color={BRAND.btnPrimary} />
               <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.newsEmpty')}</Text>
             </View>
           </View>
@@ -540,7 +554,7 @@ export function PetFeedScreen({
       return (
         <View className="px-5">
           <View className="items-center rounded-2xl border border-gray-200 bg-white px-5 py-10">
-            <Ionicons name="search-outline" size={38} color={PRIMARY} />
+            <Ionicons name="search-outline" size={38} color={BRAND.btnPrimary} />
             <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.emptyFilteredTitle')}</Text>
             <Text className="mt-2 text-center text-sm leading-5 text-slate-500">{t('petFeed.emptyFilteredBody')}</Text>
           </View>
@@ -565,7 +579,7 @@ export function PetFeedScreen({
       return (
         <View className="px-5">
           <View className="items-center rounded-2xl border border-gray-200 bg-white px-5 py-12">
-            <Ionicons name="newspaper-outline" size={42} color={PRIMARY} />
+            <Ionicons name="newspaper-outline" size={42} color={BRAND.btnPrimary} />
             <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.emptyTitle')}</Text>
             <Text className="mt-2 text-center text-sm leading-5 text-slate-500">{t('petFeed.emptyBody')}</Text>
           </View>
@@ -576,7 +590,7 @@ export function PetFeedScreen({
       return (
         <View className="px-5">
           <View className="items-center rounded-2xl border border-gray-200 bg-white px-5 py-10">
-            <Ionicons name="filter-outline" size={38} color={PRIMARY} />
+            <Ionicons name="filter-outline" size={38} color={BRAND.btnPrimary} />
             <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.emptyFilteredTitle')}</Text>
             <Text className="mt-2 text-center text-sm leading-5 text-slate-500">{t('petFeed.emptyFilteredBody')}</Text>
           </View>
@@ -587,7 +601,7 @@ export function PetFeedScreen({
       return (
         <View className="px-5">
           <View className="items-center rounded-2xl border border-gray-200 bg-white px-5 py-12">
-            <Ionicons name="ribbon-outline" size={42} color={PRIMARY} />
+            <Ionicons name="ribbon-outline" size={42} color={BRAND.btnPrimary} />
             <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.topBreeders.emptyTitle')}</Text>
             <Text className="mt-2 text-center text-sm leading-5 text-slate-500">{t('petFeed.topBreeders.emptyBody')}</Text>
           </View>
@@ -597,7 +611,7 @@ export function PetFeedScreen({
     return (
       <View className="px-5">
         <View className="items-center rounded-2xl border border-gray-200 bg-white px-5 py-10">
-          <Ionicons name="search-outline" size={38} color={PRIMARY} />
+          <Ionicons name="search-outline" size={38} color={BRAND.btnPrimary} />
           <Text className="mt-4 text-center text-base font-bold text-slate-900">{t('petFeed.emptyFilteredTitle')}</Text>
           <Text className="mt-2 text-center text-sm leading-5 text-slate-500">{t('petFeed.emptyFilteredBody')}</Text>
         </View>
@@ -618,7 +632,7 @@ export function PetFeedScreen({
     if (loading) {
       return (
         <View className="items-center gap-2 px-5 py-6">
-          <ActivityIndicator color={PRIMARY} />
+          <ActivityIndicator color={BRAND.btnPrimary} />
           <Text className="text-sm font-semibold text-slate-500">{t('petFeed.loadingMore')}</Text>
         </View>
       );
@@ -657,7 +671,7 @@ export function PetFeedScreen({
       ItemSeparatorComponent={ListSeparator}
       ListEmptyComponent={renderEmptyState}
       ListFooterComponent={renderFooter}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.btnPrimary} />}
       showsVerticalScrollIndicator={false}
       initialNumToRender={6}
       maxToRenderPerBatch={6}
@@ -801,15 +815,22 @@ export function PetFeedScreen({
         >
           <View className="mb-4 flex-row items-center justify-between">
             <View className="min-w-0 flex-1">
-              <Text className="text-base font-black text-slate-900">{t('petFeed.filtersTitle')}</Text>
+              <Text className="text-base font-bold text-slate-900">{t('petFeed.filtersTitle')}</Text>
               <Text className="mt-0.5 text-xs font-semibold text-slate-400">
                 {filteredPosts.length}/{posts.length}
               </Text>
             </View>
             <View className="flex-row items-center gap-2">
               {hasActiveFilters ? (
-                <Pressable accessibilityRole="button" className="rounded-full bg-blue-50 px-3 py-2" onPress={resetFilters}>
-                  <Text className="text-xs font-black text-blue-700">{t('petFeed.resetFilters')}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  className="rounded-full px-3 py-2"
+                  style={{ backgroundColor: BRAND.surfaceLight }}
+                  onPress={resetFilters}
+                >
+                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                    {t('petFeed.resetFilters')}
+                  </Text>
                 </Pressable>
               ) : null}
               <Pressable accessibilityRole="button" accessibilityLabel={t('petFeed.accessibility.closeFilters')} className="rounded-full bg-slate-100 p-2" onPress={() => { setProvincePickerOpen(false); setFilterVisible(false); }}>
@@ -845,14 +866,27 @@ export function PetFeedScreen({
                       accessibilityRole="button"
                       accessibilityLabel={item.label}
                       accessibilityState={{ selected: active }}
-                      className={`flex-row items-center gap-1.5 rounded-full border px-3 py-2 ${
-                        active ? 'border-blue-600 bg-blue-600' : 'border-gray-200 bg-white'
-                      }`}
+                      className="flex-row items-center gap-1.5 rounded-full px-3 py-2"
+                      style={{
+                        borderWidth: 1,
+                        borderColor: active ? BRAND.btnPrimary : '#E5E7EB',
+                        backgroundColor: active ? BRAND.btnPrimary : BRAND.card,
+                      }}
                       onPress={() => setGenderFilter((current) => (current === item.key ? 'all' : item.key))}
                     >
-                      <Ionicons name={item.icon} size={14} color={active ? '#fff' : '#64748b'} />
-                      <Text className={`text-xs font-black ${active ? 'text-white' : 'text-slate-700'}`}>{item.label}</Text>
-                      <Text className={`text-xs font-black ${active ? 'text-blue-100' : 'text-slate-400'}`}>{item.count}</Text>
+                      <Ionicons name={item.icon} size={14} color={active ? BRAND.textInverse : BRAND.textMuted} />
+                      <Text
+                        className="text-xs font-semibold"
+                        style={{ color: active ? BRAND.textInverse : BRAND.textSecondary }}
+                      >
+                        {item.label}
+                      </Text>
+                      <Text
+                        className="text-xs font-semibold"
+                        style={{ color: active ? BRAND.btnSecondaryPressed : BRAND.textMuted }}
+                      >
+                        {item.count}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -871,16 +905,23 @@ export function PetFeedScreen({
                       accessibilityRole="button"
                       accessibilityLabel={item.label}
                       accessibilityState={{ selected: active }}
-                      className={`flex-1 flex-row items-center justify-center gap-1 rounded-full border px-2 py-2 ${
-                        active ? 'border-blue-600 bg-blue-600' : 'border-gray-200 bg-white'
-                      }`}
+                      className="flex-1 flex-row items-center justify-center gap-1 rounded-full px-2 py-2"
+                      style={{
+                        borderWidth: 1,
+                        borderColor: active ? BRAND.btnPrimary : '#E5E7EB',
+                        backgroundColor: active ? BRAND.btnPrimary : BRAND.card,
+                      }}
                       onPress={() => toggleSort(item.key)}
                     >
-                      <Ionicons name={item.icon} size={13} color={active ? '#fff' : '#64748b'} />
-                      <Text className={`min-w-0 text-[11px] font-black ${active ? 'text-white' : 'text-slate-700'}`} numberOfLines={1}>
+                      <Ionicons name={item.icon} size={13} color={active ? BRAND.textInverse : BRAND.textMuted} />
+                      <Text
+                        className="min-w-0 text-[11px] font-semibold"
+                        style={{ color: active ? BRAND.textInverse : BRAND.textSecondary }}
+                        numberOfLines={1}
+                      >
                         {item.label}
                       </Text>
-                      {active ? <Ionicons name={directionIcon} size={13} color="#fff" /> : null}
+                      {active ? <Ionicons name={directionIcon} size={13} color={BRAND.textInverse} /> : null}
                     </Pressable>
                   );
                 })}
@@ -905,7 +946,12 @@ export function PetFeedScreen({
                 setProvincePickerOpen(false);
               }}
             >
-              <Text className={`text-center text-base ${provinceFilter === ALL_PROVINCES_FILTER ? 'font-bold text-blue-600' : 'text-slate-900'}`}>
+              <Text
+                className={`text-center text-base ${provinceFilter === ALL_PROVINCES_FILTER ? 'font-bold' : 'font-normal'}`}
+                style={{
+                  color: provinceFilter === ALL_PROVINCES_FILTER ? BRAND.textBrandLink : BRAND.textPrimary,
+                }}
+              >
                 {t('petFeed.filters.allProvinces')}
               </Text>
             </Pressable>
@@ -921,7 +967,12 @@ export function PetFeedScreen({
                     setProvincePickerOpen(false);
                   }}
                 >
-                  <Text className={`text-center text-base ${active ? 'font-bold text-blue-600' : 'text-slate-900'}`}>
+                  <Text
+                    className={`text-center text-base ${active ? 'font-bold' : 'font-normal'}`}
+                    style={{
+                      color: active ? BRAND.textBrandLink : BRAND.textPrimary,
+                    }}
+                  >
                     {province}
                   </Text>
                 </Pressable>
@@ -929,7 +980,9 @@ export function PetFeedScreen({
             })}
           </ScrollView>
           <Pressable className="py-3" onPress={() => setProvincePickerOpen(false)}>
-            <Text className="text-center text-base text-blue-600">{t('common.cancel')}</Text>
+            <Text className="text-center text-base" style={{ color: BRAND.textBrandLink }}>
+              {t('common.cancel')}
+            </Text>
           </Pressable>
         </View>
       </View>

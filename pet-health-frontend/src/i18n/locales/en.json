@@ -198,7 +198,7 @@
     "filterProvinceTitle": "Area",
     "filters": {
       "all": "All",
-      "allProvinces": "All provinces",
+      "allProvinces": "Nationwide",
       "cat": "Cats",
       "dog": "Dogs",
       "bird": "Birds",
@@ -214,7 +214,6 @@
     },
     "sortTitle": "Sort",
     "sort": {
-      "date": "Post date",
       "age": "Age",
       "price": "Price"
     },

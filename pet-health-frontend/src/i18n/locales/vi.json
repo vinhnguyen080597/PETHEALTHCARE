@@ -198,7 +198,7 @@
     "filterProvinceTitle": "Khu vực",
     "filters": {
       "all": "Tất cả",
-      "allProvinces": "Tất cả tỉnh/thành",
+      "allProvinces": "Toàn quốc",
       "cat": "Mèo",
       "dog": "Chó",
       "bird": "Chim",
@@ -214,7 +214,6 @@
     },
     "sortTitle": "Sắp xếp",
     "sort": {
-      "date": "Ngày đăng",
       "age": "Tuổi",
       "price": "Giá"
     },
