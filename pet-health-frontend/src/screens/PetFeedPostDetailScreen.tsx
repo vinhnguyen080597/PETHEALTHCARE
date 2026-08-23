@@ -20,6 +20,10 @@ import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
 import { BRAND } from '../theme/brand';
 import type { PetFeedComment, PetFeedPost } from '../types';
 import {
+  isMarketplaceEscrowEnabled,
+  shouldShowMarketplaceDealUi,
+} from '../utils/marketplaceEscrow';
+import {
   canShowDepositRequest,
   readDealFromPostMetadata,
 } from '../utils/listingDealHandoff';
@@ -51,6 +55,7 @@ type PetFeedPostDetailScreenProps = {
     postId: string,
     payload: { rating: number; body?: string },
   ) => Promise<void>;
+  marketplaceEscrowEnabled?: boolean;
   currentUserId?: string | null;
   allowMediaDownload?: boolean;
 };
@@ -97,6 +102,7 @@ export function PetFeedPostDetailScreen({
   onDeletePostComment,
   onMutateListingDeal,
   onSubmitListingDealReview,
+  marketplaceEscrowEnabled = false,
   currentUserId,
 }: PetFeedPostDetailScreenProps) {
   const { t } = useTranslation();
@@ -155,10 +161,16 @@ export function PetFeedPostDetailScreen({
     () => (selectedPost ? readDealFromPostMetadata(selectedPost.metadata) : { status: undefined }),
     [selectedPost],
   );
+  const hasActiveDeal = Boolean(deal.status);
+  const showDealUi = shouldShowMarketplaceDealUi(
+    { marketplace_escrow: marketplaceEscrowEnabled },
+    hasActiveDeal,
+  );
   const showDepositCta = Boolean(
     selectedPost
     && selectedPost.post_kind !== 'announcement'
     && onMutateListingDeal
+    && isMarketplaceEscrowEnabled({ marketplace_escrow: marketplaceEscrowEnabled })
     && canShowDepositRequest({
       isOwner: Boolean(isOwnPost),
       listingStatus: selectedPost.status,
@@ -277,7 +289,7 @@ export function PetFeedPostDetailScreen({
                 <Text className="text-sm font-semibold text-slate-700">{t('petFeed.editListing')}</Text>
               </Pressable>
             ) : null}
-            {onMutateListingDeal && selectedPost.post_kind !== 'announcement' ? (
+            {onMutateListingDeal && selectedPost.post_kind !== 'announcement' && showDealUi ? (
               <View className="mt-3">
                 <ListingDealPanel
                   post={selectedPost}

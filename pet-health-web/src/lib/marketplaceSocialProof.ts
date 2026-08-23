@@ -69,13 +69,16 @@ export function listingWarrantyCoverageDays(
 }
 
 /** Trust chips shown under price — only from real listing fields. */
-export function listingTrustTags(listing: Listing): ListingTrustTag[] {
+export function listingTrustTags(
+  listing: Listing,
+  options?: { showEscrowTag?: boolean },
+): ListingTrustTag[] {
   const tags: ListingTrustTag[] = [];
   const warrantyDays = listingWarrantyCoverageDays(listing.warrantyPolicy);
   if (warrantyDays != null) {
     tags.push({ kind: "warranty", days: warrantyDays });
   }
-  if (listing.escrowEnabled) {
+  if (options?.showEscrowTag && listing.escrowEnabled) {
     tags.push({ kind: "escrow" });
   }
   const vaccine = listing.vaccineStatus?.trim();

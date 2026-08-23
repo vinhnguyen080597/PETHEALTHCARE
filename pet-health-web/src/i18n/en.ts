@@ -39,16 +39,16 @@ const en = {
   "landing.searchPlaceholder": "Looking for a pet?",
   "landing.search": "Search",
   "landing.why": "Peace of mind when welcoming a new pet",
-  "landing.whySub": "Terms-based deposit. Verified breeders. Transparent delivery.",
-  "landing.value1.title": "Escrow deposit (terms-based hold)",
+  "landing.whySub": "Listings & contact. Verified profiles. You check in person before paying.",
+  "landing.value1.title": "Connect Sen and breeders",
   "landing.value1.desc":
-    "We work to hold the deposit for the agreed period. Refund/release follows seller escrow terms if the pet is not as described.",
+    "Browse listings, message farms, and negotiate directly — like a classified marketplace. PetCare does not hold pet-sale payments.",
   "landing.value2.title": "Verified kennels & health profiles",
   "landing.value2.desc":
-    "Admin-reviewed breeders with vaccine records and clear farm profiles before you message.",
-  "landing.value3.title": "Transparent shipping",
+    "Admin-reviewed breeders with vaccine records and clear farm profiles before you message. Badges are technical labels, not a legal license check.",
+  "landing.value3.title": "Check before you pay",
   "landing.value3.desc":
-    "We aim for clear delivery details and media upfront — fewer surprises after you decide.",
+    "Meet the pet, review documents, and agree shipping off-platform. PetCare is not a party to the sale.",
   "landing.value.comingSoon": "Coming soon",
   "landing.latest": "New Pets",
   "landing.viewAll": "View all →",
@@ -65,10 +65,10 @@ const en = {
   "landing.footer.browse": "Pets",
   "landing.footer.create": "Create listing",
   "landing.footer.disclaimer":
-    "Listings posted by users. PetCare: Pet Marketplace is not the seller; soft deposits follow listing terms.",
+    "Listings posted by users. PetCare: Pet Marketplace is not the seller and does not hold pet-sale payments. Verify in person before transferring money.",
 
   "feed.disclaimer":
-    "Listings are posted by users. PetCare: Pet Marketplace is not the seller and does not guarantee pets, health claims, or deal outcomes. Soft deposits follow listing terms. Verify in person and read our ",
+    "Listings are posted by users. PetCare: Pet Marketplace is not the seller and does not guarantee pets, health claims, or deal outcomes. PetCare does not hold transaction money. Verify the pet and documents in person before transferring money. Read our ",
   "feed.guidelines": "Marketplace Guidelines",
   "feed.disclaimerEnd": " before deciding.",
   "feed.search": "Search breed, breeder, location…",
@@ -84,7 +84,7 @@ const en = {
   "feed.province": "Province",
   "feed.province.all": "Nationwide",
   "feed.perks": "Perks",
-  "feed.escrow": "Escrow deposit (terms-based)",
+  "feed.escrow": "Contact seller directly",
   "feed.showingPrefix": "Showing",
   "feed.showingSuffix": "matching pets",
   "feed.all": "All",
@@ -173,7 +173,7 @@ const en = {
   "supportHub.submitting": "Sending…",
   "supportHub.section.empty": "No support sections match this search.",
   "supportHub.section.guides": "How-to guides",
-  "supportHub.section.guidesBlurb": "Safe deposit, handoff checks, and warranty activation.",
+  "supportHub.section.guidesBlurb": "Safe connecting, handoff checks, and warranty activation.",
   "supportHub.section.guides.point1": "For Sen (buyers)",
   "supportHub.section.guides.point2": "For Breeders",
   "supportHub.section.feedback": "Feedback mailbox",
@@ -188,26 +188,26 @@ const en = {
   "supportHub.audience.breeder": "For Breeders",
   "supportHub.guide.empty": "No guides match this search.",
   "supportHub.guide.openInApp": "Open related screen in PetCare",
-  "supportHub.guide.buyerDeposit.title": "Safe deposit in 4 steps",
+  "supportHub.guide.buyerDeposit.title": "How to connect safely (no platform payment hold)",
   "supportHub.guide.buyerDeposit.body":
-    "Keep money and chat on PetCare until handoff. Never pay outside the deposit panel for “holds” that skip platform records.",
+    "PetCare does not hold pet-sale payments. Use chat to contact the Breeder, then verify the pet and documents in person before you transfer any money off-platform.",
   "supportHub.guide.buyerDeposit.steps":
-    "1. Confirm the listing warranty and Breeder profile.\n2. Place deposit in the listing deposit panel.\n3. Keep all negotiation in PetCare chat.\n4. Complete handoff checklist before releasing the remaining balance.",
+    "1. Review the listing, warranty text (if any), and Breeder profile.\n2. Message or call the Breeder via PetCare contact tools.\n3. Agree price, any off-platform payment, and shipping between yourselves.\n4. Meet the pet and check documents before transferring money.",
   "supportHub.guide.buyerHandoff.title": "How to check the pet at handoff",
   "supportHub.guide.buyerHandoff.body":
-    "Meet in a safe place, verify chip/vaccine book if listed, record a short handoff video, and compare the pet to listing photos before you confirm receipt.",
-  "supportHub.guide.buyerWarranty.title": "Activate a warranty package",
+    "Meet in a safe place, verify chip/vaccine book if listed, record a short handoff video, and compare the pet to listing photos before you pay or take the pet home.",
+  "supportHub.guide.buyerWarranty.title": "Understand listing warranties",
   "supportHub.guide.buyerWarranty.body":
-    "After a completed deal, open Account → Warranty (or the listing warranty link). Keep the purchase record and any vet certificates ready if you need a claim.",
+    "Any warranty on a listing is a commitment from the Breeder, not from PetCare. Keep chat records and vet certificates if you need to follow up with the Seller off-platform.",
   "supportHub.guide.breederVerify.title": "Get a Verified Breeder profile",
   "supportHub.guide.breederVerify.body":
-    "Complete farm profile details, upload verification documents from Account → Breeder, and keep listings accurate. Verification is reviewed by PetCare moderators.",
+    "Complete farm profile details, upload verification documents from Account → Breeder, and keep listings accurate. Verification is a technical review by PetCare moderators — not a legal license certification.",
   "supportHub.guide.breederWarranty.title": "Attach warranty policy to a listing",
   "supportHub.guide.breederWarranty.body":
-    "Create or pick a policy in the Warranty library, then attach it when you publish or edit a listing so Sen sees coverage before depositing.",
-  "supportHub.guide.breederPayout.title": "Deposit payout flow",
+    "Create or pick a policy in the Warranty library, then attach it when you publish or edit a listing so Sen sees your coverage before contacting you. You alone are responsible for honoring it.",
+  "supportHub.guide.breederPayout.title": "Payments stay between you and Sen",
   "supportHub.guide.breederPayout.body":
-    "Deposits stay in the deal flow until handoff conditions are met. Use in-app status and chat; do not ask Sen to send cash outside PetCare for the same hold.",
+    "PetCare does not collect or release pet-sale payments. Agree payment terms directly with Sen, stay clear in chat, and never claim PetCare is holding their money.",
   "supportHub.feedback.formTitle": "Send feedback",
   "supportHub.feedback.category": "Category",
   "supportHub.feedback.cat.ui": "UI/UX improvement",
@@ -240,7 +240,7 @@ const en = {
   "supportHub.blacklist.hit": "Matched a demo sample entry",
   "supportHub.blacklist.liveHit": "Matched an admin-reviewed scam report",
   "supportHub.blacklist.liveNote":
-    "This identifier appears on a reviewed scam report. Stay careful and use in-app chat/deposit only.",
+    "This identifier appears on a reviewed scam report. Stay careful and use in-app chat only.",
   "supportHub.blacklist.missTitle": "No match found",
   "supportHub.blacklist.miss":
     "Not in the demo sample or reviewed list. That does not mean safe — if something feels wrong, send a scam report to admins.",
@@ -356,7 +356,7 @@ const en = {
   "farm.listings.filter": "Filter",
   "farm.listings.filterAll": "All",
   "farm.listings.status.for_sale": "seeking a home",
-  "farm.listings.status.deposit_hold": "on deposit",
+  "farm.listings.status.deposit_hold": "reserved",
   "farm.listings.status.completed": "completed",
   "farm.listings.filterEmpty": "No pets in this status.",
   "farm.reviews.empty": "No buyer reviews yet",
@@ -372,10 +372,10 @@ const en = {
   "farm.facility.video": "Facility video",
   "farm.facility.empty": "Farm details will appear here once the breeder adds them.",
   "farm.warranty.fallback":
-    "Ask the breeder about health commitments and return terms before depositing.",
+    "Ask the breeder about health commitments and return terms before agreeing off-platform.",
   "farm.warranty.title": "Warranty policies",
   "farm.warranty.note":
-    "Each listing can attach a clear warranty policy — review the terms before confirming a deposit.",
+    "Each listing can attach a clear warranty policy — review the terms before contacting the breeder.",
   "farm.warranty.createCta": "Create your first warranty policy (+10 transparency)",
   "farm.warranty.createButton": "Create policy",
   "farm.warranty.menu": "More actions",
@@ -385,11 +385,11 @@ const en = {
   "farm.warranty.deleteFailed": "Could not delete the policy.",
   "warranty.viewCta": "Review warranty policy",
   "warranty.close": "Close",
-  "warranty.frozenHint": "Frozen at deposit confirmation — cannot be changed.",
+  "warranty.frozenHint": "Locked on this listing — cannot be changed.",
   "warranty.missingOnListing": "This listing has no warranty policy attached yet.",
   "warranty.noneTitle": "No warranty",
   "warranty.noneHint": "The breeder does not provide warranty coverage for this pet.",
-  "warranty.attachForDeposit": "Attach a policy to enable deposit",
+  "warranty.attachForDeposit": "Attach a warranty policy",
   "warranty.attachTitle": "Attach warranty policy",
   "warranty.attachSave": "Update",
   "warranty.attachRequired": "Please select a warranty policy.",
@@ -805,7 +805,7 @@ const en = {
   "auth.heroTitle": "Welcome a new family member home with peace of mind",
   "auth.heroSub":
     "Connect with trusted breeders, clear health profiles, and more transparent contact.",
-  "auth.escrowBadge": "Escrow deposit · Terms-based hold",
+  "auth.escrowBadge": "Classified connect · No payment holding",
   "auth.continueGoogle": "Continue with Google",
   "auth.continueFacebook": "Continue with Facebook",
   "auth.continueApple": "Continue with Apple",
@@ -878,6 +878,9 @@ const en = {
   "account.senDeposited.title": "Deposited pets",
   "account.senDeposited.empty":
     "Pets you have soft-deposited will show up here so you can track handoff.",
+  "account.senDeposited.titleReserved": "Reserved pets",
+  "account.senDeposited.emptyReserved":
+    "Pets you have reserved with a breeder will show up here so you can track handoff.",
   "account.senStatus.title": "Breeder status",
   "account.senStatus.helper.unverified":
     "Submit verification details when you want to create listings for pets looking for a new home.",
@@ -1065,6 +1068,7 @@ const en = {
   "listing.status.sold": "Sold",
   "listing.status.cancelled": "Cancelled",
   "listing.status.deposit_hold": "Deposit hold",
+  "listing.status.reserved": "Reserved",
 
   "listing.new.title": "Create listing",
   "listing.new.review": "Preview",
@@ -1077,7 +1081,7 @@ const en = {
   "listing.new.termsBefore": "I have read and agree to the ",
   "listing.new.termsAnd": " and ",
   "listing.new.termsAfter":
-    ", and confirm that listing information is accurate and truthful.",
+    ", and confirm that listing information is accurate and truthful. I alone am responsible for business registration, veterinary/breeding permits (where required), lawful origin of the pet, and any off-platform payments I receive. PetCare does not hold pet-sale payments.",
   "listing.new.photos": "Photos (up to 6)",
   "listing.new.photosHint": "Clear face + body photos help approval.",
   "listing.new.video": "Short video (required)",
@@ -1515,6 +1519,9 @@ const en = {
   "admin.features.farm_template_change.title": "Change farm template",
   "admin.features.farm_template_change.desc":
     "Owner button to switch farm profile template layouts.",
+  "admin.features.marketplace_escrow.title": "Marketplace escrow (pilot)",
+  "admin.features.marketplace_escrow.desc":
+    "Deposit-hold / deal panel on listings. Off = classified connect-only (chat/call). Keep off until payment partner is ready.",
   "admin.news.title": "Post PetCare: Pet Marketplace news",
   "admin.news.note":
     "This post appears under Tin tức / News (header tab), not in sale listings.",

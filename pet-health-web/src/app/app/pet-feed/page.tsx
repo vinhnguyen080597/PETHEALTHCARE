@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { listPublicPosts } from "@/lib/api/public";
-import { listFeedPosts } from "@/lib/api/petFeed";
+import { getFeatureFlags, listFeedPosts } from "@/lib/api/petFeed";
 import { mapApiPosts } from "@/lib/mappers";
 import { isExpiredAuthError } from "@/lib/sessionTokens";
 import { FeedView } from "@/components/marketplace/FeedView";
@@ -13,6 +13,7 @@ import { ListingGridSkeleton } from "@/components/ui/Skeleton";
 import type { Lang, Listing } from "@/lib/types";
 import { MARKETPLACE_PAGE_SHELL_CLASS } from "@/lib/marketplaceLiveTicker";
 import { resolveProvinceSelection } from "@/lib/vietnamProvinceSelection";
+import { isMarketplaceEscrowEnabled } from "@/lib/featureFlags";
 
 export const metadata = {
   title: "Browse listings",
@@ -57,10 +58,24 @@ async function PetFeedListings({
   initialProvince: string;
 }) {
   const { listings, loadError } = await loadListings(lang);
+  let showEscrowUi = false;
+  try {
+    const user = await getSessionUser();
+    if (user.token) {
+      const flagsRes = await getFeatureFlags(user.token);
+      showEscrowUi = isMarketplaceEscrowEnabled(flagsRes.data);
+    }
+  } catch {
+    showEscrowUi = false;
+  }
 
   return (
     <>
-      <LiveActivityTicker lang={lang} listings={listings} />
+      <LiveActivityTicker
+        lang={lang}
+        listings={listings}
+        showEscrowUi={showEscrowUi}
+      />
       {loadError ? (
         <div className="mb-5 rounded-xl border border-amber-200 bg-[#FEF3C7] px-4 py-3 text-sm text-[#92400E]">
           {t(lang, "feed.loadError")}: {loadError}
@@ -74,6 +89,7 @@ async function PetFeedListings({
         initialQ={initialQ}
         initialProvince={initialProvince}
         hideDisclaimer
+        showEscrowUi={showEscrowUi}
       />
     </>
   );

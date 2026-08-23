@@ -13,10 +13,17 @@ export function isSenAccountRole(
   return true;
 }
 
-/** Show "Thú cưng đã cọc" on Account for Sen (and Sen-like) users. */
+/**
+ * Account reserved/deposit section: only when escrow is on, or legacy
+ * soft-deals still need tracking while escrow is off.
+ */
 export function shouldShowSenDepositedSection(input: {
   role: string | null | undefined;
   isAdmin?: boolean;
+  marketplaceEscrowEnabled?: boolean;
+  depositedCount?: number;
 }): boolean {
-  return isSenAccountRole(input.role, Boolean(input.isAdmin));
+  if (!isSenAccountRole(input.role, Boolean(input.isAdmin))) return false;
+  if (input.marketplaceEscrowEnabled === true) return true;
+  return Math.max(0, Math.floor(Number(input.depositedCount) || 0)) > 0;
 }

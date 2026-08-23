@@ -160,11 +160,16 @@ export function listingHotBadges(
   return badges.slice(0, 3);
 }
 
-export function listingTrustTags(post: PetFeedPost): ListingTrustTag[] {
+export function listingTrustTags(
+  post: PetFeedPost,
+  options?: { showEscrowTag?: boolean },
+): ListingTrustTag[] {
   const tags: ListingTrustTag[] = [];
   const warrantyDays = listingWarrantyCoverageDays(readListingWarrantyPolicy(post));
   if (warrantyDays != null) tags.push({ kind: 'warranty', days: warrantyDays });
-  if (parseListingEscrowEnabled(asRecord(post.metadata))) tags.push({ kind: 'escrow' });
+  if (options?.showEscrowTag && parseListingEscrowEnabled(asRecord(post.metadata))) {
+    tags.push({ kind: 'escrow' });
+  }
   const vaccine = post.vaccine_status?.trim();
   if (vaccine && vaccine !== '—') tags.push({ kind: 'vaccine', label: vaccine });
   return tags.slice(0, 2);

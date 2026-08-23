@@ -10,6 +10,7 @@ export function MarketplaceListingRail({
   subtitle,
   listings,
   showFavorite = true,
+  showEscrowUi = false,
   onFavoriteChange,
 }: {
   lang: Lang;
@@ -17,6 +18,7 @@ export function MarketplaceListingRail({
   subtitle?: string;
   listings: Listing[];
   showFavorite?: boolean;
+  showEscrowUi?: boolean;
   onFavoriteChange?: (next: {
     listingId: string;
     saved: boolean;
@@ -50,6 +52,7 @@ export function MarketplaceListingRail({
               listing={listing}
               lang={lang}
               showFavorite={showFavorite}
+              showEscrowUi={showEscrowUi}
               compact
               onFavoriteChange={onFavoriteChange}
             />

@@ -159,8 +159,8 @@ export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = [
     points: TRANSPARENCY_VIOLATION_PENALTIES.confirmed_scam,
     titleVI: "Lừa đảo / tráo bé cưng (xác nhận)",
     titleEN: "Confirmed scam / bait-and-switch",
-    actionVI: "Khóa tính năng nhận cọc 30 ngày (khi tính năng đặt cọc mở).",
-    actionEN: "Deposit features locked for 30 days (when deposits ship).",
+    actionVI: "Tạm khóa tin đăng / liên hệ 30 ngày (và khóa nhận cọc nếu Escrow đang mở).",
+    actionEN: "Pause listings/contact for 30 days (and lock deposit intake if Escrow is on).",
   },
 ];
 

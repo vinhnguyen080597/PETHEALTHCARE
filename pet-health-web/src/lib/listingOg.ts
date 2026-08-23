@@ -61,9 +61,7 @@ export function buildListingOgCopy(listing: Listing): {
   if (breederName && breederName !== "Breeder") {
     parts.push(`🏠 ${breederName}`);
   }
-  if (listing.escrowEnabled) {
-    parts.push("🛡️ Giữ cọc an tâm Escrow");
-  }
+  // Escrow OG pitch is gated off until marketplace_escrow ships (classified model).
 
   const description = (
     parts.length

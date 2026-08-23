@@ -255,7 +255,7 @@ export async function installMockApi(page: Page, initial?: Partial<MockApiState>
     accountPassword: MOCK_ACCOUNT_PASSWORD,
     pendingNewEmail: null,
     pendingPasswordRecovery: false,
-    featureFlags: { breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true, pet_feed_news: true, pet_feed_listings: true, pet_feed_breeders: true, farm_template_change: true },
+    featureFlags: { breed_recognition: true, health_analysis: true, rewarded_ads: true, subscription: true, pet_feed_news: true, pet_feed_listings: true, pet_feed_breeders: true, farm_template_change: true, marketplace_escrow: false },
     ...initial,
   };
 

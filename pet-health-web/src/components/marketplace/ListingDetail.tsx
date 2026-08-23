@@ -88,6 +88,10 @@ import { DealPhotoPicker } from "./DealPhotoPicker";
 import { DialogActions } from "@/components/ui/DialogActions";
 import { startChatAndOpenUi, startChatMessageKey } from "@/lib/startFarmChat";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
+import {
+  isMarketplaceEscrowEnabled,
+  shouldShowMarketplaceDealUi,
+} from "@/lib/featureFlags";
 
 const REPORT_REASONS = [
   "scam",
@@ -166,6 +170,7 @@ export function ListingDetail({
   isAdmin = false,
   currentUserId = null,
   initialComments = [],
+  marketplaceEscrowEnabled = false,
 }: {
   listing: Listing;
   lang: Lang;
@@ -173,6 +178,8 @@ export function ListingDetail({
   isAdmin?: boolean;
   currentUserId?: string | null;
   initialComments?: PublicComment[];
+  /** Feature flag: platform escrow / deposit-hold UI (default off). */
+  marketplaceEscrowEnabled?: boolean;
 }) {
   const router = useRouter();
   const dock = useOptionalChatDock();
@@ -187,11 +194,21 @@ export function ListingDetail({
   const ownerUserId = listing.ownerUserId || listing.breeder.userId;
   const isOwner = isListingOwner(currentUserId, ownerUserId);
   const { showMessage, showReport } = listingVisitorActions(isOwner);
-  const showDepositRequest = canShowDepositRequest({
-    isOwner,
-    status: listing.status,
-    dealStatus: listing.deal?.status,
+  const hasActiveDeal = Boolean(listing.deal?.status);
+  const dealUiEnabled = shouldShowMarketplaceDealUi(
+    { marketplace_escrow: marketplaceEscrowEnabled },
+    hasActiveDeal,
+  );
+  const escrowDepositEnabled = isMarketplaceEscrowEnabled({
+    marketplace_escrow: marketplaceEscrowEnabled,
   });
+  const showDepositRequest =
+    escrowDepositEnabled &&
+    canShowDepositRequest({
+      isOwner,
+      status: listing.status,
+      dealStatus: listing.deal?.status,
+    });
   const showUpdateDetails = canShowListingUpdateDetails({
     isOwner,
     status: listing.status,
@@ -208,40 +225,54 @@ export function ListingDetail({
   const isDealSen = Boolean(
     currentUserId && listing.deal?.senUserId && currentUserId === listing.deal.senUserId,
   );
-  const showBreederHandoff = canBreederRequestHandoff({
-    isOwner,
-    listingStatus: listing.status,
-    dealStatus: listing.deal?.status,
-  });
-  const showBreederCancel = canBreederCancelDeposit({
-    isOwner,
-    listingStatus: listing.status,
-    dealStatus: listing.deal?.status,
-  });
-  const showBreederConfirmDeposit = canBreederConfirmDeposit({
-    isOwner,
-    listingStatus: listing.status,
-    dealStatus: listing.deal?.status,
-  });
-  const showSenWithdrawDeposit = canSenWithdrawDepositRequest({
-    isDealSen,
-    listingStatus: listing.status,
-    dealStatus: listing.deal?.status,
-  });
+  const showBreederHandoff =
+    dealUiEnabled &&
+    canBreederRequestHandoff({
+      isOwner,
+      listingStatus: listing.status,
+      dealStatus: listing.deal?.status,
+    });
+  const showBreederCancel =
+    dealUiEnabled &&
+    canBreederCancelDeposit({
+      isOwner,
+      listingStatus: listing.status,
+      dealStatus: listing.deal?.status,
+    });
+  const showBreederConfirmDeposit =
+    dealUiEnabled &&
+    canBreederConfirmDeposit({
+      isOwner,
+      listingStatus: listing.status,
+      dealStatus: listing.deal?.status,
+    });
+  const showSenWithdrawDeposit =
+    dealUiEnabled &&
+    canSenWithdrawDepositRequest({
+      isDealSen,
+      listingStatus: listing.status,
+      dealStatus: listing.deal?.status,
+    });
   const showPendingDeposit =
+    dealUiEnabled &&
     String(listing.deal?.status || "").toLowerCase() === "pending_sen";
-  const showSenConfirmHandoff = canSenConfirmHandoff({
-    isDealSen,
-    listingStatus: listing.status,
-    dealStatus: listing.deal?.status,
-  });
-  const showSenAbandonHandoff = canSenAbandonHandoff({
-    isDealSen,
-    listingStatus: listing.status,
-    dealStatus: listing.deal?.status,
-  });
+  const showSenConfirmHandoff =
+    dealUiEnabled &&
+    canSenConfirmHandoff({
+      isDealSen,
+      listingStatus: listing.status,
+      dealStatus: listing.deal?.status,
+    });
+  const showSenAbandonHandoff =
+    dealUiEnabled &&
+    canSenAbandonHandoff({
+      isDealSen,
+      listingStatus: listing.status,
+      dealStatus: listing.deal?.status,
+    });
   const showSenHandoffMenu = showSenConfirmHandoff || showSenAbandonHandoff;
   const showSenHandoffFromNotify =
+    dealUiEnabled &&
     wantsSenConfirmReceipt &&
     canSenRespondToHandoffRequest({
       isDealSen,
@@ -249,16 +280,20 @@ export function ListingDetail({
       dealStatus: listing.deal?.status,
       allowLoggedInDeepLink: Boolean(isLoggedIn && wantsSenConfirmReceipt),
     });
-  const showSenConfirmCancel = canSenConfirmCancel({
-    isDealSen,
-    listingStatus: listing.status,
-    dealStatus: listing.deal?.status,
-    allowLoggedInDeepLink: Boolean(isLoggedIn && wantsSenConfirmCancel),
-  });
-  const showDisputeOpen = isDealDisputeOpen({
-    listingStatus: listing.status,
-    dealStatus: listing.deal?.status,
-  });
+  const showSenConfirmCancel =
+    dealUiEnabled &&
+    canSenConfirmCancel({
+      isDealSen,
+      listingStatus: listing.status,
+      dealStatus: listing.deal?.status,
+      allowLoggedInDeepLink: Boolean(isLoggedIn && wantsSenConfirmCancel),
+    });
+  const showDisputeOpen =
+    dealUiEnabled &&
+    isDealDisputeOpen({
+      listingStatus: listing.status,
+      dealStatus: listing.deal?.status,
+    });
   const deleteDecision = evaluateOwnerDeleteListing({
     isOwner,
     status: listing.status,
@@ -1032,7 +1067,7 @@ export function ListingDetail({
                 {t(lang, "detail.downloadMedia")}
               </button>
             ) : null}
-            {listing.escrowEnabled ? (
+            {listing.escrowEnabled && escrowDepositEnabled ? (
               <span className="absolute top-3 right-3 z-10">
                 <EscrowBadge lang={lang} />
               </span>

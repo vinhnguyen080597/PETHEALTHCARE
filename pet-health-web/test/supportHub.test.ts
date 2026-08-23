@@ -84,7 +84,7 @@ test("filterGuideTopics respects audience and query", () => {
   const buyer = filterGuideTopics(GUIDE_TOPICS, "buyer", "", resolve);
   assert.ok(buyer.every((g) => g.audience === "buyer"));
   assert.equal(buyer.length, 3);
-  const deposit = filterGuideTopics(GUIDE_TOPICS, "buyer", "deposit", resolve);
+  const deposit = filterGuideTopics(GUIDE_TOPICS, "buyer", "payment hold", resolve);
   assert.ok(deposit.some((g) => g.id === "buyer-deposit"));
 });
 

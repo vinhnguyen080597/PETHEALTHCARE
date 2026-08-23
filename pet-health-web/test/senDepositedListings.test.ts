@@ -15,7 +15,29 @@ test("isSenAccountRole treats sen and unknown non-breeder as Sen", () => {
 });
 
 test("shouldShowSenDepositedSection follows Sen account gate", () => {
-  assert.equal(shouldShowSenDepositedSection({ role: "sen" }), true);
+  assert.equal(
+    shouldShowSenDepositedSection({
+      role: "sen",
+      marketplaceEscrowEnabled: true,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldShowSenDepositedSection({
+      role: "sen",
+      marketplaceEscrowEnabled: false,
+      depositedCount: 0,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowSenDepositedSection({
+      role: "sen",
+      marketplaceEscrowEnabled: false,
+      depositedCount: 2,
+    }),
+    true,
+  );
   assert.equal(shouldShowSenDepositedSection({ role: "breeder" }), false);
   assert.equal(
     shouldShowSenDepositedSection({ role: "sen", isAdmin: true }),

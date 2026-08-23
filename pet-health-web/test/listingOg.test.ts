@@ -76,11 +76,11 @@ test("listingOgPhotoUrl prefers full photo over thumbs", () => {
   assert.equal(url, "https://cdn.example/photos/full.jpg");
 });
 
-test("buildListingOgCopy includes price location breeder escrow", () => {
+test("buildListingOgCopy includes price location breeder without escrow pitch", () => {
   const copy = buildListingOgCopy(sampleListing());
   assert.match(copy.title, /Persian/);
   assert.match(copy.title, /VNĐ|8500000|8\.500\.000/);
   assert.match(copy.description, /HCMC/);
   assert.match(copy.description, /Happy Farm/);
-  assert.match(copy.description, /Escrow/i);
+  assert.doesNotMatch(copy.description, /Escrow|cọc/i);
 });

@@ -46,6 +46,7 @@ type FeatureFlags = {
   pet_feed_listings: boolean;
   pet_feed_breeders: boolean;
   farm_template_change: boolean;
+  marketplace_escrow: boolean;
 };
 
 type FeatureKey = keyof FeatureFlags;
@@ -129,6 +130,7 @@ const FEATURE_CORE: FeatureKey[] = [
   "breed_recognition",
   "health_analysis",
   "farm_template_change",
+  "marketplace_escrow",
 ];
 
 const DEFAULT_FLAGS: FeatureFlags = {
@@ -140,6 +142,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   pet_feed_listings: true,
   pet_feed_breeders: true,
   farm_template_change: true,
+  marketplace_escrow: false,
 };
 
 const ROLES = ["sen", "breeder", "admin"] as const;

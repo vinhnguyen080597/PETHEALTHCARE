@@ -107,6 +107,7 @@ export function AccountPanel({
   savedCount,
   myListings,
   depositedListings = [],
+  marketplaceEscrowEnabled = false,
   breeder,
 }: {
   lang: Lang;
@@ -117,6 +118,7 @@ export function AccountPanel({
   savedCount: number;
   myListings: AccountListingItem[];
   depositedListings?: AccountListingItem[];
+  marketplaceEscrowEnabled?: boolean;
   breeder: AccountBreederInfo | null;
 }) {
   const router = useRouter();
@@ -138,7 +140,18 @@ export function AccountPanel({
 
   const isSen = role === "sen" || (!isAdmin && role !== "breeder" && role !== "vet");
   const isBreeder = role === "breeder";
-  const showSenDeposits = shouldShowSenDepositedSection({ role, isAdmin });
+  const showSenDeposits = shouldShowSenDepositedSection({
+    role,
+    isAdmin,
+    marketplaceEscrowEnabled,
+    depositedCount: depositedListings.length,
+  });
+  const depositedSectionTitle = marketplaceEscrowEnabled
+    ? t(lang, "account.senDeposited.title")
+    : t(lang, "account.senDeposited.titleReserved");
+  const depositedSectionEmpty = marketplaceEscrowEnabled
+    ? t(lang, "account.senDeposited.empty")
+    : t(lang, "account.senDeposited.emptyReserved");
   const breederStatus = breeder?.verificationStatus || "unverified";
   const pendingRequest = breederStatus === "pending_review";
   const verifiedBreeder = isBreeder && breederStatus === "verified";
@@ -430,7 +443,7 @@ export function AccountPanel({
               <section className="rounded-2xl border border-[#F0E6D8] bg-white p-5">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <h2 className="text-base font-bold text-[#2B1E19]">
-                    {t(lang, "account.senDeposited.title")}
+                    {depositedSectionTitle}
                   </h2>
                   {depositedListings.length > 0 ? (
                     <span className="text-xs font-semibold text-stone-500">
@@ -440,7 +453,7 @@ export function AccountPanel({
                 </div>
                 {depositedListings.length === 0 ? (
                   <p className="rounded-xl bg-[#FDFBF7] p-3 text-sm text-stone-500">
-                    {t(lang, "account.senDeposited.empty")}
+                    {depositedSectionEmpty}
                   </p>
                 ) : (
                   <div className="space-y-2">

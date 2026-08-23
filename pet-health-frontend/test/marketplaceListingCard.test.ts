@@ -59,15 +59,21 @@ test('listingHotBadges uses saves, new, and video signals', () => {
 });
 
 test('listingTrustTags prefers warranty and escrow from real fields', () => {
-  const tags = listingTrustTags({
+  const postWithEscrow = {
     ...post(),
     vaccine_status: 'Đủ mũi',
     metadata: { escrow_enabled: true },
     warranty_policy: {
       care_parvo_coverage_days: 30,
     },
-  } as PetFeedPost);
-  assert.deepEqual(tags.map((tag) => tag.kind), ['warranty', 'escrow']);
+  } as PetFeedPost;
+  assert.deepEqual(
+    listingTrustTags(postWithEscrow, { showEscrowTag: true }).map((tag) => tag.kind),
+    ['warranty', 'escrow'],
+  );
+  const withoutEscrow = listingTrustTags(postWithEscrow, { showEscrowTag: false }).map((tag) => tag.kind);
+  assert.ok(withoutEscrow.includes('warranty'));
+  assert.ok(!withoutEscrow.includes('escrow'));
   assert.equal(listingWarrantyCoverageDays({ careParvoCoverageDays: 30 }), 30);
   assert.equal(parseListingEscrowEnabled({ accept_escrow: true }), true);
 });
@@ -75,7 +81,7 @@ test('listingTrustTags prefers warranty and escrow from real fields', () => {
 test('pet feed card i18n has EN/VI parity', async () => {
   const en = (await import('../src/i18n/locales/en.json', { with: { type: 'json' } })).default;
   const vi = (await import('../src/i18n/locales/vi.json', { with: { type: 'json' } })).default;
-  for (const key of ['saves', 'new', 'video', 'warranty', 'escrow', 'chat'] as const) {
+  for (const key of ['saves', 'new', 'video', 'warranty', 'escrow', 'chat', 'reserved', 'depositHold'] as const) {
     assert.ok(en.petFeed.card[key], `missing EN petFeed.card.${key}`);
     assert.ok(vi.petFeed.card[key], `missing VI petFeed.card.${key}`);
   }

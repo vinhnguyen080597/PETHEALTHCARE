@@ -31,6 +31,7 @@ type PetFeedListingCardProps = {
   currentUserId?: string | null;
   showFavorite?: boolean;
   showContact?: boolean;
+  showEscrowUi?: boolean;
   onPress?: (post: PetFeedPost) => void;
   testID?: string;
 };
@@ -111,6 +112,7 @@ function PetFeedListingCardComponent({
   currentUserId = null,
   showFavorite = true,
   showContact = true,
+  showEscrowUi = false,
   onPress,
   testID,
 }: PetFeedListingCardProps) {
@@ -125,12 +127,12 @@ function PetFeedListingCardComponent({
   const speciesTranslated = post.species ? t(speciesKey) : '';
   const speciesLabel = speciesTranslated === speciesKey ? post.species : speciesTranslated;
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
-  const depositLabel = parseListingEscrowEnabled(post.metadata ?? {})
+  const depositLabel = showEscrowUi && parseListingEscrowEnabled(post.metadata ?? {})
     ? listingEscrowDepositLabel(post.price_note, i18n.language)
     : null;
   const previewImage = listingPreviewImages(post)[0] ?? null;
   const hotBadges = listingHotBadges(post);
-  const trustTags = listingTrustTags(post);
+  const trustTags = listingTrustTags(post, { showEscrowTag: showEscrowUi });
   const meta = post.metadata ?? {};
   const isCancelled = post.status === 'cancelled' || listingMetadataMarksCancelled(meta);
   const isSold = post.status === 'sold' || listingMetadataMarksSold(meta);
@@ -171,7 +173,7 @@ function PetFeedListingCardComponent({
           ))}
           {availability === 'deposit_hold' ? (
             <OverlayPill style={{ backgroundColor: 'rgba(245,158,11,0.95)', color: BRAND.textInverse }}>
-              {t('petFeed.card.depositHold')}
+              {showEscrowUi ? t('petFeed.card.depositHold') : t('petFeed.card.reserved')}
             </OverlayPill>
           ) : null}
           {post.status === 'pending_review' ? (

@@ -16,6 +16,7 @@ const FEATURE_ITEMS: Array<{
   { key: 'breed_recognition', icon: 'paw-outline' },
   { key: 'health_analysis', icon: 'pulse-outline' },
   { key: 'farm_template_change', icon: 'color-palette-outline' },
+  { key: 'marketplace_escrow', icon: 'shield-checkmark-outline' },
   // v1 release: monetization disabled
   ...(RELEASE_MONETIZATION_ENABLED
     ? ([

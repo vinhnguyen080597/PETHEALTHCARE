@@ -415,6 +415,7 @@ function AppContent() {
                 focusPostId={app.screen === 'pet-feed' ? app.petFeedFocusPostId : null}
                 onFocusPostHandled={app.clearPetFeedFocusPostId}
                 enabledTabs={app.petFeedEnabledTabs}
+                marketplaceEscrowEnabled={app.isFeatureEnabled('marketplace_escrow')}
               />
               </View>
             ) : null}
@@ -438,6 +439,7 @@ function AppContent() {
                 onDeletePostComment={app.deletePetFeedComment}
                 onMutateListingDeal={app.mutateListingDeal}
                 onSubmitListingDealReview={app.submitListingDealReview}
+                marketplaceEscrowEnabled={app.isFeatureEnabled('marketplace_escrow')}
                 currentUserId={app.accountProfile?.user_id ?? null}
                 allowMediaDownload={app.accountProfile?.primary_role === 'admin'}
               />

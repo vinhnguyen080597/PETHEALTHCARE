@@ -112,7 +112,7 @@ test("isListingNewOnFloor respects 24h window", () => {
 });
 
 test("listingTrustTags prefer warranty then escrow/vaccine", () => {
-  const tags = listingTrustTags(
+  const withEscrow = listingTrustTags(
     listing({
       escrowEnabled: true,
       warrantyPolicy: {
@@ -121,9 +121,24 @@ test("listingTrustTags prefer warranty then escrow/vaccine", () => {
         careParvoCoverageDays: 30,
       },
     }),
+    { showEscrowTag: true },
   );
-  assert.equal(tags[0]?.kind, "warranty");
-  assert.equal(tags[0]?.kind === "warranty" && tags[0].days, 30);
+  assert.equal(withEscrow[0]?.kind, "warranty");
+  assert.equal(withEscrow[0]?.kind === "warranty" && withEscrow[0].days, 30);
+  assert.ok(withEscrow.some((tag) => tag.kind === "escrow"));
+
+  const withoutEscrow = listingTrustTags(
+    listing({
+      escrowEnabled: true,
+      warrantyPolicy: {
+        id: "w1",
+        title: "Health",
+        careParvoCoverageDays: 30,
+      },
+    }),
+    { showEscrowTag: false },
+  );
+  assert.ok(!withoutEscrow.some((tag) => tag.kind === "escrow"));
 });
 
 test("listingPreviewImages dedupes and caps", () => {
@@ -165,10 +180,28 @@ test("buildLiveTickerItems prefers deposit and sold from real states", () => {
     ],
     now,
     5,
+    { includeDepositEvents: true },
   );
   assert.ok(items.some((i) => i.kind === "deposit"));
   assert.ok(items.some((i) => i.kind === "sold"));
   assert.ok(items.some((i) => i.kind === "new_listing"));
+});
+
+test("buildLiveTickerItems hides deposit events when escrow off", () => {
+  const now = Date.parse("2026-08-16T12:00:00.000Z");
+  const items = buildLiveTickerItems(
+    [
+      listing({
+        id: "d1",
+        status: "deposit_hold",
+        createdAt: "2026-08-16T11:50:00.000Z",
+      }),
+    ],
+    now,
+    5,
+    { includeDepositEvents: false },
+  );
+  assert.ok(!items.some((i) => i.kind === "deposit"));
 });
 
 test("feed sections rank by interest and just arrived", () => {
@@ -284,6 +317,14 @@ test("liveTickerDisplayText prefers demo bilingual copy", () => {
     newBatch: "",
   });
   assert.match(text, /Sen Lan/);
+  assert.doesNotMatch(text, /cọc|deposit/i);
+});
+
+test("demo live ticker copy stays classified (no deposit pitch)", () => {
+  for (const item of DEMO_LIVE_TICKER_ITEMS) {
+    assert.doesNotMatch(item.messageVI || "", /cọc|Escrow/i);
+    assert.doesNotMatch(item.messageEN || "", /deposit|Escrow/i);
+  }
 });
 
 test("feed extra filter merges gender and escrow", () => {

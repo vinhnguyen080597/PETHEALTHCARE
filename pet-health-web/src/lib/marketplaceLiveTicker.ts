@@ -42,9 +42,9 @@ export const DEMO_LIVE_TICKER_ITEMS: LiveTickerItem[] = [
     petTitle: "Mèo ALN",
     minutesAgo: 2,
     messageVI:
-      "🎉 Sen Lan vừa chốt cọc bé Mèo ALN tại Mina Cattery (Hà Nội) · 2 phút trước",
+      "💬 Sen Lan vừa nhắn Mina Cattery về bé Mèo ALN (Hà Nội) · 2 phút trước",
     messageEN:
-      "🎉 Sen Lan just deposited on a British SH at Mina Cattery (Hanoi) · 2m ago",
+      "💬 Sen Lan just messaged Mina Cattery about a British SH (Hanoi) · 2m ago",
   },
   {
     id: "demo-2",
@@ -90,9 +90,9 @@ export const DEMO_LIVE_TICKER_ITEMS: LiveTickerItem[] = [
     petTitle: "Golden Retriever",
     minutesAgo: 18,
     messageVI:
-      "🎉 Sen Minh vừa đặt cọc bé Golden tại Sunny Farm (Bình Dương) · 18 phút trước",
+      "💬 Sen Minh vừa mở chat với Sunny Farm về bé Golden (Bình Dương) · 18 phút trước",
     messageEN:
-      "🎉 Sen Minh just deposited on a Golden at Sunny Farm (Binh Duong) · 18m ago",
+      "💬 Sen Minh just opened chat with Sunny Farm about a Golden (Binh Duong) · 18m ago",
   },
   {
     id: "demo-6",
@@ -149,9 +149,9 @@ export const DEMO_LIVE_TICKER_ITEMS: LiveTickerItem[] = [
     petTitle: "Pomeranian",
     minutesAgo: 67,
     messageVI:
-      "🎉 Sen Tuấn (TP.HCM) vừa giữ cọc an toàn bé Pomeranian tại Pawfect Kennel · 1 giờ trước",
+      "✨ Sen Tuấn (TP.HCM) vừa xem tin Pomeranian tại Pawfect Kennel · 1 giờ trước",
     messageEN:
-      "🎉 Sen Tuan (HCMC) just secured a Pomeranian deposit at Pawfect Kennel · 1h ago",
+      "✨ Sen Tuan (HCMC) just viewed a Pomeranian listing at Pawfect Kennel · 1h ago",
   },
 ];
 
@@ -167,12 +167,15 @@ function titleOf(listing: Listing): string {
 /**
  * Build a short live-activity feed from real listing states, then pad with
  * demo pulses so the ticker always has up to `limit` items (default 10).
+ * Deposit pulses stay off unless `includeDepositEvents` (marketplace_escrow).
  */
 export function buildLiveTickerItems(
   listings: Listing[],
   now = Date.now(),
   limit = 10,
+  options?: { includeDepositEvents?: boolean },
 ): LiveTickerItem[] {
+  const includeDepositEvents = options?.includeDepositEvents === true;
   const items: LiveTickerItem[] = [];
 
   for (const listing of listings) {
@@ -184,15 +187,17 @@ export function buildLiveTickerItems(
     const petTitle = titleOf(listing);
 
     if (availability === "deposit_hold") {
-      items.push({
-        id: `deposit-${listing.id}`,
-        kind: "deposit",
-        listingId: listing.id,
-        breederName,
-        location,
-        petTitle,
-        minutesAgo: mins,
-      });
+      if (includeDepositEvents) {
+        items.push({
+          id: `deposit-${listing.id}`,
+          kind: "deposit",
+          listingId: listing.id,
+          breederName,
+          location,
+          petTitle,
+          minutesAgo: mins,
+        });
+      }
       continue;
     }
 

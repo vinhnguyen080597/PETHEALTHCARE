@@ -120,10 +120,10 @@
     "terms": "Điều khoản dịch vụ",
     "marketplaceGuidelines": "Nội quy Marketplace",
     "support": "Liên hệ hỗ trợ",
-    "marketplaceDisclaimer": "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. Đặt cọc theo điều khoản trên tin. Hãy kiểm tra trực tiếp và đọc <guidelines>Nội quy Marketplace</guidelines> trước khi quyết định.",
+    "marketplaceDisclaimer": "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. PetCare không giữ tiền giao dịch. Hãy kiểm tra bé và giấy tờ trực tiếp trước khi chuyển tiền. Đọc <guidelines>Nội quy Marketplace</guidelines> trước khi quyết định.",
     "dismissMarketplaceDisclaimer": "Đóng thông báo marketplace",
     "marketplaceListingTermsLabel": "Cam kết khi đăng tin marketplace",
-    "marketplaceListingTermsBody": "Tôi xác nhận tin đăng này hợp pháp, không liên quan động vật hoang dã, loài bảo vệ hoặc buôn bán trái phép, và thông tin là trung thực. Tôi chịu mọi trách nhiệm về nội dung và giao dịch. Tôi đã đọc <guidelines>Nội quy Marketplace</guidelines>."
+    "marketplaceListingTermsBody": "Tôi xác nhận tin đăng này hợp pháp, không liên quan động vật hoang dã, loài bảo vệ hoặc buôn bán trái phép, và thông tin là trung thực. Tôi tự chịu trách nhiệm về đăng ký kinh doanh, giấy phép chăn nuôi/vệ sinh thú y (nếu thuộc diện), nguồn gốc hợp pháp của thú, và mọi khoản thanh toán ngoài ứng dụng. PetCare không giữ tiền mua bán thú. Tôi đã đọc <guidelines>Nội quy Marketplace</guidelines>."
   },
   "tabs": {
     "petFeed": "Pet Feed",
@@ -237,6 +237,7 @@
       "chat": "Chat ngay",
       "onlineTrust": "Trại đã xác minh",
       "depositHold": "Đang giữ cọc",
+      "reserved": "Đã giữ chỗ",
       "pendingReview": "Chờ admin duyệt",
       "sold": "Đã bán",
       "cancelled": "Đã hủy"
@@ -249,7 +250,7 @@
     "hasVideo": "Có video",
     "contact": "Liên hệ",
     "contactConfirmTitle": "Mở liên hệ breeder?",
-    "contactConfirmBody": "PetCare: Pet Marketplace không xử lý thanh toán và không xác minh cuộc trò chuyện bên ngoài. Sen nên tự kiểm tra danh tính breeder, giấy tờ, vaccine và gặp an toàn trước khi quyết định.",
+    "contactConfirmBody": "PetCare: Pet Marketplace không giữ tiền mua bán thú, và không xác minh cuộc trò chuyện bên ngoài. Sen nên tự kiểm tra danh tính breeder, giấy tờ, vaccine và gặp an toàn trước khi chuyển tiền.",
     "contactConfirmOpen": "Mở liên hệ",
     "favoriteFailed": "Không thể lưu",
     "reportSuccess": "Cảm ơn Sen. Bài đăng đã được gửi để admin xem xét.",
@@ -1242,6 +1243,10 @@
       "farm_template_change": {
         "title": "Đổi template trại",
         "description": "Nút để chủ trại đổi giao diện template hồ sơ."
+      },
+      "marketplace_escrow": {
+        "title": "Escrow Marketplace (thử nghiệm)",
+        "description": "Bảng đặt cọc / deal trên tin. Tắt = chỉ chat/gọi cho đến khi sẵn sàng đối tác thanh toán."
       }
     },
     "petFeedTabs": {

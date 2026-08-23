@@ -126,7 +126,7 @@ test("farm listings tab is named Thú cưng / Pets", () => {
   assert.ok(enDict["farm.listings.createPost"]);
   assert.ok(viDict["farm.listings.empty"]);
   assert.equal(viDict["farm.listings.status.for_sale"], "đang tìm chủ");
-  assert.equal(viDict["farm.listings.status.deposit_hold"], "đã cọc");
+  assert.equal(viDict["farm.listings.status.deposit_hold"], "đã giữ chỗ");
   assert.equal(viDict["farm.listings.status.completed"], "đã hoàn thành");
   assert.ok(enDict["farm.listings.status.for_sale"]);
   assert.ok(enDict["farm.listings.filter"]);

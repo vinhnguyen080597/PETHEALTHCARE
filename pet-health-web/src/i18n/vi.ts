@@ -41,16 +41,16 @@ const vi: Record<EnKey, string> = {
   "landing.searchPlaceholder": "Bạn đang tìm bé thú cưng nào?",
   "landing.search": "Tìm kiếm",
   "landing.why": "Đặc Quyền An Tâm Khi Đón Bé Cưng",
-  "landing.whySub": "Cọc theo điều khoản. Trại xác minh. Vận chuyển minh bạch.",
-  "landing.value1.title": "Đặt cọc Escrow theo điều khoản",
+  "landing.whySub": "Đăng tin & liên hệ. Hồ sơ xác minh. Kiểm tra trực tiếp trước khi chuyển tiền.",
+  "landing.value1.title": "Kết nối Sen và trại giống",
   "landing.value1.desc":
-    "Nỗ lực giữ cọc trong thời gian hold. Hoàn/giải ngân theo điều khoản escrow của người bán nếu pet không đúng mô tả.",
+    "Xem tin, nhắn trại và tự thỏa thuận — mô hình rao vặt/kết nối. PetCare không giữ tiền mua bán thú.",
   "landing.value2.title": "Trại Giống & Hồ Sơ Xác Minh",
   "landing.value2.desc":
-    "Breeder được admin duyệt, có sổ tiêm và hồ sơ trại rõ ràng trước khi bạn nhắn tin.",
-  "landing.value3.title": "Minh Bạch Vận Chuyển",
+    "Breeder được admin duyệt, có sổ tiêm và hồ sơ trại rõ ràng trước khi bạn nhắn tin. Nhãn chỉ mang tính phân loại kỹ thuật, không phải chứng nhận giấy phép pháp lý.",
+  "landing.value3.title": "Kiểm tra trước khi trả tiền",
   "landing.value3.desc":
-    "Hướng tới thông tin giao nhận và media rõ từ đầu — giảm bất ngờ sau khi quyết định.",
+    "Gặp bé, xem giấy tờ và tự thỏa thuận vận chuyển ngoài nền tảng. PetCare không phải bên trong giao dịch mua bán.",
   "landing.value.comingSoon": "Sắp ra mắt",
   "landing.latest": "Thú Cưng Mới",
   "landing.viewAll": "Xem tất cả →",
@@ -67,10 +67,10 @@ const vi: Record<EnKey, string> = {
   "landing.footer.browse": "Thú cưng",
   "landing.footer.create": "Đăng tin",
   "landing.footer.disclaimer":
-    "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán; đặt cọc theo điều khoản trên tin.",
+    "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không giữ tiền giao dịch. Hãy kiểm tra trực tiếp trước khi chuyển tiền.",
 
   "feed.disclaimer":
-    "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. Đặt cọc theo điều khoản trên tin. Hãy kiểm tra trực tiếp và đọc ",
+    "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. PetCare không giữ tiền giao dịch. Hãy kiểm tra bé và giấy tờ trực tiếp trước khi chuyển tiền. Đọc ",
   "feed.guidelines": "Nội quy Marketplace",
   "feed.disclaimerEnd": " trước khi quyết định.",
   "feed.search": "Bạn đang tìm bé thú cưng nào?",
@@ -86,7 +86,7 @@ const vi: Record<EnKey, string> = {
   "feed.province": "Khu vực",
   "feed.province.all": "Toàn quốc",
   "feed.perks": "Đặc quyền",
-  "feed.escrow": "Cọc Escrow (theo điều khoản)",
+  "feed.escrow": "Liên hệ người bán trực tiếp",
   "feed.showingPrefix": "Hiển thị",
   "feed.showingSuffix": "bé cưng phù hợp",
   "feed.all": "Tất cả",
@@ -176,7 +176,7 @@ const vi: Record<EnKey, string> = {
   "supportHub.submitting": "Đang gửi…",
   "supportHub.section.empty": "Không có mục hỗ trợ khớp tìm kiếm.",
   "supportHub.section.guides": "Hướng dẫn sử dụng",
-  "supportHub.section.guidesBlurb": "Giữ cọc an toàn, kiểm tra khi nhận, kích hoạt bảo hành.",
+  "supportHub.section.guidesBlurb": "Kết nối an toàn, kiểm tra khi nhận, kích hoạt bảo hành.",
   "supportHub.section.guides.point1": "Dành cho Sen",
   "supportHub.section.guides.point2": "Dành cho Breeder",
   "supportHub.section.feedback": "Hòm thư góp ý",
@@ -191,26 +191,26 @@ const vi: Record<EnKey, string> = {
   "supportHub.audience.breeder": "Dành cho Breeder",
   "supportHub.guide.empty": "Không có hướng dẫn khớp tìm kiếm.",
   "supportHub.guide.openInApp": "Mở màn hình liên quan trong PetCare",
-  "supportHub.guide.buyerDeposit.title": "Quy trình giữ cọc an toàn 4 bước",
+  "supportHub.guide.buyerDeposit.title": "Kết nối an toàn (không giữ tiền trên sàn)",
   "supportHub.guide.buyerDeposit.body":
-    "Giữ tiền và chat trên PetCare đến khi bàn giao. Đừng chuyển khoản ngoài bảng cọc cho các “giữ chỗ” không có nhật ký sàn.",
+    "PetCare không giữ tiền mua bán thú. Dùng chat để liên hệ Breeder, rồi kiểm tra bé và giấy tờ trực tiếp trước khi chuyển bất kỳ khoản tiền nào ngoài nền tảng.",
   "supportHub.guide.buyerDeposit.steps":
-    "1. Kiểm tra bảo hành tin đăng và hồ sơ Breeder.\n2. Đặt cọc trong bảng cọc của tin.\n3. Giữ mọi thương lượng trong chat PetCare.\n4. Hoàn tất checklist bàn giao trước khi giải ngân phần còn lại.",
+    "1. Xem tin đăng, bảo hành (nếu có) và hồ sơ Breeder.\n2. Nhắn hoặc gọi Breeder qua công cụ liên hệ trên PetCare.\n3. Tự thỏa thuận giá, thanh toán (nếu có) và vận chuyển ngoài ứng dụng.\n4. Gặp bé, kiểm tra giấy tờ trước khi chuyển tiền.",
   "supportHub.guide.buyerHandoff.title": "Cách kiểm tra bé cưng khi nhận",
   "supportHub.guide.buyerHandoff.body":
-    "Gặp ở nơi an toàn, đối chiếu chip/sổ tiêm nếu tin có nêu, quay video bàn giao ngắn, và so với ảnh tin đăng trước khi xác nhận đã nhận.",
-  "supportHub.guide.buyerWarranty.title": "Hướng dẫn kích hoạt gói bảo hành",
+    "Gặp ở nơi an toàn, đối chiếu chip/sổ tiêm nếu tin có nêu, quay video bàn giao ngắn, và so với ảnh tin đăng trước khi trả tiền hoặc mang bé về.",
+  "supportHub.guide.buyerWarranty.title": "Hiểu bảo hành trên tin đăng",
   "supportHub.guide.buyerWarranty.body":
-    "Sau giao dịch xong, mở Tài khoản → Bảo hành (hoặc link bảo hành trên tin). Giữ biên nhận và giấy khám nếu cần khiếu nại.",
+    "Bảo hành trên tin là cam kết của Breeder, không phải của PetCare. Giữ lịch sử chat và giấy khám nếu cần theo dõi với Người bán ngoài nền tảng.",
   "supportHub.guide.breederVerify.title": "Cách xác minh hồ sơ Breeder",
   "supportHub.guide.breederVerify.body":
-    "Điền hồ sơ trại, tải giấy tờ xác minh từ Tài khoản → Breeder, và giữ tin đăng chính xác. PetCare sẽ duyệt hồ sơ.",
+    "Điền hồ sơ trại, tải giấy tờ xác minh từ Tài khoản → Breeder, và giữ tin đăng chính xác. Xác minh là duyệt kỹ thuật của PetCare — không phải chứng nhận giấy phép pháp lý.",
   "supportHub.guide.breederWarranty.title": "Gắn chính sách bảo hành vào tin đăng",
   "supportHub.guide.breederWarranty.body":
-    "Tạo hoặc chọn chính sách trong thư viện Bảo hành, rồi gắn khi đăng/sửa tin để Sen thấy phạm vi trước khi cọc.",
-  "supportHub.guide.breederPayout.title": "Quy trình giải ngân cọc",
+    "Tạo hoặc chọn chính sách trong thư viện Bảo hành, rồi gắn khi đăng/sửa tin để Sen thấy phạm vi trước khi liên hệ. Bạn tự chịu trách nhiệm thực hiện cam kết đó.",
+  "supportHub.guide.breederPayout.title": "Thanh toán diễn ra giữa bạn và Sen",
   "supportHub.guide.breederPayout.body":
-    "Tiền cọc đi theo trạng thái giao dịch đến khi đủ điều kiện bàn giao. Dùng trạng thái và chat trong app; không yêu cầu Sen chuyển tiền mặt ngoài sàn cho cùng khoản giữ chỗ.",
+    "PetCare không thu hay giải ngân tiền mua bán thú. Thỏa thuận thanh toán trực tiếp với Sen, ghi rõ trong chat, và không tuyên bố PetCare đang giữ tiền của Sen.",
   "supportHub.feedback.formTitle": "Gửi góp ý",
   "supportHub.feedback.category": "Phân loại",
   "supportHub.feedback.cat.ui": "Cải tiến UI/UX",
@@ -243,7 +243,7 @@ const vi: Record<EnKey, string> = {
   "supportHub.blacklist.hit": "Khớp mục mẫu demo",
   "supportHub.blacklist.liveHit": "Khớp báo cáo scam đã được admin duyệt",
   "supportHub.blacklist.liveNote":
-    "Định danh này xuất hiện trong báo cáo scam đã duyệt. Hãy cẩn thận và chỉ dùng chat/cọc trong app.",
+    "Định danh này xuất hiện trong báo cáo scam đã duyệt. Hãy cẩn thận và chỉ dùng chat trong app.",
   "supportHub.blacklist.missTitle": "Không tìm thấy",
   "supportHub.blacklist.miss":
     "Không có trong mẫu demo hoặc danh sách đã duyệt. Điều đó không có nghĩa là an toàn — nếu nghi ngờ, hãy gửi báo cáo scam tới admin.",
@@ -360,7 +360,7 @@ const vi: Record<EnKey, string> = {
   "farm.listings.filter": "Lọc",
   "farm.listings.filterAll": "Tất cả",
   "farm.listings.status.for_sale": "đang tìm chủ",
-  "farm.listings.status.deposit_hold": "đã cọc",
+  "farm.listings.status.deposit_hold": "đã giữ chỗ",
   "farm.listings.status.completed": "đã hoàn thành",
   "farm.listings.filterEmpty": "Không có thú cưng ở trạng thái này.",
   "farm.reviews.empty": "Chưa có đánh giá từ khách",
@@ -376,10 +376,10 @@ const vi: Record<EnKey, string> = {
   "farm.facility.video": "Video cơ sở",
   "farm.facility.empty": "Thông tin cơ sở sẽ hiện khi breeder bổ sung.",
   "farm.warranty.fallback":
-    "Hãy hỏi breeder về cam kết sức khỏe và điều khoản đổi trả trước khi đặt cọc.",
+    "Hãy hỏi breeder về cam kết sức khỏe và điều khoản đổi trả trước khi thỏa thuận ngoài sàn.",
   "farm.warranty.title": "Chính sách bảo hành",
   "farm.warranty.note":
-    "Mỗi bé đang bán gắn một chính sách bảo hành rõ ràng — xem đủ điều khoản trước khi chốt cọc.",
+    "Mỗi bé đang bán gắn một chính sách bảo hành rõ ràng — xem đủ điều khoản trước khi liên hệ.",
   "farm.warranty.createCta": "Tạo chính sách bảo hành đầu tiên (+10 điểm minh bạch)",
   "farm.warranty.createButton": "Tạo chính sách",
   "farm.warranty.menu": "Thêm thao tác",
@@ -389,11 +389,11 @@ const vi: Record<EnKey, string> = {
   "farm.warranty.deleteFailed": "Không xóa được chính sách.",
   "warranty.viewCta": "Xem chính sách bảo hành",
   "warranty.close": "Đóng",
-  "warranty.frozenHint": "Đã đóng băng khi chốt cọc — không thể đổi.",
+  "warranty.frozenHint": "Đã khóa trên tin này — không thể đổi.",
   "warranty.missingOnListing": "Bài đăng chưa gắn chính sách bảo hành.",
   "warranty.noneTitle": "Không bảo hành",
   "warranty.noneHint": "Breeder không chịu trách nhiệm bảo hành cho bé này.",
-  "warranty.attachForDeposit": "Gắn chính sách để chốt cọc",
+  "warranty.attachForDeposit": "Gắn chính sách bảo hành",
   "warranty.attachTitle": "Gắn chính sách bảo hành",
   "warranty.attachSave": "Cập nhật",
   "warranty.attachRequired": "Vui lòng chọn một chính sách bảo hành.",
@@ -806,7 +806,7 @@ const vi: Record<EnKey, string> = {
   "auth.heroTitle": "An tâm đón thành viên mới về nhà",
   "auth.heroSub":
     "Đồng hành kết nối với breeder uy tín, hồ sơ rõ ràng và giao dịch minh bạch hơn.",
-  "auth.escrowBadge": "Đặt cọc Escrow · Theo dõi theo điều khoản",
+  "auth.escrowBadge": "Kết nối rao vặt · Không giữ tiền",
   "auth.continueGoogle": "Tiếp tục với Google",
   "auth.continueFacebook": "Tiếp tục với Facebook",
   "auth.continueApple": "Tiếp tục với Apple",
@@ -880,6 +880,9 @@ const vi: Record<EnKey, string> = {
   "account.senDeposited.title": "Thú cưng đã cọc",
   "account.senDeposited.empty":
     "Các bé bạn đã cọc sẽ hiện ở đây để theo dõi bàn giao.",
+  "account.senDeposited.titleReserved": "Thú cưng đã giữ chỗ",
+  "account.senDeposited.emptyReserved":
+    "Các bé bạn đã giữ chỗ với breeder sẽ hiện ở đây để theo dõi bàn giao.",
   "account.senStatus.title": "Trạng thái Breeder",
   "account.senStatus.helper.unverified":
     "Gửi thông tin xác minh khi bạn muốn đăng tin tìm nhà mới cho thú cưng.",
@@ -1068,6 +1071,7 @@ const vi: Record<EnKey, string> = {
   "listing.status.sold": "Đã bán",
   "listing.status.cancelled": "Đã hủy",
   "listing.status.deposit_hold": "Đang được cọc",
+  "listing.status.reserved": "Đã giữ chỗ",
 
   "listing.new.title": "Đăng tin mới",
   "listing.new.review": "Xem trước",
@@ -1080,7 +1084,7 @@ const vi: Record<EnKey, string> = {
   "listing.new.termsBefore": "Tôi đã đọc và đồng ý với ",
   "listing.new.termsAnd": " và ",
   "listing.new.termsAfter":
-    ", đồng thời xác nhận thông tin tin đăng là chính xác và trung thực.",
+    ", đồng thời xác nhận thông tin tin đăng là chính xác và trung thực. Tôi tự chịu trách nhiệm về đăng ký kinh doanh, giấy phép chăn nuôi/vệ sinh thú y (nếu thuộc diện), nguồn gốc hợp pháp của thú, và mọi khoản thanh toán ngoài ứng dụng. PetCare không giữ tiền mua bán thú.",
   "listing.new.photos": "Ảnh (tối đa 6)",
   "listing.new.photosHint": "Ảnh rõ mặt + toàn thân giúp duyệt nhanh hơn.",
   "listing.new.video": "Video ngắn (bắt buộc)",
@@ -1517,6 +1521,9 @@ const vi: Record<EnKey, string> = {
   "admin.features.farm_template_change.title": "Đổi template trại",
   "admin.features.farm_template_change.desc":
     "Nút để chủ trại đổi giao diện template hồ sơ.",
+  "admin.features.marketplace_escrow.title": "Escrow Marketplace (thử nghiệm)",
+  "admin.features.marketplace_escrow.desc":
+    "Bảng đặt cọc / deal trên tin đăng. Tắt = chỉ kết nối rao vặt (chat/gọi). Giữ tắt đến khi sẵn sàng đối tác thanh toán.",
   "admin.news.title": "Đăng tin PetCare: Pet Marketplace",
   "admin.news.note":
     "Bài này hiện ở tab Tin tức trên menu chính, không phải tin bán.",

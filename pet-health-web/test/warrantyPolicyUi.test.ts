@@ -181,7 +181,8 @@ test("farm warranty note is friendly without Sen jargon", () => {
   assert.doesNotMatch(vi["farm.warranty.note"], /Sen/i);
   assert.doesNotMatch(vi["farm.warranty.note"], /6 trụ cột/i);
   assert.doesNotMatch(en["farm.warranty.note"], /Sen/i);
-  assert.match(vi["farm.warranty.note"], /chốt cọc/i);
+  assert.match(vi["farm.warranty.note"], /liên hệ/i);
+  assert.doesNotMatch(vi["farm.warranty.note"], /cọc/i);
 });
 
 test("warranty library edit href deep-links policy id", () => {

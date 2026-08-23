@@ -33,6 +33,7 @@ export function FeedView({
   initialQ = "",
   initialProvince = "",
   hideDisclaimer = false,
+  showEscrowUi = false,
 }: {
   lang: Lang;
   listings: Listing[];
@@ -41,6 +42,7 @@ export function FeedView({
   initialQ?: string;
   initialProvince?: string;
   hideDisclaimer?: boolean;
+  showEscrowUi?: boolean;
 }) {
   const [activeSpecies, setActiveSpecies] = useState(
     initialSpecies && initialSpecies !== "" ? initialSpecies : "all",
@@ -155,6 +157,7 @@ export function FeedView({
               title={`🔥 ${t(lang, "feed.section.top.title")}`}
               subtitle={t(lang, "feed.section.top.subtitle")}
               listings={topListings}
+              showEscrowUi={showEscrowUi}
               onFavoriteChange={applyFavorite}
             />
             <MarketplaceListingRail
@@ -162,6 +165,7 @@ export function FeedView({
               title={`✨ ${t(lang, "feed.section.arrived.title")}`}
               subtitle={t(lang, "feed.section.arrived.subtitle")}
               listings={arrivedListings}
+              showEscrowUi={showEscrowUi}
               onFavoriteChange={applyFavorite}
             />
           </>
@@ -236,6 +240,7 @@ export function FeedView({
                 listing={l}
                 lang={lang}
                 showFavorite
+                showEscrowUi={showEscrowUi}
                 onFavoriteChange={applyFavorite}
               />
             ))}

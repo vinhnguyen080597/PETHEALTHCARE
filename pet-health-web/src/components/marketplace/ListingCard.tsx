@@ -50,6 +50,7 @@ export function ListingCard({
   showFavorite = false,
   interactive = true,
   compact = false,
+  showEscrowUi = false,
   onFavoriteChange,
 }: {
   listing: Listing;
@@ -59,6 +60,8 @@ export function ListingCard({
   interactive?: boolean;
   /** Narrower rail cards (horizontal marketplace sections). */
   compact?: boolean;
+  /** Escrow/deposit marketing — only when marketplace_escrow is on. */
+  showEscrowUi?: boolean;
   /** Lift favorite state so rails + grid stay in sync for the same post. */
   onFavoriteChange?: (next: {
     listingId: string;
@@ -89,7 +92,10 @@ export function ListingCard({
     : listing.species;
   const speciesEmoji = listingSpeciesEmoji(speciesSlug);
   const price = formatPriceVnd(listing.price) || listing.price;
-  const deposit = listing.escrowEnabled ? depositLabel(listing.price, lang) : null;
+  const deposit =
+    showEscrowUi && listing.escrowEnabled
+      ? depositLabel(listing.price, lang)
+      : null;
   const qualityIndex = Math.max(
     0,
     Math.min(100, Math.round(listing.breeder.trustScore || 0)),
@@ -117,8 +123,11 @@ export function ListingCard({
     ...listing,
     favoriteCount: favCount,
   });
-  const trustTags = listingTrustTags(listing);
+  const trustTags = listingTrustTags(listing, { showEscrowTag: showEscrowUi });
   const mediaHeight = compact ? "h-40" : "h-48";
+  const holdLabel = showEscrowUi
+    ? t(lang, "listing.status.deposit_hold")
+    : t(lang, "listing.status.reserved");
 
   useEffect(() => {
     if (!hovering || previewImages.length <= 1) return;
@@ -385,7 +394,7 @@ export function ListingCard({
           })}
           {isHold ? (
             <span className="bg-amber-500/95 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
-              {t(lang, "listing.status.deposit_hold")}
+              {holdLabel}
             </span>
           ) : null}
           {listing.status === "pending_review" ? (

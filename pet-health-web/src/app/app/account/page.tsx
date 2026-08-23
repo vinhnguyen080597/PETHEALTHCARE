@@ -8,6 +8,7 @@ import {
   listMyDeposits,
   listMyPosts,
   getMyBreederProfile,
+  getFeatureFlags,
 } from "@/lib/api/petFeed";
 import {
   AccountPanel,
@@ -17,6 +18,7 @@ import {
 import { AccountDataSkeleton } from "@/components/ui/Skeleton";
 import { mapApiPost } from "@/lib/mappers";
 import type { ApiPetFeedPost, Lang } from "@/lib/types";
+import { isMarketplaceEscrowEnabled } from "@/lib/featureFlags";
 
 export const metadata = { title: "Account" };
 
@@ -67,18 +69,21 @@ async function AccountData({
   let myListings: AccountListingItem[] = [];
   let depositedListings: AccountListingItem[] = [];
   let breeder: AccountBreederInfo | null = null;
+  let marketplaceEscrowEnabled = false;
 
   try {
-    const [favs, mine, deposits, profile] = await Promise.all([
+    const [favs, mine, deposits, profile, flags] = await Promise.all([
       listFavorites(token).catch(() => ({ data: [] })),
       listMyPosts(token).catch(() => ({ data: [] })),
       listMyDeposits(token).catch(() => ({ data: [] })),
       getMyBreederProfile(token).catch(() => ({ data: null })),
+      getFeatureFlags(token).catch(() => ({ data: {} })),
     ]);
 
     savedCount = extractPosts(favs).length;
     myListings = extractPosts(mine).map(toListingItem);
     depositedListings = extractPosts(deposits).map(toListingItem);
+    marketplaceEscrowEnabled = isMarketplaceEscrowEnabled(flags.data);
 
     const profileData =
       profile && typeof profile === "object" && "data" in profile
@@ -107,6 +112,7 @@ async function AccountData({
       savedCount={savedCount}
       myListings={myListings}
       depositedListings={depositedListings}
+      marketplaceEscrowEnabled={marketplaceEscrowEnabled}
       breeder={breeder}
     />
   );

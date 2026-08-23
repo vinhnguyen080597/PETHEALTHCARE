@@ -9,6 +9,8 @@ export type AppFeatureFlags = {
   pet_feed_listings: boolean;
   pet_feed_breeders: boolean;
   farm_template_change: boolean;
+  /** Platform escrow / deposit-hold UI — opt-in only (classified model when off). */
+  marketplace_escrow: boolean;
 };
 
 export const DEFAULT_APP_FEATURE_FLAGS: AppFeatureFlags = {
@@ -20,6 +22,7 @@ export const DEFAULT_APP_FEATURE_FLAGS: AppFeatureFlags = {
   pet_feed_listings: true,
   pet_feed_breeders: true,
   farm_template_change: true,
+  marketplace_escrow: false,
 };
 
 /** Admins always see flags for testing; others respect stored values (default on). */
@@ -29,4 +32,19 @@ export function isFarmTemplateChangeEnabled(
 ): boolean {
   if (isAdmin) return true;
   return flags?.farm_template_change !== false;
+}
+
+/** Escrow/deposit UI is explicit opt-in. When off, users only see connect (chat/call). */
+export function isMarketplaceEscrowEnabled(
+  flags: Partial<AppFeatureFlags> | null | undefined,
+): boolean {
+  return flags?.marketplace_escrow === true;
+}
+
+/** Show deal panel when escrow is on, or when a legacy in-flight soft-deal must be completed. */
+export function shouldShowMarketplaceDealUi(
+  flags: Partial<AppFeatureFlags> | null | undefined,
+  hasActiveDeal: boolean,
+): boolean {
+  return isMarketplaceEscrowEnabled(flags) || hasActiveDeal;
 }

@@ -32,29 +32,33 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(privacyVi, /không bán dữ liệu/);
   assert.match(privacyVi, /Nghị định 13\/2023/);
   assert.match(privacyVi, /72 giờ/);
-  assert.match(privacyVi, /đặt cọc/);
+  assert.match(privacyVi, /không tiếp nhận, không giữ/);
   assert.match(privacyVi, /tin nhắn/);
   assert.match(privacyVi, new RegExp(LEGAL_CONTACT_EMAIL.replace(/\./g, "\\.")));
 
   const termsVi = flattenLegalDoc(termsOfServiceContent.VI);
   assert.match(termsVi, /KHÔNG phải là người bán/);
-  assert.match(termsVi, /Sàn giao dịch TMĐT/);
+  assert.match(termsVi, /đăng tin/);
+  assert.match(termsVi, /KHÔNG tiếp nhận, giữ tiền cọc/);
   assert.match(termsVi, /24 giờ/);
   assert.match(termsVi, /động vật hoang dã/);
-  assert.match(termsVi, /bảo hành/);
+  assert.match(termsVi, /đăng ký kinh doanh/);
   assert.match(termsVi, /quảng bá, truyền thông/);
   assert.match(flattenLegalDoc(termsOfServiceContent.EN), /marketing or communications/i);
   assert.match(termsVi, /không đủ chuyên môn/);
   assert.match(termsVi, /hủy bỏ tài khoản vi phạm/);
-  assert.match(flattenLegalDoc(termsOfServiceContent.EN), /Content liability disclaimer/);
+  assert.match(flattenLegalDoc(termsOfServiceContent.EN), /No money-holding/);
   assert.match(flattenLegalDoc(termsOfServiceContent.EN), /without prior notice/);
+  assert.match(termsVi, /Dịch vụ thanh toán \/ giữ cọc trong tương lai/);
+  assert.match(termsVi, /15–30 ngày/);
 
   const guideVi = flattenLegalDoc(marketplaceGuidelinesContent.VI);
-  assert.match(guideVi, /bàn giao/);
+  assert.match(guideVi, /Tìm kiếm & liên hệ/);
   assert.match(guideVi, /tranh chấp/);
   assert.match(guideVi, /Sách Đỏ Việt Nam/);
   assert.match(guideVi, /CITES/);
   assert.match(guideVi, /miễn trừ toàn bộ trách nhiệm/);
+  assert.match(guideVi, /không có nghĩa vụ hoàn tiền/);
   assert.match(flattenLegalDoc(marketplaceGuidelinesContent.EN), /CITES/);
   assert.match(guideVi, /KHÔNG trực tiếp cung cấp dịch vụ vận chuyển/);
   assert.match(guideVi, /03 ngày làm việc/);
@@ -63,7 +67,12 @@ test("legal docs are bilingual and mention marketplace product context", () => {
     flattenLegalDoc(marketplaceGuidelinesContent.EN),
     /marketing or communications/i,
   );
-  assert.match(flattenLegalDoc(marketplaceGuidelinesContent.EN), /does NOT itself provide pet shipping/i);
+  assert.match(
+    flattenLegalDoc(marketplaceGuidelinesContent.EN),
+    /does NOT receive, hold, or manage deposits/i,
+  );
+  assert.doesNotMatch(guideVi, /Quy trình 4 bước bàn giao & giải ngân cọc/);
+  assert.doesNotMatch(guideVi, /Hệ thống giữ cọc/);
 
   const supportVi = flattenLegalDoc(supportContent.VI);
   assert.match(
@@ -77,9 +86,10 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(supportVi, /URL tin đăng/);
   assert.match(supportVi, /08:30/);
   assert.match(supportVi, /24 đến 48 giờ/);
+  assert.match(supportVi, /không giữ cọc/);
 });
 
-test("Vietnamese legal markdown export includes BCT operator and process sections", () => {
+test("Vietnamese legal markdown export includes BCT operator and classified model", () => {
   const md = [
     renderLegalMarkdown("1. Chính sách bảo mật", privacyPolicyContent.VI),
     renderLegalMarkdown("2. Điều khoản dịch vụ", termsOfServiceContent.VI),
@@ -88,10 +98,12 @@ test("Vietnamese legal markdown export includes BCT operator and process section
   ].join("\n\n");
   assert.match(md, /CÔNG TY TNHH PETCARE VIỆT NAM/);
   assert.match(md, /Nghị định 13\/2023/);
-  assert.match(md, /Quy trình 4 bước/);
+  assert.match(md, /Quy trình kết nối & giao dịch ngoài ứng dụng/);
   assert.match(md, /support@pet-marketplace\.org/);
   assert.match(md, /CITES/);
   assert.match(md, /Cơ chế miễn trừ trách nhiệm nội dung/);
+  assert.match(md, /KHÔNG tiếp nhận, giữ tiền cọc/);
+  assert.doesNotMatch(md, /Quy trình 4 bước bàn giao & giải ngân cọc/);
 });
 
 test("footer legal labels stay in EN/VI parity", () => {
@@ -106,6 +118,6 @@ test("footer legal labels stay in EN/VI parity", () => {
     assert.ok(en[key], `missing EN ${key}`);
     assert.ok(vi[key], `missing VI ${key}`);
   }
-  assert.match(vi["landing.footer.disclaimer"], /đặt cọc/);
-  assert.match(en["landing.footer.disclaimer"], /soft deposits/i);
+  assert.match(vi["landing.footer.disclaimer"], /không giữ tiền/i);
+  assert.match(en["landing.footer.disclaimer"], /does not hold/i);
 });
