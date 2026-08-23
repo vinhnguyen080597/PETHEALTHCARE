@@ -1978,7 +1978,7 @@ function AdminActionButton({
       accessibilityState={{ disabled: disabled || busy, busy }}
       disabled={disabled || busy}
       className={`min-w-[96px] flex-1 rounded-xl py-3 active:opacity-90 ${className} ${disabled || busy ? 'opacity-60' : ''}`}
-      style={{ cursor: disabled || busy ? 'default' : 'pointer' }}
+      style={disabled || busy ? undefined : { cursor: 'pointer' }}
       onPress={onPress}
     >
           <Text pointerEvents="none" className="text-center text-xs font-bold text-white">
