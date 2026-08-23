@@ -409,6 +409,9 @@ function AppContent() {
                 onLoadMoreAnnouncements={app.loadMoreAnnouncements}
                 onOpenBreederDetail={app.openBreederDetail}
                 onOpenPostDetail={app.openPetFeedPostDetail}
+                onToggleFavorite={app.togglePetFeedFavorite}
+                onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
+                currentUserId={app.accountProfile?.user_id ?? null}
                 focusPostId={app.screen === 'pet-feed' ? app.petFeedFocusPostId : null}
                 onFocusPostHandled={app.clearPetFeedFocusPostId}
                 enabledTabs={app.petFeedEnabledTabs}

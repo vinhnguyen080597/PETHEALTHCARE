@@ -89,6 +89,9 @@ type PetFeedScreenProps = {
   onLoadMoreAnnouncements: () => void;
   onOpenBreederDetail: (profileId: string) => void;
   onOpenPostDetail: (postId: string) => void;
+  onToggleFavorite?: (post: PetFeedPost) => void;
+  onMessageBreeder?: (post: PetFeedPost) => void;
+  currentUserId?: string | null;
   /** When set, switch to feed tab and scroll to this post, then call onFocusPostHandled. */
   focusPostId?: string | null;
   onFocusPostHandled?: () => void;
@@ -193,6 +196,9 @@ export function PetFeedScreen({
   onLoadMoreAnnouncements,
   onOpenBreederDetail,
   onOpenPostDetail,
+  onToggleFavorite,
+  onMessageBreeder,
+  currentUserId = null,
   focusPostId = null,
   onFocusPostHandled,
   enabledTabs = { news: true, feed: true, breeders: true },
@@ -483,8 +489,11 @@ export function PetFeedScreen({
             post={item.post}
             variant="compact"
             autoPlayVideo={false}
-            showFavorite={false}
-            showContact={false}
+            showFavorite={Boolean(currentUserId && onToggleFavorite)}
+            showContact={Boolean(currentUserId && onMessageBreeder)}
+            onToggleFavorite={onToggleFavorite}
+            onMessageBreeder={onMessageBreeder}
+            currentUserId={currentUserId}
             showReport={false}
             onPress={(post) => onOpenPostDetail(post.id)}
           />

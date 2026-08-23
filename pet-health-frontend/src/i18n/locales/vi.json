@@ -217,6 +217,19 @@
       "age": "Tuổi",
       "price": "Giá"
     },
+    "card": {
+      "saves": "{{n}} lượt lưu",
+      "new": "Mới lên sàn",
+      "video": "Có video",
+      "warranty": "Bảo hành {{n}} ngày",
+      "escrow": "Giữ cọc an toàn",
+      "chat": "Chat ngay",
+      "onlineTrust": "Trại đã xác minh",
+      "depositHold": "Đang giữ cọc",
+      "pendingReview": "Chờ admin duyệt",
+      "sold": "Đã bán",
+      "cancelled": "Đã hủy"
+    },
     "ageMonths": "{{count}} tháng tuổi",
     "personality": "Tính cách",
     "healthInfo": "Thông tin chăm sóc",

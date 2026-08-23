@@ -214,8 +214,21 @@
     },
     "sortTitle": "Sort",
     "sort": {
-      "age": "Age",
-      "price": "Price"
+      "age": "Tuổi",
+      "price": "Giá"
+    },
+    "card": {
+      "saves": "{{n}} saves",
+      "new": "New on floor",
+      "video": "Has video",
+      "warranty": "{{n}}-day health cover",
+      "escrow": "Safe deposit",
+      "chat": "Chat now",
+      "onlineTrust": "Verified farm",
+      "depositHold": "On deposit hold",
+      "pendingReview": "Pending review",
+      "sold": "Sold",
+      "cancelled": "Cancelled"
     },
     "ageMonths": "{{count}} months old",
     "personality": "Personality",

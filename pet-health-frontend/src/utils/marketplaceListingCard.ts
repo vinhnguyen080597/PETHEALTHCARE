@@ -1,0 +1,200 @@
+import type { PetFeedPost } from '../types';
+import { parsePetFeedPriceToVnd } from './petFeedCurrency.ts';
+
+const NEW_LISTING_MS = 24 * 60 * 60 * 1000;
+
+export type ListingWarrantyPolicy = {
+  careParvoCoverageDays?: number;
+  respiratorySkinCoverageDays?: number;
+  congenitalCoverageDays?: number;
+};
+
+export type ListingHotBadge =
+  | { kind: 'saves'; count: number }
+  | { kind: 'new' }
+  | { kind: 'video' };
+
+export type ListingTrustTag =
+  | { kind: 'warranty'; days: number }
+  | { kind: 'escrow' }
+  | { kind: 'vaccine'; label: string };
+
+export type ListingAvailability = 'for_sale' | 'deposit_hold' | 'completed';
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+export function listingSpeciesEmoji(species: string | null | undefined): string {
+  switch (String(species ?? '').trim().toLowerCase()) {
+    case 'cat':
+      return '🐱';
+    case 'dog':
+      return '🐶';
+    case 'bird':
+      return '🐦';
+    case 'fish':
+      return '🐠';
+    case 'rabbit':
+      return '🐰';
+    case 'hamster':
+      return '🐹';
+    case 'mouse':
+      return '🐭';
+    case 'reptile':
+      return '🦎';
+    default:
+      return '🐾';
+  }
+}
+
+export function listingCreatedAtMs(post: Pick<PetFeedPost, 'created_at'>, now = Date.now()): number | null {
+  const ms = Date.parse(String(post.created_at ?? '').trim());
+  if (!Number.isFinite(ms) || ms > now + 60_000) return null;
+  return ms;
+}
+
+export function isListingNewOnFloor(post: Pick<PetFeedPost, 'created_at'>, now = Date.now()): boolean {
+  const created = listingCreatedAtMs(post, now);
+  if (created == null) return false;
+  return now - created <= NEW_LISTING_MS;
+}
+
+export function listingPreviewImages(post: Pick<PetFeedPost, 'media_urls'>, max = 4): string[] {
+  const unique: string[] = [];
+  for (const url of post.media_urls) {
+    const trimmed = String(url ?? '').trim();
+    if (!trimmed || unique.includes(trimmed)) continue;
+    unique.push(trimmed);
+    if (unique.length >= max) break;
+  }
+  return unique;
+}
+
+export function readListingWarrantyPolicy(post: PetFeedPost): ListingWarrantyPolicy | null {
+  const raw = (post as PetFeedPost & { warranty_policy?: unknown }).warranty_policy;
+  if (!raw || typeof raw !== 'object') return null;
+  const row = raw as Record<string, unknown>;
+  const numOrUndef = (value: unknown) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const policy: ListingWarrantyPolicy = {
+    careParvoCoverageDays: numOrUndef(row.care_parvo_coverage_days ?? row.careParvoCoverageDays),
+    respiratorySkinCoverageDays: numOrUndef(
+      row.respiratory_skin_coverage_days ?? row.respiratorySkinCoverageDays,
+    ),
+    congenitalCoverageDays: numOrUndef(row.congenital_coverage_days ?? row.congenitalCoverageDays),
+  };
+  const days = [
+    policy.careParvoCoverageDays,
+    policy.respiratorySkinCoverageDays,
+    policy.congenitalCoverageDays,
+  ].filter((n): n is number => typeof n === 'number' && n > 0);
+  return days.length ? policy : null;
+}
+
+export function listingWarrantyCoverageDays(policy: ListingWarrantyPolicy | null): number | null {
+  if (!policy) return null;
+  const days = [
+    policy.careParvoCoverageDays,
+    policy.respiratorySkinCoverageDays,
+    policy.congenitalCoverageDays,
+  ].filter((n): n is number => typeof n === 'number' && n > 0);
+  if (!days.length) return null;
+  return Math.max(...days);
+}
+
+export function parseListingEscrowEnabled(metadata: Record<string, unknown>): boolean {
+  return Boolean(
+    metadata.escrow_enabled
+    ?? metadata.escrowEnabled
+    ?? metadata.accept_escrow
+    ?? metadata.acceptEscrow
+    ?? metadata.petcoin_escrow,
+  );
+}
+
+export function listingMetadataMarksSold(metadata: Record<string, unknown>): boolean {
+  const outcome = String(metadata.listing_outcome ?? metadata.outcome ?? '').trim().toLowerCase();
+  if (outcome === 'cancelled' || outcome === 'canceled') return false;
+  if (outcome === 'sold' || outcome === 'completed' || outcome === 'rehomed') return true;
+  return metadata.sold === true || metadata.completed === true || metadata.rehomed === true;
+}
+
+export function listingMetadataMarksCancelled(metadata: Record<string, unknown>): boolean {
+  const outcome = String(metadata.listing_outcome ?? metadata.outcome ?? '').trim().toLowerCase();
+  if (outcome === 'cancelled' || outcome === 'canceled') return true;
+  return metadata.cancelled === true;
+}
+
+export function listingAvailability(post: PetFeedPost): ListingAvailability | null {
+  const meta = asRecord(post.metadata);
+  if (post.status === 'deposit_hold') return 'deposit_hold';
+  if (
+    post.status === 'sold'
+    || post.status === 'cancelled'
+    || listingMetadataMarksSold(meta)
+    || listingMetadataMarksCancelled(meta)
+  ) {
+    return 'completed';
+  }
+  if (post.status === 'published') return 'for_sale';
+  return null;
+}
+
+export function listingHotBadges(
+  post: Pick<PetFeedPost, 'created_at' | 'video_url' | 'favorite_count'>,
+  now = Date.now(),
+): ListingHotBadge[] {
+  const badges: ListingHotBadge[] = [];
+  const saves = Math.max(0, Math.floor(Number(post.favorite_count) || 0));
+  if (saves > 0) badges.push({ kind: 'saves', count: saves });
+  if (isListingNewOnFloor(post, now)) badges.push({ kind: 'new' });
+  if (Boolean(post.video_url?.trim())) badges.push({ kind: 'video' });
+  return badges.slice(0, 3);
+}
+
+export function listingTrustTags(post: PetFeedPost): ListingTrustTag[] {
+  const tags: ListingTrustTag[] = [];
+  const warrantyDays = listingWarrantyCoverageDays(readListingWarrantyPolicy(post));
+  if (warrantyDays != null) tags.push({ kind: 'warranty', days: warrantyDays });
+  if (parseListingEscrowEnabled(asRecord(post.metadata))) tags.push({ kind: 'escrow' });
+  const vaccine = post.vaccine_status?.trim();
+  if (vaccine && vaccine !== '—') tags.push({ kind: 'vaccine', label: vaccine });
+  return tags.slice(0, 2);
+}
+
+export function listingEscrowDepositLabel(priceNote: string, locale: string): string | null {
+  const n = parsePetFeedPriceToVnd(priceNote);
+  if (n == null || n <= 0) return null;
+  const deposit = Math.round(n * 0.2);
+  const isVi = locale.startsWith('vi');
+  if (isVi) {
+    if (deposit >= 1_000_000) {
+      const mil = deposit / 1_000_000;
+      const text = Number.isInteger(mil) ? String(mil) : mil.toFixed(1).replace(/\.0$/, '');
+      return `(Cọc Escrow: ${text}tr)`;
+    }
+    if (deposit >= 1000) return `(Cọc Escrow: ${Math.round(deposit / 1000)}k)`;
+    return `(Cọc Escrow: ${deposit}đ)`;
+  }
+  const formatted = deposit.toLocaleString('en-US');
+  return `(Escrow: ${formatted} VND)`;
+}
+
+export function listingBreederScoreLabel(post: PetFeedPost, trustScore: number): string {
+  const meta = asRecord(post.breeder_profile?.metadata);
+  const reviewAvg = Number(meta.review_avg ?? meta.reviewAverage);
+  const reviewCount = Number(meta.review_count ?? meta.reviewCount);
+  if (Number.isFinite(reviewAvg) && reviewAvg > 0 && Number.isFinite(reviewCount) && reviewCount > 0) {
+    return `⭐ ${reviewAvg.toFixed(1)}`;
+  }
+  return `${Math.max(0, Math.min(100, Math.round(trustScore)))}/100`;
+}
+
+export function fillTemplate(template: string, value: number | string): string {
+  return template.replaceAll('{{n}}', String(value));
+}

@@ -14,6 +14,7 @@ import {
 } from '../utils/mediaDownload';
 import { ReportModal } from './ReportModal';
 import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
+import { PetFeedListingCard } from './PetFeedListingCard';
 
 const PRIMARY = '#1E6FE8';
 
@@ -332,17 +333,43 @@ function PetFeedPostCardComponent({
     setReportNote('');
   }
 
-  const speciesKey = `breederProfile.speciesOptions.${post.species.trim().toLowerCase()}`;
-  const speciesLabel = post.species ? t(speciesKey) : '';
-  const petIdentity = [post.breed, speciesLabel === speciesKey ? post.species : speciesLabel].filter(Boolean).join(' · ');
-  const ageLabel = post.age_months != null ? t('petFeed.ageMonths', { count: post.age_months }) : '';
-  const locationLabel = post.location || t('petFeed.locationUnknown');
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
+
+  if (isCompact) {
+    return (
+      <>
+        <PetFeedListingCard
+          post={post}
+          onToggleFavorite={onToggleFavorite}
+          onMessageBreeder={onMessageBreeder}
+          currentUserId={currentUserId}
+          showFavorite={showFavorite}
+          showContact={showContact}
+          onPress={onPress}
+          testID={testID}
+        />
+        <ReportModal
+          visible={reportVisible}
+          title={t('petFeed.reportListing')}
+          body={t('petFeed.reportBody')}
+          reason={reportReason}
+          note={reportNote}
+          reasonLabel={(item) => t(`petFeed.reportReasons.${item}`)}
+          notePlaceholder={t('petFeed.reportNotePlaceholder')}
+          submitLabel={t('petFeed.submitReport')}
+          onChangeReason={setReportReason}
+          onChangeNote={setReportNote}
+          onCancel={() => setReportVisible(false)}
+          onSubmit={submitReport}
+        />
+      </>
+    );
+  }
 
   const content = (
     <>
-      <View className={`${isCompact ? 'h-64' : 'h-80'} ${isCompact ? 'bg-blue-50' : 'bg-slate-200'} overflow-hidden`}>
-        {!isCompact && !selectedMedia && (mediaLoading || expectedStripCount > 0) ? (
+      <View className="h-80 overflow-hidden bg-slate-200">
+        {!selectedMedia && (mediaLoading || expectedStripCount > 0) ? (
           <MediaSkeleton className="h-full w-full" />
         ) : (
           <PetFeedMedia
@@ -436,64 +463,6 @@ function PetFeedPostCardComponent({
           </ScrollView>
         </View>
       ) : null}
-      {isCompact ? (
-        <View className="p-4">
-          <Text className="text-lg font-bold text-slate-900" numberOfLines={2}>{post.title}</Text>
-          <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
-            <Text className="text-sm font-medium text-slate-500" numberOfLines={1}>
-              {breeder?.display_name ?? t('petFeed.breederFallback')}
-            </Text>
-            {breeder?.verification_status === 'verified' ? (
-              <>
-                <Text className="text-sm text-slate-300">·</Text>
-                <View className="flex-row items-center gap-1">
-                  <Ionicons name="shield-checkmark-outline" size={13} color="#047857" />
-                  <Text className="text-xs font-bold text-emerald-700">{t('petFeed.topBreeders.verified')}</Text>
-                </View>
-              </>
-            ) : null}
-          </View>
-          <PetFeedPostTimeMeta post={post} className="mt-1.5 text-xs text-slate-400" />
-          <View className="mt-2 flex-row flex-wrap items-center gap-2">
-            <Text className="text-sm font-semibold text-slate-800" numberOfLines={1}>
-              {petIdentity}
-            </Text>
-            {priceLabel ? (
-              <Text className="rounded-full bg-blue-50 px-2.5 py-1 text-sm font-bold text-blue-700" numberOfLines={1}>
-                {priceLabel}
-              </Text>
-            ) : null}
-          </View>
-          <View className="mt-2 flex-row items-center gap-2">
-            {post.gender ? (
-              <View className="flex-row items-center gap-1.5">
-                <Ionicons name="male-female-outline" size={14} color="#64748b" />
-                <Text className="text-sm text-slate-600" numberOfLines={1}>{post.gender}</Text>
-              </View>
-            ) : null}
-            <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-              <Ionicons name="calendar-outline" size={14} color="#64748b" />
-              <Text className="min-w-0 flex-1 text-sm text-slate-600" numberOfLines={1}>
-                {[ageLabel, locationLabel].filter(Boolean).join(' · ')}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <Ionicons
-                name={post.is_favorited ? 'heart' : 'heart-outline'}
-                size={14}
-                color={post.is_favorited ? '#dc2626' : '#64748b'}
-              />
-              <Text className="text-sm font-medium text-slate-600">{post.favorite_count ?? 0}</Text>
-            </View>
-            {(post.comment_count ?? 0) > 0 ? (
-              <View className="flex-row items-center gap-1">
-                <Ionicons name="chatbubble-outline" size={14} color="#64748b" />
-                <Text className="text-sm font-medium text-slate-600">{post.comment_count}</Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      ) : (
       <View className="p-4">
         <View className="flex-row items-start justify-between gap-3">
           <View className="min-w-0 flex-1">
@@ -602,7 +571,6 @@ function PetFeedPostCardComponent({
           </View>
         ) : null}
       </View>
-      )}
     </>
   );
 
