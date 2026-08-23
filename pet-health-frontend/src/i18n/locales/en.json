@@ -428,7 +428,10 @@
       "draft": "Draft",
       "pending_review": "Pending review",
       "published": "Published",
-      "archived": "Archived"
+      "archived": "Archived",
+      "sold": "Sold",
+      "cancelled": "Cancelled",
+      "deposit_hold": "On deposit hold"
     }
   },
   "breederDetail": {
@@ -644,8 +647,8 @@
     "savedPosts": "Saved",
     "myPosts": "My posts",
     "breederMetrics": {
-      "total": "Total posts",
-      "published": "Published",
+      "total": "Total",
+      "published": "Approved",
       "pending": "Pending"
     },
     "adminMetrics": {
@@ -681,7 +684,7 @@
     "communitySafety": "Community posts should stay transparent and respectful. PetCare: Pet Marketplace does not handle payments or replace direct breeder/veterinary verification.",
     "breederSafety": "Posts should include clear photos, a short video, vaccine/deworming details, and transparent adoption conditions. Avoid absolute health claims without veterinary confirmation.",
     "openBreederProfile": "Breeder profile & posts",
-    "createPost": "Create post",
+    "createPost": "Post new listing",
     "openAdminReview": "Admin review",
     "requestBreeder": "Request Breeder verification",
     "senSummary": "Your saved Pet Feed posts and pet care records stay here. You can create a pet profile whenever you are ready.",
@@ -710,10 +713,12 @@
     },
     "senQuickActions": {
       "title": "Your activity",
-      "savedPosts": "Saved Pet Feed posts",
+      "savedPosts": "Saved listings",
       "petProfiles": "Pet profiles",
       "carePassport": "Care Passport"
     },
+    "shortcuts": "Shortcuts",
+    "shortcutMessages": "Messages",
     "breederTrust": {
       "untitled": "Unnamed breeder",
       "missingInfo": "Location or main species is missing",

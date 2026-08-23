@@ -23,7 +23,10 @@ import { opensMyListingReviewPopup } from '../utils/myListingReviewPopup';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { BRAND } from '../theme/brand';
-import { accountShowsVerifiedBadge } from '../utils/accountProfileDisplay';
+import {
+  accountListingStatusLabelKey,
+  accountListingStatusTone,
+} from '../utils/accountListingStatus';
 
 const PRIMARY = BRAND.primary;
 
@@ -147,6 +150,7 @@ type AccountScreenProps = {
   onOpenOwnFarmProfile?: () => void;
   onCancelBreederRequest?: () => void;
   onOpenPetFeed: () => void;
+  onOpenMessages?: () => void;
   onOpenCreatePetFeedPost: () => void;
   onEditPetFeedDraft?: (post: PetFeedPost) => void;
   onSubmitPetFeedDraft?: (post: PetFeedPost) => Promise<void>;
@@ -226,6 +230,7 @@ export function AccountScreen({
   onOpenOwnFarmProfile,
   onCancelBreederRequest,
   onOpenPetFeed,
+  onOpenMessages,
   onOpenCreatePetFeedPost,
   onEditPetFeedDraft,
   onSubmitPetFeedDraft,
@@ -447,7 +452,6 @@ export function AccountScreen({
 
   const profileName = account?.display_name?.trim() || account?.login_identifier || t(`account.roles.${role}.title`);
   const profileSubtitle = account?.email || account?.login_identifier || '';
-  const showVerifiedBadge = accountShowsVerifiedBadge(role, breederStatus);
 
   return (
     <>
@@ -501,23 +505,9 @@ export function AccountScreen({
             />
           </View>
           <View className="min-w-0 flex-1">
-            <View className="flex-row flex-wrap items-center gap-2">
-              <Text className="text-base font-bold text-slate-900" numberOfLines={1}>
-                {profileName}
-              </Text>
-              {showVerifiedBadge ? (
-                <View
-                  testID="account-verified-badge"
-                  className="flex-row items-center gap-1 rounded-full px-2.5 py-1"
-                  style={{ backgroundColor: BRAND.verifiedSoft }}
-                >
-                  <Ionicons name="checkmark-circle" size={14} color={BRAND.verified} />
-                  <Text className="text-xs font-bold" style={{ color: BRAND.verified }}>
-                    {t('account.profile.verified')}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+            <Text className="text-base font-bold text-slate-900" numberOfLines={1}>
+              {profileName}
+            </Text>
             {profileSubtitle ? (
               <Text className="mt-1 text-sm text-slate-500" numberOfLines={1}>
                 {profileSubtitle}
@@ -525,17 +515,6 @@ export function AccountScreen({
             ) : null}
           </View>
         </View>
-        <Pressable
-          testID="account-logout-button"
-          accessibilityRole="button"
-          accessibilityLabel={t('account.menu.logout')}
-          className="mt-4 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
-          style={{ backgroundColor: BRAND.logout }}
-          onPress={onLogout}
-        >
-          <Ionicons name="log-out-outline" size={18} color="#fff" />
-          <Text className="text-sm font-bold text-white">{t('account.menu.logout')}</Text>
-        </Pressable>
       </View>
 
       {isSen ? (
@@ -571,8 +550,9 @@ export function AccountScreen({
               className={`min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3 ${
                 breederRequestPending
                   ? 'border border-amber-300 bg-amber-50 active:bg-amber-100'
-                  : 'bg-blue-600 active:opacity-90'
+                  : 'active:opacity-90'
               }`}
+              style={breederRequestPending ? undefined : { backgroundColor: BRAND.btnPrimary }}
               onPress={() => {
                 if (breederRequestPending) {
                   Alert.alert(
@@ -612,14 +592,9 @@ export function AccountScreen({
               <Ionicons name="shield-checkmark-outline" size={21} color={PRIMARY} />
             </View>
             <View className="min-w-0 flex-1">
-              <View className="flex-row flex-wrap items-center gap-2">
-                <Text className="text-base font-bold text-slate-900">
-                  {breederProfile?.display_name || account?.display_name || t('account.breederTrust.untitled')}
-                </Text>
-                <Text className={`rounded-full px-2.5 py-1 text-xs font-bold ${breederStatus === 'verified' ? 'bg-emerald-50 text-emerald-700' : breederStatus === 'suspended' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
-                  {t(`account.breederRequestStatus.${breederStatus}`)}
-                </Text>
-              </View>
+              <Text className="text-base font-bold text-slate-900">
+                {breederProfile?.display_name || account?.display_name || t('account.breederTrust.untitled')}
+              </Text>
               <Text className="mt-1 text-sm leading-5 text-slate-600">
                 {[breederProfile?.location, breederProfile?.primary_species?.join(', ')].filter(Boolean).join(' - ') || t('account.breederTrust.missingInfo')}
               </Text>
@@ -643,16 +618,18 @@ export function AccountScreen({
         </View>
       </View> : null}
 
-      <View className="mt-5 flex-row flex-wrap gap-3">
+      <View className="mt-5 flex-row gap-3">
         {metricItems.map((item) => (
           <Pressable
             key={item.key}
             accessibilityRole={isAdmin ? 'button' : undefined}
             testID={isAdmin ? `account-admin-section-${item.key}-button` : undefined}
-            className={`min-w-[140px] flex-1 rounded-2xl border p-4 ${isAdmin && adminSection === item.key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
+            className={`flex-1 rounded-2xl border p-3 ${isAdmin && adminSection === item.key ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-white'}`}
             onPress={isAdmin ? () => setAdminSection(item.key as 'requests' | 'breeders' | 'posts') : undefined}
           >
-            <Text className="text-xs font-bold uppercase text-slate-500">{item.label}</Text>
+            <Text className="text-[10px] font-bold uppercase text-slate-500" numberOfLines={1}>
+              {item.label}
+            </Text>
             <Text className="mt-1 text-2xl font-bold text-slate-900">{item.value}</Text>
           </Pressable>
         ))}
@@ -663,7 +640,8 @@ export function AccountScreen({
           testID="account-create-post-button"
           accessibilityRole="button"
           accessibilityLabel="Create post"
-          className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 active:opacity-90"
+          className="mt-4 flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
+          style={{ backgroundColor: BRAND.btnPrimary }}
           onPress={onOpenCreatePetFeedPost}
         >
           <Ionicons name="add-circle-outline" size={19} color="#fff" />
@@ -1275,7 +1253,8 @@ export function AccountScreen({
               testID="account-view-farm-profile-button"
               accessibilityRole="button"
               accessibilityLabel={t('account.breederTrust.viewFarmProfile')}
-              className="flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-3.5 active:bg-blue-50"
+              className="flex-row items-center justify-center gap-2 rounded-xl border bg-white py-3.5 active:opacity-90"
+              style={{ borderColor: BRAND.btnPrimary }}
               onPress={onOpenOwnFarmProfile}
             >
               <Ionicons name="storefront-outline" size={19} color={PRIMARY} />
@@ -1287,7 +1266,8 @@ export function AccountScreen({
               testID="account-create-post-button"
               accessibilityRole="button"
               accessibilityLabel="Create post"
-              className="flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 active:opacity-90"
+              className="flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
+              style={{ backgroundColor: BRAND.btnPrimary }}
               onPress={onOpenCreatePetFeedPost}
             >
               <Ionicons name="add-circle-outline" size={19} color="#fff" />
@@ -1298,7 +1278,8 @@ export function AccountScreen({
               testID="account-breeder-profile-button"
               accessibilityRole="button"
               accessibilityLabel="Update breeder verification profile"
-              className="flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 active:opacity-90"
+              className="flex-row items-center justify-center gap-2 rounded-xl py-3.5 active:opacity-90"
+              style={{ backgroundColor: BRAND.btnPrimary }}
               onPress={onOpenBreederProfile}
             >
               <Ionicons name="ribbon-outline" size={19} color="#fff" />
@@ -1307,7 +1288,8 @@ export function AccountScreen({
           )}
           <Pressable
             accessibilityRole="button"
-            className="flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
+            className="flex-row items-center justify-center gap-2 rounded-xl border py-3 active:opacity-90"
+            style={{ borderColor: BRAND.borderBrand, backgroundColor: BRAND.btnSecondary }}
             onPress={onOpenBreederProfile}
           >
             <Ionicons name="create-outline" size={18} color={PRIMARY} />
@@ -1409,6 +1391,35 @@ export function AccountScreen({
             </View>
           </View>
         ) : null}
+        {!isAdmin ? (
+          <View testID="account-shortcuts-card" className="rounded-2xl border border-gray-200 bg-white p-4">
+            <Text className="text-base font-bold text-slate-900">{t('account.shortcuts')}</Text>
+            <View className="mt-3 gap-2">
+              <Pressable
+                testID="account-shortcut-saved-button"
+                accessibilityRole="button"
+                accessibilityLabel={t('account.senQuickActions.savedPosts')}
+                className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-3 active:bg-orange-50"
+                onPress={onOpenPetFeed}
+              >
+                <Text className="text-sm font-semibold text-slate-700">{t('account.senQuickActions.savedPosts')}</Text>
+                <Text className="text-sm font-bold text-slate-900">{savedPostCount}</Text>
+              </Pressable>
+              <Pressable
+                testID="account-shortcut-messages-button"
+                accessibilityRole="button"
+                accessibilityLabel={t('account.shortcutMessages')}
+                className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-3 active:bg-orange-50"
+                onPress={onOpenMessages}
+              >
+                <Text className="text-sm font-semibold text-slate-700">{t('account.shortcutMessages')}</Text>
+                <Text className="text-sm font-semibold" style={{ color: BRAND.textBrandLink }}>
+                  →
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
         <View className="rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-base font-bold text-slate-900">{t('legal.title')}</Text>
           <Text className="mt-1 text-sm leading-5 text-slate-500">{t('legal.body')}</Text>
@@ -1418,6 +1429,30 @@ export function AccountScreen({
             <LegalLinkButton label={t('legal.marketplaceGuidelines')} url={APP_LINKS.marketplaceGuidelines} />
             <LegalLinkButton label={t('legal.support')} url={APP_LINKS.support} />
           </View>
+        </View>
+        <Pressable
+          testID="account-logout-button"
+          accessibilityRole="button"
+          accessibilityLabel={t('account.menu.logout')}
+          className="flex-row items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3.5 active:bg-slate-50"
+          onPress={onLogout}
+        >
+          <Ionicons name="log-out-outline" size={18} color="#334155" />
+          <Text className="text-sm font-semibold text-slate-700">{t('account.menu.logout')}</Text>
+        </Pressable>
+        <View testID="account-delete-card" className="rounded-2xl border border-red-100 bg-red-50 p-4">
+          <Text className="text-base font-bold text-red-900">{t('account.deleteAccount.cardTitle')}</Text>
+          <Text className="mt-2 text-sm leading-5 text-red-800">{t('account.deleteAccount.cardBody')}</Text>
+          <Pressable
+            testID="account-delete-open-button"
+            accessibilityRole="button"
+            accessibilityLabel={t('account.deleteAccount.cta')}
+            className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-red-600 py-3 active:bg-red-700"
+            onPress={() => setDeleteModalOpen(true)}
+          >
+            <Ionicons name="trash-outline" size={17} color="#fff" />
+            <Text className="text-sm font-bold text-white">{t('account.deleteAccount.cta')}</Text>
+          </Pressable>
         </View>
       </View>
     </ScrollView>
@@ -1626,12 +1661,12 @@ function listingThumbUri(post: PetFeedPost) {
   return fromMeta || post.media_urls[0] || '';
 }
 
-function listingStatusTone(status: PetFeedPost['status']) {
-  if (status === 'published') return { wrap: 'bg-emerald-50', text: 'text-emerald-700' };
-  if (status === 'pending_review') return { wrap: 'bg-amber-50', text: 'text-amber-700' };
-  if (status === 'draft') return { wrap: 'bg-slate-100', text: 'text-slate-600' };
-  if (status === 'sold') return { wrap: 'bg-emerald-50', text: 'text-emerald-800' };
-  if (status === 'cancelled') return { wrap: 'bg-rose-50', text: 'text-rose-700' };
+function listingStatusToneClasses(status: string) {
+  const tone = accountListingStatusTone(status);
+  if (tone === 'published') return { wrap: 'bg-emerald-50', text: 'text-emerald-700' };
+  if (tone === 'pending') return { wrap: 'bg-amber-50', text: 'text-amber-700' };
+  if (tone === 'sold') return { wrap: 'bg-slate-100', text: 'text-slate-600' };
+  if (tone === 'cancelled') return { wrap: 'bg-rose-50', text: 'text-rose-700' };
   return { wrap: 'bg-slate-100', text: 'text-slate-500' };
 }
 
@@ -1656,8 +1691,9 @@ function MyListingRow({
 }) {
   const { t } = useTranslation();
   const thumbUri = listingThumbUri(post);
-  const statusTone = listingStatusTone(post.status);
-  const canEdit = Boolean(onEdit) && ['draft', 'pending_review', 'published'].includes(post.status);
+  const statusTone = listingStatusToneClasses(post.status);
+  const statusLabel = t(accountListingStatusLabelKey(post.status));
+  const canEdit = Boolean(onEdit) && ['draft', 'pending_review', 'published'].includes(String(post.status).toLowerCase());
   const subtitle = [post.breed, post.location].filter(Boolean).join(' · ') || post.description;
   const hasActions = canEdit || Boolean(onSubmitDraft) || Boolean(onDelete);
 
@@ -1685,7 +1721,7 @@ function MyListingRow({
         </Text>
         <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
           <Text className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusTone.wrap} ${statusTone.text}`}>
-            {t(`petFeed.status.${post.status}`)}
+            {statusLabel}
           </Text>
           {post.species ? (
             <Text className="text-[10px] font-semibold uppercase text-slate-400">{post.species}</Text>

@@ -428,7 +428,10 @@
       "draft": "Bản nháp",
       "pending_review": "Chờ admin duyệt",
       "published": "Đã duyệt",
-      "archived": "Đã lưu trữ"
+      "archived": "Đã lưu trữ",
+      "sold": "Đã bán",
+      "cancelled": "Đã hủy",
+      "deposit_hold": "Đang giữ cọc"
     }
   },
   "breederDetail": {
@@ -644,7 +647,7 @@
     "savedPosts": "Đã lưu",
     "myPosts": "Bài của tôi",
     "breederMetrics": {
-      "total": "Tổng bài",
+      "total": "Tổng",
       "published": "Đã duyệt",
       "pending": "Chờ duyệt"
     },
@@ -681,7 +684,7 @@
     "communitySafety": "Bài đăng cộng đồng cần minh bạch và tôn trọng. PetCare: Pet Marketplace không xử lý thanh toán và không thay thế việc xác minh trực tiếp với breeder/bác sĩ thú y.",
     "breederSafety": "Bài đăng cần có ảnh rõ, video ngắn, thông tin vaccine/tẩy giun và điều kiện nhận bé minh bạch. Không cam kết sức khỏe tuyệt đối nếu chưa có xác nhận thú y.",
     "openBreederProfile": "Hồ sơ breeder & bài đăng",
-    "createPost": "Tạo bài đăng",
+    "createPost": "Đăng tin mới",
     "openAdminReview": "Admin review",
     "requestBreeder": "Đăng ký xác minh Breeder",
     "senSummary": "Các bài Pet Feed đã lưu và hồ sơ chăm sóc của Sen sẽ nằm ở đây. Khi đã sẵn sàng, Sen có thể tạo hồ sơ thú cưng bất cứ lúc nào.",
@@ -710,10 +713,12 @@
     },
     "senQuickActions": {
       "title": "Hoạt động của Sen",
-      "savedPosts": "Bài Pet Feed đã lưu",
+      "savedPosts": "Tin đã lưu",
       "petProfiles": "Hồ sơ thú cưng",
       "carePassport": "Care Passport"
     },
+    "shortcuts": "Lối tắt",
+    "shortcutMessages": "Tin nhắn",
     "breederTrust": {
       "untitled": "Breeder chưa có tên",
       "missingInfo": "Chưa bổ sung khu vực hoặc loài chính",
