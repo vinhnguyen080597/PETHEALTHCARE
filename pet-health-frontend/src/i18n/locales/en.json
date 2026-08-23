@@ -169,6 +169,17 @@
     "emptyFilteredBody": "Try another filter to browse more listings.",
     "detailTitle": "Listing details",
     "newsDetailTitle": "News details",
+    "detail": {
+      "breed": "Breed",
+      "age": "Age",
+      "gender": "Gender",
+      "location": "Location",
+      "months": "months",
+      "warrantyView": "View warranty policy",
+      "warrantyNone": "No warranty policy attached",
+      "warrantyNoneHint": "The breeder has not attached a warranty policy to this listing.",
+      "mediaCount": "{{current}}/{{total}}"
+    },
     "breederFallback": "Breeder",
     "locationUnknown": "Location not shared",
     "postedAt": "Posted {{time}}",

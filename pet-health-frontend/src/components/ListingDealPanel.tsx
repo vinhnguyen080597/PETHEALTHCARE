@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -44,6 +44,10 @@ export type { ListingDealMutation };
 type ListingDealPanelProps = {
   post: PetFeedPost;
   currentUserId?: string | null;
+  /** When true, visitor "Request deposit" CTA is owned by sticky bottom bar. */
+  hideDepositRequestButton?: boolean;
+  /** Increment to open the deposit request / confirm modal from outside. */
+  depositModalTrigger?: number;
   onMutate: (
     mutation: ListingDealMutation,
   ) => Promise<{ post: PetFeedPost; reviewEligible?: boolean } | null>;
@@ -72,6 +76,8 @@ async function pickImages(max: number): Promise<string[]> {
 export function ListingDealPanel({
   post,
   currentUserId,
+  hideDepositRequestButton = false,
+  depositModalTrigger = 0,
   onMutate,
   onSubmitReview,
 }: ListingDealPanelProps) {
@@ -124,8 +130,15 @@ export function ListingDealPanel({
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewBody, setReviewBody] = useState('');
 
+  useEffect(() => {
+    if (!depositModalTrigger) return;
+    if (!showDeposit && !showBreederConfirm) return;
+    setDepositAck(false);
+    setDepositOpen(true);
+  }, [depositModalTrigger, showDeposit, showBreederConfirm]);
+
   const visible =
-    showDeposit ||
+    (!hideDepositRequestButton && showDeposit) ||
     showBreederConfirm ||
     showSenWithdraw ||
     showPending ||
@@ -139,7 +152,7 @@ export function ListingDealPanel({
     post.status === 'sold' ||
     post.status === 'cancelled';
 
-  if (!visible) return null;
+  if (!visible && !depositOpen) return null;
 
   async function run(mutation: ListingDealMutation) {
     setBusy(true);
@@ -167,6 +180,61 @@ export function ListingDealPanel({
     } finally {
       setBusy(false);
     }
+  }
+
+  const depositModal = (
+      <Modal visible={depositOpen} transparent animationType="fade">
+        <View className="flex-1 items-center justify-center bg-black/40 px-6">
+          <View className="w-full max-w-md rounded-2xl bg-white p-4">
+            <Text className="text-base font-semibold text-slate-900">
+              {isOwner ? t('deal.confirmTitle') : t('deal.requestTitle')}
+            </Text>
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: depositAck }}
+              className="mt-3 flex-row items-start gap-2"
+              onPress={() => setDepositAck((v) => !v)}
+            >
+              <View
+                className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
+                  depositAck ? 'border-orange-500 bg-orange-500' : 'border-slate-300'
+                }`}
+              >
+                {depositAck ? <Text className="text-xs text-white">✓</Text> : null}
+              </View>
+              <Text className="flex-1 text-sm text-slate-700">
+                {isOwner ? t('deal.ackLabel') : t('deal.ackLabelRequest')}
+              </Text>
+            </Pressable>
+            {error ? <Text className="mt-2 text-xs text-red-600">{error}</Text> : null}
+            <View className="mt-4 flex-row gap-2">
+              <Pressable
+                className="flex-1 rounded-full border border-slate-200 py-2.5"
+                onPress={() => {
+                  setDepositOpen(false);
+                  setDepositAck(false);
+                }}
+              >
+                <Text className="text-center text-sm font-semibold text-slate-700">{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                className="flex-1 rounded-full py-2.5"
+                style={{ backgroundColor: depositAck && !busy ? '#F97316' : '#CBD5E1' }}
+                disabled={busy || !depositAck}
+                onPress={() => void run({ type: 'deposit_confirm' })}
+              >
+                <Text className="text-center text-sm font-semibold text-white">
+                  {busy ? t('deal.confirming') : isOwner ? t('deal.confirmFreeze') : t('deal.sendRequest')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+  );
+
+  if (!visible) {
+    return depositModal;
   }
 
   return (
@@ -295,21 +363,22 @@ export function ListingDealPanel({
         </View>
       ) : null}
 
-      {showDeposit ||
+      {((showDeposit && !hideDepositRequestButton) ||
       showBreederConfirm ||
       showSenWithdraw ||
       showHandoff ||
       showCancel ||
-      showSenCancel ? (
+      showSenCancel) ? (
       <View className="mt-3 gap-2">
-        {showDeposit ? (
+        {showDeposit && !hideDepositRequestButton ? (
           <Pressable
             disabled={busy}
             onPress={() => {
               setDepositAck(false);
               setDepositOpen(true);
             }}
-            className="rounded-full bg-amber-600 px-4 py-2.5 active:bg-amber-700"
+            className="rounded-full px-4 py-2.5 active:opacity-90"
+            style={{ backgroundColor: '#F97316' }}
           >
             <Text className="text-center text-sm font-semibold text-white">
               {t('deal.requestDeposit')}
@@ -393,42 +462,7 @@ export function ListingDealPanel({
         </View>
       ) : null}
 
-      <Modal visible={depositOpen} transparent animationType="fade">
-        <View className="flex-1 justify-center bg-black/40 px-5">
-          <View className="rounded-2xl bg-white p-5">
-            <Text className="mb-2 text-base font-bold text-slate-900">
-              {t(isOwner ? 'deal.confirmTitle' : 'deal.requestTitle')}
-            </Text>
-            <Pressable
-              onPress={() => setDepositAck((value) => !value)}
-              className="mb-3 flex-row items-start gap-2"
-            >
-              <View
-                className={`mt-0.5 h-4 w-4 rounded border ${
-                  depositAck ? 'border-amber-600 bg-amber-600' : 'border-slate-300'
-                }`}
-              />
-              <Text className="flex-1 text-sm text-slate-700">
-                {t(isOwner ? 'deal.ackLabel' : 'deal.ackLabelRequest')}
-              </Text>
-            </Pressable>
-            <View className="flex-row justify-end gap-2">
-              <Pressable onPress={() => setDepositOpen(false)} className="px-4 py-2">
-                <Text className="text-sm text-slate-600">{t('common.cancel')}</Text>
-              </Pressable>
-              <Pressable
-                disabled={busy || !depositAck}
-                onPress={() => void run({ type: 'deposit_confirm' })}
-                className="rounded-full bg-amber-600 px-4 py-2"
-              >
-                <Text className="text-sm font-semibold text-white">
-                  {t(isOwner ? 'deal.confirmFreeze' : 'deal.sendRequest')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {depositModal}
 
       <Modal visible={completeOpen} transparent animationType="fade">
         <View className="flex-1 justify-center bg-black/40 px-5">

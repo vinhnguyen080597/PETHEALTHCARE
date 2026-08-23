@@ -4,6 +4,7 @@ import { parsePetFeedPriceToVnd } from './petFeedCurrency.ts';
 const NEW_LISTING_MS = 24 * 60 * 60 * 1000;
 
 export type ListingWarrantyPolicy = {
+  title?: string;
   careParvoCoverageDays?: number;
   respiratorySkinCoverageDays?: number;
   congenitalCoverageDays?: number;
@@ -82,6 +83,7 @@ export function readListingWarrantyPolicy(post: PetFeedPost): ListingWarrantyPol
     return Number.isFinite(n) ? n : undefined;
   };
   const policy: ListingWarrantyPolicy = {
+    title: String(row.title ?? '').trim() || undefined,
     careParvoCoverageDays: numOrUndef(row.care_parvo_coverage_days ?? row.careParvoCoverageDays),
     respiratorySkinCoverageDays: numOrUndef(
       row.respiratory_skin_coverage_days ?? row.respiratorySkinCoverageDays,
@@ -93,7 +95,8 @@ export function readListingWarrantyPolicy(post: PetFeedPost): ListingWarrantyPol
     policy.respiratorySkinCoverageDays,
     policy.congenitalCoverageDays,
   ].filter((n): n is number => typeof n === 'number' && n > 0);
-  return days.length ? policy : null;
+  if (!policy.title && !days.length) return null;
+  return policy;
 }
 
 export function listingWarrantyCoverageDays(policy: ListingWarrantyPolicy | null): number | null {
