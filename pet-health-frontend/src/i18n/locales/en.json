@@ -288,6 +288,10 @@
       "inputLabel": "Message text",
       "send": "Send message",
       "openFailed": "Could not open conversation",
+      "noListingToMessage": "No open listing to message about yet",
+      "startChatSelf": "You cannot message your own farm",
+      "startChatBlocked": "Messaging is unavailable for this farm",
+      "startChatFailed": "Could not start the chat",
       "sendFailed": "Could not send message",
       "contextCardTitle": "Listing you're asking about",
       "contextCardTitleBreeder": "About this listing",
@@ -533,6 +537,69 @@
     "tipPhotos": "Add care-environment photos",
     "tipListings": "Post more active listings",
     "footnote": "Transparency score is a reference signal, not a credit score or transaction guarantee."
+  },
+  "farm": {
+    "tab": {
+      "overview": "Overview",
+      "listings": "Pets",
+      "warranty": "Warranty policy",
+      "facility": "Farm facilities",
+      "reviews": "Buyer reviews"
+    },
+    "listings": {
+      "empty": "No pets yet",
+      "createPost": "Create listing",
+      "filter": "Filter",
+      "filterAll": "All",
+      "filterEmpty": "No pets in this status.",
+      "status": {
+        "for_sale": "seeking a home",
+        "deposit_hold": "reserved",
+        "completed": "completed"
+      }
+    },
+    "facility": {
+      "about": "About the kennel",
+      "social": "Social",
+      "facebook": "Facebook",
+      "zalo": "Zalo",
+      "tiktok": "TikTok",
+      "instagram": "Instagram",
+      "video": "Facility video",
+      "empty": "Farm details will appear here once the breeder adds them.",
+      "openVideo": "Open facility video"
+    },
+    "warranty": {
+      "title": "Warranty policies",
+      "note": "Each pet for sale should have a clear warranty — review the terms before contacting.",
+      "fallback": "Ask the breeder about health commitments and return terms before agreeing off-platform.",
+      "createCta": "Create your first warranty policy (+10 transparency)",
+      "viewCta": "View policy"
+    },
+    "reviews": {
+      "empty": "No buyer reviews yet"
+    },
+    "cta": {
+      "message": "Message breeder",
+      "video": "Request a video call",
+      "videoSoon": "Feature in development"
+    },
+    "trust": {
+      "title": "Trust metrics",
+      "quality": "Quality index",
+      "scoreTitle": "Kennel transparency score",
+      "scoreSubtitle": "Transparency reflects approved profile details, verification documents, and real transactions.",
+      "guideCta": "View score details & guide",
+      "ratingEmpty": "No ratings yet",
+      "responseEmpty": "Response time: not enough data yet",
+      "adopted": "pets rehomed"
+    },
+    "owner": {
+      "editProfile": "Edit profile",
+      "template": "Change template",
+      "health": "Farm health"
+    },
+    "locationFallback": "Vietnam"
   },
   "breederTemplates": {
     "pickerTitle": "Choose template",

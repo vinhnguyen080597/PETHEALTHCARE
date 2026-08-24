@@ -456,6 +456,9 @@ function AppContent() {
                 onOpenPostDetail={app.openPetFeedPostDetail}
                 onOpenFarmHealth={app.openFarmHealth}
                 onOpenTemplatePicker={app.openTemplatePicker}
+                onOpenBreederProfile={app.openBreederProfile}
+                onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
+                onMessageFarm={(profile) => void app.openOrCreateConversationFromFarm(profile)}
                 allowTemplateChange={app.isFeatureEnabled('farm_template_change')}
                 currentUserId={app.accountProfile?.user_id ?? null}
               />

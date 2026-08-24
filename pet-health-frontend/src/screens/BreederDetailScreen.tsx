@@ -1,17 +1,55 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState, type ReactNode } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { useMemo, useState } from 'react';
+import {
+  Alert,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { BreederHero, type BreederHeroData } from '../components/breeder/BreederHero';
-import { PetFeedPostCard } from '../components/PetFeedPostCard';
+import { PetFeedListingCard } from '../components/PetFeedListingCard';
 import { ReportModal } from '../components/ReportModal';
-import { getBreederTemplateId, templateAccent, type BreederTemplateId } from '../constants/breederTemplates';
+import { ScoreRing } from '../components/breeder/ScoreRing';
+import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { BreederProfile, PetFeedPost } from '../types';
-import { computeBreederTrust, hasBreederContact, metadataArray, metadataString } from '../utils/breederTrust';
-import { breederDisplaySpecies } from '../utils/breederSpeciesSelection';
-import { displayRegistrationUnit } from '../utils/breederRegistrationUnits';
-import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
+import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../assets/farmProfileAssets';
+import { BRAND } from '../theme/brand';
+import { effectiveTrustScore } from '../utils/breederQualityIndex';
+import { scoreColor, trustLevelFromScore } from '../utils/breederTrustLevel';
+import {
+  farmFacilityHasContent,
+  farmFacilitySocialLinks,
+  publicFacilityVideoUrl,
+} from '../utils/farmFacility';
+import {
+  countFarmPetsByAvailability,
+  countFarmPetsRehomed,
+  farmPetTabCount,
+  filterFarmPetsByAvailability,
+  type FarmPetAvailability,
+  type FarmPetAvailabilityFilter,
+} from '../utils/farmPets';
+import {
+  FARM_DETAIL_TABS,
+  farmImageSource,
+  farmTabLabelKey,
+  farmWarrantyPoliciesFromMetadata,
+  resolveFarmAvatarUrl,
+  resolveFarmCoverUrl,
+  type FarmDetailTab,
+} from '../utils/farmProfileDisplay';
+
+const FARM_BG = '#FDFBF7';
+const FARM_BORDER = '#F3E2C8';
+const FARM_TEXT = '#2B1E19';
+const FARM_MUTED = '#6E5A51';
+const FARM_ACCENT = '#D97706';
+const FARM_ACCENT_ACTIVE = '#B45309';
 
 type BreederDetailScreenProps = {
   profile: BreederProfile;
@@ -22,46 +60,14 @@ type BreederDetailScreenProps = {
   onOpenPostDetail: (postId: string) => void;
   onOpenFarmHealth?: () => void;
   onOpenTemplatePicker?: () => void;
-  /** Feature flag (admins always allowed via isFeatureEnabled). */
+  onOpenBreederProfile?: () => void;
+  onOpenCreatePetFeedPost?: () => void;
+  onMessageFarm?: (profile: BreederProfile) => void;
   allowTemplateChange?: boolean;
   currentUserId?: string | null;
 };
 
-type GenderFilter = 'all' | 'male' | 'female' | 'unknown';
-type SortField = 'date' | 'age' | 'price';
-type SortDirection = 'asc' | 'desc';
-type DetailTab = 'overview' | 'listings';
-
-function normalizeSearchText(value: string) {
-  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-}
-
-function createdTime(post: PetFeedPost) {
-  const time = new Date(post.created_at).getTime();
-  return Number.isFinite(time) ? time : 0;
-}
-
-function compareMaybeNumber(a: number | null, b: number | null, direction: SortDirection) {
-  if (a == null && b == null) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
-  return direction === 'asc' ? a - b : b - a;
-}
-
-function genderGroup(post: PetFeedPost): GenderFilter {
-  const value = normalizeSearchText(post.gender);
-  if (value.includes('female') || value.includes('cai')) return 'female';
-  if (value.includes('male') || value.includes('duc')) return 'male';
-  return 'unknown';
-}
-
-function shortBreederTypeLabel(t: (key: string) => string, breederType: string) {
-  if (!breederType) return '';
-  const shortKey = `breederDetail.typeShort.${breederType}`;
-  const short = t(shortKey);
-  if (short !== shortKey) return short;
-  return t(`breederProfile.breederTypes.${breederType}`);
-}
+const STATUS_ORDER: FarmPetAvailability[] = ['for_sale', 'deposit_hold', 'completed'];
 
 export function BreederDetailScreen({
   profile,
@@ -72,84 +78,53 @@ export function BreederDetailScreen({
   onOpenPostDetail,
   onOpenFarmHealth,
   onOpenTemplatePicker,
+  onOpenBreederProfile,
+  onOpenCreatePetFeedPost,
+  onMessageFarm,
   allowTemplateChange = false,
   currentUserId,
 }: BreederDetailScreenProps) {
   const { t } = useTranslation();
   const isOwnProfile = Boolean(currentUserId && profile.user_id === currentUserId);
-  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
-  const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const listingPosts = Array.isArray(posts) ? posts : [];
+  const [activeTab, setActiveTab] = useState<FarmDetailTab>('overview');
+  const [petFilter, setPetFilter] = useState<FarmPetAvailabilityFilter>('all');
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
   const [reportNote, setReportNote] = useState('');
-  const listingPosts = Array.isArray(posts) ? posts : [];
-  const primarySpecies = Array.isArray(profile.primary_species) ? profile.primary_species : [];
-  const mainBreeds = Array.isArray(profile.main_breeds) ? profile.main_breeds : [];
-  const trust = useMemo(() => computeBreederTrust(profile, listingPosts), [profile, listingPosts]);
-  const templateId = getBreederTemplateId(profile.metadata);
-  const breederType = metadataString(profile.metadata, 'breederType');
-  const registeredAt = metadataString(profile.metadata, 'registeredAt');
-  const registrationUnitLabel = displayRegistrationUnit(
-    profile.registration_unit || '',
-    profile.registration_unit_other || '',
-    (key) => t(key),
+  const [warrantyViewTitle, setWarrantyViewTitle] = useState<string | null>(null);
+
+  const coverUrl = resolveFarmCoverUrl(profile);
+  const avatarUrl = resolveFarmAvatarUrl(profile);
+  const farmPetCount = farmPetTabCount(listingPosts);
+  const farmPetCounts = countFarmPetsByAvailability(listingPosts);
+  const visiblePets = filterFarmPetsByAvailability(listingPosts, petFilter);
+  const petsRehomed = countFarmPetsRehomed(listingPosts);
+  const score = effectiveTrustScore(profile, listingPosts);
+  const trustLevel = trustLevelFromScore(score);
+  const ringColor = scoreColor(score);
+  const facilitySocials = farmFacilitySocialLinks(profile.contact || {});
+  const facilityVideoUrl = publicFacilityVideoUrl(profile.metadata);
+  const hasFacility = farmFacilityHasContent({
+    bio: profile.bio,
+    socialCount: facilitySocials.length,
+    videoUrl: facilityVideoUrl,
+  });
+  const warranties = farmWarrantyPoliciesFromMetadata(profile.metadata);
+  const locationLabel = profile.location?.trim() || t('farm.locationFallback');
+
+  const tabs = useMemo(
+    () =>
+      FARM_DETAIL_TABS.map((key) => ({
+        key,
+        label:
+          key === 'listings'
+            ? `${t(farmTabLabelKey(key))} (${farmPetCount})`
+            : t(farmTabLabelKey(key)),
+      })),
+    [farmPetCount, t],
   );
-  const registeredKennelName = metadataString(profile.metadata, 'registeredKennelName');
-  const commitments = metadataArray(profile.metadata, 'transparencyCommitments');
-  const coverImageUrl = metadataString(profile.metadata, 'coverImageUrl') || profile.avatar_url;
-  const species = breederDisplaySpecies(primarySpecies)
-    .map((value) => translatedOption(t, 'breederProfile.speciesOptions', value))
-    .filter(Boolean)
-    .join(', ');
-  const breeds = mainBreeds.join(', ');
-  const typeFullLabel = breederType ? t(`breederProfile.breederTypes.${breederType}`) : t('petFeed.topBreeders.notUpdated');
-  const typeShortLabel = shortBreederTypeLabel(t, breederType) || typeFullLabel;
-  const scaleRange = metadataString(profile.metadata, 'scaleRange');
-  const scaleLabel = scaleRange
-    ? t(`breederProfile.scaleOptions.${scaleRange}`)
-    : t('petFeed.topBreeders.notUpdated');
-  const isT5 = templateId === 'T5';
-  const accent = templateAccent(templateId);
-  const tabBg = isT5 ? '#0F172A' : '#fff';
-  const tabText = isT5 ? '#94A3B8' : '#64748B';
-  const screenBg = isT5 ? '#0F172A' : '#F2F4F8';
-  const headerBg = headerBackground(templateId);
-  const headerText = headerTextColor(templateId);
-
-  const heroData: BreederHeroData = {
-    name: profile.display_name || t('petFeed.breederFallback'),
-    location: profile.location || '',
-    speciesLabel: species,
-    breedsLabel: breeds,
-    typeShortLabel,
-    typeFullLabel,
-    scaleLabel,
-    score: trust.score,
-    listingsCount: listingPosts.length,
-    verified: profile.verification_status === 'verified',
-    coverImageUrl,
-    registeredKennelName,
-  };
-
-  const filteredPosts = useMemo(() => {
-    const byGender = genderFilter === 'all' ? listingPosts : listingPosts.filter((post) => genderGroup(post) === genderFilter);
-    return [...byGender].sort((a, b) => {
-      if (sortField === 'age') return compareMaybeNumber(a.age_months, b.age_months, sortDirection);
-      if (sortField === 'price') return compareMaybeNumber(parsePetFeedPriceToVnd(a.price_note), parsePetFeedPriceToVnd(b.price_note), sortDirection);
-      return sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a);
-    });
-  }, [genderFilter, listingPosts, sortDirection, sortField]);
-
-  function toggleSort(field: SortField) {
-    if (sortField === field) {
-      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-    setSortField(field);
-    setSortDirection(field === 'date' ? 'desc' : 'asc');
-  }
 
   function confirmHideBreeder() {
     Alert.alert(t('breederDetail.blockTitle'), t('breederDetail.blockBody'), [
@@ -165,276 +140,523 @@ export function BreederDetailScreen({
   }
 
   return (
-    <View testID="breeder-detail-screen" style={{ flex: 1, backgroundColor: screenBg }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: headerBg, paddingHorizontal: 8, paddingVertical: 8 }}>
+    <View testID="breeder-detail-screen" style={{ flex: 1, backgroundColor: FARM_BG }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#fff',
+          borderBottomWidth: 1,
+          borderBottomColor: FARM_BORDER,
+          paddingHorizontal: 8,
+          paddingVertical: 8,
+        }}
+      >
         <Pressable
-          className="w-14 rounded-lg p-2"
+          accessibilityRole="button"
           onPress={onBack}
-          style={{
-            backgroundColor:
-              templateId === 'T3' || templateId === 'T4' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.18)',
-            borderRadius: 10,
-            marginLeft: 4,
-          }}
+          className="w-14 rounded-lg p-2"
+          style={{ borderRadius: 10 }}
         >
-          <Ionicons name="arrow-back" size={22} color={headerText} />
+          <Ionicons name="arrow-back" size={22} color={FARM_TEXT} />
         </Pressable>
-        <Text style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800', color: headerText }} numberOfLines={1}>
+        <Text style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800', color: FARM_TEXT }} numberOfLines={1}>
           {t('breederDetail.title')}
         </Text>
         <View className="w-14" />
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <BreederHero data={heroData} templateId={templateId} />
-
-        {isOwnProfile ? (
-          <View
-            style={{
-              paddingHorizontal: 20,
-              paddingVertical: 14,
-              flexDirection: 'row',
-              gap: 10,
-              backgroundColor: isT5 ? '#0F172A' : '#fff',
-              borderBottomWidth: 1,
-              borderBottomColor: '#F1F5F9',
-            }}
-          >
-            <Pressable
-              accessibilityRole="button"
-              onPress={onOpenFarmHealth}
-              style={{
-                flex: 1,
-                paddingVertical: 11,
-                backgroundColor: accent,
-                borderRadius: 12,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{t('breederDetail.openFarmHealth')}</Text>
-            </Pressable>
-            {allowTemplateChange && onOpenTemplatePicker ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={onOpenTemplatePicker}
-                style={{
-                  flex: 1,
-                  paddingVertical: 11,
-                  backgroundColor: isT5 ? 'rgba(255,255,255,0.08)' : '#fff',
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: isT5 ? 'rgba(255,255,255,0.12)' : '#E2E8F0',
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ color: isT5 ? '#E2E8F0' : '#0F172A', fontWeight: '600', fontSize: 13 }}>
-                  {t('breederDetail.changeTemplate')}
-                </Text>
-              </Pressable>
-            ) : null}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: isOwnProfile ? 28 : 120 }} showsVerticalScrollIndicator={false}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
+          <View style={{ height: 148, borderRadius: 16, overflow: 'hidden', backgroundColor: '#E7D5C0' }}>
+            <Image
+              source={farmImageSource(coverUrl, DEFAULT_FARM_COVER)}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+            />
           </View>
-        ) : (
-          <View
-            style={{
-              paddingHorizontal: 20,
-              paddingVertical: 14,
-              flexDirection: 'row',
-              gap: 10,
-              backgroundColor: isT5 ? '#0F172A' : '#fff',
-              borderBottomWidth: 1,
-              borderBottomColor: '#F1F5F9',
-            }}
-          >
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setReportVisible(true)}
+
+          <View style={{ marginTop: -44, flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
+            <View
               style={{
-                flex: 1,
-                flexDirection: 'row',
+                width: 88,
+                height: 88,
+                borderRadius: 44,
+                borderWidth: 4,
+                borderColor: '#fff',
+                backgroundColor: BRAND.btnSecondary,
+                overflow: 'hidden',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6,
-                paddingVertical: 11,
-                backgroundColor: '#fff',
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: '#E2E8F0',
+                shadowColor: '#000',
+                shadowOpacity: 0.12,
+                shadowRadius: 8,
+                elevation: 3,
               }}
             >
-              <Ionicons name="flag-outline" size={16} color="#64748b" />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>{t('breederDetail.reportProfile')}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={confirmHideBreeder}
-              style={{
-                width: 46,
-                height: 42,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#FEF2F2',
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: '#FECACA',
-              }}
-            >
-              <Ionicons name="eye-off-outline" size={18} color="#DC2626" />
-            </Pressable>
-          </View>
-        )}
-
-        <View style={{ flexDirection: 'row', backgroundColor: tabBg, borderBottomWidth: 1, borderBottomColor: isT5 ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }}>
-          {([
-            { id: 'overview' as const, label: t('breederDetail.tabOverview') },
-            { id: 'listings' as const, label: t('breederDetail.tabListings', { count: listingPosts.length }) },
-          ]).map((tab) => (
-            <Pressable
-              key={tab.id}
-              accessibilityRole="button"
-              onPress={() => setActiveTab(tab.id)}
-              style={{
-                flex: 1,
-                paddingVertical: 12,
-                borderBottomWidth: 2,
-                borderBottomColor: activeTab === tab.id ? accent : 'transparent',
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 13, fontWeight: activeTab === tab.id ? '700' : '500', color: activeTab === tab.id ? accent : tabText }}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {activeTab === 'overview' ? (
-          <View style={{ paddingHorizontal: 16, paddingTop: 14, gap: 12 }}>
-            <SectionCard title={t('breederDetail.farmInfo')} dark={isT5}>
-              <InfoRow icon="🏠" label={t('petFeed.topBreeders.type')} value={typeFullLabel} dark={isT5} />
-              <InfoRow icon="📍" label={t('breederDetail.area')} value={profile.location || t('petFeed.topBreeders.notUpdated')} dark={isT5} />
-              <InfoRow icon="🐾" label={t('breederDetail.mainBreeds')} value={breeds || t('petFeed.topBreeders.notUpdated')} dark={isT5} />
-              <InfoRow
-                icon="📞"
-                label={t('breederDetail.contact')}
-                value={hasBreederContact(profile) ? t('breederDetail.contactAvailable') : t('breederDetail.contactMissing')}
-                dark={isT5}
+              <Image
+                source={farmImageSource(avatarUrl, DEFAULT_FARM_AVATAR)}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
               />
-            </SectionCard>
-
-            <SectionCard title={t('breederDetail.trustSignalsTitle')} dark={isT5}>
-              {trust.signals.map((signal) => (
-                <View key={signal.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8 }}>
-                  <View
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: 10,
-                      backgroundColor: signal.passed ? '#D1FAE5' : '#FEF3C7',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Text style={{ fontSize: 11, color: signal.passed ? '#059669' : '#D97706' }}>{signal.passed ? '✓' : '!'}</Text>
-                  </View>
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: isT5 ? '#E2E8F0' : '#0F172A' }}>
-                    {t(`breederDetail.trustSignals.${signal.key}`)}
-                  </Text>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: signal.passed ? '#059669' : '#D97706' }}>
-                    {Math.round(signal.value)}/{signal.max}
-                  </Text>
-                </View>
-              ))}
-            </SectionCard>
-
-            {profile.bio ? (
-              <SectionCard title={t('breederDetail.profileInfo')} dark={isT5}>
-                <Text style={{ fontSize: 13, color: isT5 ? '#CBD5E1' : '#334155', lineHeight: 20 }}>{profile.bio}</Text>
-              </SectionCard>
-            ) : null}
-
-            {registeredAt || registrationUnitLabel || registeredKennelName || commitments.length ? (
-              <SectionCard title={t('breederDetail.registration')} dark={isT5}>
-                {registrationUnitLabel ? (
-                  <InfoRow icon="🏛️" label={t('breederProfile.registrationUnit')} value={registrationUnitLabel} dark={isT5} />
-                ) : null}
-                {registeredAt ? <InfoRow icon="📅" label={t('breederProfile.registeredAt')} value={registeredAt} dark={isT5} /> : null}
-                {registeredKennelName ? (
-                  <InfoRow icon="🏅" label={t('breederProfile.registeredKennelName')} value={registeredKennelName} dark={isT5} />
-                ) : null}
-                {commitments.length ? (
-                  <InfoRow
-                    icon="🤝"
-                    label={t('breederDetail.commitments')}
-                    value={commitments.map((item) => t(`breederProfile.commitments.${item}`)).join(', ')}
-                    dark={isT5}
-                  />
-                ) : null}
-              </SectionCard>
-            ) : null}
-
-            <DisclaimerBanner />
-          </View>
-        ) : (
-          <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {(['all', 'male', 'female', 'unknown'] as GenderFilter[]).map((item) => (
-                  <FilterChip
-                    key={item}
-                    label={t(`breederDetail.gender.${item}`)}
-                    active={genderFilter === item}
-                    accent={accent}
-                    onPress={() => setGenderFilter(item)}
-                  />
-                ))}
-              </View>
-            </ScrollView>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {(['date', 'age', 'price'] as SortField[]).map((item) => (
-                  <FilterChip
-                    key={item}
-                    label={t(`petFeed.sort.${item}`)}
-                    active={sortField === item}
-                    accent={accent}
-                    onPress={() => toggleSort(item)}
-                  />
-                ))}
-              </View>
-            </ScrollView>
-            <View style={{ gap: 10 }}>
-              {filteredPosts.length === 0 ? (
-                <Text
-                  style={{
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderColor: '#E2E8F0',
-                    backgroundColor: '#fff',
-                    padding: 16,
-                    fontSize: 13,
-                    color: '#64748B',
-                    lineHeight: 20,
-                  }}
-                >
-                  {t('breederDetail.emptyListings')}
-                </Text>
-              ) : null}
-              {filteredPosts.map((post) => (
-                <PetFeedPostCard
-                  key={post.id}
-                  post={post}
-                  variant="compact"
-                  autoPlayVideo={false}
-                  showFavorite={false}
-                  showContact={false}
-                  showReport={false}
-                  onPress={(item) => onOpenPostDetail(item.id)}
-                />
-              ))}
+            </View>
+            <View style={{ flex: 1, minWidth: 0, paddingBottom: 4 }}>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: FARM_TEXT }} numberOfLines={2}>
+                {profile.display_name || t('petFeed.breederFallback')}
+              </Text>
+              <Text style={{ marginTop: 4, fontSize: 13, color: FARM_MUTED }} numberOfLines={1}>
+                📍 {locationLabel}
+              </Text>
             </View>
           </View>
-        )}
+
+          {isOwnProfile ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              {onOpenBreederProfile ? (
+                <OwnerChip label={`✏️ ${t('farm.owner.editProfile')}`} onPress={onOpenBreederProfile} />
+              ) : null}
+              {allowTemplateChange && onOpenTemplatePicker ? (
+                <OwnerChip label={`🎨 ${t('farm.owner.template')}`} onPress={onOpenTemplatePicker} />
+              ) : null}
+              {onOpenFarmHealth ? (
+                <OwnerChip label={`📋 ${t('farm.owner.health')}`} onPress={onOpenFarmHealth} />
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+
+        <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
+          <View
+            style={{
+              backgroundColor: '#FFFBEB',
+              borderWidth: 1,
+              borderColor: '#FDE68A',
+              borderRadius: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              flexDirection: 'row',
+              gap: 8,
+            }}
+          >
+            <Text style={{ fontSize: 14 }}>⚠️</Text>
+            <Text style={{ flex: 1, fontSize: 11, color: '#92400E', lineHeight: 16 }}>
+              {t('breederDetail.disclaimer')}
+            </Text>
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginTop: 14, borderBottomWidth: 1, borderBottomColor: FARM_BORDER }}
+          contentContainerStyle={{ paddingHorizontal: 12 }}
+        >
+          {tabs.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <Pressable
+                key={tab.key}
+                accessibilityRole="button"
+                onPress={() => setActiveTab(tab.key)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  borderBottomWidth: 2,
+                  borderBottomColor: active ? FARM_ACCENT : 'transparent',
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: active ? '700' : '500', color: active ? FARM_ACCENT_ACTIVE : FARM_MUTED }}>
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {activeTab === 'overview' ? (
+          <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 14 }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16 }}>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: FARM_TEXT, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                {t('farm.trust.scoreTitle')}
+              </Text>
+              <Text style={{ marginTop: 6, fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
+                {t('farm.trust.scoreSubtitle')}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 }}>
+                <ScoreRing score={score} size={88} color={ringColor} trackColor="#F3E2C8" textColor={ringColor} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <TrustLevelChip level={trustLevel.level} label={t(trustLevel.labelKey)} />
+                  <Text style={{ marginTop: 8, fontSize: 13, color: FARM_TEXT, fontWeight: '600' }}>
+                    {t('farm.trust.quality')}: {score}/100
+                  </Text>
+                  <Text style={{ marginTop: 4, fontSize: 12, color: FARM_MUTED }}>
+                    ⭐ {t('farm.trust.ratingEmpty')}
+                  </Text>
+                  <Text style={{ marginTop: 4, fontSize: 12, color: FARM_MUTED }}>
+                    📦 {petsRehomed} {t('farm.trust.adopted')}
+                  </Text>
+                </View>
+              </View>
+              {isOwnProfile && onOpenFarmHealth ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onOpenFarmHealth}
+                  style={{
+                    marginTop: 14,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: FARM_BORDER,
+                    backgroundColor: FARM_BG,
+                    paddingVertical: 11,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: FARM_ACCENT_ACTIVE }}>
+                    📋 {t('farm.trust.guideCta')}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <View>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: FARM_TEXT, marginBottom: 10 }}>
+                {t('farm.tab.facility')}
+              </Text>
+              <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16, gap: 14 }}>
+                {hasFacility ? (
+                  <>
+                    {profile.bio?.trim() ? (
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: FARM_TEXT, marginBottom: 4 }}>
+                          {t('farm.facility.about')}
+                        </Text>
+                        <Text style={{ fontSize: 13, color: FARM_MUTED, lineHeight: 20 }}>{profile.bio.trim()}</Text>
+                      </View>
+                    ) : null}
+                    {facilitySocials.length > 0 ? (
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: FARM_TEXT, marginBottom: 8 }}>
+                          {t('farm.facility.social')}
+                        </Text>
+                        {facilitySocials.map((item) => (
+                          <Pressable
+                            key={item.id}
+                            disabled={!item.href}
+                            onPress={() => {
+                              if (item.href) void Linking.openURL(item.href);
+                            }}
+                            style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}
+                          >
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: FARM_TEXT }}>{t(item.labelKey)}</Text>
+                            <Text
+                              style={{
+                                flex: 1,
+                                fontSize: 13,
+                                color: item.href ? FARM_ACCENT_ACTIVE : FARM_MUTED,
+                                textDecorationLine: item.href ? 'underline' : 'none',
+                              }}
+                              numberOfLines={1}
+                            >
+                              {item.display}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    ) : null}
+                    {facilityVideoUrl ? (
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: FARM_TEXT, marginBottom: 8 }}>
+                          {t('farm.facility.video')}
+                        </Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => void Linking.openURL(facilityVideoUrl)}
+                          style={{
+                            borderRadius: 12,
+                            backgroundColor: '#0F172A',
+                            paddingVertical: 14,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>
+                            ▶ {t('farm.facility.openVideo')}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
+                  </>
+                ) : (
+                  <Text style={{ fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>{t('farm.facility.empty')}</Text>
+                )}
+              </View>
+            </View>
+
+            <View>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: FARM_TEXT, marginBottom: 10 }}>
+                {t('farm.tab.reviews')}
+              </Text>
+              <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 20 }}>
+                <Text style={{ fontSize: 13, color: FARM_MUTED, textAlign: 'center' }}>{t('farm.reviews.empty')}</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {activeTab === 'listings' ? (
+          <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6, minWidth: 0 }}>
+                {STATUS_ORDER.map((status, index) => {
+                  const active = petFilter === status;
+                  return (
+                    <Pressable
+                      key={status}
+                      onPress={() => setPetFilter(active ? 'all' : status)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                    >
+                      {index > 0 ? <Text style={{ color: '#D6C4B0' }}>|</Text> : null}
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: active ? FARM_ACCENT_ACTIVE : FARM_MUTED,
+                          fontWeight: active ? '700' : '500',
+                        }}
+                      >
+                        <Text style={{ fontWeight: '700' }}>{farmPetCounts[status]}</Text>{' '}
+                        {t(`farm.listings.status.${status}`)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('farm.listings.filter')}
+                onPress={() => setFilterMenuOpen(true)}
+                style={{
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: FARM_BORDER,
+                  backgroundColor: '#fff',
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: FARM_TEXT }}>
+                  {petFilter === 'all'
+                    ? t('farm.listings.filterAll')
+                    : t(`farm.listings.status.${petFilter}`)}{' '}
+                  ▾
+                </Text>
+              </Pressable>
+              {isOwnProfile && onOpenCreatePetFeedPost ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onOpenCreatePetFeedPost}
+                  style={{
+                    borderRadius: 999,
+                    backgroundColor: FARM_ACCENT,
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>
+                    + {t('farm.listings.createPost')}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            {visiblePets.length === 0 ? (
+              <View style={{ paddingVertical: 28, alignItems: 'center', gap: 12 }}>
+                <Text style={{ fontSize: 13, color: FARM_MUTED, textAlign: 'center' }}>
+                  {t(farmPetCount > 0 ? 'farm.listings.filterEmpty' : 'farm.listings.empty')}
+                </Text>
+                {isOwnProfile && farmPetCount === 0 && onOpenCreatePetFeedPost ? (
+                  <Pressable
+                    onPress={onOpenCreatePetFeedPost}
+                    style={{
+                      borderRadius: 999,
+                      backgroundColor: FARM_ACCENT,
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>
+                      {t('farm.listings.createPost')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : (
+              <View style={{ gap: 12 }}>
+                {visiblePets.map((item) => (
+                  <PetFeedListingCard
+                    key={item.id}
+                    post={item}
+                    showFavorite={false}
+                    showContact={false}
+                    currentUserId={currentUserId}
+                    onPress={(post) => onOpenPostDetail(post.id)}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        ) : null}
+
+        {activeTab === 'warranty' ? (
+          <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16, gap: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: FARM_TEXT }}>{t('farm.warranty.title')}</Text>
+              <Text style={{ fontSize: 12, color: FARM_MUTED, lineHeight: 18 }}>{t('farm.warranty.note')}</Text>
+              {warranties.length > 0 ? (
+                warranties.map((policy) => (
+                  <Pressable
+                    key={policy.id}
+                    onPress={() => setWarrantyViewTitle(policy.title)}
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: FARM_BORDER,
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: FARM_TEXT }} numberOfLines={1}>
+                      🛡️ {policy.title}
+                    </Text>
+                    <Text style={{ marginTop: 4, fontSize: 12, fontWeight: '600', color: FARM_ACCENT }}>
+                      {t('farm.warranty.viewCta')}
+                    </Text>
+                  </Pressable>
+                ))
+              ) : (
+                <Text style={{ fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
+                  {isOwnProfile ? t('farm.warranty.createCta') : t('farm.warranty.fallback')}
+                </Text>
+              )}
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
+
+      {!isOwnProfile ? (
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderTopWidth: 1,
+            borderTopColor: FARM_BORDER,
+            backgroundColor: '#fff',
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: 16,
+            gap: 8,
+          }}
+        >
+          <Pressable
+            testID="farm-message-breeder-button"
+            accessibilityRole="button"
+            onPress={() => onMessageFarm?.(profile)}
+            style={{
+              borderRadius: 12,
+              backgroundColor: FARM_ACCENT,
+              paddingVertical: 13,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>💬 {t('farm.cta.message')}</Text>
+          </Pressable>
+          <Pressable
+            disabled
+            accessibilityState={{ disabled: true }}
+            style={{
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: FARM_BORDER,
+              paddingVertical: 11,
+              alignItems: 'center',
+              opacity: 0.55,
+            }}
+          >
+            <Text style={{ color: FARM_TEXT, fontWeight: '600', fontSize: 13 }}>
+              📹 {t('farm.cta.video')} · {t('farm.cta.videoSoon')}
+            </Text>
+          </Pressable>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 18, paddingTop: 2 }}>
+            <Pressable onPress={() => setReportVisible(true)}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: FARM_MUTED }}>{t('breederDetail.reportProfile')}</Text>
+            </Pressable>
+            <Pressable onPress={confirmHideBreeder}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#DC2626' }}>{t('breederDetail.hideBreeder')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      <Modal visible={filterMenuOpen} transparent animationType="fade" onRequestClose={() => setFilterMenuOpen(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-end' }} onPress={() => setFilterMenuOpen(false)}>
+          <Pressable
+            style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24, paddingTop: 8 }}
+            onPress={() => {}}
+          >
+            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#E2E8F0' }} />
+            </View>
+            {(['all', ...STATUS_ORDER] as FarmPetAvailabilityFilter[]).map((option) => {
+              const selected = petFilter === option;
+              const label =
+                option === 'all' ? t('farm.listings.filterAll') : t(`farm.listings.status.${option}`);
+              return (
+                <Pressable
+                  key={option}
+                  onPress={() => {
+                    setPetFilter(option);
+                    setFilterMenuOpen(false);
+                  }}
+                  style={{
+                    paddingHorizontal: 20,
+                    paddingVertical: 14,
+                    backgroundColor: selected ? '#FFFBEB' : '#fff',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: selected ? '700' : '500', color: selected ? FARM_ACCENT_ACTIVE : FARM_TEXT }}>
+                    {label}
+                  </Text>
+                  {option !== 'all' ? (
+                    <Text style={{ fontSize: 13, color: FARM_MUTED }}>{farmPetCounts[option]}</Text>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={Boolean(warrantyViewTitle)} transparent animationType="fade" onRequestClose={() => setWarrantyViewTitle(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 }} onPress={() => setWarrantyViewTitle(null)}>
+          <Pressable
+            style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: FARM_BORDER }}
+            onPress={() => {}}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '800', color: FARM_TEXT }}>🛡️ {warrantyViewTitle}</Text>
+            <Text style={{ marginTop: 10, fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
+              {t('farm.warranty.note')}
+            </Text>
+            <Pressable
+              onPress={() => setWarrantyViewTitle(null)}
+              style={{ marginTop: 16, borderRadius: 12, backgroundColor: FARM_ACCENT, paddingVertical: 11, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.cancel')}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <ReportModal
         visible={reportVisible}
@@ -454,102 +676,21 @@ export function BreederDetailScreen({
   );
 }
 
-function headerBackground(templateId: BreederTemplateId) {
-  if (templateId === 'T1') return '#1E6FE8';
-  if (templateId === 'T2') return '#0F172A';
-  if (templateId === 'T3') return '#fff';
-  if (templateId === 'T4') return '#ECFDF5';
-  return '#0F172A';
-}
-
-function headerTextColor(templateId: BreederTemplateId) {
-  if (templateId === 'T3') return '#0F172A';
-  if (templateId === 'T4') return '#064E3B';
-  return '#fff';
-}
-
-function translatedOption(t: (key: string) => string, namespace: string, value: string) {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return '';
-  const key = `${namespace}.${normalized}`;
-  const translated = t(key);
-  return translated === key ? value : translated;
-}
-
-function SectionCard({ title, children, dark = false }: { title: string; children: ReactNode; dark?: boolean }) {
-  return (
-    <View
-      style={{
-        backgroundColor: dark ? 'rgba(255,255,255,0.05)' : '#fff',
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: dark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
-      }}
-    >
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: dark ? 'rgba(255,255,255,0.08)' : '#F1F5F9' }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: dark ? '#F8FAFC' : '#0F172A' }}>{title}</Text>
-      </View>
-      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 }}>{children}</View>
-    </View>
-  );
-}
-
-function InfoRow({ icon, label, value, dark = false }: { icon: string; label: string; value: string; dark?: boolean }) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 6 }}>
-      <Text style={{ fontSize: 14 }}>{icon}</Text>
-      <Text style={{ fontSize: 12, color: dark ? '#64748B' : '#94A3B8', width: 72, flexShrink: 0 }}>{label}</Text>
-      <Text style={{ flex: 1, fontSize: 13, color: dark ? '#E2E8F0' : '#0F172A', fontWeight: '500' }}>{value}</Text>
-    </View>
-  );
-}
-
-function FilterChip({
-  label,
-  active,
-  accent,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  accent: string;
-  onPress: () => void;
-}) {
+function OwnerChip({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       style={{
-        borderRadius: 999,
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        backgroundColor: active ? accent : '#fff',
-        borderWidth: active ? 0 : 1,
-        borderColor: '#E2E8F0',
-      }}
-    >
-      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : '#64748B' }}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function DisclaimerBanner() {
-  const { t } = useTranslation();
-  return (
-    <View
-      style={{
-        backgroundColor: '#FFFBEB',
+        borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#FDE68A',
-        borderRadius: 12,
+        borderColor: FARM_BORDER,
+        backgroundColor: '#fff',
         paddingHorizontal: 12,
-        paddingVertical: 10,
-        flexDirection: 'row',
-        gap: 8,
+        paddingVertical: 8,
       }}
     >
-      <Text style={{ fontSize: 14 }}>⚠️</Text>
-      <Text style={{ flex: 1, fontSize: 11, color: '#92400E', lineHeight: 16 }}>{t('breederDetail.disclaimer')}</Text>
-    </View>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: FARM_TEXT }}>{label}</Text>
+    </Pressable>
   );
 }

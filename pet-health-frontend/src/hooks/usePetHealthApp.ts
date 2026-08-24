@@ -85,6 +85,7 @@ import {
   confirmTransparencyWarning,
   appealTransparencyWarning,
   openPetFeedConversation,
+  openBreederFarmConversation,
   sendPetFeedConversationMessage,
   requestBreedRecognition,
   requestSignUpOtp,
@@ -172,6 +173,7 @@ import {
 } from '../utils/vaccinationDuePopupStorage';
 import { postsForBreeder } from '../utils/breederTrust';
 import { canOpenOwnFarmProfile, resolveOwnFarmProfileId } from '../utils/ownFarmProfileNav';
+import { farmChatErrorKey } from '../utils/farmChat';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 import {
@@ -3000,6 +3002,69 @@ export function usePetHealthApp() {
     }
   }
 
+  async function openOrCreateConversationFromFarm(profile: BreederProfile) {
+    if (!token || !profile?.id) return;
+    const accountUserId = accountProfile?.user_id;
+    if (accountUserId && profile.user_id === accountUserId) {
+      Alert.alert(i18n.t('petFeed.messages.openFailed'), i18n.t('petFeed.messages.startChatSelf'));
+      return;
+    }
+
+    const cached = petFeedConversations.find(
+      (item) => item.breeder_user_id === profile.user_id && !item.post_id,
+    );
+    if (cached?.id) {
+      void openMessageThread(cached);
+      return;
+    }
+
+    const gen = ++messageThreadOpenGenRef.current;
+    setSelectedPetFeedConversation({
+      id: `pending-farm-${profile.id}`,
+      post_id: '',
+      sen_user_id: accountUserId || '',
+      breeder_user_id: profile.user_id,
+      last_message_at: null,
+      last_message_preview: '',
+      created_at: new Date().toISOString(),
+      post_title: profile.display_name || i18n.t('petFeed.breederFallback'),
+      post_thumb_url: profile.avatar_url,
+      peer_display_name: profile.display_name || i18n.t('petFeed.breederFallback'),
+      farm_display_name: profile.display_name,
+      peer_user_id: profile.user_id,
+      has_unread: false,
+    });
+    setPetFeedMessages([]);
+    setPetFeedMessagesError('');
+    setPetFeedMessagesLoading(true);
+    setMessageThreadModalVisible(true);
+
+    try {
+      const response = await openBreederFarmConversation(token, profile.id);
+      if (gen !== messageThreadOpenGenRef.current) return;
+      const conversation = response.data;
+      setSelectedPetFeedConversation(conversation);
+      setPetFeedConversations((current) => {
+        if (current.some((item) => item.id === conversation.id)) {
+          return current.map((item) => (item.id === conversation.id ? conversation : item));
+        }
+        return [conversation, ...current];
+      });
+      await refreshPetFeedMessages(conversation.id);
+    } catch (error: unknown) {
+      if (gen !== messageThreadOpenGenRef.current) return;
+      setMessageThreadModalVisible(false);
+      setSelectedPetFeedConversation(null);
+      setPetFeedMessages([]);
+      setPetFeedMessagesLoading(false);
+      const code = error instanceof ApiRequestError ? error.code : undefined;
+      const status = error instanceof ApiRequestError ? error.status : undefined;
+      const key = farmChatErrorKey(code, status);
+      const fallback = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('petFeed.messages.openFailed'), i18n.t(key) || fallback);
+    }
+  }
+
   function closeMessageThread() {
     messageThreadOpenGenRef.current += 1;
     setMessageThreadModalVisible(false);
@@ -4751,6 +4816,7 @@ export function usePetHealthApp() {
     refreshPetFeedNotifications,
     openMessageThread,
     openOrCreateConversationFromPost,
+    openOrCreateConversationFromFarm,
     closeMessageThread,
     refreshPetFeedConversations,
     refreshPetFeedMessages,

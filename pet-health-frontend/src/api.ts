@@ -1015,6 +1015,16 @@ export async function openPetFeedConversation(token: string, postId: string) {
   });
 }
 
+export async function openBreederFarmConversation(token: string, profileId: string) {
+  return requestJson<{ data: PetFeedConversation }>(
+    `/pet-feed/breeders/${encodeURIComponent(profileId)}/conversations`,
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+    },
+  );
+}
+
 export async function listPetFeedConversations(token: string) {
   return requestJson<{ data: PetFeedConversation[] }>('/pet-feed/conversations', {
     headers: authHeaders(token),

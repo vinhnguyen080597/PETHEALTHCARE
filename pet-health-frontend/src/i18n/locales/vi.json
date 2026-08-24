@@ -288,6 +288,10 @@
       "inputLabel": "Nội dung tin nhắn",
       "send": "Gửi tin nhắn",
       "openFailed": "Không thể mở cuộc trò chuyện",
+      "noListingToMessage": "Chưa có tin đang mở để nhắn tin",
+      "startChatSelf": "Bạn không thể nhắn tin với trại của chính mình",
+      "startChatBlocked": "Không thể nhắn tin với trại này",
+      "startChatFailed": "Không thể bắt đầu trò chuyện",
       "sendFailed": "Không thể gửi tin nhắn",
       "contextCardTitle": "Thông tin bạn đang hỏi",
       "contextCardTitleBreeder": "Thông tin bài đăng",
@@ -533,6 +537,69 @@
     "tipPhotos": "Thêm ảnh môi trường nuôi",
     "tipListings": "Đăng thêm tin đang bán",
     "footnote": "Điểm minh bạch là chỉ số tham khảo, không phải điểm tín dụng hay bảo đảm giao dịch."
+  },
+  "farm": {
+    "tab": {
+      "overview": "Tổng quan",
+      "listings": "Thú cưng",
+      "warranty": "Chính sách bảo hành",
+      "facility": "Cơ sở trang trại",
+      "reviews": "Đánh giá từ khách"
+    },
+    "listings": {
+      "empty": "Chưa có thú cưng",
+      "createPost": "Tạo bài đăng",
+      "filter": "Lọc",
+      "filterAll": "Tất cả",
+      "filterEmpty": "Không có thú cưng ở trạng thái này.",
+      "status": {
+        "for_sale": "đang tìm chủ",
+        "deposit_hold": "đã giữ chỗ",
+        "completed": "đã hoàn thành"
+      }
+    },
+    "facility": {
+      "about": "Giới thiệu trại",
+      "social": "Mạng xã hội",
+      "facebook": "Facebook",
+      "zalo": "Zalo",
+      "tiktok": "TikTok",
+      "instagram": "Instagram",
+      "video": "Video cơ sở",
+      "empty": "Thông tin cơ sở sẽ hiện khi breeder bổ sung.",
+      "openVideo": "Mở video cơ sở"
+    },
+    "warranty": {
+      "title": "Chính sách bảo hành",
+      "note": "Mỗi bé đang bán gắn một chính sách bảo hành rõ ràng — xem đủ điều khoản trước khi liên hệ.",
+      "fallback": "Hãy hỏi breeder về cam kết sức khỏe và điều khoản đổi trả trước khi thỏa thuận ngoài sàn.",
+      "createCta": "Tạo chính sách bảo hành đầu tiên (+10 điểm minh bạch)",
+      "viewCta": "Xem chính sách"
+    },
+    "reviews": {
+      "empty": "Chưa có đánh giá từ khách"
+    },
+    "cta": {
+      "message": "Nhắn Tin Với Breeder",
+      "video": "Yêu Cầu Gọi Video Xem Bé",
+      "videoSoon": "Tính năng đang phát triển"
+    },
+    "trust": {
+      "title": "Chỉ số tin cậy",
+      "quality": "Chỉ số chất lượng",
+      "scoreTitle": "Điểm minh bạch trại giống",
+      "scoreSubtitle": "Điểm minh bạch phản ánh hồ sơ đã duyệt, tài liệu xác minh và giao dịch thực tế.",
+      "guideCta": "Xem chi tiết điểm & hướng dẫn",
+      "ratingEmpty": "Chưa có đánh giá",
+      "responseEmpty": "Tốc độ trả lời: chưa đủ dữ liệu",
+      "adopted": "bé đã về nhà mới"
+    },
+    "owner": {
+      "editProfile": "Chỉnh sửa hồ sơ",
+      "template": "Đổi template",
+      "health": "Sức khỏe trại"
+    },
+    "locationFallback": "Việt Nam"
   },
   "breederTemplates": {
     "pickerTitle": "Chọn giao diện",
