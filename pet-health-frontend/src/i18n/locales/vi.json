@@ -185,9 +185,9 @@
     "postedAt": "Đăng {{time}}",
     "updatedAt": "Cập nhật {{time}}",
     "tabs": {
-      "feed": "New Pets",
+      "feed": "Thú cưng",
       "news": "Tin tức",
-      "breeders": "Breeders"
+      "breeders": "Trại giống"
     },
     "newsEmpty": "Chưa có tin từ PetCare: Pet Marketplace",
     "topBreeders": {
@@ -717,8 +717,6 @@
       "petProfiles": "Hồ sơ thú cưng",
       "carePassport": "Care Passport"
     },
-    "shortcuts": "Lối tắt",
-    "shortcutMessages": "Tin nhắn",
     "breederTrust": {
       "untitled": "Breeder chưa có tên",
       "missingInfo": "Chưa bổ sung khu vực hoặc loài chính",

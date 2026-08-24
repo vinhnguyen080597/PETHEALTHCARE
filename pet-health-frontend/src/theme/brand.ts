@@ -41,6 +41,13 @@ export const BRAND = {
   verified: '#059669',
   verifiedSoft: '#ECFDF5',
 
+  /** Header chat/bell outline — matches web `text-stone-500`. */
+  headerIcon: '#78716C',
+  /** Header unread badge — matches web `#D97706`. */
+  headerBadge: '#D97706',
+  /** Header action press surface — matches web `hover:bg-amber-50`. */
+  headerIconPress: '#FFFBEB',
+
   /** @deprecated Use `textPrimary`. */
   text: '#0F172A',
   /** @deprecated Use `textMuted`. */

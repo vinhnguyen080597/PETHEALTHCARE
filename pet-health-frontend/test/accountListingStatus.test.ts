@@ -32,13 +32,8 @@ test('petFeed.status EN/VI include sold and cancelled labels', () => {
   assert.ok(vi.petFeed.status.deposit_hold);
 });
 
-test('account shortcuts and createPost EN/VI parity', () => {
-  assert.equal(typeof en.account.shortcuts, 'string');
-  assert.equal(typeof vi.account.shortcuts, 'string');
-  assert.equal(typeof en.account.shortcutMessages, 'string');
-  assert.equal(typeof vi.account.shortcutMessages, 'string');
+test('account createPost EN/VI parity', () => {
   assert.ok(en.account.createPost.length > 0);
   assert.ok(vi.account.createPost.length > 0);
   assert.equal(vi.account.createPost, 'Đăng tin mới');
-  assert.equal(vi.account.shortcuts, 'Lối tắt');
 });

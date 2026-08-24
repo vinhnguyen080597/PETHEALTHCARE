@@ -106,6 +106,10 @@ export function BreederDetailScreen({
   const breeds = mainBreeds.join(', ');
   const typeFullLabel = breederType ? t(`breederProfile.breederTypes.${breederType}`) : t('petFeed.topBreeders.notUpdated');
   const typeShortLabel = shortBreederTypeLabel(t, breederType) || typeFullLabel;
+  const scaleRange = metadataString(profile.metadata, 'scaleRange');
+  const scaleLabel = scaleRange
+    ? t(`breederProfile.scaleOptions.${scaleRange}`)
+    : t('petFeed.topBreeders.notUpdated');
   const isT5 = templateId === 'T5';
   const accent = templateAccent(templateId);
   const tabBg = isT5 ? '#0F172A' : '#fff';

@@ -171,6 +171,7 @@ import {
   markVaccinationDuePopupShownToday,
 } from '../utils/vaccinationDuePopupStorage';
 import { postsForBreeder } from '../utils/breederTrust';
+import { canOpenOwnFarmProfile, resolveOwnFarmProfileId } from '../utils/ownFarmProfileNav';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 import {
@@ -2031,11 +2032,11 @@ export function usePetHealthApp() {
   }
 
   function openOwnBreederFarmProfile() {
-    if (!breederProfile?.id) return;
-    const status = breederProfile.verification_status;
-    if (status !== 'verified' && status !== 'pending_review') return;
+    if (!canOpenOwnFarmProfile(breederProfile)) return;
+    const profileId = resolveOwnFarmProfileId(breederProfile);
+    if (!profileId) return;
     setBreederDetailReturnScreen('account');
-    setSelectedBreederProfileId(breederProfile.id);
+    setSelectedBreederProfileId(profileId);
     setScreen('breeder-detail');
   }
 

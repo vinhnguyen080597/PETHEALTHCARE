@@ -255,7 +255,6 @@ function AppContent() {
       onOpenOwnFarmProfile={app.openOwnBreederFarmProfile}
       onCancelBreederRequest={app.cancelBreederVerificationRequest}
       onOpenPetFeed={app.openPetFeed}
-      onOpenMessages={app.openMessagesInbox}
       onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
       onEditPetFeedDraft={app.openEditPetFeedDraft}
       onSubmitPetFeedDraft={app.submitPetFeedDraftForReview}

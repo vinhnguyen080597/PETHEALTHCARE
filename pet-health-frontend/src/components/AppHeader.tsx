@@ -4,10 +4,8 @@ import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { PET_MARKET_AVATAR } from '../assets/brandAssets';
 import { BRAND } from '../theme/brand';
-import { buttonContainerStyle } from '../theme/buttonStyles';
+import { formatHeaderBadgeCount, headerActionColors } from '../utils/headerActionDisplay';
 import { splitBrandName } from '../utils/brandDisplay';
-
-const BADGE_RED = BRAND.logout;
 
 type AppHeaderProps = {
   titleKey?: string;
@@ -19,37 +17,41 @@ type AppHeaderProps = {
   onOpenNotifications?: () => void;
 };
 
-function formatBadgeCount(count: number): string {
-  if (count > 99) return '99+';
-  return String(count);
-}
-
 function HeaderActionButton({
   icon,
   label,
   badgeCount = 0,
   onPress,
+  iconOffsetX = 0,
 }: {
   icon: keyof typeof Feather.glyphMap;
   label: string;
   badgeCount?: number;
   onPress?: () => void;
+  /** Optical nudge (e.g. chat bubble sits slightly left in the glyph box). */
+  iconOffsetX?: number;
 }) {
   const showBadge = badgeCount > 0;
   const badgeSize = 16;
   const badgeFontSize = badgeCount > 9 ? 9 : 10;
+  const colors = headerActionColors();
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={showBadge ? `${label}, ${badgeCount}` : label}
-      className="h-9 w-9 items-center justify-center rounded-full active:opacity-80"
-      style={({ pressed }) => buttonContainerStyle('secondary', pressed)}
+      className="h-9 w-9 items-center justify-center rounded-lg active:opacity-90"
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? colors.pressBackground : 'transparent',
+      })}
       hitSlop={4}
       onPress={onPress}
     >
-      <View className="relative items-center justify-center">
-        <Feather name={icon} size={20} color={BRAND.btnPrimary} />
+      <View
+        className="relative items-center justify-center"
+        style={iconOffsetX ? { transform: [{ translateX: iconOffsetX }] } : undefined}
+      >
+        <Feather name={icon} size={20} color={colors.icon} />
         {showBadge ? (
           <View
             className="absolute items-center justify-center rounded-full"
@@ -59,7 +61,7 @@ function HeaderActionButton({
               minWidth: badgeSize,
               height: badgeSize,
               paddingHorizontal: 4,
-              backgroundColor: BADGE_RED,
+              backgroundColor: colors.badge,
             }}
           >
             <Text
@@ -67,7 +69,7 @@ function HeaderActionButton({
               style={{ fontSize: badgeFontSize, lineHeight: badgeFontSize + 2 }}
               numberOfLines={1}
             >
-              {formatBadgeCount(badgeCount)}
+              {formatHeaderBadgeCount(badgeCount)}
             </Text>
           </View>
         ) : null}
@@ -76,7 +78,7 @@ function HeaderActionButton({
   );
 }
 
-/** Clean minimalist header — white surface, orange accent icons. */
+/** Clean minimalist header — white surface, stone icons + amber unread badges (web parity). */
 export function AppHeader({
   titleKey = 'login.appName',
   unreadMessageCount = 0,
@@ -120,6 +122,7 @@ export function AppHeader({
             label={t('petFeed.accessibility.openMessages')}
             badgeCount={unreadMessageCount}
             onPress={onOpenMessages}
+            iconOffsetX={6}
           />
           <HeaderActionButton
             icon="bell"

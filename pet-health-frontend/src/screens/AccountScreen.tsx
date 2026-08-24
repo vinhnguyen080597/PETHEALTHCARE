@@ -27,6 +27,7 @@ import {
   accountListingStatusLabelKey,
   accountListingStatusTone,
 } from '../utils/accountListingStatus';
+import { canOpenOwnFarmProfile } from '../utils/ownFarmProfileNav';
 
 const PRIMARY = BRAND.primary;
 
@@ -150,7 +151,6 @@ type AccountScreenProps = {
   onOpenOwnFarmProfile?: () => void;
   onCancelBreederRequest?: () => void;
   onOpenPetFeed: () => void;
-  onOpenMessages?: () => void;
   onOpenCreatePetFeedPost: () => void;
   onEditPetFeedDraft?: (post: PetFeedPost) => void;
   onSubmitPetFeedDraft?: (post: PetFeedPost) => Promise<void>;
@@ -230,7 +230,6 @@ export function AccountScreen({
   onOpenOwnFarmProfile,
   onCancelBreederRequest,
   onOpenPetFeed,
-  onOpenMessages,
   onOpenCreatePetFeedPost,
   onEditPetFeedDraft,
   onSubmitPetFeedDraft,
@@ -459,6 +458,7 @@ export function AccountScreen({
       testID="account-screen"
       className="flex-1 bg-[#FCFBFA]"
       contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, paddingTop: 20 }}
+      keyboardShouldPersistTaps="handled"
       refreshControl={
         isAdmin && onRefreshAdmin ? (
           <RefreshControl refreshing={adminRefreshing} onRefresh={() => void handleAdminRefresh()} tintColor={PRIMARY} />
@@ -601,6 +601,24 @@ export function AccountScreen({
               <Text className="mt-2 text-xs leading-5 text-slate-500">{t('account.breederTrust.note')}</Text>
             </View>
           </View>
+          {canOpenOwnFarmProfile(breederProfile) && onOpenOwnFarmProfile ? (
+            <Pressable
+              testID="account-view-farm-profile-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('account.breederTrust.viewFarmProfile')}
+              hitSlop={8}
+              className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border py-3 active:opacity-90"
+              style={{ borderColor: BRAND.btnPrimary, backgroundColor: BRAND.card, zIndex: 2 }}
+              onPress={() => onOpenOwnFarmProfile()}
+            >
+              <View pointerEvents="none" className="flex-row items-center gap-2">
+                <Ionicons name="storefront-outline" size={19} color={PRIMARY} />
+                <Text className="text-sm font-bold" style={{ color: PRIMARY }}>
+                  {t('account.breederTrust.viewFarmProfile')}
+                </Text>
+              </View>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
@@ -1248,19 +1266,6 @@ export function AccountScreen({
 
       {isBreeder ? (
         <View className="mt-5 gap-3">
-          {breederProfile && (breederStatus === 'verified' || breederStatus === 'pending_review') && onOpenOwnFarmProfile ? (
-            <Pressable
-              testID="account-view-farm-profile-button"
-              accessibilityRole="button"
-              accessibilityLabel={t('account.breederTrust.viewFarmProfile')}
-              className="flex-row items-center justify-center gap-2 rounded-xl border bg-white py-3.5 active:opacity-90"
-              style={{ borderColor: BRAND.btnPrimary }}
-              onPress={onOpenOwnFarmProfile}
-            >
-              <Ionicons name="storefront-outline" size={19} color={PRIMARY} />
-              <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('account.breederTrust.viewFarmProfile')}</Text>
-            </Pressable>
-          ) : null}
           {breederStatus === 'verified' ? (
             <Pressable
               testID="account-create-post-button"
@@ -1286,15 +1291,6 @@ export function AccountScreen({
               <Text className="text-sm font-bold text-white">{t('account.breederTrust.updateProfile')}</Text>
             </Pressable>
           )}
-          <Pressable
-            accessibilityRole="button"
-            className="flex-row items-center justify-center gap-2 rounded-xl border py-3 active:opacity-90"
-            style={{ borderColor: BRAND.borderBrand, backgroundColor: BRAND.btnSecondary }}
-            onPress={onOpenBreederProfile}
-          >
-            <Ionicons name="create-outline" size={18} color={PRIMARY} />
-            <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('account.breederTrust.editProfile')}</Text>
-          </Pressable>
         </View>
       ) : null}
 
@@ -1388,35 +1384,6 @@ export function AccountScreen({
                   }
                 />
               ))}
-            </View>
-          </View>
-        ) : null}
-        {!isAdmin ? (
-          <View testID="account-shortcuts-card" className="rounded-2xl border border-gray-200 bg-white p-4">
-            <Text className="text-base font-bold text-slate-900">{t('account.shortcuts')}</Text>
-            <View className="mt-3 gap-2">
-              <Pressable
-                testID="account-shortcut-saved-button"
-                accessibilityRole="button"
-                accessibilityLabel={t('account.senQuickActions.savedPosts')}
-                className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-3 active:bg-orange-50"
-                onPress={onOpenPetFeed}
-              >
-                <Text className="text-sm font-semibold text-slate-700">{t('account.senQuickActions.savedPosts')}</Text>
-                <Text className="text-sm font-bold text-slate-900">{savedPostCount}</Text>
-              </Pressable>
-              <Pressable
-                testID="account-shortcut-messages-button"
-                accessibilityRole="button"
-                accessibilityLabel={t('account.shortcutMessages')}
-                className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-3 active:bg-orange-50"
-                onPress={onOpenMessages}
-              >
-                <Text className="text-sm font-semibold text-slate-700">{t('account.shortcutMessages')}</Text>
-                <Text className="text-sm font-semibold" style={{ color: BRAND.textBrandLink }}>
-                  →
-                </Text>
-              </Pressable>
             </View>
           </View>
         ) : null}
