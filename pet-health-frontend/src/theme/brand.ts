@@ -5,6 +5,7 @@
  * Border:   borderLight · borderCard · borderBrand
  * Button:   btnPrimary · btnPrimaryActive · btnSecondary
  * Surface:  appBackground · card · surfaceLight
+ * Loading:  loadingSpinner (full-page / overlay)
  */
 export const BRAND = {
   // — Text —
@@ -29,6 +30,9 @@ export const BRAND = {
   appBackground: '#F8FAFC',
   card: '#FFFFFF',
   surfaceLight: '#FFF7ED',
+
+  /** Full-page / overlay ActivityIndicator (session boot, Suspense, LoadingOverlay). */
+  loadingSpinner: '#F97316',
 
   // Auth / onboarding warm canvas (slightly cream vs app shell).
   surface: '#FCFBFA',

@@ -28,6 +28,7 @@ import { getBreederTemplateId } from './src/constants/breederTemplates';
 import { AccountScreen } from './src/screens/AccountScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { BRAND } from './src/theme/brand';
 import { MessagesInboxScreen } from './src/screens/MessagesInboxScreen';
 import { NotificationsInboxScreen } from './src/screens/NotificationsInboxScreen';
 import { PetFeedPostDetailScreen } from './src/screens/PetFeedPostDetailScreen';
@@ -77,7 +78,7 @@ void SplashScreen.preventAutoHideAsync().catch(() => {
 function ScreenFallback() {
   return (
     <View className="flex-1 items-center justify-center bg-slate-100">
-      <ActivityIndicator size="large" color="#2563eb" />
+      <ActivityIndicator size="large" color={BRAND.loadingSpinner} />
     </View>
   );
 }
@@ -208,7 +209,7 @@ function AppContent() {
         <StatusBar style="dark" />
         <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right', 'bottom']}>
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#2563eb" />
+            <ActivityIndicator size="large" color={BRAND.loadingSpinner} />
           </View>
         </SafeAreaView>
       </SafeAreaProvider>

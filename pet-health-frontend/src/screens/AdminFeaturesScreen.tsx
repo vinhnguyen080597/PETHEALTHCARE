@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } f
 import type { AppFeatureFlags } from '../types';
 import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
 import { countEnabledPetFeedTabs, PET_FEED_TAB_FLAG_KEYS, type PetFeedTabFlagKey } from '../constants/petFeedTabFlags';
+import { BRAND } from '../theme/brand';
 
 const PRIMARY = '#2563eb';
 
@@ -128,7 +129,7 @@ export function AdminFeaturesScreen({
 
       {loading && !flags ? (
         <View className="mt-10 items-center">
-          <ActivityIndicator size="large" color={PRIMARY} />
+          <ActivityIndicator size="large" color={BRAND.loadingSpinner} />
         </View>
       ) : (
         <>

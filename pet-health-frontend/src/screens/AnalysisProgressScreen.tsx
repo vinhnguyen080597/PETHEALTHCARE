@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { BRAND } from '../theme/brand';
 
 export type AnalysisProgressStage = 'uploading' | 'analyzing' | 'saving' | 'failed';
 
@@ -27,26 +28,35 @@ export function AnalysisProgressScreen({ stage, petName, message }: AnalysisProg
   const failed = stage === 'failed';
 
   return (
-    <View testID="analysis-progress-screen" className="flex-1 items-center justify-center bg-slate-50 px-6">
-      <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-blue-100">
-        <Ionicons name="pulse" size={40} color="#2563eb" />
+    <View testID="analysis-progress-screen" className="flex-1 items-center justify-center px-6" style={{ backgroundColor: BRAND.appBackground }}>
+      <View
+        className="mb-4 h-20 w-20 items-center justify-center rounded-full"
+        style={{ backgroundColor: BRAND.surfaceLight }}
+      >
+        <Ionicons name="pulse" size={40} color={BRAND.loadingSpinner} />
       </View>
-      <Text className="text-center text-2xl font-bold text-slate-900">{t('analysisProgress.title')}</Text>
-      <Text className="mt-2 text-center text-sm text-slate-500">
+      <Text className="text-center text-2xl font-bold" style={{ color: BRAND.textPrimary }}>
+        {t('analysisProgress.title')}
+      </Text>
+      <Text className="mt-2 text-center text-sm" style={{ color: BRAND.textMuted }}>
         {t('analysisProgress.subtitle', { name: petName })}
       </Text>
 
-      <View className="mt-8 w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-5">
+      <View
+        className="mt-8 w-full max-w-sm rounded-2xl border bg-white p-5"
+        style={{ borderColor: BRAND.borderCard }}
+      >
         <View className="mb-4">
           {failed ? (
             <Ionicons name="alert-circle-outline" size={36} color="#dc2626" />
           ) : (
-            <ActivityIndicator size="large" color="#2563eb" />
+            <ActivityIndicator size="large" color={BRAND.loadingSpinner} />
           )}
         </View>
         <Text
           testID={`analysis-progress-stage-${stage}`}
-          className={`mb-4 text-center text-base font-semibold ${failed ? 'text-red-700' : 'text-slate-800'}`}
+          className="mb-4 text-center text-base font-semibold"
+          style={{ color: failed ? '#B91C1C' : BRAND.textPrimary }}
         >
           {failed ? t('analysisProgress.failedTitle') : labels[current]}
         </Text>
@@ -61,14 +71,21 @@ export function AnalysisProgressScreen({ stage, petName, message }: AnalysisProg
           {[0, 1, 2].map((idx) => (
             <View
               key={idx}
-              className={`h-2 flex-1 rounded-full ${idx <= current ? 'bg-blue-600' : 'bg-slate-200'}`}
+              className="h-2 flex-1 rounded-full"
+              style={{
+                backgroundColor: idx <= current ? BRAND.btnPrimary : BRAND.borderLight,
+              }}
             />
           ))}
         </View>
 
         <View className="gap-2">
           {labels.map((label, idx) => (
-            <Text key={label} className={`text-sm ${idx <= current ? 'text-slate-800' : 'text-slate-400'}`}>
+            <Text
+              key={label}
+              className="text-sm"
+              style={{ color: idx <= current ? BRAND.textPrimary : BRAND.textMuted }}
+            >
               {idx + 1}. {label}
             </Text>
           ))}
@@ -77,4 +94,3 @@ export function AnalysisProgressScreen({ stage, petName, message }: AnalysisProg
     </View>
   );
 }
-
