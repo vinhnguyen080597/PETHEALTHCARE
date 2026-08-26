@@ -600,6 +600,41 @@ export async function upsertMyBreederProfile(token: string, payload: UpsertBreed
   });
 }
 
+/** Upload farm avatar/cover; with persist=1 the backend also updates the profile. */
+export async function uploadBreederProfileImage(
+  token: string,
+  kind: 'avatar' | 'cover',
+  imageUri: string,
+  options?: { persist?: boolean; mimeHint?: string },
+) {
+  const formData = new FormData();
+  formData.append('kind', kind);
+  if (options?.persist !== false) formData.append('persist', '1');
+  await appendImageFileToFormData(
+    formData,
+    'file',
+    imageUri,
+    `breeder-${kind}-${Date.now()}`,
+    options?.mimeHint ?? 'image/jpeg',
+  );
+  return requestJson<{
+    data: {
+      publicUrl: string;
+      kind: 'avatar' | 'cover';
+      profile?: BreederProfile;
+    };
+  }>(
+    '/pet-feed/breeder-profile/me/upload',
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    },
+    true,
+    UPLOAD_REQUEST_TIMEOUT_MS,
+  );
+}
+
 export async function cancelMyBreederVerificationRequest(token: string) {
   return requestJson<{ data: BreederProfile }>('/pet-feed/breeder-profile/me/cancel', {
     method: 'POST',

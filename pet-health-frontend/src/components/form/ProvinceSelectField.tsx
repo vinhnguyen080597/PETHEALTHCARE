@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { VIETNAM_PROVINCES } from '../constants/vietnamProvinces';
-import { modalBottomInset } from '../utils/modalSafeArea';
+import { VIETNAM_PROVINCES } from '../../constants/vietnamProvinces';
+import { modalBottomInset } from '../../utils/modalSafeArea';
 
 type ProvinceSelectFieldProps = {
   label: string;

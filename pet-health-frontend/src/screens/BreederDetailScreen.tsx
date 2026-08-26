@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Linking,
   Modal,
@@ -11,6 +12,8 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import { PetFeedListingCard } from '../components/PetFeedListingCard';
 import { ReportModal } from '../components/ReportModal';
 import { ScoreRing } from '../components/breeder/ScoreRing';
@@ -34,6 +37,11 @@ import {
   type FarmPetAvailability,
   type FarmPetAvailabilityFilter,
 } from '../utils/farmPets';
+import {
+  farmPhotoPickerAspect,
+  farmPhotoResizeWidth,
+  type FarmPhotoKind,
+} from '../utils/farmPhotos';
 import {
   FARM_DETAIL_TABS,
   farmImageSource,
@@ -63,6 +71,7 @@ type BreederDetailScreenProps = {
   onOpenBreederProfile?: () => void;
   onOpenCreatePetFeedPost?: () => void;
   onMessageFarm?: (profile: BreederProfile) => void;
+  onUploadFarmPhoto?: (kind: FarmPhotoKind, imageUri: string) => Promise<boolean>;
   allowTemplateChange?: boolean;
   currentUserId?: string | null;
 };
@@ -81,6 +90,7 @@ export function BreederDetailScreen({
   onOpenBreederProfile,
   onOpenCreatePetFeedPost,
   onMessageFarm,
+  onUploadFarmPhoto,
   allowTemplateChange = false,
   currentUserId,
 }: BreederDetailScreenProps) {
@@ -94,6 +104,7 @@ export function BreederDetailScreen({
   const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
   const [reportNote, setReportNote] = useState('');
   const [warrantyViewTitle, setWarrantyViewTitle] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState<FarmPhotoKind | null>(null);
 
   const coverUrl = resolveFarmCoverUrl(profile);
   const avatarUrl = resolveFarmAvatarUrl(profile);
@@ -139,6 +150,37 @@ export function BreederDetailScreen({
     setReportNote('');
   }
 
+  async function changeFarmPhoto(kind: FarmPhotoKind) {
+    if (!isOwnProfile || !onUploadFarmPhoto || photoBusy) return;
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t('alerts.permissionGallery.title'), t('alerts.permissionGallery.message'));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: farmPhotoPickerAspect(kind),
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]?.uri) return;
+
+    setPhotoBusy(kind);
+    try {
+      const resized = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: farmPhotoResizeWidth(kind) } }],
+        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      await onUploadFarmPhoto(kind, resized.uri);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t('farm.owner.photoUploadFailed');
+      Alert.alert(t('farm.owner.photoUploadFailed'), message);
+    } finally {
+      setPhotoBusy(null);
+    }
+  }
+
   return (
     <View testID="breeder-detail-screen" style={{ flex: 1, backgroundColor: FARM_BG }}>
       <View
@@ -174,31 +216,124 @@ export function BreederDetailScreen({
               style={{ width: '100%', height: '100%' }}
               contentFit="cover"
             />
+            {isOwnProfile && photoBusy === 'cover' ? (
+              <View
+                accessibilityRole="progressbar"
+                accessibilityLabel={t('farm.owner.photoUploading')}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                  backgroundColor: 'rgba(0,0,0,0.45)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <ActivityIndicator color="#fff" size="large" />
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{t('farm.owner.photoUploading')}</Text>
+              </View>
+            ) : null}
+            {isOwnProfile && onUploadFarmPhoto ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('farm.owner.editCover')}
+                disabled={photoBusy !== null}
+                onPress={() => void changeFarmPhoto('cover')}
+                style={{
+                  position: 'absolute',
+                  right: 10,
+                  bottom: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: 8,
+                  paddingVertical: 5,
+                  borderRadius: 8,
+                  backgroundColor: '#fff',
+                  opacity: photoBusy !== null ? 0.6 : 1,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.12,
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
+              >
+                <Ionicons name="camera-outline" size={13} color={FARM_TEXT} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: FARM_TEXT }}>{t('farm.owner.editCover')}</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <View style={{ marginTop: -44, flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
-            <View
-              style={{
-                width: 88,
-                height: 88,
-                borderRadius: 44,
-                borderWidth: 4,
-                borderColor: '#fff',
-                backgroundColor: BRAND.btnSecondary,
-                overflow: 'hidden',
-                alignItems: 'center',
-                justifyContent: 'center',
-                shadowColor: '#000',
-                shadowOpacity: 0.12,
-                shadowRadius: 8,
-                elevation: 3,
-              }}
-            >
-              <Image
-                source={farmImageSource(avatarUrl, DEFAULT_FARM_AVATAR)}
-                style={{ width: '100%', height: '100%' }}
-                contentFit="cover"
-              />
+            <View style={{ position: 'relative', width: 88, height: 88 }}>
+              <Pressable
+                accessibilityRole={isOwnProfile && onUploadFarmPhoto ? 'button' : undefined}
+                accessibilityLabel={isOwnProfile ? t('farm.owner.editAvatar') : undefined}
+                disabled={!isOwnProfile || !onUploadFarmPhoto || photoBusy !== null}
+                onPress={isOwnProfile && onUploadFarmPhoto ? () => void changeFarmPhoto('avatar') : undefined}
+                style={{
+                  width: 88,
+                  height: 88,
+                  borderRadius: 44,
+                  borderWidth: 4,
+                  borderColor: '#fff',
+                  backgroundColor: BRAND.btnSecondary,
+                  overflow: 'hidden',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.12,
+                  shadowRadius: 8,
+                  elevation: 3,
+                }}
+              >
+                <Image
+                  source={farmImageSource(avatarUrl, DEFAULT_FARM_AVATAR)}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+                {isOwnProfile && photoBusy === 'avatar' ? (
+                  <View
+                    accessibilityRole="progressbar"
+                    accessibilityLabel={t('farm.owner.photoUploading')}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      left: 0,
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                ) : null}
+              </Pressable>
+              {isOwnProfile && onUploadFarmPhoto && photoBusy !== 'avatar' ? (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    bottom: 0,
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: FARM_ACCENT,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    elevation: 4,
+                  }}
+                >
+                  <Ionicons name="camera" size={14} color="#fff" />
+                </View>
+              ) : null}
             </View>
             <View style={{ flex: 1, minWidth: 0, paddingBottom: 4 }}>
               <Text style={{ fontSize: 22, fontWeight: '800', color: FARM_TEXT }} numberOfLines={2}>

@@ -597,7 +597,11 @@
     "owner": {
       "editProfile": "Chỉnh sửa hồ sơ",
       "template": "Đổi template",
-      "health": "Sức khỏe trại"
+      "health": "Sức khỏe trại",
+      "editCover": "Chỉnh sửa ảnh bìa",
+      "editAvatar": "Chọn ảnh đại diện",
+      "photoUploading": "Đang tải lên…",
+      "photoUploadFailed": "Không cập nhật được ảnh."
     },
     "locationFallback": "Việt Nam"
   },

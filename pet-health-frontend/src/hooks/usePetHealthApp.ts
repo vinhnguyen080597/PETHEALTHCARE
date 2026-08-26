@@ -108,6 +108,7 @@ import {
   updatePet,
   unfavoritePetFeedPost,
   upsertMyBreederProfile,
+  uploadBreederProfileImage,
   uploadPetAvatar,
 } from '../api';
 import { preloadMaiOnboardingImages } from '../assets/maiOnboardingAssets';
@@ -174,6 +175,11 @@ import {
 import { postsForBreeder } from '../utils/breederTrust';
 import { canOpenOwnFarmProfile, resolveOwnFarmProfileId } from '../utils/ownFarmProfileNav';
 import { farmChatErrorKey } from '../utils/farmChat';
+import {
+  applyFarmPhotoToProfile,
+  isUnusableFarmPhotoUrl,
+  type FarmPhotoKind,
+} from '../utils/farmPhotos';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 import {
@@ -3065,6 +3071,40 @@ export function usePetHealthApp() {
     }
   }
 
+  /** Persist farm avatar/cover from a local image URI (picker + resize happen in the screen). */
+  async function uploadOwnFarmProfilePhoto(kind: FarmPhotoKind, imageUri: string): Promise<boolean> {
+    if (!token) {
+      Alert.alert(i18n.t('alerts.signInRequired.title'), i18n.t('alerts.signInRequired.message'));
+      return false;
+    }
+    try {
+      const response = await uploadBreederProfileImage(token, kind, imageUri);
+      const publicUrl = response.data?.publicUrl;
+      if (isUnusableFarmPhotoUrl(publicUrl)) {
+        throw new Error(i18n.t('farm.owner.photoUploadFailed'));
+      }
+      const nextProfile =
+        response.data?.profile ??
+        (breederProfile ? applyFarmPhotoToProfile(breederProfile, kind, publicUrl!) : null);
+      if (nextProfile) {
+        setBreederProfile(nextProfile);
+        setTopBreederProfiles((profiles) =>
+          profiles.map((profile) =>
+            profile.id === nextProfile.id ? { ...profile, ...nextProfile } : profile,
+          ),
+        );
+      }
+      return true;
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error && error.message.trim()
+          ? error.message
+          : i18n.t('farm.owner.photoUploadFailed');
+      Alert.alert(i18n.t('farm.owner.photoUploadFailed'), message);
+      return false;
+    }
+  }
+
   function closeMessageThread() {
     messageThreadOpenGenRef.current += 1;
     setMessageThreadModalVisible(false);
@@ -4817,6 +4857,7 @@ export function usePetHealthApp() {
     openMessageThread,
     openOrCreateConversationFromPost,
     openOrCreateConversationFromFarm,
+    uploadOwnFarmProfilePhoto,
     closeMessageThread,
     refreshPetFeedConversations,
     refreshPetFeedMessages,

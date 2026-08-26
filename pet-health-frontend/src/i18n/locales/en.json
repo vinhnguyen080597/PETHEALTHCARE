@@ -597,7 +597,11 @@
     "owner": {
       "editProfile": "Edit profile",
       "template": "Change template",
-      "health": "Farm health"
+      "health": "Farm health",
+      "editCover": "Edit cover photo",
+      "editAvatar": "Choose profile picture",
+      "photoUploading": "Uploading…",
+      "photoUploadFailed": "Could not update photo."
     },
     "locationFallback": "Vietnam"
   },

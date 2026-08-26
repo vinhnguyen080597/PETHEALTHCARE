@@ -19,6 +19,13 @@ import {
   resolveFarmAvatarUrl,
   resolveFarmCoverUrl,
 } from '../src/utils/farmProfileDisplay.ts';
+import {
+  applyFarmPhotoToProfile,
+  farmPhotoPickerAspect,
+  farmPhotoResizeWidth,
+  isFarmPhotoKind,
+  isUnusableFarmPhotoUrl,
+} from '../src/utils/farmPhotos.ts';
 import { farmChatErrorKey } from '../src/utils/farmChat.ts';
 import type { PetFeedPost } from '../src/types.ts';
 import en from '../src/i18n/locales/en.json' with { type: 'json' };
@@ -169,6 +176,39 @@ test('farm default photos fall back when missing or legacy unsplash', () => {
   );
 });
 
+test('farm photo helpers apply avatar and cover updates', () => {
+  assert.equal(isFarmPhotoKind('avatar'), true);
+  assert.equal(isFarmPhotoKind('bio'), false);
+  assert.deepEqual(farmPhotoPickerAspect('avatar'), [1, 1]);
+  assert.deepEqual(farmPhotoPickerAspect('cover'), [16, 9]);
+  assert.equal(farmPhotoResizeWidth('avatar'), 512);
+  assert.equal(farmPhotoResizeWidth('cover'), 1600);
+  assert.equal(isUnusableFarmPhotoUrl('memory://x'), true);
+  assert.equal(isUnusableFarmPhotoUrl('https://cdn.example/a.jpg'), false);
+  const base = {
+    id: 'b1',
+    user_id: 'u1',
+    display_name: 'Farm',
+    bio: '',
+    location: '',
+    avatar_url: null as string | null,
+    contact: {},
+    primary_species: [] as string[],
+    main_breeds: [] as string[],
+    verification_status: 'verified' as const,
+    metadata: { note: 'keep' },
+    created_at: '2026-01-01',
+  };
+  assert.equal(
+    applyFarmPhotoToProfile(base, 'avatar', 'https://cdn.example/a.jpg').avatar_url,
+    'https://cdn.example/a.jpg',
+  );
+  const withCover = applyFarmPhotoToProfile(base, 'cover', 'https://cdn.example/c.jpg');
+  assert.equal(withCover.metadata.cover_url, 'https://cdn.example/c.jpg');
+  assert.equal(withCover.metadata.coverUrl, 'https://cdn.example/c.jpg');
+  assert.equal(withCover.metadata.note, 'keep');
+});
+
 test('farm tab i18n EN/VI parity', () => {
   assert.equal(vi.farm.tab.overview, 'Tổng quan');
   assert.equal(vi.farm.tab.listings, 'Thú cưng');
@@ -176,6 +216,10 @@ test('farm tab i18n EN/VI parity', () => {
   assert.equal(en.farm.tab.overview, 'Overview');
   assert.equal(en.farm.cta.message.length > 0, true);
   assert.equal(vi.farm.cta.message.length > 0, true);
+  assert.equal(en.farm.owner.editCover.length > 0, true);
+  assert.equal(vi.farm.owner.editCover.length > 0, true);
+  assert.equal(en.farm.owner.editAvatar.length > 0, true);
+  assert.equal(vi.farm.owner.editAvatar.length > 0, true);
 });
 
 test('farmChatErrorKey maps backend codes', () => {
