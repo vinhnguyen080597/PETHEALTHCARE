@@ -26,7 +26,12 @@ import {
   isFarmPhotoKind,
   isUnusableFarmPhotoUrl,
 } from '../src/utils/farmPhotos.ts';
+import {
+  farmTransparencyMeaning,
+  farmTrustLevelChipLabel,
+} from '../src/utils/farmTrustDisplay.ts';
 import { farmChatErrorKey } from '../src/utils/farmChat.ts';
+import { transparencyTickColor } from '../src/utils/breederTransparencyScore.ts';
 import type { PetFeedPost } from '../src/types.ts';
 import en from '../src/i18n/locales/en.json' with { type: 'json' };
 import vi from '../src/i18n/locales/vi.json' with { type: 'json' };
@@ -209,6 +214,14 @@ test('farm photo helpers apply avatar and cover updates', () => {
   assert.equal(withCover.metadata.note, 'keep');
 });
 
+test('farm trust display helpers', () => {
+  assert.equal(farmTrustLevelChipLabel('L3', 'Trại tiềm năng'), 'L3 • Trại tiềm năng');
+  assert.match(farmTransparencyMeaning(50, 'vi'), /uy tín|minh bạch/i);
+  assert.match(farmTransparencyMeaning(50, 'en'), /reputation|transparency/i);
+  assert.equal(transparencyTickColor(10, 30).startsWith('#'), true);
+  assert.equal(transparencyTickColor(80, 30), '#E5E7EB');
+});
+
 test('farm tab i18n EN/VI parity', () => {
   assert.equal(vi.farm.tab.overview, 'Tổng quan');
   assert.equal(vi.farm.tab.listings, 'Thú cưng');
@@ -220,6 +233,16 @@ test('farm tab i18n EN/VI parity', () => {
   assert.equal(vi.farm.owner.editCover.length > 0, true);
   assert.equal(en.farm.owner.editAvatar.length > 0, true);
   assert.equal(vi.farm.owner.editAvatar.length > 0, true);
+  assert.equal(vi.farm.trust.title, 'Chỉ số tin cậy');
+  assert.equal(en.farm.trust.title, 'Trust metrics');
+  assert.equal(vi.farm.trust.gaugeCaption.length > 0, true);
+  assert.equal(en.farm.trust.gaugeCaption.length > 0, true);
+  assert.equal(vi.farm.trust.guideCta, 'Xem chi tiết điểm & hướng dẫn');
+  assert.equal(en.farm.trust.guideCta.length > 0, true);
+  assert.equal(vi.farm.trust.scoreLine.includes('{{score}}'), true);
+  assert.equal(en.farm.trust.scoreLine.includes('{{score}}'), true);
+  assert.equal(vi.farm.trust.responseEmpty.length > 0, true);
+  assert.equal(en.farm.trust.responseEmpty.length > 0, true);
 });
 
 test('farmChatErrorKey maps backend codes', () => {
