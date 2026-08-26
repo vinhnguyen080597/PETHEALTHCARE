@@ -33,6 +33,13 @@ test('full-page loading spinner uses brand orange', () => {
   assert.equal(BRAND.loadingSpinner, BRAND.btnPrimary);
 });
 
+test('pet profile accent tokens use brand orange', () => {
+  assert.equal(BRAND.btnPrimary, '#F97316');
+  assert.equal(BRAND.textBrandLink, '#EA580C');
+  assert.equal(BRAND.surfaceLight, '#FFF7ED');
+  assert.equal(BRAND.borderBrand, '#FED7AA');
+});
+
 test('primary button uses orange-500 default and orange-600 when pressed', () => {
   assert.deepEqual(buttonContainerStyle('primary', false), { backgroundColor: '#F97316' });
   assert.deepEqual(buttonContainerStyle('primary', true), { backgroundColor: '#EA580C' });

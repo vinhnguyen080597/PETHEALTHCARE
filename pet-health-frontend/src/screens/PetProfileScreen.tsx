@@ -4,13 +4,11 @@ import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatLocaleDateTime, formatLocaleDayMonth } from '../i18n/localeDate';
+import { BRAND } from '../theme/brand';
 import { analysisPossibleFinding, analysisSeverity } from '../utils/analysisDisplay';
 import { buildCarePassportStats, metadataNumber } from '../utils/carePassport';
 import { formatPetAgeForDisplay } from '../utils/petAge';
 import type { Analysis, CoreCareRecord, CoreCareSummary, Pet, Severity } from '../types';
-
-const PRIMARY_BLUE = '#1E6FE8';
-const HERO_BLUE = '#1557C0';
 
 type PetProfileScreenProps = {
   pet: Pet;
@@ -35,7 +33,7 @@ type PetProfileScreenProps = {
 function severityBadgeClass(severity: Severity) {
   if (severity === 'high') return 'bg-red-50 text-red-700';
   if (severity === 'medium') return 'bg-amber-50 text-amber-800';
-  return 'bg-emerald-50 text-emerald-800';
+  return 'bg-emerald-50 text-emerald-700';
 }
 
 function severityColor(severity: Severity) {
@@ -81,9 +79,12 @@ function ProfileChip({
   value: string;
 }) {
   return (
-    <View className="flex-row items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5">
-      <Ionicons name={icon} size={13} color={PRIMARY_BLUE} />
-      <Text className="text-xs font-semibold text-slate-700">
+    <View
+      className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
+      style={{ borderWidth: 1, borderColor: BRAND.borderBrand, backgroundColor: BRAND.surfaceLight }}
+    >
+      <Ionicons name={icon} size={13} color={BRAND.btnPrimary} />
+      <Text className="text-xs font-semibold" style={{ color: BRAND.textSecondary }}>
         {label}: {value}
       </Text>
     </View>
@@ -94,22 +95,27 @@ function CareMetricCard({
   icon,
   label,
   value,
-  iconBgClass,
+  iconBg,
+  iconColor,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
-  iconBgClass: string;
+  iconBg: string;
+  iconColor: string;
 }) {
   return (
-    <View className="min-w-0 flex-1 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3">
-      <View className={`mb-2 h-9 w-9 items-center justify-center rounded-xl ${iconBgClass}`}>
-        <Ionicons name={icon} size={18} color={PRIMARY_BLUE} />
+    <View
+      className="min-w-0 flex-1 rounded-2xl px-3 py-3"
+      style={{ borderWidth: 1, borderColor: BRAND.borderLight, backgroundColor: BRAND.appBackground }}
+    >
+      <View className="mb-2 h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: iconBg }}>
+        <Ionicons name={icon} size={18} color={iconColor} />
       </View>
-      <Text className="text-[11px] font-semibold uppercase tracking-wide text-slate-500" numberOfLines={1}>
+      <Text className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: BRAND.textMuted }} numberOfLines={1}>
         {label}
       </Text>
-      <Text className="mt-1 text-sm font-bold leading-5 text-slate-900" numberOfLines={2}>
+      <Text className="mt-1 text-sm font-bold leading-5" style={{ color: BRAND.textPrimary }} numberOfLines={2}>
         {value}
       </Text>
     </View>
@@ -126,15 +132,20 @@ function CareCountTile({
   count: number;
 }) {
   return (
-    <View className="min-w-[47%] flex-1 flex-row items-center gap-2.5 rounded-2xl border border-slate-100 bg-white px-3 py-2.5">
-      <View className="h-8 w-8 items-center justify-center rounded-full bg-slate-100">
-        <Ionicons name={icon} size={15} color="#475569" />
+    <View
+      className="min-w-[47%] flex-1 flex-row items-center gap-2.5 rounded-2xl bg-white px-3 py-2.5"
+      style={{ borderWidth: 1, borderColor: BRAND.borderLight }}
+    >
+      <View className="h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: BRAND.surfaceLight }}>
+        <Ionicons name={icon} size={15} color={BRAND.btnPrimary} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="text-[11px] font-semibold text-slate-500" numberOfLines={1}>
+        <Text className="text-[11px] font-semibold" style={{ color: BRAND.textMuted }} numberOfLines={1}>
           {label}
         </Text>
-        <Text className="text-base font-extrabold text-slate-900">{count}</Text>
+        <Text className="text-base font-extrabold" style={{ color: BRAND.textPrimary }}>
+          {count}
+        </Text>
       </View>
     </View>
   );
@@ -243,8 +254,8 @@ export function PetProfileScreen({
   };
 
   return (
-    <View testID="pet-profile-screen" className="flex-1 bg-[#F2F4F8]">
-      <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
+    <View testID="pet-profile-screen" className="flex-1" style={{ backgroundColor: BRAND.appBackground }}>
+      <View className="flex-row items-center border-b bg-white px-2 py-2" style={{ borderBottomColor: BRAND.borderCard }}>
         <View className="w-14">
           <Pressable
             testID="pet-profile-back-button"
@@ -253,19 +264,21 @@ export function PetProfileScreen({
             className="rounded-lg p-2 active:bg-gray-100"
             onPress={onBack}
           >
-            <Ionicons name="arrow-back" size={24} color="#1e293b" />
+            <Ionicons name="arrow-back" size={24} color={BRAND.textPrimary} />
           </Pressable>
         </View>
-        <Text className="flex-1 text-center text-lg font-semibold text-slate-900">{t('profile.title')}</Text>
+        <Text className="flex-1 text-center text-lg font-semibold" style={{ color: BRAND.textPrimary }}>
+          {t('profile.title')}
+        </Text>
         <View className="w-14 items-end">
           <Pressable
             testID="pet-profile-edit-button"
             accessibilityRole="button"
             accessibilityLabel={t('profile.editA11y', { name: pet.name })}
-            className="rounded-lg px-2 py-2 active:bg-gray-100"
+            className="rounded-lg px-2 py-2 active:bg-orange-50"
             onPress={onEdit}
           >
-            <Text className="text-sm font-semibold" style={{ color: PRIMARY_BLUE }}>
+            <Text className="text-sm font-semibold" style={{ color: BRAND.textBrandLink }}>
               {t('profile.edit')}
             </Text>
           </Pressable>
@@ -277,11 +290,11 @@ export function PetProfileScreen({
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, paddingTop: 16 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY_BLUE} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.loadingSpinner} />
         }
       >
-        <View className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-          <View className="h-64" style={{ backgroundColor: HERO_BLUE }}>
+        <View className="overflow-hidden rounded-3xl bg-white shadow-sm" style={{ borderWidth: 1, borderColor: BRAND.borderCard }}>
+          <View className="h-64" style={{ backgroundColor: BRAND.btnPrimaryActive }}>
             {pet.avatar_url ? (
               <Image
                 source={{ uri: pet.avatar_url }}
@@ -291,16 +304,16 @@ export function PetProfileScreen({
                 transition={160}
               />
             ) : (
-              <View className="h-full w-full items-center justify-center bg-blue-600">
-                <Ionicons name="paw" size={56} color="#ffffff" />
+              <View className="h-full w-full items-center justify-center" style={{ backgroundColor: BRAND.btnPrimary }}>
+                <Ionicons name="paw" size={56} color={BRAND.textInverse} />
               </View>
             )}
           </View>
           <View className="p-5">
-            <Text className="text-3xl font-extrabold text-slate-950" numberOfLines={1}>
+            <Text className="text-3xl font-extrabold" style={{ color: BRAND.textPrimary }} numberOfLines={1}>
               {pet.name}
             </Text>
-            <Text className="mt-1 text-sm font-medium text-slate-500" numberOfLines={2}>
+            <Text className="mt-1 text-sm font-medium" style={{ color: BRAND.textMuted }} numberOfLines={2}>
               {breedSpeciesLine}
             </Text>
             <View className="mt-4 flex-row flex-wrap gap-2">
@@ -313,43 +326,56 @@ export function PetProfileScreen({
         <View className="mt-6">
           <View className="mb-3">
             <View className="flex-row items-center justify-between gap-3">
-              <Text className="min-w-0 flex-1 text-base font-extrabold text-slate-900">{t('profile.careOverview')}</Text>
+              <Text className="min-w-0 flex-1 text-base font-extrabold" style={{ color: BRAND.textPrimary }}>
+                {t('profile.careOverview')}
+              </Text>
               <CareStatusBadge
                 overdueCount={passport.overdueReminders.length}
                 pendingCount={careSummary.pendingReminders}
                 t={t}
               />
             </View>
-            <Text className="mt-1 text-sm leading-5 text-slate-500">
+            <Text className="mt-1 text-sm leading-5" style={{ color: BRAND.textMuted }}>
               {t('profile.careOverviewHint', { name: pet.name })}
             </Text>
           </View>
 
-          <View className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-            <View className="border-b border-blue-100 bg-blue-50/80 px-4 py-4">
+          <View className="overflow-hidden rounded-3xl bg-white shadow-sm" style={{ borderWidth: 1, borderColor: BRAND.borderCard }}>
+            <View
+              className="border-b px-4 py-4"
+              style={{ borderBottomColor: BRAND.borderBrand, backgroundColor: BRAND.surfaceLight }}
+            >
               <View className="flex-row items-center gap-3">
                 <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
-                  <Ionicons name="alarm-outline" size={22} color={PRIMARY_BLUE} />
+                  <Ionicons name="alarm-outline" size={22} color={BRAND.btnPrimary} />
                 </View>
                 <View className="min-w-0 flex-1">
-                  <Text className="text-[11px] font-bold uppercase tracking-wide text-blue-700">
+                  <Text
+                    className="text-[11px] font-bold uppercase tracking-wide"
+                    style={{ color: BRAND.textBrandLink }}
+                  >
                     {t('coreCare.nextSchedule')}
                   </Text>
                   {passport.nextReminder?.due_at ? (
                     <>
-                      <Text className="mt-1 text-sm font-bold leading-5 text-slate-900" numberOfLines={2}>
+                      <Text className="mt-1 text-sm font-bold leading-5" style={{ color: BRAND.textPrimary }} numberOfLines={2}>
                         {passport.nextReminder.title}
                       </Text>
-                      <Text className="mt-1 text-xs font-medium text-slate-600">
+                      <Text className="mt-1 text-xs font-medium" style={{ color: BRAND.textSecondary }}>
                         {formatLocaleDateTime(passport.nextReminder.due_at, i18n.language)}
                       </Text>
                     </>
                   ) : (
-                    <Text className="mt-1 text-sm leading-5 text-slate-600">{t('coreCare.noNextReminder')}</Text>
+                    <Text className="mt-1 text-sm leading-5" style={{ color: BRAND.textSecondary }}>
+                      {t('coreCare.noNextReminder')}
+                    </Text>
                   )}
                 </View>
                 {passport.nextReminder?.due_at ? (
-                  <Text className="shrink-0 text-[34px] font-extrabold leading-none text-blue-700">
+                  <Text
+                    className="shrink-0 text-[34px] font-extrabold leading-none"
+                    style={{ color: BRAND.btnPrimary }}
+                  >
                     {formatLocaleDayMonth(passport.nextReminder.due_at, i18n.language)}
                   </Text>
                 ) : null}
@@ -368,13 +394,15 @@ export function PetProfileScreen({
                         })
                       : t('coreCare.notLogged')
                   }
-                  iconBgClass="bg-emerald-50"
+                  iconBg={BRAND.verifiedSoft}
+                  iconColor={BRAND.verified}
                 />
                 <CareMetricCard
                   icon="shield-checkmark-outline"
                   label={t('coreCare.latestVaccine')}
                   value={passport.latestVaccine?.title ?? t('coreCare.notLogged')}
-                  iconBgClass="bg-violet-50"
+                  iconBg={BRAND.surfaceLight}
+                  iconColor={BRAND.btnPrimary}
                 />
               </View>
 
@@ -393,11 +421,14 @@ export function PetProfileScreen({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t('profile.openCoreCareA11y', { name: pet.name })}
-                  className="mt-1 flex-row items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-blue-50 py-3 active:bg-blue-100"
+                  className="mt-1 flex-row items-center justify-center gap-2 rounded-2xl py-3 active:opacity-90"
+                  style={{ borderWidth: 1, borderColor: BRAND.borderBrand, backgroundColor: BRAND.surfaceLight }}
                   onPress={onOpenCoreCare}
                 >
-                  <Ionicons name="calendar-outline" size={18} color={PRIMARY_BLUE} />
-                  <Text className="text-sm font-bold text-blue-700">{t('profile.openCoreCare')}</Text>
+                  <Ionicons name="calendar-outline" size={18} color={BRAND.btnPrimary} />
+                  <Text className="text-sm font-bold" style={{ color: BRAND.textBrandLink }}>
+                    {t('profile.openCoreCare')}
+                  </Text>
                 </Pressable>
               ) : null}
             </View>
@@ -407,29 +438,44 @@ export function PetProfileScreen({
         <View className="mt-6">
           <View className="mb-3">
             <View className="flex-row items-center justify-between gap-3">
-              <Text className="min-w-0 flex-1 text-base font-extrabold text-slate-900">
+              <Text className="min-w-0 flex-1 text-base font-extrabold" style={{ color: BRAND.textPrimary }}>
                 {t('profile.healthSection')}
               </Text>
               <HealthStatusBadge history={history} t={t} />
             </View>
-            <Text className="mt-1 text-sm leading-5 text-slate-500">{t('profile.healthHint', { name: pet.name })}</Text>
+            <Text className="mt-1 text-sm leading-5" style={{ color: BRAND.textMuted }}>
+              {t('profile.healthHint', { name: pet.name })}
+            </Text>
           </View>
 
           {history.length === 0 ? (
-            <View className="items-center rounded-3xl border border-gray-200 bg-white px-5 py-9">
-              <View className="mb-3 h-14 w-14 items-center justify-center rounded-full bg-blue-50">
-                <Ionicons name="pulse-outline" size={26} color={PRIMARY_BLUE} />
+            <View
+              className="items-center rounded-3xl bg-white px-5 py-9"
+              style={{ borderWidth: 1, borderColor: BRAND.borderCard }}
+            >
+              <View
+                className="mb-3 h-14 w-14 items-center justify-center rounded-full"
+                style={{ backgroundColor: BRAND.surfaceLight }}
+              >
+                <Ionicons name="pulse-outline" size={26} color={BRAND.btnPrimary} />
               </View>
-              <Text className="text-center text-base font-bold text-slate-800">{t('profile.noHealthScans')}</Text>
-              <Text className="mt-1 text-center text-sm leading-5 text-slate-500">{t('profile.noHealthScansHint')}</Text>
+              <Text className="text-center text-base font-bold" style={{ color: BRAND.textPrimary }}>
+                {t('profile.noHealthScans')}
+              </Text>
+              <Text className="mt-1 text-center text-sm leading-5" style={{ color: BRAND.textMuted }}>
+                {t('profile.noHealthScansHint')}
+              </Text>
               {onScanHealth ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t('profile.scanHealthA11y', { name: pet.name })}
-                  className="mt-4 rounded-full bg-blue-50 px-4 py-2 active:bg-blue-100"
+                  className="mt-4 rounded-full px-4 py-2 active:opacity-90"
+                  style={{ backgroundColor: BRAND.btnPrimary }}
                   onPress={onScanHealth}
                 >
-                  <Text className="text-sm font-bold text-blue-700">{t('profile.scanHealth')}</Text>
+                  <Text className="text-sm font-bold" style={{ color: BRAND.textInverse }}>
+                    {t('profile.scanHealth')}
+                  </Text>
                 </Pressable>
               ) : null}
             </View>
@@ -444,10 +490,14 @@ export function PetProfileScreen({
                     accessibilityRole="button"
                     accessibilityLabel={t('profile.openHealthCheckA11y', { title })}
                     key={item.id}
-                    className="flex-row gap-3 rounded-2xl border border-gray-200 bg-white p-4 active:bg-gray-50"
+                    className="flex-row gap-3 rounded-2xl bg-white p-4 active:bg-orange-50"
+                    style={{ borderWidth: 1, borderColor: BRAND.borderCard }}
                     onPress={() => onSelectEntry(item)}
                   >
-                    <View className="h-11 w-11 items-center justify-center rounded-full bg-slate-50">
+                    <View
+                      className="h-11 w-11 items-center justify-center rounded-full"
+                      style={{ backgroundColor: BRAND.surfaceLight }}
+                    >
                       <Ionicons name={severityIconName(severity)} size={21} color={severityColor(severity)} />
                     </View>
                     <View className="min-w-0 flex-1">
@@ -455,18 +505,18 @@ export function PetProfileScreen({
                         <Text className={`self-start rounded-full px-2 py-1 text-xs font-bold capitalize ${severityBadgeClass(severity)}`}>
                           {t(`severity.${severity}`)}
                         </Text>
-                        <Text className="text-xs text-slate-400">
+                        <Text className="text-xs" style={{ color: BRAND.textMuted }}>
                           {formatLocaleDateTime(item.created_at, i18n.language)}
                         </Text>
                       </View>
-                      <Text className="mt-2 font-bold leading-5 text-slate-900" numberOfLines={2}>
+                      <Text className="mt-2 font-bold leading-5" style={{ color: BRAND.textPrimary }} numberOfLines={2}>
                         {title}
                       </Text>
-                      <Text className="mt-1 text-xs text-gray-500">
+                      <Text className="mt-1 text-xs" style={{ color: BRAND.textMuted }}>
                         {t('common.confidence', { pct: (item.confidence * 100).toFixed(0) })}
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+                    <Ionicons name="chevron-forward" size={20} color={BRAND.textMuted} />
                   </Pressable>
                 );
               })}
@@ -475,17 +525,22 @@ export function PetProfileScreen({
                   testID="pet-profile-history-load-more-button"
                   accessibilityRole="button"
                   accessibilityLabel={t('history.loadMore')}
-                  className="items-center rounded-2xl border border-slate-200 bg-white py-3 active:bg-slate-50"
+                  className="items-center rounded-2xl bg-white py-3 active:bg-orange-50"
+                  style={{ borderWidth: 1, borderColor: BRAND.borderCard }}
                   onPress={onLoadMoreHistory}
                   disabled={historyLoadingMore}
                 >
                   {historyLoadingMore ? (
                     <View className="flex-row items-center gap-2">
-                      <ActivityIndicator size="small" color={PRIMARY_BLUE} />
-                      <Text className="text-sm font-semibold text-slate-600">{t('history.loadingMore')}</Text>
+                      <ActivityIndicator size="small" color={BRAND.loadingSpinner} />
+                      <Text className="text-sm font-semibold" style={{ color: BRAND.textSecondary }}>
+                        {t('history.loadingMore')}
+                      </Text>
                     </View>
                   ) : (
-                    <Text className="text-sm font-bold text-blue-700">{t('history.loadMore')}</Text>
+                    <Text className="text-sm font-bold" style={{ color: BRAND.textBrandLink }}>
+                      {t('history.loadMore')}
+                    </Text>
                   )}
                 </Pressable>
               ) : null}
@@ -495,8 +550,12 @@ export function PetProfileScreen({
 
         {onDelete ? (
           <View className="mt-6 rounded-3xl border border-red-100 bg-white p-4">
-            <Text className="text-base font-extrabold text-slate-900">{t('profile.dangerZone')}</Text>
-            <Text className="mt-1 text-sm leading-5 text-slate-500">{t('profile.deleteHint', { name: pet.name })}</Text>
+            <Text className="text-base font-extrabold" style={{ color: BRAND.textPrimary }}>
+              {t('profile.dangerZone')}
+            </Text>
+            <Text className="mt-1 text-sm leading-5" style={{ color: BRAND.textMuted }}>
+              {t('profile.deleteHint', { name: pet.name })}
+            </Text>
             <Pressable
               testID="pet-profile-delete-button"
               accessibilityRole="button"
