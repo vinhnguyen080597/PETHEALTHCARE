@@ -1,6 +1,11 @@
 import { Platform } from 'react-native';
 import { API_BASE_URL, API_HEALTH_URL } from './config';
 import { resolveAuthorizedToken, retryAfterUnauthorized } from './utils/authSessionManager';
+import {
+  countPetFeedUploadAndSaveSteps,
+  type PetFeedMediaUploadProgress,
+  type PetFeedSubmitProgressOptions,
+} from './utils/petFeedSubmitProgress';
 import { BREED_RECOGNITION_SLOT_ORDER } from './constants/petBreedRecognitionSlots';
 import type {
   Analysis,
@@ -566,12 +571,24 @@ export async function updateMyPetFeedDraft(
   postId: string,
   payload: CreatePetFeedPostPayload,
   media?: CreatePetFeedPostMedia,
+  options?: PetFeedSubmitProgressOptions,
 ) {
   if (!media) {
+    options?.onProgress?.({
+      phase: 'saving',
+      completedSteps: 0,
+      uploadTotalSteps: 1,
+    });
     return updateMyPetFeedPost(token, postId, payload);
   }
 
-  const uploaded = await uploadPetFeedDraftMediaUrls(token, media);
+  const uploaded = await uploadPetFeedDraftMediaUrls(token, media, options?.onProgress);
+  const uploadStepsWithoutSave = countPetFeedUploadAndSaveSteps(media) - 1;
+  options?.onProgress?.({
+    phase: 'saving',
+    completedSteps: uploadStepsWithoutSave,
+    uploadTotalSteps: uploadStepsWithoutSave + 1,
+  });
   return updateMyPetFeedPost(token, postId, {
     ...payload,
     mediaUrls: uploaded.mediaUrls,
@@ -796,36 +813,82 @@ async function uploadPetFeedMediaViaApi(
 async function uploadPetFeedDraftMediaUrls(
   token: string,
   media: CreatePetFeedPostMedia,
+  onProgress?: (event: PetFeedMediaUploadProgress) => void,
 ): Promise<{ mediaUrls: string[]; videoUrl: string | null; metadata: Record<string, unknown> }> {
+  const uploadTotalSteps = countPetFeedUploadAndSaveSteps(media);
+  let completedSteps = 0;
+  const localPhotoTotal = media.photoUris.filter(
+    (uri) => uri?.trim() && !isRemotePetFeedMediaUri(uri),
+  ).length;
+  let localPhotoIndex = 0;
+
   const mediaUrls: string[] = [];
   for (const photoUri of media.photoUris) {
     if (isRemotePetFeedMediaUri(photoUri)) {
       mediaUrls.push(photoUri);
-    } else {
-      mediaUrls.push(await uploadPetFeedMediaViaApi(token, 'photo', photoUri, 'image/jpeg'));
+      continue;
     }
+    localPhotoIndex += 1;
+    onProgress?.({
+      phase: 'uploading_photo',
+      completedSteps,
+      uploadTotalSteps,
+      current: localPhotoIndex,
+      total: localPhotoTotal,
+    });
+    mediaUrls.push(await uploadPetFeedMediaViaApi(token, 'photo', photoUri, 'image/jpeg'));
+    completedSteps += 1;
   }
   let videoUrl: string | null = null;
   const videoUri = typeof media.videoUri === 'string' ? media.videoUri.trim() : '';
   if (videoUri) {
-    videoUrl = isRemotePetFeedMediaUri(videoUri)
-      ? videoUri
-      : await uploadPetFeedMediaViaApi(token, 'video', videoUri, 'video/mp4');
+    if (isRemotePetFeedMediaUri(videoUri)) {
+      videoUrl = videoUri;
+    } else {
+      onProgress?.({
+        phase: 'uploading_video',
+        completedSteps,
+        uploadTotalSteps,
+      });
+      videoUrl = await uploadPetFeedMediaViaApi(token, 'video', videoUri, 'video/mp4');
+      completedSteps += 1;
+    }
   }
   let listThumbUrl = '';
   if (media.listThumbUri) {
-    listThumbUrl = isRemotePetFeedMediaUri(media.listThumbUri)
-      ? media.listThumbUri
-      : await uploadPetFeedMediaViaApi(token, 'thumb', media.listThumbUri, 'image/jpeg');
+    if (isRemotePetFeedMediaUri(media.listThumbUri)) {
+      listThumbUrl = media.listThumbUri;
+    } else {
+      onProgress?.({
+        phase: 'uploading_thumb',
+        completedSteps,
+        uploadTotalSteps,
+      });
+      listThumbUrl = await uploadPetFeedMediaViaApi(token, 'thumb', media.listThumbUri, 'image/jpeg');
+      completedSteps += 1;
+    }
   }
   const healthEvidenceUrls: string[] = [];
+  const localEvidence = (media.healthEvidenceUris ?? []).filter(
+    (uri) => uri?.trim() && !isRemotePetFeedMediaUri(uri),
+  );
+  let evidenceIndex = 0;
   for (const uri of media.healthEvidenceUris ?? []) {
     if (!uri?.trim()) continue;
     if (isRemotePetFeedMediaUri(uri)) {
       healthEvidenceUrls.push(uri);
-    } else {
-      healthEvidenceUrls.push(await uploadPetFeedMediaViaApi(token, 'photo', uri, 'image/jpeg'));
+      continue;
     }
+    evidenceIndex += 1;
+    onProgress?.({
+      phase: 'uploading_health_evidence',
+      completedSteps,
+      uploadTotalSteps,
+      current: evidenceIndex,
+      total: localEvidence.length,
+    });
+    healthEvidenceUrls.push(await uploadPetFeedMediaViaApi(token, 'photo', uri, 'image/jpeg'));
+    completedSteps += 1;
   }
   const metadata: Record<string, unknown> = {};
   if (listThumbUrl) {
@@ -844,10 +907,17 @@ async function createPetFeedPostViaSequentialUploads(
   token: string,
   payload: CreatePetFeedPostPayload,
   media: CreatePetFeedPostMedia,
+  onProgress?: (event: PetFeedMediaUploadProgress) => void,
 ): Promise<{ data: PetFeedPost }> {
   // Upload each object separately so we stay under Supabase per-file limits
   // (Free global cap ~50MB) and avoid one giant multipart body.
-  const uploaded = await uploadPetFeedDraftMediaUrls(token, media);
+  const uploaded = await uploadPetFeedDraftMediaUrls(token, media, onProgress);
+  const uploadStepsWithoutSave = countPetFeedUploadAndSaveSteps(media) - 1;
+  onProgress?.({
+    phase: 'saving',
+    completedSteps: uploadStepsWithoutSave,
+    uploadTotalSteps: uploadStepsWithoutSave + 1,
+  });
   return requestJson<{ data: PetFeedPost }>('/pet-feed/posts', {
     method: 'POST',
     headers: {
@@ -866,13 +936,23 @@ async function createPetFeedPostViaSequentialUploads(
   });
 }
 
-export async function createPetFeedPost(token: string, payload: CreatePetFeedPostPayload, media?: CreatePetFeedPostMedia) {
+export async function createPetFeedPost(
+  token: string,
+  payload: CreatePetFeedPostPayload,
+  media?: CreatePetFeedPostMedia,
+  options?: PetFeedSubmitProgressOptions,
+) {
   const hasLocalMedia = Boolean(
     media && (media.photoUris.length > 0 || (typeof media.videoUri === 'string' && media.videoUri.trim())),
   );
   if (media && hasLocalMedia) {
-    return createPetFeedPostViaSequentialUploads(token, payload, media);
+    return createPetFeedPostViaSequentialUploads(token, payload, media, options?.onProgress);
   }
+  options?.onProgress?.({
+    phase: 'saving',
+    completedSteps: 0,
+    uploadTotalSteps: 1,
+  });
   return requestJson<{ data: PetFeedPost }>('/pet-feed/posts', {
     method: 'POST',
     headers: {

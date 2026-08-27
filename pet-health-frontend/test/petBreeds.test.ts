@@ -47,6 +47,37 @@ test('create listing form description section has no contact fields copy', () =>
   assert.equal(vi.createPetFeedPost.descriptionAndContact, 'Mô tả');
 });
 
+test('create listing screen title is create listing / tạo bài đăng', () => {
+  assert.equal(en.createPetFeedPost.title, 'Create listing');
+  assert.equal(vi.createPetFeedPost.title, 'Tạo bài đăng');
+});
+
+test('create listing media hint does not mention drafts', () => {
+  assert.equal(/draft/i.test(en.createPetFeedPost.mediaHint), false);
+  assert.equal(/nháp/i.test(vi.createPetFeedPost.mediaHint), false);
+});
+
+test('create listing submit progress copy has EN/VI photo counters', () => {
+  assert.match(en.createPetFeedPost.submitProgress.uploadingPhoto, /\{current\}/);
+  assert.match(en.createPetFeedPost.submitProgress.uploadingPhoto, /\{total\}/);
+  assert.match(vi.createPetFeedPost.submitProgress.uploadingPhoto, /\{current\}/);
+  assert.match(vi.createPetFeedPost.submitProgress.uploadingPhoto, /\{total\}/);
+  assert.equal(vi.createPetFeedPost.submitProgress.uploadingVideo, 'Đang tải video…');
+  assert.equal(en.createPetFeedPost.submitProgress.saving, 'Submitting for review…');
+  assert.equal(vi.createPetFeedPost.submitProgress.saving, 'Đang gửi duyệt…');
+  assert.equal(en.createPetFeedPost.submitProgress.done, 'Complete');
+  assert.equal(vi.createPetFeedPost.submitProgress.done, 'Hoàn tất');
+});
+
+test('create listing shows success copy after submit completes', () => {
+  assert.equal(en.createPetFeedPost.submitSuccessTitle, 'Listing submitted successfully');
+  assert.equal(vi.createPetFeedPost.submitSuccessTitle, 'Bài đăng đã được gửi thành công');
+  assert.equal(en.createPetFeedPost.submitSuccessBody, 'An admin is reviewing it and will notify you soon');
+  assert.equal(vi.createPetFeedPost.submitSuccessBody, 'Admin đang xem xét và sẽ thông báo sớm đến bạn');
+  assert.equal(en.createPetFeedPost.publishSuccess, 'Listing published successfully.');
+  assert.equal(vi.createPetFeedPost.publishSuccess, 'Đã đăng bài thành công.');
+});
+
 test('listing paperwork options are vaccine book, origin, and pedigree on request', () => {
   const paperwork = en.createPetFeedPost.options.paperwork;
   assert.deepEqual(Object.keys(paperwork), ['vaccineBook', 'origin', 'pedigreeOnRequest']);

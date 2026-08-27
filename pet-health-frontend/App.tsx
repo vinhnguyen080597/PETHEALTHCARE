@@ -16,6 +16,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from './src/components/AppHeader';
 import { BottomTabBar } from './src/components/BottomTabBar';
 import { LoadingOverlay } from './src/components/LoadingOverlay';
+import { ListingSubmitSuccessModal } from './src/components/ListingSubmitSuccessModal';
 import { ResponsiveFrame } from './src/components/ResponsiveFrame';
 import { usePetHealthApp } from './src/hooks/usePetHealthApp';
 import { debugLog } from './src/utils/debugLog';
@@ -648,7 +649,6 @@ function AppContent() {
                 onBack={app.closeCreatePetFeedPost}
                 onSubmit={app.submitPetFeedPost}
                 onUpdate={app.updatePetFeedDraft}
-                onBusyChange={app.setAppLoading}
               />
             )}
 
@@ -1006,6 +1006,10 @@ function AppContent() {
       )}
       </Suspense>
       )}
+      <ListingSubmitSuccessModal
+        visible={app.listingSubmitSuccessVisible}
+        onDismiss={app.dismissListingSubmitSuccess}
+      />
       <LoadingOverlay visible={app.loading} />
     </SafeAreaProvider>
   );

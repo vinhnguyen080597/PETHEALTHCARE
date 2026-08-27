@@ -189,6 +189,7 @@ import { postsForBreeder } from '../utils/breederTrust';
 import { canOpenOwnFarmProfile, resolveOwnFarmProfileId } from '../utils/ownFarmProfileNav';
 import { farmChatErrorKey } from '../utils/farmChat';
 import { breedRecognitionErrorMessage } from '../utils/breedRecognitionErrors';
+import type { PetFeedSubmitProgressOptions } from '../utils/petFeedSubmitProgress';
 import {
   inboxPreviewFromMessage,
   messageHasSendableContent,
@@ -503,6 +504,7 @@ export function usePetHealthApp() {
   /** Return target after leaving create-pet-feed-post (Account vs registration form). */
   const [createPetFeedReturnScreen, setCreatePetFeedReturnScreen] = useState<AppScreen>('account');
   const [editingPetFeedPost, setEditingPetFeedPost] = useState<PetFeedPost | null>(null);
+  const [listingSubmitSuccessVisible, setListingSubmitSuccessVisible] = useState(false);
   const [petFeedConversations, setPetFeedConversations] = useState<PetFeedConversation[]>([]);
   const [petFeedConversationsLoading, setPetFeedConversationsLoading] = useState(false);
   const [petFeedConversationsError, setPetFeedConversationsError] = useState('');
@@ -2466,47 +2468,50 @@ export function usePetHealthApp() {
     setScreen(createPetFeedReturnScreen);
   }
 
-  async function submitPetFeedPost(payload: CreatePetFeedPostPayload, media: CreatePetFeedPostMedia) {
+  function dismissListingSubmitSuccess() {
+    setListingSubmitSuccessVisible(false);
+  }
+
+  function showListingSubmitSuccess() {
+    setListingSubmitSuccessVisible(true);
+  }
+
+  async function submitPetFeedPost(
+    payload: CreatePetFeedPostPayload,
+    media: CreatePetFeedPostMedia,
+    options?: PetFeedSubmitProgressOptions,
+  ) {
     if (!token) return;
-    setLoading(true);
-    try {
-      await createPetFeedPost(token, payload, media);
-      await refreshMyPetFeedPosts(token);
-      setEditingPetFeedPost(null);
-      if (payload.status === 'draft') {
-        Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
-      }
-      setScreen(createPetFeedReturnScreen);
-    } finally {
-      setLoading(false);
+    await createPetFeedPost(token, payload, media, options);
+    await refreshMyPetFeedPosts(token);
+    setEditingPetFeedPost(null);
+    if (payload.status === 'draft') {
+      Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
+    } else if (payload.status === 'pending_review') {
+      showListingSubmitSuccess();
+    } else if (payload.status === 'published') {
+      Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.publishSuccess'));
     }
+    setScreen(createPetFeedReturnScreen);
   }
 
   async function updatePetFeedDraft(
     postId: string,
     payload: CreatePetFeedPostPayload,
     media?: CreatePetFeedPostMedia,
+    options?: PetFeedSubmitProgressOptions,
   ) {
     if (!token) return;
-    const wasPublished = editingPetFeedPost?.status === 'published';
-    setLoading(true);
-    try {
-      await updateMyPetFeedDraft(token, postId, payload, media);
-      await refreshMyPetFeedPosts(token);
-      await loadPetFeedFirstPage(token);
-      setEditingPetFeedPost(null);
-      if (payload.status === 'draft') {
-        Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
-      } else if (payload.status === 'pending_review') {
-        Alert.alert(
-          i18n.t('common.ok'),
-          i18n.t(wasPublished ? 'account.breederPosts.editListingSuccess' : 'account.breederPosts.submitDraftSuccess'),
-        );
-      }
-      setScreen(createPetFeedReturnScreen);
-    } finally {
-      setLoading(false);
+    await updateMyPetFeedDraft(token, postId, payload, media, options);
+    await refreshMyPetFeedPosts(token);
+    await loadPetFeedFirstPage(token);
+    setEditingPetFeedPost(null);
+    if (payload.status === 'draft') {
+      Alert.alert(i18n.t('common.ok'), i18n.t('createPetFeedPost.draftSaved'));
+    } else if (payload.status === 'pending_review') {
+      showListingSubmitSuccess();
     }
+    setScreen(createPetFeedReturnScreen);
   }
 
   async function submitPetFeedDraftForReview(post: PetFeedPost) {
@@ -2538,7 +2543,7 @@ export function usePetHealthApp() {
         status: 'pending_review',
       });
       await refreshMyPetFeedPosts(token);
-      Alert.alert(i18n.t('common.ok'), i18n.t('account.breederPosts.submitDraftSuccess'));
+      showListingSubmitSuccess();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('account.breederPosts.submitDraftFailed'), message);
@@ -5011,6 +5016,8 @@ export function usePetHealthApp() {
     submitPetFeedPost,
     updatePetFeedDraft,
     submitPetFeedDraftForReview,
+    listingSubmitSuccessVisible,
+    dismissListingSubmitSuccess,
     editingPetFeedPost,
     submitPetFeedReport,
     mutateListingDeal,

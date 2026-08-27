@@ -24,24 +24,10 @@ export function healthEvidenceUrlsFromMetadata(metadata) {
 }
 
 /**
- * Throws 400 when status is pending_review/published and vaccinated without evidence.
- * Used on create only. Text-only listing edits keep existing photos and cannot
- * attach evidence, so updatePetFeedPost must not call this.
+ * Formerly required vaccine book/stamp photos for vaccinated listings.
+ * Evidence upload was removed from create/edit listing UI; keep the helper
+ * as a no-op so older clients and call sites stay compatible.
  */
-export function assertHealthEvidenceForReview(payload) {
-  const status = String(payload?.status ?? '').trim().toLowerCase();
-  if (status !== 'pending_review' && status !== 'published') return;
-
-  const vaccine = payload?.vaccineStatus ?? payload?.vaccine_status ?? '';
-  if (!vaccineStatusRequiresHealthEvidence(vaccine)) return;
-
-  const urls = healthEvidenceUrlsFromMetadata(payload?.metadata);
-  if (urls.length > 0) return;
-
-  const err = new Error(
-    'Vaccine evidence photo is required when listing claims vaccination. Upload a vaccine book or stamp photo.',
-  );
-  err.status = 400;
-  err.code = 'PET_FEED_HEALTH_EVIDENCE_REQUIRED';
-  throw err;
+export function assertHealthEvidenceForReview(_payload) {
+  return;
 }

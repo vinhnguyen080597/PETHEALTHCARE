@@ -33,15 +33,13 @@ test('assertHealthEvidenceForReview allows drafts without evidence', () => {
   );
 });
 
-test('assertHealthEvidenceForReview rejects pending_review without evidence', () => {
-  assert.throws(
-    () =>
-      assertHealthEvidenceForReview({
-        status: 'pending_review',
-        vaccineStatus: 'Basic vaccines completed',
-        metadata: {},
-      }),
-    (err) => err?.code === 'PET_FEED_HEALTH_EVIDENCE_REQUIRED' && err?.status === 400,
+test('assertHealthEvidenceForReview allows pending_review without evidence', () => {
+  assert.doesNotThrow(() =>
+    assertHealthEvidenceForReview({
+      status: 'pending_review',
+      vaccineStatus: 'Basic vaccines completed',
+      metadata: {},
+    }),
   );
 });
 

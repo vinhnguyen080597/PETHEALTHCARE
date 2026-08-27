@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Alert,
+  ActivityIndicator,
   Image,
   Modal,
   Pressable,
@@ -14,7 +15,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ModalScreenShell } from '../components/ModalScreenShell';
-import { MarketplaceDisclaimerBanner, MarketplaceListingTermsCheckbox } from '../components/MarketplaceLegalNotice';
+import { MarketplaceListingTermsCheckbox } from '../components/MarketplaceLegalNotice';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { ApiRequestError } from '../api';
 import type { CreatePetFeedPostMedia, CreatePetFeedPostPayload, PetFeedPost, UserRole } from '../types';
@@ -39,17 +40,21 @@ import {
   PET_FEED_VIDEO_MAX_DURATION_SECONDS,
   PET_FEED_VIDEO_MAX_BYTES,
 } from '../utils/petFeedMedia';
+import { healthEvidenceUrlsFromMetadata } from '../utils/petFeedHealthEvidence';
 import {
-  healthEvidenceUrlsFromMetadata,
-  vaccineStatusRequiresHealthEvidence,
-} from '../utils/petFeedHealthEvidence';
+  buildPetFeedSubmitProgress,
+  countPetFeedPrepareSteps,
+  countPetFeedUploadAndSaveSteps,
+  isRemotePetFeedMediaUri,
+  type PetFeedSubmitProgress,
+  type PetFeedSubmitProgressOptions,
+} from '../utils/petFeedSubmitProgress';
 import { BRAND } from '../theme/brand';
 
 const PRIMARY = BRAND.btnPrimary;
 const MAX_PHOTOS = 6;
-const MAX_HEALTH_EVIDENCE = 3;
 
-type BasicFieldKey = 'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video' | 'healthEvidence';
+type BasicFieldKey = 'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video';
 
 type Option = {
   value: string;
@@ -58,10 +63,17 @@ type Option = {
 
 type CreatePetFeedPostScreenProps = {
   onBack: () => void;
-  onSubmit: (payload: CreatePetFeedPostPayload, media: CreatePetFeedPostMedia) => Promise<void>;
-  onUpdate?: (postId: string, payload: CreatePetFeedPostPayload, media?: CreatePetFeedPostMedia) => Promise<void>;
-  /** Drives global LoadingOverlay; call before long upload work. Close review modal first so overlay is visible. */
-  onBusyChange?: (busy: boolean) => void;
+  onSubmit: (
+    payload: CreatePetFeedPostPayload,
+    media: CreatePetFeedPostMedia,
+    options?: PetFeedSubmitProgressOptions,
+  ) => Promise<void>;
+  onUpdate?: (
+    postId: string,
+    payload: CreatePetFeedPostPayload,
+    media?: CreatePetFeedPostMedia,
+    options?: PetFeedSubmitProgressOptions,
+  ) => Promise<void>;
   editingPost?: PetFeedPost | null;
   role?: UserRole;
 };
@@ -206,7 +218,6 @@ export function CreatePetFeedPostScreen({
   onBack,
   onSubmit,
   onUpdate,
-  onBusyChange,
   editingPost = null,
   role = 'breeder',
 }: CreatePetFeedPostScreenProps) {
@@ -214,7 +225,6 @@ export function CreatePetFeedPostScreen({
   const isEditingPost = Boolean(editingPost?.id);
   const editingStatus = editingPost?.status;
   const isPublishedListing = editingStatus === 'published';
-  const canSaveDraft = !isEditingPost || editingStatus === 'draft' || editingStatus === 'pending_review';
   const [title, setTitle] = useState(editingPost?.title ?? '');
   const [species, setSpecies] = useState(editingPost?.species || 'cat');
   const [breed, setBreed] = useState('');
@@ -237,9 +247,10 @@ export function CreatePetFeedPostScreen({
   const [videoUri, setVideoUri] = useState(editingPost?.video_url ?? '');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video' | 'healthEvidence', string>>
+    Partial<Record<'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video', string>>
   >({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState<PetFeedSubmitProgress | null>(null);
   const [marketplaceTermsAccepted, setMarketplaceTermsAccepted] = useState(false);
   const isAdmin = role === 'admin';
   const scrollRef = useRef<ScrollView>(null);
@@ -375,27 +386,6 @@ export function CreatePetFeedPostScreen({
     created_at: new Date().toISOString(),
   };
 
-  async function pickHealthEvidence() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(t('alerts.permissionGallery.title'), t('alerts.permissionGallery.message'));
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      selectionLimit: MAX_HEALTH_EVIDENCE,
-      quality: 0.85,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    const newUris: string[] = [];
-    for (const asset of result.assets) {
-      newUris.push(await optimizePetFeedPhotoUri(asset.uri));
-    }
-    setHealthEvidenceUris((current) => [...current, ...newUris].slice(0, MAX_HEALTH_EVIDENCE));
-    clearFieldError('healthEvidence');
-  }
-
   async function pickPhotos() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -483,11 +473,8 @@ export function CreatePetFeedPostScreen({
     }
     if (photoUris.length === 0) nextErrors.photos = t('createPetFeedPost.errors.photoRequired');
     if (!videoUri) nextErrors.video = t('createPetFeedPost.errors.videoRequired');
-    if (vaccineStatusRequiresHealthEvidence(selectedVaccineLabel) && healthEvidenceUris.length === 0) {
-      nextErrors.healthEvidence = t('createPetFeedPost.errors.healthEvidenceRequired');
-    }
     setFieldErrors(nextErrors);
-    const fieldOrder: BasicFieldKey[] = ['title', 'breed', 'gender', 'ageMonths', 'location', 'priceNote', 'photos', 'video', 'healthEvidence'];
+    const fieldOrder: BasicFieldKey[] = ['title', 'breed', 'gender', 'ageMonths', 'location', 'priceNote', 'photos', 'video'];
     for (const key of fieldOrder) {
       if (nextErrors[key]) {
         return { message: nextErrors[key]!, focusKey: key };
@@ -504,16 +491,6 @@ export function CreatePetFeedPostScreen({
     }
     setMarketplaceTermsAccepted(false);
     setReviewOpen(true);
-  }
-
-  /** Draft = private for breeder only; title is enough (media/fields completed later before Gửi duyệt). */
-  function saveDraftFromForm() {
-    if (!title.trim()) {
-      setFieldErrors((current) => ({ ...current, title: t('createPetFeedPost.errors.titleRequired') }));
-      scrollToMissingField('title');
-      return;
-    }
-    void submit('draft');
   }
 
   function clearFieldError(key: keyof typeof fieldErrors) {
@@ -536,14 +513,11 @@ export function CreatePetFeedPostScreen({
     ) {
       return t('createPetFeedPost.errors.mediaTooLarge');
     }
-    if (code === 'PET_FEED_HEALTH_EVIDENCE_REQUIRED') {
-      return t('createPetFeedPost.errors.healthEvidenceRequired');
-    }
     return raw || t('common.unknownError');
   }
 
   function isRemoteMediaUri(uri: string) {
-    return /^https?:\/\//i.test(uri) || uri.startsWith('memory://');
+    return isRemotePetFeedMediaUri(uri);
   }
 
   function editMediaNeedsUpload() {
@@ -628,23 +602,90 @@ export function CreatePetFeedPostScreen({
       return;
     }
 
-    // Close review Modal first — native Modal sits above LoadingOverlay.
+    // Close review modal first so the in-screen progress overlay is visible.
     setReviewOpen(false);
     setSubmitting(true);
-    onBusyChange?.(true);
+    let completedSteps = 0;
+
+    const reportProgress = (
+      phase: PetFeedSubmitProgress['phase'],
+      totalSteps: number,
+      extras?: { current?: number; total?: number },
+    ) => {
+      setSubmitProgress(
+        buildPetFeedSubmitProgress({
+          phase,
+          completedSteps,
+          totalSteps,
+          current: extras?.current,
+          total: extras?.total,
+        }),
+      );
+    };
+
+    const mapUploadProgress = (
+      prepareStepsDone: number,
+      prepareAndUploadTotal: number,
+    ): PetFeedSubmitProgressOptions['onProgress'] => (event) => {
+      completedSteps = prepareStepsDone + event.completedSteps;
+      setSubmitProgress(
+        buildPetFeedSubmitProgress({
+          phase: event.phase,
+          completedSteps,
+          totalSteps: prepareAndUploadTotal,
+          current: event.current,
+          total: event.total,
+        }),
+      );
+    };
+
+    const markSubmitDone = (totalSteps: number) => {
+      completedSteps = totalSteps;
+      setSubmitProgress(
+        buildPetFeedSubmitProgress({
+          phase: 'done',
+          completedSteps: totalSteps,
+          totalSteps,
+        }),
+      );
+    };
+
     try {
       if (isEditingPost && editingPost && onUpdate) {
         const needsMediaUpload = editMediaNeedsUpload();
         let mediaPayload: CreatePetFeedPostMedia | undefined;
         if (needsMediaUpload) {
+          const { preparePhotoCount, prepareThumb } = countPetFeedPrepareSteps(photoUris);
+          const prepareSteps = preparePhotoCount + (prepareThumb ? 1 : 0);
+          const uploadSaveSteps = countPetFeedUploadAndSaveSteps({
+            photoUris: photoUris.map((uri) => (isRemoteMediaUri(uri) ? uri : 'file://local')),
+            videoUri: videoUri && !isRemoteMediaUri(videoUri) ? 'file://local-video' : videoUri,
+            listThumbUri: prepareThumb ? 'file://pending-thumb' : undefined,
+            healthEvidenceUris: (healthEvidenceUris ?? []).map((uri) =>
+              isRemoteMediaUri(uri) ? uri : 'file://local-evidence',
+            ),
+          });
+          const totalSteps = prepareSteps + uploadSaveSteps;
+
           const optimizedPhotos: string[] = [];
+          let preparedLocal = 0;
           for (const uri of photoUris) {
-            optimizedPhotos.push(isRemoteMediaUri(uri) ? uri : await optimizePetFeedPhotoUri(uri));
+            if (isRemoteMediaUri(uri)) {
+              optimizedPhotos.push(uri);
+              continue;
+            }
+            preparedLocal += 1;
+            reportProgress('preparing_photo', totalSteps, { current: preparedLocal, total: preparePhotoCount });
+            optimizedPhotos.push(await optimizePetFeedPhotoUri(uri));
+            completedSteps += 1;
           }
           const localForThumb = optimizedPhotos.find((uri) => !isRemoteMediaUri(uri));
-          const listThumbUri = localForThumb
-            ? await optimizePetFeedListThumbUri(localForThumb)
-            : undefined;
+          let listThumbUri: string | undefined;
+          if (localForThumb) {
+            reportProgress('preparing_thumb', totalSteps);
+            listThumbUri = await optimizePetFeedListThumbUri(localForThumb);
+            completedSteps += 1;
+          }
           const oversized = await findOversizedPetFeedMedia({
             photoUris: optimizedPhotos.filter((uri) => !isRemoteMediaUri(uri)),
             videoUri: videoUri && !isRemoteMediaUri(videoUri) ? videoUri : null,
@@ -670,23 +711,63 @@ export function CreatePetFeedPostScreen({
             listThumbUri,
             healthEvidenceUris,
           };
+          const prepareDone = completedSteps;
+          await onUpdate(
+            editingPost.id,
+            { ...payload, status: nextStatus },
+            mediaPayload,
+            { onProgress: mapUploadProgress(prepareDone, totalSteps) },
+          );
+          markSubmitDone(totalSteps);
+        } else {
+          reportProgress('saving', 1);
+          await onUpdate(
+            editingPost.id,
+            { ...payload, status: nextStatus },
+            undefined,
+            {
+              onProgress: (event) => {
+                setSubmitProgress(
+                  buildPetFeedSubmitProgress({
+                    phase: event.phase,
+                    completedSteps: event.completedSteps,
+                    totalSteps: event.uploadTotalSteps,
+                    current: event.current,
+                    total: event.total,
+                  }),
+                );
+              },
+            },
+          );
+          markSubmitDone(1);
         }
-
-        await onUpdate(
-          editingPost.id,
-          { ...payload, status: nextStatus },
-          mediaPayload,
-        );
         return;
       }
 
+      const createPreparePhotos = photoUris.length;
+      const createPrepareSteps = createPreparePhotos + (photoUris.length > 0 ? 1 : 0);
+      const createUploadSaveSteps = countPetFeedUploadAndSaveSteps({
+        photoUris: photoUris.map(() => 'file://local'),
+        videoUri: videoUri || undefined,
+        listThumbUri: photoUris.length > 0 ? 'file://pending-thumb' : undefined,
+        healthEvidenceUris: (healthEvidenceUris ?? []).map((uri) =>
+          isRemoteMediaUri(uri) ? uri : 'file://local-evidence',
+        ),
+      });
+      const totalSteps = createPrepareSteps + createUploadSaveSteps;
+
       const optimizedPhotos: string[] = [];
-      for (const uri of photoUris) {
-        optimizedPhotos.push(await optimizePetFeedPhotoUri(uri));
+      for (let index = 0; index < photoUris.length; index += 1) {
+        reportProgress('preparing_photo', totalSteps, { current: index + 1, total: createPreparePhotos });
+        optimizedPhotos.push(await optimizePetFeedPhotoUri(photoUris[index]!));
+        completedSteps += 1;
       }
-      const listThumbUri = optimizedPhotos[0]
-        ? await optimizePetFeedListThumbUri(optimizedPhotos[0])
-        : undefined;
+      let listThumbUri: string | undefined;
+      if (optimizedPhotos[0]) {
+        reportProgress('preparing_thumb', totalSteps);
+        listThumbUri = await optimizePetFeedListThumbUri(optimizedPhotos[0]);
+        completedSteps += 1;
+      }
       const oversized = await findOversizedPetFeedMedia({
         photoUris: optimizedPhotos,
         videoUri: videoUri || null,
@@ -706,25 +787,65 @@ export function CreatePetFeedPostScreen({
           }),
         );
       }
-      await onSubmit(payload, {
-        photoUris: optimizedPhotos,
-        videoUri: videoUri || undefined,
-        listThumbUri,
-        healthEvidenceUris,
-      });
+      const prepareDone = completedSteps;
+      await onSubmit(
+        payload,
+        {
+          photoUris: optimizedPhotos,
+          videoUri: videoUri || undefined,
+          listThumbUri,
+          healthEvidenceUris,
+        },
+        { onProgress: mapUploadProgress(prepareDone, totalSteps) },
+      );
+      markSubmitDone(totalSteps);
     } catch (error: unknown) {
       const failTitle = status === 'draft' ? t('createPetFeedPost.draftSaveFailed') : t('createPetFeedPost.submitFailed');
       Alert.alert(failTitle, mediaErrorMessage(error));
     } finally {
       setSubmitting(false);
-      onBusyChange?.(false);
+      setSubmitProgress(null);
+    }
+  }
+
+  function submitProgressLabel(progress: PetFeedSubmitProgress): string {
+    switch (progress.phase) {
+      case 'preparing_photo':
+        return progress.current != null && progress.total != null
+          ? t('createPetFeedPost.submitProgress.preparingPhoto', {
+              current: progress.current,
+              total: progress.total,
+            })
+          : t('createPetFeedPost.submitProgress.preparing');
+      case 'preparing_thumb':
+        return t('createPetFeedPost.submitProgress.preparingThumb');
+      case 'uploading_photo':
+        return progress.current != null && progress.total != null
+          ? t('createPetFeedPost.submitProgress.uploadingPhoto', {
+              current: progress.current,
+              total: progress.total,
+            })
+          : t('createPetFeedPost.submitProgress.uploading');
+      case 'uploading_video':
+        return t('createPetFeedPost.submitProgress.uploadingVideo');
+      case 'uploading_thumb':
+        return t('createPetFeedPost.submitProgress.uploadingThumb');
+      case 'uploading_health_evidence':
+        return t('createPetFeedPost.submitProgress.uploadingEvidence');
+      case 'done':
+        return t('createPetFeedPost.submitProgress.done');
+      case 'saving':
+      default:
+        return isAdmin
+          ? t('createPetFeedPost.submitProgress.publishing')
+          : t('createPetFeedPost.submitProgress.saving');
     }
   }
 
   return (
     <View testID="create-pet-feed-post-screen" className="flex-1 bg-[#F2F4F8]">
       <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
-        <Pressable testID="create-pet-feed-post-back-button" className="w-14 rounded-lg p-2" onPress={onBack}>
+        <Pressable testID="create-pet-feed-post-back-button" className="w-14 rounded-lg p-2" onPress={onBack} disabled={submitting}>
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </Pressable>
         <Text className="flex-1 text-center text-lg font-semibold text-slate-900">
@@ -732,25 +853,40 @@ export function CreatePetFeedPostScreen({
         </Text>
         <View className="w-14" />
       </View>
+      {submitProgress ? (
+        <View
+          testID="create-pet-feed-post-submit-progress"
+          pointerEvents="auto"
+          className="absolute inset-0 z-50 items-center justify-center bg-black/35 px-8"
+        >
+          <View className="w-full max-w-sm rounded-2xl bg-white p-5">
+            <ActivityIndicator size="large" color={PRIMARY} />
+            <Text className="mt-4 text-center text-base font-bold text-slate-900">
+              {submitProgressLabel(submitProgress)}
+            </Text>
+            <Text className="mt-1 text-center text-sm font-semibold text-orange-600">
+              {t('createPetFeedPost.submitProgress.percent', { percent: submitProgress.percent })}
+            </Text>
+            <View className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+              <View
+                className="h-full rounded-full bg-orange-500"
+                style={{ width: `${Math.max(4, submitProgress.percent)}%` }}
+              />
+            </View>
+            <Text className="mt-3 text-center text-xs leading-4 text-slate-500">
+              {t('createPetFeedPost.submitProgress.keepOpen')}
+            </Text>
+          </View>
+        </View>
+      ) : null}
       <ScrollView
         ref={scrollRef}
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <Text className="text-sm leading-5 text-amber-900">
-            {isAdmin
-              ? t('createPetFeedPost.adminReviewNote')
-              : isPublishedListing
-                ? t('createPetFeedPost.publishedEditNote')
-                : t('createPetFeedPost.reviewNote')}
-          </Text>
-        </View>
-        <MarketplaceDisclaimerBanner compact className="mt-3" />
-
         <View
-          className="mt-4 rounded-2xl border border-gray-200 bg-white p-4"
+          className="rounded-2xl border border-gray-200 bg-white p-4"
           onLayout={(event) => {
             basicSectionYRef.current = event.nativeEvent.layout.y;
           }}
@@ -885,8 +1021,6 @@ export function CreatePetFeedPostScreen({
           <Text className="mb-3 text-base font-bold text-slate-900">{t('createPetFeedPost.mediaSection')}</Text>
           {isPublishedListing ? (
             <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.publishedMediaHint')}</Text>
-          ) : isEditingPost && editingStatus === 'draft' ? (
-            <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.draftMediaHint')}</Text>
           ) : (
             <Text className="mb-3 text-sm leading-5 text-slate-500">{t('createPetFeedPost.mediaHint')}</Text>
           )}
@@ -951,43 +1085,7 @@ export function CreatePetFeedPostScreen({
         <View className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="mb-3 text-base font-bold text-slate-900">{t('createPetFeedPost.careInfo')}</Text>
           <ChipMultiSelect label={t('createPetFeedPost.personality')} values={personality} options={personalityOptions} onChange={setPersonality} />
-          <SelectField label={t('createPetFeedPost.vaccineStatus')} value={vaccineStatus} options={vaccineOptions} onChange={(value) => { setVaccineStatus(value); clearFieldError('healthEvidence'); }} />
-          {vaccineStatusRequiresHealthEvidence(selectedVaccineLabel) ? (
-            <View className="mt-3">
-              <Text className="mb-1 text-sm font-semibold text-slate-700">{t('createPetFeedPost.healthEvidence')}</Text>
-              <Text className="mb-2 text-xs leading-4 text-slate-500">{t('createPetFeedPost.healthEvidenceHint')}</Text>
-              <Pressable
-                className={`rounded-xl border px-3 py-3 ${fieldErrors.healthEvidence ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-slate-50'}`}
-                onPress={() => void pickHealthEvidence()}
-              >
-                <Text className={`text-sm font-bold ${fieldErrors.healthEvidence ? 'text-red-600' : 'text-orange-600'}`}>
-                  {healthEvidenceUris.length > 0
-                    ? t('createPetFeedPost.healthEvidenceSelected', { count: healthEvidenceUris.length })
-                    : t('createPetFeedPost.pickHealthEvidence')}
-                </Text>
-              </Pressable>
-              {fieldErrors.healthEvidence ? (
-                <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.healthEvidence}</Text>
-              ) : null}
-              {healthEvidenceUris.length > 0 ? (
-                <ScrollView horizontal className="mt-2" showsHorizontalScrollIndicator={false}>
-                  <View className="flex-row gap-2">
-                    {healthEvidenceUris.map((uri) => (
-                      <View key={uri} className="relative">
-                        <Image source={{ uri }} className="h-16 w-16 rounded-lg bg-slate-200" />
-                        <Pressable
-                          className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full bg-red-600"
-                          onPress={() => setHealthEvidenceUris((current) => current.filter((item) => item !== uri))}
-                        >
-                          <Ionicons name="close" size={12} color="#fff" />
-                        </Pressable>
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              ) : null}
-            </View>
-          ) : null}
+          <SelectField label={t('createPetFeedPost.vaccineStatus')} value={vaccineStatus} options={vaccineOptions} onChange={setVaccineStatus} />
           <SelectField label={t('createPetFeedPost.dewormingStatus')} value={dewormingStatus} options={dewormingOptions} onChange={setDewormingStatus} />
           <ChipMultiSelect label={t('createPetFeedPost.paperwork')} values={paperwork} options={paperworkOptions} onChange={setPaperwork} />
         </View>
@@ -1002,18 +1100,7 @@ export function CreatePetFeedPostScreen({
             value={description}
             onChangeText={setDescription}
           />
-          {!isAdmin && canSaveDraft ? (
-            <Pressable
-              testID="create-pet-feed-post-save-draft-button"
-              className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 py-3 active:bg-orange-100"
-              onPress={saveDraftFromForm}
-              disabled={submitting}
-            >
-              <Ionicons name="document-outline" size={18} color={PRIMARY} />
-              <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('createPetFeedPost.saveDraft')}</Text>
-            </Pressable>
-          ) : null}
-          <Pressable testID="create-pet-feed-post-review-button" className={`${isAdmin || !canSaveDraft ? 'mt-4' : 'mt-3'} flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90`} onPress={openReview} disabled={submitting}>
+          <Pressable testID="create-pet-feed-post-review-button" className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90" onPress={openReview} disabled={submitting}>
             <Ionicons name="eye-outline" size={18} color="#fff" />
             <Text className="text-sm font-bold text-white">{t('createPetFeedPost.review')}</Text>
           </Pressable>
@@ -1037,17 +1124,6 @@ export function CreatePetFeedPostScreen({
             <Pressable className="mb-3 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50" onPress={() => setReviewOpen(false)} disabled={submitting}>
               <Text className="text-center text-sm font-bold text-slate-700">{t('createPetFeedPost.edit')}</Text>
             </Pressable>
-            {!isAdmin && canSaveDraft ? (
-              <Pressable
-                testID="create-pet-feed-post-review-save-draft-button"
-                className="mb-3 flex-row items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 py-3 active:bg-orange-100"
-                onPress={() => void submit('draft')}
-                disabled={submitting}
-              >
-                <Ionicons name="document-outline" size={18} color={PRIMARY} />
-                <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('createPetFeedPost.saveDraft')}</Text>
-              </Pressable>
-            ) : null}
             <Pressable
               testID="create-pet-feed-post-submit-button"
               className={`flex-row items-center justify-center gap-2 rounded-xl py-3 active:opacity-90 ${
