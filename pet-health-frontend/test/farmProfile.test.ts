@@ -102,12 +102,12 @@ test('farmFacilitySocialLinks masks Zalo and keeps https socials', () => {
 
 test('farm profile display helpers', () => {
   assert.equal(farmTabLabelKey('listings'), 'farm.tab.listings');
-  assert.deepEqual(
-    farmWarrantyPoliciesFromMetadata({
-      warranty_policies: [{ id: 'w1', title: '30 ngày' }, { title: '' }],
-    }),
-    [{ id: 'w1', title: '30 ngày' }],
-  );
+  const warranties = farmWarrantyPoliciesFromMetadata({
+    warranty_policies: [{ id: 'w1', title: '30 ngày' }, { title: '' }],
+  });
+  assert.equal(warranties.length, 1);
+  assert.equal(warranties[0].id, 'w1');
+  assert.equal(warranties[0].title, '30 ngày');
   assert.equal(
     resolveFarmCoverUrl({
       id: 'b1',
@@ -239,10 +239,20 @@ test('farm tab i18n EN/VI parity', () => {
   assert.equal(en.farm.trust.gaugeCaption.length > 0, true);
   assert.equal(vi.farm.trust.guideCta, 'Xem chi tiết điểm & hướng dẫn');
   assert.equal(en.farm.trust.guideCta.length > 0, true);
+  assert.equal(vi.farm.trust.guide.ownerOnly, 'Chỉ chủ trại');
+  assert.equal(en.farm.trust.guide.ownerOnly, 'Owner only');
+  assert.equal(vi.farm.trust.guide.earnTitle.length > 0, true);
+  assert.equal(en.farm.trust.guide.earnTitle.length > 0, true);
   assert.equal(vi.farm.trust.scoreLine.includes('{{score}}'), true);
   assert.equal(en.farm.trust.scoreLine.includes('{{score}}'), true);
   assert.equal(vi.farm.trust.responseEmpty.length > 0, true);
   assert.equal(en.farm.trust.responseEmpty.length > 0, true);
+  assert.equal(vi.farm.warranty.createButton, 'Tạo chính sách');
+  assert.equal(en.farm.warranty.createButton, 'Create policy');
+  assert.equal(vi.warranty.viewCta.length > 0, true);
+  assert.equal(en.warranty.library.title.length > 0, true);
+  assert.equal(vi.warranty.field.careParvo.mixed.length > 0, true);
+  assert.equal(en.warranty.evidence.rapid_test_photo.dog.length > 0, true);
 });
 
 test('farmChatErrorKey maps backend codes', () => {

@@ -7,6 +7,7 @@ export type AppScreen =
   | 'pet-feed-detail'
   | 'breeder-detail'
   | 'farm-health'
+  | 'warranty-library'
   | 'breeder-template'
   | 'messages-inbox'
   | 'notifications-inbox'

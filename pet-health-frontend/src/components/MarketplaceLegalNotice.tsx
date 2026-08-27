@@ -112,7 +112,7 @@ export function MarketplaceListingTermsCheckbox({
   return (
     <View
       className={`mb-3 rounded-xl border px-3 py-3 ${
-        checked ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200 bg-white'
+        checked ? 'border-orange-200 bg-orange-50/40' : 'border-slate-200 bg-white'
       } ${disabled ? 'opacity-60' : ''}`}
     >
       <View className="flex-row items-start gap-3">
@@ -138,7 +138,7 @@ export function MarketplaceListingTermsCheckbox({
             components={{
               guidelines: (
                 <Text
-                  className="font-bold text-blue-700 underline"
+                  className="font-bold text-orange-600 underline"
                   onPress={() => void Linking.openURL(APP_LINKS.marketplaceGuidelines)}
                 />
               ),

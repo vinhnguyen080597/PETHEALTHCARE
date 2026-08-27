@@ -18,7 +18,9 @@ import { PetFeedListingCard } from '../components/PetFeedListingCard';
 import { ReportModal } from '../components/ReportModal';
 import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
 import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
+import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
+import { deleteWarrantyPolicy } from '../api';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../assets/farmProfileAssets';
 import { BRAND } from '../theme/brand';
@@ -55,6 +57,7 @@ import {
   farmTransparencyMeaning,
   farmTrustLevelChipLabel,
 } from '../utils/farmTrustDisplay';
+import type { WarrantyPolicy } from '../utils/warrantyPolicy';
 
 const FARM_BG = '#FDFBF7';
 const FARM_BORDER = '#F3E2C8';
@@ -76,8 +79,12 @@ type BreederDetailScreenProps = {
   onOpenCreatePetFeedPost?: () => void;
   onMessageFarm?: (profile: BreederProfile) => void;
   onUploadFarmPhoto?: (kind: FarmPhotoKind, imageUri: string) => Promise<boolean>;
+  onOpenWarrantyLibrary?: (editPolicy?: WarrantyPolicy | null) => void;
+  onBreederProfileUpdated?: (profile: BreederProfile) => void;
   allowTemplateChange?: boolean;
   currentUserId?: string | null;
+  token?: string | null;
+  initialTab?: FarmDetailTab;
 };
 
 const STATUS_ORDER: FarmPetAvailability[] = ['for_sale', 'deposit_hold', 'completed'];
@@ -95,19 +102,25 @@ export function BreederDetailScreen({
   onOpenCreatePetFeedPost,
   onMessageFarm,
   onUploadFarmPhoto,
+  onOpenWarrantyLibrary,
+  onBreederProfileUpdated,
   allowTemplateChange = false,
   currentUserId,
+  token = null,
+  initialTab = 'overview',
 }: BreederDetailScreenProps) {
   const { t, i18n } = useTranslation();
   const isOwnProfile = Boolean(currentUserId && profile.user_id === currentUserId);
   const listingPosts = Array.isArray(posts) ? posts : [];
-  const [activeTab, setActiveTab] = useState<FarmDetailTab>('overview');
+  const [activeTab, setActiveTab] = useState<FarmDetailTab>(initialTab);
   const [petFilter, setPetFilter] = useState<FarmPetAvailabilityFilter>('all');
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
   const [reportNote, setReportNote] = useState('');
-  const [warrantyViewTitle, setWarrantyViewTitle] = useState<string | null>(null);
+  const [viewingWarranty, setViewingWarranty] = useState<WarrantyPolicy | null>(null);
+  const [warrantyMenuId, setWarrantyMenuId] = useState<string | null>(null);
+  const [warrantyBusyId, setWarrantyBusyId] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState<FarmPhotoKind | null>(null);
 
   const coverUrl = resolveFarmCoverUrl(profile);
@@ -146,6 +159,34 @@ export function BreederDetailScreen({
     Alert.alert(t('breederDetail.blockTitle'), t('breederDetail.blockBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('breederDetail.blockConfirm'), style: 'destructive', onPress: () => onHideBreeder(profile) },
+    ]);
+  }
+
+  function confirmDeleteWarranty(policy: WarrantyPolicy) {
+    if (!token) return;
+    Alert.alert(t('farm.warranty.delete'), t('farm.warranty.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('farm.warranty.delete'),
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            setWarrantyMenuId(null);
+            setWarrantyBusyId(policy.id);
+            try {
+              const result = await deleteWarrantyPolicy(token, policy.id);
+              onBreederProfileUpdated?.(result.data);
+            } catch (error) {
+              Alert.alert(
+                t('common.error'),
+                error instanceof Error ? error.message : t('farm.warranty.deleteFailed'),
+              );
+            } finally {
+              setWarrantyBusyId(null);
+            }
+          })();
+        },
+      },
     ]);
   }
 
@@ -664,13 +705,29 @@ export function BreederDetailScreen({
         {activeTab === 'warranty' ? (
           <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
             <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16, gap: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: FARM_TEXT }}>{t('farm.warranty.title')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: FARM_TEXT }}>{t('farm.warranty.title')}</Text>
+                {isOwnProfile ? (
+                  <Pressable
+                    testID="farm-warranty-create-button"
+                    accessibilityRole="button"
+                    onPress={() => onOpenWarrantyLibrary?.(null)}
+                    style={{
+                      borderRadius: 999,
+                      backgroundColor: FARM_ACCENT,
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{t('farm.warranty.createButton')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
               <Text style={{ fontSize: 12, color: FARM_MUTED, lineHeight: 18 }}>{t('farm.warranty.note')}</Text>
               {warranties.length > 0 ? (
                 warranties.map((policy) => (
-                  <Pressable
+                  <View
                     key={policy.id}
-                    onPress={() => setWarrantyViewTitle(policy.title)}
                     style={{
                       borderRadius: 12,
                       borderWidth: 1,
@@ -679,17 +736,92 @@ export function BreederDetailScreen({
                       paddingVertical: 12,
                     }}
                   >
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: FARM_TEXT }} numberOfLines={1}>
-                      🛡️ {policy.title}
-                    </Text>
-                    <Text style={{ marginTop: 4, fontSize: 12, fontWeight: '600', color: FARM_ACCENT }}>
-                      {t('farm.warranty.viewCta')}
-                    </Text>
-                  </Pressable>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                      <Pressable
+                        style={{ flex: 1, minWidth: 0 }}
+                        onPress={() => {
+                          setWarrantyMenuId(null);
+                          setViewingWarranty(policy);
+                        }}
+                      >
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: FARM_TEXT }} numberOfLines={1}>
+                          🛡️ {policy.title}
+                        </Text>
+                        <Text style={{ marginTop: 4, fontSize: 12, fontWeight: '600', color: FARM_ACCENT }}>
+                          {t('warranty.viewCta')}
+                        </Text>
+                      </Pressable>
+                      {isOwnProfile ? (
+                        <View style={{ position: 'relative' }}>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t('farm.warranty.menu')}
+                            disabled={warrantyBusyId === policy.id}
+                            onPress={() =>
+                              setWarrantyMenuId((cur) => (cur === policy.id ? null : policy.id))
+                            }
+                            style={{
+                              height: 32,
+                              width: 32,
+                              borderRadius: 16,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: warrantyBusyId === policy.id ? 0.5 : 1,
+                            }}
+                          >
+                            <Text style={{ fontSize: 18, color: FARM_MUTED, fontWeight: '700' }}>⋮</Text>
+                          </Pressable>
+                          {warrantyMenuId === policy.id ? (
+                            <View
+                              style={{
+                                position: 'absolute',
+                                right: 0,
+                                top: 36,
+                                zIndex: 20,
+                                minWidth: 140,
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: FARM_BORDER,
+                                backgroundColor: '#fff',
+                                paddingVertical: 4,
+                                elevation: 4,
+                                shadowColor: '#000',
+                                shadowOpacity: 0.12,
+                                shadowRadius: 8,
+                                shadowOffset: { width: 0, height: 4 },
+                              }}
+                            >
+                              <Pressable
+                                onPress={() => {
+                                  setWarrantyMenuId(null);
+                                  onOpenWarrantyLibrary?.(policy);
+                                }}
+                                style={{ paddingHorizontal: 12, paddingVertical: 10 }}
+                              >
+                                <Text style={{ fontSize: 14, color: FARM_TEXT }}>{t('farm.warranty.update')}</Text>
+                              </Pressable>
+                              <Pressable
+                                onPress={() => confirmDeleteWarranty(policy)}
+                                style={{ paddingHorizontal: 12, paddingVertical: 10 }}
+                              >
+                                <Text style={{ fontSize: 14, color: '#DC2626' }}>{t('farm.warranty.delete')}</Text>
+                              </Pressable>
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
                 ))
+              ) : isOwnProfile ? (
+                <Pressable onPress={() => onOpenWarrantyLibrary?.(null)}>
+                  <Text style={{ fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
+                    {t('farm.warranty.createCta')}
+                  </Text>
+                </Pressable>
               ) : (
                 <Text style={{ fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
-                  {isOwnProfile ? t('farm.warranty.createCta') : t('farm.warranty.fallback')}
+                  {t('farm.warranty.fallback')}
                 </Text>
               )}
             </View>
@@ -794,25 +926,12 @@ export function BreederDetailScreen({
         </Pressable>
       </Modal>
 
-      <Modal visible={Boolean(warrantyViewTitle)} transparent animationType="fade" onRequestClose={() => setWarrantyViewTitle(null)}>
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 }} onPress={() => setWarrantyViewTitle(null)}>
-          <Pressable
-            style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: FARM_BORDER }}
-            onPress={() => {}}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '800', color: FARM_TEXT }}>🛡️ {warrantyViewTitle}</Text>
-            <Text style={{ marginTop: 10, fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
-              {t('farm.warranty.note')}
-            </Text>
-            <Pressable
-              onPress={() => setWarrantyViewTitle(null)}
-              style={{ marginTop: 16, borderRadius: 12, backgroundColor: FARM_ACCENT, paddingVertical: 11, alignItems: 'center' }}
-            >
-              <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.cancel')}</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <WarrantyPolicyViewer
+        visible={Boolean(viewingWarranty)}
+        policy={viewingWarranty}
+        primarySpecies={profile.primary_species}
+        onClose={() => setViewingWarranty(null)}
+      />
 
       <ReportModal
         visible={reportVisible}

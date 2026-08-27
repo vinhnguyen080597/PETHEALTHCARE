@@ -1,12 +1,11 @@
 import type { BreederProfile } from '../types';
+import { mapWarrantyPolicies, type WarrantyPolicy } from './warrantyPolicy.ts';
 
 export const FARM_DETAIL_TABS = ['overview', 'listings', 'warranty'] as const;
 export type FarmDetailTab = (typeof FARM_DETAIL_TABS)[number];
 
-export type FarmWarrantyPolicySummary = {
-  id: string;
-  title: string;
-};
+/** @deprecated Prefer WarrantyPolicy from warrantyPolicy.ts */
+export type FarmWarrantyPolicySummary = Pick<WarrantyPolicy, 'id' | 'title'>;
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -58,23 +57,14 @@ export function farmTabLabelKey(tab: FarmDetailTab): string {
   return `farm.tab.${tab}`;
 }
 
-/** Parse warranty policies from breeder metadata (web-aligned). */
 export function farmWarrantyPoliciesFromMetadata(
   meta: Record<string, unknown> | null | undefined,
-): FarmWarrantyPolicySummary[] {
+): WarrantyPolicy[] {
   const record = asRecord(meta);
   const raw = Array.isArray(record.warranty_policies)
     ? record.warranty_policies
     : Array.isArray(record.warrantyPolicies)
       ? record.warrantyPolicies
       : [];
-  const out: FarmWarrantyPolicySummary[] = [];
-  raw.forEach((item, index) => {
-    const row = asRecord(item);
-    const title = String(row.title ?? '').trim();
-    if (!title) return;
-    const id = String(row.id ?? `policy-${index}`).trim() || `policy-${index}`;
-    out.push({ id, title });
-  });
-  return out;
+  return mapWarrantyPolicies(raw);
 }

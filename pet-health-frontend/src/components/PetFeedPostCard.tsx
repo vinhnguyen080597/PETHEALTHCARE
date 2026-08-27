@@ -15,8 +15,9 @@ import {
 import { ReportModal } from './ReportModal';
 import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
 import { PetFeedListingCard } from './PetFeedListingCard';
+import { BRAND } from '../theme/brand';
 
-const PRIMARY = '#1E6FE8';
+const PRIMARY = BRAND.btnPrimary;
 
 type PetFeedMediaItem =
   | { type: 'image'; uri: string }
@@ -105,7 +106,7 @@ function ContactButton({
         accessibilityRole="button"
         accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: post.title })}
         accessibilityState={{ disabled: !onMessageBreeder }}
-        className={`flex-row items-center justify-center gap-2 rounded-xl py-3 ${onMessageBreeder ? 'bg-blue-600 active:opacity-90' : 'bg-slate-200'}`}
+        className={`flex-row items-center justify-center gap-2 rounded-xl py-3 ${onMessageBreeder ? 'bg-orange-500 active:opacity-90' : 'bg-slate-200'}`}
         disabled={!onMessageBreeder}
         onPress={() => onMessageBreeder?.(post)}
       >
@@ -434,7 +435,7 @@ function PetFeedPostCardComponent({
                     : t('petFeed.accessibility.openListingPhoto', { index: index + 1 })}
                   accessibilityState={{ selected: active }}
                   className={`h-12 w-16 overflow-hidden rounded-xl border ${
-                    active ? 'border-blue-600' : 'border-gray-200'
+                    active ? 'border-orange-500' : 'border-gray-200'
                   }`}
                   onPress={(event) => {
                     event.stopPropagation();
@@ -449,7 +450,7 @@ function PetFeedPostCardComponent({
                       transition={120}
                     />
                   ) : (
-                    <View className="h-full w-full items-center justify-center bg-blue-50">
+                    <View className="h-full w-full items-center justify-center bg-orange-50">
                       <Ionicons name="paw-outline" size={18} color={PRIMARY} />
                     </View>
                   )}
@@ -518,7 +519,7 @@ function PetFeedPostCardComponent({
                 testID={`pet-feed-edit-button-${post.id}`}
                 accessibilityRole="button"
                 accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
-                className="min-w-[160px] flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+                className="min-w-[160px] flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90"
                 onPress={() => onEditPost?.(post)}
               >
                 <Ionicons name="create-outline" size={17} color="#fff" />

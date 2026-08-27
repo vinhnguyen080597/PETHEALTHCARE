@@ -11,7 +11,9 @@
     "no": "Không",
     "confidence": "{{pct}}% mức tự tin AI ước lượng",
     "unknownError": "Lỗi không xác định",
-    "somethingWentWrong": "Đã xảy ra lỗi"
+    "somethingWentWrong": "Đã xảy ra lỗi",
+    "error": "Lỗi",
+    "loading": "Đang tải…"
   },
   "language": {
     "english": "English",
@@ -573,7 +575,13 @@
       "note": "Mỗi bé đang bán gắn một chính sách bảo hành rõ ràng — xem đủ điều khoản trước khi liên hệ.",
       "fallback": "Hãy hỏi breeder về cam kết sức khỏe và điều khoản đổi trả trước khi thỏa thuận ngoài sàn.",
       "createCta": "Tạo chính sách bảo hành đầu tiên (+10 điểm minh bạch)",
-      "viewCta": "Xem chính sách"
+      "viewCta": "Xem chính sách bảo hành",
+      "createButton": "Tạo chính sách",
+      "menu": "Thêm thao tác",
+      "update": "Cập nhật",
+      "delete": "Xóa",
+      "deleteConfirm": "Xóa chính sách bảo hành này?",
+      "deleteFailed": "Không xóa được chính sách."
     },
     "reviews": {
       "empty": "Chưa có đánh giá từ khách"
@@ -590,7 +598,31 @@
       "scoreSubtitle": "Điểm minh bạch phản ánh hồ sơ đã duyệt, tài liệu xác minh và giao dịch thực tế.",
       "scoreLine": "Điểm minh bạch: {{score}}/100",
       "gaugeCaption": "Điểm minh bạch",
+      "breakdownTitle": "Danh mục điểm minh bạch",
       "guideCta": "Xem chi tiết điểm & hướng dẫn",
+      "guide": {
+        "title": "Chi tiết điểm minh bạch trại của bạn",
+        "intro": "Hiểu vì sao bạn đang có mức điểm này, cần làm gì để tăng điểm, tránh bị trừ điểm, và điểm ảnh hưởng hồ sơ trại như thế nào.",
+        "ownerOnly": "Chỉ chủ trại",
+        "back": "Quay lại hồ sơ trại",
+        "breakdownHint": "Phân bổ điểm theo tín hiệu hồ sơ hiện tại. Mục chưa đạt hiện ○.",
+        "confirmedViolations": "Vi phạm đã xác nhận",
+        "earnTitle": "Cách tăng điểm",
+        "earnIntro": "Hoàn thành nhiệm vụ minh bạch hồ sơ và duy trì hoạt động tốt với khách để tăng điểm.",
+        "earnAction": "Cập nhật để nhận điểm",
+        "earnUpdate": "Cập nhật",
+        "earnPending": "Chờ duyệt",
+        "earnRejected": "Từ chối",
+        "earnAlreadyPending": "Đang chờ duyệt — không gửi lại.",
+        "earnVideoFallback": "Không phát được video này.",
+        "earnOpenProfile": "Mở hồ sơ trại",
+        "earnOpenWarranty": "Mở chính sách bảo hành",
+        "rulesTitle": "Nội quy — tránh bị trừ điểm",
+        "rulesIntro": "Chỉ trừ điểm khi báo cáo từ người dùng được Admin xác nhận là đúng.",
+        "impactTitle": "Điểm ảnh hưởng đến bạn như thế nào",
+        "tiersTitle": "Các danh hiệu minh bạch",
+        "scoreSnapshot": "Điểm hiện tại: {{score}}/100 · Hồ sơ {{profile}} · Hoạt động {{activity}} · Phạt −{{penalty}}"
+      },
       "ratingEmpty": "Chưa có đánh giá",
       "response": "Tốc độ trả lời: < {{minutes}} phút",
       "responseEmpty": "Tốc độ trả lời: chưa đủ dữ liệu",
@@ -822,6 +854,29 @@
       "verified": "Hồ sơ Breeder đã được xác minh.",
       "rejected": "Yêu cầu Breeder chưa được duyệt. Bạn có thể bổ sung thông tin và gửi lại.",
       "suspended": "Quyền Breeder đang bị tạm khóa."
+    },
+    "breederDetails": {
+      "facilityHint": "Clip ngắn quay cơ sở/trại (MP4/MOV, tối đa 50MB).",
+      "licenseHint": "Ảnh giấy phép kinh doanh (tối đa 10MB).",
+      "submit": "Gửi duyệt",
+      "chooseFile": "Chọn file để tải lên",
+      "uploading": "Đang tải lên…",
+      "submitting": "Đang gửi duyệt…",
+      "submitSuccess": "Đã gửi — chờ admin duyệt.",
+      "status": {
+        "pending": "Chờ duyệt",
+        "approved": "Đã duyệt",
+        "rejected": "Từ chối",
+        "cancelled": "Đã hủy"
+      },
+      "socialError": {
+        "required": "Vui lòng nhập thông tin.",
+        "https": "Link phải bắt đầu bằng http:// hoặc https://.",
+        "facebook": "Dùng URL trang/hồ sơ Facebook (facebook.com/yourpage).",
+        "zalo": "Nhập số điện thoại Zalo 10 số (090xxxxxxx).",
+        "tiktok": "Dùng URL hồ sơ TikTok (tiktok.com/@username).",
+        "instagram": "Dùng URL hồ sơ Instagram (instagram.com/username)."
+      }
     },
     "roles": {
       "sen": {
@@ -1592,13 +1647,34 @@
         "hint": "Thân hoặc sườn đủ gần để thấy màu, vân và texture lông.",
         "guide": "Chụp gần phần thân hoặc sườn để thấy rõ màu lông, vân, sọc hoặc đốm. Dùng ánh sáng tự nhiên hoặc đủ sáng; tránh bóng đổ che mất chi tiết lông."
       },
-      "eyes": { "title": "Mắt", "hint": "Cận cảnh: màu mống mắt, hình dạng, khoảng cách và độ rõ." },
-      "headProfile": { "title": "Đầu nhìn nghiêng", "hint": "Góc nghiêng của sống mũi, trán, mõm và profile đầu." },
-      "pawPads": { "title": "Đệm / bàn chân", "hint": "Lòng bàn chân hoặc ngón nếu chụp được; hữu ích với một số đặc điểm mèo." },
-      "tail": { "title": "Đuôi", "hint": "Thấy độ dài, dáng đuôi, độ xù và lông đuôi." },
-      "frontFullBody": { "title": "Toàn thân chính diện", "hint": "Chó đứng chính diện; thấy chân, ngực, mặt và tai." },
-      "ears": { "title": "Tai", "hint": "Cận cảnh vị trí, hình dạng, kích thước và dáng tai." },
-      "parentPedigree": { "title": "Phả / bố mẹ (nếu có)", "hint": "Sổ phả hoặc ảnh bố mẹ — không bắt buộc." }
+      "eyes": {
+        "title": "Mắt",
+        "hint": "Cận cảnh: màu mống mắt, hình dạng, khoảng cách và độ rõ."
+      },
+      "headProfile": {
+        "title": "Đầu nhìn nghiêng",
+        "hint": "Góc nghiêng của sống mũi, trán, mõm và profile đầu."
+      },
+      "pawPads": {
+        "title": "Đệm / bàn chân",
+        "hint": "Lòng bàn chân hoặc ngón nếu chụp được; hữu ích với một số đặc điểm mèo."
+      },
+      "tail": {
+        "title": "Đuôi",
+        "hint": "Thấy độ dài, dáng đuôi, độ xù và lông đuôi."
+      },
+      "frontFullBody": {
+        "title": "Toàn thân chính diện",
+        "hint": "Chó đứng chính diện; thấy chân, ngực, mặt và tai."
+      },
+      "ears": {
+        "title": "Tai",
+        "hint": "Cận cảnh vị trí, hình dạng, kích thước và dáng tai."
+      },
+      "parentPedigree": {
+        "title": "Phả / bố mẹ (nếu có)",
+        "hint": "Sổ phả hoặc ảnh bố mẹ — không bắt buộc."
+      }
     }
   },
   "breedRecognitionProgress": {
@@ -2387,5 +2463,119 @@
     "appeal": "Kháng cáo",
     "confirmed": "Tài khoản của bạn đã bị tạm khóa.",
     "appealed": "Đã gửi kháng cáo. Tài khoản vẫn hoạt động trong lúc admin xem xét."
+  },
+  "warranty": {
+    "viewCta": "Xem chính sách bảo hành",
+    "close": "Đóng",
+    "library": {
+      "title": "Thư viện chính sách bảo hành",
+      "subtitle": "Điền form nhanh (6 trụ cột). Gắn một chính sách cho mỗi bài đăng bằng dropdown.",
+      "trustHint": "Tạo chính sách đầu tiên để nhận +10 điểm minh bạch (một lần).",
+      "trustAwarded": "+10 điểm minh bạch cho chính sách đầu tiên.",
+      "created": "Đã tạo chính sách.",
+      "edit": "Sửa chính sách",
+      "name": "Tên chính sách",
+      "save": "Lưu chính sách",
+      "update": "Cập nhật chính sách",
+      "updated": "Đã cập nhật chính sách.",
+      "formRequired": "Vui lòng nhập tên chính sách."
+    },
+    "pillar": {
+      "handover": "Điều kiện bàn giao ban đầu",
+      "coverage": "Danh mục bệnh & thời hạn",
+      "buyer": "Trách nhiệm của Sen",
+      "exclusions": "Từ chối bảo hành",
+      "remedies": "Phương án xử lý & bồi thường",
+      "claim": "Quy trình & bằng chứng"
+    },
+    "field": {
+      "vaccineShots": "Số mũi vắc-xin đã tiêm",
+      "vaccineTypes": "Loại vắc-xin",
+      "deworming": "Lần tẩy giun gần nhất",
+      "healthBook": "Có sổ sức khỏe thú y kèm theo",
+      "careParvo": {
+        "mixed": "Các bệnh truyền nhiễm nguy hiểm (có trong vaccine)",
+        "dog": "Các bệnh truyền nhiễm nguy hiểm (có trong vaccine)",
+        "cat": "Các bệnh truyền nhiễm nguy hiểm (có trong vaccine)"
+      },
+      "respiratory": {
+        "mixed": "Bệnh hô hấp / da / ký sinh trùng",
+        "dog": "Bệnh hô hấp / da / ký sinh trùng",
+        "cat": "Hô hấp trên (URI) / da / ký sinh trùng"
+      },
+      "congenital": "Dị tật bẩm sinh / di truyền",
+      "reportHours": "Thời gian báo bệnh",
+      "vet": "Nơi khám chữa trị",
+      "guidelines": "Quy tắc chăm sóc ban đầu",
+      "medicalFee": "Hỗ trợ viện phí",
+      "swap": "Cho phép đổi bé tương đương nếu tử vong trong bảo hành",
+      "shipping": "Ai chịu phí vận chuyển khi khiếu nại/đổi",
+      "evidence": "Bằng chứng bắt buộc",
+      "responseHours": "Thời hạn Breeder phản hồi"
+    },
+    "vaccine": {
+      "placeholder": {
+        "dog": "VD: 5 trong 1 (DHPPL)",
+        "cat": "VD: 3 trong 1 (FVRCP)",
+        "mixed": "VD: 5 trong 1 hoặc 3 trong 1 (FVRCP)"
+      },
+      "preset": {
+        "dog_5in1": "5 trong 1 (DHPPL)",
+        "dog_7in1": "7 trong 1",
+        "dog_rabies": "Dại",
+        "cat_3in1": "3 trong 1 (FVRCP)",
+        "cat_4in1": "4 trong 1",
+        "cat_rabies": "Dại",
+        "cat_felv": "FeLV"
+      }
+    },
+    "value": {
+      "yes": "Có",
+      "no": "Không",
+      "shots": "{n} mũi",
+      "days": "{n} ngày",
+      "hours": "{n} giờ"
+    },
+    "viewer": {
+      "healthTitle": "Chính sách bảo hành sức khỏe",
+      "summaryCareParvo": {
+        "mixed": "Truyền nhiễm (vaccine): {n} ngày",
+        "dog": "Truyền nhiễm (vaccine): {n} ngày",
+        "cat": "Truyền nhiễm (vaccine): {n} ngày"
+      },
+      "summaryMedicalFee": "Hỗ trợ {n}% viện phí"
+    },
+    "vet": {
+      "licensed": "Phòng khám / bệnh viện thú y hợp pháp",
+      "farm_designated": "Theo chỉ định của Trại",
+      "either": "Hợp pháp hoặc theo chỉ định Trại"
+    },
+    "shipping": {
+      "buyer": "Sen chịu",
+      "breeder": "Breeder chịu",
+      "split": "Chia đôi"
+    },
+    "guideline": {
+      "keep_farm_diet_3_5_days": "Giữ chế độ ăn của Trại 3–5 ngày đầu",
+      "no_bath_7_days": "Không tắm trong 7 ngày đầu",
+      "no_contact_unvaccinated_pets": "Không tiếp xúc thú chưa tiêm phòng",
+      "follow_vaccine_booster_schedule": "Tiêm nhắc đúng lịch đã dặn"
+    },
+    "exclusion": {
+      "accident_trauma": "Tai nạn, va đập, rơi ngã",
+      "poisoning_wrong_food": "Ngộ độc do thức ăn lạ/độc hại",
+      "self_treatment_no_notice": "Tự ý điều trị / khám nơi khác không báo",
+      "missed_booster_vaccine": "Bỏ mũi vắc-xin nhắc",
+      "other_animal_attack": "Bị động vật khác cắn"
+    },
+    "evidence": {
+      "symptom_video": "Video quay rõ triệu chứng",
+      "rapid_test_photo": {
+        "mixed": "Ảnh que test nhanh có ngày giờ (Parvo/Care/FIP)",
+        "dog": "Ảnh que test nhanh có ngày giờ (Parvo/Care)",
+        "cat": "Ảnh que test nhanh có ngày giờ (Panleukopenia / FIP)"
+      },
+      "vet_diagnosis_or_pcr": "Chẩn đoán / PCR từ thú y"
+    }
   }
 }

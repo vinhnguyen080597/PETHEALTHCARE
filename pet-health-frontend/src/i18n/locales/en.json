@@ -11,7 +11,9 @@
     "no": "No",
     "confidence": "{{pct}}% estimated AI confidence",
     "unknownError": "Unknown error",
-    "somethingWentWrong": "Something went wrong"
+    "somethingWentWrong": "Something went wrong",
+    "error": "Error",
+    "loading": "Loading…"
   },
   "language": {
     "english": "English",
@@ -381,8 +383,8 @@
     "deleteBlockedSoldCooldown": "Completed listings can be deleted 7 days after completion. {{days}} day(s) remaining.",
     "shareTitle": "Share listing",
     "shareFallbackTitle": "Pet Feed listing",
-      "shareCopied": "Link copied. Recipients with the app can open the listing; others are guided to the store.",
-      "shareFailed": "Could not share this listing",
+    "shareCopied": "Link copied. Recipients with the app can open the listing; others are guided to the store.",
+    "shareFailed": "Could not share this listing",
     "reportListing": "Report listing",
     "reportBody": "Tell admin what looks unsafe, misleading, or abusive about this listing.",
     "reportNotePlaceholder": "Optional note for admin",
@@ -573,7 +575,13 @@
       "note": "Each pet for sale should have a clear warranty — review the terms before contacting.",
       "fallback": "Ask the breeder about health commitments and return terms before agreeing off-platform.",
       "createCta": "Create your first warranty policy (+10 transparency)",
-      "viewCta": "View policy"
+      "viewCta": "Review warranty policy",
+      "createButton": "Create policy",
+      "menu": "More actions",
+      "update": "Update",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this warranty policy?",
+      "deleteFailed": "Could not delete the policy."
     },
     "reviews": {
       "empty": "No buyer reviews yet"
@@ -590,7 +598,31 @@
       "scoreSubtitle": "Transparency reflects approved profile details, verification documents, and real transactions.",
       "scoreLine": "Transparency score: {{score}}/100",
       "gaugeCaption": "Transparency score",
+      "breakdownTitle": "Transparency breakdown",
       "guideCta": "View score details & guide",
+      "guide": {
+        "title": "Transparency score details for your kennel",
+        "intro": "See why you have this score, how to improve it, what causes penalties, and how the score affects your farm.",
+        "ownerOnly": "Owner only",
+        "back": "Back to farm profile",
+        "breakdownHint": "Live breakdown from your current profile signals. Incomplete items show ○.",
+        "confirmedViolations": "Confirmed violations",
+        "earnTitle": "How to earn points",
+        "earnIntro": "Complete transparency missions and keep healthy buyer activity to raise your score.",
+        "earnAction": "Update to earn points",
+        "earnUpdate": "Update",
+        "earnPending": "Pending",
+        "earnRejected": "Rejected",
+        "earnAlreadyPending": "Already pending — don't send again.",
+        "earnVideoFallback": "This video cannot be played.",
+        "earnOpenProfile": "Open breeder profile",
+        "earnOpenWarranty": "Open warranty policy",
+        "rulesTitle": "Rules — avoid losing points",
+        "rulesIntro": "Penalties apply only after a buyer report is confirmed by Admin.",
+        "impactTitle": "How your score affects you",
+        "tiersTitle": "Transparency titles",
+        "scoreSnapshot": "Current: {{score}}/100 · Profile {{profile}} · Activity {{activity}} · Penalties −{{penalty}}"
+      },
       "ratingEmpty": "No ratings yet",
       "response": "Response time: < {{minutes}} min",
       "responseEmpty": "Response time: not enough data yet",
@@ -822,6 +854,29 @@
       "verified": "Breeder profile is verified.",
       "rejected": "Breeder request was rejected. You can update your information and submit again.",
       "suspended": "Breeder access is suspended."
+    },
+    "breederDetails": {
+      "facilityHint": "Short facility/kennel clip (MP4/MOV, max 50MB).",
+      "licenseHint": "Business license photo (max 10MB).",
+      "submit": "Submit for review",
+      "chooseFile": "Choose a file to upload",
+      "uploading": "Uploading…",
+      "submitting": "Submitting…",
+      "submitSuccess": "Submitted — waiting for admin review.",
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled"
+      },
+      "socialError": {
+        "required": "Please enter the required info.",
+        "https": "Link must start with http:// or https://.",
+        "facebook": "Use a Facebook profile or page URL (facebook.com/yourpage).",
+        "zalo": "Enter a 10-digit Zalo phone number (090xxxxxxx).",
+        "tiktok": "Use a TikTok profile URL (tiktok.com/@username).",
+        "instagram": "Use an Instagram profile URL (instagram.com/username)."
+      }
     },
     "roles": {
       "sen": {
@@ -1595,13 +1650,34 @@
         "hint": "Body/side close enough to show color, markings, and texture.",
         "guide": "Move closer to the body or flank so coat color, stripes, spots, or patterns are clear. Use natural light or enough brightness; avoid shadows hiding fur detail."
       },
-      "eyes": { "title": "Eyes", "hint": "Close-up: iris color, shape, set, and clarity." },
-      "headProfile": { "title": "Head side profile", "hint": "Side view of nose bridge, forehead, muzzle, and stop/profile." },
-      "pawPads": { "title": "Paw pads / toes", "hint": "Underside of paws or toes if possible; useful for some cat traits." },
-      "tail": { "title": "Tail", "hint": "Show length, carriage, shape, and tail coat." },
-      "frontFullBody": { "title": "Full front body", "hint": "Dog standing from the front; include legs, chest, face, and ears." },
-      "ears": { "title": "Ears", "hint": "Close view of ear set, shape, size, and carriage." },
-      "parentPedigree": { "title": "Pedigree / parents (optional)", "hint": "Pedigree book or parents — optional." }
+      "eyes": {
+        "title": "Eyes",
+        "hint": "Close-up: iris color, shape, set, and clarity."
+      },
+      "headProfile": {
+        "title": "Head side profile",
+        "hint": "Side view of nose bridge, forehead, muzzle, and stop/profile."
+      },
+      "pawPads": {
+        "title": "Paw pads / toes",
+        "hint": "Underside of paws or toes if possible; useful for some cat traits."
+      },
+      "tail": {
+        "title": "Tail",
+        "hint": "Show length, carriage, shape, and tail coat."
+      },
+      "frontFullBody": {
+        "title": "Full front body",
+        "hint": "Dog standing from the front; include legs, chest, face, and ears."
+      },
+      "ears": {
+        "title": "Ears",
+        "hint": "Close view of ear set, shape, size, and carriage."
+      },
+      "parentPedigree": {
+        "title": "Pedigree / parents (optional)",
+        "hint": "Pedigree book or parents — optional."
+      }
     }
   },
   "breedRecognitionProgress": {
@@ -2390,5 +2466,119 @@
     "appeal": "Appeal",
     "confirmed": "Your account has been suspended.",
     "appealed": "Appeal sent. Your account stays active while admin reviews."
+  },
+  "warranty": {
+    "viewCta": "Review warranty policy",
+    "close": "Close",
+    "library": {
+      "title": "Warranty policy library",
+      "subtitle": "Fill a quick form (6 pillars). Attach one policy to each listing from the dropdown.",
+      "trustHint": "Create your first policy to earn +10 transparency points (one-time).",
+      "trustAwarded": "+10 transparency points awarded for your first policy.",
+      "created": "Policy created.",
+      "edit": "Edit policy",
+      "name": "Policy name",
+      "save": "Save policy",
+      "update": "Update policy",
+      "updated": "Policy updated.",
+      "formRequired": "Please enter a policy name."
+    },
+    "pillar": {
+      "handover": "Handover conditions",
+      "coverage": "Coverage & duration",
+      "buyer": "Buyer responsibilities",
+      "exclusions": "Exclusions",
+      "remedies": "Remedies & compensation",
+      "claim": "Claim & evidence process"
+    },
+    "field": {
+      "vaccineShots": "Vaccine shots given",
+      "vaccineTypes": "Vaccine type",
+      "deworming": "Latest deworming",
+      "healthBook": "Includes vet health booklet",
+      "careParvo": {
+        "mixed": "Serious infectious diseases (covered by vaccines)",
+        "dog": "Serious infectious diseases (covered by vaccines)",
+        "cat": "Serious infectious diseases (covered by vaccines)"
+      },
+      "respiratory": {
+        "mixed": "Respiratory / skin / parasites",
+        "dog": "Respiratory / skin / parasites",
+        "cat": "Upper respiratory (URI) / skin / parasites"
+      },
+      "congenital": "Congenital / genetic",
+      "reportHours": "Must report within",
+      "vet": "Approved vet visit",
+      "guidelines": "Initial care rules",
+      "medicalFee": "Medical fee support",
+      "swap": "Allow equivalent pet swap if covered death",
+      "shipping": "Shipping cost for claim/swap",
+      "evidence": "Required evidence",
+      "responseHours": "Breeder response time"
+    },
+    "vaccine": {
+      "placeholder": {
+        "dog": "e.g. 5-in-1 (DHPPL)",
+        "cat": "e.g. 3-in-1 (FVRCP)",
+        "mixed": "e.g. 5-in-1 or 3-in-1 (FVRCP)"
+      },
+      "preset": {
+        "dog_5in1": "5-in-1 (DHPPL)",
+        "dog_7in1": "7-in-1",
+        "dog_rabies": "Rabies",
+        "cat_3in1": "3-in-1 (FVRCP)",
+        "cat_4in1": "4-in-1",
+        "cat_rabies": "Rabies",
+        "cat_felv": "FeLV"
+      }
+    },
+    "value": {
+      "yes": "Yes",
+      "no": "No",
+      "shots": "{n} shot(s)",
+      "days": "{n} days",
+      "hours": "{n} hours"
+    },
+    "viewer": {
+      "healthTitle": "Pet health warranty policy",
+      "summaryCareParvo": {
+        "mixed": "Vaccine diseases: {n} days",
+        "dog": "Vaccine diseases: {n} days",
+        "cat": "Vaccine diseases: {n} days"
+      },
+      "summaryMedicalFee": "{n}% medical fee support"
+    },
+    "vet": {
+      "licensed": "Licensed veterinary clinic",
+      "farm_designated": "Farm-designated clinic",
+      "either": "Either licensed or farm-designated"
+    },
+    "shipping": {
+      "buyer": "Buyer pays",
+      "breeder": "Breeder pays",
+      "split": "Split equally"
+    },
+    "guideline": {
+      "keep_farm_diet_3_5_days": "Keep farm diet for the first 3–5 days",
+      "no_bath_7_days": "No bathing in the first 7 days",
+      "no_contact_unvaccinated_pets": "No contact with unvaccinated pets",
+      "follow_vaccine_booster_schedule": "Follow booster vaccine schedule"
+    },
+    "exclusion": {
+      "accident_trauma": "Accident, fall, or trauma",
+      "poisoning_wrong_food": "Poisoning from unsafe/wrong food",
+      "self_treatment_no_notice": "Self-treatment or other clinic without notice",
+      "missed_booster_vaccine": "Missed booster vaccine schedule",
+      "other_animal_attack": "Attack by another animal"
+    },
+    "evidence": {
+      "symptom_video": "Clear symptom video",
+      "rapid_test_photo": {
+        "mixed": "Dated rapid test photo (Parvo/Care/FIP)",
+        "dog": "Dated rapid test photo (Parvo/Care)",
+        "cat": "Dated rapid test photo (Panleukopenia / FIP)"
+      },
+      "vet_diagnosis_or_pcr": "Vet diagnosis / PCR report"
+    }
   }
 }

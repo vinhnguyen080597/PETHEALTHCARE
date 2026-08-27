@@ -43,8 +43,9 @@ import {
   healthEvidenceUrlsFromMetadata,
   vaccineStatusRequiresHealthEvidence,
 } from '../utils/petFeedHealthEvidence';
+import { BRAND } from '../theme/brand';
 
-const PRIMARY = '#1E6FE8';
+const PRIMARY = BRAND.btnPrimary;
 const MAX_PHOTOS = 6;
 const MAX_HEALTH_EVIDENCE = 3;
 
@@ -138,7 +139,7 @@ function SelectField({
                         setOpen(false);
                       }}
                     >
-                      <Text className={`text-center text-base ${active ? 'font-bold text-blue-600' : 'text-slate-900'}`}>
+                      <Text className={`text-center text-base ${active ? 'font-bold text-orange-600' : 'text-slate-900'}`}>
                         {option.label}
                       </Text>
                     </Pressable>
@@ -146,7 +147,7 @@ function SelectField({
                 })}
               </ScrollView>
               <Pressable className="mt-2 py-3" onPress={() => setOpen(false)}>
-                <Text className="text-center text-base text-blue-600">{t('common.cancel')}</Text>
+                <Text className="text-center text-base text-orange-600">{t('common.cancel')}</Text>
               </Pressable>
             </View>
           </View>
@@ -180,10 +181,10 @@ function ChipMultiSelect({
             <Pressable
               key={option.value}
               accessibilityRole="button"
-              className={`rounded-full border px-3 py-2 ${active ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-slate-50'}`}
+              className={`rounded-full border px-3 py-2 ${active ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-slate-50'}`}
               onPress={() => toggle(option.value)}
             >
-              <Text className={`text-sm font-semibold ${active ? 'text-blue-700' : 'text-slate-700'}`}>{option.label}</Text>
+              <Text className={`text-sm font-semibold ${active ? 'text-orange-600' : 'text-slate-700'}`}>{option.label}</Text>
             </Pressable>
           );
         })}
@@ -892,12 +893,12 @@ export function CreatePetFeedPostScreen({
           <View onLayout={(event) => markFieldOffset('photos', event.nativeEvent.layout.y)}>
             <Pressable
               className={`flex-row items-center justify-center gap-2 rounded-xl border border-dashed py-3 active:opacity-80 ${
-                fieldErrors.photos ? 'border-red-400 bg-red-50' : 'border-blue-300 bg-blue-50'
+                fieldErrors.photos ? 'border-red-400 bg-red-50' : 'border-orange-300 bg-orange-50'
               }`}
               onPress={pickPhotos}
             >
               <Ionicons name="images-outline" size={18} color={fieldErrors.photos ? '#dc2626' : PRIMARY} />
-              <Text className={`text-sm font-bold ${fieldErrors.photos ? 'text-red-600' : 'text-blue-700'}`}>
+              <Text className={`text-sm font-bold ${fieldErrors.photos ? 'text-red-600' : 'text-orange-600'}`}>
                 {t('createPetFeedPost.pickPhotos', { count: photoUris.length, max: MAX_PHOTOS })}
               </Text>
             </Pressable>
@@ -932,7 +933,7 @@ export function CreatePetFeedPostScreen({
               />
               <Text
                 className={`text-sm font-bold ${
-                  fieldErrors.video ? 'text-red-600' : videoUri ? 'text-blue-700' : 'text-slate-600'
+                  fieldErrors.video ? 'text-red-600' : videoUri ? 'text-orange-600' : 'text-slate-600'
                 }`}
               >
                 {videoUri ? t('createPetFeedPost.videoSelected') : t('createPetFeedPost.pickVideo')}
@@ -959,7 +960,7 @@ export function CreatePetFeedPostScreen({
                 className={`rounded-xl border px-3 py-3 ${fieldErrors.healthEvidence ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-slate-50'}`}
                 onPress={() => void pickHealthEvidence()}
               >
-                <Text className={`text-sm font-bold ${fieldErrors.healthEvidence ? 'text-red-600' : 'text-blue-700'}`}>
+                <Text className={`text-sm font-bold ${fieldErrors.healthEvidence ? 'text-red-600' : 'text-orange-600'}`}>
                   {healthEvidenceUris.length > 0
                     ? t('createPetFeedPost.healthEvidenceSelected', { count: healthEvidenceUris.length })
                     : t('createPetFeedPost.pickHealthEvidence')}
@@ -1004,7 +1005,7 @@ export function CreatePetFeedPostScreen({
           {!isAdmin && canSaveDraft ? (
             <Pressable
               testID="create-pet-feed-post-save-draft-button"
-              className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"
+              className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 py-3 active:bg-orange-100"
               onPress={saveDraftFromForm}
               disabled={submitting}
             >
@@ -1012,7 +1013,7 @@ export function CreatePetFeedPostScreen({
               <Text className="text-sm font-bold" style={{ color: PRIMARY }}>{t('createPetFeedPost.saveDraft')}</Text>
             </Pressable>
           ) : null}
-          <Pressable testID="create-pet-feed-post-review-button" className={`${isAdmin || !canSaveDraft ? 'mt-4' : 'mt-3'} flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90`} onPress={openReview} disabled={submitting}>
+          <Pressable testID="create-pet-feed-post-review-button" className={`${isAdmin || !canSaveDraft ? 'mt-4' : 'mt-3'} flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90`} onPress={openReview} disabled={submitting}>
             <Ionicons name="eye-outline" size={18} color="#fff" />
             <Text className="text-sm font-bold text-white">{t('createPetFeedPost.review')}</Text>
           </Pressable>
@@ -1039,7 +1040,7 @@ export function CreatePetFeedPostScreen({
             {!isAdmin && canSaveDraft ? (
               <Pressable
                 testID="create-pet-feed-post-review-save-draft-button"
-                className="mb-3 flex-row items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 py-3 active:bg-blue-100"
+                className="mb-3 flex-row items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 py-3 active:bg-orange-100"
                 onPress={() => void submit('draft')}
                 disabled={submitting}
               >
@@ -1050,7 +1051,7 @@ export function CreatePetFeedPostScreen({
             <Pressable
               testID="create-pet-feed-post-submit-button"
               className={`flex-row items-center justify-center gap-2 rounded-xl py-3 active:opacity-90 ${
-                marketplaceTermsAccepted && !submitting ? 'bg-blue-600' : 'bg-slate-300'
+                marketplaceTermsAccepted && !submitting ? 'bg-orange-500' : 'bg-slate-300'
               }`}
               onPress={() => void submit(isAdmin ? 'published' : 'pending_review')}
               disabled={submitting || !marketplaceTermsAccepted}

@@ -161,6 +161,8 @@ import type {
   UserRole,
 } from '../types';
 import type { AppScreen } from '../screens/types';
+import type { FarmDetailTab } from '../utils/farmProfileDisplay';
+import type { WarrantyPolicy } from '../utils/warrantyPolicy';
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
 import { formatHealthCheckVaccineTypeForApi } from '../utils/formatHealthCheckVaccineType';
@@ -467,6 +469,8 @@ export function usePetHealthApp() {
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
   const [breederDetailReturnScreen, setBreederDetailReturnScreen] = useState<AppScreen>('pet-feed');
+  const [breederDetailTab, setBreederDetailTab] = useState<FarmDetailTab>('overview');
+  const [warrantyLibraryEditPolicy, setWarrantyLibraryEditPolicy] = useState<WarrantyPolicy | null>(null);
   const [selectedPetFeedPostId, setSelectedPetFeedPostId] = useState<string | null>(null);
   /** After closing post detail, Pet Feed scrolls to this post on the feed tab. */
   const [petFeedFocusPostId, setPetFeedFocusPostId] = useState<string | null>(null);
@@ -2035,6 +2039,7 @@ export function usePetHealthApp() {
 
   function openBreederDetail(profileId: string) {
     setBreederDetailReturnScreen('pet-feed');
+    setBreederDetailTab('overview');
     setSelectedBreederProfileId(profileId);
     setScreen('breeder-detail');
   }
@@ -2044,11 +2049,13 @@ export function usePetHealthApp() {
     const profileId = resolveOwnFarmProfileId(breederProfile);
     if (!profileId) return;
     setBreederDetailReturnScreen('account');
+    setBreederDetailTab('overview');
     setSelectedBreederProfileId(profileId);
     setScreen('breeder-detail');
   }
 
   function closeBreederDetail() {
+    setBreederDetailTab('overview');
     setScreen(breederDetailReturnScreen || 'pet-feed');
   }
 
@@ -2059,6 +2066,57 @@ export function usePetHealthApp() {
 
   function closeFarmHealth() {
     setScreen('breeder-detail');
+  }
+
+  function applyBreederProfileUpdate(nextProfile: BreederProfile) {
+    setBreederProfile(nextProfile);
+    setTopBreederProfiles((profiles) =>
+      profiles.map((profile) => (profile.id === nextProfile.id ? { ...profile, ...nextProfile } : profile)),
+    );
+  }
+
+  function openWarrantyLibrary(editPolicy: WarrantyPolicy | null = null) {
+    if (!token) {
+      Alert.alert(i18n.t('alerts.signInRequired.title'), i18n.t('alerts.signInRequired.message'));
+      return;
+    }
+    setBreederDetailTab('warranty');
+    setWarrantyLibraryEditPolicy(editPolicy);
+    setScreen('warranty-library');
+  }
+
+  function closeWarrantyLibrary() {
+    setWarrantyLibraryEditPolicy(null);
+    setScreen('breeder-detail');
+  }
+
+  function openWarrantyFromTrustGuide() {
+    setBreederDetailTab('warranty');
+    setWarrantyLibraryEditPolicy(null);
+    if (!token) {
+      setScreen('breeder-detail');
+      return;
+    }
+    setScreen('warranty-library');
+  }
+
+  function onWarrantyPolicySaved(
+    _policy: WarrantyPolicy,
+    meta?: { trustAwarded?: boolean; profile?: BreederProfile },
+  ) {
+    const wasEdit = Boolean(warrantyLibraryEditPolicy);
+    if (meta?.profile) {
+      applyBreederProfileUpdate(meta.profile);
+    }
+    setWarrantyLibraryEditPolicy(null);
+    setBreederDetailTab('warranty');
+    setScreen('breeder-detail');
+    Alert.alert(
+      i18n.t('common.done'),
+      meta?.trustAwarded
+        ? i18n.t('warranty.library.trustAwarded')
+        : i18n.t(wasEdit ? 'warranty.library.updated' : 'warranty.library.created'),
+    );
   }
 
   function openTemplatePicker() {
@@ -4817,11 +4875,18 @@ export function usePetHealthApp() {
     selectedPetFeedPostId,
     petFeedFocusPostId,
     petFeedFocusCommentId,
+    breederDetailTab,
+    warrantyLibraryEditPolicy,
     openBreederDetail,
     openOwnBreederFarmProfile,
     closeBreederDetail,
     openFarmHealth,
     closeFarmHealth,
+    openWarrantyLibrary,
+    closeWarrantyLibrary,
+    openWarrantyFromTrustGuide,
+    onWarrantyPolicySaved,
+    applyBreederProfileUpdate,
     openTemplatePicker,
     closeTemplatePicker,
     applyBreederTemplate,

@@ -642,6 +642,122 @@ export async function cancelMyBreederVerificationRequest(token: string) {
   });
 }
 
+export async function listMyWarrantyPolicies(token: string) {
+  return requestJson<{
+    data: unknown[];
+    meta?: { trust_awarded?: boolean };
+  }>('/pet-feed/breeder-profile/me/warranty-policies', {
+    headers: authHeaders(token),
+  });
+}
+
+export async function createWarrantyPolicy(token: string, payload: Record<string, unknown>) {
+  return requestJson<{
+    data: unknown;
+    profile?: BreederProfile;
+    trust_awarded?: boolean;
+  }>('/pet-feed/breeder-profile/me/warranty-policies', {
+    method: 'POST',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateWarrantyPolicy(
+  token: string,
+  policyId: string,
+  payload: Record<string, unknown>,
+) {
+  return requestJson<{ data: unknown; profile?: BreederProfile }>(
+    `/pet-feed/breeder-profile/me/warranty-policies/${encodeURIComponent(policyId)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function deleteWarrantyPolicy(token: string, policyId: string) {
+  return requestJson<{ data: BreederProfile }>(
+    `/pet-feed/breeder-profile/me/warranty-policies/${encodeURIComponent(policyId)}`,
+    {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    },
+  );
+}
+
+export async function listMyBreederProfileSubmissions(token: string) {
+  return requestJson<{ data: import('./utils/breederProfileSubmissions').BreederProfileSubmission[] }>(
+    '/pet-feed/breeder-profile/me/submissions',
+    { headers: authHeaders(token) },
+  );
+}
+
+export async function createBreederProfileSubmission(
+  token: string,
+  payload: { submissionType: string; url: string; note?: string },
+) {
+  return requestJson<{ data: import('./utils/breederProfileSubmissions').BreederProfileSubmission }>(
+    '/pet-feed/breeder-profile/me/submissions',
+    {
+      method: 'POST',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function uploadBreederTransparencyMedia(
+  token: string,
+  kind: 'facility_video' | 'business_license',
+  fileUri: string,
+  options?: { mimeHint?: string },
+) {
+  const formData = new FormData();
+  formData.append('kind', kind);
+  const base = `breeder-${kind}-${Date.now()}`;
+  if (kind === 'facility_video') {
+    await appendVideoFileToFormData(
+      formData,
+      'file',
+      fileUri,
+      base,
+      options?.mimeHint ?? 'video/mp4',
+    );
+  } else {
+    await appendImageFileToFormData(
+      formData,
+      'file',
+      fileUri,
+      base,
+      options?.mimeHint ?? 'image/jpeg',
+    );
+  }
+  return requestJson<{
+    data: { publicUrl: string; kind: 'facility_video' | 'business_license' };
+  }>(
+    '/pet-feed/breeder-profile/me/submissions/upload',
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    },
+    true,
+    UPLOAD_REQUEST_TIMEOUT_MS,
+  );
+}
+
 type PetFeedSignedUploadKind = 'photo' | 'video' | 'thumb';
 
 async function uploadPetFeedMediaViaApi(

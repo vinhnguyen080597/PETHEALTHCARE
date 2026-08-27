@@ -76,7 +76,7 @@ export function ProvinceSelectField({
                         setOpen(false);
                       }}
                     >
-                      <Text className={`text-center text-base ${active ? 'font-bold text-blue-600' : 'text-slate-900'}`}>
+                      <Text className={`text-center text-base ${active ? 'font-bold text-orange-600' : 'text-slate-900'}`}>
                         {province}
                       </Text>
                     </Pressable>
@@ -84,7 +84,7 @@ export function ProvinceSelectField({
                 })}
               </ScrollView>
               <Pressable className="mt-2 py-3" onPress={() => setOpen(false)}>
-                <Text className="text-center text-base text-blue-600">{t('common.cancel')}</Text>
+                <Text className="text-center text-base text-orange-600">{t('common.cancel')}</Text>
               </Pressable>
             </View>
           </View>

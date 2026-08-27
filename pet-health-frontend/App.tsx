@@ -45,6 +45,7 @@ import {
   BreederDetailScreen,
   BreederProfileScreen,
   FarmHealthScreen,
+  WarrantyLibraryScreen,
   CoreCareInfoScreen,
   CoreCareScreen,
   CreateAdminPostScreen,
@@ -461,8 +462,12 @@ function AppContent() {
                 onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
                 onMessageFarm={(profile) => void app.openOrCreateConversationFromFarm(profile)}
                 onUploadFarmPhoto={(kind, uri) => app.uploadOwnFarmProfilePhoto(kind, uri)}
+                onOpenWarrantyLibrary={app.openWarrantyLibrary}
+                onBreederProfileUpdated={app.applyBreederProfileUpdate}
                 allowTemplateChange={app.isFeatureEnabled('farm_template_change')}
                 currentUserId={app.accountProfile?.user_id ?? null}
+                token={app.token}
+                initialTab={app.breederDetailTab}
               />
             ) : null}
 
@@ -470,7 +475,20 @@ function AppContent() {
               <FarmHealthScreen
                 profile={app.selectedBreederProfile}
                 posts={app.selectedBreederPosts}
+                token={app.token}
                 onBack={app.closeFarmHealth}
+                onOpenBreederProfile={() => void app.openBreederProfile()}
+                onOpenWarranty={app.openWarrantyFromTrustGuide}
+              />
+            ) : null}
+
+            {app.screen === 'warranty-library' && app.token ? (
+              <WarrantyLibraryScreen
+                token={app.token}
+                primarySpecies={app.selectedBreederProfile?.primary_species ?? app.breederProfile?.primary_species ?? []}
+                editPolicy={app.warrantyLibraryEditPolicy}
+                onBack={app.closeWarrantyLibrary}
+                onSaved={app.onWarrantyPolicySaved}
               />
             ) : null}
 
