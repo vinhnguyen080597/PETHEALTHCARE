@@ -9,8 +9,9 @@ import {
   subscribeRewardedAdAvailability,
   type RewardedAdAvailability,
 } from '../services/rewardedAd';
+import { BRAND } from '../theme/brand';
 
-const PRIMARY = '#1E6FE8';
+const PRIMARY = BRAND.btnPrimary;
 const MAX_WATCH_FAILS_BEFORE_HIDE_VIDEO = 2;
 
 export type RewardedAdFeature = 'health_analysis' | 'breed_recognition';
@@ -130,7 +131,7 @@ export function RewardedAdOffer({
           testID={`${testID}-watch-button`}
           accessibilityRole="button"
           accessibilityState={{ disabled: videoDisabled }}
-          className={`flex-row items-center justify-center rounded-xl py-3.5 active:opacity-90 ${isCard ? 'mt-4' : 'mt-3'} ${premiumPrimary ? 'border border-blue-200 bg-blue-50' : ''} ${videoDisabled ? 'opacity-50' : ''}`}
+          className={`flex-row items-center justify-center rounded-xl py-3.5 active:opacity-90 ${isCard ? 'mt-4' : 'mt-3'} ${premiumPrimary ? 'border border-orange-200 bg-orange-50' : ''} ${videoDisabled ? 'opacity-50' : ''}`}
           style={premiumPrimary ? undefined : { backgroundColor: PRIMARY }}
           onPress={() => void handleWatch()}
           disabled={videoDisabled}

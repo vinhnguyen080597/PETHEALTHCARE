@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBreedRecognitionSlotOrder } from '../constants/petBreedRecognitionSlots';
+import { BRAND } from '../theme/brand';
 import type { BreedRecognitionResult, Pet } from '../types';
 
 type BreedRecognitionResultScreenProps = {
@@ -17,7 +18,7 @@ type BreedRecognitionResultScreenProps = {
   onApplyToProfile: () => void;
 };
 
-const PRIMARY = '#1E6FE8';
+const PRIMARY = BRAND.btnPrimary;
 
 function pct(value: number) {
   return Math.round(Math.max(0, Math.min(1, value)) * 100);
@@ -157,7 +158,7 @@ export function BreedRecognitionResultScreen({
               <View className="flex-row flex-wrap gap-3">
                 {quickFacts.map((item) => (
                   <View key={item.key} className="w-[47%] rounded-2xl border border-slate-200 bg-white p-3">
-                    <View className="h-9 w-9 items-center justify-center rounded-full bg-blue-50">
+                    <View className="h-9 w-9 items-center justify-center rounded-full bg-orange-50">
                       <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={19} color={PRIMARY} />
                     </View>
                     <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">{item.label}</Text>
@@ -173,7 +174,7 @@ export function BreedRecognitionResultScreen({
               <Text className="text-base font-bold text-slate-900">{t('breedRecognitionResult.temperament')}</Text>
               <View className="mt-3 flex-row flex-wrap gap-2">
                 {profile.temperament.map((trait, index) => (
-                  <Text key={`${trait}-${index}`} className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+                  <Text key={`${trait}-${index}`} className="rounded-full bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700">
                     {trait}
                   </Text>
                 ))}
@@ -218,7 +219,7 @@ export function BreedRecognitionResultScreen({
                       <Text className="text-sm font-bold text-slate-900">{pct(alt.confidence)}%</Text>
                     </View>
                     <View className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-                      <View className="h-full rounded-full bg-blue-400" style={{ width: `${pct(alt.confidence)}%` }} />
+                      <View className="h-full rounded-full bg-orange-400" style={{ width: `${pct(alt.confidence)}%` }} />
                     </View>
                     {alt.reason ? <Text className="mt-1 text-xs leading-4 text-slate-500">{alt.reason}</Text> : null}
                   </View>

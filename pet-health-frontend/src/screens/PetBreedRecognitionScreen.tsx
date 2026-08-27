@@ -23,9 +23,10 @@ import { RewardedAdOffer } from '../components/RewardedAdOffer';
 import { getSpendableCreditsForFeature, hasCreditsForFeature } from '../utils/aiCredits';
 import { MAI_GREETING } from '../assets/maiOnboardingAssets';
 import { MAI_GUIDING } from '../assets/maiAssets';
+import { BRAND } from '../theme/brand';
 import type { AiCreditAccount, Pet } from '../types';
 
-const PRIMARY = '#1E6FE8';
+const PRIMARY = BRAND.btnPrimary;
 
 const REFERENCE_LINKS = [
   {

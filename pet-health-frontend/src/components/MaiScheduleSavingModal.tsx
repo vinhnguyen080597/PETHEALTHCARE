@@ -36,7 +36,7 @@ function BouncingDots() {
         <Animated.View
           key={index}
           style={{ transform: [{ translateY: dot }] }}
-          className="h-2.5 w-2.5 rounded-full bg-blue-600"
+          className="h-2.5 w-2.5 rounded-full bg-orange-500"
         />
       ))}
     </View>

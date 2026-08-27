@@ -8,11 +8,12 @@ import { vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import { isBreedRecognitionSpecies } from '../constants/petBreedRecognitionSlots';
 import { RewardedAdOffer } from '../components/RewardedAdOffer';
 import { getSpendableCreditsForFeature, hasCreditsForFeature } from '../utils/aiCredits';
+import { BRAND } from '../theme/brand';
 import type { AiCreditAccount, Pet } from '../types';
 
-const PRIMARY = '#1E6FE8';
-const INFO_BG = '#E8F1FE';
-const INFO_TEXT = '#1A56B8';
+const PRIMARY = BRAND.btnPrimary;
+const INFO_BG = BRAND.surfaceLight;
+const INFO_TEXT = BRAND.textBrandLink;
 
 type YesNo = 'yes' | 'no';
 
@@ -256,7 +257,7 @@ export function HealthCheckScreen({
               />
             </View>
           ) : (
-            <View className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <View className="mb-5 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3">
               <View className="flex-row items-center gap-2">
                 <Ionicons name="wallet-outline" size={18} color={PRIMARY} />
                 <Text className="text-sm font-bold text-slate-900">{t('aiCredits.cardTitle')}</Text>
@@ -277,12 +278,12 @@ export function HealthCheckScreen({
           <Pressable
             testID="health-check-open-breed-recognition-button"
             onPress={onOpenBreedRecognition}
-            className="mb-5 flex-row items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-3 active:bg-blue-50"
+            className="mb-5 flex-row items-center gap-2 rounded-xl border border-orange-200 bg-white px-4 py-3 active:bg-orange-50"
             accessibilityRole="button"
           >
             <Ionicons name="sparkles-outline" size={20} color={PRIMARY} />
             <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-800">{t('breedRecognition.healthCheckLink')}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748b" />
+            <Ionicons name="chevron-forward" size={20} color={PRIMARY} />
           </Pressable>
         ) : null}
         {inlineErrorMessage ? (
@@ -313,7 +314,7 @@ export function HealthCheckScreen({
         >
           {photoUris.length === 0 ? (
             <>
-              <Ionicons name="images-outline" size={40} color="#64748b" />
+              <Ionicons name="images-outline" size={40} color={PRIMARY} />
               <Text className="mt-2 text-base font-semibold text-slate-800">{t('healthCheck.uploadPhotos')}</Text>
               <Text className="mt-1 text-center text-sm text-slate-500">{t('healthCheck.upTo6')}</Text>
             </>
@@ -370,7 +371,7 @@ export function HealthCheckScreen({
               onPress={onPickVideo}
               className="min-h-[88px] items-center justify-center active:bg-gray-50"
             >
-              <Ionicons name="videocam-outline" size={36} color="#64748b" />
+              <Ionicons name="videocam-outline" size={36} color={PRIMARY} />
               <Text className="mt-2 text-base font-semibold text-slate-800">{t('healthCheck.uploadVideo')}</Text>
             </Pressable>
           )}

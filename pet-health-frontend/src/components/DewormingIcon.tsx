@@ -6,7 +6,7 @@ type DewormingIconProps = {
 };
 
 /** Segmented roundworm silhouette — common on pet dewormer packaging. */
-export function DewormingIcon({ size = 20, color = '#1E6FE8' }: DewormingIconProps) {
+export function DewormingIcon({ size = 20, color = '#F97316' }: DewormingIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path

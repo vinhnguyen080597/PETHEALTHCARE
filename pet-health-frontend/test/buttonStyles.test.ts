@@ -33,7 +33,7 @@ test('full-page loading spinner uses brand orange', () => {
   assert.equal(BRAND.loadingSpinner, BRAND.btnPrimary);
 });
 
-test('pet profile accent tokens use brand orange', () => {
+test('shared mobile accent tokens use brand orange', () => {
   assert.equal(BRAND.btnPrimary, '#F97316');
   assert.equal(BRAND.textBrandLink, '#EA580C');
   assert.equal(BRAND.surfaceLight, '#FFF7ED');

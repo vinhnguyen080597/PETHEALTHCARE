@@ -8,6 +8,7 @@ import { MaiScheduleSavingModal } from '../components/MaiScheduleSavingModal';
 import { DewormingIcon } from '../components/DewormingIcon';
 import { schedulePrimaryVaccineIdsForSpecies, vaccineIdsForPetSpecies } from '../constants/petVaccineOptions';
 import { formatLocaleDateTime } from '../i18n/localeDate';
+import { BRAND } from '../theme/brand';
 import { metadataText } from '../utils/carePassport';
 import {
   type AdministeredDewormingDoseInput,
@@ -37,7 +38,7 @@ import type {
   Pet,
 } from '../types';
 
-const PRIMARY = '#1E6FE8';
+const PRIMARY = BRAND.btnPrimary;
 const CORE_CARE_INTRO_GUIDE_STORAGE_KEY_PREFIX = 'pet-health-care:core-care-intro-guide-seen:v1';
 const UPCOMING_SCHEDULE_PREVIEW_LIMIT = 5;
 
@@ -571,7 +572,7 @@ function DateField({
               />
               {Platform.OS === 'ios' ? (
                 <Pressable
-                  className="mt-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+                  className="mt-2 rounded-xl bg-orange-500 py-3 active:opacity-90"
                   onPress={() => {
                     if (!value) commitDate(pickerValue);
                     setOpen(false);
@@ -636,13 +637,13 @@ function VaccineSelect({
                   setOpen(false);
                 }}
               >
-                <Text className={`text-center text-base ${option.id === value ? 'font-bold text-blue-700' : 'text-slate-900'}`}>
+                <Text className={`text-center text-base ${option.id === value ? 'font-bold text-orange-600' : 'text-slate-900'}`}>
                   {option.label}
                 </Text>
               </Pressable>
             ))}
             <Pressable className="mt-2 py-3" onPress={() => setOpen(false)}>
-              <Text className="text-center text-base text-blue-600">{t('common.cancel')}</Text>
+              <Text className="text-center text-base text-orange-600">{t('common.cancel')}</Text>
             </Pressable>
           </View>
         </View>
@@ -1748,17 +1749,17 @@ export function CoreCareScreen({
       <View
         key={record.id}
         testID={`core-care-record-${record.id}`}
-        className="rounded-xl border border-blue-100 bg-white p-3"
+        className="rounded-xl border border-orange-100 bg-white p-3"
       >
         <View className="flex-row items-start gap-3">
-          <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+          <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-orange-50">
             <CareScheduleIcon record={record} size={16} />
           </View>
           <View className="min-w-0 flex-1">
             <Text className="text-sm font-bold text-slate-900" numberOfLines={2}>
               {displayTitle}
             </Text>
-            <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
+            <Text className="mt-1 text-xs font-semibold uppercase text-orange-600">
               {typeLabel} {scheduleDateLabel ? `· ${scheduleDateLabel}` : ''}
             </Text>
             {isUpcoming ? (
@@ -1800,15 +1801,15 @@ export function CoreCareScreen({
 
   function renderYesCatRecommendationPreview(recommendation: CoreCareScheduleRecommendation) {
     return (
-      <View key={recommendation.id} className="rounded-xl border border-blue-100 bg-white p-3">
+      <View key={recommendation.id} className="rounded-xl border border-orange-100 bg-white p-3">
         <View className="flex-row items-center gap-2">
           <View className="min-w-0 flex-1 flex-row items-start gap-2">
-            <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+            <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-orange-50">
               <CareScheduleIcon kind={recommendation.kind} size={16} />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="text-sm font-bold text-slate-900">{historyRecommendationTitle(recommendation)}</Text>
-              <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
+              <Text className="mt-1 text-xs font-semibold uppercase text-orange-600">
                 {t(`coreCare.generatedKinds.${recommendation.kind}`)} · {formatLocaleDateTime(recommendation.dueDate, i18n.language)}
               </Text>
               <ScheduleDueStatusBadge dueAt={recommendation.dueDate} today={today} t={t} />
@@ -1830,15 +1831,15 @@ export function CoreCareScreen({
 
   function renderYesDogRecommendationPreview(recommendation: CoreCareNextVaccineRecommendation) {
     return (
-      <View key={recommendation.id} className="rounded-xl border border-blue-100 bg-white p-3">
+      <View key={recommendation.id} className="rounded-xl border border-orange-100 bg-white p-3">
         <View className="flex-row items-center gap-2">
           <View className="min-w-0 flex-1 flex-row items-start gap-2">
-            <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+            <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-orange-50">
               <CareScheduleIcon kind="vaccine" size={16} />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="text-sm font-bold text-slate-900">{nextVaccineRecommendationTitle(recommendation)}</Text>
-              <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
+              <Text className="mt-1 text-xs font-semibold uppercase text-orange-600">
                 {t('coreCare.generatedKinds.vaccine')} · {formatLocaleDateTime(recommendation.dueDate, i18n.language)}
               </Text>
               <ScheduleDueStatusBadge dueAt={recommendation.dueDate} today={today} t={t} />
@@ -1860,15 +1861,15 @@ export function CoreCareScreen({
 
   function renderRecommendationPreview(recommendation: CoreCareScheduleRecommendation) {
     return (
-      <View key={recommendation.id} className="rounded-xl border border-blue-100 bg-white p-3">
+      <View key={recommendation.id} className="rounded-xl border border-orange-100 bg-white p-3">
         <View className="flex-row items-center gap-2">
           <View className="min-w-0 flex-1 flex-row items-start gap-2">
-            <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+            <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-orange-50">
               <CareScheduleIcon kind={recommendation.kind} size={16} />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="text-sm font-bold text-slate-900">{recommendationTitle(recommendation)}</Text>
-              <Text className="mt-1 text-xs font-semibold uppercase text-blue-700">
+              <Text className="mt-1 text-xs font-semibold uppercase text-orange-600">
                 {t(`coreCare.generatedKinds.${recommendation.kind}`)} · {formatLocaleDateTime(recommendation.dueDate, i18n.language)}
               </Text>
               <ScheduleDueStatusBadge dueAt={recommendation.dueDate} today={today} t={t} />
@@ -1921,12 +1922,12 @@ export function CoreCareScreen({
               onPress={openInfoFromIntroGuide}
             >
               <Ionicons name="information-circle-outline" size={14} color={PRIMARY} />
-              <Text className="text-sm font-bold text-blue-700">{t('coreCare.openInfo')}</Text>
+              <Text className="text-sm font-bold text-orange-600">{t('coreCare.openInfo')}</Text>
             </Pressable>
             <Pressable
               testID="core-care-intro-dismiss-button"
               accessibilityRole="button"
-              className="mt-3 rounded-2xl bg-blue-600 py-3 active:opacity-90"
+              className="mt-3 rounded-2xl bg-orange-500 py-3 active:opacity-90"
               onPress={dismissIntroGuide}
             >
               <Text className="text-center text-sm font-bold text-white">{t('coreCare.introGuideDismiss')}</Text>
@@ -1958,7 +1959,7 @@ export function CoreCareScreen({
           onPress={onOpenInfo}
         >
           <Ionicons name="information-circle-outline" size={13} color={PRIMARY} />
-          <Text className="text-xs font-semibold text-blue-700">{t('coreCare.openInfo')}</Text>
+          <Text className="text-xs font-semibold text-orange-600">{t('coreCare.openInfo')}</Text>
         </Pressable>
       </View>
 
@@ -1979,7 +1980,7 @@ export function CoreCareScreen({
                 className="rounded-lg px-2 py-1 active:opacity-70"
                 onPress={openGeneratedScheduleEdit}
               >
-                <Text className="text-sm font-bold text-blue-700">{t('coreCare.editSchedule')}</Text>
+                <Text className="text-sm font-bold text-orange-600">{t('coreCare.editSchedule')}</Text>
               </Pressable>
             ) : isEditingGeneratedSchedule ? (
               <Pressable
@@ -2003,7 +2004,7 @@ export function CoreCareScreen({
                     className="self-center py-1 active:opacity-70"
                     onPress={() => setShowAllUpcomingSchedules((current) => !current)}
                   >
-                    <Text className="text-xs font-semibold text-blue-700">
+                    <Text className="text-xs font-semibold text-orange-600">
                       {showAllUpcomingSchedules
                         ? t('coreCare.showLessSchedules')
                         : t('coreCare.showMoreSchedules', { count: hiddenUpcomingCount })}
@@ -2026,15 +2027,15 @@ export function CoreCareScreen({
                       key={answer}
                       accessibilityRole="button"
                       accessibilityState={{ selected: active }}
-                      className={`flex-1 rounded-xl border px-4 py-3 active:bg-blue-50 ${
-                        active ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'
+                      className={`flex-1 rounded-xl border px-4 py-3 active:bg-orange-50 ${
+                        active ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white'
                       }`}
                       onPress={() => {
                         if (vaccinatedAnswer === answer) return;
                         setVaccinatedAnswer(answer);
                       }}
                     >
-                      <Text className={`text-center text-sm font-bold ${active ? 'text-blue-700' : 'text-slate-700'}`}>
+                      <Text className={`text-center text-sm font-bold ${active ? 'text-orange-600' : 'text-slate-700'}`}>
                         {t(`common.${answer}`)}
                       </Text>
                     </Pressable>
@@ -2080,8 +2081,8 @@ export function CoreCareScreen({
                                   key={kind}
                                   accessibilityRole="button"
                                   accessibilityState={{ selected: active }}
-                                  className={`flex-1 rounded-xl border px-3 py-2.5 active:bg-blue-50 ${
-                                    active ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'
+                                  className={`flex-1 rounded-xl border px-3 py-2.5 active:bg-orange-50 ${
+                                    active ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white'
                                   }`}
                                   onPress={() =>
                                     updateCareEntry(draft.id, {
@@ -2090,7 +2091,7 @@ export function CoreCareScreen({
                                     })
                                   }
                                 >
-                                  <Text className={`text-center text-xs font-bold ${active ? 'text-blue-700' : 'text-slate-700'}`}>
+                                  <Text className={`text-center text-xs font-bold ${active ? 'text-orange-600' : 'text-slate-700'}`}>
                                     {t(`coreCare.careKind.${kind}`)}
                                   </Text>
                                 </Pressable>
@@ -2138,7 +2139,7 @@ export function CoreCareScreen({
                     accessibilityRole="button"
                     disabled={!canAddCareEntry}
                     className={`mt-3 h-11 items-center justify-center rounded-xl border border-dashed ${
-                      canAddCareEntry ? 'border-blue-300 bg-blue-50 active:bg-blue-100' : 'border-gray-200 bg-gray-50 opacity-50'
+                      canAddCareEntry ? 'border-orange-300 bg-orange-50 active:bg-orange-100' : 'border-gray-200 bg-gray-50 opacity-50'
                     }`}
                     onPress={() => {
                       if (!canAddCareEntry) return;
@@ -2177,7 +2178,7 @@ export function CoreCareScreen({
                           className="self-center py-1 active:opacity-70"
                           onPress={() => setShowAllYesRecommendations((current) => !current)}
                         >
-                          <Text className="text-xs font-semibold text-blue-700">
+                          <Text className="text-xs font-semibold text-orange-600">
                             {showAllYesRecommendations
                               ? t('coreCare.showLessSchedules')
                               : t('coreCare.showMoreSchedules', { count: hiddenYesRecommendationsCount })}
@@ -2191,7 +2192,7 @@ export function CoreCareScreen({
                     <Pressable
                       testID="core-care-check-yes-schedule-button"
                       accessibilityRole="button"
-                      className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+                      className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90"
                       onPress={checkScheduleFromVaccines}
                       disabled={vaccineOptions.length === 0}
                     >
@@ -2202,7 +2203,7 @@ export function CoreCareScreen({
                     <Pressable
                       testID="core-care-save-vaccines-button"
                       accessibilityRole="button"
-                      className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
+                      className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90 ${
                         submittingVaccines ||
                         selectedYesRecommendations.length === 0 ||
                         (isEditingGeneratedSchedule && !hasEditScheduleChanges)
@@ -2229,7 +2230,7 @@ export function CoreCareScreen({
                   )}
                 </View>
               ) : (
-                <View className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-3">
+                <View className="mt-4 rounded-2xl border border-orange-100 bg-orange-50 p-3">
                   {schedulePrimaryVaccineOptions.length === 0 ? (
                     <Text className="mb-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{t('coreCare.unsupportedVaccineSpecies')}</Text>
                   ) : null}
@@ -2282,7 +2283,7 @@ export function CoreCareScreen({
                           className="self-center py-1 active:opacity-70"
                           onPress={() => setShowAllGeneratedRecommendations((current) => !current)}
                         >
-                          <Text className="text-xs font-semibold text-blue-700">
+                          <Text className="text-xs font-semibold text-orange-600">
                             {showAllGeneratedRecommendations
                               ? t('coreCare.showLessSchedules')
                               : t('coreCare.showMoreSchedules', { count: hiddenPendingRecommendationsCount })}
@@ -2296,7 +2297,7 @@ export function CoreCareScreen({
                     <Pressable
                       testID="core-care-check-generated-schedule-button"
                       accessibilityRole="button"
-                      className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90"
+                      className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90"
                       onPress={checkGeneratedSchedule}
                       disabled={schedulePrimaryVaccineOptions.length === 0}
                     >
@@ -2307,7 +2308,7 @@ export function CoreCareScreen({
                     <Pressable
                       testID="core-care-generate-vaccine-schedule-button"
                       accessibilityRole="button"
-                      className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
+                      className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90 ${
                         submittingGeneratedSchedule ||
                         selectedGeneratedRecommendations.length === 0 ||
                         (isEditingGeneratedSchedule && !hasEditScheduleChanges)
@@ -2340,7 +2341,7 @@ export function CoreCareScreen({
 
         <View className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-base font-bold text-slate-900">{t('coreCare.manualEntryTitle')}</Text>
-          <View className="mt-3 flex-row rounded-2xl border border-blue-100 bg-blue-50/40 p-1">
+          <View className="mt-3 flex-row rounded-2xl border border-orange-100 bg-orange-50/40 p-1">
             {(['vaccine', 'reminder'] as ManualEntryType[]).map((type) => {
               const active = manualEntryType === type;
               return (
@@ -2349,12 +2350,12 @@ export function CoreCareScreen({
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl px-3 py-3 ${
-                    active ? 'bg-blue-600' : 'bg-transparent'
+                    active ? 'bg-orange-500' : 'bg-transparent'
                   }`}
                   onPress={() => setManualEntryType(type)}
                 >
                   <Ionicons name={typeIcon(type)} size={17} color={active ? '#fff' : PRIMARY} />
-                  <Text className={`text-sm font-bold ${active ? 'text-white' : 'text-blue-700'}`}>
+                  <Text className={`text-sm font-bold ${active ? 'text-white' : 'text-orange-600'}`}>
                     {type === 'vaccine' ? t('coreCare.addVaccine') : t('coreCare.addReminder')}
                   </Text>
                 </Pressable>
@@ -2400,7 +2401,7 @@ export function CoreCareScreen({
               <Pressable
                 testID="core-care-save-vaccine-button"
                 accessibilityRole="button"
-                className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
+                className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90 ${
                   submittingVaccine ? 'opacity-60' : ''
                 }`}
                 onPress={() => void saveVaccine()}
@@ -2440,7 +2441,7 @@ export function CoreCareScreen({
               <Pressable
                 testID="core-care-save-reminder-button"
                 accessibilityRole="button"
-                className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 active:opacity-90 ${
+                className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 active:opacity-90 ${
                   submittingReminder ? 'opacity-60' : ''
                 }`}
                 onPress={() => void saveReminder()}

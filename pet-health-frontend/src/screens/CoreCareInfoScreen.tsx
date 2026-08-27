@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { BRAND } from '../theme/brand';
 
-const PRIMARY = '#1E6FE8';
+const PRIMARY = BRAND.btnPrimary;
 
 const GUIDELINE_REFERENCES = [
   {
@@ -92,7 +93,7 @@ export function CoreCareInfoScreen({ onBack }: CoreCareInfoScreenProps) {
             <View className="mt-3 gap-3">
               {(t(`coreCareInfo.faq.${selectedFaq}.answerItems`, { returnObjects: true }) as string[]).map((answer, index) => (
                 <View key={`${selectedFaq}-${index}`} className="flex-row items-start gap-2">
-                  <View className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-600" />
+                  <View className="mt-1.5 h-1.5 w-1.5 rounded-full bg-orange-500" />
                   <Text className="min-w-0 flex-1 text-sm leading-5 text-slate-700">{answer}</Text>
                 </View>
               ))}
@@ -116,7 +117,7 @@ export function CoreCareInfoScreen({ onBack }: CoreCareInfoScreenProps) {
                 <Text className="text-base font-bold text-slate-900">{t(`coreCareInfo.sections.${section}.title`)}</Text>
                 {(t(`coreCareInfo.sections.${section}.items`, { returnObjects: true }) as string[]).map((item, index) => (
                   <View key={`${section}-${index}`} className="mt-3 flex-row items-start gap-2">
-                    <View className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-600" />
+                    <View className="mt-1.5 h-1.5 w-1.5 rounded-full bg-orange-500" />
                     <Text className="min-w-0 flex-1 text-sm leading-5 text-slate-700">{item}</Text>
                   </View>
                 ))}
@@ -131,7 +132,7 @@ export function CoreCareInfoScreen({ onBack }: CoreCareInfoScreenProps) {
                 <Pressable
                   key={item}
                   accessibilityRole="button"
-                  className="flex-row items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-3 active:bg-blue-100"
+                  className="flex-row items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/50 p-3 active:bg-orange-100"
                   onPress={() => setSelectedFaq(item)}
                 >
                   <Text className="min-w-0 flex-1 text-sm font-bold leading-5 text-slate-900">{t(`coreCareInfo.faq.${item}.question`)}</Text>
@@ -149,7 +150,7 @@ export function CoreCareInfoScreen({ onBack }: CoreCareInfoScreenProps) {
                 <Pressable
                   key={reference.id}
                   accessibilityRole="link"
-                  className="flex-row items-start gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 active:bg-blue-50"
+                  className="flex-row items-start gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 active:bg-orange-50"
                   onPress={() => void Linking.openURL(reference.url)}
                 >
                   <Ionicons name="open-outline" size={16} color={PRIMARY} />

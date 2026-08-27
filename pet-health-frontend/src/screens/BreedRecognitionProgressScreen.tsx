@@ -83,7 +83,7 @@ export function BreedRecognitionProgressScreen({
       >
         <View className="items-center">
           <Text className="text-center text-2xl font-bold text-white">{t('breedRecognitionProgress.title')}</Text>
-          <Text className="mt-2 text-center text-sm leading-5 text-blue-100">
+          <Text className="mt-2 text-center text-sm leading-5 text-orange-100">
             {t('breedRecognitionProgress.subtitle', { name: pet.name })}
           </Text>
         </View>
