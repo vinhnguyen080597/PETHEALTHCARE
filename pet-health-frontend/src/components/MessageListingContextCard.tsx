@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { PetFeedConversation, PetFeedConversationPostSummary } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import { formatPetFeedPostTimeLabel } from '../utils/petFeedPostTime';
-
-const PRIMARY = '#1E6FE8';
+import { CHAT_UI } from '../utils/chatMedia';
 
 export function resolveConversationPostSummary(
   conversation: PetFeedConversation | null | undefined,
@@ -58,12 +57,17 @@ export function MessageListingContextCard({
   const timeLabel = compact ? '' : formatPetFeedPostTimeLabel(summary, t, i18n.language);
 
   const content = (
-    <View className={`${compact ? '' : 'mx-4 mt-3'} rounded-2xl border border-gray-200 bg-white p-3 ${compact ? '' : 'shadow-sm shadow-slate-200/60'}`}>
+    <View
+      className={`${compact ? 'p-2.5' : 'mx-4 mt-3 p-3'} rounded-2xl border bg-white`}
+      style={{ borderColor: CHAT_UI.border }}
+    >
       {!compact ? (
-        <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">{t(titleKey)}</Text>
+        <Text className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CHAT_UI.eyebrow }}>
+          {t(titleKey)}
+        </Text>
       ) : null}
       <View className={`${compact ? '' : 'mt-2.5'} flex-row gap-3`}>
-        <View className="h-16 w-16 overflow-hidden rounded-xl bg-slate-100">
+        <View className={`${compact ? 'h-12 w-12' : 'h-16 w-16'} overflow-hidden rounded-xl bg-amber-50`}>
           {summary.thumb_url ? (
             <Image
               source={{ uri: summary.thumb_url }}
@@ -74,7 +78,7 @@ export function MessageListingContextCard({
             />
           ) : (
             <View className="h-full w-full items-center justify-center">
-              <Ionicons name="paw-outline" size={24} color={PRIMARY} />
+              <Ionicons name="paw-outline" size={compact ? 20 : 24} color={CHAT_UI.accent} />
             </View>
           )}
         </View>

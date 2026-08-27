@@ -87,6 +87,7 @@ import {
   openPetFeedConversation,
   openBreederFarmConversation,
   sendPetFeedConversationMessage,
+  uploadPetFeedChatMedia,
   requestBreedRecognition,
   requestSignUpOtp,
   translateAnalysesDisplay,
@@ -179,6 +180,11 @@ import {
 import { postsForBreeder } from '../utils/breederTrust';
 import { canOpenOwnFarmProfile, resolveOwnFarmProfileId } from '../utils/ownFarmProfileNav';
 import { farmChatErrorKey } from '../utils/farmChat';
+import {
+  inboxPreviewFromMessage,
+  messageHasSendableContent,
+  type ChatAttachmentPick,
+} from '../utils/chatMedia';
 import {
   applyFarmPhotoToProfile,
   isUnusableFarmPhotoUrl,
@@ -3185,20 +3191,38 @@ export function usePetHealthApp() {
     }
   }
 
-  async function sendPetFeedMessage(body: string): Promise<boolean> {
+  async function sendPetFeedMessage(payload: {
+    body: string;
+    attachments?: ChatAttachmentPick[];
+  }): Promise<boolean> {
     if (!token || !selectedPetFeedConversation?.id) return false;
-    const trimmed = body.trim();
-    if (!trimmed) return false;
+    if (String(selectedPetFeedConversation.id).startsWith('pending-')) return false;
+    const trimmed = String(payload.body || '').trim();
+    const attachments = Array.isArray(payload.attachments) ? payload.attachments : [];
+    if (!messageHasSendableContent(trimmed, attachments.length)) return false;
     setPetFeedMessageSending(true);
     setPetFeedMessagesError('');
     try {
-      const response = await sendPetFeedConversationMessage(token, selectedPetFeedConversation.id, trimmed);
+      const mediaUrls: string[] = [];
+      for (const file of attachments) {
+        const kind = file.kind === 'video' ? 'video' : 'photo';
+        const contentType =
+          file.mimeType
+          || (kind === 'video' ? 'video/mp4' : 'image/jpeg');
+        mediaUrls.push(await uploadPetFeedChatMedia(token, file.uri, kind, contentType));
+      }
+      const response = await sendPetFeedConversationMessage(
+        token,
+        selectedPetFeedConversation.id,
+        trimmed,
+        mediaUrls,
+      );
       const created = response.data;
       if (created) {
         setPetFeedMessages((current) => (
           current.some((item) => item.id === created.id) ? current : [...current, created]
         ));
-        const preview = created.body.slice(0, 160);
+        const preview = inboxPreviewFromMessage(created.body, created.media_urls || mediaUrls);
         setSelectedPetFeedConversation((current) => (
           current
             ? {

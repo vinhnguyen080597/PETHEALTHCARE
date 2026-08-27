@@ -1196,7 +1196,12 @@ export async function listPetFeedConversationMessages(token: string, conversatio
   );
 }
 
-export async function sendPetFeedConversationMessage(token: string, conversationId: string, body: string) {
+export async function sendPetFeedConversationMessage(
+  token: string,
+  conversationId: string,
+  body: string,
+  mediaUrls: string[] = [],
+) {
   return requestJson<{ data: PetFeedMessage }>(
     `/pet-feed/conversations/${encodeURIComponent(conversationId)}/messages`,
     {
@@ -1205,9 +1210,41 @@ export async function sendPetFeedConversationMessage(token: string, conversation
         ...authHeaders(token),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({ body, media_urls: mediaUrls }),
     },
   );
+}
+
+export async function uploadPetFeedChatMedia(
+  token: string,
+  uri: string,
+  kind: 'photo' | 'video',
+  contentType: string,
+): Promise<string> {
+  const formData = new FormData();
+  formData.append('kind', kind);
+  const base = `chat-${kind}-${Date.now()}`;
+  if (kind === 'video') {
+    await appendVideoFileToFormData(formData, 'file', uri, base, contentType);
+  } else {
+    await appendImageFileToFormData(formData, 'file', uri, base, contentType);
+  }
+  const response = await requestJson<{ data: { publicUrl: string } }>(
+    '/pet-feed/uploads/chat-media',
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    },
+    true,
+    DIRECT_STORAGE_UPLOAD_TIMEOUT_MS,
+  );
+  if (!response.data?.publicUrl) {
+    const err = new ApiRequestError('Chat media upload did not return a URL.');
+    err.code = 'PET_FEED_CHAT_UPLOAD_FAILED';
+    throw err;
+  }
+  return response.data.publicUrl;
 }
 
 export async function reportBreederProfile(token: string, profileId: string, payload: { reason: string; note?: string }) {
