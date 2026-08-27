@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { showAccountBreederStatusBadge } from "../src/lib/accountBreederStatusBadge";
 
-test("hides verified breeder status badge until eligibility rules ship", () => {
+test("hides verified breeder status on Account and Edit Breeder profile", () => {
   assert.equal(showAccountBreederStatusBadge("verified"), false);
   assert.equal(showAccountBreederStatusBadge("Verified"), false);
 });

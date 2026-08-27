@@ -1,5 +1,12 @@
 /** Breeder transparency detail submissions — shared web/mobile contract. */
 
+/**
+ * Web Edit Breeder profile (`/app/account/breeder`) does not show the
+ * "Transparency details" upload section. Breeders submit facility video,
+ * license, and social links via Farm Trust guide earn actions instead.
+ */
+export const WEB_EDIT_BREEDER_SHOWS_TRANSPARENCY_DETAILS = false;
+
 export const BREEDER_SUBMISSION_TYPES = [
   "facility_video",
   "business_license",

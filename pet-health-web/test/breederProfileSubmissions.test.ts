@@ -7,10 +7,24 @@ import {
   socialSubmissionUrlError,
   SOCIAL_URL_ERROR_I18N_KEYS,
   validateSocialSubmissionUrl,
+  WEB_EDIT_BREEDER_SHOWS_TRANSPARENCY_DETAILS,
 } from "../src/lib/breederProfileSubmissions.ts";
 import type { BreederProfileSubmission } from "../src/lib/breederProfileSubmissions.ts";
 import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
+
+test("web Edit Breeder profile omits transparency details section", () => {
+  assert.equal(WEB_EDIT_BREEDER_SHOWS_TRANSPARENCY_DETAILS, false);
+  // Copy still used by Trust Guide earn modal / status badges.
+  assert.equal(
+    (vi as Record<string, string>)["account.breederDetails.title"],
+    "Chi tiết minh bạch",
+  );
+  assert.equal(
+    (en as Record<string, string>)["account.breederDetails.title"],
+    "Transparency details",
+  );
+});
 
 test("breederSubmissionTypeLabel returns VI/EN labels", () => {
   assert.equal(breederSubmissionTypeLabel("facility_video", "VI"), "Video cơ sở");

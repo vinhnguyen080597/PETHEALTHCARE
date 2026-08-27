@@ -31,7 +31,7 @@ import {
   splitRegistrationUnitForForm,
 } from "@/lib/breederRegistrationUnits";
 import { validateRegisteredKennelFields } from "@/lib/breederRegisteredKennelValidation";
-import { BreederTransparencyDetails } from "@/components/account/BreederTransparencyDetails";
+import { showAccountBreederStatusBadge } from "@/lib/accountBreederStatusBadge";
 import { TransparencyWarningModal } from "@/components/account/TransparencyWarningModal";
 
 const BREEDER_TYPES = [
@@ -376,7 +376,7 @@ export function BreederProfileForm({
       <p className="mt-1 text-sm text-[#5C4A3A]">
         {t(lang, "breederForm.subtitle")}
       </p>
-      {status !== "unverified" ? (
+      {status !== "unverified" && showAccountBreederStatusBadge(status) ? (
         <p className="mt-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">
           {t(lang, breederStatusLabel(status))}
         </p>
@@ -780,7 +780,6 @@ export function BreederProfileForm({
         </button>
       </form>
 
-      <BreederTransparencyDetails lang={lang} profile={initial} />
       <TransparencyWarningModal lang={lang} />
     </div>
   );
