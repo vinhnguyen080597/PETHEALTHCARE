@@ -206,6 +206,17 @@
       "emptyTitle": "Chưa có breeder nổi bật",
       "emptyBody": "Khi có bài đăng đã duyệt, những breeder hoạt động tốt sẽ được tổng hợp ở đây."
     },
+    "breedersCard": {
+      "reviews": "đánh giá",
+      "sold": "Bé đã có nhà",
+      "trustIndex": "Điểm minh bạch",
+      "cta": "Ghé Trại Giống",
+      "fastResponse": "Phản hồi trong 5 phút",
+      "activeKennel": "Trực tuyến",
+      "petsPreviewCount": "Lứa mới đang mở bán ({{n}} bé):",
+      "petsPreviewEmpty": "Chưa có bé đang mở bán",
+      "message": "Nhắn tin"
+    },
     "searchPlaceholder": "Bạn đang tìm bé thú cưng nào",
     "filtersTitle": "Lọc nhanh",
     "filterProvinceTitle": "Khu vực",

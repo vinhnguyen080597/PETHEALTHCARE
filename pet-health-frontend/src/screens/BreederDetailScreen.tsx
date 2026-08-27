@@ -15,11 +15,9 @@ import { useTranslation } from 'react-i18next';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { PetFeedListingCard } from '../components/PetFeedListingCard';
-import { ReportModal } from '../components/ReportModal';
 import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
 import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
-import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import { deleteWarrantyPolicy } from '../api';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../assets/farmProfileAssets';
@@ -71,8 +69,6 @@ type BreederDetailScreenProps = {
   profile: BreederProfile;
   posts: PetFeedPost[];
   onBack: () => void;
-  onReportBreeder: (profile: BreederProfile, reason: string, note?: string) => void;
-  onHideBreeder: (profile: BreederProfile) => void;
   onOpenPostDetail: (postId: string) => void;
   onOpenFarmHealth?: () => void;
   onOpenTemplatePicker?: () => void;
@@ -94,8 +90,6 @@ export function BreederDetailScreen({
   profile,
   posts = [],
   onBack,
-  onReportBreeder,
-  onHideBreeder,
   onOpenPostDetail,
   onOpenFarmHealth,
   onOpenTemplatePicker,
@@ -116,9 +110,6 @@ export function BreederDetailScreen({
   const [activeTab, setActiveTab] = useState<FarmDetailTab>(initialTab);
   const [petFilter, setPetFilter] = useState<FarmPetAvailabilityFilter>('all');
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const [reportVisible, setReportVisible] = useState(false);
-  const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
-  const [reportNote, setReportNote] = useState('');
   const [viewingWarranty, setViewingWarranty] = useState<WarrantyPolicy | null>(null);
   const [warrantyMenuId, setWarrantyMenuId] = useState<string | null>(null);
   const [warrantyBusyId, setWarrantyBusyId] = useState<string | null>(null);
@@ -156,13 +147,6 @@ export function BreederDetailScreen({
     [farmPetCount, t],
   );
 
-  function confirmHideBreeder() {
-    Alert.alert(t('breederDetail.blockTitle'), t('breederDetail.blockBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('breederDetail.blockConfirm'), style: 'destructive', onPress: () => onHideBreeder(profile) },
-    ]);
-  }
-
   function confirmDeleteWarranty(policy: WarrantyPolicy) {
     if (!token) return;
     Alert.alert(t('farm.warranty.delete'), t('farm.warranty.deleteConfirm'), [
@@ -189,12 +173,6 @@ export function BreederDetailScreen({
         },
       },
     ]);
-  }
-
-  function submitProfileReport() {
-    onReportBreeder(profile, reportReason, reportNote);
-    setReportVisible(false);
-    setReportNote('');
   }
 
   async function changeFarmPhoto(kind: FarmPhotoKind) {
@@ -229,7 +207,7 @@ export function BreederDetailScreen({
   }
 
   return (
-    <View testID="breeder-detail-screen" style={{ flex: 1, backgroundColor: FARM_BG }}>
+    <View testID="breeder-detail-screen" style={{ flex: 1, minHeight: 0, backgroundColor: FARM_BG }}>
       <View
         style={{
           flexDirection: 'row',
@@ -255,7 +233,12 @@ export function BreederDetailScreen({
         <View className="w-14" />
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: isOwnProfile ? 28 : 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1, minHeight: 0 }}
+        contentContainerStyle={{ paddingBottom: 28, flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+      >
         <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
           <View style={{ height: 148, borderRadius: 16, overflow: 'hidden', backgroundColor: '#E7D5C0' }}>
             <Image
@@ -425,26 +408,6 @@ export function BreederDetailScreen({
                 ) : null}
               </View>
             </View>
-          </View>
-        </View>
-
-        <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
-          <View
-            style={{
-              backgroundColor: '#FFFBEB',
-              borderWidth: 1,
-              borderColor: '#FDE68A',
-              borderRadius: 12,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              flexDirection: 'row',
-              gap: 8,
-            }}
-          >
-            <Text style={{ fontSize: 14 }}>⚠️</Text>
-            <Text style={{ flex: 1, fontSize: 11, color: '#92400E', lineHeight: 16 }}>
-              {t('breederDetail.disclaimer')}
-            </Text>
           </View>
         </View>
 
@@ -859,10 +822,6 @@ export function BreederDetailScreen({
       {!isOwnProfile ? (
         <View
           style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
             borderTopWidth: 1,
             borderTopColor: FARM_BORDER,
             backgroundColor: '#fff',
@@ -885,30 +844,6 @@ export function BreederDetailScreen({
           >
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>💬 {t('farm.cta.message')}</Text>
           </Pressable>
-          <Pressable
-            disabled
-            accessibilityState={{ disabled: true }}
-            style={{
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: FARM_BORDER,
-              paddingVertical: 11,
-              alignItems: 'center',
-              opacity: 0.55,
-            }}
-          >
-            <Text style={{ color: FARM_TEXT, fontWeight: '600', fontSize: 13 }}>
-              📹 {t('farm.cta.video')} · {t('farm.cta.videoSoon')}
-            </Text>
-          </Pressable>
-          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 18, paddingTop: 2 }}>
-            <Pressable onPress={() => setReportVisible(true)}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: FARM_MUTED }}>{t('breederDetail.reportProfile')}</Text>
-            </Pressable>
-            <Pressable onPress={confirmHideBreeder}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#DC2626' }}>{t('breederDetail.hideBreeder')}</Text>
-            </Pressable>
-          </View>
         </View>
       ) : null}
 
@@ -958,21 +893,6 @@ export function BreederDetailScreen({
         policy={viewingWarranty}
         primarySpecies={profile.primary_species}
         onClose={() => setViewingWarranty(null)}
-      />
-
-      <ReportModal
-        visible={reportVisible}
-        title={t('breederDetail.reportProfile')}
-        body={t('breederDetail.reportBody')}
-        reason={reportReason}
-        note={reportNote}
-        reasonLabel={(reason) => t(`breederDetail.reportReasons.${reason}`)}
-        notePlaceholder={t('breederDetail.reportNotePlaceholder')}
-        submitLabel={t('breederDetail.submitReport')}
-        onChangeReason={setReportReason}
-        onChangeNote={setReportNote}
-        onCancel={() => setReportVisible(false)}
-        onSubmit={submitProfileReport}
       />
     </View>
   );

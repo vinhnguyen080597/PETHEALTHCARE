@@ -24,7 +24,16 @@ import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { PetTypeFilterRow } from '../components/PetTypeFilterRow';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { ALL_PROVINCES_FILTER, VIETNAM_PROVINCES, type ProvinceFilter } from '../constants/vietnamProvinces';
-import { computeBreederTrust, metadataString } from '../utils/breederTrust';
+import { metadataString } from '../utils/breederTrust';
+import {
+  breederCardSpecialtyLabel,
+  buildBreederPetThumbs,
+  canShowBreederMessageAction,
+  getBreederDirectoryCardMetrics,
+  resolveBreederCardActivity,
+} from '../utils/breederDirectoryCard';
+import { countFarmPetsRehomed } from '../utils/farmPets';
+import { resolveFarmAvatarUrl, resolveFarmCoverUrl } from '../utils/farmProfileDisplay';
 import { rankBreedersWithHomeQuota } from '../utils/breederQualityIndex';
 import {
   countPostsByGender,
@@ -91,6 +100,7 @@ type PetFeedScreenProps = {
   onOpenPostDetail: (postId: string) => void;
   onToggleFavorite?: (post: PetFeedPost) => void;
   onMessageBreeder?: (post: PetFeedPost) => void;
+  onMessageFarm?: (profile: BreederProfile) => void;
   currentUserId?: string | null;
   /** When set, switch to feed tab and scroll to this post, then call onFocusPostHandled. */
   focusPostId?: string | null;
@@ -199,13 +209,14 @@ export function PetFeedScreen({
   onOpenPostDetail,
   onToggleFavorite,
   onMessageBreeder,
+  onMessageFarm,
   currentUserId = null,
   focusPostId = null,
   onFocusPostHandled,
   enabledTabs = { news: true, feed: true, breeders: true },
   marketplaceEscrowEnabled = false,
 }: PetFeedScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const listRef = useRef<FlatList<FeedListItem>>(null);
@@ -272,14 +283,6 @@ export function PetFeedScreen({
     setSortField(field);
     setSortDirection('asc');
   }
-
-  const translatedOption = useCallback((namespace: string, value: string) => {
-    const normalized = value.trim().toLowerCase();
-    if (!normalized) return '';
-    const key = `${namespace}.${normalized}`;
-    const translated = t(key);
-    return translated === key ? value : translated;
-  }, [t]);
 
   const sortItems = useMemo<ChipItem<PetFeedSortChipField>[]>(() => (
     PET_FEED_SORT_CHIP_FIELDS.map((key) => ({
@@ -505,36 +508,53 @@ export function PetFeedScreen({
     }
 
     const profile = item.item.profile;
-    const primarySpecies = Array.isArray(profile.primary_species) ? profile.primary_species : [];
-    const species = primarySpecies.length ? primarySpecies : item.item.species;
-    const scaleRange = metadataString(profile.metadata, 'scaleRange');
-    const breederType = metadataString(profile.metadata, 'breederType');
-    const trust = computeBreederTrust(profile, item.item.posts);
-    const speciesLabel = species.map((value) => translatedOption('breederProfile.speciesOptions', value)).filter(Boolean).join(', ');
-    const scaleLabel = scaleRange ? t(`breederProfile.scaleOptions.${scaleRange}`) : t('petFeed.topBreeders.notUpdated');
-    const breederTypeLabel = breederType ? t(`breederProfile.breederTypes.${breederType}`) : t('petFeed.topBreeders.notUpdated');
+    const postsForFarm = item.item.posts;
+    const metrics = getBreederDirectoryCardMetrics(
+      profile,
+      postsForFarm,
+      countFarmPetsRehomed(postsForFarm),
+    );
+    const activity = resolveBreederCardActivity(profile, metrics);
+    const lang = i18n.language?.toLowerCase().startsWith('en') ? 'en' : 'vi';
     const name = profile.display_name || t('petFeed.breederFallback');
+    const showMessage = canShowBreederMessageAction(currentUserId, profile.user_id);
 
     return (
       <View className="px-5">
         <TopBreederCard
           data={{
             name,
-            location: profile.location || t('petFeed.locationUnknown'),
-            speciesLabel,
-            score: trust.score,
-            scaleLabel,
-            listingsCount: item.item.postCount,
-            typeLabel: breederTypeLabel,
-            verified: profile.verification_status === 'verified',
-            rank: item.rank,
+            location: profile.location || t('farm.locationFallback'),
+            specialtyLabel: breederCardSpecialtyLabel(profile, lang),
+            coverUrl: resolveFarmCoverUrl(profile),
+            avatarUrl: resolveFarmAvatarUrl(profile),
+            trustScore: metrics.trustScore,
+            rating: metrics.rating,
+            reviewCount: metrics.reviewCount,
+            petsRehomed: metrics.petsRehomed,
+            showSold: metrics.showSold,
+            activityKind: activity.kind,
+            petThumbs: buildBreederPetThumbs(postsForFarm),
           }}
+          showMessageButton={showMessage}
           accessibilityLabel={t('petFeed.accessibility.openBreederProfile', { name })}
-          onPress={() => onOpenBreederDetail(profile.id || profile.user_id)}
+          onPressVisit={() => onOpenBreederDetail(profile.id || profile.user_id)}
+          onPressMessage={() => onMessageFarm?.(profile)}
+          onPressPet={(listingId) => onOpenPostDetail(listingId)}
         />
       </View>
     );
-  }, [activeTab, onOpenBreederDetail, t, translatedOption]);
+  }, [
+    activeTab,
+    currentUserId,
+    i18n.language,
+    onMessageBreeder,
+    onMessageFarm,
+    onOpenBreederDetail,
+    onOpenPostDetail,
+    onToggleFavorite,
+    t,
+  ]);
 
   const renderEmptyState = useCallback(() => {
     if (showListSkeleton) return <PetFeedSkeleton />;

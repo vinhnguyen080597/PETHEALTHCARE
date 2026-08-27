@@ -413,6 +413,7 @@ function AppContent() {
                 onOpenPostDetail={app.openPetFeedPostDetail}
                 onToggleFavorite={app.togglePetFeedFavorite}
                 onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
+                onMessageFarm={(profile) => void app.openOrCreateConversationFromFarm(profile)}
                 currentUserId={app.accountProfile?.user_id ?? null}
                 focusPostId={app.screen === 'pet-feed' ? app.petFeedFocusPostId : null}
                 onFocusPostHandled={app.clearPetFeedFocusPostId}
@@ -449,12 +450,11 @@ function AppContent() {
             ) : null}
 
             {app.screen === 'breeder-detail' && app.selectedBreederProfile ? (
+              <View style={{ flex: 1, minHeight: 0 }}>
               <BreederDetailScreen
                 profile={app.selectedBreederProfile}
                 posts={app.selectedBreederPosts}
                 onBack={app.closeBreederDetail}
-                onReportBreeder={app.submitBreederProfileReport}
-                onHideBreeder={app.hideBreederProfile}
                 onOpenPostDetail={app.openPetFeedPostDetail}
                 onOpenFarmHealth={app.openFarmHealth}
                 onOpenTemplatePicker={app.openTemplatePicker}
@@ -469,6 +469,7 @@ function AppContent() {
                 token={app.token}
                 initialTab={app.breederDetailTab}
               />
+              </View>
             ) : null}
 
             {app.screen === 'farm-health' && app.selectedBreederProfile ? (

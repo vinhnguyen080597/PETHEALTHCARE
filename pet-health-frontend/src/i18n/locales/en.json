@@ -206,6 +206,17 @@
       "emptyTitle": "No top breeders yet",
       "emptyBody": "After approved listings are available, active breeders will be summarized here."
     },
+    "breedersCard": {
+      "reviews": "reviews",
+      "sold": "pets rehomed",
+      "trustIndex": "Transparency",
+      "cta": "Visit kennel",
+      "fastResponse": "Replies within 5 min",
+      "activeKennel": "Online",
+      "petsPreviewCount": "Litter on sale ({{n}} pets):",
+      "petsPreviewEmpty": "No pets currently for sale",
+      "message": "Message"
+    },
     "searchPlaceholder": "Which pet are you looking for?",
     "filtersTitle": "Quick filters",
     "filterProvinceTitle": "Area",
