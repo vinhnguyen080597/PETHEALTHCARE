@@ -1645,6 +1645,15 @@
     "removePhoto": "Remove",
     "analyze": "Get suggestion",
     "analyzing": "Analyzing…",
+    "analyzeFailedTitle": "Could not analyze",
+    "errors": {
+      "duplicateImage": "Duplicate photos are not useful for AI analysis. Please upload different views.",
+      "photoRequired": "Please add the required photos before analyzing.",
+      "imageTooSmall": "One of the photos is too small or empty. Please upload a clearer photo.",
+      "imageInvalid": "One of the photos looks invalid. Please upload a real JPEG or PNG.",
+      "tooManyPhotos": "Too many photos were sent. Please remove extras and try again.",
+      "timeout": "The request timed out. Please try again."
+    },
     "needRequiredPhotos": "Please add all three required photos: front face, full-body side profile, coat/pattern.",
     "needRequiredPhotosWithList": "Still needed: {{photos}}.",
     "resultTitle": "Preliminary result",

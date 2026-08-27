@@ -165,6 +165,14 @@ import type { AppScreen } from '../screens/types';
 import type { FarmDetailTab } from '../utils/farmProfileDisplay';
 import type { WarrantyPolicy } from '../utils/warrantyPolicy';
 import { resolveBreederProfileReturnScreen } from '../utils/breederProfileNavigation';
+import {
+  resolveCareServicesReturnScreen,
+  resolveCoreCareReturnScreen,
+  resolveHealthCheckReturnScreen,
+  type CareHubReturnScreen,
+  type CoreCareReturnScreen,
+  type HealthCheckReturnScreen,
+} from '../utils/careServicesNavigation';
 
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
@@ -180,6 +188,7 @@ import {
 import { postsForBreeder } from '../utils/breederTrust';
 import { canOpenOwnFarmProfile, resolveOwnFarmProfileId } from '../utils/ownFarmProfileNav';
 import { farmChatErrorKey } from '../utils/farmChat';
+import { breedRecognitionErrorMessage } from '../utils/breedRecognitionErrors';
 import {
   inboxPreviewFromMessage,
   messageHasSendableContent,
@@ -517,6 +526,9 @@ export function usePetHealthApp() {
   );
   /** Health check opened from pet profile — back / results return to profile, not home. */
   const [healthCheckReturnToProfile, setHealthCheckReturnToProfile] = useState(false);
+  const [healthCheckReturnScreen, setHealthCheckReturnScreen] = useState<HealthCheckReturnScreen>('home');
+  const [careServicesReturnScreen, setCareServicesReturnScreen] = useState<CareHubReturnScreen>('home');
+  const [coreCareReturnScreen, setCoreCareReturnScreen] = useState<CoreCareReturnScreen>('pet-profile');
   const [analysisProgressStage, setAnalysisProgressStage] = useState<AnalysisProgressStage>('uploading');
   const [analysisProgressMessage, setAnalysisProgressMessage] = useState('');
   const [healthCheckInlineError, setHealthCheckInlineError] = useState('');
@@ -526,6 +538,7 @@ export function usePetHealthApp() {
   const [breedRecognitionSlotUris, setBreedRecognitionSlotUris] = useState<Record<string, string>>({});
   const [breedRecognitionResult, setBreedRecognitionResult] = useState<BreedRecognitionResult | null>(null);
   const [breedRecognitionLoading, setBreedRecognitionLoading] = useState(false);
+  const [breedRecognitionSubmitError, setBreedRecognitionSubmitError] = useState('');
   const [breedRecognitionReturnScreen, setBreedRecognitionReturnScreen] = useState<
     'health-check' | 'onboarding-health-check' | 'onboarding-health-prompt' | 'pet-profile' | null
   >(null);
@@ -1680,6 +1693,7 @@ export function usePetHealthApp() {
 
   async function openCareServices(petId: string) {
     setSelectedPetId(petId);
+    setCareServicesReturnScreen(resolveCareServicesReturnScreen(screen));
     try {
       await preloadServicesOnboardingImages();
     } catch {
@@ -1689,7 +1703,7 @@ export function usePetHealthApp() {
   }
 
   function closeCareServices() {
-    setScreen('home');
+    setScreen(careServicesReturnScreen || 'home');
   }
 
   async function showServicesPromptForNewPet(petId: string) {
@@ -1771,12 +1785,16 @@ export function usePetHealthApp() {
   function goToHealthCheckFromServicesPrompt() {
     if (!selectedPetId || !isFeatureEnabled('health_analysis')) return;
     clearHealthCheckForm();
+    setHealthCheckReturnToProfile(false);
+    setHealthCheckReturnScreen(
+      resolveHealthCheckReturnScreen(screen, { fromCareHub: true }),
+    );
     setScreen(initialOnboarding ? 'onboarding-health-check' : 'health-check');
   }
 
   async function goToCoreCareFromServicesPrompt() {
     if (!selectedPetId) return;
-    await openCoreCare(selectedPetId);
+    await openCoreCare(selectedPetId, { returnTo: 'onboarding-health-prompt' });
   }
 
   /** @deprecated Use goToHealthCheckFromServicesPrompt */
@@ -1789,7 +1807,7 @@ export function usePetHealthApp() {
       await completeInitialOnboarding();
     }
     clearHealthCheckForm();
-    setScreen('home');
+    setScreen(careServicesReturnScreen || 'home');
     if (token) void fetchPets(token);
   }
 
@@ -1939,11 +1957,17 @@ export function usePetHealthApp() {
     }
   }
 
-  async function openCoreCare(petId: string = selectedPetId ?? '') {
+  async function openCoreCare(
+    petId: string = selectedPetId ?? '',
+    options?: { returnTo?: CoreCareReturnScreen },
+  ) {
     if (!token || !petId) {
       Alert.alert(i18n.t('alerts.selectPet.title'), i18n.t('alerts.selectPet.message'));
       return;
     }
+    setCoreCareReturnScreen(
+      resolveCoreCareReturnScreen(screen, coreCareReturnScreen, options?.returnTo),
+    );
     setSelectedPetId(petId);
     setLoading(true);
     try {
@@ -1959,7 +1983,7 @@ export function usePetHealthApp() {
   }
 
   function closeCoreCare() {
-    setScreen('pet-profile');
+    setScreen(coreCareReturnScreen || 'pet-profile');
   }
 
   function openCoreCareInfo() {
@@ -4019,12 +4043,12 @@ export function usePetHealthApp() {
     setHealthCheckInlineError('');
     if (initialOnboarding) {
       setScreen('onboarding-health-prompt');
-    } else if (healthCheckReturnToProfile) {
-      setHealthCheckReturnToProfile(false);
-      setScreen('pet-profile');
-    } else {
-      setScreen('home');
+      return;
     }
+    const target = healthCheckReturnScreen || (healthCheckReturnToProfile ? 'pet-profile' : 'home');
+    setHealthCheckReturnToProfile(false);
+    setHealthCheckReturnScreen('home');
+    setScreen(target);
   }
 
   async function openHistory() {
@@ -4149,6 +4173,7 @@ export function usePetHealthApp() {
     setBreedRecognitionSlotUris({});
     setBreedRecognitionResult(null);
     setBreedRecognitionLoading(false);
+    setBreedRecognitionSubmitError('');
     setScreen('login');
   }
 
@@ -4156,6 +4181,7 @@ export function usePetHealthApp() {
     setBreedRecognitionSlotUris({});
     setBreedRecognitionResult(null);
     setBreedRecognitionLoading(false);
+    setBreedRecognitionSubmitError('');
   }
 
   function openBreedRecognition(
@@ -4207,6 +4233,7 @@ export function usePetHealthApp() {
         { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG },
       );
       setBreedRecognitionSlotUris((prev) => ({ ...prev, [slot]: compressed.uri }));
+      setBreedRecognitionSubmitError('');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('alerts.photosError.title'), i18n.t('alerts.photosError.message', { message }));
@@ -4214,6 +4241,7 @@ export function usePetHealthApp() {
   }
 
   function clearBreedRecognitionSlot(slot: BreedRecognitionSlot) {
+    setBreedRecognitionSubmitError('');
     setBreedRecognitionSlotUris((prev) => {
       const next = { ...prev };
       delete next[slot];
@@ -4225,6 +4253,7 @@ export function usePetHealthApp() {
     if (!token || !selectedPetId) return;
     setBreedRecognitionLoading(true);
     setBreedRecognitionResult(null);
+    setBreedRecognitionSubmitError('');
     setScreen('breed-recognition-progress');
     try {
       const res = await requestBreedRecognition(token, {
@@ -4251,17 +4280,16 @@ export function usePetHealthApp() {
             : prev,
         );
       }
-      const message =
-        error instanceof ApiRequestError && error.code === 'AI_CREDITS_EXHAUSTED'
-          ? i18n.t('alerts.aiCreditsExhaustedBreed.message')
-          : error instanceof Error
-            ? error.message
-            : i18n.t('common.unknownError');
-      Alert.alert(i18n.t('breedRecognition.title'), message);
+      const message = breedRecognitionErrorMessage(error, (key) => i18n.t(key));
+      setBreedRecognitionSubmitError(message);
       setScreen('breed-recognition');
     } finally {
       setBreedRecognitionLoading(false);
     }
+  }
+
+  function dismissBreedRecognitionSubmitError() {
+    setBreedRecognitionSubmitError('');
   }
 
   function editBreedRecognitionPhotos() {
@@ -4664,6 +4692,9 @@ export function usePetHealthApp() {
   function goToCameraForPet(petId: string, opts?: { returnToProfile?: boolean }) {
     if (!isFeatureEnabled('health_analysis')) return;
     setHealthCheckReturnToProfile(Boolean(opts?.returnToProfile));
+    setHealthCheckReturnScreen(
+      resolveHealthCheckReturnScreen(screen, { returnToProfile: opts?.returnToProfile }),
+    );
     setSelectedPetId(petId);
     clearHealthCheckForm();
     setHealthCheckInlineError('');
@@ -5026,9 +5057,11 @@ export function usePetHealthApp() {
     breedRecognitionSlotUris,
     breedRecognitionResult,
     breedRecognitionLoading,
+    breedRecognitionSubmitError,
     pickBreedRecognitionSlot,
     clearBreedRecognitionSlot,
     submitBreedRecognition,
+    dismissBreedRecognitionSubmitError,
     editBreedRecognitionPhotos,
     applyBreedRecognitionToProfile,
     handleOnboardingAddPet,

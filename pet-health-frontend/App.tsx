@@ -386,7 +386,7 @@ function AppContent() {
                 pointerEvents={app.screen === 'pet-feed' ? 'auto' : 'none'}
                 style={
                   app.screen === 'pet-feed'
-                    ? { flex: 1 }
+                    ? { flex: 1, minHeight: 0 }
                     : [StyleSheet.absoluteFillObject, { opacity: 0 }]
                 }
                 importantForAccessibility={app.screen === 'pet-feed' ? 'yes' : 'no-hide-descendants'}
@@ -920,6 +920,7 @@ function AppContent() {
                 pet={app.selectedPet}
                 slotUris={app.breedRecognitionSlotUris}
                 loading={app.breedRecognitionLoading}
+                analyzeError={app.breedRecognitionSubmitError}
                 aiCredits={app.aiCredits}
                 aiCreditCost={breedCreditCost}
                 rewardedAdCredits={rewardedAdCredits}
@@ -927,6 +928,7 @@ function AppContent() {
                 onPickSlot={app.pickBreedRecognitionSlot}
                 onClearSlot={app.clearBreedRecognitionSlot}
                 onAnalyze={app.submitBreedRecognition}
+                onDismissAnalyzeError={app.dismissBreedRecognitionSubmitError}
                 onWatchRewardedAd={rewardedAdsEnabled ? app.watchRewardedAdForCredit : undefined}
                 onSubscribePremium={subscriptionEnabled ? app.openPremiumSubscription : undefined}
               />

@@ -70,6 +70,7 @@ type PetBreedRecognitionScreenProps = {
   pet: Pet;
   slotUris: Record<string, string>;
   loading: boolean;
+  analyzeError?: string;
   aiCredits?: AiCreditAccount | null;
   aiCreditCost?: number;
   rewardedAdCredits?: number;
@@ -77,6 +78,7 @@ type PetBreedRecognitionScreenProps = {
   onPickSlot: (slot: BreedRecognitionSlot) => void;
   onClearSlot: (slot: BreedRecognitionSlot) => void;
   onAnalyze: () => void;
+  onDismissAnalyzeError?: () => void;
   onWatchRewardedAd?: () => Promise<boolean>;
   onSubscribePremium?: () => void;
 };
@@ -230,6 +232,7 @@ export function PetBreedRecognitionScreen({
   pet,
   slotUris,
   loading,
+  analyzeError = '',
   aiCredits = null,
   aiCreditCost = 1,
   rewardedAdCredits = 1,
@@ -237,6 +240,7 @@ export function PetBreedRecognitionScreen({
   onPickSlot,
   onClearSlot,
   onAnalyze,
+  onDismissAnalyzeError,
   onWatchRewardedAd,
   onSubscribePremium,
 }: PetBreedRecognitionScreenProps) {
@@ -587,6 +591,29 @@ export function PetBreedRecognitionScreen({
           </Text>
         ) : null}
       </View>
+
+      <Modal
+        visible={Boolean(analyzeError)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => onDismissAnalyzeError?.()}
+      >
+        <View testID="breed-recognition-error-modal" className="flex-1 items-center justify-center bg-black/40 px-6">
+          <View className="w-full max-w-md rounded-2xl bg-white p-5">
+            <Text className="text-base font-bold text-slate-900">{t('breedRecognition.analyzeFailedTitle')}</Text>
+            <Text className="mt-2 text-sm leading-5 text-slate-600">{analyzeError}</Text>
+            <Pressable
+              testID="breed-recognition-error-ok-button"
+              accessibilityRole="button"
+              className="mt-5 items-center rounded-xl py-3 active:opacity-90"
+              style={{ backgroundColor: PRIMARY }}
+              onPress={() => onDismissAnalyzeError?.()}
+            >
+              <Text className="text-sm font-bold text-white">{t('common.ok')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showModal}

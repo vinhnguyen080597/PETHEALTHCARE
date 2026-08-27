@@ -693,65 +693,33 @@ export function PetFeedScreen({
 
   return (
     <>
-    <FlatList
-      ref={listRef}
-      testID="pet-feed-screen"
-      className="flex-1 bg-[#F2F4F8]"
-      data={listItems}
-      keyExtractor={(item) => item.id}
-      renderItem={renderListItem}
-      ItemSeparatorComponent={ListSeparator}
-      ListEmptyComponent={renderEmptyState}
-      ListFooterComponent={renderFooter}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.btnPrimary} />}
-      showsVerticalScrollIndicator={false}
-      initialNumToRender={6}
-      maxToRenderPerBatch={6}
-      windowSize={7}
-      removeClippedSubviews={Platform.OS !== 'web'}
-      onScrollToIndexFailed={(info) => {
-        listRef.current?.scrollToOffset({
-          offset: Math.max(0, info.averageItemLength * info.index),
-          animated: true,
-        });
-        setTimeout(() => {
-          listRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.08 });
-        }, 120);
-      }}
-      onEndReached={() => {
-        if (!shouldLoadMore) return;
-        if (activeTab === 'news') onLoadMoreAnnouncements();
-        else if (activeTab === 'feed') onLoadMore();
-      }}
-      onEndReachedThreshold={0.45}
-      contentContainerStyle={{ paddingBottom: 24 }}
-      ListHeaderComponent={(
-        <>
-          <View className="flex-row items-center gap-2 bg-white px-5 pb-3 pt-4">
-            <View className="min-w-0 flex-1 flex-row items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2">
-              <Ionicons name="search-outline" size={20} color="#64748b" />
-              <TextInput
-                testID="pet-feed-search-input"
-                accessibilityLabel={t('petFeed.accessibility.search')}
-                className="min-w-0 flex-1 text-base text-slate-900"
-                style={WEB_SEARCH_INPUT_STYLE}
-                placeholder={t('petFeed.searchPlaceholder')}
-                placeholderTextColor="#94a3b8"
-                value={query}
-                onChangeText={setQuery}
-                returnKeyType="search"
-              />
-              {query.trim() ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('petFeed.accessibility.clearSearch')}
-                  onPress={() => setQuery('')}
-                >
-                  <Ionicons name="close-circle" size={20} color="#94a3b8" />
-                </Pressable>
-              ) : null}
-            </View>
-            {enabledTabs.feed ? (
+    <View testID="pet-feed-screen" className="flex-1 bg-[#F2F4F8]" style={{ minHeight: 0 }}>
+      <View className="bg-white" style={{ zIndex: 2, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+        <View className="flex-row items-center gap-2 bg-white px-5 pb-3 pt-4">
+          <View className="min-w-0 flex-1 flex-row items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2">
+            <Ionicons name="search-outline" size={20} color="#64748b" />
+            <TextInput
+              testID="pet-feed-search-input"
+              accessibilityLabel={t('petFeed.accessibility.search')}
+              className="min-w-0 flex-1 text-base text-slate-900"
+              style={WEB_SEARCH_INPUT_STYLE}
+              placeholder={t('petFeed.searchPlaceholder')}
+              placeholderTextColor="#94a3b8"
+              value={query}
+              onChangeText={setQuery}
+              returnKeyType="search"
+            />
+            {query.trim() ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('petFeed.accessibility.clearSearch')}
+                onPress={() => setQuery('')}
+              >
+                <Ionicons name="close-circle" size={20} color="#94a3b8" />
+              </Pressable>
+            ) : null}
+          </View>
+          {enabledTabs.feed ? (
             <Pressable
               testID="pet-feed-filter-sidebar-button"
               accessibilityRole="button"
@@ -767,21 +735,21 @@ export function PetFeedScreen({
             >
               <Ionicons name="menu-outline" size={22} color={hasActiveFilters ? BRAND.btnPrimary : BRAND.textMuted} />
             </Pressable>
-            ) : (
-              <View className="h-9 w-9" />
-            )}
+          ) : (
+            <View className="h-9 w-9" />
+          )}
+        </View>
+
+        <PetTypeFilterRow value={petTypeFilter} onChange={setPetTypeFilter} />
+
+        {enabledTabs.feed ? (
+          <View className="mx-5 mb-3">
+            <MarketplaceDisclaimerAlert compact />
           </View>
+        ) : null}
 
-          <PetTypeFilterRow value={petTypeFilter} onChange={setPetTypeFilter} />
-
-          {enabledTabs.feed ? (
-            <View className="mx-5 mb-3">
-              <MarketplaceDisclaimerAlert compact />
-            </View>
-          ) : null}
-
-          {visibleTabs.length > 1 ? (
-          <View className="mb-3 border-b border-gray-200 bg-white px-2 pb-2">
+        {visibleTabs.length > 1 ? (
+          <View className="px-2 pb-2">
             <View
               className="flex-row rounded-xl p-0.5"
               style={{
@@ -834,10 +802,43 @@ export function PetFeedScreen({
               })}
             </View>
           </View>
-          ) : null}
-        </>
-      )}
+        ) : null}
+      </View>
+
+    <FlatList
+      ref={listRef}
+      className="flex-1 bg-[#F2F4F8]"
+      style={{ flex: 1, minHeight: 0 }}
+      data={listItems}
+      keyExtractor={(item) => item.id}
+      renderItem={renderListItem}
+      ItemSeparatorComponent={ListSeparator}
+      ListEmptyComponent={renderEmptyState}
+      ListFooterComponent={renderFooter}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.btnPrimary} />}
+      showsVerticalScrollIndicator={false}
+      initialNumToRender={6}
+      maxToRenderPerBatch={6}
+      windowSize={7}
+      removeClippedSubviews={Platform.OS !== 'web'}
+      onScrollToIndexFailed={(info) => {
+        listRef.current?.scrollToOffset({
+          offset: Math.max(0, info.averageItemLength * info.index),
+          animated: true,
+        });
+        setTimeout(() => {
+          listRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.08 });
+        }, 120);
+      }}
+      onEndReached={() => {
+        if (!shouldLoadMore) return;
+        if (activeTab === 'news') onLoadMoreAnnouncements();
+        else if (activeTab === 'feed') onLoadMore();
+      }}
+      onEndReachedThreshold={0.45}
+      contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}
     />
+    </View>
     <Modal visible={filterVisible} transparent animationType="fade" onRequestClose={() => { setProvincePickerOpen(false); setFilterVisible(false); }}>
       <View className="flex-1">
         <Pressable className="absolute inset-0" accessibilityRole="button" accessibilityLabel={t('petFeed.accessibility.closeFilters')} onPress={() => { setProvincePickerOpen(false); setFilterVisible(false); }} />

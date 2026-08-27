@@ -1642,6 +1642,15 @@
     "removePhoto": "Gỡ",
     "analyze": "Phân tích gợi ý",
     "analyzing": "Đang phân tích…",
+    "analyzeFailedTitle": "Không phân tích được",
+    "errors": {
+      "duplicateImage": "Ảnh trùng nhau không giúp AI phân tích. Hãy tải lên các góc chụp khác nhau.",
+      "photoRequired": "Vui lòng thêm đủ ảnh bắt buộc trước khi phân tích.",
+      "imageTooSmall": "Một ảnh quá nhỏ hoặc trống. Hãy tải ảnh rõ hơn.",
+      "imageInvalid": "Một ảnh không hợp lệ. Hãy tải JPEG hoặc PNG thật.",
+      "tooManyPhotos": "Quá nhiều ảnh. Hãy bỏ bớt rồi thử lại.",
+      "timeout": "Yêu cầu hết thời gian chờ. Vui lòng thử lại."
+    },
     "needRequiredPhotos": "Vui lòng tải đủ 3 ảnh bắt buộc: mặt chính diện, toàn thân ngang, lông/vân màu.",
     "needRequiredPhotosWithList": "Cần thêm: {{photos}}.",
     "resultTitle": "Kết quả sơ bộ",
