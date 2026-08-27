@@ -967,7 +967,7 @@
     }
   },
   "breederProfile": {
-    "title": "Breeder registration",
+    "title": "Register as Breeder",
     "profileInfo": "Application information",
     "maiTitle": "Mai's note for pet parents",
     "maiBody": "Pet parent, please provide accurate and complete information to build trust when applying for Breeder access. This verification only applies inside PetCare: Pet Marketplace and helps admins review before allowing Pet Feed posts. Review usually takes about 1 day. If details are unclear, admin may request updates or reject the application.",
@@ -1002,7 +1002,7 @@
     "phone": "Phone number",
     "facebook": "Facebook URL",
     "zalo": "Zalo / phone",
-    "profileInfoRequiredHint": "All fields below are required.",
+    "profileInfoRequiredHint": "Fields marked with * are required.",
     "errors": {
       "displayNameRequired": "Please enter a kennel / caregiver name.",
       "locationRequired": "Please select a location.",
@@ -1074,7 +1074,14 @@
       "and": " and ",
       "guidelinesLink": "Marketplace Guidelines",
       "combinedAfter": "."
-    }
+    },
+    "createTitle": "Register as Breeder",
+    "editTitle": "Edit profile",
+    "subtitle": "Submit clear details for admin review. After approval you can create listings.",
+    "mainBreedsHint": "Comma-separated, e.g. Golden Retriever, Poodle",
+    "registeredAtPlaceholder": "YYYY",
+    "commitmentsRequiredInline": "Please accept the transparency commitments to submit for review.",
+    "registrationUnitPlaceholder": "Select registration authority"
   },
   "createPetFeedPost": {
     "title": "Create Pet Feed post",

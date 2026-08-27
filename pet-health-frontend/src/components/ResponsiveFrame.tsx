@@ -8,7 +8,7 @@ type ResponsiveFrameProps = {
 
 export function ResponsiveFrame({ children, maxWidth = 760 }: ResponsiveFrameProps) {
   return (
-    <View className="flex-1 self-center" style={{ width: '100%', maxWidth }}>
+    <View className="flex-1 self-center" style={{ width: '100%', maxWidth, minHeight: 0 }}>
       {children}
     </View>
   );

@@ -163,6 +163,8 @@ import type {
 import type { AppScreen } from '../screens/types';
 import type { FarmDetailTab } from '../utils/farmProfileDisplay';
 import type { WarrantyPolicy } from '../utils/warrantyPolicy';
+import { resolveBreederProfileReturnScreen } from '../utils/breederProfileNavigation';
+
 import type { AnalysisProgressStage } from '../screens/AnalysisProgressScreen';
 import i18n from '../i18n';
 import { formatHealthCheckVaccineTypeForApi } from '../utils/formatHealthCheckVaccineType';
@@ -470,6 +472,7 @@ export function usePetHealthApp() {
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
   const [breederDetailReturnScreen, setBreederDetailReturnScreen] = useState<AppScreen>('pet-feed');
   const [breederDetailTab, setBreederDetailTab] = useState<FarmDetailTab>('overview');
+  const [breederProfileReturnScreen, setBreederProfileReturnScreen] = useState<AppScreen>('account');
   const [warrantyLibraryEditPolicy, setWarrantyLibraryEditPolicy] = useState<WarrantyPolicy | null>(null);
   const [selectedPetFeedPostId, setSelectedPetFeedPostId] = useState<string | null>(null);
   /** After closing post detail, Pet Feed scrolls to this post on the feed tab. */
@@ -2287,6 +2290,11 @@ export function usePetHealthApp() {
 
   async function openBreederProfile() {
     if (!token) return;
+    const returnTo = resolveBreederProfileReturnScreen(
+      screen,
+      accountProfile?.primary_role === 'admin',
+    );
+    setBreederProfileReturnScreen(returnTo);
     setLoading(true);
     try {
       const profileRes = await getMyBreederProfile(token);
@@ -2308,7 +2316,9 @@ export function usePetHealthApp() {
   }
 
   function closeBreederProfile() {
-    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'account');
+    const fallback: AppScreen = accountProfile?.primary_role === 'admin' ? 'home' : 'account';
+    const target = breederProfileReturnScreen || fallback;
+    setScreen(target);
   }
 
   async function saveBreederProfile(payload: UpsertBreederProfilePayload) {

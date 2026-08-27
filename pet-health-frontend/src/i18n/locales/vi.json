@@ -1002,7 +1002,7 @@
     "phone": "Số điện thoại",
     "facebook": "Facebook URL",
     "zalo": "Zalo / số điện thoại",
-    "profileInfoRequiredHint": "Tất cả các mục bên dưới đều bắt buộc.",
+    "profileInfoRequiredHint": "Các mục có dấu * là bắt buộc.",
     "errors": {
       "displayNameRequired": "Vui lòng nhập tên trại / tên người chăm sóc.",
       "locationRequired": "Vui lòng chọn khu vực.",
@@ -1074,7 +1074,14 @@
       "and": " và ",
       "guidelinesLink": "Nội quy Marketplace",
       "combinedAfter": "."
-    }
+    },
+    "createTitle": "Đăng ký Breeder",
+    "editTitle": "Chỉnh sửa hồ sơ",
+    "subtitle": "Điền thông tin rõ ràng để admin duyệt. Sau khi được duyệt, Sen có thể đăng tin.",
+    "mainBreedsHint": "Cách nhau bởi dấu phẩy, ví dụ: Poodle, Corgi",
+    "registeredAtPlaceholder": "YYYY",
+    "commitmentsRequiredInline": "Vui lòng chấp nhận cam kết minh bạch để gửi yêu cầu xác minh.",
+    "registrationUnitPlaceholder": "Chọn đơn vị đăng ký"
   },
   "createPetFeedPost": {
     "title": "Tạo bài Pet Feed",

@@ -57,6 +57,11 @@ export function farmTabLabelKey(tab: FarmDetailTab): string {
   return `farm.tab.${tab}`;
 }
 
+/** Extra space under farm name for visitors (owner keeps tighter header with CTAs). */
+export function farmNameExtraMargin(isOwner: boolean): number {
+  return isOwner ? 0 : 4;
+}
+
 export function farmWarrantyPoliciesFromMetadata(
   meta: Record<string, unknown> | null | undefined,
 ): WarrantyPolicy[] {

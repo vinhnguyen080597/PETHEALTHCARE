@@ -47,6 +47,7 @@ import {
 import {
   FARM_DETAIL_TABS,
   farmImageSource,
+  farmNameExtraMargin,
   farmTabLabelKey,
   farmWarrantyPoliciesFromMetadata,
   resolveFarmAvatarUrl,
@@ -310,7 +311,7 @@ export function BreederDetailScreen({
             ) : null}
           </View>
 
-          <View style={{ marginTop: -44, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ marginTop: -44, flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
             <View style={{ position: 'relative', width: 88, height: 88 }}>
               <Pressable
                 accessibilityRole={isOwnProfile && onUploadFarmPhoto ? 'button' : undefined}
@@ -379,26 +380,52 @@ export function BreederDetailScreen({
                 </View>
               ) : null}
             </View>
-            <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
-              <Text style={{ fontSize: 19, fontWeight: '800', color: FARM_TEXT }} numberOfLines={2}>
+            <View style={{ flex: 1, minWidth: 0, justifyContent: 'center', paddingBottom: 2 }}>
+              <Text
+                style={{
+                  fontSize: 19,
+                  fontWeight: '800',
+                  color: FARM_TEXT,
+                  marginBottom: farmNameExtraMargin(isOwnProfile),
+                }}
+                numberOfLines={2}
+              >
                 {profile.display_name || t('petFeed.breederFallback')}
               </Text>
-              <Text style={{ marginTop: 2, fontSize: 13, color: FARM_MUTED }} numberOfLines={1}>
-                📍 {locationLabel}
-              </Text>
+              <View
+                style={{
+                  marginTop: 4,
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                }}
+              >
+                <Text style={{ flexShrink: 1, fontSize: 13, color: FARM_MUTED }} numberOfLines={1}>
+                  📍 {locationLabel}
+                </Text>
+                {isOwnProfile ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {onOpenBreederProfile ? (
+                      <OwnerChip
+                        testID="farm-owner-edit-profile"
+                        label={`✏️ ${t('farm.owner.editProfile')}`}
+                        onPress={onOpenBreederProfile}
+                      />
+                    ) : null}
+                    {allowTemplateChange && onOpenTemplatePicker ? (
+                      <OwnerChip
+                        testID="farm-owner-change-template"
+                        label={`🎨 ${t('farm.owner.template')}`}
+                        onPress={onOpenTemplatePicker}
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
             </View>
           </View>
-
-          {isOwnProfile ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-              {onOpenBreederProfile ? (
-                <OwnerChip label={`✏️ ${t('farm.owner.editProfile')}`} onPress={onOpenBreederProfile} />
-              ) : null}
-              {allowTemplateChange && onOpenTemplatePicker ? (
-                <OwnerChip label={`🎨 ${t('farm.owner.template')}`} onPress={onOpenTemplatePicker} />
-              ) : null}
-            </View>
-          ) : null}
         </View>
 
         <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
@@ -951,9 +978,18 @@ export function BreederDetailScreen({
   );
 }
 
-function OwnerChip({ label, onPress }: { label: string; onPress: () => void }) {
+function OwnerChip({
+  label,
+  onPress,
+  testID,
+}: {
+  label: string;
+  onPress: () => void;
+  testID?: string;
+}) {
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       onPress={onPress}
       style={{
@@ -961,8 +997,8 @@ function OwnerChip({ label, onPress }: { label: string; onPress: () => void }) {
         borderWidth: 1,
         borderColor: FARM_BORDER,
         backgroundColor: '#fff',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
       }}
     >
       <Text style={{ fontSize: 12, fontWeight: '700', color: FARM_TEXT }}>{label}</Text>

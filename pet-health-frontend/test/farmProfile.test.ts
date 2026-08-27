@@ -13,6 +13,7 @@ import {
 } from '../src/utils/farmFacility.ts';
 import {
   farmImageSource,
+  farmNameExtraMargin,
   farmTabLabelKey,
   farmWarrantyPoliciesFromMetadata,
   isBlankImageUrl,
@@ -102,6 +103,8 @@ test('farmFacilitySocialLinks masks Zalo and keeps https socials', () => {
 
 test('farm profile display helpers', () => {
   assert.equal(farmTabLabelKey('listings'), 'farm.tab.listings');
+  assert.equal(farmNameExtraMargin(true), 0);
+  assert.equal(farmNameExtraMargin(false), 4);
   const warranties = farmWarrantyPoliciesFromMetadata({
     warranty_policies: [{ id: 'w1', title: '30 ngày' }, { title: '' }],
   });
@@ -233,6 +236,8 @@ test('farm tab i18n EN/VI parity', () => {
   assert.equal(vi.farm.owner.editCover.length > 0, true);
   assert.equal(en.farm.owner.editAvatar.length > 0, true);
   assert.equal(vi.farm.owner.editAvatar.length > 0, true);
+  assert.equal(vi.farm.owner.editProfile, 'Chỉnh sửa hồ sơ');
+  assert.equal(en.farm.owner.editProfile, 'Edit profile');
   assert.equal(vi.farm.trust.title, 'Chỉ số tin cậy');
   assert.equal(en.farm.trust.title, 'Trust metrics');
   assert.equal(vi.farm.trust.gaugeCaption.length > 0, true);

@@ -631,11 +631,13 @@ function AppContent() {
             ) : null}
 
             {app.screen === 'breeder-profile' && (
-              <BreederProfileScreen
-                profile={app.breederProfile}
-                onBack={app.closeBreederProfile}
-                onSaveProfile={app.saveBreederProfile}
-              />
+              <View style={{ flex: 1, minHeight: 0 }}>
+                <BreederProfileScreen
+                  profile={app.breederProfile}
+                  onBack={app.closeBreederProfile}
+                  onSaveProfile={app.saveBreederProfile}
+                />
+              </View>
             )}
 
             {app.screen === 'create-pet-feed-post' && (
