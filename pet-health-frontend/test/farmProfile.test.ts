@@ -12,6 +12,7 @@ import {
   maskZaloPublicDisplay,
 } from '../src/utils/farmFacility.ts';
 import {
+  farmDetailTabBarLayout,
   farmImageSource,
   farmNameExtraMargin,
   farmTabLabelKey,
@@ -223,6 +224,13 @@ test('farm trust display helpers', () => {
   assert.match(farmTransparencyMeaning(50, 'en'), /reputation|transparency/i);
   assert.equal(transparencyTickColor(10, 30).startsWith('#'), true);
   assert.equal(transparencyTickColor(80, 30), '#E5E7EB');
+});
+
+test('farm tab bar layout does not flex-grow inside scroll content', () => {
+  const layout = farmDetailTabBarLayout();
+  assert.equal(layout.flexGrow, 0);
+  assert.equal(layout.flexShrink, 0);
+  assert.equal(layout.alignSelf, 'stretch');
 });
 
 test('farm tab i18n EN/VI parity', () => {

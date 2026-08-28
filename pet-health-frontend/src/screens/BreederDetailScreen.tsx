@@ -47,6 +47,7 @@ import {
   farmImageSource,
   farmNameExtraMargin,
   farmTabLabelKey,
+  farmDetailTabBarLayout,
   farmWarrantyPoliciesFromMetadata,
   resolveFarmAvatarUrl,
   resolveFarmCoverUrl,
@@ -414,8 +415,14 @@ export function BreederDetailScreen({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ marginTop: 14, borderBottomWidth: 1, borderBottomColor: FARM_BORDER }}
-          contentContainerStyle={{ paddingHorizontal: 12 }}
+          nestedScrollEnabled
+          style={{
+            marginTop: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: FARM_BORDER,
+            ...farmDetailTabBarLayout(),
+          }}
+          contentContainerStyle={{ paddingHorizontal: 12, flexGrow: 0 }}
         >
           {tabs.map((tab) => {
             const active = activeTab === tab.key;

@@ -57,6 +57,15 @@ export function farmTabLabelKey(tab: FarmDetailTab): string {
   return `farm.tab.${tab}`;
 }
 
+/** Tab bar must not flex-grow inside the farm profile scroll content (avoids huge gap above warranty tab). */
+export function farmDetailTabBarLayout() {
+  return {
+    flexGrow: 0,
+    flexShrink: 0,
+    alignSelf: 'stretch' as const,
+  };
+}
+
 /** Extra space under farm name for visitors (owner keeps tighter header with CTAs). */
 export function farmNameExtraMargin(isOwner: boolean): number {
   return isOwner ? 0 : 4;
