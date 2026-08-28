@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
     },
     // Listing create uploads each file separately; limit covers single video (50MB) + headroom.
     middlewareClientMaxBodySize: listingUploadBodyLimit,
-    proxyClientMaxBodySize: listingUploadBodyLimit,
   },
   images: {
     remotePatterns: [
