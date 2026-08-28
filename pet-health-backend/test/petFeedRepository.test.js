@@ -7,6 +7,7 @@ delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const {
   adminUpdateBreederProfileStatus,
+  adminUpdatePetFeedPostStatus,
   adminUpdatePetFeedReportStatus,
   cancelMyBreederVerificationRequest,
   createAnnouncementPost,
@@ -17,6 +18,7 @@ const {
   getPetFeedPost,
   listPetFeedPostComments,
   listPublishedPetFeedPostPage,
+  listPublicPetFeedPostPage,
   reportBreederProfile,
   reportPetFeedPost,
   upsertMyBreederProfile,
@@ -75,6 +77,45 @@ test('getPetFeedPost returns full media while list page stays slim', async () =>
   assert.ok(detail);
   assert.deepEqual(detail.media_urls, mediaUrls);
   assert.equal(detail.description, longDescription);
+});
+
+test('list page exposes breeder review metrics on slim breeder_profile', async () => {
+  const breederId = `review-breeder-${Date.now()}`;
+  await upsertMyBreederProfile(breederId, {
+    displayName: 'Review Farm',
+    location: 'Hà Nội',
+    metadata: { review_avg: 5, review_count: 2 },
+  }, null);
+  await adminUpdateBreederProfileStatus(breederId, 'verified');
+
+  const created = await createPetFeedPost(breederId, {
+    title: 'Kitten with reviews',
+    species: 'cat',
+    breed: 'Sphynx',
+    gender: 'female',
+    ageMonths: 3,
+    location: 'Hà Nội',
+    priceNote: '15tr',
+    description: 'Healthy kitten with breeder reviews on the listing card.',
+    vaccineStatus: 'unknown',
+    mediaUrls: ['https://cdn.example/pet-feed/sphynx.jpg'],
+    status: 'published',
+    metadata: {},
+  }, null);
+  await adminUpdatePetFeedPostStatus(created.id, 'published');
+
+  const listPage = await listPublishedPetFeedPostPage(null, null, { limit: 50, kind: 'listing' });
+  const listItem = listPage.data.find((post) => post.id === created.id);
+  assert.ok(listItem);
+  assert.equal(listItem.breeder_profile?.metadata?.review_avg, 5);
+  assert.equal(listItem.breeder_profile?.metadata?.review_count, 2);
+
+  const publicPage = await listPublicPetFeedPostPage({ limit: 50, kind: 'listing' });
+  const publicItem = publicPage.data.find((post) => post.id === created.id);
+  assert.ok(publicItem);
+  assert.equal(publicItem.breeder_profile?.metadata?.review_avg, 5);
+  assert.equal(publicItem.breeder_profile?.metadata?.review_count, 2);
+  assert.ok(publicItem.breeder_profile?.metadata?.contact_presence);
 });
 
 test('list page prefers metadata.list_thumb_url when present', async () => {

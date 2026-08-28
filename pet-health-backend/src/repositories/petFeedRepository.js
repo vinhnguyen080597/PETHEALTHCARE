@@ -706,6 +706,7 @@ function toListPost(row, favoriteIds = new Set(), profilesById = new Map()) {
           contact: profile.contact ?? {},
           created_at: profile.created_at,
           updated_at: profile.updated_at,
+          metadata: slimBreederReviewMetadata(profile.metadata),
         }
       : null,
   };
@@ -1217,6 +1218,21 @@ export async function getPublishedPetFeedShareCard(postId) {
     postKind: normalizePostKind(row.post_kind, 'listing'),
     createdAt: row.created_at ?? null,
   };
+}
+
+/** Review stats only — safe to include on feed list cards without full breeder metadata. */
+function slimBreederReviewMetadata(metadata) {
+  const meta = metadata && typeof metadata === 'object' ? metadata : {};
+  const out = {};
+  const reviewCount = Number(meta.review_count ?? meta.reviewCount);
+  if (Number.isFinite(reviewCount) && reviewCount > 0) {
+    out.review_count = Math.floor(reviewCount);
+  }
+  const reviewAvg = Number(meta.review_avg ?? meta.reviewAverage);
+  if (Number.isFinite(reviewAvg) && reviewAvg > 0) {
+    out.review_avg = reviewAvg;
+  }
+  return out;
 }
 
 function contactPresenceFromContact(contact, metadata = {}) {

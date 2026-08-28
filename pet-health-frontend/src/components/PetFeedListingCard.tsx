@@ -246,12 +246,6 @@ function PetFeedListingCardComponent({
             <Text className="min-w-0 flex-1 text-xs font-medium text-slate-900" numberOfLines={1}>
               {breeder?.display_name ?? t('petFeed.breederFallback')}
             </Text>
-            {breeder?.verification_status === 'verified' ? (
-              <View className="flex-row items-center gap-0.5">
-                <Ionicons name="shield-checkmark" size={12} color="#059669" />
-                <Text className="text-[10px] font-semibold text-emerald-700">{t('petFeed.topBreeders.verified')}</Text>
-              </View>
-            ) : null}
           </View>
           <View className="shrink-0 flex-row items-center gap-2">
             {breederFooterMetrics.ratingText ? (
