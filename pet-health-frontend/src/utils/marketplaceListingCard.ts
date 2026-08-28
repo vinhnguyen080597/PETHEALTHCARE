@@ -194,13 +194,37 @@ export function listingEscrowDepositLabel(priceNote: string, locale: string): st
 }
 
 export function listingBreederScoreLabel(post: PetFeedPost, trustScore: number): string {
-  const meta = asRecord(post.breeder_profile?.metadata);
-  const reviewAvg = Number(meta.review_avg ?? meta.reviewAverage);
-  const reviewCount = Number(meta.review_count ?? meta.reviewCount);
-  if (Number.isFinite(reviewAvg) && reviewAvg > 0 && Number.isFinite(reviewCount) && reviewCount > 0) {
-    return `⭐ ${reviewAvg.toFixed(1)}`;
+  const metrics = listingBreederFooterMetrics(post, trustScore);
+  if (metrics.ratingText) {
+    return `⭐ ${metrics.ratingText}`;
   }
-  return `${Math.max(0, Math.min(100, Math.round(trustScore)))}/100`;
+  return `${metrics.trustScore}/100`;
+}
+
+export type ListingBreederFooterMetrics = {
+  /** e.g. "5.0/5 (2)" when breeder has reviews; null otherwise. */
+  ratingText: string | null;
+  trustScore: number;
+};
+
+/** Rating + transparency score shown on listing card breeder row (image 1 layout). */
+export function listingBreederFooterMetrics(
+  post: Pick<PetFeedPost, 'breeder_profile'>,
+  trustScore: number,
+): ListingBreederFooterMetrics {
+  const meta = asRecord(post.breeder_profile?.metadata);
+  const reviewCountRaw = Number(meta.review_count ?? meta.reviewCount);
+  const reviewCount =
+    Number.isFinite(reviewCountRaw) && reviewCountRaw > 0 ? Math.floor(reviewCountRaw) : 0;
+  const reviewAvg = Number(meta.review_avg ?? meta.reviewAverage);
+  const ratingText =
+    reviewCount > 0 && Number.isFinite(reviewAvg) && reviewAvg > 0
+      ? `${(Math.round(reviewAvg * 10) / 10).toFixed(1)}/5 (${reviewCount})`
+      : null;
+  return {
+    ratingText,
+    trustScore: Math.max(0, Math.min(100, Math.round(trustScore))),
+  };
 }
 
 export function fillTemplate(template: string, value: number | string): string {

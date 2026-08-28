@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import type { PetFeedPost } from '../src/types.ts';
 import {
   isListingNewOnFloor,
+  listingBreederFooterMetrics,
   listingHotBadges,
   listingSpeciesEmoji,
   listingTrustTags,
@@ -76,6 +77,23 @@ test('listingTrustTags prefers warranty and escrow from real fields', () => {
   assert.ok(!withoutEscrow.includes('escrow'));
   assert.equal(listingWarrantyCoverageDays({ careParvoCoverageDays: 30 }), 30);
   assert.equal(parseListingEscrowEnabled({ accept_escrow: true }), true);
+});
+
+test('listingBreederFooterMetrics formats rating and trust score for card footer', () => {
+  const withReviews = listingBreederFooterMetrics(
+    {
+      breeder_profile: {
+        metadata: { review_avg: 5, review_count: 2 },
+      } as PetFeedPost['breeder_profile'],
+    },
+    66.4,
+  );
+  assert.equal(withReviews.ratingText, '5.0/5 (2)');
+  assert.equal(withReviews.trustScore, 66);
+
+  const noReviews = listingBreederFooterMetrics({ breeder_profile: null }, 30);
+  assert.equal(noReviews.ratingText, null);
+  assert.equal(noReviews.trustScore, 30);
 });
 
 test('pet feed card i18n has EN/VI parity', async () => {

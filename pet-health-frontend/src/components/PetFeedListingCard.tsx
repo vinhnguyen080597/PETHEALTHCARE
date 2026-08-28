@@ -10,7 +10,7 @@ import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
   fillTemplate,
   listingAvailability,
-  listingBreederScoreLabel,
+  listingBreederFooterMetrics,
   listingEscrowDepositLabel,
   listingHotBadges,
   listingMetadataMarksCancelled,
@@ -138,7 +138,7 @@ function PetFeedListingCardComponent({
   const isSold = post.status === 'sold' || listingMetadataMarksSold(meta);
   const availability = listingAvailability(post);
   const trustScore = breeder ? computeBreederTrust(breeder, [post]).score : 0;
-  const scoreLabel = listingBreederScoreLabel(post, trustScore);
+  const breederFooterMetrics = listingBreederFooterMetrics(post, trustScore);
 
   const gender = resolvePostGender(post.gender);
   const genderEmoji = gender === 'male' ? '♂️' : gender === 'female' ? '♀️' : '';
@@ -253,7 +253,16 @@ function PetFeedListingCardComponent({
               </View>
             ) : null}
           </View>
-          <Text className="text-[11px] font-medium text-slate-500">{scoreLabel}</Text>
+          <View className="shrink-0 flex-row items-center gap-2">
+            {breederFooterMetrics.ratingText ? (
+              <Text className="text-[11px] font-medium text-slate-600" testID={`pet-feed-listing-rating-${post.id}`}>
+                {`⭐ ${breederFooterMetrics.ratingText}`}
+              </Text>
+            ) : null}
+            <Text className="text-[11px] font-medium text-slate-600" testID={`pet-feed-listing-trust-${post.id}`}>
+              {`🛡️ ${breederFooterMetrics.trustScore}/100`}
+            </Text>
+          </View>
         </View>
 
         {showActions ? (
