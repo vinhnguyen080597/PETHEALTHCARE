@@ -1113,6 +1113,10 @@ const vi: Record<EnKey, string> = {
   "listing.new.field.locationRequired": "Vui lòng chọn khu vực.",
   "listing.new.field.priceRequired": "Vui lòng nhập giá.",
   "listing.new.field.photosRequired": "Vui lòng chọn ít nhất một ảnh (tối đa 6).",
+  "listing.new.field.uploadTooLarge":
+    "Tệp tải lên quá lớn. Tối đa 6 ảnh (mỗi ảnh 8MB), ảnh sổ tiêm (nếu có) và một video tối đa 50MB.",
+  "listing.new.field.mediaTooLarge":
+    "Tệp media quá lớn. Ảnh tối đa 8MB sau nén, video tối đa 50MB. Hãy chọn clip ngắn hơn hoặc chất lượng thấp hơn rồi thử lại.",
   "listing.new.field.videoRequired": "Vui lòng chọn video (tối đa 50MB).",
   "listing.new.field.healthEvidenceRequired":
     "Vui lòng tải ít nhất một ảnh sổ tiêm / dấu tiêm khi khai đã tiêm vaccine.",

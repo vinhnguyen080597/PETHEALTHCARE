@@ -32,6 +32,11 @@ import {
   vaccineStatusRequiresHealthEvidence,
   type NewListingFieldErrors,
 } from "@/lib/listingFormOptions";
+import {
+  buildListingCreatePayload,
+  listingMediaUploadErrorKey,
+} from "@/lib/listingCreate";
+import { uploadListingDraftMedia, ListingMediaUploadError } from "@/lib/uploadListingMedia";
 import { warrantyLibraryHref } from "@/lib/farmTabs";
 
 const inputCls =
@@ -518,36 +523,58 @@ export function NewListingForm({
     setError("");
     setFieldErrors({});
 
-    const fd = new FormData();
-    fd.set("title", title.trim());
-    fd.set("species", species);
-    fd.set("breed", breedLabel);
-    fd.set("gender", genderLabel);
-    fd.set("ageMonths", ageMonths);
-    fd.set("location", location);
-    fd.set("priceNote", priceNote.trim());
-    fd.set("description", description.trim());
-    fd.set("vaccineStatus", vaccineLabel);
-    fd.set("dewormingStatus", dewormingLabel);
-    fd.set("personality", JSON.stringify(personality));
-    fd.set("paperwork", JSON.stringify(paperwork));
-    if (warrantyPolicyId) fd.set("warranty_policy_id", warrantyPolicyId);
-    fd.set("status", "pending_review");
-    for (const photo of photos) fd.append("photos", photo);
-    if (video) fd.append("video", video);
-    for (const evidence of healthEvidence) fd.append("healthEvidence", evidence);
-
     try {
+      if (!video) {
+        throw new Error(t(lang, "listing.new.field.videoRequired"));
+      }
+
+      const uploaded = await uploadListingDraftMedia({
+        photos,
+        video,
+        healthEvidence,
+      });
+
+      const payload = buildListingCreatePayload({
+        title,
+        species,
+        breed: breedLabel,
+        gender: genderLabel,
+        ageMonths,
+        location,
+        priceNote,
+        description,
+        vaccineStatus: vaccineLabel,
+        dewormingStatus: dewormingLabel,
+        personality,
+        paperwork,
+        warrantyPolicyId: warrantyPolicyId || undefined,
+        mediaUrls: uploaded.mediaUrls,
+        videoUrl: uploaded.videoUrl,
+        healthEvidenceUrls: uploaded.healthEvidenceUrls,
+      });
+
       const res = await fetch("/api/listings", {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed to create listing");
+      if (!res.ok) {
+        const key = listingMediaUploadErrorKey({
+          code: data.code,
+          message: data.error,
+        });
+        if (key) throw new Error(t(lang, key));
+        throw new Error(data.error || "Failed to create listing");
+      }
       router.push("/app/account");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
+      const key = listingMediaUploadErrorKey({
+        code: err instanceof ListingMediaUploadError ? err.code : undefined,
+        message: err instanceof Error ? err.message : undefined,
+      });
+      setError(key ? t(lang, key) : err instanceof Error ? err.message : "Failed");
       setLoading(false);
     }
   };

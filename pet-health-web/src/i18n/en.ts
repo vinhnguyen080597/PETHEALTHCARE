@@ -1110,6 +1110,10 @@ const en = {
   "listing.new.field.locationRequired": "Please select a location.",
   "listing.new.field.priceRequired": "Please enter a price.",
   "listing.new.field.photosRequired": "Please select at least one photo (max 6).",
+  "listing.new.field.uploadTooLarge":
+    "Upload is too large. Use up to 6 photos (8MB each), optional vaccine photos, and one video up to 50MB.",
+  "listing.new.field.mediaTooLarge":
+    "A media file is too large for storage. Photos max 8MB after compress, videos max 50MB. Choose a shorter clip or lower quality and try again.",
   "listing.new.field.videoRequired": "Please select a video (max 50MB).",
   "listing.new.field.healthEvidenceRequired":
     "Please upload at least one vaccine book or stamp photo when claiming vaccination.",

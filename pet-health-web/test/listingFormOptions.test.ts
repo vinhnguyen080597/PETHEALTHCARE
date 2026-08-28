@@ -4,9 +4,11 @@ import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
 import {
   firstNewListingErrorField,
+  LISTING_MAX_REQUEST_BYTES,
   LISTING_PAPERWORK_KEYS,
   LISTING_SPECIES,
   listingBreedKeysForSpecies,
+  listingMaxRequestBodyConfig,
   listingSpeciesEmoji,
   mergeListingMediaFiles,
   moveListingMediaItem,
@@ -43,9 +45,16 @@ const KEYS = [
   "listing.new.termsAnd",
   "listing.new.termsAfter",
   "listing.new.field.termsRequired",
+  "listing.new.field.uploadTooLarge",
+  "listing.new.field.mediaTooLarge",
   "legal.terms",
   "legal.guidelines",
 ] as const;
+
+test("listing upload body limit covers max photos, evidence, and video", () => {
+  assert.equal(listingMaxRequestBodyConfig(), "124mb");
+  assert.ok(LISTING_MAX_REQUEST_BYTES > 100 * 1024 * 1024);
+});
 
 test("listing new form i18n keys exist in EN and VI", () => {
   for (const key of KEYS) {

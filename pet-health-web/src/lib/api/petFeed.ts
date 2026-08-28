@@ -242,6 +242,29 @@ export async function createListingPost(token: string, formData: FormData) {
   return fetchMultipart<{ data: ApiPetFeedPost }>("/pet-feed/posts", formData, token);
 }
 
+export async function createListingPostJson(
+  token: string,
+  payload: Record<string, unknown>,
+) {
+  return fetchJson<{ data: ApiPetFeedPost }>("/pet-feed/posts", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export async function uploadPetFeedMediaFile(token: string, formData: FormData) {
+  return fetchJson<{ data: { publicUrl: string; kind: string } }>(
+    "/pet-feed/uploads/file",
+    {
+      method: "POST",
+      token,
+      formData,
+      timeoutMs: UPLOAD_TIMEOUT_MS,
+    },
+  );
+}
+
 export async function getMyBreederProfile(token: string) {
   return fetchJson<{ data: ApiBreederProfile | null }>(
     "/pet-feed/breeder-profile/me",

@@ -147,7 +147,21 @@ export const LISTING_PAPERWORK_KEYS = [
 
 export const LISTING_MAX_PHOTOS = 6;
 export const LISTING_MAX_HEALTH_EVIDENCE = 3;
+/** Keep in sync with backend PET_FEED_PHOTO_MAX_BYTES. */
+export const LISTING_PHOTO_MAX_BYTES = 8 * 1024 * 1024;
 export const LISTING_MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+/** Worst-case multipart body for create listing (photos + evidence + video + overhead). */
+export const LISTING_MAX_REQUEST_BYTES =
+  LISTING_MAX_PHOTOS * LISTING_PHOTO_MAX_BYTES +
+  LISTING_MAX_HEALTH_EVIDENCE * LISTING_PHOTO_MAX_BYTES +
+  LISTING_MAX_VIDEO_BYTES +
+  2 * 1024 * 1024;
+
+/** Next.js middleware/proxy body buffer limit for listing uploads. */
+export function listingMaxRequestBodyConfig(): `${number}mb` {
+  const mb = Math.ceil(LISTING_MAX_REQUEST_BYTES / (1024 * 1024));
+  return `${mb}mb`;
+}
 
 export type ListingVaccineKey = (typeof LISTING_VACCINE_KEYS)[number];
 

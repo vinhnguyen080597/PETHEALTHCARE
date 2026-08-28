@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { listingMaxRequestBodyConfig } from "./src/lib/listingFormOptions";
+
+const listingUploadBodyLimit = listingMaxRequestBodyConfig();
 
 const nextConfig: NextConfig = {
   // Soft-nav revisit: reuse RSC payload briefly so loading.tsx does not flash every click.
@@ -7,6 +10,9 @@ const nextConfig: NextConfig = {
       dynamic: 30,
       static: 180,
     },
+    // Listing create uploads each file separately; limit covers single video (50MB) + headroom.
+    middlewareClientMaxBodySize: listingUploadBodyLimit,
+    proxyClientMaxBodySize: listingUploadBodyLimit,
   },
   images: {
     remotePatterns: [
