@@ -9,6 +9,7 @@ import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
   fillTemplate,
+  LISTING_CARD_IMAGE_HEIGHT,
   listingWarrantyCoverageDays,
   readListingWarrantyPolicy,
 } from '../utils/marketplaceListingCard';
@@ -63,14 +64,18 @@ type PetFeedPostDetailBodyProps = {
   post: PetFeedPost;
   mediaLoading?: boolean;
   onToggleFavorite?: (post: PetFeedPost) => void;
+  onMessageBreeder?: (post: PetFeedPost) => void;
   showFavorite?: boolean;
+  showMessageButton?: boolean;
 };
 
 export function PetFeedPostDetailBody({
   post,
   mediaLoading = false,
   onToggleFavorite,
+  onMessageBreeder,
   showFavorite = true,
+  showMessageButton = false,
 }: PetFeedPostDetailBodyProps) {
   const { t, i18n } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -116,7 +121,7 @@ export function PetFeedPostDetailBody({
 
   return (
     <View className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
-      <View className="relative h-72 bg-slate-100">
+      <View className="relative bg-slate-100" style={{ height: LISTING_CARD_IMAGE_HEIGHT }}>
         {selected?.type === 'video' ? (
           <AutoPlayVideo uri={selected.uri} />
         ) : selected?.type === 'image' ? (
@@ -183,33 +188,59 @@ export function PetFeedPostDetailBody({
       ) : null}
 
       <View className="gap-4 p-4">
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="min-w-0 flex-1">
-            <Text className="text-xl font-bold leading-snug text-slate-900">{post.title}</Text>
+        <View className="gap-2.5">
+          <View className="flex-row items-start justify-between gap-3">
+            <Text className="min-w-0 flex-1 text-lg font-bold leading-snug text-slate-900" numberOfLines={2}>
+              {post.title}
+            </Text>
             {priceLabel ? (
-              <Text className="mt-1 text-2xl font-bold" style={{ color: BRAND.btnPrimary }}>
+              <Text className="shrink-0 text-lg font-bold leading-snug" style={{ color: BRAND.btnPrimary }}>
                 {priceLabel}
               </Text>
             ) : null}
           </View>
-          {showFavorite && onToggleFavorite ? (
-            <Pressable
-              testID={`pet-feed-favorite-button-${post.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
-              className="h-10 w-10 items-center justify-center rounded-full border"
-              style={{
-                borderColor: post.is_favorited ? '#FECDD3' : BRAND.borderCard,
-                backgroundColor: post.is_favorited ? '#FFF1F2' : BRAND.card,
-              }}
-              onPress={() => onToggleFavorite(post)}
-            >
-              <Ionicons
-                name={post.is_favorited ? 'heart' : 'heart-outline'}
-                size={20}
-                color={post.is_favorited ? '#E11D48' : BRAND.textMuted}
-              />
-            </Pressable>
+
+          {(showFavorite && onToggleFavorite) || (showMessageButton && onMessageBreeder) ? (
+            <View className="flex-row items-center justify-between gap-3">
+              {showFavorite && onToggleFavorite ? (
+                <Pressable
+                  testID={`pet-feed-favorite-button-${post.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
+                  className="flex-row items-center gap-1.5 py-1"
+                  onPress={() => onToggleFavorite(post)}
+                >
+                  <Ionicons
+                    name={post.is_favorited ? 'heart' : 'heart-outline'}
+                    size={20}
+                    color={post.is_favorited ? '#E11D48' : '#6E5A51'}
+                  />
+                  <Text className="text-xs font-semibold" style={{ color: post.is_favorited ? '#E11D48' : '#6E5A51' }}>
+                    {post.favorite_count ?? 0}
+                  </Text>
+                </Pressable>
+              ) : (
+                <View />
+              )}
+              {showMessageButton && onMessageBreeder ? (
+                <Pressable
+                  testID={`pet-feed-message-button-${post.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: post.title })}
+                  className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+                  style={{
+                    backgroundColor: BRAND.btnSecondary,
+                    borderColor: BRAND.borderBrand,
+                  }}
+                  onPress={() => onMessageBreeder(post)}
+                >
+                  <Ionicons name="chatbubble-ellipses-outline" size={15} color={BRAND.textBrandLink} />
+                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                    {t('petFeed.messages.messageCta')}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
           ) : null}
         </View>
 
@@ -265,14 +296,9 @@ export function PetFeedPostDetailBody({
             </View>
           )}
           <View className="min-w-0 flex-1">
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-sm font-semibold text-slate-900" numberOfLines={1}>
-                {breeder?.display_name ?? t('petFeed.breederFallback')}
-              </Text>
-              {breeder?.verification_status === 'verified' ? (
-                <Ionicons name="shield-checkmark" size={14} color="#059669" />
-              ) : null}
-            </View>
+            <Text className="text-sm font-semibold text-slate-900" numberOfLines={1}>
+              {breeder?.display_name ?? t('petFeed.breederFallback')}
+            </Text>
             <Text className="text-xs text-slate-400" numberOfLines={1}>
               {breeder?.location || post.location || t('petFeed.locationUnknown')}
             </Text>

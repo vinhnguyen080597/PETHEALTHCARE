@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../../assets/farmProfileAssets';
 import {
+  breederCardFooterMetrics,
   breederCardHasPetPreview,
   breederCardPetsPreviewTitleKey,
   shortPetPriceLabel,
@@ -38,8 +39,10 @@ export type TopBreederCardData = {
 type TopBreederCardProps = {
   data: TopBreederCardData;
   showMessageButton: boolean;
+  showEditProfileButton?: boolean;
   onPressVisit: () => void;
   onPressMessage?: () => void;
+  onPressEditProfile?: () => void;
   onPressPet?: (listingId: string) => void;
   accessibilityLabel?: string;
 };
@@ -89,8 +92,10 @@ function ActivityChip({ kind }: { kind: BreederActivityCue['kind'] }) {
 export function TopBreederCard({
   data,
   showMessageButton,
+  showEditProfileButton = false,
   onPressVisit,
   onPressMessage,
+  onPressEditProfile,
   onPressPet,
   accessibilityLabel,
 }: TopBreederCardProps) {
@@ -99,6 +104,7 @@ export function TopBreederCard({
     data.activityKind === 'active_kennel' || data.activityKind === 'fast_response';
   const hasPets = breederCardHasPetPreview(data.petThumbs.length);
   const petsTitleKey = breederCardPetsPreviewTitleKey(data.petThumbs.length);
+  const footerMetrics = breederCardFooterMetrics(data.rating, data.reviewCount, data.trustScore);
 
   return (
     <View
@@ -148,23 +154,35 @@ export function TopBreederCard({
 
       <View style={{ paddingTop: 36, paddingHorizontal: 16, paddingBottom: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <Text
-            style={{ flexShrink: 1, fontSize: 18, fontWeight: '800', color: '#050505', letterSpacing: -0.3 }}
-            numberOfLines={1}
-          >
-            {data.name}
-          </Text>
-          {showOnlineDot ? (
-            <View
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: '#10B981',
-                flexShrink: 0,
-              }}
-            />
-          ) : null}
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <Text
+              style={{ flexShrink: 1, fontSize: 18, fontWeight: '800', color: '#050505', letterSpacing: -0.3 }}
+              numberOfLines={1}
+            >
+              {data.name}
+            </Text>
+            {showOnlineDot ? (
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: '#10B981',
+                  flexShrink: 0,
+                }}
+              />
+            ) : null}
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {footerMetrics.ratingText ? (
+              <Text style={{ fontSize: 11, fontWeight: '500', color: '#475569' }}>
+                {`⭐ ${footerMetrics.ratingText}`}
+              </Text>
+            ) : null}
+            <Text style={{ fontSize: 11, fontWeight: '500', color: '#475569' }}>
+              {`🛡️ ${footerMetrics.trustScore}/100`}
+            </Text>
+          </View>
         </View>
 
         <Text style={{ marginTop: 4, fontSize: 14, color: '#6B7280' }} numberOfLines={1}>
@@ -186,56 +204,6 @@ export function TopBreederCard({
             <Text style={{ fontSize: 11, fontWeight: '500', color: MUTED }} numberOfLines={1}>
               {data.specialtyLabel}
             </Text>
-          </View>
-        </View>
-
-        <View style={{ marginTop: 16, gap: 10 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            <Text style={{ fontSize: 12, color: 'rgba(43,30,25,0.75)' }}>
-              {data.rating != null && data.reviewCount > 0
-                ? `⭐ ${data.rating.toFixed(1)}/5 (${data.reviewCount} ${t('petFeed.breedersCard.reviews')})`
-                : `⭐ ${t('farm.trust.ratingEmpty')}`}
-            </Text>
-            {data.showSold ? (
-              <Text style={{ fontSize: 12, color: 'rgba(43,30,25,0.75)' }}>
-                {`🐾 ${data.petsRehomed} ${t('petFeed.breedersCard.sold')}`}
-              </Text>
-            ) : null}
-          </View>
-
-          <View>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 4,
-              }}
-            >
-              <Text style={{ fontSize: 11, color: MUTED }}>
-                {`🛡️ ${t('petFeed.breedersCard.trustIndex')}`}
-              </Text>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: ACCENT_DEEP }}>
-                {`${data.trustScore}/100`}
-              </Text>
-            </View>
-            <View
-              style={{
-                height: 6,
-                borderRadius: 999,
-                backgroundColor: BORDER,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  height: '100%',
-                  width: `${Math.max(0, Math.min(100, data.trustScore))}%`,
-                  borderRadius: 999,
-                  backgroundColor: ACCENT,
-                }}
-              />
-            </View>
           </View>
         </View>
 
@@ -313,6 +281,30 @@ export function TopBreederCard({
               <Ionicons name="chatbubble-ellipses-outline" size={15} color={INK} />
               <Text style={{ fontSize: 13, fontWeight: '700', color: INK }}>
                 {t('petFeed.breedersCard.message')}
+              </Text>
+            </Pressable>
+          ) : showEditProfileButton ? (
+            <Pressable
+              testID="top-breeder-edit-profile-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('farm.owner.editProfile')}
+              onPress={onPressEditProfile}
+              style={({ pressed }) => ({
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: BORDER,
+                backgroundColor: pressed ? '#FDFBF7' : '#fff',
+                paddingVertical: 10,
+              })}
+            >
+              <Ionicons name="create-outline" size={15} color={INK} />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: INK }}>
+                {t('farm.owner.editProfile')}
               </Text>
             </Pressable>
           ) : (

@@ -2,12 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   breederActivityCue,
+  breederCardFooterMetrics,
   breederCardHasPetPreview,
   breederCardPetsPreviewTitleKey,
   breederCardShowsSoldCount,
   breederCardSpecialtyLabel,
   buildBreederPetThumbs,
   canShowBreederMessageAction,
+  canShowBreederEditProfileAction,
   shortPetPriceLabel,
 } from '../src/utils/breederDirectoryCard.ts';
 import type { BreederProfile, PetFeedPost } from '../src/types.ts';
@@ -113,12 +115,25 @@ test('pet thumbs only include for-sale listings with media', () => {
   assert.equal(breederCardPetsPreviewTitleKey(2), 'petFeed.breedersCard.petsPreviewCount');
 });
 
+test('breederCardFooterMetrics formats compact rating and trust score', () => {
+  const withReviews = breederCardFooterMetrics(5, 2, 66.4);
+  assert.equal(withReviews.ratingText, '5.0/5 (2)');
+  assert.equal(withReviews.trustScore, 66);
+
+  const noReviews = breederCardFooterMetrics(null, 0, 30);
+  assert.equal(noReviews.ratingText, null);
+  assert.equal(noReviews.trustScore, 30);
+});
+
 test('sold count and message gate helpers', () => {
   assert.equal(breederCardShowsSoldCount(0), false);
   assert.equal(breederCardShowsSoldCount(4), true);
   assert.equal(canShowBreederMessageAction(null, 'u1'), false);
   assert.equal(canShowBreederMessageAction('u1', 'u1'), false);
   assert.equal(canShowBreederMessageAction('sen', 'u1'), true);
+  assert.equal(canShowBreederEditProfileAction(null, 'u1'), false);
+  assert.equal(canShowBreederEditProfileAction('sen', 'u1'), false);
+  assert.equal(canShowBreederEditProfileAction('u1', 'u1'), true);
 });
 
 test('breedersCard i18n EN/VI parity', () => {

@@ -10,24 +10,23 @@ import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
   fillTemplate,
   listingAvailability,
+  isOwnListingPost,
+  LISTING_CARD_IMAGE_HEIGHT,
   listingBreederFooterMetrics,
-  listingEscrowDepositLabel,
+  listingCardShowsEditAction,
   listingHotBadges,
   listingMetadataMarksCancelled,
   listingMetadataMarksSold,
   listingPreviewImages,
   listingSpeciesEmoji,
-  listingTrustTags,
-  parseListingEscrowEnabled,
   type ListingHotBadge,
-  type ListingTrustTag,
 } from '../utils/marketplaceListingCard';
-import { resolvePostGender } from '../utils/petFeedGender';
 
 type PetFeedListingCardProps = {
   post: PetFeedPost;
   onToggleFavorite?: (post: PetFeedPost) => void;
   onMessageBreeder?: (post: PetFeedPost) => void;
+  onEditPost?: (post: PetFeedPost) => void;
   currentUserId?: string | null;
   showFavorite?: boolean;
   showContact?: boolean;
@@ -74,81 +73,42 @@ function HotBadge({ badge, t }: { badge: ListingHotBadge; t: (key: string, opts?
       </OverlayPill>
     );
   }
-  return (
-    <OverlayPill style={{ backgroundColor: 'rgba(15,23,42,0.85)', color: BRAND.textInverse }}>
-      {`🎬 ${t('petFeed.card.video')}`}
-    </OverlayPill>
-  );
-}
-
-function TrustTag({ tag, t }: { tag: ListingTrustTag; t: (key: string, opts?: object) => string }) {
-  if (tag.kind === 'warranty') {
-    return (
-      <View className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1">
-        <Text className="text-[11px] font-medium text-emerald-800">
-          {`🛡️ ${fillTemplate(t('petFeed.card.warranty'), tag.days)}`}
-        </Text>
-      </View>
-    );
-  }
-  if (tag.kind === 'escrow') {
-    return (
-      <View className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1">
-        <Text className="text-[11px] font-medium text-amber-900">{`🔒 ${t('petFeed.card.escrow')}`}</Text>
-      </View>
-    );
-  }
-  return (
-    <View className="rounded-full border px-2 py-1" style={{ borderColor: BRAND.borderBrand, backgroundColor: BRAND.surface }}>
-      <Text className="text-[11px] text-slate-700">{`💉 ${tag.label}`}</Text>
-    </View>
-  );
+  return null;
 }
 
 function PetFeedListingCardComponent({
   post,
   onToggleFavorite,
   onMessageBreeder,
+  onEditPost,
   currentUserId = null,
   showFavorite = true,
   showContact = true,
-  showEscrowUi = false,
+  showEscrowUi: _showEscrowUi = false,
   onPress,
   testID,
 }: PetFeedListingCardProps) {
   const { t, i18n } = useTranslation();
   const breeder = post.breeder_profile;
-  const isOwnPost = Boolean(currentUserId && post.user_id === currentUserId);
+  const isOwnPost = isOwnListingPost(currentUserId, post);
   const canShowFavorite = showFavorite && Boolean(onToggleFavorite);
   const canShowContact = showContact && !isOwnPost && Boolean(onMessageBreeder);
-  const showActions = canShowFavorite || canShowContact;
+  const canShowEdit = listingCardShowsEditAction(isOwnPost, Boolean(onEditPost));
+  const showActions = canShowFavorite || canShowContact || canShowEdit;
 
   const speciesKey = `breederProfile.speciesOptions.${post.species.trim().toLowerCase()}`;
   const speciesTranslated = post.species ? t(speciesKey) : '';
   const speciesLabel = speciesTranslated === speciesKey ? post.species : speciesTranslated;
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
-  const depositLabel = showEscrowUi && parseListingEscrowEnabled(post.metadata ?? {})
-    ? listingEscrowDepositLabel(post.price_note, i18n.language)
-    : null;
   const previewImage = listingPreviewImages(post)[0] ?? null;
   const hotBadges = listingHotBadges(post);
-  const trustTags = listingTrustTags(post, { showEscrowTag: showEscrowUi });
   const meta = post.metadata ?? {};
   const isCancelled = post.status === 'cancelled' || listingMetadataMarksCancelled(meta);
   const isSold = post.status === 'sold' || listingMetadataMarksSold(meta);
   const availability = listingAvailability(post);
   const trustScore = breeder ? computeBreederTrust(breeder, [post]).score : 0;
   const breederFooterMetrics = listingBreederFooterMetrics(post, trustScore);
-
-  const gender = resolvePostGender(post.gender);
-  const genderEmoji = gender === 'male' ? '♂️' : gender === 'female' ? '♀️' : '';
-  const ageGender = [
-    genderEmoji,
-    post.age_months != null && post.age_months > 0
-      ? t('petFeed.ageMonths', { count: post.age_months })
-      : '',
-    !genderEmoji && post.gender ? post.gender : '',
-  ].filter(Boolean).join(' ');
+  const locationLabel = post.location?.trim() ?? '';
 
   function stopPress(event: GestureResponderEvent) {
     event.stopPropagation?.();
@@ -156,7 +116,10 @@ function PetFeedListingCardComponent({
 
   const body = (
     <>
-      <View className="relative h-48 overflow-hidden" style={{ backgroundColor: BRAND.surfaceLight }}>
+      <View
+        className="relative w-full overflow-hidden bg-slate-100"
+        style={{ height: LISTING_CARD_IMAGE_HEIGHT }}
+      >
         {previewImage ? (
           <Image source={{ uri: previewImage }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         ) : (
@@ -173,7 +136,7 @@ function PetFeedListingCardComponent({
           ))}
           {availability === 'deposit_hold' ? (
             <OverlayPill style={{ backgroundColor: 'rgba(245,158,11,0.95)', color: BRAND.textInverse }}>
-              {showEscrowUi ? t('petFeed.card.depositHold') : t('petFeed.card.reserved')}
+              {_showEscrowUi ? t('petFeed.card.depositHold') : t('petFeed.card.reserved')}
             </OverlayPill>
           ) : null}
           {post.status === 'pending_review' ? (
@@ -199,37 +162,22 @@ function PetFeedListingCardComponent({
           {post.title}
         </Text>
 
-        {priceLabel ? (
-          <View className="mt-2 flex-row flex-wrap items-center">
-            <Text className="text-base font-bold" style={{ color: BRAND.btnPrimary }}>
-              {priceLabel}
-            </Text>
-            {depositLabel ? (
-              <Text className="ml-1.5 text-xs font-medium text-slate-400">{depositLabel}</Text>
+        {locationLabel || priceLabel ? (
+          <View className="mt-2 flex-row items-center gap-2">
+            {locationLabel ? (
+              <Text className="min-w-0 flex-1 text-xs text-slate-600" numberOfLines={1}>
+                {`📍 ${locationLabel}`}
+              </Text>
+            ) : (
+              <View className="min-w-0 flex-1" />
+            )}
+            {priceLabel ? (
+              <Text className="shrink-0 text-sm font-bold" style={{ color: BRAND.btnPrimary }}>
+                {priceLabel}
+              </Text>
             ) : null}
           </View>
         ) : null}
-
-        {trustTags.length ? (
-          <View className="mt-2.5 flex-row flex-wrap gap-1.5">
-            {trustTags.map((tag) => (
-              <TrustTag key={tag.kind === 'vaccine' ? `vac-${tag.label}` : tag.kind} tag={tag} t={t} />
-            ))}
-          </View>
-        ) : (
-          <View className="mt-2.5 flex-row flex-wrap gap-1.5">
-            {post.location ? (
-              <View className="rounded-full border px-2 py-1" style={{ borderColor: BRAND.borderBrand, backgroundColor: BRAND.surface }}>
-                <Text className="text-[11px] text-slate-700">{`📍 ${post.location}`}</Text>
-              </View>
-            ) : null}
-            {ageGender ? (
-              <View className="rounded-full border px-2 py-1" style={{ borderColor: BRAND.borderBrand, backgroundColor: BRAND.surface }}>
-                <Text className="text-[11px] text-slate-700">{ageGender}</Text>
-              </View>
-            ) : null}
-          </View>
-        )}
 
         <View className="mt-2.5 flex-row items-center gap-2 border-t pt-2" style={{ borderTopColor: `${BRAND.borderBrand}CC` }}>
           {breeder?.avatar_url ? (
@@ -283,6 +231,22 @@ function PetFeedListingCardComponent({
                 <Text className="text-xs font-semibold" style={{ color: post.is_favorited ? '#E11D48' : '#6E5A51' }}>
                   {post.favorite_count ?? 0}
                 </Text>
+              </Pressable>
+            ) : null}
+            {canShowEdit ? (
+              <Pressable
+                testID={`pet-feed-edit-button-${post.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
+                className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2"
+                style={{ backgroundColor: BRAND.btnPrimary }}
+                onPress={(event) => {
+                  stopPress(event);
+                  onEditPost?.(post);
+                }}
+              >
+                <Ionicons name="create-outline" size={15} color={BRAND.textInverse} />
+                <Text className="text-xs font-semibold text-white">{t('petFeed.editListing')}</Text>
               </Pressable>
             ) : null}
             {canShowContact ? (

@@ -28,6 +28,7 @@ import {
   readDealFromPostMetadata,
 } from '../utils/listingDealHandoff';
 import { sharePetFeedPost } from '../utils/sharePetFeedPost';
+import { petFeedDetailShowsMessageButton } from '../utils/petFeedDetailHeader';
 import { modalBottomInset } from '../utils/modalSafeArea';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import { ReportModal } from '../components/ReportModal';
@@ -69,8 +70,16 @@ function PetFeedPostDetailSkeleton() {
     <View className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
       <Bone className="h-72 w-full" />
       <View className="gap-3 p-4">
-        <Bone className="h-6 w-3/5 rounded-full" />
-        <Bone className="h-8 w-2/5 rounded-full" />
+        <View className="gap-2.5">
+          <View className="flex-row items-start justify-between gap-3">
+            <Bone className="h-5 flex-1 rounded-full" />
+            <Bone className="h-5 w-24 shrink-0 rounded-full" />
+          </View>
+          <View className="flex-row items-center justify-between gap-3">
+            <Bone className="h-9 w-14 rounded-xl" />
+            <Bone className="h-9 w-24 rounded-xl" />
+          </View>
+        </View>
         <View className="flex-row gap-3">
           <Bone className="h-16 flex-1 rounded-xl" />
           <Bone className="h-16 flex-1 rounded-xl" />
@@ -177,8 +186,8 @@ export function PetFeedPostDetailScreen({
       dealStatus: deal.status,
     }),
   );
-  const showMessageCta = Boolean(selectedPost && !isOwnPost && onMessageBreeder);
-  const showStickyActions = showDepositCta || showMessageCta;
+  const showMessageCta = petFeedDetailShowsMessageButton(Boolean(isOwnPost), Boolean(onMessageBreeder));
+  const showStickyActions = showDepositCta;
 
   function confirmDeletePost(post: PetFeedPost) {
     if (!onDeletePost) return;
@@ -278,7 +287,9 @@ export function PetFeedPostDetailScreen({
               post={selectedPost}
               mediaLoading={detailLoading}
               onToggleFavorite={onToggleFavorite}
+              onMessageBreeder={onMessageBreeder}
               showFavorite
+              showMessageButton={showMessageCta}
             />
             {isOwnPost && onEditPost ? (
               <Pressable
@@ -347,24 +358,6 @@ export function PetFeedPostDetailScreen({
           }}
         >
           <View className="flex-row gap-2.5">
-            {showMessageCta ? (
-              <Pressable
-                testID={`pet-feed-message-button-${selectedPost.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: selectedPost.title })}
-                className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-full border py-3.5"
-                style={{
-                  backgroundColor: BRAND.btnSecondary,
-                  borderColor: BRAND.borderBrand,
-                }}
-                onPress={() => onMessageBreeder?.(selectedPost)}
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={17} color={BRAND.textBrandLink} />
-                <Text className="text-sm font-semibold" style={{ color: BRAND.textBrandLink }}>
-                  {t('petFeed.messages.messageCta')}
-                </Text>
-              </Pressable>
-            ) : null}
             {showDepositCta ? (
               <Pressable
                 testID={`pet-feed-deposit-button-${selectedPost.id}`}

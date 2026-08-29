@@ -345,6 +345,7 @@ function PetFeedPostCardComponent({
           post={post}
           onToggleFavorite={onToggleFavorite}
           onMessageBreeder={onMessageBreeder}
+          onEditPost={onEditPost}
           currentUserId={currentUserId}
           showFavorite={showFavorite}
           showContact={showContact}

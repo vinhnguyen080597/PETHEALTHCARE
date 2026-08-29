@@ -415,6 +415,8 @@ function AppContent() {
                 onToggleFavorite={app.togglePetFeedFavorite}
                 onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
                 onMessageFarm={(profile) => void app.openOrCreateConversationFromFarm(profile)}
+                onOpenBreederProfile={() => void app.openBreederProfile()}
+                onEditPost={app.openEditPetFeedDraft}
                 currentUserId={app.accountProfile?.user_id ?? null}
                 focusPostId={app.screen === 'pet-feed' ? app.petFeedFocusPostId : null}
                 onFocusPostHandled={app.clearPetFeedFocusPostId}
@@ -461,6 +463,7 @@ function AppContent() {
                 onOpenTemplatePicker={app.openTemplatePicker}
                 onOpenBreederProfile={app.openBreederProfile}
                 onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
+                onEditPost={app.openEditPetFeedDraft}
                 onMessageFarm={(profile) => void app.openOrCreateConversationFromFarm(profile)}
                 onUploadFarmPhoto={(kind, uri) => app.uploadOwnFarmProfilePhoto(kind, uri)}
                 onOpenWarrantyLibrary={app.openWarrantyLibrary}

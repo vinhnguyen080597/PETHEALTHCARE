@@ -2406,7 +2406,15 @@ export function usePetHealthApp() {
     if (!['draft', 'pending_review', 'published'].includes(post.status)) return;
     if (accountProfile?.user_id && post.user_id !== accountProfile.user_id) return;
     setEditingPetFeedPost(post);
-    setCreatePetFeedReturnScreen(screen === 'pet-feed-detail' ? 'pet-feed-detail' : screen === 'account' ? 'account' : 'account');
+    setCreatePetFeedReturnScreen(
+      screen === 'pet-feed-detail'
+        ? 'pet-feed-detail'
+        : screen === 'pet-feed'
+          ? 'pet-feed'
+          : screen === 'account'
+            ? 'account'
+            : 'account',
+    );
     setScreen('create-pet-feed-post');
   }
 

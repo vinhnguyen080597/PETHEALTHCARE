@@ -75,6 +75,7 @@ type BreederDetailScreenProps = {
   onOpenTemplatePicker?: () => void;
   onOpenBreederProfile?: () => void;
   onOpenCreatePetFeedPost?: () => void;
+  onEditPost?: (post: PetFeedPost) => void;
   onMessageFarm?: (profile: BreederProfile) => void;
   onUploadFarmPhoto?: (kind: FarmPhotoKind, imageUri: string) => Promise<boolean>;
   onOpenWarrantyLibrary?: (editPolicy?: WarrantyPolicy | null) => void;
@@ -96,6 +97,7 @@ export function BreederDetailScreen({
   onOpenTemplatePicker,
   onOpenBreederProfile,
   onOpenCreatePetFeedPost,
+  onEditPost,
   onMessageFarm,
   onUploadFarmPhoto,
   onOpenWarrantyLibrary,
@@ -691,6 +693,7 @@ export function BreederDetailScreen({
                     showFavorite={false}
                     showContact={false}
                     currentUserId={currentUserId}
+                    onEditPost={isOwnProfile ? onEditPost : undefined}
                     onPress={(post) => onOpenPostDetail(post.id)}
                   />
                 ))}

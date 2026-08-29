@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import type { PetFeedPost } from '../src/types.ts';
 import {
   isListingNewOnFloor,
+  isOwnListingPost,
   listingBreederFooterMetrics,
+  listingCardShowsEditAction,
+  LISTING_CARD_IMAGE_HEIGHT,
   listingHotBadges,
   listingSpeciesEmoji,
   listingTrustTags,
@@ -45,17 +48,20 @@ test('listingSpeciesEmoji maps common species', () => {
   assert.equal(listingSpeciesEmoji('dog'), '🐶');
 });
 
-test('listingHotBadges uses saves, new, and video signals', () => {
+test('listing card image height matches pet feed detail hero', () => {
+  assert.equal(LISTING_CARD_IMAGE_HEIGHT, 288);
+});
+
+test('listingHotBadges uses saves and new signals without video tag', () => {
   const now = Date.parse('2026-08-15T12:00:00.000Z');
   const badges = listingHotBadges(
     {
       created_at: '2026-08-15T10:00:00.000Z',
       favorite_count: 2,
-      video_url: 'https://example.com/v.mp4',
     },
     now,
   );
-  assert.deepEqual(badges.map((b) => b.kind), ['saves', 'new', 'video']);
+  assert.deepEqual(badges.map((b) => b.kind), ['saves', 'new']);
   assert.equal(isListingNewOnFloor({ created_at: '2026-08-10T10:00:00.000Z' }, now), false);
 });
 
@@ -77,6 +83,14 @@ test('listingTrustTags prefers warranty and escrow from real fields', () => {
   assert.ok(!withoutEscrow.includes('escrow'));
   assert.equal(listingWarrantyCoverageDays({ careParvoCoverageDays: 30 }), 30);
   assert.equal(parseListingEscrowEnabled({ accept_escrow: true }), true);
+});
+
+test('listingCardShowsEditAction only for own posts with an edit handler', () => {
+  assert.equal(isOwnListingPost('u1', { user_id: 'u1' }), true);
+  assert.equal(isOwnListingPost('u2', { user_id: 'u1' }), false);
+  assert.equal(listingCardShowsEditAction(true, true), true);
+  assert.equal(listingCardShowsEditAction(true, false), false);
+  assert.equal(listingCardShowsEditAction(false, true), false);
 });
 
 test('listingBreederFooterMetrics formats rating and trust score for card footer', () => {

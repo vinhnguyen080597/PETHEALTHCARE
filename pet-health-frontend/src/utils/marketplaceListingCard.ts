@@ -12,8 +12,7 @@ export type ListingWarrantyPolicy = {
 
 export type ListingHotBadge =
   | { kind: 'saves'; count: number }
-  | { kind: 'new' }
-  | { kind: 'video' };
+  | { kind: 'new' };
 
 export type ListingTrustTag =
   | { kind: 'warranty'; days: number }
@@ -148,15 +147,17 @@ export function listingAvailability(post: PetFeedPost): ListingAvailability | nu
   return null;
 }
 
+/** Feed listing + detail hero height (Tailwind `h-72`). */
+export const LISTING_CARD_IMAGE_HEIGHT = 288;
+
 export function listingHotBadges(
-  post: Pick<PetFeedPost, 'created_at' | 'video_url' | 'favorite_count'>,
+  post: Pick<PetFeedPost, 'created_at' | 'favorite_count'>,
   now = Date.now(),
 ): ListingHotBadge[] {
   const badges: ListingHotBadge[] = [];
   const saves = Math.max(0, Math.floor(Number(post.favorite_count) || 0));
   if (saves > 0) badges.push({ kind: 'saves', count: saves });
   if (isListingNewOnFloor(post, now)) badges.push({ kind: 'new' });
-  if (Boolean(post.video_url?.trim())) badges.push({ kind: 'video' });
   return badges.slice(0, 3);
 }
 
@@ -208,6 +209,20 @@ export type ListingBreederFooterMetrics = {
 };
 
 /** Rating + transparency score shown on listing card breeder row (image 1 layout). */
+export function isOwnListingPost(
+  currentUserId: string | null | undefined,
+  post: Pick<PetFeedPost, 'user_id'>,
+): boolean {
+  return Boolean(currentUserId && post.user_id === currentUserId);
+}
+
+export function listingCardShowsEditAction(
+  isOwnPost: boolean,
+  hasEditHandler: boolean,
+): boolean {
+  return isOwnPost && hasEditHandler;
+}
+
 export function listingBreederFooterMetrics(
   post: Pick<PetFeedPost, 'breeder_profile'>,
   trustScore: number,

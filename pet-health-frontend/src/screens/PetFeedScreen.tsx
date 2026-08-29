@@ -29,6 +29,7 @@ import {
   breederCardSpecialtyLabel,
   buildBreederPetThumbs,
   canShowBreederMessageAction,
+  canShowBreederEditProfileAction,
   getBreederDirectoryCardMetrics,
   resolveBreederCardActivity,
 } from '../utils/breederDirectoryCard';
@@ -42,6 +43,7 @@ import {
 } from '../utils/petFeedGender';
 import { breederMatchesProvince, postMatchesProvince } from '../utils/petFeedLocation';
 import { normalizeSearchText } from '../utils/petFeedText';
+import { LISTING_CARD_IMAGE_HEIGHT } from '../utils/marketplaceListingCard';
 import {
   PET_FEED_TAB_ORDER,
   type PetFeedScreenTab,
@@ -101,6 +103,8 @@ type PetFeedScreenProps = {
   onToggleFavorite?: (post: PetFeedPost) => void;
   onMessageBreeder?: (post: PetFeedPost) => void;
   onMessageFarm?: (profile: BreederProfile) => void;
+  onOpenBreederProfile?: () => void;
+  onEditPost?: (post: PetFeedPost) => void;
   currentUserId?: string | null;
   /** When set, switch to feed tab and scroll to this post, then call onFocusPostHandled. */
   focusPostId?: string | null;
@@ -172,7 +176,7 @@ function PetFeedSkeleton() {
     <View className="gap-4 px-5">
       {[0, 1, 2].map((item) => (
         <View key={item} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <View className="h-48 bg-slate-200" />
+          <View className="bg-slate-200" style={{ height: LISTING_CARD_IMAGE_HEIGHT }} />
           <View className="gap-3 p-4">
             <View className="h-5 w-4/5 rounded-full bg-slate-200" />
             <View className="h-4 w-2/5 rounded-full bg-slate-100" />
@@ -210,6 +214,8 @@ export function PetFeedScreen({
   onToggleFavorite,
   onMessageBreeder,
   onMessageFarm,
+  onOpenBreederProfile,
+  onEditPost,
   currentUserId = null,
   focusPostId = null,
   onFocusPostHandled,
@@ -498,6 +504,7 @@ export function PetFeedScreen({
             showContact={Boolean(currentUserId && onMessageBreeder)}
             onToggleFavorite={onToggleFavorite}
             onMessageBreeder={onMessageBreeder}
+            onEditPost={onEditPost}
             currentUserId={currentUserId}
             showReport={false}
             showEscrowUi={marketplaceEscrowEnabled}
@@ -518,6 +525,7 @@ export function PetFeedScreen({
     const lang = i18n.language?.toLowerCase().startsWith('en') ? 'en' : 'vi';
     const name = profile.display_name || t('petFeed.breederFallback');
     const showMessage = canShowBreederMessageAction(currentUserId, profile.user_id);
+    const showEditProfile = canShowBreederEditProfileAction(currentUserId, profile.user_id);
 
     return (
       <View className="px-5">
@@ -537,9 +545,11 @@ export function PetFeedScreen({
             petThumbs: buildBreederPetThumbs(postsForFarm),
           }}
           showMessageButton={showMessage}
+          showEditProfileButton={showEditProfile && Boolean(onOpenBreederProfile)}
           accessibilityLabel={t('petFeed.accessibility.openBreederProfile', { name })}
           onPressVisit={() => onOpenBreederDetail(profile.id || profile.user_id)}
           onPressMessage={() => onMessageFarm?.(profile)}
+          onPressEditProfile={onOpenBreederProfile}
           onPressPet={(listingId) => onOpenPostDetail(listingId)}
         />
       </View>
@@ -550,6 +560,8 @@ export function PetFeedScreen({
     i18n.language,
     onMessageBreeder,
     onMessageFarm,
+    onOpenBreederProfile,
+    onEditPost,
     onOpenBreederDetail,
     onOpenPostDetail,
     onToggleFavorite,

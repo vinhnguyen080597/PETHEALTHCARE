@@ -70,6 +70,14 @@ export function canShowBreederMessageAction(
   return currentUserId !== breederUserId;
 }
 
+export function canShowBreederEditProfileAction(
+  currentUserId: string | null | undefined,
+  breederUserId: string,
+): boolean {
+  if (!currentUserId) return false;
+  return currentUserId === breederUserId;
+}
+
 export function breederCardSpecialtyLabel(
   profile: Pick<BreederProfile, 'main_breeds' | 'primary_species'>,
   lang: 'vi' | 'en',
@@ -116,6 +124,28 @@ export function breederCardReviewMetrics(metadata: Record<string, unknown> | und
       ? Math.round(reviewAvg * 10) / 10
       : null;
   return { reviewCount, rating };
+}
+
+export type BreederCardFooterMetrics = {
+  /** e.g. "5.0/5 (2)" when breeder has reviews; null otherwise. */
+  ratingText: string | null;
+  trustScore: number;
+};
+
+/** Compact rating + trust labels for breeder directory cards (matches listing card footer). */
+export function breederCardFooterMetrics(
+  rating: number | null,
+  reviewCount: number,
+  trustScore: number,
+): BreederCardFooterMetrics {
+  const ratingText =
+    rating != null && reviewCount > 0
+      ? `${rating.toFixed(1)}/5 (${reviewCount})`
+      : null;
+  return {
+    ratingText,
+    trustScore: Math.max(0, Math.min(100, Math.round(trustScore))),
+  };
 }
 
 export function breederResponseHoursFromProfile(profile: BreederProfile): number | null {
