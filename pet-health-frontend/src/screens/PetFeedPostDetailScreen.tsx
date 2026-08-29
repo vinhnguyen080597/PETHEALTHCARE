@@ -29,7 +29,7 @@ import {
   readDealFromPostMetadata,
 } from '../utils/listingDealHandoff';
 import { sharePetFeedPost } from '../utils/sharePetFeedPost';
-import { petFeedDetailShowsMessageButton } from '../utils/petFeedDetailHeader';
+import { petFeedDetailShowsEditButton, petFeedDetailShowsMessageButton } from '../utils/petFeedDetailHeader';
 import { similarForSaleListings } from '../utils/petFeedDetailSiblingListings';
 import { modalBottomInset } from '../utils/modalSafeArea';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
@@ -191,6 +191,7 @@ export function PetFeedPostDetailScreen({
     }),
   );
   const showMessageCta = petFeedDetailShowsMessageButton(Boolean(isOwnPost), Boolean(onMessageBreeder));
+  const showEditCta = petFeedDetailShowsEditButton(Boolean(isOwnPost), Boolean(onEditPost));
   const siblingListings = useMemo(
     () => (selectedPost ? similarForSaleListings(listPosts, selectedPost) : []),
     [listPosts, selectedPost],
@@ -302,18 +303,11 @@ export function PetFeedPostDetailScreen({
               mediaLoading={detailLoading}
               onToggleFavorite={onToggleFavorite}
               onMessageBreeder={onMessageBreeder}
+              onEditPost={onEditPost}
               showFavorite
               showMessageButton={showMessageCta}
+              showEditButton={showEditCta}
             />
-            {isOwnPost && onEditPost ? (
-              <Pressable
-                className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 active:bg-slate-50"
-                onPress={() => onEditPost(selectedPost)}
-              >
-                <Ionicons name="create-outline" size={17} color={BRAND.textSecondary} />
-                <Text className="text-sm font-semibold text-slate-700">{t('petFeed.editListing')}</Text>
-              </Pressable>
-            ) : null}
             {onMutateListingDeal && selectedPost.post_kind !== 'announcement' && showDealUi ? (
               <View className="mt-3">
                 <ListingDealPanel
@@ -368,7 +362,7 @@ export function PetFeedPostDetailScreen({
 
       {showBottomBar && selectedPost ? (
         <View
-          className="border-t bg-white"
+          className="w-full border-t bg-white"
           style={{
             borderTopColor: BRAND.borderLight,
             paddingBottom: bottomBarPad,

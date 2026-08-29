@@ -65,8 +65,10 @@ type PetFeedPostDetailBodyProps = {
   mediaLoading?: boolean;
   onToggleFavorite?: (post: PetFeedPost) => void;
   onMessageBreeder?: (post: PetFeedPost) => void;
+  onEditPost?: (post: PetFeedPost) => void;
   showFavorite?: boolean;
   showMessageButton?: boolean;
+  showEditButton?: boolean;
 };
 
 export function PetFeedPostDetailBody({
@@ -74,8 +76,10 @@ export function PetFeedPostDetailBody({
   mediaLoading = false,
   onToggleFavorite,
   onMessageBreeder,
+  onEditPost,
   showFavorite = true,
   showMessageButton = false,
+  showEditButton = false,
 }: PetFeedPostDetailBodyProps) {
   const { t, i18n } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -200,7 +204,7 @@ export function PetFeedPostDetailBody({
             ) : null}
           </View>
 
-          {(showFavorite && onToggleFavorite) || (showMessageButton && onMessageBreeder) ? (
+          {(showFavorite && onToggleFavorite) || (showMessageButton && onMessageBreeder) || (showEditButton && onEditPost) ? (
             <View className="flex-row items-center justify-between gap-3">
               {showFavorite && onToggleFavorite ? (
                 <Pressable
@@ -237,6 +241,24 @@ export function PetFeedPostDetailBody({
                   <Ionicons name="chatbubble-ellipses-outline" size={15} color={BRAND.textBrandLink} />
                   <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
                     {t('petFeed.messages.messageCta')}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {showEditButton && onEditPost ? (
+                <Pressable
+                  testID={`pet-feed-edit-button-${post.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
+                  className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+                  style={{
+                    backgroundColor: BRAND.btnSecondary,
+                    borderColor: BRAND.borderBrand,
+                  }}
+                  onPress={() => onEditPost(post)}
+                >
+                  <Ionicons name="create-outline" size={15} color={BRAND.textBrandLink} />
+                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                    {t('petFeed.editListing')}
                   </Text>
                 </Pressable>
               ) : null}

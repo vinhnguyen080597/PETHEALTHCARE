@@ -23,10 +23,17 @@ export function PetFeedDetailSiblingListingsBar({
 
   return (
     <View
-      className="border-t bg-white px-4 pt-2.5"
-      style={{ borderTopColor: BRAND.borderLight, paddingBottom }}
+      className="w-full border-t bg-white px-4 pt-3"
+      style={{
+        alignSelf: 'stretch',
+        borderTopColor: BRAND.borderLight,
+        paddingBottom,
+      }}
     >
-      <Text className="mb-2 text-[13px] font-semibold text-slate-800">
+      <Text
+        className="text-[13px] font-semibold text-slate-800"
+        style={{ marginBottom: 12 }}
+      >
         {t('petFeed.detail.similarListings')}
       </Text>
       <ScrollView

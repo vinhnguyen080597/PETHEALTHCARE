@@ -5,3 +5,11 @@ export function petFeedDetailShowsMessageButton(
 ): boolean {
   return !isOwnPost && hasMessageHandler;
 }
+
+/** Edit CTA in detail header — shown only for listing owner. */
+export function petFeedDetailShowsEditButton(
+  isOwnPost: boolean,
+  hasEditHandler: boolean,
+): boolean {
+  return isOwnPost && hasEditHandler;
+}
