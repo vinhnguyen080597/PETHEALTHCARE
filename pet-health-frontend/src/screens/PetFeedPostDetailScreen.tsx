@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PetFeedCommentComposer, PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
+import { PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
+import { PetFeedDetailSiblingListingsBar } from '../components/PetFeedDetailSiblingListingsBar';
 import { ListingDealPanel, type ListingDealMutation } from '../components/ListingDealPanel';
 import { MarketplaceDisclaimerAlert } from '../components/MarketplaceLegalNotice';
 import { PetFeedPostDetailBody } from '../components/PetFeedPostDetailBody';
@@ -29,6 +30,7 @@ import {
 } from '../utils/listingDealHandoff';
 import { sharePetFeedPost } from '../utils/sharePetFeedPost';
 import { petFeedDetailShowsMessageButton } from '../utils/petFeedDetailHeader';
+import { similarForSaleListings } from '../utils/petFeedDetailSiblingListings';
 import { modalBottomInset } from '../utils/modalSafeArea';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import { ReportModal } from '../components/ReportModal';
@@ -48,6 +50,7 @@ type PetFeedPostDetailScreenProps = {
   onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
   onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
   onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
+  onOpenListing?: (postId: string) => void;
   onMutateListingDeal?: (
     postId: string,
     mutation: ListingDealMutation,
@@ -109,6 +112,7 @@ export function PetFeedPostDetailScreen({
   onFetchPostComments,
   onSubmitPostComment,
   onDeletePostComment,
+  onOpenListing,
   onMutateListingDeal,
   onSubmitListingDealReview,
   marketplaceEscrowEnabled = false,
@@ -118,7 +122,7 @@ export function PetFeedPostDetailScreen({
   const insets = useSafeAreaInsets();
   const bottomInset = modalBottomInset(insets.bottom);
   const keyboardOverlap = useIosKeyboardOverlap();
-  const composerPad = keyboardOverlap > 0 ? 8 : bottomInset;
+  const bottomBarPad = Math.max(bottomInset, 10);
   const scrollRef = useRef<ScrollView>(null);
   const commentsSectionYRef = useRef(0);
   const scrolledFocusIdRef = useRef<string | null>(null);
@@ -187,7 +191,17 @@ export function PetFeedPostDetailScreen({
     }),
   );
   const showMessageCta = petFeedDetailShowsMessageButton(Boolean(isOwnPost), Boolean(onMessageBreeder));
-  const showStickyActions = showDepositCta;
+  const siblingListings = useMemo(
+    () => (selectedPost ? similarForSaleListings(listPosts, selectedPost) : []),
+    [listPosts, selectedPost],
+  );
+  const showSiblingBar = Boolean(
+    selectedPost
+    && selectedPost.post_kind !== 'announcement'
+    && siblingListings.length > 0
+    && onOpenListing,
+  );
+  const showBottomBar = Boolean((showDepositCta && selectedPost) || showSiblingBar);
 
   function confirmDeletePost(post: PetFeedPost) {
     if (!onDeletePost) return;
@@ -277,7 +291,7 @@ export function PetFeedPostDetailScreen({
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 12,
-          paddingBottom: showStickyActions ? 24 : 16,
+          paddingBottom: showBottomBar ? 24 : 16,
         }}
       >
         <MarketplaceDisclaimerAlert compact className="mb-3" />
@@ -333,6 +347,10 @@ export function PetFeedPostDetailScreen({
                 onFocusCommentOffset={handleFocusCommentOffset}
                 onReply={setReplyTo}
                 onDelete={(comment) => void removeComment(comment)}
+                commentSubmitting={commentSubmitting}
+                replyTo={replyTo}
+                onCancelReply={() => setReplyTo(null)}
+                onSubmitComment={onSubmitPostComment ? addComment : undefined}
               />
             </View>
           </>
@@ -348,49 +366,37 @@ export function PetFeedPostDetailScreen({
         )}
       </ScrollView>
 
-      {showStickyActions && selectedPost ? (
+      {showBottomBar && selectedPost ? (
         <View
-          className="border-t bg-white px-4 pt-3"
+          className="border-t bg-white"
           style={{
             borderTopColor: BRAND.borderLight,
-            paddingBottom: Math.max(composerPad, 10),
+            paddingBottom: bottomBarPad,
             gap: 10,
           }}
         >
-          <View className="flex-row gap-2.5">
-            {showDepositCta ? (
+          {showDepositCta ? (
+            <View className="px-4 pt-3">
               <Pressable
                 testID={`pet-feed-deposit-button-${selectedPost.id}`}
                 accessibilityRole="button"
                 accessibilityLabel={t('deal.requestDeposit')}
-                className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-full py-3.5"
+                className="min-w-0 flex-row items-center justify-center gap-1.5 rounded-full py-3.5"
                 style={{ backgroundColor: BRAND.btnPrimary }}
                 onPress={() => setDepositModalTrigger((n) => n + 1)}
               >
                 <Ionicons name="heart" size={16} color={BRAND.textInverse} />
                 <Text className="text-sm font-semibold text-white">{t('deal.requestDeposit')}</Text>
               </Pressable>
-            ) : null}
-          </View>
-          <PetFeedCommentComposer
-            submitting={commentSubmitting}
-            replyTo={replyTo}
-            onCancelReply={() => setReplyTo(null)}
-            onSubmit={addComment}
-          />
-        </View>
-      ) : selectedPost ? (
-        <View className="border-t border-gray-200 bg-white" style={{ paddingBottom: composerPad }}>
-          <PetFeedCommentComposer
-            submitting={commentSubmitting}
-            replyTo={replyTo}
-            onCancelReply={() => setReplyTo(null)}
-            onSubmit={addComment}
-          />
-        </View>
-      ) : detailLoading ? (
-        <View className="border-t border-gray-200 bg-white px-4 py-3" style={{ paddingBottom: composerPad }}>
-          <Bone className="h-11 w-full rounded-xl" />
+            </View>
+          ) : null}
+          {showSiblingBar ? (
+            <PetFeedDetailSiblingListingsBar
+              listings={siblingListings}
+              onPressListing={onOpenListing!}
+              paddingBottom={0}
+            />
+          ) : null}
         </View>
       ) : null}
 

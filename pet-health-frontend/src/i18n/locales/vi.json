@@ -180,7 +180,8 @@
       "warrantyView": "Xem chính sách bảo hành",
       "warrantyNone": "Chưa gắn chính sách bảo hành",
       "warrantyNoneHint": "Breeder chưa đính kèm chính sách bảo hành cho tin này.",
-      "mediaCount": "{{current}}/{{total}}"
+      "mediaCount": "{{current}}/{{total}}",
+      "similarListings": "Các bé khác tương tự"
     },
     "breederFallback": "Breeder",
     "locationUnknown": "Chưa chia sẻ khu vực",

@@ -180,7 +180,8 @@
       "warrantyView": "View warranty policy",
       "warrantyNone": "No warranty policy attached",
       "warrantyNoneHint": "The breeder has not attached a warranty policy to this listing.",
-      "mediaCount": "{{current}}/{{total}}"
+      "mediaCount": "{{current}}/{{total}}",
+      "similarListings": "Similar listings"
     },
     "breederFallback": "Breeder",
     "locationUnknown": "Location not shared",

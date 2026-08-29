@@ -188,7 +188,35 @@ type PetFeedCommentsSectionProps = {
   onFocusCommentOffset?: (offsetY: number) => void;
   onReply?: (comment: PetFeedComment) => void;
   onDelete?: (comment: PetFeedComment) => void;
+  commentSubmitting?: boolean;
+  replyTo?: PetFeedComment | null;
+  onCancelReply?: () => void;
+  onSubmitComment?: (body: string) => Promise<boolean>;
 };
+
+function CommentsComposerBlock({
+  submitting,
+  replyTo,
+  onCancelReply,
+  onSubmit,
+}: {
+  submitting: boolean;
+  replyTo?: PetFeedComment | null;
+  onCancelReply?: () => void;
+  onSubmit: (body: string) => Promise<boolean>;
+}) {
+  return (
+    <View className="mt-3">
+      <PetFeedCommentComposer
+        embedded
+        submitting={submitting}
+        replyTo={replyTo}
+        onCancelReply={onCancelReply}
+        onSubmit={onSubmit}
+      />
+    </View>
+  );
+}
 
 export function PetFeedCommentsSection({
   threads,
@@ -198,6 +226,10 @@ export function PetFeedCommentsSection({
   onFocusCommentOffset,
   onReply,
   onDelete,
+  commentSubmitting = false,
+  replyTo = null,
+  onCancelReply,
+  onSubmitComment,
 }: PetFeedCommentsSectionProps) {
   const { t } = useTranslation();
   const sectionRef = useRef<View>(null);
@@ -245,35 +277,55 @@ export function PetFeedCommentsSection({
           ))}
         </View>
       ) : threads.length === 0 ? (
-        <Text className="mt-3 text-sm leading-5 text-slate-500">{t('petFeed.comments.empty')}</Text>
+        <>
+          <Text className="mt-3 text-sm leading-5 text-slate-500">{t('petFeed.comments.empty')}</Text>
+          {onSubmitComment ? (
+            <CommentsComposerBlock
+              submitting={commentSubmitting}
+              replyTo={replyTo}
+              onCancelReply={onCancelReply}
+              onSubmit={onSubmitComment}
+            />
+          ) : null}
+        </>
       ) : (
-        <View className="mt-3 gap-3">
-          {threads.map((thread) => (
-            <View key={thread.root.id} className="gap-2">
-              <CommentRow
-                comment={thread.root}
-                currentUserId={currentUserId}
-                highlighted={focusCommentId === thread.root.id}
-                measureRelativeTo={sectionRef}
-                onMeasuredOffsetY={focusCommentId === thread.root.id ? handleMeasuredOffsetY : undefined}
-                onReply={onReply}
-                onDelete={onDelete}
-              />
-              {thread.replies.map((reply) => (
+        <>
+          <View className="mt-3 gap-3">
+            {threads.map((thread) => (
+              <View key={thread.root.id} className="gap-2">
                 <CommentRow
-                  key={reply.id}
-                  comment={reply}
+                  comment={thread.root}
                   currentUserId={currentUserId}
-                  isReply
-                  highlighted={focusCommentId === reply.id}
+                  highlighted={focusCommentId === thread.root.id}
                   measureRelativeTo={sectionRef}
-                  onMeasuredOffsetY={focusCommentId === reply.id ? handleMeasuredOffsetY : undefined}
+                  onMeasuredOffsetY={focusCommentId === thread.root.id ? handleMeasuredOffsetY : undefined}
+                  onReply={onReply}
                   onDelete={onDelete}
                 />
-              ))}
-            </View>
-          ))}
-        </View>
+                {thread.replies.map((reply) => (
+                  <CommentRow
+                    key={reply.id}
+                    comment={reply}
+                    currentUserId={currentUserId}
+                    isReply
+                    highlighted={focusCommentId === reply.id}
+                    measureRelativeTo={sectionRef}
+                    onMeasuredOffsetY={focusCommentId === reply.id ? handleMeasuredOffsetY : undefined}
+                    onDelete={onDelete}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+          {onSubmitComment ? (
+            <CommentsComposerBlock
+              submitting={commentSubmitting}
+              replyTo={replyTo}
+              onCancelReply={onCancelReply}
+              onSubmit={onSubmitComment}
+            />
+          ) : null}
+        </>
       )}
     </View>
   );
@@ -284,6 +336,7 @@ type PetFeedCommentComposerProps = {
   replyTo?: PetFeedComment | null;
   onCancelReply?: () => void;
   onSubmit: (body: string) => Promise<boolean>;
+  embedded?: boolean;
 };
 
 export function PetFeedCommentComposer({
@@ -291,6 +344,7 @@ export function PetFeedCommentComposer({
   replyTo,
   onCancelReply,
   onSubmit,
+  embedded = false,
 }: PetFeedCommentComposerProps) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState('');
@@ -303,7 +357,7 @@ export function PetFeedCommentComposer({
   }
 
   return (
-    <View className="px-4 py-3">
+    <View className={embedded ? '' : 'px-4 py-3'}>
       {replyTo ? (
         <View className="mb-2 flex-row items-center justify-between gap-2 rounded-lg bg-blue-50 px-3 py-2">
           <Text className="min-w-0 flex-1 text-xs text-blue-700" numberOfLines={1}>

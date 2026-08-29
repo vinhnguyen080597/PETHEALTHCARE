@@ -443,6 +443,7 @@ function AppContent() {
                 onFetchPostComments={app.fetchPetFeedPostComments}
                 onSubmitPostComment={app.submitPetFeedComment}
                 onDeletePostComment={app.deletePetFeedComment}
+                onOpenListing={app.openPetFeedPostDetail}
                 onMutateListingDeal={app.mutateListingDeal}
                 onSubmitListingDealReview={app.submitListingDealReview}
                 marketplaceEscrowEnabled={app.isFeatureEnabled('marketplace_escrow')}
