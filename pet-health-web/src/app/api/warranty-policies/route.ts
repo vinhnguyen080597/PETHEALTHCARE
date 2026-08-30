@@ -5,6 +5,8 @@ import {
   listMyWarrantyPolicies,
 } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import { warrantyPolicyBodySchema } from "@/lib/api/validation/schemas";
 
 export async function GET() {
   const token = await getAccessToken();
@@ -30,9 +32,10 @@ export async function POST(req: Request) {
   if (!token) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const parsed = parseBody(warrantyPolicyBodySchema, await readJsonBody(req));
+  if (!parsed.ok) return parsed.response;
   try {
-    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-    const result = await createWarrantyPolicy(token, body);
+    const result = await createWarrantyPolicy(token, parsed.data);
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     if (err instanceof ApiError) {

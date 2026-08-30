@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { getAccessToken } from "@/lib/session";
 import { deleteWarrantyPolicy, updateWarrantyPolicy } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import {
+  warrantyPolicyBodySchema,
+  warrantyPolicyIdParamSchema,
+} from "@/lib/api/validation/schemas";
 
 export async function DELETE(
   _req: Request,
@@ -13,7 +18,11 @@ export async function DELETE(
   }
   try {
     const { policyId } = await params;
-    const result = await deleteWarrantyPolicy(token, policyId);
+    const idParsed = warrantyPolicyIdParamSchema.safeParse(policyId);
+    if (!idParsed.success) {
+      return NextResponse.json({ error: "Invalid policy id" }, { status: 400 });
+    }
+    const result = await deleteWarrantyPolicy(token, idParsed.data);
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
@@ -36,8 +45,13 @@ export async function PATCH(
   }
   try {
     const { policyId } = await params;
-    const body = await req.json().catch(() => ({}));
-    const result = await updateWarrantyPolicy(token, policyId, body);
+    const idParsed = warrantyPolicyIdParamSchema.safeParse(policyId);
+    if (!idParsed.success) {
+      return NextResponse.json({ error: "Invalid policy id" }, { status: 400 });
+    }
+    const parsed = parseBody(warrantyPolicyBodySchema, await readJsonBody(req));
+    if (!parsed.ok) return parsed.response;
+    const result = await updateWarrantyPolicy(token, idParsed.data, parsed.data);
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {

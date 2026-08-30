@@ -3,7 +3,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/session";
 import { requestListingDispute } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
-import { httpPhotoUrls } from "@/lib/dealPhotoUpload";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import { dealDisputeBodySchema } from "@/lib/api/validation/schemas";
 
 export async function POST(
   req: Request,
@@ -15,16 +16,9 @@ export async function POST(
   }
   try {
     const { postId } = await params;
-    const incoming = (await req.json().catch(() => ({}))) as {
-      message?: string;
-      note?: string;
-      disputePhotoUrls?: unknown;
-    };
-    const message = String(incoming.message || incoming.note || "");
-    const result = await requestListingDispute(token, postId, {
-      message,
-      disputePhotoUrls: httpPhotoUrls(incoming.disputePhotoUrls),
-    });
+    const parsed = parseBody(dealDisputeBodySchema, await readJsonBody(req));
+    if (!parsed.ok) return parsed.response;
+    const result = await requestListingDispute(token, postId, parsed.data);
     revalidateTag("public-posts");
     revalidateTag(postId);
     revalidatePath(`/app/pet-feed/posts/${postId}`);

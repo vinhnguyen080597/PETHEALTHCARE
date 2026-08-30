@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAccessToken } from "@/lib/session";
 import { createListingPostJson } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import { listingCreateBodySchema } from "@/lib/api/validation/schemas";
 
 export async function POST(req: Request) {
   const token = await getAccessToken();
@@ -21,9 +23,11 @@ export async function POST(req: Request) {
     );
   }
 
+  const parsed = parseBody(listingCreateBodySchema, await readJsonBody(req));
+  if (!parsed.ok) return parsed.response;
+
   try {
-    const body = (await req.json()) as Record<string, unknown>;
-    const result = await createListingPostJson(token, body);
+    const result = await createListingPostJson(token, parsed.data);
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {

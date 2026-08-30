@@ -3,6 +3,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/session";
 import { submitDealReview } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import { dealReviewBodySchema } from "@/lib/api/validation/schemas";
 
 type Props = { params: Promise<{ postId: string }> };
 
@@ -13,13 +15,9 @@ export async function POST(req: Request, { params }: Props) {
   }
   try {
     const { postId } = await params;
-    const body = await req.json().catch(() => ({}));
-    const rating = Number(body.rating);
-    const comment = typeof body.body === "string" ? body.body.trim() : "";
-    const result = await submitDealReview(token, postId, {
-      rating,
-      ...(comment ? { body: comment } : {}),
-    });
+    const parsed = parseBody(dealReviewBodySchema, await readJsonBody(req));
+    if (!parsed.ok) return parsed.response;
+    const result = await submitDealReview(token, postId, parsed.data);
     revalidateTag("public-breeders");
     if (result?.data?.breeder_profile_id) {
       revalidateTag(result.data.breeder_profile_id);

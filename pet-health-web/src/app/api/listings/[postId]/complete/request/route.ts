@@ -3,7 +3,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/session";
 import { requestListingComplete } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
-import { httpPhotoUrls } from "@/lib/dealPhotoUpload";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import { completeRequestBodySchema } from "@/lib/api/validation/schemas";
 
 export async function POST(
   req: Request,
@@ -15,12 +16,9 @@ export async function POST(
   }
   try {
     const { postId } = await params;
-    const incoming = (await req.json().catch(() => ({}))) as {
-      handoffPhotoUrls?: unknown;
-    };
-    const result = await requestListingComplete(token, postId, {
-      handoffPhotoUrls: httpPhotoUrls(incoming.handoffPhotoUrls),
-    });
+    const parsed = parseBody(completeRequestBodySchema, await readJsonBody(req));
+    if (!parsed.ok) return parsed.response;
+    const result = await requestListingComplete(token, postId, parsed.data);
     revalidateTag("public-posts");
     revalidateTag(postId);
     revalidatePath(`/app/pet-feed/posts/${postId}`);

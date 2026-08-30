@@ -25,6 +25,10 @@ import {
   isCancelledListingMetadata,
   isSoldListingMetadata,
 } from '../utils/listingCloseOutcome.js';
+import {
+  applyDealVisibility,
+  mergeClientPostMetadata,
+} from '../utils/listingPostSecurity.js';
 import { sanitizeBreederProfileMetadata } from '../utils/breederProfileMetadata.js';
 import { normalizeRegistrationUnitPayload } from '../utils/breederRegistrationUnit.js';
 import {
@@ -212,7 +216,7 @@ function normalizeProfilePayload(userId, payload, existingId) {
 }
 
 function normalizePostPayload(userId, payload, existing = {}) {
-  const metadata = normalizeJsonObject(payload.metadata);
+  const metadata = mergeClientPostMetadata(payload.metadata, existing.metadata);
   const hasMediaUrls = payload.mediaUrls !== undefined || payload.media_urls !== undefined;
   const hasVideoUrl = payload.videoUrl !== undefined || payload.video_url !== undefined;
   const hasPersonality = payload.personality !== undefined;
@@ -387,7 +391,7 @@ async function loadPostRowForDeal(postId, accessToken) {
   return data;
 }
 
-async function persistPostRow(postId, patch, accessToken) {
+async function persistPostRow(postId, patch, accessToken, viewerUserId = null) {
   const updates = { ...patch, updated_at: new Date().toISOString() };
   // Prefer service role: owner JWT RLS historically blocked deposit_hold/sold transitions.
   const service = getSupabaseServiceClient();
@@ -397,7 +401,12 @@ async function persistPostRow(postId, patch, accessToken) {
     if (idx < 0) return null;
     memoryPosts[idx] = { ...memoryPosts[idx], ...updates };
     const profile = memoryProfiles.find((p) => p.id === memoryPosts[idx].breeder_profile_id) ?? null;
-    return toPost({ ...memoryPosts[idx], breeder_profile: profile ? toProfile(profile) : null });
+    return toPost(
+      { ...memoryPosts[idx], breeder_profile: profile ? toProfile(profile) : null },
+      new Set(),
+      new Map(profile ? [[profile.id, profile]] : []),
+      viewerUserId,
+    );
   }
   const { data, error } = await supabase
     .from('pet_feed_posts')
@@ -420,7 +429,7 @@ async function persistPostRow(postId, patch, accessToken) {
   if (!data) {
     throw httpError('Listing update returned no row.', 500, 'DEPOSIT_PERSIST_EMPTY');
   }
-  return toPost(data);
+  return toPost(data, new Set(), new Map(), viewerUserId);
 }
 
 const ACTIVE_HOLD_DEAL_STATUSES = new Set([
@@ -568,7 +577,7 @@ function clearClosedListingMetadata(metadata) {
 }
 
 /** Persist lifecycle status; older DBs without deposit_hold/sold/cancelled fall back to archived + soft_status. */
-async function persistListingLifecycle(postId, desiredStatus, metadata, accessToken) {
+async function persistListingLifecycle(postId, desiredStatus, metadata, accessToken, viewerUserId = null) {
   const meta = CLOSED_LISTING_STATUSES.has(desiredStatus)
     ? stampClosedListingMetadata(metadata, desiredStatus)
     : { ...asObject(metadata) };
@@ -581,6 +590,7 @@ async function persistListingLifecycle(postId, desiredStatus, metadata, accessTo
       postId,
       { status: desiredStatus, metadata: meta },
       accessToken,
+      viewerUserId,
     );
   } catch (err) {
     if (
@@ -598,17 +608,19 @@ async function persistListingLifecycle(postId, desiredStatus, metadata, accessTo
       postId,
       { status: 'archived', metadata: meta },
       accessToken,
+      viewerUserId,
     );
   }
 }
 
-async function persistClosedListing(postId, outcome, metadata, accessToken) {
-  const updated = await persistListingLifecycle(postId, outcome, metadata, accessToken);
+async function persistClosedListing(postId, outcome, metadata, accessToken, viewerUserId = null) {
+  const updated = await persistListingLifecycle(postId, outcome, metadata, accessToken, viewerUserId);
   if (resolveEffectivePostStatus(updated) === outcome) return updated;
   return persistPostRow(
     postId,
     { status: 'archived', metadata: stampClosedListingMetadata(updated?.metadata ?? metadata, outcome) },
     accessToken,
+    viewerUserId,
   );
 }
 
@@ -641,10 +653,10 @@ function resolvePostBreederProfile(row, profilesById = new Map()) {
   return null;
 }
 
-function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
+function toPost(row, favoriteIds = new Set(), profilesById = new Map(), viewerUserId = null) {
   if (!row) return row;
   const breeder = resolvePostBreederProfile(row, profilesById);
-  return attachWarrantyPolicyDto({
+  return applyDealVisibility(attachWarrantyPolicyDto({
     id: row.id,
     user_id: row.user_id,
     breeder_profile_id: row.breeder_profile_id,
@@ -671,12 +683,12 @@ function toPost(row, favoriteIds = new Set(), profilesById = new Map()) {
     is_favorited: favoriteIds.has(row.id),
     created_at: row.created_at,
     updated_at: row.updated_at,
-  });
+  }), viewerUserId);
 }
 
 /** Feed card list DTO: first image only + optional video; lighter JSON for scroll. */
-function toListPost(row, favoriteIds = new Set(), profilesById = new Map()) {
-  const post = toPost(row, favoriteIds, profilesById);
+function toListPost(row, favoriteIds = new Set(), profilesById = new Map(), viewerUserId = null) {
+  const post = toPost(row, favoriteIds, profilesById, viewerUserId);
   if (!post) return post;
   const media = Array.isArray(post.media_urls) ? post.media_urls.filter(Boolean) : [];
   const listThumb =
@@ -1050,7 +1062,7 @@ export async function listPublishedPetFeedPosts(userId, accessToken, options = {
         && normalizePostKind(post.post_kind, 'listing') === kind
         && (kind === 'announcement' || !blockedBreederIds.has(post.breeder_profile_id)))
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-      .map((post) => toPost(post, favoriteIds, profilesById));
+      .map((post) => toPost(post, favoriteIds, profilesById, userId));
   }
 
   const favoriteIds = await favoriteIdsForUser(supabase, userId);
@@ -1066,7 +1078,7 @@ export async function listPublishedPetFeedPosts(userId, accessToken, options = {
   return (data ?? [])
     .filter((row) => resolveEffectivePostStatus(row) === 'published')
     .filter((row) => kind === 'announcement' || !blockedBreederIds.has(row.breeder_profile_id))
-    .map((row) => toPost(row, favoriteIds));
+    .map((row) => toPost(row, favoriteIds, new Map(), userId));
 }
 
 export async function listPublishedPetFeedPostPage(userId, accessToken, options = {}) {
@@ -1087,7 +1099,7 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
     );
     return {
       data: await withPostsEngagementCounts(
-        rows.map((post) => toListPost(post, favoriteIds, profilesById)),
+        rows.map((post) => toListPost(post, favoriteIds, profilesById, userId)),
         accessToken,
       ),
       nextCursor,
@@ -1118,7 +1130,7 @@ export async function listPublishedPetFeedPostPage(userId, accessToken, options 
   const pageRows = rows.slice(0, limit);
   return {
     data: await withPostsEngagementCounts(
-      pageRows.map((row) => toListPost(row, favoriteIds)),
+      pageRows.map((row) => toListPost(row, favoriteIds, new Map(), userId)),
       accessToken,
     ),
     nextCursor: rows.length > limit ? encodePetFeedCursor(pageRows[pageRows.length - 1]) : null,
@@ -1152,7 +1164,7 @@ export async function getPetFeedPost(userId, postId, accessToken) {
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     const row = memoryPosts.find((post) => post.id === postId);
     if (!canViewerAccessPetFeedPost(row, userId)) return null;
-    const post = toPost(row, favoriteIds, profilesById);
+    const post = toPost(row, favoriteIds, profilesById, userId);
     if (!post) return post;
     return withPostEngagementCounts(post, accessToken);
   }
@@ -1164,7 +1176,7 @@ export async function getPetFeedPost(userId, postId, accessToken) {
     .maybeSingle();
   if (error) throw error;
   if (!canViewerAccessPetFeedPost(data, userId)) return null;
-  const post = toPost(data, favoriteIds);
+  const post = toPost(data, favoriteIds, new Map(), userId);
   if (!post) return post;
   return withPostEngagementCounts(post, accessToken);
 }
@@ -1783,11 +1795,11 @@ export async function createPetFeedPost(userId, payload, accessToken, _options =
   const supabase = getFeedSupabase(accessToken);
   if (!supabase) {
     memoryPosts.push(row);
-    return toPost(row, new Set(), new Map(profile ? [[profile.id, profile]] : []));
+    return toPost(row, new Set(), new Map(profile ? [[profile.id, profile]] : []), userId);
   }
   const { data, error } = await supabase.from('pet_feed_posts').insert(row).select('*, breeder_profile:breeder_profiles(*)').single();
   if (error) throw error;
-  return toPost(data);
+  return toPost(data, new Set(), new Map(), userId);
 }
 
 /** Count listing posts with video created by the user since `sinceIso` (inclusive). */
@@ -1950,24 +1962,17 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
     if (memoryPosts[idx].status === 'deposit_hold' || CLOSED_LISTING_STATUSES.has(memoryPosts[idx].status)) {
       throw httpError('This listing cannot be edited while deposit is held or completed.', 400, 'LISTING_LOCKED');
     }
-    const mergedPayload = {
-      ...payload,
-      metadata: {
-        ...asObject(memoryPosts[idx].metadata),
-        ...asObject(payload.metadata),
-      },
-    };
     const nextRow = applyWarrantyPolicyBind(
       memoryPosts[idx],
       {
         ...memoryPosts[idx],
-        ...normalizePostPayload(userId, mergedPayload, memoryPosts[idx]),
+        ...normalizePostPayload(userId, payload, memoryPosts[idx]),
         status: normalizeUserEditablePostStatus(payload.status, memoryPosts[idx].status),
       },
       profile,
     );
     memoryPosts[idx] = nextRow;
-    return toPost(memoryPosts[idx], new Set(), new Map(profile ? [[profile.id, profile]] : []));
+    return toPost(memoryPosts[idx], new Set(), new Map(profile ? [[profile.id, profile]] : []), userId);
   }
   const existing = await getPetFeedPost(userId, postId, accessToken);
   if (!existing || existing.user_id !== userId) return null;
@@ -1976,17 +1981,10 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
   }
   const profile = await getMyBreederProfile(userId, accessToken);
   assertVerifiedBreederProfile(profile);
-  const mergedPayload = {
-    ...payload,
-    metadata: {
-      ...asObject(existing.metadata),
-      ...asObject(payload.metadata),
-    },
-  };
   const updates = applyWarrantyPolicyBind(
     existing,
     {
-      ...normalizePostPayload(userId, mergedPayload, existing),
+      ...normalizePostPayload(userId, payload, existing),
       status: normalizeUserEditablePostStatus(payload.status, existing.status),
     },
     profile,
@@ -2000,7 +1998,7 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
     .select('*, breeder_profile:breeder_profiles(*)')
     .maybeSingle();
   if (error) throw error;
-  return toPost(data);
+  return toPost(data, new Set(), new Map(), userId);
 }
 
 /** Bind/change warranty policy without demoting published listings to pending_review. */
@@ -2161,7 +2159,7 @@ export async function listMyPetFeedPosts(userId, accessToken, options = {}) {
       .filter((post) => post.user_id === userId && isOwnerVisibleMyListing(post))
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     const slice = limit ? rows.slice(0, limit) : rows;
-    return slice.map((post) => toPost(post, new Set(), profilesById));
+    return slice.map((post) => toPost(post, new Set(), profilesById, userId));
   }
   let query = supabase
     .from('pet_feed_posts')
@@ -2172,7 +2170,7 @@ export async function listMyPetFeedPosts(userId, accessToken, options = {}) {
   if (error) throw error;
   const rows = (data ?? []).filter((row) => isOwnerVisibleMyListing(row));
   const slice = limit ? rows.slice(0, limit) : rows;
-  return slice.map((row) => toPost(row));
+  return slice.map((row) => toPost(row, new Set(), new Map(), userId));
 }
 
 /** Active soft-deposit listing where this user is the assigned Sen (buyer). */
@@ -2197,7 +2195,7 @@ export async function listMyDepositPosts(userId, accessToken, options = {}) {
       .filter((post) => isListingDepositedForSen(post, userId))
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     const slice = limit ? rows.slice(0, limit) : rows;
-    return slice.map((post) => toPost(post, new Set(), profilesById));
+    return slice.map((post) => toPost(post, new Set(), profilesById, userId));
   }
 
   // Service role: Sen is not the post owner; RLS would hide deposit_hold rows.
@@ -2225,7 +2223,7 @@ export async function listMyDepositPosts(userId, accessToken, options = {}) {
 
   const filtered = (data ?? []).filter((post) => isListingDepositedForSen(post, userId));
   const slice = limit ? filtered.slice(0, limit) : filtered;
-  return slice.map((row) => toPost(row));
+  return slice.map((row) => toPost(row, new Set(), new Map(), userId));
 }
 
 export async function countMyPetFeedPostStats(userId, accessToken) {
@@ -2442,6 +2440,26 @@ export async function adminUpdatePetFeedPostStatus(postId, status, options = {})
       delete metadata.admin_note;
       delete metadata.admin_action;
       delete metadata.rejected_at;
+    } else if (safeStatus === 'sold') {
+      Object.assign(metadata, stampClosedListingMetadata(metadata, 'sold'));
+      const deal = asObject(metadata.deal);
+      if (!deal.completed_at && !deal.completedAt) {
+        metadata.deal = {
+          ...deal,
+          status: 'completed',
+          completed_at: trimText(options.completedAt ?? options.completed_at, 40) || now,
+        };
+      }
+    } else if (safeStatus === 'cancelled') {
+      Object.assign(metadata, stampClosedListingMetadata(metadata, 'cancelled'));
+      const deal = asObject(metadata.deal);
+      if (!deal.completed_at && !deal.cancelled_at) {
+        metadata.deal = {
+          ...deal,
+          status: 'cancelled',
+          completed_at: trimText(options.completedAt ?? options.completed_at, 40) || now,
+        };
+      }
     }
     memoryPosts[idx] = {
       ...existing,
@@ -2473,6 +2491,26 @@ export async function adminUpdatePetFeedPostStatus(postId, status, options = {})
     delete metadata.admin_note;
     delete metadata.admin_action;
     delete metadata.rejected_at;
+  } else if (safeStatus === 'sold') {
+    Object.assign(metadata, stampClosedListingMetadata(metadata, 'sold'));
+    const deal = asObject(metadata.deal);
+    if (!deal.completed_at && !deal.completedAt) {
+      metadata.deal = {
+        ...deal,
+        status: 'completed',
+        completed_at: trimText(options.completedAt ?? options.completed_at, 40) || now,
+      };
+    }
+  } else if (safeStatus === 'cancelled') {
+    Object.assign(metadata, stampClosedListingMetadata(metadata, 'cancelled'));
+    const deal = asObject(metadata.deal);
+    if (!deal.completed_at && !deal.cancelled_at) {
+      metadata.deal = {
+        ...deal,
+        status: 'cancelled',
+        completed_at: trimText(options.completedAt ?? options.completed_at, 40) || now,
+      };
+    }
   }
 
   const { data, error } = await supabase
@@ -2901,7 +2939,7 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
   const existingSen = trimText(deal.sen_user_id, 80);
 
   if (effectiveStatus === 'deposit_hold' || dealStatus === 'deposit_hold') {
-    return { post: toPost(row), both_confirmed: true, notify_user_id: null };
+    return { post: toPost(row, new Set(), new Map(), actorUserId), both_confirmed: true, notify_user_id: null };
   }
   if (CLOSED_LISTING_STATUSES.has(effectiveStatus)) {
     throw httpError('Deposit can only be confirmed on an available listing.', 400, 'DEPOSIT_NOT_ALLOWED');
@@ -3031,8 +3069,8 @@ export async function confirmListingDeposit(actorUserId, postId, payload = {}, a
   }
 
   const updated = bothConfirmed
-    ? await persistListingLifecycle(postId, 'deposit_hold', nextMeta, accessToken)
-    : await persistPostRow(postId, { status: nextStatus, metadata: nextMeta }, accessToken);
+    ? await persistListingLifecycle(postId, 'deposit_hold', nextMeta, accessToken, actorUserId)
+    : await persistPostRow(postId, { status: nextStatus, metadata: nextMeta }, accessToken, actorUserId);
   return {
     post: updated,
     both_confirmed: bothConfirmed,
@@ -3084,6 +3122,7 @@ export async function declineListingDeposit(actorUserId, postId, accessToken) {
     postId,
     { status: row.status === 'pending_review' ? row.status : 'published', metadata: nextMeta },
     accessToken,
+    actorUserId,
   );
   return {
     post: updated,
@@ -3230,6 +3269,7 @@ export async function requestListingCancelDeposit(actorUserId, postId, payload =
     postId,
     { status: row.status, metadata: nextMeta },
     accessToken,
+    actorUserId,
   );
   return {
     post: updated,
@@ -3264,7 +3304,7 @@ export async function confirmListingCancelDeposit(actorUserId, postId, accessTok
     ...asObject(nextMeta.deal),
     completed_at: cancelledAt,
   };
-  const updated = await persistClosedListing(postId, 'cancelled', nextMeta, accessToken);
+  const updated = await persistClosedListing(postId, 'cancelled', nextMeta, accessToken, actorUserId);
   return {
     post: updated,
     notify_user_id: row.user_id,
@@ -3334,6 +3374,7 @@ export async function requestListingComplete(actorUserId, postId, payload = {}, 
     postId,
     { status: row.status, metadata: nextMeta },
     accessToken,
+    actorUserId,
   );
   return {
     post: updated,
@@ -3391,7 +3432,7 @@ export async function confirmListingComplete(actorUserId, postId, accessToken) {
     listing_outcome: 'sold',
     sold: true,
   };
-  const updated = await persistListingLifecycle(postId, 'sold', nextMeta, accessToken);
+  const updated = await persistListingLifecycle(postId, 'sold', nextMeta, accessToken, actorUserId);
   const breederProfileId = trimText(row.breeder_profile_id, 64);
   if (breederProfileId) {
     await recomputeBreederDealActivity(breederProfileId, accessToken).catch(() => null);
@@ -3477,6 +3518,7 @@ export async function abandonListingHandoffBySen(actorUserId, postId, accessToke
     postId,
     { status: 'published', metadata: nextMeta },
     accessToken,
+    actorUserId,
   );
   return {
     post: updated,
@@ -3548,6 +3590,7 @@ export async function requestListingDispute(actorUserId, postId, payload = {}, a
     postId,
     { status: row.status, metadata: nextMeta },
     accessToken,
+    actorUserId,
   );
 
   const report = await reportPetFeedPost(
@@ -3571,6 +3614,7 @@ export async function requestListingDispute(actorUserId, postId, payload = {}, a
     postId,
     { status: row.status, metadata: withReport },
     accessToken,
+    actorUserId,
   );
 
   return {

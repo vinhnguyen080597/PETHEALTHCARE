@@ -3,6 +3,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/session";
 import { confirmListingDeposit } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import { depositConfirmBodySchema } from "@/lib/api/validation/schemas";
 
 export async function POST(
   req: Request,
@@ -14,14 +16,9 @@ export async function POST(
   }
   try {
     const { postId } = await params;
-    const body = (await req.json().catch(() => ({}))) as {
-      senUserId?: string;
-      acknowledge?: boolean;
-    };
-    const result = await confirmListingDeposit(token, postId, {
-      senUserId: body.senUserId,
-      acknowledge: Boolean(body.acknowledge),
-    });
+    const parsed = parseBody(depositConfirmBodySchema, await readJsonBody(req));
+    if (!parsed.ok) return parsed.response;
+    const result = await confirmListingDeposit(token, postId, parsed.data);
     revalidateTag("public-posts");
     revalidateTag(postId);
     revalidatePath(`/app/pet-feed/posts/${postId}`);

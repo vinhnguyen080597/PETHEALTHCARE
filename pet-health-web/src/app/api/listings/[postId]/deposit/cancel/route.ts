@@ -3,7 +3,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/session";
 import { cancelListingDeposit } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
-import { httpPhotoUrls } from "@/lib/dealPhotoUpload";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import { dealCancelBodySchema } from "@/lib/api/validation/schemas";
 
 export async function POST(
   req: Request,
@@ -15,14 +16,9 @@ export async function POST(
   }
   try {
     const { postId } = await params;
-    const incoming = (await req.json().catch(() => ({}))) as {
-      reason?: string;
-      cancelPhotoUrls?: unknown;
-    };
-    const result = await cancelListingDeposit(token, postId, {
-      reason: String(incoming.reason || ""),
-      cancelPhotoUrls: httpPhotoUrls(incoming.cancelPhotoUrls),
-    });
+    const parsed = parseBody(dealCancelBodySchema, await readJsonBody(req));
+    if (!parsed.ok) return parsed.response;
+    const result = await cancelListingDeposit(token, postId, parsed.data);
     revalidateTag("public-posts");
     revalidateTag(postId);
     revalidatePath(`/app/pet-feed/posts/${postId}`);

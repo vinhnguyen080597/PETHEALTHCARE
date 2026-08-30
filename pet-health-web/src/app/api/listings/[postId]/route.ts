@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAccessToken } from "@/lib/session";
 import { deleteMyListing, getListingDetail, updateMyListing } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import { listingPatchBodySchema } from "@/lib/api/validation/schemas";
 
 type Params = { params: Promise<{ postId: string }> };
 
@@ -41,8 +43,9 @@ export async function PUT(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Missing post id" }, { status: 400 });
   }
   try {
-    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-    const result = await updateMyListing(token, postId, body);
+    const parsed = parseBody(listingPatchBodySchema, await readJsonBody(req));
+    if (!parsed.ok) return parsed.response;
+    const result = await updateMyListing(token, postId, parsed.data);
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { API_V1 } from "@/lib/config";
 import { fetchJson, ApiError } from "@/lib/api/client";
+import { parseBlacklistQuery } from "@/lib/api/validation/common";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const q = url.searchParams.get("q") || "";
+  const q = parseBlacklistQuery(url.searchParams.get("q"));
   try {
     const data = await fetchJson<{ data: unknown }>(
       `/support/blacklist?q=${encodeURIComponent(q)}`,
@@ -18,12 +18,10 @@ export async function GET(req: Request) {
         { status: err.status },
       );
     }
-    // Fallback if backend unreachable: keep response shape stable for UI
     return NextResponse.json(
       {
         error: "Blacklist lookup unavailable",
         code: "BLACKLIST_UNAVAILABLE",
-        hint: API_V1,
       },
       { status: 502 },
     );

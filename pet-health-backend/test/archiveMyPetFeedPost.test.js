@@ -66,13 +66,9 @@ test('owner cannot archive a listing on deposit hold', async () => {
 test('sold listing can be deleted after 7 days and leaves the farm', async () => {
   const userId = `del-sold-${Date.now()}`;
   const profile = await seedVerifiedBreeder(userId);
+  const post = await publishListing(userId, 'Rehomed pup');
   const completedAt = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
-  const post = await publishListing(userId, 'Rehomed pup', {
-    sold: true,
-    listing_outcome: 'sold',
-    deal: { status: 'completed', completed_at: completedAt },
-  });
-  await adminUpdatePetFeedPostStatus(post.id, 'sold');
+  await adminUpdatePetFeedPostStatus(post.id, 'sold', { completedAt });
 
   const before = await getPublicBreederProfile(profile.id);
   assert.ok(before.listings.some((row) => row.id === post.id));
@@ -89,12 +85,9 @@ test('sold listing can be deleted after 7 days and leaves the farm', async () =>
 test('sold listing cannot be deleted before 7 days', async () => {
   const userId = `del-sold-wait-${Date.now()}`;
   await seedVerifiedBreeder(userId);
+  const post = await publishListing(userId, 'Just sold pup');
   const completedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
-  const post = await publishListing(userId, 'Just sold pup', {
-    sold: true,
-    deal: { status: 'completed', completed_at: completedAt },
-  });
-  await adminUpdatePetFeedPostStatus(post.id, 'sold');
+  await adminUpdatePetFeedPostStatus(post.id, 'sold', { completedAt });
 
   await assert.rejects(
     () => archiveMyPetFeedPost(userId, post.id, null),

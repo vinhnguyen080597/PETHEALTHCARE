@@ -188,13 +188,13 @@ test('published column + cancelled metadata is closed, not listed as for-sale', 
     status: 'pending_review',
     metadata: {
       health_evidence_urls: ['https://cdn.example/vaccine-book.jpg'],
-      cancelled: true,
-      listing_outcome: 'cancelled',
-      deal: { status: 'cancelled', completed_at: '2026-08-11T00:00:00.000Z' },
     },
   }, null);
   assert.ok(created?.id);
   await adminUpdatePetFeedPostStatus(created.id, 'published');
+  await adminUpdatePetFeedPostStatus(created.id, 'cancelled', {
+    completedAt: '2026-08-11T00:00:00.000Z',
+  });
 
   const page = await listPublicPetFeedPostPage({ limit: 50, kind: 'listing' });
   assert.equal(page.data.some((row) => row.id === created.id), false);
@@ -237,13 +237,13 @@ test('published column + sold metadata is closed, not listed as for-sale', async
     status: 'pending_review',
     metadata: {
       health_evidence_urls: ['https://cdn.example/vaccine-book.jpg'],
-      sold: true,
-      listing_outcome: 'sold',
-      deal: { status: 'cancelled', completed_at: '2026-08-11T00:00:00.000Z' },
     },
   }, null);
   assert.ok(created?.id);
   await adminUpdatePetFeedPostStatus(created.id, 'published');
+  await adminUpdatePetFeedPostStatus(created.id, 'sold', {
+    completedAt: '2026-08-11T00:00:00.000Z',
+  });
 
   const page = await listPublicPetFeedPostPage({ limit: 50, kind: 'listing' });
   assert.equal(page.data.some((row) => row.id === created.id), false);

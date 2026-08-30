@@ -1,0 +1,8 @@
+# Pet Marketplace Security Rules
+
+- SECURITY FIRST: Prioritize authorization, input validation, and rate-limiting in every generated route/component.
+- AUTH & IDOR: Always verify user identity and ensure resources (e.g., listings, orders, messages) belong to the requesting user before performing updates/deletes.
+- DATABASE: Use parameterized queries/ORMs. If using Supabase/Postgres, ensure Row Level Security (RLS) is explicitly defined and non-permissive.
+- INPUT VALIDATION: Validate all request inputs using Zod/Joi. Sanitize string inputs to prevent XSS and SQL Injection.
+- FILE UPLOAD: Validate file extension, MIME type, and max payload size before uploading pet images or attachments.
+- SECRETS: Never hardcode API keys, JWT secrets, or connection strings. Always access them via environment variables.

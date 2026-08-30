@@ -3,6 +3,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/session";
 import { updateListingWarrantyPolicy } from "@/lib/api/petFeed";
 import { ApiError } from "@/lib/api/client";
+import { parseBody, readJsonBody } from "@/lib/api/validation/parseRequest";
+import { listingWarrantyBindBodySchema } from "@/lib/api/validation/schemas";
 
 export async function PUT(
   req: Request,
@@ -14,21 +16,13 @@ export async function PUT(
   }
   try {
     const { postId } = await params;
-    const body = (await req.json().catch(() => ({}))) as {
-      warrantyPolicyId?: string | null;
-      warranty_policy_id?: string | null;
-    };
-    const raw =
-      body.warrantyPolicyId !== undefined
-        ? body.warrantyPolicyId
-        : body.warranty_policy_id;
-    const warrantyPolicyId =
-      raw == null || String(raw).trim() === "" ? null : String(raw).trim();
+    const parsed = parseBody(listingWarrantyBindBodySchema, await readJsonBody(req));
+    if (!parsed.ok) return parsed.response;
 
     const result = await updateListingWarrantyPolicy(
       token,
       postId,
-      warrantyPolicyId,
+      parsed.data,
     );
 
     revalidateTag("public-posts");
