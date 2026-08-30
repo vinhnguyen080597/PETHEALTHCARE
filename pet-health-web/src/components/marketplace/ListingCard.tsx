@@ -4,41 +4,21 @@ import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Lang, Listing } from "@/lib/types";
-import { genderLabel, t, type EnKey } from "@/i18n";
-import { formatPriceVnd, parsePriceVnd } from "@/lib/formatPrice";
-import { VerifiedBadge } from "./Badges";
+import { t, type EnKey } from "@/i18n";
+import { formatPriceVnd } from "@/lib/formatPrice";
 import { farmPetAvailability } from "@/lib/farmPets";
 import {
   isListingSpecies,
   listingSpeciesEmoji,
 } from "@/lib/listingFormOptions";
 import {
+  formatListingCardPostedDate,
+  listingBreederFooterMetrics,
   listingHotBadges,
   listingPreviewImages,
-  listingTrustTags,
 } from "@/lib/marketplaceSocialProof";
 import { startChatAndOpenUi } from "@/lib/startFarmChat";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
-
-function depositLabel(price: string, lang: Lang): string | null {
-  const n = parsePriceVnd(price);
-  if (n == null || n <= 0) return null;
-  const deposit = Math.round(n * 0.2);
-  if (lang === "VI") {
-    if (deposit >= 1_000_000) {
-      const mil = deposit / 1_000_000;
-      const text =
-        Number.isInteger(mil) ? String(mil) : mil.toFixed(1).replace(/\.0$/, "");
-      return `(Cọc Escrow: ${text}tr)`;
-    }
-    if (deposit >= 1000) {
-      return `(Cọc Escrow: ${Math.round(deposit / 1000)}k)`;
-    }
-    return `(Cọc Escrow: ${deposit}đ)`;
-  }
-  const formatted = formatPriceVnd(deposit);
-  return formatted ? `(Escrow: ${formatted})` : null;
-}
 
 function fill(template: string, n: number | string): string {
   return template.replaceAll("{{n}}", String(n));
@@ -92,26 +72,8 @@ export function ListingCard({
     : listing.species;
   const speciesEmoji = listingSpeciesEmoji(speciesSlug);
   const price = formatPriceVnd(listing.price) || listing.price;
-  const deposit =
-    showEscrowUi && listing.escrowEnabled
-      ? depositLabel(listing.price, lang)
-      : null;
-  const qualityIndex = Math.max(
-    0,
-    Math.min(100, Math.round(listing.breeder.trustScore || 0)),
-  );
-  const reviewAvg = listing.breeder.reviewAverage;
-  const genderEmoji =
-    listing.gender === "male" ? "♂️" : listing.gender === "female" ? "♀️" : "";
-  const ageGender = [
-    genderEmoji,
-    listing.ageMonths > 0
-      ? `${listing.ageMonths} ${lang === "VI" ? "tháng" : t(lang, "common.mo")}`
-      : "",
-    !genderEmoji ? genderLabel(lang, listing.gender) : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const locationLabel = listing.location?.trim() ?? "";
+  const breederFooter = listingBreederFooterMetrics(listing);
   const availability = farmPetAvailability(listing);
   const isCancelled =
     listing.status === "cancelled" || Boolean(listing.metadataCancelled);
@@ -123,8 +85,8 @@ export function ListingCard({
     ...listing,
     favoriteCount: favCount,
   });
-  const trustTags = listingTrustTags(listing, { showEscrowTag: showEscrowUi });
-  const mediaHeight = compact ? "h-40" : "h-48";
+  const postedDateLabel = formatListingCardPostedDate(listing.createdAt, lang);
+  const mediaHeight = compact ? "h-40" : "h-72";
   const holdLabel = showEscrowUi
     ? t(lang, "listing.status.deposit_hold")
     : t(lang, "listing.status.reserved");
@@ -221,94 +183,55 @@ export function ListingCard({
 
   const infoBlock: ReactNode = (
     <>
-      <h3 className="font-semibold text-[#2B1E19] text-sm leading-snug mb-2 line-clamp-2">
+      <h3 className="font-semibold text-[#2B1E19] text-sm leading-snug line-clamp-2">
         {title}
       </h3>
-      {price ? (
-        <p className="mb-2">
-          <span className="text-[#D97706] font-bold text-base">{price}</span>
-          {deposit ? (
-            <span className="ml-1.5 text-xs font-medium text-[#2B1E19]/45">
-              {deposit}
+
+      {locationLabel || price ? (
+        <div className="mt-2 flex items-center gap-2">
+          {locationLabel ? (
+            <span className="min-w-0 flex-1 truncate text-xs text-[#2B1E19]/70">
+              📍 {locationLabel}
+            </span>
+          ) : (
+            <span className="min-w-0 flex-1" />
+          )}
+          {price ? (
+            <span className="shrink-0 text-sm font-bold text-[#D97706]">
+              {price}
             </span>
           ) : null}
-        </p>
+        </div>
       ) : null}
 
-      {trustTags.length ? (
-        <div className="flex flex-wrap gap-1.5 mb-2.5">
-          {trustTags.map((tag) => {
-            if (tag.kind === "warranty") {
-              return (
-                <span
-                  key="warranty"
-                  className="inline-flex items-center px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-medium text-emerald-800"
-                >
-                  🛡️ {fill(t(lang, "feed.card.warranty"), tag.days)}
-                </span>
-              );
-            }
-            if (tag.kind === "escrow") {
-              return (
-                <span
-                  key="escrow"
-                  className="inline-flex items-center px-2 py-1 rounded-full bg-[#FEF3C7] border border-amber-300 text-[11px] font-medium text-[#92400E]"
-                >
-                  🔒 {t(lang, "feed.card.escrow")}
-                </span>
-              );
-            }
-            return (
-              <span
-                key={`vac-${tag.label}`}
-                className="inline-flex items-center px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70"
-              >
-                💉 {tag.label}
-              </span>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-1.5 mb-2.5">
-          {listing.location ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70">
-              📍 {listing.location}
-            </span>
-          ) : null}
-          {ageGender ? (
-            <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#FDFBF7] border border-[#F3E2C8] text-[11px] text-[#2B1E19]/70">
-              {ageGender}
-            </span>
-          ) : null}
-        </div>
-      )}
-
-      <div className="flex items-center gap-2 pt-1 border-t border-[#F3E2C8]/80">
+      <div className="mt-2.5 flex items-center gap-2 border-t border-[#F3E2C8]/80 pt-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={listing.breeder.avatar}
           alt={listing.breeder.name}
-          className="w-6 h-6 rounded-full object-cover"
+          className="h-6 w-6 shrink-0 rounded-full object-cover"
         />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            {listing.breeder.verified ? (
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"
-                title={t(lang, "feed.card.onlineTrust")}
-              />
-            ) : null}
-            <span className="text-xs text-[#2B1E19] font-medium truncate">
-              {listing.breeder.name}
-            </span>
-            {listing.breeder.verified && <VerifiedBadge size="xs" />}
-          </div>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          {listing.breeder.verified ? (
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
+              title={t(lang, "feed.card.onlineTrust")}
+            />
+          ) : null}
+          <span className="truncate text-xs font-medium text-[#2B1E19]">
+            {listing.breeder.name}
+          </span>
         </div>
-        <span className="text-[11px] text-[#2B1E19]/55 font-medium whitespace-nowrap">
-          {reviewAvg != null && (listing.breeder.reviewCount || 0) > 0
-            ? `⭐ ${reviewAvg.toFixed(1)}`
-            : `${qualityIndex}/100`}
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {breederFooter.ratingText ? (
+            <span className="whitespace-nowrap text-[11px] font-medium text-[#2B1E19]/55">
+              ⭐ {breederFooter.ratingText}
+            </span>
+          ) : null}
+          <span className="whitespace-nowrap text-[11px] font-medium text-[#2B1E19]/55">
+            🛡️ {breederFooter.trustScore}/100
+          </span>
+        </div>
       </div>
     </>
   );
@@ -383,14 +306,7 @@ export function ListingCard({
                 </span>
               );
             }
-            return (
-              <span
-                key="video"
-                className="bg-slate-900/85 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit"
-              >
-                🎬 {t(lang, "feed.card.video")}
-              </span>
-            );
+            return null;
           })}
           {isHold ? (
             <span className="bg-amber-500/95 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
@@ -410,6 +326,14 @@ export function ListingCard({
           {isCancelled ? (
             <span className="bg-rose-700/90 text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
               {t(lang, "farm.listings.cancelled")}
+            </span>
+          ) : null}
+          {postedDateLabel ? (
+            <span className="inline-flex items-center gap-1 bg-slate-700/90 text-slate-50 text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm w-fit">
+              <span aria-hidden className="opacity-90">
+                📅
+              </span>
+              {postedDateLabel}
             </span>
           ) : null}
         </div>

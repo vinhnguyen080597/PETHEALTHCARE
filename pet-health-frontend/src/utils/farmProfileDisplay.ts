@@ -1,5 +1,6 @@
 import type { BreederProfile } from '../types';
 import { mapWarrantyPolicies, type WarrantyPolicy } from './warrantyPolicy.ts';
+import { isUnusableFarmPhotoUrl } from './farmPhotos.ts';
 
 export const FARM_DETAIL_TABS = ['overview', 'listings', 'warranty'] as const;
 export type FarmDetailTab = (typeof FARM_DETAIL_TABS)[number];
@@ -48,8 +49,17 @@ export function resolveFarmCoverUrl(profile: BreederProfile): string | null {
 }
 
 export function resolveFarmAvatarUrl(profile: BreederProfile): string | null {
-  const avatar = profile.avatar_url?.trim();
-  if (avatar && !isBlankImageUrl(avatar)) return avatar;
+  const meta = asRecord(profile.metadata);
+  const candidates = [
+    profile.avatar_url,
+    typeof meta.avatar_url === 'string' ? meta.avatar_url : null,
+    typeof meta.avatarUrl === 'string' ? meta.avatarUrl : null,
+  ];
+  for (const candidate of candidates) {
+    const trimmed = String(candidate ?? '').trim();
+    if (!trimmed || isBlankImageUrl(trimmed) || isUnusableFarmPhotoUrl(trimmed)) continue;
+    return trimmed;
+  }
   return null;
 }
 

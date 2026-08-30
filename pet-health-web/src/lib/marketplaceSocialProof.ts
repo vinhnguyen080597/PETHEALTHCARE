@@ -1,4 +1,4 @@
-import type { Listing, WarrantyPolicy } from "./types";
+import type { Lang, Listing, WarrantyPolicy } from "./types";
 import { farmPetAvailability } from "./farmPets";
 
 const NEW_LISTING_MS = 24 * 60 * 60 * 1000;
@@ -28,6 +28,22 @@ export function isListingNewOnFloor(
   const created = listingCreatedAtMs(listing, now);
   if (created == null) return false;
   return now - created <= windowMs;
+}
+
+/** Short posted date for listing card overlay pills (locale date, no time). */
+export function formatListingCardPostedDate(
+  iso: string | null | undefined,
+  lang: Lang,
+): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return "";
+  const locale = lang === "VI" ? "vi-VN" : "en-US";
+  return date.toLocaleDateString(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 export function listingHasVideo(listing: Listing): boolean {
@@ -90,12 +106,40 @@ export function listingTrustTags(
 
 export type ListingHotBadge =
   | { kind: "saves"; count: number }
-  | { kind: "new" }
-  | { kind: "video" };
+  | { kind: "new" };
+
+/** Feed listing card hero height — matches mobile `LISTING_CARD_IMAGE_HEIGHT`. */
+export const LISTING_CARD_IMAGE_HEIGHT_PX = 288;
+
+export type ListingBreederFooterMetrics = {
+  /** e.g. "5.0/5 (2)" when breeder has reviews; null otherwise. */
+  ratingText: string | null;
+  trustScore: number;
+};
+
+/** Rating + transparency score on listing card breeder row (mobile parity). */
+export function listingBreederFooterMetrics(
+  listing: Pick<Listing, "breeder">,
+): ListingBreederFooterMetrics {
+  const breeder = listing.breeder;
+  const reviewCount = Math.max(0, Math.floor(Number(breeder.reviewCount) || 0));
+  const reviewAvg = breeder.reviewAverage;
+  const ratingText =
+    reviewCount > 0 &&
+    reviewAvg != null &&
+    Number.isFinite(reviewAvg) &&
+    reviewAvg > 0
+      ? `${(Math.round(reviewAvg * 10) / 10).toFixed(1)}/5 (${reviewCount})`
+      : null;
+  return {
+    ratingText,
+    trustScore: Math.max(0, Math.min(100, Math.round(breeder.trustScore || 0))),
+  };
+}
 
 /**
  * FOMO / interest badges from real signals only.
- * Uses favoriteCount (saves), createdAt (under 24h), and videoUrl — never invents live viewers.
+ * Uses favoriteCount (saves) and createdAt (under 24h) — matches mobile listing card.
  */
 export function listingHotBadges(
   listing: Listing,
@@ -105,7 +149,6 @@ export function listingHotBadges(
   const saves = Math.max(0, Math.floor(Number(listing.favoriteCount) || 0));
   if (saves > 0) badges.push({ kind: "saves", count: saves });
   if (isListingNewOnFloor(listing, now)) badges.push({ kind: "new" });
-  if (listingHasVideo(listing)) badges.push({ kind: "video" });
   return badges.slice(0, 3);
 }
 

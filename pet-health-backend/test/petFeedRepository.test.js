@@ -84,6 +84,7 @@ test('list page exposes breeder review metrics on slim breeder_profile', async (
   await upsertMyBreederProfile(breederId, {
     displayName: 'Review Farm',
     location: 'Hà Nội',
+    avatarUrl: 'https://cdn.example/farm-avatar.jpg',
     metadata: { review_avg: 5, review_count: 2 },
   }, null);
   await adminUpdateBreederProfileStatus(breederId, 'verified');
@@ -109,12 +110,14 @@ test('list page exposes breeder review metrics on slim breeder_profile', async (
   assert.ok(listItem);
   assert.equal(listItem.breeder_profile?.metadata?.review_avg, 5);
   assert.equal(listItem.breeder_profile?.metadata?.review_count, 2);
+  assert.equal(listItem.breeder_profile?.avatar_url, 'https://cdn.example/farm-avatar.jpg');
 
   const publicPage = await listPublicPetFeedPostPage({ limit: 50, kind: 'listing' });
   const publicItem = publicPage.data.find((post) => post.id === created.id);
   assert.ok(publicItem);
   assert.equal(publicItem.breeder_profile?.metadata?.review_avg, 5);
   assert.equal(publicItem.breeder_profile?.metadata?.review_count, 2);
+  assert.equal(publicItem.breeder_profile?.avatar_url, 'https://cdn.example/farm-avatar.jpg');
   assert.ok(publicItem.breeder_profile?.metadata?.contact_presence);
 });
 

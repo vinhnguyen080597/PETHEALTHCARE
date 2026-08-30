@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { mapApiBreeder, mapApiPost } from "../src/lib/mappers";
 import type { ApiBreederProfile, ApiPetFeedPost } from "../src/lib/types";
+import { DEFAULT_BREEDER_AVATAR_PATH } from "../src/lib/breederProfileImages";
 
 test("mapApiBreeder normalizes verification and trust defaults", () => {
   const profile: ApiBreederProfile = {
@@ -102,6 +103,35 @@ test("mapApiPost formats price gender and escrow", () => {
   assert.equal(listing.escrowEnabled, true);
   assert.equal(listing.evidenceUrls?.[0], "https://cdn.example/e.jpg");
   assert.match(listing.price, /VNĐ|5\.000\.000|5000000/);
+});
+
+test("mapApiPost maps slim breeder_profile avatar_url onto listing.breeder.avatar", () => {
+  const withAvatar = mapApiPost({
+    id: "p-avatar",
+    title: "Sphynx",
+    media_urls: ["https://cdn.example/sphynx.jpg"],
+    status: "published",
+    breeder_profile: {
+      id: "bp-avatar",
+      display_name: "Lucastalina",
+      verification_status: "verified",
+      avatar_url: "https://cdn.example/farm-avatar.jpg",
+    },
+  });
+  assert.equal(withAvatar.breeder.avatar, "https://cdn.example/farm-avatar.jpg");
+
+  const withoutAvatar = mapApiPost({
+    id: "p-no-avatar",
+    title: "Kitten",
+    media_urls: ["https://cdn.example/kitten.jpg"],
+    status: "published",
+    breeder_profile: {
+      id: "bp-no-avatar",
+      display_name: "No Photo Farm",
+      verification_status: "verified",
+    },
+  });
+  assert.equal(withoutAvatar.breeder.avatar, DEFAULT_BREEDER_AVATAR_PATH);
 });
 
 test("mapApiPost maps video_url onto listing.videoUrl", () => {

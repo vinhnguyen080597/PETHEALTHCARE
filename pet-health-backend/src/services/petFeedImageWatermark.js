@@ -2,9 +2,9 @@ import sharp from 'sharp';
 
 /** Baked into listing/feed photos only (not video). */
 export const PET_FEED_IMAGE_WATERMARK_TEXT = 'PetCare: Pet Marketplace';
-export const PET_FEED_IMAGE_WATERMARK_OPACITY = 0.3;
+export const PET_FEED_IMAGE_WATERMARK_OPACITY = 0.1;
 /** Diagonal text tilt (degrees, SVG rotate). */
-export const PET_FEED_IMAGE_WATERMARK_ROTATE_DEG = -45;
+export const PET_FEED_IMAGE_WATERMARK_ROTATE_DEG = -30;
 
 function escapeXml(value) {
   return String(value)
@@ -24,7 +24,7 @@ function encodeWatermarked(pipeline, mimetype) {
 
 /**
  * Composite a faint centered brand watermark into image bytes.
- * Text only (no pill/border), opacity 0.3, rotated 45°.
+ * Text only (no pill/border), opacity 0.1, rotated -30°.
  * Fail-open: returns the original buffer if processing fails.
  */
 export async function bakePetFeedImageWatermark(buffer, mimetype) {

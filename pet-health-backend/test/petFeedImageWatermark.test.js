@@ -11,8 +11,8 @@ import {
 describe('bakePetFeedImageWatermark', () => {
   it('keeps PetCare: Pet Marketplace brand text style contract', () => {
     assert.equal(PET_FEED_IMAGE_WATERMARK_TEXT, 'PetCare: Pet Marketplace');
-    assert.equal(PET_FEED_IMAGE_WATERMARK_OPACITY, 0.3);
-    assert.equal(Math.abs(PET_FEED_IMAGE_WATERMARK_ROTATE_DEG), 45);
+    assert.equal(PET_FEED_IMAGE_WATERMARK_OPACITY, 0.1);
+    assert.equal(PET_FEED_IMAGE_WATERMARK_ROTATE_DEG, -30);
   });
 
   it('composites a watermark into a JPEG buffer', async () => {

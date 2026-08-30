@@ -4,8 +4,10 @@ import { memo, type ReactNode } from 'react';
 import { Pressable, Text, View, type GestureResponderEvent } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { BRAND } from '../theme/brand';
+import { DEFAULT_FARM_AVATAR } from '../assets/farmProfileAssets';
 import type { PetFeedPost } from '../types';
 import { computeBreederTrust } from '../utils/breederTrust';
+import { farmImageSource, resolveFarmAvatarUrl } from '../utils/farmProfileDisplay';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
   fillTemplate,
@@ -15,12 +17,18 @@ import {
   listingBreederFooterMetrics,
   listingCardShowsEditAction,
   listingHotBadges,
+  formatListingCardPostedDate,
   listingMetadataMarksCancelled,
   listingMetadataMarksSold,
   listingPreviewImages,
   listingSpeciesEmoji,
   type ListingHotBadge,
 } from '../utils/marketplaceListingCard';
+
+const LISTING_POSTED_DATE_PILL = {
+  backgroundColor: 'rgba(51,65,85,0.88)',
+  color: 'rgba(248,250,252,0.95)',
+} as const;
 
 type PetFeedListingCardProps = {
   post: PetFeedPost;
@@ -42,6 +50,7 @@ function OverlayPill({
   children: ReactNode;
   style?: { backgroundColor: string; color?: string; borderColor?: string };
 }) {
+  const textColor = style?.color ?? BRAND.textPrimary;
   return (
     <View
       className="self-start rounded-full px-2.5 py-1"
@@ -51,9 +60,13 @@ function OverlayPill({
         borderColor: style?.borderColor,
       }}
     >
-      <Text className="text-[10px] font-semibold" style={{ color: style?.color ?? BRAND.textPrimary }}>
-        {children}
-      </Text>
+      {typeof children === 'string' ? (
+        <Text className="text-[10px] font-semibold" style={{ color: textColor }}>
+          {children}
+        </Text>
+      ) : (
+        children
+      )}
     </View>
   );
 }
@@ -102,12 +115,14 @@ function PetFeedListingCardComponent({
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
   const previewImage = listingPreviewImages(post)[0] ?? null;
   const hotBadges = listingHotBadges(post);
+  const postedDateLabel = formatListingCardPostedDate(post.created_at, i18n.language);
   const meta = post.metadata ?? {};
   const isCancelled = post.status === 'cancelled' || listingMetadataMarksCancelled(meta);
   const isSold = post.status === 'sold' || listingMetadataMarksSold(meta);
   const availability = listingAvailability(post);
   const trustScore = breeder ? computeBreederTrust(breeder, [post]).score : 0;
   const breederFooterMetrics = listingBreederFooterMetrics(post, trustScore);
+  const breederAvatarUrl = breeder ? resolveFarmAvatarUrl(breeder) : null;
   const locationLabel = post.location?.trim() ?? '';
 
   function stopPress(event: GestureResponderEvent) {
@@ -154,6 +169,16 @@ function PetFeedListingCardComponent({
               {t('petFeed.card.cancelled')}
             </OverlayPill>
           ) : null}
+          {postedDateLabel ? (
+            <OverlayPill style={LISTING_POSTED_DATE_PILL}>
+              <View className="flex-row items-center gap-1">
+                <Ionicons name="calendar-outline" size={11} color={LISTING_POSTED_DATE_PILL.color} />
+                <Text className="text-[10px] font-semibold" style={{ color: LISTING_POSTED_DATE_PILL.color }}>
+                  {postedDateLabel}
+                </Text>
+              </View>
+            </OverlayPill>
+          ) : null}
         </View>
       </View>
 
@@ -180,13 +205,12 @@ function PetFeedListingCardComponent({
         ) : null}
 
         <View className="mt-2.5 flex-row items-center gap-2 border-t pt-2" style={{ borderTopColor: `${BRAND.borderBrand}CC` }}>
-          {breeder?.avatar_url ? (
-            <Image source={{ uri: breeder.avatar_url }} style={{ width: 24, height: 24, borderRadius: 12 }} contentFit="cover" />
-          ) : (
-            <View className="h-6 w-6 items-center justify-center rounded-full bg-slate-100">
-              <Ionicons name="person-outline" size={14} color={BRAND.textMuted} />
-            </View>
-          )}
+          <Image
+            source={farmImageSource(breederAvatarUrl, DEFAULT_FARM_AVATAR)}
+            style={{ width: 24, height: 24, borderRadius: 12 }}
+            contentFit="cover"
+            accessibilityLabel={breeder?.display_name ?? t('petFeed.breederFallback')}
+          />
           <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
             {breeder?.verification_status === 'verified' ? (
               <View className="h-1.5 w-1.5 rounded-full bg-emerald-500" accessibilityLabel={t('petFeed.card.onlineTrust')} />

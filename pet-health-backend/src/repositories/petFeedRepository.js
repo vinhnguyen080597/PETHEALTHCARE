@@ -30,6 +30,7 @@ import {
   mergeClientPostMetadata,
 } from '../utils/listingPostSecurity.js';
 import { sanitizeBreederProfileMetadata } from '../utils/breederProfileMetadata.js';
+import { resolvePrivateMediaUrls } from '../services/imageStorageService.js';
 import { normalizeRegistrationUnitPayload } from '../utils/breederRegistrationUnit.js';
 import {
   applyApprovedBreederSubmission,
@@ -713,6 +714,7 @@ function toListPost(row, favoriteIds = new Set(), profilesById = new Map(), view
           id: profile.id,
           user_id: profile.user_id,
           display_name: profile.display_name,
+          avatar_url: profile.avatar_url ?? null,
           verification_status: profile.verification_status,
           location: profile.location,
           contact: profile.contact ?? {},
@@ -861,6 +863,25 @@ async function withPostEngagementCounts(post, accessToken) {
   return withFavoriteCount(withCommentCount(post, commentCounts), favoriteCounts);
 }
 
+async function withSignedBreederAvatars(posts) {
+  const rows = posts ?? [];
+  if (rows.length === 0) return rows;
+  const avatarKeys = rows.map((post) => post.breeder_profile?.avatar_url ?? null);
+  const signedAvatars = await resolvePrivateMediaUrls(avatarKeys);
+  return rows.map((post, index) => {
+    if (!post.breeder_profile) return post;
+    const avatarUrl = signedAvatars[index];
+    if (!avatarUrl || avatarUrl === post.breeder_profile.avatar_url) return post;
+    return {
+      ...post,
+      breeder_profile: {
+        ...post.breeder_profile,
+        avatar_url: avatarUrl,
+      },
+    };
+  });
+}
+
 async function withPostsEngagementCounts(posts, accessToken) {
   const rows = posts ?? [];
   if (rows.length === 0) return rows;
@@ -869,7 +890,8 @@ async function withPostsEngagementCounts(posts, accessToken) {
     commentCountsForPostIds(ids, accessToken),
     favoriteCountsForPostIds(ids),
   ]);
-  return rows.map((post) => withFavoriteCount(withCommentCount(post, commentCounts), favoriteCounts));
+  const enriched = rows.map((post) => withFavoriteCount(withCommentCount(post, commentCounts), favoriteCounts));
+  return withSignedBreederAvatars(enriched);
 }
 
 export async function listPetFeedPostComments(postId, accessToken, options = {}) {

@@ -165,6 +165,23 @@ test('farm default photos fall back when missing or legacy unsplash', () => {
   };
   const fallback = { uri: 'bundled-default' };
   assert.equal(resolveFarmCoverUrl(base), null);
+  assert.equal(
+    resolveFarmAvatarUrl({
+      id: 'b1',
+      user_id: 'u1',
+      display_name: 'Farm',
+      bio: '',
+      location: '',
+      avatar_url: null,
+      contact: {},
+      primary_species: [],
+      main_breeds: [],
+      verification_status: 'verified',
+      metadata: { avatar_url: 'https://cdn.example/meta-avatar.jpg' },
+      created_at: '2026-01-01',
+    }),
+    'https://cdn.example/meta-avatar.jpg',
+  );
   assert.equal(resolveFarmAvatarUrl(base), null);
   assert.deepEqual(farmImageSource(null, fallback), fallback);
   assert.deepEqual(farmImageSource('https://cdn.example/cover.jpg', fallback), {

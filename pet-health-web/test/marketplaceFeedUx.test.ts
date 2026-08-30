@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  formatListingCardPostedDate,
   isListingNewOnFloor,
+  listingBreederFooterMetrics,
   listingHotBadges,
   listingInterestScore,
   listingPreviewImages,
@@ -82,7 +84,20 @@ function listing(overrides: Partial<Listing> = {}): Listing {
   };
 }
 
-test("listingHotBadges uses saves, new, and video only", () => {
+test("formatListingCardPostedDate returns locale short date", () => {
+  assert.equal(
+    formatListingCardPostedDate("2026-08-30T10:00:00.000Z", "VI"),
+    new Date("2026-08-30T10:00:00.000Z").toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }),
+  );
+  assert.equal(formatListingCardPostedDate("", "VI"), "");
+  assert.equal(formatListingCardPostedDate("invalid", "EN"), "");
+});
+
+test("listingHotBadges uses saves and new signals without video tag", () => {
   const now = Date.parse("2026-08-16T12:00:00.000Z");
   const badges = listingHotBadges(
     listing({
@@ -94,9 +109,30 @@ test("listingHotBadges uses saves, new, and video only", () => {
   );
   assert.deepEqual(
     badges.map((b) => b.kind),
-    ["saves", "new", "video"],
+    ["saves", "new"],
   );
   assert.equal(badges[0].kind === "saves" && badges[0].count, 12);
+});
+
+test("listingBreederFooterMetrics formats rating and trust score for card footer", () => {
+  const withReviews = listingBreederFooterMetrics(
+    listing({
+      breeder: {
+        ...breeder,
+        reviewAverage: 5,
+        reviewCount: 2,
+        trustScore: 66.4,
+      },
+    }),
+  );
+  assert.equal(withReviews.ratingText, "5.0/5 (2)");
+  assert.equal(withReviews.trustScore, 66);
+
+  const noReviews = listingBreederFooterMetrics(
+    listing({ breeder: { ...breeder, reviewAverage: 0, reviewCount: 0, trustScore: 30 } }),
+  );
+  assert.equal(noReviews.ratingText, null);
+  assert.equal(noReviews.trustScore, 30);
 });
 
 test("isListingNewOnFloor respects 24h window", () => {

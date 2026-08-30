@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { PetFeedPost } from '../src/types.ts';
 import {
+  formatListingCardPostedDate,
   isListingNewOnFloor,
   isOwnListingPost,
   listingBreederFooterMetrics,
@@ -50,6 +51,18 @@ test('listingSpeciesEmoji maps common species', () => {
 
 test('listing card image height matches pet feed detail hero', () => {
   assert.equal(LISTING_CARD_IMAGE_HEIGHT, 288);
+});
+
+test('formatListingCardPostedDate returns locale short date', () => {
+  assert.equal(
+    formatListingCardPostedDate('2026-08-30T10:00:00.000Z', 'vi'),
+    new Date('2026-08-30T10:00:00.000Z').toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }),
+  );
+  assert.equal(formatListingCardPostedDate('', 'vi'), '');
 });
 
 test('listingHotBadges uses saves and new signals without video tag', () => {

@@ -62,6 +62,22 @@ export function isListingNewOnFloor(post: Pick<PetFeedPost, 'created_at'>, now =
   return now - created <= NEW_LISTING_MS;
 }
 
+/** Short posted date for listing card overlay pills (locale date, no time). */
+export function formatListingCardPostedDate(
+  iso: string | null | undefined,
+  language: string,
+): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return '';
+  const locale = language.toLowerCase().startsWith('vi') ? 'vi-VN' : 'en-US';
+  return date.toLocaleDateString(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
 export function listingPreviewImages(post: Pick<PetFeedPost, 'media_urls'>, max = 4): string[] {
   const unique: string[] = [];
   for (const url of post.media_urls) {
