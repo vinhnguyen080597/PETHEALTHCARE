@@ -7,7 +7,7 @@ import {
   listingHotBadges,
   listingInterestScore,
   listingPreviewImages,
-  listingTrustTags,
+  listingWarrantyCoverageDays,
 } from "../src/lib/marketplaceSocialProof";
 import { buildLiveTickerItems, DEMO_LIVE_TICKER_ITEMS, liveTickerDisplayText, MARKETPLACE_BLOCK_GAP_CLASS, MARKETPLACE_PAGE_SHELL_CLASS, MARKETPLACE_PAGE_TOP_GAP_CLASS } from "../src/lib/marketplaceLiveTicker";
 import {
@@ -147,34 +147,14 @@ test("isListingNewOnFloor respects 24h window", () => {
   );
 });
 
-test("listingTrustTags prefer warranty then escrow/vaccine", () => {
-  const withEscrow = listingTrustTags(
-    listing({
-      escrowEnabled: true,
-      warrantyPolicy: {
-        id: "w1",
-        title: "Health",
-        careParvoCoverageDays: 30,
-      },
-    }),
-    { showEscrowTag: true },
-  );
-  assert.equal(withEscrow[0]?.kind, "warranty");
-  assert.equal(withEscrow[0]?.kind === "warranty" && withEscrow[0].days, 30);
-  assert.ok(withEscrow.some((tag) => tag.kind === "escrow"));
-
-  const withoutEscrow = listingTrustTags(
-    listing({
-      escrowEnabled: true,
-      warrantyPolicy: {
-        id: "w1",
-        title: "Health",
-        careParvoCoverageDays: 30,
-      },
-    }),
-    { showEscrowTag: false },
-  );
-  assert.ok(!withoutEscrow.some((tag) => tag.kind === "escrow"));
+test("listingWarrantyCoverageDays reads max coverage from policy", () => {
+  const days = listingWarrantyCoverageDays({
+    id: "w1",
+    title: "Health",
+    careParvoCoverageDays: 30,
+    respiratorySkinCoverageDays: 14,
+  });
+  assert.equal(days, 30);
 });
 
 test("listingPreviewImages dedupes and caps", () => {

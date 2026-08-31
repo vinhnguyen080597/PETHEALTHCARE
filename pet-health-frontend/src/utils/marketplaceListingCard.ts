@@ -1,5 +1,4 @@
 import type { PetFeedPost } from '../types';
-import { parsePetFeedPriceToVnd } from './petFeedCurrency.ts';
 
 const NEW_LISTING_MS = 24 * 60 * 60 * 1000;
 
@@ -13,11 +12,6 @@ export type ListingWarrantyPolicy = {
 export type ListingHotBadge =
   | { kind: 'saves'; count: number }
   | { kind: 'new' };
-
-export type ListingTrustTag =
-  | { kind: 'warranty'; days: number }
-  | { kind: 'escrow' }
-  | { kind: 'vaccine'; label: string };
 
 export type ListingAvailability = 'for_sale' | 'deposit_hold' | 'completed';
 
@@ -125,16 +119,6 @@ export function listingWarrantyCoverageDays(policy: ListingWarrantyPolicy | null
   return Math.max(...days);
 }
 
-export function parseListingEscrowEnabled(metadata: Record<string, unknown>): boolean {
-  return Boolean(
-    metadata.escrow_enabled
-    ?? metadata.escrowEnabled
-    ?? metadata.accept_escrow
-    ?? metadata.acceptEscrow
-    ?? metadata.petcoin_escrow,
-  );
-}
-
 export function listingMetadataMarksSold(metadata: Record<string, unknown>): boolean {
   const outcome = String(metadata.listing_outcome ?? metadata.outcome ?? '').trim().toLowerCase();
   if (outcome === 'cancelled' || outcome === 'canceled') return false;
@@ -175,39 +159,6 @@ export function listingHotBadges(
   if (saves > 0) badges.push({ kind: 'saves', count: saves });
   if (isListingNewOnFloor(post, now)) badges.push({ kind: 'new' });
   return badges.slice(0, 3);
-}
-
-export function listingTrustTags(
-  post: PetFeedPost,
-  options?: { showEscrowTag?: boolean },
-): ListingTrustTag[] {
-  const tags: ListingTrustTag[] = [];
-  const warrantyDays = listingWarrantyCoverageDays(readListingWarrantyPolicy(post));
-  if (warrantyDays != null) tags.push({ kind: 'warranty', days: warrantyDays });
-  if (options?.showEscrowTag && parseListingEscrowEnabled(asRecord(post.metadata))) {
-    tags.push({ kind: 'escrow' });
-  }
-  const vaccine = post.vaccine_status?.trim();
-  if (vaccine && vaccine !== '—') tags.push({ kind: 'vaccine', label: vaccine });
-  return tags.slice(0, 2);
-}
-
-export function listingEscrowDepositLabel(priceNote: string, locale: string): string | null {
-  const n = parsePetFeedPriceToVnd(priceNote);
-  if (n == null || n <= 0) return null;
-  const deposit = Math.round(n * 0.2);
-  const isVi = locale.startsWith('vi');
-  if (isVi) {
-    if (deposit >= 1_000_000) {
-      const mil = deposit / 1_000_000;
-      const text = Number.isInteger(mil) ? String(mil) : mil.toFixed(1).replace(/\.0$/, '');
-      return `(Cọc Escrow: ${text}tr)`;
-    }
-    if (deposit >= 1000) return `(Cọc Escrow: ${Math.round(deposit / 1000)}k)`;
-    return `(Cọc Escrow: ${deposit}đ)`;
-  }
-  const formatted = deposit.toLocaleString('en-US');
-  return `(Escrow: ${formatted} VND)`;
 }
 
 export function listingBreederScoreLabel(post: PetFeedPost, trustScore: number): string {

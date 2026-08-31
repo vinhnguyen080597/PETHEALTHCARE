@@ -72,15 +72,6 @@ import {
   markPetFeedNotificationsRead,
   reportBreederProfile,
   reportPetFeedPost,
-  confirmListingDeposit,
-  declineListingDeposit,
-  confirmListingCancelDeposit,
-  confirmListingComplete,
-  abandonListingHandoffBySen,
-  requestListingCancelDeposit,
-  requestListingComplete,
-  requestListingDispute,
-  submitDealReview,
   getMyTransparencyWarning,
   confirmTransparencyWarning,
   appealTransparencyWarning,
@@ -2571,74 +2562,6 @@ export function usePetHealthApp() {
     }
   }
 
-  const mutateListingDeal = useCallback(
-    async (
-      postId: string,
-      mutation: import('../utils/listingDealHandoff').ListingDealMutation,
-    ): Promise<{ post: PetFeedPost; reviewEligible?: boolean } | null> => {
-      if (!token || !postId) return null;
-      let response: { data: PetFeedPost; review_eligible?: boolean };
-      switch (mutation.type) {
-        case 'deposit_confirm':
-          response = await confirmListingDeposit(token, postId, {
-            acknowledge: true,
-            senUserId: mutation.senUserId,
-          });
-          break;
-        case 'deposit_decline':
-          response = await declineListingDeposit(token, postId);
-          break;
-        case 'complete_request':
-          response = await requestListingComplete(token, postId, mutation.photoUris);
-          break;
-        case 'complete_confirm':
-          response = await confirmListingComplete(token, postId);
-          break;
-        case 'handoff_abandon':
-          response = await abandonListingHandoffBySen(token, postId);
-          break;
-        case 'complete_dispute':
-          response = await requestListingDispute(token, postId, {
-            message: mutation.message,
-            photoUris: mutation.photoUris,
-          });
-          break;
-        case 'cancel_request':
-          response = await requestListingCancelDeposit(token, postId, {
-            reason: mutation.reason,
-            photoUris: mutation.photoUris,
-          });
-          break;
-        case 'cancel_confirm':
-          response = await confirmListingCancelDeposit(token, postId);
-          break;
-        default:
-          return null;
-      }
-      const updated = response.data;
-      setPetFeedPosts((current) =>
-        current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
-      );
-      setMyPetFeedPosts((current) =>
-        current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
-      );
-      return {
-        post: updated,
-        reviewEligible:
-          mutation.type === 'complete_confirm' ? Boolean(response.review_eligible) : undefined,
-      };
-    },
-    [token],
-  );
-
-  const submitListingDealReview = useCallback(
-    async (postId: string, payload: { rating: number; body?: string }) => {
-      if (!token || !postId) return;
-      await submitDealReview(token, postId, payload);
-    },
-    [token],
-  );
-
   const checkTransparencyWarning = useCallback(async () => {
     if (!token) return;
     try {
@@ -2939,42 +2862,7 @@ export function usePetHealthApp() {
       return;
     }
     if (type === 'deposit_cancel_request' && notification.post_id) {
-      const postId = notification.post_id;
-      Alert.alert(
-        i18n.t('petFeed.notifications.depositCancelTitle'),
-        notification.body_preview || i18n.t('petFeed.notifications.depositCancelBody'),
-        [
-          { text: i18n.t('common.cancel'), style: 'cancel' },
-          {
-            text: i18n.t('petFeed.notifications.viewListing'),
-            onPress: () => openPetFeedPostDetail(postId),
-          },
-          {
-            text: i18n.t('petFeed.notifications.depositCancelCta'),
-            onPress: () => {
-              void mutateListingDeal(postId, { type: 'cancel_confirm' })
-                .then((result) => {
-                  if (result?.post) {
-                    Alert.alert(
-                      i18n.t('common.ok'),
-                      i18n.t('petFeed.notifications.depositCancelSuccess'),
-                    );
-                    return;
-                  }
-                  Alert.alert(
-                    i18n.t('common.somethingWentWrong'),
-                    i18n.t('common.unknownError'),
-                  );
-                })
-                .catch((error: unknown) => {
-                  const message =
-                    error instanceof Error ? error.message : i18n.t('common.unknownError');
-                  Alert.alert(i18n.t('common.somethingWentWrong'), message);
-                });
-            },
-          },
-        ],
-      );
+      openPetFeedPostDetail(notification.post_id);
       return;
     }
     if (!notification.post_id) return;
@@ -5028,8 +4916,6 @@ export function usePetHealthApp() {
     dismissListingSubmitSuccess,
     editingPetFeedPost,
     submitPetFeedReport,
-    mutateListingDeal,
-    submitListingDealReview,
     checkTransparencyWarning,
     adminFeedPosts,
     adminFeedReports,

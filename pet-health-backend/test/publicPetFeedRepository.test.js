@@ -9,7 +9,6 @@ const {
   adminUpdateBreederProfileStatus,
   adminUpdatePetFeedPostStatus,
   createAnnouncementPost,
-  confirmListingDeposit,
   createPetFeedPost,
   createPetFeedPostComment,
   getPublicBreederProfile,
@@ -201,11 +200,6 @@ test('published column + cancelled metadata is closed, not listed as for-sale', 
 
   const detail = await getPublicPetFeedPost(created.id);
   assert.equal(detail?.status, 'cancelled');
-
-  await assert.rejects(
-    () => confirmListingDeposit(userId, created.id, { senUserId: 'sen-x', acknowledge: true }, null),
-    (err) => err.code === 'DEPOSIT_NOT_ALLOWED',
-  );
 });
 
 test('published column + sold metadata is closed, not listed as for-sale', async () => {
@@ -250,11 +244,6 @@ test('published column + sold metadata is closed, not listed as for-sale', async
 
   const detail = await getPublicPetFeedPost(created.id);
   assert.equal(detail?.status, 'sold');
-
-  await assert.rejects(
-    () => confirmListingDeposit(userId, created.id, { senUserId: 'sen-x', acknowledge: true }, null),
-    (err) => err.code === 'DEPOSIT_NOT_ALLOWED',
-  );
 });
 
 test('public published posts expose comments without auth token', async () => {

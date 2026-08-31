@@ -9,14 +9,6 @@ export async function listMyPosts(token: string) {
   );
 }
 
-/** Soft-deposit listings where the current user is Sen (buyer). */
-export async function listMyDeposits(token: string) {
-  return fetchJson<PageResult<ApiPetFeedPost> | { data: ApiPetFeedPost[] }>(
-    "/pet-feed/my-deposits",
-    { token, cache: "no-store" },
-  );
-}
-
 export async function listFavorites(token: string) {
   return fetchJson<PageResult<ApiPetFeedPost> | { data: ApiPetFeedPost[] }>(
     "/pet-feed/favorites",
@@ -508,50 +500,6 @@ export async function deleteMyListing(token: string, postId: string) {
   );
 }
 
-export async function confirmListingDeposit(
-  token: string,
-  postId: string,
-  payload: { senUserId?: string; acknowledge: boolean },
-) {
-  return fetchJson<{ data: ApiPetFeedPost; both_confirmed?: boolean }>(
-    `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/confirm`,
-    {
-      method: "POST",
-      token,
-      body: {
-        senUserId: payload.senUserId,
-        acknowledge: payload.acknowledge,
-      },
-    },
-  );
-}
-
-export async function declineListingDeposit(token: string, postId: string) {
-  return fetchJson<{ data: ApiPetFeedPost; declined_by?: string }>(
-    `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/decline`,
-    {
-      method: "POST",
-      token,
-    },
-  );
-}
-
-export async function listSenUsers(
-  token: string,
-  options?: { search?: string; limit?: number },
-) {
-  const params = new URLSearchParams();
-  if (options?.search) params.set("search", options.search);
-  if (options?.limit) params.set("limit", String(options.limit));
-  const qs = params.toString();
-  return fetchJson<{
-    data: Array<{ user_id: string; display_name: string; email: string }>;
-  }>(`/pet-feed/sen-users${qs ? `?${qs}` : ""}`, {
-    token,
-    cache: "no-store",
-  });
-}
-
 export async function uploadDealPhoto(token: string, formData: FormData) {
   return fetchJson<{ data: { publicUrl: string; kind: string } }>(
     "/pet-feed/uploads/deal-photo",
@@ -564,132 +512,10 @@ export async function uploadDealPhoto(token: string, formData: FormData) {
   );
 }
 
-export async function cancelListingDeposit(
-  token: string,
-  postId: string,
-  payload: { reason: string; cancelPhotoUrls?: string[] },
-) {
-  return fetchJson<{ data: ApiPetFeedPost; pending_confirm?: boolean }>(
-    `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/cancel`,
-    {
-      method: "POST",
-      token,
-      body: payload,
-    },
-  );
-}
-
-export async function confirmListingCancelDeposit(token: string, postId: string) {
-  return fetchJson<{ data: ApiPetFeedPost }>(
-    `/pet-feed/posts/${encodeURIComponent(postId)}/deposit/cancel/confirm`,
-    {
-      method: "POST",
-      token,
-    },
-  );
-}
-
-export async function requestListingComplete(
-  token: string,
-  postId: string,
-  payload: { handoffPhotoUrls: string[] },
-) {
-  return fetchJson<{
-    data: ApiPetFeedPost;
-    both_confirmed?: boolean;
-    complete_deadline_at?: string;
-  }>(
-    `/pet-feed/posts/${encodeURIComponent(postId)}/complete/request`,
-    {
-      method: "POST",
-      token,
-      body: payload,
-    },
-  );
-}
-
-export async function confirmListingComplete(token: string, postId: string) {
-  return fetchJson<{
-    data: ApiPetFeedPost;
-    both_confirmed?: boolean;
-    review_eligible?: boolean;
-    breeder_profile_id?: string | null;
-  }>(`/pet-feed/posts/${encodeURIComponent(postId)}/complete/confirm`, {
-    method: "POST",
-    token,
-  });
-}
-
-/** Sen walks away after handoff request → listing republished; future escrow forfeits to breeder. */
-export async function abandonListingHandoffBySen(token: string, postId: string) {
-  return fetchJson<{
-    data: ApiPetFeedPost;
-    escrow_forfeit_to_breeder?: boolean;
-  }>(`/pet-feed/posts/${encodeURIComponent(postId)}/complete/abandon`, {
-    method: "POST",
-    token,
-  });
-}
-
-export async function getMyDealReview(token: string, postId: string) {
-  return fetchJson<{ data: import("../breederDealReviews").BreederDealReview | null }>(
-    `/pet-feed/posts/${encodeURIComponent(postId)}/review/me`,
-    { token, cache: "no-store" },
-  );
-}
-
-export async function submitDealReview(
-  token: string,
-  postId: string,
-  payload: { rating: number; body?: string },
-) {
-  return fetchJson<{ data: import("../breederDealReviews").BreederDealReview }>(
-    `/pet-feed/posts/${encodeURIComponent(postId)}/review`,
-    { method: "POST", token, body: payload },
-  );
-}
-
 export async function getBreederDealReviews(token: string | null, profileId: string) {
   return fetchJson<{ data: import("../breederDealReviews").BreederDealReviewAggregate }>(
     `/pet-feed/breeder-profiles/${encodeURIComponent(profileId)}/reviews`,
     { token, cache: "no-store" },
-  );
-}
-
-export async function requestListingDispute(
-  token: string,
-  postId: string,
-  payload: { message: string; disputePhotoUrls: string[] },
-) {
-  return fetchJson<{ data: ApiPetFeedPost; report?: unknown }>(
-    `/pet-feed/posts/${encodeURIComponent(postId)}/complete/dispute`,
-    {
-      method: "POST",
-      token,
-      body: payload,
-    },
-  );
-}
-
-export async function adminForceCompleteListing(token: string, postId: string) {
-  return fetchJson<{ data: ApiPetFeedPost }>(
-    `/admin/pet-feed/posts/${encodeURIComponent(postId)}/deal/force-complete`,
-    {
-      method: "POST",
-      token,
-      body: {},
-    },
-  );
-}
-
-export async function adminForceCancelListing(token: string, postId: string) {
-  return fetchJson<{ data: ApiPetFeedPost }>(
-    `/admin/pet-feed/posts/${encodeURIComponent(postId)}/deal/force-cancel`,
-    {
-      method: "POST",
-      token,
-      body: {},
-    },
   );
 }
 

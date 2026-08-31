@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { requireAnyRole, requireUser } from '../middleware/auth.js';
-import { listSenAccounts } from '../repositories/accountRepository.js';
 import {
   blockBreederProfile,
   cancelMyBreederVerificationRequest,
@@ -17,7 +16,6 @@ import {
   listFavoritePetFeedPosts,
   countMyPetFeedPostStats,
   listMyAnnouncementPosts,
-  listMyDepositPosts,
   listMyPetFeedPosts,
   listPetFeedPostComments,
   listPublishedPetFeedPostPage,
@@ -38,15 +36,6 @@ import {
   createBreederProfileSubmission,
   listMyBreederProfileSubmissions,
   cancelMyBreederProfileSubmission,
-  confirmListingDeposit,
-  declineListingDeposit,
-  requestListingCancelDeposit,
-  confirmListingCancelDeposit,
-  requestListingComplete,
-  confirmListingComplete,
-  abandonListingHandoffBySen,
-  requestListingDispute,
-  COMPLETE_HANDOFF_DEADLINE_DAYS,
 } from '../repositories/petFeedRepository.js';
 import {
   getPetFeedConversation,
@@ -59,7 +48,6 @@ import {
 } from '../repositories/petFeedMessagingRepository.js';
 import {
   createAdminRequestNotifications,
-  createDealNotification,
   createPostCommentNotification,
   createTransparencyWarningNotification,
   listPetFeedNotifications,
@@ -91,12 +79,7 @@ import {
   storePetFeedVideo,
 } from '../services/imageStorageService.js';
 import { breederSubmissionTypeLabel } from '../utils/breederProfileSubmissions.js';
-import {
-  createBreederDealReview,
-  getBreederDealReviewAggregate,
-  getMyDealReviewForPost,
-} from '../repositories/breederDealReviewsRepository.js';
-import { buildDealReviewedNotificationPreview } from '../utils/breederDealReviews.js';
+import { getBreederDealReviewAggregate } from '../repositories/breederDealReviewsRepository.js';
 import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 const router = Router();
@@ -158,19 +141,6 @@ function badMedia(message, code) {
   err.status = 400;
   err.code = code;
   return err;
-}
-
-function appendHttpPhotoUrls(target, body, keys) {
-  for (const key of keys) {
-    const raw = body?.[key];
-    const list = Array.isArray(raw) ? raw : [];
-    for (const item of list) {
-      if (typeof item === 'string' && /^https?:\/\//i.test(item.trim())) {
-        target.push(item.trim());
-      }
-    }
-  }
-  return target;
 }
 
 function validateUploadedFiles({ photos, video }, { requireComplete = true } = {}) {
@@ -731,17 +701,6 @@ router.get('/my-posts', requireAnyRole('breeder'), async (req, res, next) => {
   }
 });
 
-/** Soft-deposit listings where the current user is the assigned Sen (buyer). */
-router.get('/my-deposits', async (req, res, next) => {
-  try {
-    const limit = parsePositiveInt(firstQueryValue(req.query.limit));
-    const posts = await listMyDepositPosts(req.user.id, req.accessToken, { limit });
-    return res.json({ data: posts });
-  } catch (err) {
-    return next(err);
-  }
-});
-
 // More specific than PUT /posts/:postId — register first so attach-warranty never 404s.
 router.put('/posts/:postId/warranty-policy', requireAnyRole('breeder', 'admin'), async (req, res, next) => {
   try {
@@ -826,17 +785,6 @@ router.put('/posts/:postId', requireAnyRole('breeder'), async (req, res, next) =
       }).catch(() => null);
     }
     return res.json({ data: post });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.get('/sen-users', requireAnyRole('breeder', 'admin'), async (req, res, next) => {
-  try {
-    const search = typeof req.query.search === 'string' ? req.query.search : '';
-    const limit = Number(req.query.limit) || 50;
-    const data = await listSenAccounts(search, { limit });
-    return res.json({ data });
   } catch (err) {
     return next(err);
   }
@@ -1465,331 +1413,6 @@ router.patch(
   },
 );
 
-function dealNotifyMeta(post) {
-  return {
-    title: post?.title || '',
-    thumb_url: Array.isArray(post?.media_urls) ? post.media_urls[0] : null,
-    breeder_profile_id: post?.breeder_profile_id || null,
-    cta_href: post?.id ? `/app/pet-feed/posts/${encodeURIComponent(post.id)}` : undefined,
-  };
-}
-
-router.post('/posts/:postId/deposit/confirm', async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const result = await confirmListingDeposit(req.user.id, postId, req.body ?? {}, req.accessToken);
-    const notifyType = result.both_confirmed ? 'deposit_confirmed' : 'deposit_request';
-    const preview = result.both_confirmed
-      ? `Cọc đã được xác nhận cho "${notifyPreview(result.post.title)}". Chính sách bảo hành đã đóng băng.`
-      : `Sen yêu cầu chốt cọc cho "${notifyPreview(result.post.title)}". Vui lòng xác nhận.`;
-    if (result.notify_user_id) {
-      void createDealNotification({
-        recipientUserId: result.notify_user_id,
-        actorUserId: req.user.id,
-        postId: result.post.id,
-        type: notifyType,
-        bodyPreview: preview,
-        metadata: {
-          ...dealNotifyMeta(result.post),
-          ...(result.both_confirmed ? {} : { cta_label: 'Xác nhận cọc' }),
-        },
-        accessToken: req.accessToken,
-      }).catch(() => null);
-    }
-    return res.json({ data: result.post, both_confirmed: result.both_confirmed });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.post('/posts/:postId/deposit/decline', async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const result = await declineListingDeposit(req.user.id, postId, req.accessToken);
-    const preview = result.declined_by === 'breeder'
-      ? `Breeder đã từ chối yêu cầu chốt cọc cho "${notifyPreview(result.post.title)}".`
-      : `Sen đã rút yêu cầu chốt cọc cho "${notifyPreview(result.post.title)}".`;
-    if (result.notify_user_id) {
-      void createDealNotification({
-        recipientUserId: result.notify_user_id,
-        actorUserId: req.user.id,
-        postId: result.post.id,
-        type: 'deposit_cancelled',
-        bodyPreview: preview,
-        metadata: dealNotifyMeta(result.post),
-        accessToken: req.accessToken,
-      }).catch(() => null);
-    }
-    return res.json({ data: result.post, declined_by: result.declined_by });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.post(
-  '/posts/:postId/deposit/cancel',
-  requireAnyRole('breeder'),
-  petFeedUpload.fields([{ name: 'photos', maxCount: 5 }]),
-  async (req, res, next) => {
-    try {
-      const postId = cleanId(req.params.postId);
-      if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-      const files = Array.isArray(req.files?.photos) ? req.files.photos : [];
-      const cancelPhotoUrls = [];
-      for (const file of files) {
-        if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
-          return res.status(400).json({
-            error: 'Unsupported photo type. Use JPEG, PNG, or WebP.',
-            code: 'PET_FEED_UNSUPPORTED_PHOTO',
-          });
-        }
-        cancelPhotoUrls.push(
-          await storePetFeedImage({
-            userId: req.user.id,
-            file,
-            accessToken: req.accessToken,
-          }),
-        );
-      }
-      appendHttpPhotoUrls(cancelPhotoUrls, req.body, [
-        'cancelPhotoUrls',
-        'cancel_photo_urls',
-        'photos',
-      ]);
-      const reason =
-        typeof req.body?.reason === 'string'
-          ? req.body.reason
-          : typeof req.body?.cancel_reason === 'string'
-            ? req.body.cancel_reason
-            : '';
-      const result = await requestListingCancelDeposit(
-        req.user.id,
-        postId,
-        { reason, cancelPhotoUrls },
-        req.accessToken,
-      );
-      if (result.notify_user_id) {
-        void createDealNotification({
-          recipientUserId: result.notify_user_id,
-          actorUserId: req.user.id,
-          postId: result.post.id,
-          type: 'deposit_cancel_request',
-          bodyPreview:
-            `Breeder yêu cầu hủy cọc cho "${notifyPreview(result.post.title)}". `
-            + `Lý do: ${String(result.post?.metadata?.deal?.cancel_reason || '').slice(0, 80)}. Vui lòng xác nhận.`,
-          metadata: {
-            ...dealNotifyMeta(result.post),
-            cta_label: 'Xác nhận hủy cọc',
-          },
-          accessToken: req.accessToken,
-        }).catch(() => null);
-      }
-      return res.json({ data: result.post, pending_confirm: true });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-router.post('/posts/:postId/deposit/cancel/confirm', async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const result = await confirmListingCancelDeposit(req.user.id, postId, req.accessToken);
-    if (result.notify_user_id) {
-      void createDealNotification({
-        recipientUserId: result.notify_user_id,
-        actorUserId: req.user.id,
-        postId: result.post.id,
-        type: 'deposit_cancelled',
-        bodyPreview: `Sen đã xác nhận hủy cọc cho "${notifyPreview(result.post.title)}". Tin đăng đã chuyển sang hoàn thành.`,
-        metadata: dealNotifyMeta(result.post),
-        accessToken: req.accessToken,
-      }).catch(() => null);
-    }
-    return res.json({ data: result.post });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.post(
-  '/posts/:postId/complete/request',
-  requireAnyRole('breeder'),
-  petFeedUpload.fields([{ name: 'photos', maxCount: 5 }]),
-  async (req, res, next) => {
-    try {
-      const postId = cleanId(req.params.postId);
-      if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-      const files = Array.isArray(req.files?.photos) ? req.files.photos : [];
-      const handoffPhotoUrls = [];
-      for (const file of files) {
-        if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
-          return res.status(400).json({
-            error: 'Unsupported photo type. Use JPEG, PNG, or WebP.',
-            code: 'PET_FEED_UNSUPPORTED_PHOTO',
-          });
-        }
-        handoffPhotoUrls.push(
-          await storePetFeedImage({
-            userId: req.user.id,
-            file,
-            accessToken: req.accessToken,
-          }),
-        );
-      }
-      appendHttpPhotoUrls(handoffPhotoUrls, req.body, ['handoffPhotoUrls', 'photos']);
-
-      const result = await requestListingComplete(
-        req.user.id,
-        postId,
-        { handoffPhotoUrls },
-        req.accessToken,
-      );
-      const days = COMPLETE_HANDOFF_DEADLINE_DAYS;
-      const preview =
-        `Breeder đã xác nhận giao bé cho "${notifyPreview(result.post.title)}". `
-        + `Vui lòng xác nhận đã nhận trong ${days} ngày — hết hạn sẽ tự hoàn thành giao dịch.`;
-      if (result.notify_user_id) {
-        void createDealNotification({
-          recipientUserId: result.notify_user_id,
-          actorUserId: req.user.id,
-          postId: result.post.id,
-          type: 'deal_complete_request',
-          bodyPreview: preview,
-          metadata: {
-            ...dealNotifyMeta(result.post),
-            complete_deadline_at: result.complete_deadline_at || null,
-            cta_label: 'Xác nhận đã nhận',
-          },
-          accessToken: req.accessToken,
-        }).catch(() => null);
-      }
-      return res.json({
-        data: result.post,
-        both_confirmed: false,
-        complete_deadline_at: result.complete_deadline_at,
-      });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-router.post('/posts/:postId/complete/confirm', async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const result = await confirmListingComplete(req.user.id, postId, req.accessToken);
-    if (result.notify_user_id) {
-      void createDealNotification({
-        recipientUserId: result.notify_user_id,
-        actorUserId: req.user.id,
-        postId: result.post.id,
-        type: 'deal_completed',
-        bodyPreview: `Sen đã xác nhận nhận bé cho "${notifyPreview(result.post.title)}". Giao dịch hoàn thành.`,
-        metadata: dealNotifyMeta(result.post),
-        accessToken: req.accessToken,
-      }).catch(() => null);
-    }
-    return res.json({
-      data: result.post,
-      both_confirmed: true,
-      review_eligible: Boolean(result.review_eligible),
-      breeder_profile_id: result.breeder_profile_id ?? null,
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.post('/posts/:postId/complete/abandon', async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const result = await abandonListingHandoffBySen(req.user.id, postId, req.accessToken);
-    if (result.notify_user_id) {
-      void createDealNotification({
-        recipientUserId: result.notify_user_id,
-        actorUserId: req.user.id,
-        postId: result.post.id,
-        type: 'deposit_cancelled',
-        bodyPreview:
-          `Sen đã hủy cọc cho "${notifyPreview(result.post.title)}". Tin đăng đã mở lại để bán.`,
-        metadata: dealNotifyMeta(result.post),
-        accessToken: req.accessToken,
-      }).catch(() => null);
-    }
-    return res.json({
-      data: result.post,
-      escrow_forfeit_to_breeder: Boolean(result.escrow_forfeit_to_breeder),
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.get('/posts/:postId/review/me', async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const review = await getMyDealReviewForPost(req.user.id, postId, req.accessToken);
-    return res.json({ data: review });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.post('/posts/:postId/review', async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const result = await createBreederDealReview(req.user.id, postId, req.body ?? {}, req.accessToken);
-    if (result.notify_user_id) {
-      void createDealNotification({
-        recipientUserId: result.notify_user_id,
-        actorUserId: req.user.id,
-        postId,
-        type: 'deal_reviewed',
-        bodyPreview: buildDealReviewedNotificationPreview({
-          title: result.post_title,
-          rating: result.review.rating,
-          body: result.review.body,
-        }),
-        metadata: {
-          ...dealNotifyMeta({
-            id: postId,
-            title: result.post_title,
-            breeder_profile_id: result.breeder_profile_id,
-          }),
-          rating: result.review.rating,
-          review_body: result.review.body || '',
-          transparency_points_awarded: result.transparency_points_awarded,
-          cta_label: 'Xem tin đăng',
-        },
-        accessToken: req.accessToken,
-      }).catch(() => null);
-    }
-    void recordProductEvent({
-      userId: req.user.id,
-      event: 'breeder_deal_review_created',
-      metadata: {
-        post_id: postId,
-        rating: result.review.rating,
-        transparency_points_awarded: result.transparency_points_awarded,
-      },
-    });
-    return res.status(201).json({
-      data: result.review,
-      transparency_points_awarded: result.transparency_points_awarded,
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
 router.get('/breeder-profiles/:profileId/reviews', async (req, res, next) => {
   try {
     const profileId = cleanId(req.params.profileId);
@@ -1802,80 +1425,5 @@ router.get('/breeder-profiles/:profileId/reviews', async (req, res, next) => {
     return next(err);
   }
 });
-
-router.post(
-  '/posts/:postId/complete/dispute',
-  petFeedUpload.fields([{ name: 'photos', maxCount: 5 }]),
-  async (req, res, next) => {
-    try {
-      const postId = cleanId(req.params.postId);
-      if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-      const files = Array.isArray(req.files?.photos) ? req.files.photos : [];
-      const disputePhotoUrls = [];
-      for (const file of files) {
-        if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
-          return res.status(400).json({
-            error: 'Unsupported photo type. Use JPEG, PNG, or WebP.',
-            code: 'PET_FEED_UNSUPPORTED_PHOTO',
-          });
-        }
-        disputePhotoUrls.push(
-          await storePetFeedImage({
-            userId: req.user.id,
-            file,
-            accessToken: req.accessToken,
-          }),
-        );
-      }
-      appendHttpPhotoUrls(disputePhotoUrls, req.body, [
-        'disputePhotoUrls',
-        'dispute_photo_urls',
-        'photos',
-      ]);
-      const message =
-        typeof req.body?.message === 'string'
-          ? req.body.message
-          : typeof req.body?.note === 'string'
-            ? req.body.note
-            : '';
-      const result = await requestListingDispute(
-        req.user.id,
-        postId,
-        { message, disputePhotoUrls },
-        req.accessToken,
-      );
-      if (result.notify_breeder_user_id) {
-        void createDealNotification({
-          recipientUserId: result.notify_breeder_user_id,
-          actorUserId: req.user.id,
-          postId: result.post.id,
-          type: 'deal_dispute_opened',
-          bodyPreview:
-            `Sen khiếu nại chưa nhận bé cho "${notifyPreview(result.post.title)}". Admin đang xem xét.`,
-          metadata: dealNotifyMeta(result.post),
-          accessToken: req.accessToken,
-        }).catch(() => null);
-      }
-      if (result.report?.id) {
-        void createAdminRequestNotifications({
-          actorUserId: req.user.id,
-          type: 'admin_report_open',
-          bodyPreview: `Khiếu nại giao nhận: "${notifyPreview(result.post.title)}"`,
-          postId: result.post.id,
-          breederProfileId: result.post.breeder_profile_id || null,
-          metadata: {
-            report_id: result.report.id,
-            reason: 'deal_dispute',
-            title: result.post.title || '',
-          },
-          accessToken: req.accessToken,
-        }).catch(() => null);
-      }
-      return res.json({ data: result.post, report: result.report });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
 
 export default router;

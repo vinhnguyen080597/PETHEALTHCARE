@@ -8,11 +8,8 @@ delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 const {
   adminUpdateBreederProfileStatus,
   adminUpdatePetFeedPostStatus,
-  confirmListingComplete,
   createPetFeedPost,
   getMyBreederProfile,
-  requestListingComplete,
-  confirmListingDeposit,
   upsertMyBreederProfile,
 } = await import('../src/repositories/petFeedRepository.js');
 const {
@@ -20,6 +17,20 @@ const {
   getBreederDealReviewAggregate,
   resetBreederDealReviewMemoryForTests,
 } = await import('../src/repositories/breederDealReviewsRepository.js');
+
+async function seedCompletedDealListing(breederId, senId, post) {
+  const now = new Date().toISOString();
+  return adminUpdatePetFeedPostStatus(post.id, 'sold', {
+    completedAt: now,
+    metadata: {
+      deal: {
+        status: 'completed',
+        sen_user_id: senId,
+        sen_confirmed_complete_at: now,
+      },
+    },
+  });
+}
 
 test('sen confirm completion + 5-star review updates breeder transparency counts', async () => {
   resetBreederDealReviewMemoryForTests();
@@ -39,14 +50,7 @@ test('sen confirm completion + 5-star review updates breeder transparency counts
     status: 'draft',
   }, null);
   post = await adminUpdatePetFeedPostStatus(post.id, 'published');
-
-  await confirmListingDeposit(senId, post.id, { acknowledge: true }, null);
-  await confirmListingDeposit(breederId, post.id, { acknowledge: true }, null);
-  await requestListingComplete(breederId, post.id, {
-    handoffPhotoUrls: ['https://cdn.example/handoff.jpg'],
-  }, null);
-  const done = await confirmListingComplete(senId, post.id, null);
-  assert.equal(done.review_eligible, true);
+  await seedCompletedDealListing(breederId, senId, post);
 
   const reviewResult = await createBreederDealReview(senId, post.id, { rating: 5, body: 'Great!' }, null);
   assert.equal(reviewResult.review.rating, 5);
@@ -81,15 +85,11 @@ test('duplicate review is rejected', async () => {
     status: 'draft',
   }, null);
   post = await adminUpdatePetFeedPostStatus(post.id, 'published');
-  await confirmListingDeposit(senId, post.id, { acknowledge: true }, null);
-  await confirmListingDeposit(breederId, post.id, { acknowledge: true }, null);
-  await requestListingComplete(breederId, post.id, {
-    handoffPhotoUrls: ['https://cdn.example/handoff.jpg'],
-  }, null);
-  await confirmListingComplete(senId, post.id, null);
+  await seedCompletedDealListing(breederId, senId, post);
   await createBreederDealReview(senId, post.id, { rating: 4 }, null);
   await assert.rejects(
     () => createBreederDealReview(senId, post.id, { rating: 5 }, null),
     (err) => err.code === 'REVIEW_ALREADY_EXISTS',
   );
+  assert.ok(profile.id);
 });

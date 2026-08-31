@@ -29,14 +29,14 @@ test('deal reviewed notification uses view listing CTA', () => {
   );
 });
 
-test('deposit cancel notification shows a confirm CTA', () => {
+test('legacy deal notifications use view listing CTA', () => {
   assert.equal(
     notificationInboxCta({ type: 'deposit_cancel_request' }, FALLBACKS),
-    'Confirm cancel deposit',
+    'View listing',
   );
   assert.equal(
     notificationInboxCta({ type: 'deposit_request' }, FALLBACKS),
-    'Confirm deposit',
+    'View listing',
   );
   assert.equal(
     notificationInboxCta(

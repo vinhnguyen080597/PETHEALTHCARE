@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_APP_FEATURE_FLAGS,
   isMarketplaceEscrowEnabled,
-  shouldShowMarketplaceDealUi,
 } from "../src/lib/featureFlags";
 
 test("marketplace escrow defaults off and is explicit opt-in", () => {
@@ -12,10 +11,4 @@ test("marketplace escrow defaults off and is explicit opt-in", () => {
   assert.equal(isMarketplaceEscrowEnabled({}), false);
   assert.equal(isMarketplaceEscrowEnabled({ marketplace_escrow: false }), false);
   assert.equal(isMarketplaceEscrowEnabled({ marketplace_escrow: true }), true);
-});
-
-test("shouldShowMarketplaceDealUi keeps legacy in-flight deals visible", () => {
-  assert.equal(shouldShowMarketplaceDealUi({ marketplace_escrow: false }, false), false);
-  assert.equal(shouldShowMarketplaceDealUi({ marketplace_escrow: false }, true), true);
-  assert.equal(shouldShowMarketplaceDealUi({ marketplace_escrow: true }, false), true);
 });

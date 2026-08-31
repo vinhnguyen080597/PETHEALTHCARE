@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   canShowBreederMessageAction,
-  canShowDepositRequest,
   canShowListingUpdateDetails,
   canShowWarrantyUpdateCta,
   isListingAvailableStatus,
@@ -66,34 +65,16 @@ test("opensMyListingReviewPopup only for pending_review", () => {
   assert.equal(opensMyListingReviewPopup(null), false);
 });
 
-test("canShowDepositRequest is Sen-only on open listings", () => {
+test("listingDetailHref and back href respect from=account", () => {
+  assert.equal(listingDetailHref("abc"), "/app/pet-feed/posts/abc");
   assert.equal(
-    canShowDepositRequest({ isOwner: true, status: "published" }),
-    false,
+    listingDetailHref("abc", { from: "account" }),
+    "/app/pet-feed/posts/abc?from=account",
   );
-  assert.equal(
-    canShowDepositRequest({ isOwner: false, status: "published" }),
-    true,
-  );
-  assert.equal(
-    canShowDepositRequest({
-      isOwner: false,
-      status: "published",
-      dealStatus: "pending_sen",
-    }),
-    false,
-  );
-  assert.equal(
-    canShowDepositRequest({
-      isOwner: false,
-      status: "published",
-      dealStatus: "deposit_hold",
-    }),
-    false,
-  );
-  assert.equal(canShowDepositRequest({ isOwner: false, status: "deposit_hold" }), false);
-  assert.equal(canShowDepositRequest({ isOwner: false, status: "sold" }), false);
-  assert.equal(canShowDepositRequest({ isOwner: false, status: null }), false);
+  assert.equal(parseListingDetailFrom("account"), "account");
+  assert.equal(parseListingDetailFrom("pet-feed"), null);
+  assert.equal(listingDetailBackHref("account"), "/app/account");
+  assert.equal(listingDetailBackHref(null), "/app/pet-feed");
 });
 
 test("isListingAvailableStatus is published only", () => {
@@ -149,32 +130,4 @@ test("listingEditHref encodes post id", () => {
     listingEditHref("a/b"),
     "/app/account/listings/a%2Fb/edit",
   );
-});
-
-test("listingDetailHref and back href respect from=account", () => {
-  assert.equal(listingDetailHref("abc"), "/app/pet-feed/posts/abc");
-  assert.equal(
-    listingDetailHref("abc", { from: "account" }),
-    "/app/pet-feed/posts/abc?from=account",
-  );
-  assert.equal(
-    listingDetailHref("abc", { dealAction: "confirm-cancel" }),
-    "/app/pet-feed/posts/abc?dealAction=confirm-cancel",
-  );
-  assert.equal(
-    listingDetailHref("abc", { dealAction: "confirm-deposit" }),
-    "/app/pet-feed/posts/abc?dealAction=confirm-deposit",
-  );
-  assert.equal(
-    listingDetailHref("abc", { dealAction: "confirm-receipt" }),
-    "/app/pet-feed/posts/abc?dealAction=confirm-receipt",
-  );
-  assert.equal(
-    listingDetailHref("abc", { from: "account", dealAction: "confirm-cancel" }),
-    "/app/pet-feed/posts/abc?from=account&dealAction=confirm-cancel",
-  );
-  assert.equal(parseListingDetailFrom("account"), "account");
-  assert.equal(parseListingDetailFrom("pet-feed"), null);
-  assert.equal(listingDetailBackHref("account"), "/app/account");
-  assert.equal(listingDetailBackHref(null), "/app/pet-feed");
 });

@@ -21,12 +21,6 @@ export const DEPOSIT_CANCEL_DEAL_ACTION = "confirm-cancel";
 export const DEPOSIT_CONFIRM_DEAL_ACTION = "confirm-deposit";
 export const HANDOFF_CONFIRM_DEAL_ACTION = "confirm-receipt";
 
-const DEAL_ACTION_NOTIFICATION_TYPES = new Set([
-  "deposit_request",
-  "deposit_cancel_request",
-  "deal_complete_request",
-]);
-
 const DEAL_INFO_NOTIFICATION_TYPES = new Set([
   "deposit_confirmed",
   "deposit_cancelled",
@@ -265,14 +259,12 @@ export function notificationInboxCta(
   if (isAdminQueueNotification(type)) {
     return stored || fallbacks.adminRequest;
   }
-  if (type === "deposit_cancel_request") {
-    return stored || fallbacks.depositCancelConfirm;
-  }
-  if (type === "deposit_request") return stored || fallbacks.depositConfirm;
-  if (type === "deal_complete_request") {
-    return stored || fallbacks.dealCompleteConfirm;
-  }
-  if (DEAL_INFO_NOTIFICATION_TYPES.has(type)) {
+  if (
+    DEAL_INFO_NOTIFICATION_TYPES.has(type)
+    || type === "deposit_cancel_request"
+    || type === "deposit_request"
+    || type === "deal_complete_request"
+  ) {
     return stored || fallbacks.viewListing;
   }
   return null;
@@ -289,24 +281,10 @@ function listingPathFromStoredHref(stored: string, postId: string) {
   return "";
 }
 
-/** Listing deep link for deal / comment notifications. Cancel-request and deposit-request add dealAction. */
+/** Listing deep link for comment / legacy deal notifications (view-only). */
 export function listingNotificationHref(item: NotificationDeepLinkInput): string | null {
   const postId = String(item.post_id || "").trim();
   const stored =
     typeof item.metadata?.cta_href === "string" ? item.metadata.cta_href : "";
-  const path = listingPathFromStoredHref(stored, postId);
-  if (!path) return null;
-  if (isDepositCancelRequestNotification(item)) {
-    const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}dealAction=${DEPOSIT_CANCEL_DEAL_ACTION}`;
-  }
-  if (isDepositRequestNotification(item)) {
-    const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}dealAction=${DEPOSIT_CONFIRM_DEAL_ACTION}`;
-  }
-  if (isDealCompleteRequestNotification(item)) {
-    const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}dealAction=${HANDOFF_CONFIRM_DEAL_ACTION}`;
-  }
-  return path;
+  return listingPathFromStoredHref(stored, postId) || null;
 }

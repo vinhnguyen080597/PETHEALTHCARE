@@ -12,7 +12,6 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
 import { PetFeedDetailSiblingListingsBar } from '../components/PetFeedDetailSiblingListingsBar';
-import { ListingDealPanel, type ListingDealMutation } from '../components/ListingDealPanel';
 import { MarketplaceDisclaimerAlert } from '../components/MarketplaceLegalNotice';
 import { PetFeedPostDetailBody } from '../components/PetFeedPostDetailBody';
 import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
@@ -20,14 +19,6 @@ import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
 import { usePetFeedPostDetail } from '../hooks/usePetFeedPostDetail';
 import { BRAND } from '../theme/brand';
 import type { PetFeedComment, PetFeedPost } from '../types';
-import {
-  isMarketplaceEscrowEnabled,
-  shouldShowMarketplaceDealUi,
-} from '../utils/marketplaceEscrow';
-import {
-  canShowDepositRequest,
-  readDealFromPostMetadata,
-} from '../utils/listingDealHandoff';
 import { sharePetFeedPost } from '../utils/sharePetFeedPost';
 import { petFeedDetailShowsEditButton, petFeedDetailShowsMessageButton } from '../utils/petFeedDetailHeader';
 import { similarForSaleListings } from '../utils/petFeedDetailSiblingListings';
@@ -51,15 +42,6 @@ type PetFeedPostDetailScreenProps = {
   onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
   onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
   onOpenListing?: (postId: string) => void;
-  onMutateListingDeal?: (
-    postId: string,
-    mutation: ListingDealMutation,
-  ) => Promise<{ post: PetFeedPost; reviewEligible?: boolean } | null>;
-  onSubmitListingDealReview?: (
-    postId: string,
-    payload: { rating: number; body?: string },
-  ) => Promise<void>;
-  marketplaceEscrowEnabled?: boolean;
   currentUserId?: string | null;
   allowMediaDownload?: boolean;
 };
@@ -113,9 +95,6 @@ export function PetFeedPostDetailScreen({
   onSubmitPostComment,
   onDeletePostComment,
   onOpenListing,
-  onMutateListingDeal,
-  onSubmitListingDealReview,
-  marketplaceEscrowEnabled = false,
   currentUserId,
 }: PetFeedPostDetailScreenProps) {
   const { t } = useTranslation();
@@ -126,12 +105,11 @@ export function PetFeedPostDetailScreen({
   const scrollRef = useRef<ScrollView>(null);
   const commentsSectionYRef = useRef(0);
   const scrolledFocusIdRef = useRef<string | null>(null);
-  const [depositModalTrigger, setDepositModalTrigger] = useState(0);
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
   const [reportNote, setReportNote] = useState('');
 
-  const { selectedPost, detailLoading, replaceDetailPost } = usePetFeedPostDetail(
+  const { selectedPost, detailLoading } = usePetFeedPostDetail(
     postId,
     listPosts,
     onFetchPostDetail,
@@ -170,26 +148,6 @@ export function PetFeedPostDetailScreen({
   }, [focusCommentId, onFocusCommentHandled]);
 
   const isOwnPost = Boolean(selectedPost && currentUserId && selectedPost.user_id === currentUserId);
-  const deal = useMemo(
-    () => (selectedPost ? readDealFromPostMetadata(selectedPost.metadata) : { status: undefined }),
-    [selectedPost],
-  );
-  const hasActiveDeal = Boolean(deal.status);
-  const showDealUi = shouldShowMarketplaceDealUi(
-    { marketplace_escrow: marketplaceEscrowEnabled },
-    hasActiveDeal,
-  );
-  const showDepositCta = Boolean(
-    selectedPost
-    && selectedPost.post_kind !== 'announcement'
-    && onMutateListingDeal
-    && isMarketplaceEscrowEnabled({ marketplace_escrow: marketplaceEscrowEnabled })
-    && canShowDepositRequest({
-      isOwner: Boolean(isOwnPost),
-      listingStatus: selectedPost.status,
-      dealStatus: deal.status,
-    }),
-  );
   const showMessageCta = petFeedDetailShowsMessageButton(Boolean(isOwnPost), Boolean(onMessageBreeder));
   const showEditCta = petFeedDetailShowsEditButton(Boolean(isOwnPost), Boolean(onEditPost));
   const siblingListings = useMemo(
@@ -202,7 +160,6 @@ export function PetFeedPostDetailScreen({
     && siblingListings.length > 0
     && onOpenListing,
   );
-  const showBottomBar = Boolean((showDepositCta && selectedPost) || showSiblingBar);
 
   function confirmDeletePost(post: PetFeedPost) {
     if (!onDeletePost) return;
@@ -292,7 +249,7 @@ export function PetFeedPostDetailScreen({
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 12,
-          paddingBottom: showBottomBar ? 24 : 16,
+          paddingBottom: showSiblingBar ? 24 : 16,
         }}
       >
         <MarketplaceDisclaimerAlert compact className="mb-3" />
@@ -308,24 +265,6 @@ export function PetFeedPostDetailScreen({
               showMessageButton={showMessageCta}
               showEditButton={showEditCta}
             />
-            {onMutateListingDeal && selectedPost.post_kind !== 'announcement' && showDealUi ? (
-              <View className="mt-3">
-                <ListingDealPanel
-                  post={selectedPost}
-                  currentUserId={currentUserId}
-                  hideDepositRequestButton
-                  depositModalTrigger={depositModalTrigger}
-                  onMutate={async (mutation) => {
-                    const result = await onMutateListingDeal(selectedPost.id, mutation);
-                    if (result?.post) replaceDetailPost(result.post);
-                    return result;
-                  }}
-                  onSubmitReview={onSubmitListingDealReview
-                    ? (payload) => onSubmitListingDealReview(selectedPost.id, payload)
-                    : undefined}
-                />
-              </View>
-            ) : null}
             <View
               collapsable={false}
               className="mt-3"
@@ -360,37 +299,19 @@ export function PetFeedPostDetailScreen({
         )}
       </ScrollView>
 
-      {showBottomBar && selectedPost ? (
+      {showSiblingBar && selectedPost ? (
         <View
           className="w-full border-t bg-white"
           style={{
             borderTopColor: BRAND.borderLight,
             paddingBottom: bottomBarPad,
-            gap: 10,
           }}
         >
-          {showDepositCta ? (
-            <View className="px-4 pt-3">
-              <Pressable
-                testID={`pet-feed-deposit-button-${selectedPost.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={t('deal.requestDeposit')}
-                className="min-w-0 flex-row items-center justify-center gap-1.5 rounded-full py-3.5"
-                style={{ backgroundColor: BRAND.btnPrimary }}
-                onPress={() => setDepositModalTrigger((n) => n + 1)}
-              >
-                <Ionicons name="heart" size={16} color={BRAND.textInverse} />
-                <Text className="text-sm font-semibold text-white">{t('deal.requestDeposit')}</Text>
-              </Pressable>
-            </View>
-          ) : null}
-          {showSiblingBar ? (
-            <PetFeedDetailSiblingListingsBar
-              listings={siblingListings}
-              onPressListing={onOpenListing!}
-              paddingBottom={0}
-            />
-          ) : null}
+          <PetFeedDetailSiblingListingsBar
+            listings={siblingListings}
+            onPressListing={onOpenListing!}
+            paddingBottom={0}
+          />
         </View>
       ) : null}
 

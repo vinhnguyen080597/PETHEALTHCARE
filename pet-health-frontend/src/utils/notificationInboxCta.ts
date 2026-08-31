@@ -77,9 +77,13 @@ export function notificationInboxCta(
     return stored || fallbacks.transparencyResolved;
   }
   if (isAdminQueueNotification(type)) return stored || fallbacks.adminRequest;
-  if (type === 'deposit_cancel_request') return stored || fallbacks.depositCancelConfirm;
-  if (type === 'deposit_request') return stored || fallbacks.depositConfirm;
-  if (type === 'deal_complete_request') return stored || fallbacks.dealCompleteConfirm;
-  if (DEAL_INFO_TYPES.has(type)) return stored || fallbacks.viewListing;
+  if (
+    DEAL_INFO_TYPES.has(type)
+    || type === 'deposit_cancel_request'
+    || type === 'deposit_request'
+    || type === 'deal_complete_request'
+  ) {
+    return stored || fallbacks.viewListing;
+  }
   return null;
 }

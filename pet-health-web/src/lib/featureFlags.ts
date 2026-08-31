@@ -40,11 +40,3 @@ export function isMarketplaceEscrowEnabled(
 ): boolean {
   return flags?.marketplace_escrow === true;
 }
-
-/** Show deal panel when escrow is on, or when a legacy in-flight soft-deal must be completed. */
-export function shouldShowMarketplaceDealUi(
-  flags: Partial<AppFeatureFlags> | null | undefined,
-  hasActiveDeal: boolean,
-): boolean {
-  return isMarketplaceEscrowEnabled(flags) || hasActiveDeal;
-}

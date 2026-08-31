@@ -9,8 +9,6 @@ export const FEATURE_FLAG_KEYS = [
   'pet_feed_listings',
   'pet_feed_breeders',
   'farm_template_change',
-  /** Opt-in platform escrow / deposit-hold UI (default off — classified model). */
-  'marketplace_escrow',
 ];
 
 export const PET_FEED_TAB_FLAG_KEYS = ['pet_feed_news', 'pet_feed_listings', 'pet_feed_breeders'];
@@ -25,7 +23,6 @@ export const DEFAULT_FEATURE_FLAGS = {
   pet_feed_listings: true,
   pet_feed_breeders: true,
   farm_template_change: true,
-  marketplace_escrow: false,
 };
 
 const SETTINGS_KEY = 'feature_flags';
@@ -42,7 +39,6 @@ export function normalizeFeatureFlags(raw) {
     pet_feed_listings: source.pet_feed_listings !== false,
     pet_feed_breeders: source.pet_feed_breeders !== false,
     farm_template_change: source.farm_template_change !== false,
-    marketplace_escrow: source.marketplace_escrow === true,
   };
 }
 

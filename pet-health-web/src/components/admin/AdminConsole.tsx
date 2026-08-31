@@ -19,7 +19,6 @@ import {
   type RequestStatus,
 } from "@/lib/admin/filters";
 import {
-  canAdminForceResolveDeal,
   toggleExpandedReviewId,
   type AdminReviewBreeder,
   type AdminReviewPost,
@@ -725,21 +724,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       "admin.toast.updated",
     );
 
-  const forceResolveDeal = (
-    postId: string,
-    resolution: "force-complete" | "force-cancel",
-  ) =>
-    runAction(
-      `deal-${postId}-${resolution}`,
-      () =>
-        adminFetch(`/posts/${postId}/deal/${resolution}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        }),
-      "admin.toast.updated",
-    );
-
   const updateBreeder = (
     userId: string,
     verificationStatus: string,
@@ -1042,43 +1026,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       );
     }
     if (item.type === "report" && item.report?.status === "open") {
-      const linkedPost =
-        item.report.post_id
-          ? posts.find((p) => p.id === item.report!.post_id)
-          : undefined;
-      const showForce = canAdminForceResolveDeal({
-        reportReason: item.report.reason,
-        reportStatus: item.report.status,
-        linkedPostStatus: linkedPost?.status,
-      });
       return (
         <div className="flex flex-wrap gap-2 mt-3">
-          {showForce && linkedPost ? (
-            <>
-              <ActionButton
-                label={t(lang, "admin.reports.forceComplete")}
-                variant="success"
-                disabled={busyKey !== null}
-                onClick={() => {
-                  if (!window.confirm(t(lang, "admin.reports.confirmForceComplete"))) {
-                    return;
-                  }
-                  void forceResolveDeal(linkedPost.id, "force-complete");
-                }}
-              />
-              <ActionButton
-                label={t(lang, "admin.reports.forceCancel")}
-                variant="danger"
-                disabled={busyKey !== null}
-                onClick={() => {
-                  if (!window.confirm(t(lang, "admin.reports.confirmForceCancel"))) {
-                    return;
-                  }
-                  void forceResolveDeal(linkedPost.id, "force-cancel");
-                }}
-              />
-            </>
-          ) : null}
           <ActionButton
             label={t(lang, "admin.reports.markReviewed")}
             variant="danger"
@@ -1745,44 +1694,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     ) : null}
                     {r.status === "open" ? (
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {canAdminForceResolveDeal({
-                          reportReason: r.reason,
-                          reportStatus: r.status,
-                          linkedPostStatus: linkedPost?.status,
-                        }) && linkedPost ? (
-                          <>
-                            <ActionButton
-                              label={t(lang, "admin.reports.forceComplete")}
-                              variant="success"
-                              disabled={busyKey !== null}
-                              onClick={() => {
-                                if (
-                                  !window.confirm(
-                                    t(lang, "admin.reports.confirmForceComplete"),
-                                  )
-                                ) {
-                                  return;
-                                }
-                                void forceResolveDeal(linkedPost.id, "force-complete");
-                              }}
-                            />
-                            <ActionButton
-                              label={t(lang, "admin.reports.forceCancel")}
-                              variant="danger"
-                              disabled={busyKey !== null}
-                              onClick={() => {
-                                if (
-                                  !window.confirm(
-                                    t(lang, "admin.reports.confirmForceCancel"),
-                                  )
-                                ) {
-                                  return;
-                                }
-                                void forceResolveDeal(linkedPost.id, "force-cancel");
-                              }}
-                            />
-                          </>
-                        ) : null}
                         <ActionButton
                           label={t(lang, "admin.reports.markReviewed")}
                           variant="danger"

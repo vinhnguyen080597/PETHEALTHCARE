@@ -10,7 +10,6 @@ import {
   adminRequestHref,
   breederTransparencyNotificationHref,
   isAdminQueueNotification,
-  isDepositCancelRequestNotification,
   listingNotificationHref,
   notificationInboxCta,
   notificationType,
@@ -46,10 +45,6 @@ export function NotificationsClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [reasonItem, setReasonItem] = useState<PetFeedNotification | null>(null);
-  const [cancelItem, setCancelItem] = useState<PetFeedNotification | null>(null);
-  const [cancelBusy, setCancelBusy] = useState(false);
-  const [cancelError, setCancelError] = useState("");
-  const [cancelDone, setCancelDone] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -132,12 +127,6 @@ export function NotificationsClient({
       router.push(farmHref);
       return;
     }
-    if (isDepositCancelRequestNotification(item)) {
-      setCancelError("");
-      setCancelDone(false);
-      setCancelItem(item);
-      return;
-    }
     if (item.post_id) {
       const unreadIds = items
         .filter(
@@ -152,32 +141,6 @@ export function NotificationsClient({
         listingNotificationHref(item) ||
           `/app/pet-feed/posts/${encodeURIComponent(item.post_id)}`,
       );
-    }
-  };
-
-  const confirmDepositCancel = async () => {
-    const postId = String(cancelItem?.post_id || "").trim();
-    if (!postId) return;
-    setCancelBusy(true);
-    setCancelError("");
-    try {
-      const res = await fetch(
-        `/api/listings/${encodeURIComponent(postId)}/deposit/cancel/confirm`,
-        { method: "POST" },
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(
-          typeof data.error === "string" ? data.error : t(lang, "common.error"),
-        );
-      }
-      setCancelDone(true);
-    } catch (err) {
-      setCancelError(
-        err instanceof Error ? err.message : t(lang, "common.error"),
-      );
-    } finally {
-      setCancelBusy(false);
     }
   };
 
@@ -500,61 +463,6 @@ export function NotificationsClient({
                   ? t(lang, "notifications.listingRejectedCta")
                   : t(lang, "account.breederTrust.editProfile")}
               </Link>
-            </DialogActions>
-          </div>
-        </div>
-      ) : null}
-
-      {cancelItem ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#2B1E19]/40 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#F0E6D8] bg-white p-5 shadow-xl">
-            <h3 className="text-base font-bold text-[#2B1E19]">
-              {t(lang, "notifications.depositCancelTitle")}
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-[#2B1E19]">
-              {cancelItem.body_preview || t(lang, "notifications.depositCancelBody")}
-            </p>
-            {cancelError ? (
-              <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                {cancelError}
-              </p>
-            ) : null}
-            {cancelDone ? (
-              <p className="mt-3 text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
-                {t(lang, "notifications.depositCancelSuccess")}
-              </p>
-            ) : null}
-            <DialogActions>
-              <button
-                type="button"
-                onClick={() => setCancelItem(null)}
-                className="flex-1 rounded-full border border-[#F0E6D8] py-2.5 text-sm font-semibold text-[#5C4A3A]"
-              >
-                {t(lang, "common.cancel")}
-              </button>
-              {!cancelDone ? (
-                <button
-                  type="button"
-                  disabled={cancelBusy || !cancelItem.post_id}
-                  onClick={() => void confirmDepositCancel()}
-                  className="flex-1 rounded-full bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309] disabled:opacity-60"
-                >
-                  {cancelBusy
-                    ? t(lang, "common.loading")
-                    : t(lang, "notifications.depositCancelCta")}
-                </button>
-              ) : cancelItem.post_id ? (
-                <Link
-                  href={
-                    listingNotificationHref(cancelItem) ||
-                    `/app/pet-feed/posts/${encodeURIComponent(cancelItem.post_id)}`
-                  }
-                  onClick={() => setCancelItem(null)}
-                  className="flex-1 text-center rounded-full bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309]"
-                >
-                  {t(lang, "notifications.viewListing")}
-                </Link>
-              ) : null}
             </DialogActions>
           </div>
         </div>

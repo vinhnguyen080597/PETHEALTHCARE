@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { mergeDealPhotoFiles } from "@/lib/listingDealHandoff";
+import { mergeDealPhotoFiles } from "@/lib/dealPhotoUpload";
 
 const ACCEPT = "image/jpeg,image/png,image/webp";
 

@@ -15,8 +15,6 @@ import {
   adminUpdateBreederProfileStatus,
   adminUpdatePetFeedPostStatus,
   adminUpdatePetFeedReportStatus,
-  adminForceCompleteListing,
-  adminForceCancelListing,
   adminReviewBreederProfileSubmission,
   getAdminBreederProfileByUserId,
   getAdminBreederProfileSubmissionById,
@@ -30,7 +28,6 @@ import {
 import {
   createBreederDetailReviewNotification,
   createBreederVerificationNotification,
-  createDealNotification,
   createListingReviewNotification,
   createTransparencyWarningNotification,
 } from '../repositories/petFeedNotificationsRepository.js';
@@ -44,7 +41,6 @@ import {
   getAdminSupportTicketById,
   listAdminSupportTickets,
 } from '../repositories/supportTicketsRepository.js';
-import { runAutoCompleteHandoffsJob } from '../services/autoCompleteHandoffsJob.js';
 import { listAdminActionLogs, recordAdminAction } from '../repositories/adminActionLogRepository.js';
 import { createPetForUser, getPetByIdForUser, listPetsByUser, updatePetForUser } from '../repositories/petRepository.js';
 import { sendTestAlertEmail } from '../services/errorNotifierService.js';
@@ -834,117 +830,6 @@ router.put('/transparency-warnings/:warningId/resolve', requireAdminOrSecret, as
     });
 
     return res.json({ data: warning });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.post('/pet-feed/posts/:postId/deal/force-complete', requireAdminOrSecret, async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const actorId = req.user?.id || 'admin';
-    const result = await adminForceCompleteListing(actorId, postId, req.body ?? {}, req.accessToken);
-    const title = result.post?.title || '';
-    for (const recipient of [result.notify_breeder_user_id, result.notify_sen_user_id].filter(Boolean)) {
-      void createDealNotification({
-        recipientUserId: recipient,
-        actorUserId: actorId,
-        postId: result.post.id,
-        type: 'deal_dispute_resolved',
-        bodyPreview: `Admin đã buộc hoàn thành giao dịch "${title}".`,
-        metadata: {
-          title,
-          thumb_url: Array.isArray(result.post?.media_urls) ? result.post.media_urls[0] : null,
-          cta_href: `/app/pet-feed/posts/${encodeURIComponent(result.post.id)}`,
-        },
-        accessToken: req.accessToken,
-      }).catch(() => null);
-    }
-    logAdminAction(req, {
-      action: 'deal_force_complete',
-      targetType: 'post',
-      targetId: postId,
-      targetUserId: result.notify_breeder_user_id || null,
-      afterState: { status: result.post?.status || null },
-      metadata: { resolution: 'force_complete' },
-    });
-    return res.json({ data: result.post, report: result.report });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.post('/pet-feed/posts/:postId/deal/force-cancel', requireAdminOrSecret, async (req, res, next) => {
-  try {
-    const postId = cleanId(req.params.postId);
-    if (!postId) return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
-    const actorId = req.user?.id || 'admin';
-    const result = await adminForceCancelListing(actorId, postId, req.body ?? {}, req.accessToken);
-    const title = result.post?.title || '';
-    for (const recipient of [result.notify_breeder_user_id, result.notify_sen_user_id].filter(Boolean)) {
-      void createDealNotification({
-        recipientUserId: recipient,
-        actorUserId: actorId,
-        postId: result.post.id,
-        type: 'deal_dispute_resolved',
-        bodyPreview: `Admin đã buộc hủy cọc cho "${title}". Tin đăng đã mở lại.`,
-        metadata: {
-          title,
-          thumb_url: Array.isArray(result.post?.media_urls) ? result.post.media_urls[0] : null,
-          cta_href: `/app/pet-feed/posts/${encodeURIComponent(result.post.id)}`,
-        },
-        accessToken: req.accessToken,
-      }).catch(() => null);
-    }
-    logAdminAction(req, {
-      action: 'deal_force_cancel',
-      targetType: 'post',
-      targetId: postId,
-      targetUserId: result.notify_breeder_user_id || null,
-      afterState: { status: result.post?.status || null },
-      metadata: { resolution: 'force_cancel' },
-    });
-    return res.json({ data: result.post, report: result.report });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-/** Hourly/daily cron: auto-complete overdue Sen handoff confirmations. Header: x-admin-secret. */
-router.post('/jobs/auto-complete-handoffs', requireAdminOrSecret, async (req, res, next) => {
-  try {
-    const limitRaw = req.body?.limit ?? req.query?.limit;
-    const result = await runAutoCompleteHandoffsJob(req.accessToken, {
-      limit: limitRaw != null ? Number(limitRaw) : undefined,
-    });
-    logAdminAction(req, {
-      action: 'deal_auto_complete_job',
-      targetType: 'job',
-      targetId: 'auto-complete-handoffs',
-      afterState: {
-        completed_count: result.completed_count,
-        due: result.due,
-        scanned: result.scanned,
-      },
-      metadata: {
-        error_count: Array.isArray(result.errors) ? result.errors.length : 0,
-        notify_failure_count: Array.isArray(result.notify_failures)
-          ? result.notify_failures.length
-          : 0,
-      },
-    });
-    return res.json({
-      data: {
-        scanned: result.scanned,
-        due: result.due,
-        completed_count: result.completed_count,
-        errors: result.errors,
-        notify_failures: result.notify_failures,
-        now: result.now,
-        completed_post_ids: result.completed.map((item) => item.post?.id).filter(Boolean),
-      },
-    });
   } catch (err) {
     return next(err);
   }

@@ -220,14 +220,14 @@ test("farm-profile CTAs ignore stored account/breeder hrefs", () => {
   );
 });
 
-test("deposit cancel notification shows a confirm CTA", () => {
+test("legacy deal notifications use view listing CTA", () => {
   assert.equal(
     notificationInboxCta({ type: "deposit_cancel_request" }, CTA_FALLBACKS),
-    "Confirm cancel deposit",
+    "View listing",
   );
   assert.equal(
     notificationInboxCta({ type: "deposit_request" }, CTA_FALLBACKS),
-    "Confirm deposit",
+    "View listing",
   );
   assert.equal(
     notificationInboxCta(
@@ -242,13 +242,13 @@ test("deposit cancel notification shows a confirm CTA", () => {
   assert.equal(notificationInboxCta({ type: "post_comment" }, CTA_FALLBACKS), null);
 });
 
-test("listingNotificationHref rewrites legacy /app/posts and adds cancel action", () => {
+test("listingNotificationHref rewrites legacy /app/posts paths", () => {
   assert.equal(
     listingNotificationHref({
       type: "deposit_cancel_request",
       post_id: "post-1",
     }),
-    "/app/pet-feed/posts/post-1?dealAction=confirm-cancel",
+    "/app/pet-feed/posts/post-1",
   );
   assert.equal(
     listingNotificationHref({
@@ -256,7 +256,7 @@ test("listingNotificationHref rewrites legacy /app/posts and adds cancel action"
       post_id: "post-1",
       metadata: { cta_href: "/app/posts/post-1" },
     }),
-    "/app/pet-feed/posts/post-1?dealAction=confirm-cancel",
+    "/app/pet-feed/posts/post-1",
   );
   assert.equal(
     listingNotificationHref({
@@ -270,14 +270,14 @@ test("listingNotificationHref rewrites legacy /app/posts and adds cancel action"
       type: "deposit_request",
       post_id: "post-3",
     }),
-    "/app/pet-feed/posts/post-3?dealAction=confirm-deposit",
+    "/app/pet-feed/posts/post-3",
   );
   assert.equal(
     listingNotificationHref({
       type: "deal_complete_request",
       post_id: "post-4",
     }),
-    "/app/pet-feed/posts/post-4?dealAction=confirm-receipt",
+    "/app/pet-feed/posts/post-4",
   );
   assert.equal(isDepositCancelRequestNotification("deposit_cancel_request"), true);
 });

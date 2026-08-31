@@ -10,9 +10,8 @@ import {
   LISTING_CARD_IMAGE_HEIGHT,
   listingHotBadges,
   listingSpeciesEmoji,
-  listingTrustTags,
   listingWarrantyCoverageDays,
-  parseListingEscrowEnabled,
+  readListingWarrantyPolicy,
 } from '../src/utils/marketplaceListingCard.ts';
 
 function post(overrides: Partial<PetFeedPost> = {}): PetFeedPost {
@@ -78,24 +77,15 @@ test('listingHotBadges uses saves and new signals without video tag', () => {
   assert.equal(isListingNewOnFloor({ created_at: '2026-08-10T10:00:00.000Z' }, now), false);
 });
 
-test('listingTrustTags prefers warranty and escrow from real fields', () => {
-  const postWithEscrow = {
+test('listingWarrantyCoverageDays reads policy coverage from post metadata', () => {
+  const postWithWarranty = {
     ...post(),
-    vaccine_status: 'Đủ mũi',
-    metadata: { escrow_enabled: true },
     warranty_policy: {
       care_parvo_coverage_days: 30,
     },
   } as PetFeedPost;
-  assert.deepEqual(
-    listingTrustTags(postWithEscrow, { showEscrowTag: true }).map((tag) => tag.kind),
-    ['warranty', 'escrow'],
-  );
-  const withoutEscrow = listingTrustTags(postWithEscrow, { showEscrowTag: false }).map((tag) => tag.kind);
-  assert.ok(withoutEscrow.includes('warranty'));
-  assert.ok(!withoutEscrow.includes('escrow'));
+  assert.equal(listingWarrantyCoverageDays(readListingWarrantyPolicy(postWithWarranty)), 30);
   assert.equal(listingWarrantyCoverageDays({ careParvoCoverageDays: 30 }), 30);
-  assert.equal(parseListingEscrowEnabled({ accept_escrow: true }), true);
 });
 
 test('listingCardShowsEditAction only for own posts with an edit handler', () => {

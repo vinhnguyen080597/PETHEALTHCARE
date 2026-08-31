@@ -8,7 +8,6 @@ delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 const {
   adminUpdateBreederProfileStatus,
   adminUpdatePetFeedPostStatus,
-  confirmListingDeposit,
   createPetFeedPost,
   getPetFeedPost,
   getPublicPetFeedPost,
@@ -89,10 +88,16 @@ test('C1: public and stranger views redact Sen PII on deposit_hold listing', asy
   }, null);
   await adminUpdatePetFeedPostStatus(created.id, 'published');
 
-  await confirmListingDeposit(senId, created.id, { acknowledge: true }, null);
-  const held = await confirmListingDeposit(breederId, created.id, { acknowledge: true }, null);
-  assert.equal(held.post.status, 'deposit_hold');
-  assert.equal(held.post.deal?.sen_user_id || held.post.metadata?.deal?.sen_user_id, senId);
+  const held = await adminUpdatePetFeedPostStatus(created.id, 'deposit_hold', {
+    metadata: {
+      deal: {
+        status: 'deposit_hold',
+        sen_user_id: senId,
+        sen_email: 'sen@example.com',
+      },
+    },
+  });
+  assert.equal(held.status, 'deposit_hold');
 
   const publicDetail = await getPublicPetFeedPost(created.id);
   assert.equal(publicDetail?.status, 'deposit_hold');

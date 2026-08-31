@@ -19,7 +19,6 @@ import {
 } from "@/lib/listingOwnerDelete";
 import { ListingDeleteConfirmModal } from "@/components/marketplace/ListingDeleteConfirmModal";
 import { TransparencyWarningModal } from "@/components/account/TransparencyWarningModal";
-import { shouldShowSenDepositedSection } from "@/lib/senDepositedListings";
 import { showAccountBreederStatusBadge } from "@/lib/accountBreederStatusBadge";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 
@@ -106,8 +105,6 @@ export function AccountPanel({
   isAdmin,
   savedCount,
   myListings,
-  depositedListings = [],
-  marketplaceEscrowEnabled = false,
   breeder,
 }: {
   lang: Lang;
@@ -117,8 +114,6 @@ export function AccountPanel({
   isAdmin: boolean;
   savedCount: number;
   myListings: AccountListingItem[];
-  depositedListings?: AccountListingItem[];
-  marketplaceEscrowEnabled?: boolean;
   breeder: AccountBreederInfo | null;
 }) {
   const router = useRouter();
@@ -135,23 +130,9 @@ export function AccountPanel({
   const [listingDeleteModalMode, setListingDeleteModalMode] = useState<
     "confirm" | "blocked"
   >("confirm");
-  const [cancelBusyId, setCancelBusyId] = useState<string | null>(null);
-  const [cancelError, setCancelError] = useState("");
 
   const isSen = role === "sen" || (!isAdmin && role !== "breeder" && role !== "vet");
   const isBreeder = role === "breeder";
-  const showSenDeposits = shouldShowSenDepositedSection({
-    role,
-    isAdmin,
-    marketplaceEscrowEnabled,
-    depositedCount: depositedListings.length,
-  });
-  const depositedSectionTitle = marketplaceEscrowEnabled
-    ? t(lang, "account.senDeposited.title")
-    : t(lang, "account.senDeposited.titleReserved");
-  const depositedSectionEmpty = marketplaceEscrowEnabled
-    ? t(lang, "account.senDeposited.empty")
-    : t(lang, "account.senDeposited.emptyReserved");
   const breederStatus = breeder?.verificationStatus || "unverified";
   const pendingRequest = breederStatus === "pending_review";
   const verifiedBreeder = isBreeder && breederStatus === "verified";
@@ -186,32 +167,6 @@ export function AccountPanel({
       setDeleteError(t(lang, "account.deleteAccount.failed"));
     } finally {
       setDeleting(false);
-    }
-  };
-
-  const confirmSenCancelDeposit = async (postId: string) => {
-    setCancelBusyId(postId);
-    setCancelError("");
-    try {
-      const res = await fetch(
-        `/api/listings/${encodeURIComponent(postId)}/deposit/cancel/confirm`,
-        { method: "POST" },
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(
-          typeof data.error === "string"
-            ? data.error
-            : t(lang, "common.error"),
-        );
-      }
-      router.refresh();
-    } catch (err) {
-      setCancelError(
-        err instanceof Error ? err.message : t(lang, "common.error"),
-      );
-    } finally {
-      setCancelBusyId(null);
     }
   };
 
@@ -436,89 +391,6 @@ export function AccountPanel({
                     {t(lang, senHelperKey(breederStatus))}
                   </p>
                 </div>
-              </section>
-            ) : null}
-
-            {showSenDeposits ? (
-              <section className="rounded-2xl border border-[#F0E6D8] bg-white p-5">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <h2 className="text-base font-bold text-[#2B1E19]">
-                    {depositedSectionTitle}
-                  </h2>
-                  {depositedListings.length > 0 ? (
-                    <span className="text-xs font-semibold text-stone-500">
-                      {depositedListings.length}
-                    </span>
-                  ) : null}
-                </div>
-                {depositedListings.length === 0 ? (
-                  <p className="rounded-xl bg-[#FDFBF7] p-3 text-sm text-stone-500">
-                    {depositedSectionEmpty}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {cancelError ? (
-                      <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">
-                        {cancelError}
-                      </p>
-                    ) : null}
-                    {depositedListings.map((post) => {
-                      const needsCancelConfirm =
-                        post.listing?.deal?.status === "pending_cancel_confirm";
-                      return (
-                        <div
-                          key={post.id}
-                          className="rounded-xl bg-[#FDFBF7] p-2.5"
-                        >
-                          <Link
-                            href={listingDetailHref(post.id, {
-                              from: "account",
-                              dealAction: needsCancelConfirm
-                                ? "confirm-cancel"
-                                : undefined,
-                            })}
-                            className="flex w-full items-center gap-3 text-left hover:opacity-90"
-                          >
-                            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-200">
-                              {post.thumbUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={post.thumbUrl}
-                                  alt=""
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : null}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-bold text-[#2B1E19]">
-                                {post.title || "—"}
-                              </p>
-                              <span
-                                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone(post.status)}`}
-                              >
-                                {t(lang, listingStatusKey(post.status))}
-                              </span>
-                            </div>
-                          </Link>
-                          {needsCancelConfirm ? (
-                            <button
-                              type="button"
-                              disabled={cancelBusyId === post.id}
-                              onClick={() =>
-                                void confirmSenCancelDeposit(post.id)
-                              }
-                              className="mt-2 w-full rounded-full border border-red-200 py-2 text-xs font-semibold text-red-600 disabled:opacity-60"
-                            >
-                              {cancelBusyId === post.id
-                                ? t(lang, "common.loading")
-                                : t(lang, "deal.senConfirmCancel")}
-                            </button>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </section>
             ) : null}
 

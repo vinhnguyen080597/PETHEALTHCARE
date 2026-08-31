@@ -4,17 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang, Listing } from "@/lib/types";
-import { genderLabel, t, type EnKey } from "@/i18n";
+import { genderLabel, t } from "@/i18n";
 import { formatPriceVnd, isBlankDisplayValue } from "@/lib/formatPrice";
 import { listingShareUrl } from "@/lib/config";
 import type { PublicComment } from "@/lib/api/public";
 import { DisclaimerBanner } from "./DisclaimerBanner";
-import { EscrowBadge, VerifiedBadge } from "./Badges";
+import { VerifiedBadge } from "./Badges";
 import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
 import { mapApiPost } from "@/lib/mappers";
 import type { ApiPetFeedPost } from "@/lib/types";
 import {
-  canShowDepositRequest,
   canShowListingUpdateDetails,
   canShowWarrantyUpdateCta,
   isListingOwner,
@@ -30,8 +29,6 @@ import {
   ownerDeleteBlockedMessage,
 } from "@/lib/listingOwnerDelete";
 import { ListingDeleteConfirmModal } from "./ListingDeleteConfirmModal";
-import { DealReviewModal } from "./DealReviewModal";
-import { depositHoldSenLabel } from "@/lib/listingDepositSen";
 import {
   mergeListingAfterWarrantyAttach,
   normalizeWarrantyPolicyOptions,
@@ -45,53 +42,14 @@ import {
   mediaDownloadFileName,
   shouldBlockMediaSave,
 } from "@/lib/mediaDownload";
-import {
-  resolveWarrantyFarmSpecies,
-  warrantyInfectiousFieldKey,
-} from "@/lib/warrantySpeciesCopy";
 import { LISTING_ACTION_MODAL_Z_CLASS } from "@/lib/listingModalLayers";
 import {
   listingDealStatusTone,
   listingPersonalityTagClass,
   listingWarrantyCardTone,
 } from "@/lib/listingDetailCardTones";
-import {
-  buildCancelDepositReasonText,
-  canBreederCancelDeposit,
-  canBreederConfirmDeposit,
-  canBreederRequestHandoff,
-  canSenConfirmCancel,
-  canSenConfirmHandoff,
-  canSenAbandonHandoff,
-  canSenRespondToHandoffRequest,
-  canSenWithdrawDepositRequest,
-  CANCEL_DEPOSIT_MAX_PHOTOS,
-  CANCEL_DEPOSIT_REASON_KEYS,
-  COMPLETE_HANDOFF_MAX_PHOTOS,
-  DEAL_DISPUTE_MAX_PHOTOS,
-  daysLeftUntilDeadline,
-  dealPhotosDropHint,
-  isDealDisputeOpen,
-  shouldShowCompleteWaitingBadge,
-  validateCancelDepositRequest,
-  validateDisputeRequest,
-  validateHandoffPhotos,
-  waitingForSenMessage,
-  type CancelDepositReasonKey,
-} from "@/lib/listingDealHandoff";
-import {
-  DealSubmitError,
-  dealSubmitErrorMessage,
-} from "@/lib/dealPhotoUpload";
-import { uploadDealEvidencePhotos } from "@/lib/uploadDealEvidence";
-import { DealPhotoPicker } from "./DealPhotoPicker";
-import { DialogActions } from "@/components/ui/DialogActions";
 import { startChatAndOpenUi, startChatMessageKey } from "@/lib/startFarmChat";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
-import {
-  isMarketplaceEscrowEnabled,
-  shouldShowMarketplaceDealUi,
-} from "@/lib/featureFlags";
 
 const REPORT_REASONS = [
   "scam",
@@ -170,7 +128,6 @@ export function ListingDetail({
   isAdmin = false,
   currentUserId = null,
   initialComments = [],
-  marketplaceEscrowEnabled = false,
 }: {
   listing: Listing;
   lang: Lang;
@@ -178,37 +135,16 @@ export function ListingDetail({
   isAdmin?: boolean;
   currentUserId?: string | null;
   initialComments?: PublicComment[];
-  /** Feature flag: platform escrow / deposit-hold UI (default off). */
-  marketplaceEscrowEnabled?: boolean;
 }) {
   const router = useRouter();
   const dock = useOptionalChatDock();
   const searchParams = useSearchParams();
   const listingFrom = parseListingDetailFrom(searchParams.get("from"));
-  const dealAction = searchParams.get("dealAction");
-  const wantsSenConfirmCancel = dealAction === "confirm-cancel";
-  const wantsBreederConfirmDeposit = dealAction === "confirm-deposit";
-  const wantsSenConfirmReceipt = dealAction === "confirm-receipt";
   const backHref = listingDetailBackHref(listingFrom);
   const [listing, setListing] = useState(initialListing);
   const ownerUserId = listing.ownerUserId || listing.breeder.userId;
   const isOwner = isListingOwner(currentUserId, ownerUserId);
   const { showMessage, showReport } = listingVisitorActions(isOwner);
-  const hasActiveDeal = Boolean(listing.deal?.status);
-  const dealUiEnabled = shouldShowMarketplaceDealUi(
-    { marketplace_escrow: marketplaceEscrowEnabled },
-    hasActiveDeal,
-  );
-  const escrowDepositEnabled = isMarketplaceEscrowEnabled({
-    marketplace_escrow: marketplaceEscrowEnabled,
-  });
-  const showDepositRequest =
-    escrowDepositEnabled &&
-    canShowDepositRequest({
-      isOwner,
-      status: listing.status,
-      dealStatus: listing.deal?.status,
-    });
   const showUpdateDetails = canShowListingUpdateDetails({
     isOwner,
     status: listing.status,
@@ -219,81 +155,8 @@ export function ListingDetail({
     frozen: Boolean(listing.warrantyPolicy?.frozen),
   });
   const warrantyTone = listingWarrantyCardTone(Boolean(listing.warrantyPolicy));
-  const depositHoldTone = listingDealStatusTone("deposit_hold");
   const soldTone = listingDealStatusTone("sold");
   const cancelledTone = listingDealStatusTone("cancelled");
-  const isDealSen = Boolean(
-    currentUserId && listing.deal?.senUserId && currentUserId === listing.deal.senUserId,
-  );
-  const showBreederHandoff =
-    dealUiEnabled &&
-    canBreederRequestHandoff({
-      isOwner,
-      listingStatus: listing.status,
-      dealStatus: listing.deal?.status,
-    });
-  const showBreederCancel =
-    dealUiEnabled &&
-    canBreederCancelDeposit({
-      isOwner,
-      listingStatus: listing.status,
-      dealStatus: listing.deal?.status,
-    });
-  const showBreederConfirmDeposit =
-    dealUiEnabled &&
-    canBreederConfirmDeposit({
-      isOwner,
-      listingStatus: listing.status,
-      dealStatus: listing.deal?.status,
-    });
-  const showSenWithdrawDeposit =
-    dealUiEnabled &&
-    canSenWithdrawDepositRequest({
-      isDealSen,
-      listingStatus: listing.status,
-      dealStatus: listing.deal?.status,
-    });
-  const showPendingDeposit =
-    dealUiEnabled &&
-    String(listing.deal?.status || "").toLowerCase() === "pending_sen";
-  const showSenConfirmHandoff =
-    dealUiEnabled &&
-    canSenConfirmHandoff({
-      isDealSen,
-      listingStatus: listing.status,
-      dealStatus: listing.deal?.status,
-    });
-  const showSenAbandonHandoff =
-    dealUiEnabled &&
-    canSenAbandonHandoff({
-      isDealSen,
-      listingStatus: listing.status,
-      dealStatus: listing.deal?.status,
-    });
-  const showSenHandoffMenu = showSenConfirmHandoff || showSenAbandonHandoff;
-  const showSenHandoffFromNotify =
-    dealUiEnabled &&
-    wantsSenConfirmReceipt &&
-    canSenRespondToHandoffRequest({
-      isDealSen,
-      listingStatus: listing.status,
-      dealStatus: listing.deal?.status,
-      allowLoggedInDeepLink: Boolean(isLoggedIn && wantsSenConfirmReceipt),
-    });
-  const showSenConfirmCancel =
-    dealUiEnabled &&
-    canSenConfirmCancel({
-      isDealSen,
-      listingStatus: listing.status,
-      dealStatus: listing.deal?.status,
-      allowLoggedInDeepLink: Boolean(isLoggedIn && wantsSenConfirmCancel),
-    });
-  const showDisputeOpen =
-    dealUiEnabled &&
-    isDealDisputeOpen({
-      listingStatus: listing.status,
-      dealStatus: listing.deal?.status,
-    });
   const deleteDecision = evaluateOwnerDeleteListing({
     isOwner,
     status: listing.status,
@@ -311,7 +174,6 @@ export function ListingDetail({
     cooldown: t(lang, "detail.deleteBlockedSoldCooldown"),
     generic: t(lang, "detail.deleteFailed"),
   });
-  const handoffDaysLeft = daysLeftUntilDeadline(listing.deal?.completeDeadlineAt);
   const allowMediaDownload = canDownloadPostMedia(isAdmin);
   const blockMediaSave = shouldBlockMediaSave(isAdmin);
   const breederUserId = ownerUserId;
@@ -320,24 +182,6 @@ export function ListingDetail({
     initialComments.map((c) => mapApiComment(c, breederUserId, lang)),
   );
   const [policyOpen, setPolicyOpen] = useState(false);
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [depositAck, setDepositAck] = useState(false);
-  const [dealBusy, setDealBusy] = useState(false);
-  const [dealMenuOpen, setDealMenuOpen] = useState(false);
-  const [senAbandonOpen, setSenAbandonOpen] = useState(false);
-  const [completeOpen, setCompleteOpen] = useState(false);
-  const [completePhotos, setCompletePhotos] = useState<File[]>([]);
-  const [completeWaitingOpen, setCompleteWaitingOpen] = useState(false);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelReasonKey, setCancelReasonKey] =
-    useState<CancelDepositReasonKey>("no_contact");
-  const [cancelNote, setCancelNote] = useState("");
-  const [cancelPhotos, setCancelPhotos] = useState<File[]>([]);
-  const [disputeOpen, setDisputeOpen] = useState(false);
-  const [disputeMessage, setDisputeMessage] = useState("");
-  const [disputePhotos, setDisputePhotos] = useState<File[]>([]);
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const [reviewBusy, setReviewBusy] = useState(false);
   const [attachWarrantyOpen, setAttachWarrantyOpen] = useState(false);
   const [attachWarrantyId, setAttachWarrantyId] = useState("");
   const [attachWarrantyOptions, setAttachWarrantyOptions] = useState<
@@ -441,27 +285,6 @@ export function ListingDetail({
   }, [isLoggedIn, initialListing.id]);
 
   useEffect(() => {
-    if (!wantsSenConfirmCancel && !wantsSenConfirmReceipt) return;
-    const el = document.getElementById("listing-deal-panel");
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [
-    wantsSenConfirmCancel,
-    wantsSenConfirmReceipt,
-    listing.deal?.status,
-    showSenConfirmCancel,
-    showSenHandoffFromNotify,
-  ]);
-
-  useEffect(() => {
-    if (!wantsBreederConfirmDeposit || !showBreederConfirmDeposit) return;
-    const el = document.getElementById("listing-deal-panel");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-    setDepositAck(false);
-    setDepositOpen(true);
-  }, [wantsBreederConfirmDeposit, showBreederConfirmDeposit]);
-
-  useEffect(() => {
     if (!isLoggedIn) return;
     let cancelled = false;
     (async () => {
@@ -481,29 +304,8 @@ export function ListingDetail({
     };
   }, [isLoggedIn, listing.id]);
 
-  useEffect(() => {
-    if (!dealMenuOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("[data-deal-menu]")) return;
-      setDealMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [dealMenuOpen]);
-
   const requireLogin = () => {
     router.push(`/login?next=/app/pet-feed/posts/${listing.id}`);
-  };
-
-  const openDepositModal = () => {
-    if (!isLoggedIn) {
-      requireLogin();
-      return;
-    }
-    setActionError("");
-    setDepositAck(false);
-    setDepositOpen(true);
   };
 
   const openAttachWarranty = async () => {
@@ -625,237 +427,6 @@ export function ListingDetail({
       setActionError(err instanceof Error ? err.message : "Failed");
     } finally {
       setBusy(null);
-    }
-  };
-
-  const runDealAction = async (
-    kind: "deposit" | "complete" | "cancel_confirm" | "deposit_decline" | "handoff_abandon",
-  ) => {
-    if (!isLoggedIn) {
-      requireLogin();
-      return;
-    }
-    setDealBusy(true);
-    setActionError("");
-    try {
-      let url = "";
-      let body: Record<string, unknown> | undefined;
-      if (kind === "deposit") {
-        if (!depositAck) {
-          throw new Error(t(lang, "deal.ackRequired"));
-        }
-        url = `/api/listings/${listing.id}/deposit/confirm`;
-        body = {
-          acknowledge: true,
-        };
-      } else if (kind === "deposit_decline") {
-        url = `/api/listings/${listing.id}/deposit/decline`;
-      } else if (kind === "handoff_abandon") {
-        url = `/api/listings/${listing.id}/complete/abandon`;
-      } else if (kind === "cancel_confirm") {
-        url = `/api/listings/${listing.id}/deposit/cancel/confirm`;
-      } else {
-        url = `/api/listings/${listing.id}/complete/confirm`;
-      }
-      const res = await fetch(url, {
-        method: "POST",
-        headers: body ? { "Content-Type": "application/json" } : undefined,
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed");
-      if (data?.data) {
-        setListing(mapApiPost(data.data as ApiPetFeedPost));
-      }
-      setDepositOpen(false);
-      setDepositAck(false);
-      setSenAbandonOpen(false);
-      if (kind === "complete" && data.review_eligible) {
-        setReviewOpen(true);
-      }
-      router.refresh();
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setDealBusy(false);
-    }
-  };
-
-  const submitDealReview = async (payload: { rating: number; body?: string }) => {
-    setReviewBusy(true);
-    setActionError("");
-    try {
-      const res = await fetch(`/api/listings/${listing.id}/review`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed");
-      setReviewOpen(false);
-      router.refresh();
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setReviewBusy(false);
-    }
-  };
-
-  const submitHandoffRequest = async () => {
-    if (!isLoggedIn) {
-      requireLogin();
-      return;
-    }
-    const photoError = validateHandoffPhotos(completePhotos);
-    if (photoError === "photos_required") {
-      setActionError(t(lang, "deal.completePhotosRequired"));
-      return;
-    }
-    if (photoError === "photos_too_many") {
-      setActionError(t(lang, "deal.completePhotosTooMany"));
-      return;
-    }
-    setDealBusy(true);
-    setActionError("");
-    try {
-      const handoffPhotoUrls = await uploadDealEvidencePhotos(completePhotos);
-      const res = await fetch(`/api/listings/${listing.id}/complete/request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handoffPhotoUrls }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new DealSubmitError(
-          String(data.error || "Failed"),
-          res.status,
-          typeof data.code === "string" ? data.code : undefined,
-        );
-      }
-      if (data?.data) {
-        setListing(mapApiPost(data.data as ApiPetFeedPost));
-      }
-      setCompleteOpen(false);
-      setCompletePhotos([]);
-      setCompleteWaitingOpen(true);
-      router.refresh();
-    } catch (err) {
-      setActionError(dealSubmitErrorMessage(err, (key) => t(lang, key)));
-    } finally {
-      setDealBusy(false);
-    }
-  };
-
-  const submitCancelRequest = async () => {
-    if (!isLoggedIn) {
-      requireLogin();
-      return;
-    }
-    const errCode = validateCancelDepositRequest({
-      reasonKey: cancelReasonKey,
-      note: cancelNote,
-      photos: cancelPhotos,
-    });
-    if (errCode === "reason_required") {
-      setActionError(t(lang, "deal.cancelReasonRequired"));
-      return;
-    }
-    if (errCode === "photos_too_many") {
-      setActionError(t(lang, "deal.cancelPhotosTooMany"));
-      return;
-    }
-    setDealBusy(true);
-    setActionError("");
-    try {
-      const reasonLabel = t(
-        lang,
-        `deal.cancelReason.${cancelReasonKey}` as EnKey,
-      );
-      const reason = buildCancelDepositReasonText({
-        reasonKey: cancelReasonKey,
-        reasonLabel,
-        note: cancelNote,
-      });
-      const cancelPhotoUrls = await uploadDealEvidencePhotos(cancelPhotos);
-      const res = await fetch(`/api/listings/${listing.id}/deposit/cancel`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason, cancelPhotoUrls }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new DealSubmitError(
-          String(data.error || "Failed"),
-          res.status,
-          typeof data.code === "string" ? data.code : undefined,
-        );
-      }
-      if (data?.data) {
-        setListing(mapApiPost(data.data as ApiPetFeedPost));
-      }
-      setCancelOpen(false);
-      setCancelNote("");
-      setCancelPhotos([]);
-      router.refresh();
-    } catch (err) {
-      setActionError(dealSubmitErrorMessage(err, (key) => t(lang, key)));
-    } finally {
-      setDealBusy(false);
-    }
-  };
-
-  const submitDisputeRequest = async () => {
-    if (!isLoggedIn) {
-      requireLogin();
-      return;
-    }
-    const errCode = validateDisputeRequest({
-      message: disputeMessage,
-      photos: disputePhotos,
-    });
-    if (errCode === "message_required") {
-      setActionError(t(lang, "deal.disputeMessageRequired"));
-      return;
-    }
-    if (errCode === "photos_required") {
-      setActionError(t(lang, "deal.disputePhotosRequired"));
-      return;
-    }
-    if (errCode === "photos_too_many") {
-      setActionError(t(lang, "deal.disputePhotosTooMany"));
-      return;
-    }
-    setDealBusy(true);
-    setActionError("");
-    try {
-      const disputePhotoUrls = await uploadDealEvidencePhotos(disputePhotos);
-      const res = await fetch(`/api/listings/${listing.id}/complete/dispute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: disputeMessage.trim(),
-          disputePhotoUrls,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new DealSubmitError(
-          String(data.error || "Failed"),
-          res.status,
-          typeof data.code === "string" ? data.code : undefined,
-        );
-      }
-      if (data?.data) {
-        setListing(mapApiPost(data.data as ApiPetFeedPost));
-      }
-      setDisputeOpen(false);
-      setDisputeMessage("");
-      setDisputePhotos([]);
-      router.refresh();
-    } catch (err) {
-      setActionError(dealSubmitErrorMessage(err, (key) => t(lang, key)));
-    } finally {
-      setDealBusy(false);
     }
   };
 
@@ -1066,11 +637,6 @@ export function ListingDetail({
               >
                 {t(lang, "detail.downloadMedia")}
               </button>
-            ) : null}
-            {listing.escrowEnabled && escrowDepositEnabled ? (
-              <span className="absolute top-3 right-3 z-10">
-                <EscrowBadge lang={lang} />
-              </span>
             ) : null}
           </div>
           <div className="grid grid-cols-5 gap-1.5">
@@ -1293,248 +859,6 @@ export function ListingDetail({
                   </div>
                 </div>
               )}
-
-              {showPendingDeposit ? (
-                <div id="listing-deal-panel" className={depositHoldTone.shell}>
-                  <p className={depositHoldTone.title}>
-                    {isOwner || isDealSen
-                      ? depositHoldSenLabel(
-                          listing.deal?.senDisplayName,
-                          t(lang, "deal.pendingBadge"),
-                          t(lang, "deal.pendingBadgeWithSen"),
-                        )
-                      : t(lang, "deal.pendingBadge")}
-                  </p>
-                  {isOwner ? (
-                    <p className="mt-1 text-xs text-amber-800/90">
-                      {t(lang, "deal.pendingHintBreeder")}
-                    </p>
-                  ) : null}
-                  {isDealSen ? (
-                    <p className="mt-1 text-xs text-amber-800/90">
-                      {t(lang, "deal.pendingHintSen")}
-                    </p>
-                  ) : null}
-                  {actionError && (showBreederConfirmDeposit || showSenWithdrawDeposit) ? (
-                    <p className="mt-2 text-xs text-red-600">{actionError}</p>
-                  ) : null}
-                  {showBreederConfirmDeposit ? (
-                    <div className="mt-3 space-y-2">
-                      <button
-                        type="button"
-                        disabled={dealBusy}
-                        onClick={() => openDepositModal()}
-                        className="w-full py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full disabled:opacity-60"
-                      >
-                        {t(lang, "deal.breederConfirmDeposit")}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={dealBusy}
-                        onClick={() => void runDealAction("deposit_decline")}
-                        className="w-full py-2.5 border border-red-200 text-red-600 text-sm font-semibold rounded-full disabled:opacity-60"
-                      >
-                        {t(lang, "deal.declineRequest")}
-                      </button>
-                    </div>
-                  ) : null}
-                  {showSenWithdrawDeposit ? (
-                    <button
-                      type="button"
-                      disabled={dealBusy}
-                      onClick={() => void runDealAction("deposit_decline")}
-                      className="mt-3 w-full py-2.5 border border-red-200 text-red-600 text-sm font-semibold rounded-full disabled:opacity-60"
-                    >
-                      {t(lang, "deal.withdrawRequest")}
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {listing.status === "deposit_hold" ? (
-                <div id="listing-deal-panel" className={depositHoldTone.shell}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className={depositHoldTone.title}>
-                        {depositHoldSenLabel(
-                          listing.deal?.senDisplayName,
-                          t(lang, "deal.holdBadge"),
-                          t(lang, "deal.holdBadgeWithSen"),
-                        )}
-                      </p>
-                      {shouldShowCompleteWaitingBadge({
-                        isDealSen,
-                        listingStatus: listing.status,
-                        dealStatus: listing.deal?.status,
-                      }) ? (
-                        <p className="text-xs text-amber-800/90">
-                          {waitingForSenMessage(
-                            t(lang, "deal.completeWaitingBadge"),
-                            handoffDaysLeft,
-                          )}
-                        </p>
-                      ) : null}
-                      {listing.deal?.status === "pending_cancel_confirm" ? (
-                        <p className="text-xs text-amber-800/90">
-                          {t(lang, "deal.cancelPendingBadge")}
-                        </p>
-                      ) : null}
-                      {showDisputeOpen ? (
-                        <p className="text-xs text-amber-800/90">
-                          {t(lang, "deal.disputeOpenBadge")}
-                        </p>
-                      ) : null}
-                    </div>
-                    {(showBreederHandoff || showBreederCancel || showSenHandoffMenu) ? (
-                      <div className="relative shrink-0" data-deal-menu>
-                        <button
-                          type="button"
-                          aria-label={t(lang, "deal.actionsMenu")}
-                          aria-expanded={dealMenuOpen}
-                          disabled={dealBusy}
-                          onClick={() => setDealMenuOpen((open) => !open)}
-                          className={depositHoldTone.menuBtn}
-                        >
-                          ⋮
-                        </button>
-                        {dealMenuOpen ? (
-                          <div className={depositHoldTone.menuPanel}>
-                            {showBreederHandoff ? (
-                              <button
-                                type="button"
-                                disabled={dealBusy}
-                                onClick={() => {
-                                  setDealMenuOpen(false);
-                                  setCompletePhotos([]);
-                                  setCompleteOpen(true);
-                                }}
-                                className="block w-full px-3 py-2 text-left text-sm font-medium text-slate-800 hover:bg-amber-50 disabled:opacity-50"
-                              >
-                                {t(lang, "deal.complete")}
-                              </button>
-                            ) : null}
-                            {showBreederCancel ? (
-                              <button
-                                type="button"
-                                disabled={dealBusy}
-                                onClick={() => {
-                                  setDealMenuOpen(false);
-                                  setCancelReasonKey("no_contact");
-                                  setCancelNote("");
-                                  setCancelPhotos([]);
-                                  setCancelOpen(true);
-                                }}
-                                className="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-                              >
-                                {t(lang, "deal.cancel")}
-                              </button>
-                            ) : null}
-                            {showSenConfirmHandoff ? (
-                              <button
-                                type="button"
-                                disabled={dealBusy}
-                                onClick={() => {
-                                  setDealMenuOpen(false);
-                                  void runDealAction("complete");
-                                }}
-                                className="block w-full px-3 py-2 text-left text-sm font-medium text-slate-800 hover:bg-amber-50 disabled:opacity-50"
-                              >
-                                {t(lang, "deal.senConfirmReceipt")}
-                              </button>
-                            ) : null}
-                            {showSenAbandonHandoff ? (
-                              <button
-                                type="button"
-                                disabled={dealBusy}
-                                onClick={() => {
-                                  setDealMenuOpen(false);
-                                  setSenAbandonOpen(true);
-                                }}
-                                className="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-                              >
-                                {t(lang, "deal.senAbandonDeposit")}
-                              </button>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                  {isOwner &&
-                  listing.deal?.status === "pending_cancel_confirm" ? (
-                    <p className="mt-2 text-xs text-amber-800/90">
-                      {t(lang, "deal.cancelPendingHint")}
-                      {listing.deal.cancelReason
-                        ? ` — ${listing.deal.cancelReason}`
-                        : ""}
-                    </p>
-                  ) : null}
-                  {showDisputeOpen ? (
-                    <p className="mt-2 text-xs text-amber-800/90">
-                      {t(lang, "deal.disputeOpenHint")}
-                      {listing.deal?.disputeMessage
-                        ? ` — ${listing.deal.disputeMessage}`
-                        : ""}
-                    </p>
-                  ) : null}
-                  {showSenHandoffFromNotify ? (
-                    <div className="mt-3 space-y-2">
-                      <p className="text-xs text-amber-800/90">
-                        {waitingForSenMessage(
-                          t(lang, "deal.completeWaitingBadge"),
-                          handoffDaysLeft,
-                        )}
-                      </p>
-                      <button
-                        type="button"
-                        disabled={dealBusy}
-                        onClick={() => void runDealAction("complete")}
-                        className="w-full py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full disabled:opacity-60"
-                      >
-                        {t(lang, "deal.senConfirmReceipt")}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={dealBusy}
-                        onClick={() => setSenAbandonOpen(true)}
-                        className="w-full py-2.5 border border-red-200 text-red-600 text-sm font-semibold rounded-full disabled:opacity-60"
-                      >
-                        {t(lang, "deal.senOpenDispute")}
-                      </button>
-                    </div>
-                  ) : null}
-                  {showSenConfirmCancel ? (
-                    <div className="mt-3 space-y-2">
-                      {listing.deal?.cancelReason ? (
-                        <p className="text-xs text-amber-900">
-                          <span className="font-semibold">
-                            {t(lang, "deal.cancelReasonPreview")}:{" "}
-                          </span>
-                          {listing.deal.cancelReason}
-                        </p>
-                      ) : null}
-                      <button
-                        type="button"
-                        disabled={dealBusy}
-                        onClick={() => void runDealAction("cancel_confirm")}
-                        className="w-full py-2.5 border border-red-200 text-red-600 text-sm font-semibold rounded-full disabled:opacity-60"
-                      >
-                        {t(lang, "deal.senConfirmCancel")}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {showDepositRequest ? (
-                <button
-                  type="button"
-                  onClick={() => openDepositModal()}
-                  className="w-full py-3 bg-[#D97706] text-white text-sm font-semibold rounded-full hover:bg-[#B45309] transition-colors"
-                >
-                  🤝 {t(lang, "deal.requestDeposit")}
-                </button>
-              ) : null}
 
               {listing.status === "sold" ? (
                 <p className={soldTone.shell}>{t(lang, "deal.completed")}</p>
@@ -1765,149 +1089,6 @@ export function ListingDetail({
         </div>
       )}
 
-      {depositOpen && (
-        <div
-          className={`fixed inset-0 ${LISTING_ACTION_MODAL_Z_CLASS} flex items-center justify-center p-4`}
-          onClick={() => {
-            if (!dealBusy) setDepositOpen(false);
-          }}
-        >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-bold text-slate-900">
-              {t(lang, isOwner ? "deal.confirmTitle" : "deal.requestTitle")}
-            </h2>
-            <p className="text-sm text-slate-600">
-              {listing.title} · {listing.breeder.name}
-            </p>
-            {actionError ? (
-              <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                {actionError}
-              </p>
-            ) : null}
-            {listing.warrantyPolicy ? (
-              <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3 text-sm text-amber-950 space-y-1">
-                <p className="font-semibold">{t(lang, "deal.policyPreview")}</p>
-                <p>{listing.warrantyPolicy.title}</p>
-                {listing.warrantyPolicy.careParvoCoverageDays ? (
-                  <p className="text-xs">
-                    {t(
-                      lang,
-                      warrantyInfectiousFieldKey(
-                        resolveWarrantyFarmSpecies({
-                          listingSpecies: listing.species,
-                        }),
-                      ) as EnKey,
-                    )}
-                    : {listing.warrantyPolicy.careParvoCoverageDays}{" "}
-                    {lang === "VI" ? "ngày" : "days"}
-                  </p>
-                ) : null}
-                {listing.warrantyPolicy.medicalFeeSupportPercent != null ? (
-                  <p className="text-xs">
-                    {t(lang, "warranty.field.medicalFee")}:{" "}
-                    {listing.warrantyPolicy.medicalFeeSupportPercent}%
-                  </p>
-                ) : null}
-                <button
-                  type="button"
-                  className="text-xs font-medium text-[#D97706] underline"
-                  onClick={() => setPolicyOpen(true)}
-                >
-                  {t(lang, "warranty.viewCta")}
-                </button>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 space-y-1">
-                <p className="font-semibold">{t(lang, "warranty.noneTitle")}</p>
-                <p className="text-xs text-slate-500">
-                  {t(lang, "warranty.noneHint")}
-                </p>
-              </div>
-            )}
-            <label className="flex items-start gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                className="mt-1 accent-[#D97706]"
-                checked={depositAck}
-                onChange={(e) => setDepositAck(e.target.checked)}
-              />
-              <span>
-                {t(lang, isOwner ? "deal.ackLabel" : "deal.ackLabelRequest")}
-              </span>
-            </label>
-            <DialogActions>
-              <button
-                type="button"
-                disabled={dealBusy}
-                onClick={() => setDepositOpen(false)}
-                className="flex-1 py-2.5 border border-slate-200 text-sm rounded-full disabled:opacity-60"
-              >
-                {t(lang, "common.cancel")}
-              </button>
-              <button
-                type="button"
-                disabled={dealBusy || !depositAck}
-                onClick={() => void runDealAction("deposit")}
-                className="flex-1 py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full disabled:opacity-60"
-              >
-                {dealBusy
-                  ? t(lang, "deal.confirming")
-                  : t(lang, isOwner ? "deal.confirmFreeze" : "deal.sendRequest")}
-              </button>
-            </DialogActions>
-          </div>
-        </div>
-      )}
-
-      {senAbandonOpen ? (
-        <div
-          className={`fixed inset-0 ${LISTING_ACTION_MODAL_Z_CLASS} flex items-center justify-center p-4`}
-          onClick={() => {
-            if (!dealBusy) setSenAbandonOpen(false);
-          }}
-        >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-bold text-slate-900">
-              {t(lang, "deal.senAbandonTitle")}
-            </h2>
-            <p className="text-sm text-slate-600">
-              {t(lang, "deal.senAbandonHint")}
-            </p>
-            {actionError ? (
-              <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                {actionError}
-              </p>
-            ) : null}
-            <DialogActions>
-              <button
-                type="button"
-                disabled={dealBusy}
-                onClick={() => setSenAbandonOpen(false)}
-                className="flex-1 py-2.5 border border-slate-200 text-sm rounded-full disabled:opacity-60"
-              >
-                {t(lang, "common.cancel")}
-              </button>
-              <button
-                type="button"
-                disabled={dealBusy}
-                onClick={() => void runDealAction("handoff_abandon")}
-                className="flex-1 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-full disabled:opacity-60"
-              >
-                {t(lang, "deal.senAbandonDeposit")}
-              </button>
-            </DialogActions>
-          </div>
-        </div>
-      ) : null}
-
       <ListingDeleteConfirmModal
         lang={lang}
         open={deleteModalMode != null}
@@ -1991,295 +1172,6 @@ export function ListingDetail({
           </div>
         </div>
       )}
-
-      {completeOpen ? (
-        <div
-          className={`fixed inset-0 ${LISTING_ACTION_MODAL_Z_CLASS} flex items-center justify-center p-4`}
-          onClick={() => {
-            if (!dealBusy) setCompleteOpen(false);
-          }}
-        >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-bold text-slate-900">
-              {t(lang, "deal.completeRequestTitle")}
-            </h2>
-            <p className="text-sm text-slate-600">
-              {listing.title} ·{" "}
-              {listing.deal?.senDisplayName || listing.deal?.senEmail || "Sen"}
-            </p>
-            <p className="text-sm text-slate-600">
-              {t(lang, "deal.completeRequestHint")}
-            </p>
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1.5">
-                {t(lang, "deal.completePhotosLabel")} *
-              </label>
-              <DealPhotoPicker
-                files={completePhotos}
-                max={COMPLETE_HANDOFF_MAX_PHOTOS}
-                disabled={dealBusy}
-                invalid={Boolean(actionError) && completePhotos.length < 1}
-                dropHint={dealPhotosDropHint(
-                  t(lang, "deal.photosDrop"),
-                  COMPLETE_HANDOFF_MAX_PHOTOS,
-                )}
-                browseLabel={t(lang, "deal.photosBrowse")}
-                removeLabel={t(lang, "deal.photosRemove")}
-                onChange={(next) => {
-                  setCompletePhotos(next);
-                  setActionError("");
-                }}
-              />
-            </div>
-            {actionError ? (
-              <p className="text-sm text-red-600" role="alert">
-                {actionError}
-              </p>
-            ) : null}
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                disabled={dealBusy}
-                onClick={() => setCompleteOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-sm rounded-full min-w-[96px] disabled:opacity-60"
-              >
-                {t(lang, "common.cancel")}
-              </button>
-              <button
-                type="button"
-                disabled={dealBusy || completePhotos.length < 1}
-                onClick={() => void submitHandoffRequest()}
-                className="px-4 py-2 bg-[#D97706] text-white text-sm font-semibold rounded-full min-w-[120px] disabled:opacity-60"
-              >
-                {dealBusy
-                  ? t(lang, "deal.confirming")
-                  : t(lang, "deal.completeConfirm")}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {completeWaitingOpen ? (
-        <div
-          className={`fixed inset-0 ${LISTING_ACTION_MODAL_Z_CLASS} flex items-center justify-center p-4`}
-          onClick={() => setCompleteWaitingOpen(false)}
-        >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-bold text-slate-900">
-              {t(lang, "deal.completeWaitingTitle")}
-            </h2>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              {waitingForSenMessage(
-                t(lang, "deal.completeWaitingBody"),
-                handoffDaysLeft,
-              )}
-            </p>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setCompleteWaitingOpen(false)}
-                className="px-4 py-2 bg-[#D97706] text-white text-sm font-semibold rounded-full"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {cancelOpen ? (
-        <div
-          className={`fixed inset-0 ${LISTING_ACTION_MODAL_Z_CLASS} flex items-center justify-center p-4`}
-          onClick={() => {
-            if (!dealBusy) setCancelOpen(false);
-          }}
-        >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-bold text-slate-900">
-              {t(lang, "deal.cancelRequestTitle")}
-            </h2>
-            <p className="text-sm text-slate-600">
-              {t(lang, "deal.cancelRequestHint")}
-            </p>
-            <label className="block text-xs font-medium text-slate-500">
-              {t(lang, "deal.cancelReasonLabel")}
-              <select
-                value={cancelReasonKey}
-                disabled={dealBusy}
-                onChange={(e) =>
-                  setCancelReasonKey(e.target.value as CancelDepositReasonKey)
-                }
-                className="mt-1 w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white"
-              >
-                {CANCEL_DEPOSIT_REASON_KEYS.map((key) => (
-                  <option key={key} value={key}>
-                    {t(lang, `deal.cancelReason.${key}` as EnKey)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-xs font-medium text-slate-500">
-              {t(lang, "deal.cancelNoteLabel")}
-              <textarea
-                value={cancelNote}
-                disabled={dealBusy}
-                onChange={(e) => setCancelNote(e.target.value)}
-                rows={2}
-                placeholder={t(lang, "deal.cancelNotePlaceholder")}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm"
-              />
-            </label>
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1.5">
-                {t(lang, "deal.cancelPhotosLabel")}
-              </label>
-              <DealPhotoPicker
-                files={cancelPhotos}
-                max={CANCEL_DEPOSIT_MAX_PHOTOS}
-                disabled={dealBusy}
-                dropHint={dealPhotosDropHint(
-                  t(lang, "deal.photosDrop"),
-                  CANCEL_DEPOSIT_MAX_PHOTOS,
-                )}
-                browseLabel={t(lang, "deal.photosBrowse")}
-                removeLabel={t(lang, "deal.photosRemove")}
-                onChange={(next) => {
-                  setCancelPhotos(next);
-                  setActionError("");
-                }}
-              />
-            </div>
-            {actionError ? (
-              <p className="text-sm text-red-600" role="alert">
-                {actionError}
-              </p>
-            ) : null}
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                disabled={dealBusy}
-                onClick={() => setCancelOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-sm rounded-full min-w-[96px] disabled:opacity-60"
-              >
-                {t(lang, "common.cancel")}
-              </button>
-              <button
-                type="button"
-                disabled={dealBusy}
-                onClick={() => void submitCancelRequest()}
-                className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-full min-w-[120px] disabled:opacity-60"
-              >
-                {dealBusy
-                  ? t(lang, "deal.confirming")
-                  : t(lang, "deal.cancelSubmit")}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {disputeOpen ? (
-        <div
-          className={`fixed inset-0 ${LISTING_ACTION_MODAL_Z_CLASS} flex items-center justify-center p-4`}
-          onClick={() => {
-            if (!dealBusy) setDisputeOpen(false);
-          }}
-        >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-bold text-slate-900">
-              {t(lang, "deal.disputeTitle")}
-            </h2>
-            <p className="text-sm text-slate-600">
-              {t(lang, "deal.disputeHint")}
-            </p>
-            <label className="block text-xs font-medium text-slate-500">
-              {t(lang, "deal.disputeMessageLabel")} *
-              <textarea
-                value={disputeMessage}
-                disabled={dealBusy}
-                onChange={(e) => setDisputeMessage(e.target.value)}
-                rows={3}
-                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm"
-              />
-            </label>
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1.5">
-                {t(lang, "deal.disputePhotosLabel")} *
-              </label>
-              <DealPhotoPicker
-                files={disputePhotos}
-                max={DEAL_DISPUTE_MAX_PHOTOS}
-                disabled={dealBusy}
-                invalid={Boolean(actionError) && disputePhotos.length < 1}
-                dropHint={dealPhotosDropHint(
-                  t(lang, "deal.photosDrop"),
-                  DEAL_DISPUTE_MAX_PHOTOS,
-                )}
-                browseLabel={t(lang, "deal.photosBrowse")}
-                removeLabel={t(lang, "deal.photosRemove")}
-                onChange={(next) => {
-                  setDisputePhotos(next);
-                  setActionError("");
-                }}
-              />
-            </div>
-            {actionError ? (
-              <p className="text-sm text-red-600" role="alert">
-                {actionError}
-              </p>
-            ) : null}
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                disabled={dealBusy}
-                onClick={() => setDisputeOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-sm rounded-full min-w-[96px] disabled:opacity-60"
-              >
-                {t(lang, "common.cancel")}
-              </button>
-              <button
-                type="button"
-                disabled={
-                  dealBusy ||
-                  !disputeMessage.trim() ||
-                  disputePhotos.length < 1
-                }
-                onClick={() => void submitDisputeRequest()}
-                className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-full min-w-[120px] disabled:opacity-60"
-              >
-                {dealBusy
-                  ? t(lang, "deal.confirming")
-                  : t(lang, "deal.disputeSubmit")}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <DealReviewModal
-        lang={lang}
-        open={reviewOpen}
-        busy={reviewBusy}
-        onClose={() => setReviewOpen(false)}
-        onSubmit={submitDealReview}
-      />
 
       <WarrantyPolicyViewer
         lang={lang}

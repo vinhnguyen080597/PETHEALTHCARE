@@ -8,8 +8,7 @@ import {
   getPublicPostDetail,
   listPublicPostComments,
 } from "@/lib/api/public";
-import { getFeatureFlags, getListingDetail } from "@/lib/api/petFeed";
-import { isMarketplaceEscrowEnabled } from "@/lib/featureFlags";
+import { getListingDetail } from "@/lib/api/petFeed";
 import { mapApiPost } from "@/lib/mappers";
 import { ListingDetail } from "@/components/marketplace/ListingDetail";
 import { ListingDetailSkeleton } from "@/components/ui/Skeleton";
@@ -126,15 +125,6 @@ async function PostDetailData({
   }
 
   const comments = await listPublicPostComments(postId).catch(() => []);
-  let marketplaceEscrowEnabled = false;
-  if (session.token) {
-    try {
-      const flagsRes = await getFeatureFlags(session.token);
-      marketplaceEscrowEnabled = isMarketplaceEscrowEnabled(flagsRes.data);
-    } catch {
-      marketplaceEscrowEnabled = false;
-    }
-  }
   const currentUserId =
     session.account && typeof session.account === "object"
       ? String(
@@ -151,7 +141,6 @@ async function PostDetailData({
       isAdmin={session.isAdmin}
       currentUserId={currentUserId}
       initialComments={comments}
-      marketplaceEscrowEnabled={marketplaceEscrowEnabled}
     />
   );
 }

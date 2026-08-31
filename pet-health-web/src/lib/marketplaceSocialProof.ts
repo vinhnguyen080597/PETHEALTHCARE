@@ -64,11 +64,6 @@ export function listingPreviewImages(listing: Listing, max = 4): string[] {
   return unique;
 }
 
-export type ListingTrustTag =
-  | { kind: "warranty"; days: number }
-  | { kind: "escrow" }
-  | { kind: "vaccine"; label: string };
-
 export function listingWarrantyCoverageDays(
   policy: WarrantyPolicy | null | undefined,
 ): number | null {
@@ -82,26 +77,6 @@ export function listingWarrantyCoverageDays(
     .filter((n) => n > 0);
   if (!days.length) return null;
   return Math.max(...days);
-}
-
-/** Trust chips shown under price — only from real listing fields. */
-export function listingTrustTags(
-  listing: Listing,
-  options?: { showEscrowTag?: boolean },
-): ListingTrustTag[] {
-  const tags: ListingTrustTag[] = [];
-  const warrantyDays = listingWarrantyCoverageDays(listing.warrantyPolicy);
-  if (warrantyDays != null) {
-    tags.push({ kind: "warranty", days: warrantyDays });
-  }
-  if (options?.showEscrowTag && listing.escrowEnabled) {
-    tags.push({ kind: "escrow" });
-  }
-  const vaccine = listing.vaccineStatus?.trim();
-  if (vaccine && vaccine !== "—") {
-    tags.push({ kind: "vaccine", label: vaccine });
-  }
-  return tags.slice(0, 2);
 }
 
 export type ListingHotBadge =

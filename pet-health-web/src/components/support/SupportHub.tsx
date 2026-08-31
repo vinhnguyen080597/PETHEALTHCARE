@@ -7,8 +7,7 @@ import { t, type EnKey } from "@/i18n";
 import { loginHref } from "@/lib/loginHref";
 import { DialogActions } from "@/components/ui/DialogActions";
 import { DealPhotoPicker } from "@/components/marketplace/DealPhotoPicker";
-import { dealSubmitErrorMessage } from "@/lib/dealPhotoUpload";
-import { dealPhotosDropHint } from "@/lib/listingDealHandoff";
+import { dealSubmitErrorMessage, photosDropHint } from "@/lib/dealPhotoUpload";
 import { uploadDealEvidencePhotos } from "@/lib/uploadDealEvidence";
 import {
   FEEDBACK_CATEGORIES,
@@ -467,7 +466,7 @@ export function SupportHub({
               max={SUPPORT_FEEDBACK_MAX_EVIDENCE}
               disabled={!isLoggedIn || fbBusy}
               invalid={false}
-              dropHint={dealPhotosDropHint(
+              dropHint={photosDropHint(
                 t(lang, "deal.photosDrop"),
                 SUPPORT_FEEDBACK_MAX_EVIDENCE,
               )}
@@ -635,7 +634,7 @@ export function SupportHub({
                 max={SUPPORT_SCAM_MAX_EVIDENCE}
                 disabled={!isLoggedIn || scamBusy}
                 invalid={Boolean(scamError) && scamPhotos.length < SUPPORT_SCAM_MIN_EVIDENCE}
-                dropHint={dealPhotosDropHint(
+                dropHint={photosDropHint(
                   t(lang, "deal.photosDrop"),
                   SUPPORT_SCAM_MAX_EVIDENCE,
                 )}
