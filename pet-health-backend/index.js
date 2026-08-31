@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import os from 'node:os';
 import { createApp } from './src/app.js';
+import { ensureMediaStorageBucketsOnce } from './src/services/storageBootstrap.js';
 
 dotenv.config();
 
@@ -35,4 +36,5 @@ app.listen(PORT, HOST, () => {
       console.log(`- ${url}`);
     }
   }
+  void ensureMediaStorageBucketsOnce();
 });

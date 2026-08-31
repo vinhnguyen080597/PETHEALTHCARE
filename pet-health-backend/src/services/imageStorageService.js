@@ -8,6 +8,7 @@ import {
   parseSupabaseKeyRole,
 } from '../config/supabase.js';
 import { bakePetFeedImageWatermark } from './petFeedImageWatermark.js';
+import { ensureMediaStorageBucketsOnce, isBucketMissingError } from './storageBootstrap.js';
 
 const memoryImages = new Map();
 
@@ -48,6 +49,14 @@ function parseStorageUri(value) {
 
 function mapStorageUploadError(error) {
   const text = String(error?.message || error?.error || error || '');
+  if (isBucketMissingError(error)) {
+    const mapped = new Error(
+      'Media storage bucket is not configured. Ask an admin to run context/migrations/20260831_storage_media_buckets.sql in Supabase.',
+    );
+    mapped.status = 503;
+    mapped.code = 'STORAGE_BUCKET_MISSING';
+    return mapped;
+  }
   if (/exceeded the maximum allowed size|EntityTooLarge|Payload too large|maximum allowed size/i.test(text)) {
     const mapped = new Error(
       'Uploaded file is too large for storage. Use a shorter/lower-quality video (max 50MB) or a smaller photo.',
@@ -60,10 +69,13 @@ function mapStorageUploadError(error) {
 }
 
 async function uploadToImageBucket({ accessToken, bucketName, filePath, buffer, contentType, publicRead }) {
+  await ensureMediaStorageBucketsOnce();
+
   const clients = getSupabaseClientsForImageUpload(accessToken);
   if (clients.length === 0) return null;
 
   let lastError = null;
+  let retriedBucket = false;
   for (let i = 0; i < clients.length; i++) {
     const supabase = clients[i];
     const { error } = await supabase.storage.from(bucketName).upload(filePath, buffer, {
@@ -78,6 +90,12 @@ async function uploadToImageBucket({ accessToken, bucketName, filePath, buffer, 
       return storageUri(bucketName, filePath);
     }
     lastError = mapStorageUploadError(error);
+    if (!retriedBucket && isBucketMissingError(error)) {
+      retriedBucket = true;
+      await ensureMediaStorageBucketsOnce();
+      i -= 1;
+      continue;
+    }
     const canRetry = isStorageRlsError(error) && i < clients.length - 1;
     if (!canRetry) throw lastError;
   }
