@@ -223,11 +223,10 @@ export function isDealCompleteRequestNotification(
 }
 
 export function isDealActionNotification(
-  item: NotificationDeepLinkInput | string | null | undefined,
+  _item: NotificationDeepLinkInput | string | null | undefined,
 ) {
-  const type =
-    typeof item === "string" || !item ? String(item || "") : notificationType(item);
-  return DEAL_ACTION_NOTIFICATION_TYPES.has(type);
+  // Escrow/deposit CTAs removed — legacy deal notifications open the listing only.
+  return false;
 }
 
 function storedCtaLabel(item: NotificationDeepLinkInput) {
