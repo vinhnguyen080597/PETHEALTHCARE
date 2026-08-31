@@ -20,12 +20,20 @@ const FALLBACKS = {
   depositConfirm: 'Confirm deposit',
   dealCompleteConfirm: 'Confirm handoff',
   viewListing: 'View listing',
+  farmSaleReview: 'Leave a review',
 };
 
 test('deal reviewed notification uses view listing CTA', () => {
   assert.equal(
     notificationInboxCta({ type: 'deal_reviewed' }, FALLBACKS),
     'View listing',
+  );
+});
+
+test('farm sale review request uses review CTA', () => {
+  assert.equal(
+    notificationInboxCta({ type: 'farm_sale_review_request' }, FALLBACKS),
+    'Leave a review',
   );
 });
 

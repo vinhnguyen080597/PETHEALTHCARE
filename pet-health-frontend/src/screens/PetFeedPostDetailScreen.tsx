@@ -24,7 +24,8 @@ import { petFeedDetailShowsEditButton, petFeedDetailShowsMessageButton } from '.
 import { similarForSaleListings } from '../utils/petFeedDetailSiblingListings';
 import { modalBottomInset } from '../utils/modalSafeArea';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
-import { ReportModal } from '../components/ReportModal';
+import { canShowListingStatusUpdate } from '../utils/listingAvailabilityBadge';
+import { validateFarmReviewInput } from '../utils/farmReview';
 
 type PetFeedPostDetailScreenProps = {
   postId: string;
@@ -44,6 +45,16 @@ type PetFeedPostDetailScreenProps = {
   onOpenListing?: (postId: string) => void;
   currentUserId?: string | null;
   allowMediaDownload?: boolean;
+  token?: string | null;
+  openSaleReviewInitially?: boolean;
+  onPatchListingStatus?: (
+    postId: string,
+    body: { status: string; saleChannel?: string; buyerEmail?: string },
+  ) => Promise<PetFeedPost | null>;
+  onSubmitSaleReview?: (
+    postId: string,
+    body: { rating: number; body?: string },
+  ) => Promise<boolean>;
 };
 
 function Bone({ className }: { className: string }) {
@@ -96,6 +107,9 @@ export function PetFeedPostDetailScreen({
   onDeletePostComment,
   onOpenListing,
   currentUserId,
+  openSaleReviewInitially = false,
+  onPatchListingStatus,
+  onSubmitSaleReview,
 }: PetFeedPostDetailScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -160,6 +174,65 @@ export function PetFeedPostDetailScreen({
     && siblingListings.length > 0
     && onOpenListing,
   );
+  const showStatusUpdate = Boolean(
+    selectedPost
+    && canShowListingStatusUpdate({ isOwner: isOwnPost, status: selectedPost.status }),
+  );
+
+  useEffect(() => {
+    if (!openSaleReviewInitially || !selectedPost || !onSubmitSaleReview) return;
+    Alert.alert(t('farm.review.modalTitle'), t('farm.review.modalHint'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      ...[5, 4, 3, 2, 1].map((rating) => ({
+        text: `${rating}★`,
+        onPress: () => {
+          const err = validateFarmReviewInput({ rating });
+          if (err) {
+            Alert.alert(t('common.error'), err);
+            return;
+          }
+          void onSubmitSaleReview(selectedPost.id, { rating });
+        },
+      })),
+    ]);
+  }, [openSaleReviewInitially, onSubmitSaleReview, selectedPost, t]);
+
+  function promptListingStatusUpdate() {
+    if (!selectedPost || !onPatchListingStatus) return;
+    Alert.alert(t('listing.statusModal.title'), undefined, [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('listing.statusChoice.published'),
+        onPress: () => void onPatchListingStatus(selectedPost.id, { status: 'published' }),
+      },
+      {
+        text: t('listing.statusChoice.deposit_hold'),
+        onPress: () => void onPatchListingStatus(selectedPost.id, { status: 'deposit_hold' }),
+      },
+      {
+        text: t('listing.statusChoice.sold'),
+        onPress: () => {
+          Alert.alert(t('listing.statusModal.saleChannel'), undefined, [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('listing.statusModal.onPlatform'),
+              onPress: () => void onPatchListingStatus(selectedPost.id, {
+                status: 'sold',
+                saleChannel: 'on_platform',
+              }),
+            },
+            {
+              text: t('listing.statusModal.offPlatform'),
+              onPress: () => void onPatchListingStatus(selectedPost.id, {
+                status: 'sold',
+                saleChannel: 'off_platform',
+              }),
+            },
+          ]);
+        },
+      },
+    ]);
+  }
 
   function confirmDeletePost(post: PetFeedPost) {
     if (!onDeletePost) return;
@@ -264,6 +337,8 @@ export function PetFeedPostDetailScreen({
               showFavorite
               showMessageButton={showMessageCta}
               showEditButton={showEditCta}
+              showStatusButton={showStatusUpdate}
+              onPressStatusUpdate={promptListingStatusUpdate}
             />
             <View
               collapsable={false}

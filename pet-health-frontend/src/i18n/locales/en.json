@@ -388,7 +388,8 @@
       "depositCancelSuccess": "Deposit cancel confirmed.",
       "depositRequestCta": "Confirm deposit",
       "dealCompleteCta": "Confirm handoff",
-      "viewListing": "View listing"
+      "viewListing": "View listing",
+      "farmSaleReview": "Leave a review"
     },
     "editListing": "Edit",
     "deleteListing": "Delete",
@@ -604,8 +605,19 @@
     "reviews": {
       "empty": "No buyer reviews yet"
     },
+    "review": {
+      "open": "Review",
+      "modalTitle": "Review this farm",
+      "modalHint": "Your first review is primary; later updates appear as supplements.",
+      "bodyPlaceholder": "Share your experience (optional)",
+      "submit": "Submit review",
+      "submitting": "Submitting…",
+      "failed": "Could not submit review.",
+      "supplement": "Update",
+      "loginRequired": "Please sign in to leave a review."
+    },
     "cta": {
-      "message": "Message breeder",
+      "message": "Message",
       "video": "Request a video call",
       "videoSoon": "Feature in development"
     },
@@ -2632,6 +2644,28 @@
         "cat": "Dated rapid test photo (Panleukopenia / FIP)"
       },
       "vet_diagnosis_or_pcr": "Vet diagnosis / PCR report"
+    }
+  },
+  "listing": {
+    "availability": {
+      "available": "Available",
+      "depositHold": "Reserved"
+    },
+    "statusChoice": {
+      "published": "Available",
+      "deposit_hold": "Deposit received",
+      "sold": "Sold"
+    },
+    "statusModal": {
+      "open": "Update status",
+      "title": "Update listing status",
+      "saleChannel": "Where was the pet sold?",
+      "onPlatform": "On PetCare marketplace",
+      "offPlatform": "Off platform",
+      "buyerEmailOptional": "Buyer email (optional, for review invite)",
+      "save": "Save",
+      "saving": "Saving…",
+      "failed": "Could not update status."
     }
   }
 }

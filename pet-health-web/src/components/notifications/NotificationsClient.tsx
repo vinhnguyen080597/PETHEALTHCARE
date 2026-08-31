@@ -10,6 +10,8 @@ import {
   adminRequestHref,
   breederTransparencyNotificationHref,
   isAdminQueueNotification,
+  farmSaleReviewNotificationHref,
+  isFarmSaleReviewRequestNotification,
   listingNotificationHref,
   notificationInboxCta,
   notificationType,
@@ -138,7 +140,8 @@ export function NotificationsClient({
         .map((n) => n.id);
       if (unreadIds.length) await markIdsRead(unreadIds);
       router.push(
-        listingNotificationHref(item) ||
+        farmSaleReviewNotificationHref(item) ||
+          listingNotificationHref(item) ||
           `/app/pet-feed/posts/${encodeURIComponent(item.post_id)}`,
       );
     }
@@ -280,6 +283,7 @@ export function NotificationsClient({
       depositConfirm: t(lang, "notifications.depositRequestCta"),
       dealCompleteConfirm: t(lang, "notifications.dealCompleteCta"),
       viewListing: t(lang, "notifications.viewListing"),
+      farmSaleReview: t(lang, "notifications.farmSaleReview"),
     });
 
   const rejectionNotice = resolveRejectionNotice(reasonItem);

@@ -4,8 +4,10 @@ import {
   adminRequestHref,
   breederTransparencyNotificationHref,
   farmProfileNotificationHref,
+  farmSaleReviewNotificationHref,
   isAdminQueueNotification,
   isDepositCancelRequestNotification,
+  isFarmSaleReviewRequestNotification,
   listingNotificationHref,
   notificationInboxCta,
   isNotificationUnread,
@@ -26,6 +28,7 @@ const CTA_FALLBACKS = {
   depositConfirm: "Confirm deposit",
   dealCompleteConfirm: "Confirm handoff",
   viewListing: "View listing",
+  farmSaleReview: "Leave a review",
 };
 
 test("notificationType defaults to post_comment", () => {
@@ -280,4 +283,19 @@ test("listingNotificationHref rewrites legacy /app/posts paths", () => {
     "/app/pet-feed/posts/post-4",
   );
   assert.equal(isDepositCancelRequestNotification("deposit_cancel_request"), true);
+});
+
+test("farm sale review notification deep link and CTA", () => {
+  assert.equal(isFarmSaleReviewRequestNotification("farm_sale_review_request"), true);
+  assert.equal(
+    farmSaleReviewNotificationHref({
+      type: "farm_sale_review_request",
+      post_id: "post-42",
+    }),
+    "/app/pet-feed/posts/post-42?saleReview=1",
+  );
+  assert.equal(
+    notificationInboxCta({ type: "farm_sale_review_request" }, CTA_FALLBACKS),
+    "Leave a review",
+  );
 });

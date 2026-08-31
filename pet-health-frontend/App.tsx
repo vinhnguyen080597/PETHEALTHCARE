@@ -446,6 +446,10 @@ function AppContent() {
                 onOpenListing={app.openPetFeedPostDetail}
                 currentUserId={app.accountProfile?.user_id ?? null}
                 allowMediaDownload={app.accountProfile?.primary_role === 'admin'}
+                token={app.token}
+                openSaleReviewInitially={app.petFeedOpenSaleReview}
+                onPatchListingStatus={app.patchOwnListingStatus}
+                onSubmitSaleReview={app.submitSaleFarmReviewForPost}
               />
               </View>
             ) : null}

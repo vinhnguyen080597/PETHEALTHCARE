@@ -8,6 +8,10 @@ import { t, type EnKey } from "@/i18n";
 import { formatPriceVnd } from "@/lib/formatPrice";
 import { farmPetAvailability } from "@/lib/farmPets";
 import {
+  listingAvailabilityBadgeI18nKey,
+  listingAvailabilityBadgeKey,
+} from "@/lib/listingAvailabilityBadge";
+import {
   isListingSpecies,
   listingSpeciesEmoji,
 } from "@/lib/listingFormOptions";
@@ -75,6 +79,8 @@ export function ListingCard({
   const locationLabel = listing.location?.trim() ?? "";
   const breederFooter = listingBreederFooterMetrics(listing);
   const availability = farmPetAvailability(listing);
+  const availabilityBadge = listingAvailabilityBadgeKey(listing.status);
+  const availabilityBadgeKey = listingAvailabilityBadgeI18nKey(availabilityBadge);
   const isCancelled =
     listing.status === "cancelled" || Boolean(listing.metadataCancelled);
   const isSold = availability === "completed" && !isCancelled;
@@ -280,6 +286,11 @@ export function ListingCard({
               />
             ))}
           </div>
+        ) : null}
+        {availabilityBadgeKey ? (
+          <span className="absolute top-3 right-3 z-10 bg-[#D97706]/95 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm pointer-events-none">
+            {t(lang, availabilityBadgeKey)}
+          </span>
         ) : null}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none max-w-[75%]">
           <span className="bg-white/95 backdrop-blur-sm text-[#2B1E19] text-xs font-medium px-2.5 py-1 rounded-full border border-[#F3E2C8]/80 w-fit">

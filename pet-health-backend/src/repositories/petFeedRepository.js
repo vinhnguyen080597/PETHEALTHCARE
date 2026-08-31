@@ -3,6 +3,7 @@ import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../
 import { assertHealthEvidenceForReview } from '../utils/petFeedHealthEvidence.js';
 import { resolveBreederPetType, resolvePostPetType } from '../utils/petType.js';
 import {
+  findAccountByEmail,
   getAccountProfile,
   normalizeUserRole as normalizeAccountUserRole,
 } from './accountRepository.js';
@@ -3170,4 +3171,77 @@ export async function adminReviewBreederProfileSubmission(
   }
 
   return toBreederSubmission(updatedSubmission);
+}
+
+const OWNER_LISTING_STATUSES = new Set(['published', 'deposit_hold', 'sold']);
+const SALE_CHANNELS = new Set(['on_platform', 'off_platform']);
+
+/**
+ * Breeder manually updates listing availability (not escrow).
+ * published = có sẵn; deposit_hold = đã cọc; sold = đã bán (off/on platform).
+ */
+export async function updateOwnerListingStatus(ownerUserId, postId, payload, accessToken) {
+  const status = String(payload?.status ?? '').trim().toLowerCase();
+  if (!OWNER_LISTING_STATUSES.has(status)) {
+    throw httpError('Invalid listing status.', 400, 'INVALID_LISTING_STATUS');
+  }
+
+  const existing = await getPetFeedPost(ownerUserId, postId, accessToken);
+  if (!existing || existing.user_id !== ownerUserId) return null;
+
+  const profile = await getMyBreederProfile(ownerUserId, accessToken);
+  assertVerifiedBreederProfile(profile);
+
+  let meta = { ...asObject(existing.metadata) };
+  delete meta.deal;
+
+  const now = new Date().toISOString();
+  let buyerUserId = null;
+  let buyerEmail = null;
+  let saleChannel = null;
+
+  if (status === 'published') {
+    meta = clearClosedListingMetadata(meta);
+    delete meta.sale_channel;
+    delete meta.buyer_email;
+    delete meta.buyer_user_id;
+    delete meta.sold_at;
+  } else if (status === 'deposit_hold') {
+    meta = clearClosedListingMetadata(meta);
+    delete meta.sale_channel;
+    delete meta.buyer_email;
+    delete meta.buyer_user_id;
+    delete meta.sold_at;
+  } else if (status === 'sold') {
+    saleChannel = String(payload.saleChannel ?? payload.sale_channel ?? '').trim().toLowerCase();
+    if (!SALE_CHANNELS.has(saleChannel)) {
+      throw httpError('saleChannel is required when marking sold.', 400, 'SALE_CHANNEL_REQUIRED');
+    }
+    buyerEmail = trimText(payload.buyerEmail ?? payload.buyer_email, 320).toLowerCase() || null;
+    if (saleChannel === 'on_platform' && buyerEmail) {
+      const account = await findAccountByEmail(buyerEmail);
+      buyerUserId = account?.user_id ?? null;
+    }
+    meta = stampClosedListingMetadata(meta, 'sold');
+    meta.listing_outcome = 'sold';
+    meta.sale_channel = saleChannel;
+    meta.sold_at = now;
+    meta.sold = true;
+    if (buyerEmail) meta.buyer_email = buyerEmail;
+    if (buyerUserId) meta.buyer_user_id = buyerUserId;
+    else delete meta.buyer_user_id;
+  }
+
+  const updated = await persistListingLifecycle(postId, status, meta, accessToken, ownerUserId);
+  const breederProfile = updated?.breeder_profile ?? profile;
+  const farmName = trimText(breederProfile?.display_name, 120) || 'Trại';
+
+  return {
+    post: attachWarrantyPolicyDto(updated),
+    notifyBuyerUserId:
+      status === 'sold' && saleChannel === 'on_platform' && buyerUserId ? buyerUserId : null,
+    farmName,
+    postTitle: trimText(updated?.title, 200),
+    breederProfileId: trimText(updated?.breeder_profile_id ?? profile?.id, 64) || null,
+  };
 }

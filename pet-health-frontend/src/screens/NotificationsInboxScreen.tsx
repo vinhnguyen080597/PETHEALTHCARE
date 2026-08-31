@@ -222,6 +222,7 @@ export function NotificationsInboxScreen({
       depositConfirm: t('petFeed.notifications.depositRequestCta'),
       dealCompleteConfirm: t('petFeed.notifications.dealCompleteCta'),
       viewListing: t('petFeed.notifications.viewListing'),
+      farmSaleReview: t('petFeed.notifications.farmSaleReview'),
     });
 
   const iconFor = (type: string) => {

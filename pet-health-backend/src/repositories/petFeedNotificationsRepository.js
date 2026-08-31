@@ -35,6 +35,12 @@ const DEAL_NOTIFICATION_TYPES = new Set([
   'deal_reviewed',
   'deal_dispute_opened',
   'deal_dispute_resolved',
+  'farm_sale_review_request',
+  'farm_reviewed',
+]);
+const FARM_REVIEW_NOTIFICATION_TYPES = new Set([
+  'farm_sale_review_request',
+  'farm_reviewed',
 ]);
 const ADMIN_DEFAULT_CTA = {
   admin_breeder_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=breeder' },
@@ -214,12 +220,16 @@ export async function createDealNotification({
   const actor = trimText(actorUserId, 64);
   const safePostId = trimText(postId, 64);
   const safeType = DEAL_NOTIFICATION_TYPES.has(type) ? type : '';
-  if (!recipient || !actor || !safePostId || !safeType) return null;
+  if (!recipient || !actor || !safeType) return null;
+  if (safeType === 'farm_sale_review_request' && !safePostId) return null;
+  if (!FARM_REVIEW_NOTIFICATION_TYPES.has(safeType) && !safePostId) return null;
   if (recipient === actor) return null;
 
   const meta = normalizeMetadata(metadata);
   if (!meta.cta_href) {
-    meta.cta_href = `/app/pet-feed/posts/${encodeURIComponent(safePostId)}`;
+    if (safePostId) {
+      meta.cta_href = `/app/pet-feed/posts/${encodeURIComponent(safePostId)}`;
+    }
   }
   if (!meta.cta_label) meta.cta_label = 'Xem bài đăng';
 
@@ -227,7 +237,7 @@ export async function createDealNotification({
     id: randomUUID(),
     recipient_user_id: recipient,
     actor_user_id: actor,
-    post_id: safePostId,
+    post_id: safePostId || null,
     comment_id: null,
     breeder_profile_id: trimText(metadata?.breeder_profile_id, 64) || null,
     type: safeType,

@@ -14,6 +14,7 @@ import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
 import { mapApiPost } from "@/lib/mappers";
 import type { ApiPetFeedPost } from "@/lib/types";
 import {
+  canShowListingStatusUpdate,
   canShowListingUpdateDetails,
   canShowWarrantyUpdateCta,
   isListingOwner,
@@ -23,6 +24,13 @@ import {
   listingVisitorActions,
   parseListingDetailFrom,
 } from "@/lib/listingOwnerActions";
+import {
+  listingAvailabilityBadgeI18nKey,
+  listingAvailabilityBadgeKey,
+} from "@/lib/listingAvailabilityBadge";
+import { parseSaleReviewQuery } from "@/lib/breederFarmReviews";
+import { ListingStatusModal } from "./ListingStatusModal";
+import { SaleReviewModal } from "./SaleReviewModal";
 import {
   evaluateOwnerDeleteListing,
   listingDeleteClickAction,
@@ -154,6 +162,12 @@ export function ListingDetail({
     status: listing.status,
     frozen: Boolean(listing.warrantyPolicy?.frozen),
   });
+  const showStatusUpdate = canShowListingStatusUpdate({
+    isOwner,
+    status: listing.status,
+  });
+  const availabilityBadge = listingAvailabilityBadgeKey(listing.status);
+  const availabilityBadgeI18n = listingAvailabilityBadgeI18nKey(availabilityBadge);
   const warrantyTone = listingWarrantyCardTone(Boolean(listing.warrantyPolicy));
   const soldTone = listingDealStatusTone("sold");
   const cancelledTone = listingDealStatusTone("cancelled");
@@ -199,6 +213,12 @@ export function ListingDetail({
   const [deleteModalMode, setDeleteModalMode] = useState<
     "confirm" | "blocked" | null
   >(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusBusy, setStatusBusy] = useState(false);
+  const [statusError, setStatusError] = useState("");
+  const [saleReviewOpen, setSaleReviewOpen] = useState(false);
+  const [saleReviewBusy, setSaleReviewBusy] = useState(false);
+  const [saleReviewError, setSaleReviewError] = useState("");
   const [reportReason, setReportReason] = useState<string>(REPORT_REASONS[0]);
   const [reportNote, setReportNote] = useState("");
   const [reportDone, setReportDone] = useState(false);
@@ -215,6 +235,79 @@ export function ListingDetail({
   });
   const activeItem = gallery[Math.min(activeMedia, Math.max(gallery.length - 1, 0))] || gallery[0] || null;
   const price = formatPriceVnd(listing.price) || listing.price;
+
+  useEffect(() => {
+    if (!parseSaleReviewQuery(searchParams.get("saleReview"))) return;
+    if (!isLoggedIn) {
+      router.push(`/login?next=/app/pet-feed/posts/${listing.id}?saleReview=1`);
+      return;
+    }
+    setSaleReviewOpen(true);
+  }, [searchParams, isLoggedIn, listing.id, router]);
+
+  const submitListingStatus = async (payload: {
+    status: "published" | "deposit_hold" | "sold";
+    saleChannel?: "on_platform" | "off_platform";
+    buyerEmail?: string;
+  }) => {
+    setStatusBusy(true);
+    setStatusError("");
+    try {
+      const res = await fetch(
+        `/api/listings/${encodeURIComponent(listing.id)}/listing-status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || t(lang, "listing.statusModal.failed"));
+      }
+      if (data.data) {
+        setListing(mapApiPost(data.data as ApiPetFeedPost));
+      }
+      setStatusModalOpen(false);
+      router.refresh();
+    } catch (err) {
+      setStatusError(
+        err instanceof Error ? err.message : t(lang, "listing.statusModal.failed"),
+      );
+    } finally {
+      setStatusBusy(false);
+    }
+  };
+
+  const submitSaleReview = async (payload: {
+    rating: number;
+    body: string;
+    photoUrls: string[];
+  }) => {
+    setSaleReviewBusy(true);
+    setSaleReviewError("");
+    try {
+      const res = await fetch(
+        `/api/listings/${encodeURIComponent(listing.id)}/sale-review`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || t(lang, "farm.review.failed"));
+      }
+      setSaleReviewOpen(false);
+    } catch (err) {
+      setSaleReviewError(
+        err instanceof Error ? err.message : t(lang, "farm.review.failed"),
+      );
+    } finally {
+      setSaleReviewBusy(false);
+    }
+  };
 
   const downloadActiveMedia = () => {
     if (!allowMediaDownload || !activeItem?.url) return;
@@ -638,6 +731,11 @@ export function ListingDetail({
                 {t(lang, "detail.downloadMedia")}
               </button>
             ) : null}
+            {availabilityBadgeI18n ? (
+              <span className="absolute top-3 right-3 z-10 rounded-full bg-[#D97706]/95 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                {t(lang, availabilityBadgeI18n)}
+              </span>
+            ) : null}
           </div>
           <div className="grid grid-cols-5 gap-1.5">
             {gallery.map((item, i) => (
@@ -885,6 +983,18 @@ export function ListingDetail({
                   {t(lang, "detail.updateDetails")}
                 </Link>
               ) : null}
+              {showStatusUpdate ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusError("");
+                    setStatusModalOpen(true);
+                  }}
+                  className="w-full py-2.5 border border-amber-200 text-amber-800 text-sm font-medium rounded-full hover:bg-amber-50 transition-colors"
+                >
+                  {t(lang, "listing.statusModal.open")}
+                </button>
+              ) : null}
               <div
                 className={`grid gap-2 ${
                   listingDetailShareActionsCols({
@@ -1099,6 +1209,29 @@ export function ListingDetail({
           if (busy !== "delete") setDeleteModalMode(null);
         }}
         onConfirm={() => void deleteOwnListing()}
+      />
+
+      <ListingStatusModal
+        lang={lang}
+        open={statusModalOpen}
+        currentStatus={listing.status}
+        busy={statusBusy}
+        error={statusError}
+        onClose={() => {
+          if (!statusBusy) setStatusModalOpen(false);
+        }}
+        onSubmit={(payload) => void submitListingStatus(payload)}
+      />
+
+      <SaleReviewModal
+        lang={lang}
+        open={saleReviewOpen}
+        busy={saleReviewBusy}
+        error={saleReviewError}
+        onClose={() => {
+          if (!saleReviewBusy) setSaleReviewOpen(false);
+        }}
+        onSubmit={(payload) => void submitSaleReview(payload)}
       />
 
       {reportOpen && (

@@ -28,7 +28,10 @@ const DEAL_INFO_NOTIFICATION_TYPES = new Set([
   "deal_reviewed",
   "deal_dispute_opened",
   "deal_dispute_resolved",
+  "farm_reviewed",
 ]);
+
+const FARM_SALE_REVIEW_NOTIFICATION_TYPES = new Set(["farm_sale_review_request"]);
 
 const ADMIN_QUEUE_NOTIFICATION_TYPES = new Set([
   "admin_breeder_pending",
@@ -68,6 +71,7 @@ export type NotificationInboxCtaFallbacks = {
   depositConfirm: string;
   dealCompleteConfirm: string;
   viewListing: string;
+  farmSaleReview: string;
 };
 
 export function notificationType(item: NotificationDeepLinkInput) {
@@ -222,6 +226,23 @@ export function isDealCompleteRequestNotification(
   return type === "deal_complete_request";
 }
 
+export function isFarmSaleReviewRequestNotification(
+  item: NotificationDeepLinkInput | string | null | undefined,
+) {
+  const type =
+    typeof item === "string" || !item ? String(item || "") : notificationType(item);
+  return FARM_SALE_REVIEW_NOTIFICATION_TYPES.has(type);
+}
+
+export function farmSaleReviewNotificationHref(
+  item: NotificationDeepLinkInput,
+): string | null {
+  if (!isFarmSaleReviewRequestNotification(item)) return null;
+  const postId = String(item.post_id || "").trim();
+  if (!postId) return null;
+  return `/app/pet-feed/posts/${encodeURIComponent(postId)}?saleReview=1`;
+}
+
 export function isDealActionNotification(
   _item: NotificationDeepLinkInput | string | null | undefined,
 ) {
@@ -254,6 +275,9 @@ export function notificationInboxCta(
   if (type === "transparency_warning") return stored || fallbacks.transparencyWarning;
   if (type === "transparency_warning_resolved") {
     return stored || fallbacks.transparencyResolved;
+  }
+  if (isFarmSaleReviewRequestNotification(type)) {
+    return stored || fallbacks.farmSaleReview;
   }
   if (isAdminQueueNotification(type)) {
     return stored || fallbacks.adminRequest;

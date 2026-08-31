@@ -1,5 +1,5 @@
 /** Tabs on the public farm profile (`FarmDetail`). */
-export const FARM_DETAIL_TABS = ["overview", "listings", "warranty"] as const;
+export const FARM_DETAIL_TABS = ["overview", "listings", "reviews", "warranty"] as const;
 
 export type FarmDetailTab = (typeof FARM_DETAIL_TABS)[number];
 

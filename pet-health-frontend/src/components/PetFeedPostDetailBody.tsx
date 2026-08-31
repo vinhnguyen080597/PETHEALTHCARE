@@ -69,6 +69,8 @@ type PetFeedPostDetailBodyProps = {
   showFavorite?: boolean;
   showMessageButton?: boolean;
   showEditButton?: boolean;
+  showStatusButton?: boolean;
+  onPressStatusUpdate?: () => void;
 };
 
 export function PetFeedPostDetailBody({
@@ -80,6 +82,8 @@ export function PetFeedPostDetailBody({
   showFavorite = true,
   showMessageButton = false,
   showEditButton = false,
+  showStatusButton = false,
+  onPressStatusUpdate,
 }: PetFeedPostDetailBodyProps) {
   const { t, i18n } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -259,6 +263,22 @@ export function PetFeedPostDetailBody({
                   <Ionicons name="create-outline" size={15} color={BRAND.textBrandLink} />
                   <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
                     {t('petFeed.editListing')}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {showStatusButton && onPressStatusUpdate ? (
+                <Pressable
+                  accessibilityRole="button"
+                  className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+                  style={{
+                    backgroundColor: BRAND.btnSecondary,
+                    borderColor: BRAND.borderBrand,
+                  }}
+                  onPress={onPressStatusUpdate}
+                >
+                  <Ionicons name="flag-outline" size={15} color={BRAND.textBrandLink} />
+                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                    {t('listing.statusModal.open')}
                   </Text>
                 </Pressable>
               ) : null}

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,7 +18,7 @@ import { PetFeedListingCard } from '../components/PetFeedListingCard';
 import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
 import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
-import { deleteWarrantyPolicy } from '../api';
+import { createBreederFarmReview, deleteWarrantyPolicy, getBreederFarmReviews } from '../api';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../assets/farmProfileAssets';
 import { BRAND } from '../theme/brand';
@@ -117,6 +117,9 @@ export function BreederDetailScreen({
   const [warrantyMenuId, setWarrantyMenuId] = useState<string | null>(null);
   const [warrantyBusyId, setWarrantyBusyId] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState<FarmPhotoKind | null>(null);
+  const [reviewThreads, setReviewThreads] = useState<Array<{ id: string; rating: number; body?: string }>>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
 
   const coverUrl = resolveFarmCoverUrl(profile);
   const avatarUrl = resolveFarmAvatarUrl(profile);
@@ -149,6 +152,61 @@ export function BreederDetailScreen({
       })),
     [farmPetCount, t],
   );
+
+  useEffect(() => {
+    if (reviewsLoaded || reviewsLoading) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+    void getBreederFarmReviews(token, profile.id)
+      .then((res) => {
+        if (cancelled) return;
+        const threads = Array.isArray(res.data?.threads) ? res.data.threads : [];
+        setReviewThreads(
+          threads.map((row) => ({
+            id: String((row as { id?: string }).id || ''),
+            rating: Number((row as { rating?: number }).rating) || 0,
+            body: String((row as { body?: string }).body || ''),
+          })),
+        );
+        setReviewsLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setReviewThreads([]);
+      })
+      .finally(() => {
+        if (!cancelled) setReviewsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile.id, reviewsLoaded, reviewsLoading, token]);
+
+  function promptFarmReview() {
+    if (isOwnProfile) return;
+    if (!token) {
+      Alert.alert(t('common.error'), t('farm.review.loginRequired'));
+      return;
+    }
+    Alert.alert(t('farm.review.modalTitle'), t('farm.review.modalHint'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      ...[5, 4, 3, 2, 1].map((rating) => ({
+        text: `${rating}★`,
+        onPress: () => {
+          void createBreederFarmReview(token, profile.id, { rating })
+            .then(() => {
+              setReviewsLoaded(false);
+              Alert.alert(t('common.ok'), t('farm.review.submit'));
+            })
+            .catch((error: unknown) => {
+              Alert.alert(
+                t('common.error'),
+                error instanceof Error ? error.message : t('farm.review.failed'),
+              );
+            });
+        },
+      })),
+    ]);
+  }
 
   function confirmDeleteWarranty(policy: WarrantyPolicy) {
     if (!token) return;
@@ -591,8 +649,27 @@ export function BreederDetailScreen({
               <Text style={{ fontSize: 15, fontWeight: '700', color: FARM_TEXT, marginBottom: 10 }}>
                 {t('farm.tab.reviews')}
               </Text>
-              <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 20 }}>
-                <Text style={{ fontSize: 13, color: FARM_MUTED, textAlign: 'center' }}>{t('farm.reviews.empty')}</Text>
+              <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16, gap: 10 }}>
+                {reviewsLoading ? (
+                  <Text style={{ fontSize: 13, color: FARM_MUTED, textAlign: 'center' }}>{t('common.loading')}</Text>
+                ) : reviewThreads.length > 0 ? (
+                  reviewThreads.slice(0, 3).map((thread) => (
+                    <View key={thread.id} style={{ gap: 4 }}>
+                      <Text style={{ fontWeight: '700', color: FARM_TEXT, fontSize: 13 }}>
+                        {'★'.repeat(thread.rating)} ({thread.rating}/5)
+                      </Text>
+                      {thread.body ? (
+                        <Text style={{ fontSize: 13, color: FARM_MUTED }} numberOfLines={3}>
+                          {thread.body}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={{ fontSize: 13, color: FARM_MUTED, textAlign: 'center' }}>
+                    {t('farm.reviews.empty')}
+                  </Text>
+                )}
               </View>
             </View>
           </View>
@@ -838,7 +915,8 @@ export function BreederDetailScreen({
             paddingHorizontal: 16,
             paddingTop: 12,
             paddingBottom: 16,
-            gap: 8,
+            flexDirection: 'row',
+            gap: 10,
           }}
         >
           <Pressable
@@ -846,13 +924,34 @@ export function BreederDetailScreen({
             accessibilityRole="button"
             onPress={() => onMessageFarm?.(profile)}
             style={{
+              flex: 1,
               borderRadius: 12,
               backgroundColor: FARM_ACCENT,
               paddingVertical: 13,
               alignItems: 'center',
             }}
           >
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>💬 {t('farm.cta.message')}</Text>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+              💬 {t('farm.cta.message')}
+            </Text>
+          </Pressable>
+          <Pressable
+            testID="farm-review-button"
+            accessibilityRole="button"
+            onPress={promptFarmReview}
+            style={{
+              flex: 1,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: FARM_BORDER,
+              backgroundColor: '#fff',
+              paddingVertical: 13,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ color: FARM_TEXT, fontWeight: '700', fontSize: 14 }}>
+              ⭐ {t('farm.review.open')}
+            </Text>
           </Pressable>
         </View>
       ) : null}

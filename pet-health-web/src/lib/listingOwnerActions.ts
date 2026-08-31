@@ -65,6 +65,16 @@ export function canShowWarrantyUpdateCta(input: {
   return isListingAvailableStatus(input.status);
 }
 
+/** Owner may manually update listing availability (có sẵn / đã cọc / đã bán). */
+export function canShowListingStatusUpdate(input: {
+  isOwner: boolean;
+  status: string | null | undefined;
+}): boolean {
+  if (!input.isOwner) return false;
+  const s = String(input.status || "").trim().toLowerCase();
+  return s === "published" || s === "deposit_hold" || s === "sold";
+}
+
 /** Edit listing page for the owner (web). */
 export function listingEditHref(postId: string): string {
   const id = String(postId || "").trim();

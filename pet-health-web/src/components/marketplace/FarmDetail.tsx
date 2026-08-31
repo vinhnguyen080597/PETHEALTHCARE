@@ -46,6 +46,9 @@ import { ListingCard } from "./ListingCard";
 import { DisclaimerBanner } from "./DisclaimerBanner";
 import { FarmHealth } from "./FarmHealth";
 import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
+import { FarmReviewModal } from "./FarmReviewModal";
+import type { BreederFarmReviewThread } from "@/lib/breederFarmReviews";
+import { formatBreederReviewLabel } from "@/lib/breederFarmReviews";
 
 const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
 
@@ -434,6 +437,12 @@ export function FarmDetail({
   const [avatarUrl, setAvatarUrl] = useState(breeder.avatar);
   const [photoBusy, setPhotoBusy] = useState<"avatar" | "cover" | null>(null);
   const [photoError, setPhotoError] = useState("");
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewThreads, setReviewThreads] = useState<BreederFarmReviewThread[]>([]);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const pendingPhotoRef = useRef<{ kind: "avatar" | "cover"; url: string } | null>(
@@ -453,6 +462,61 @@ export function FarmDetail({
   const cover = coverUrl || FALLBACK_COVER;
   const bioText = (lang === "VI" ? breeder.bioVI : breeder.bio).trim();
   const facilitySocials = farmFacilitySocialLinks(breeder.contact);
+
+  useEffect(() => {
+    if (tab !== "reviews" || reviewsLoaded || reviewsLoading) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+    void fetch(`/api/breeders/${encodeURIComponent(breeder.id)}/reviews`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled) return;
+        const threads = Array.isArray(json?.data?.threads) ? json.data.threads : [];
+        setReviewThreads(threads);
+        setReviewsLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setReviewThreads([]);
+      })
+      .finally(() => {
+        if (!cancelled) setReviewsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, breeder.id, reviewsLoaded, reviewsLoading]);
+
+  const submitFarmReview = async (payload: {
+    rating: number;
+    body: string;
+    photoUrls: string[];
+  }) => {
+    setReviewBusy(true);
+    setReviewError("");
+    try {
+      const res = await fetch(
+        `/api/breeders/${encodeURIComponent(breeder.id)}/reviews`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || t(lang, "farm.review.failed"));
+      }
+      setReviewOpen(false);
+      setReviewsLoaded(false);
+      router.refresh();
+    } catch (err) {
+      setReviewError(
+        err instanceof Error ? err.message : t(lang, "farm.review.failed"),
+      );
+    } finally {
+      setReviewBusy(false);
+    }
+  };
 
   const tabs: { key: FarmDetailTab; label: string }[] = FARM_DETAIL_TABS.map(
     (key) => ({
@@ -940,22 +1004,32 @@ export function FarmDetail({
                 </section>
 
                 <section className="space-y-3">
-                  <h2 className="text-base font-semibold text-[#2B1E19]">
-                    {t(lang, "farm.tab.reviews")}
-                    {reviewCount > 0 ? ` (${reviewCount})` : ""}
-                  </h2>
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-base font-semibold text-[#2B1E19]">
+                      {t(lang, "farm.tab.reviews")}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => selectTab("reviews")}
+                      className="text-sm font-medium text-[#D97706] hover:text-[#B45309]"
+                    >
+                      {t(lang, "farm.review.viewAll")}
+                    </button>
+                  </div>
                   <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5">
                     {reviewCount > 0 && trustMetrics.rating != null ? (
-                      <p className="text-sm text-[#2B1E19] mb-3">
-                        ⭐ {trustMetrics.rating.toFixed(1)} / 5.0{" "}
-                        <span className="text-[#6E5A51]">
-                          ({reviewCount} {t(lang, "breeders.card.reviews")})
-                        </span>
+                      <p className="text-sm text-[#2B1E19]">
+                        {formatBreederReviewLabel(
+                          trustMetrics.rating,
+                          reviewCount,
+                          lang,
+                        )}
                       </p>
-                    ) : null}
-                    <p className="text-sm text-[#6E5A51] py-6 text-center">
-                      {t(lang, "farm.reviews.empty")}
-                    </p>
+                    ) : (
+                      <p className="text-sm text-[#6E5A51] py-4 text-center">
+                        {t(lang, "farm.reviews.empty")}
+                      </p>
+                    )}
                   </div>
                 </section>
               </div>
@@ -1001,6 +1075,66 @@ export function FarmDetail({
               </div>
             )}
 
+            {tab === "reviews" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-base font-semibold text-[#2B1E19]">
+                    {t(lang, "farm.tab.reviews")}
+                    {reviewCount > 0 ? ` (${reviewCount})` : ""}
+                  </h2>
+                  {!isOwner && isLoggedIn ? (
+                    <button
+                      type="button"
+                      onClick={() => setReviewOpen(true)}
+                      className="rounded-full bg-[#D97706] px-4 py-2 text-sm font-semibold text-white hover:bg-[#B45309]"
+                    >
+                      {t(lang, "farm.review.open")}
+                    </button>
+                  ) : null}
+                </div>
+                {reviewsLoading ? (
+                  <p className="text-sm text-[#6E5A51]">{t(lang, "common.loading")}</p>
+                ) : reviewThreads.length > 0 ? (
+                  <div className="space-y-3">
+                    {reviewThreads.map((thread) => (
+                      <article
+                        key={thread.id}
+                        className="rounded-2xl border border-[#F3E2C8] bg-white p-4"
+                      >
+                        <p className="text-sm font-semibold text-[#2B1E19]">
+                          {"★".repeat(thread.rating)}
+                          <span className="ml-2 font-normal text-[#6E5A51]">
+                            {thread.rating}/5
+                          </span>
+                        </p>
+                        {thread.body ? (
+                          <p className="mt-2 text-sm text-[#2B1E19]">{thread.body}</p>
+                        ) : null}
+                        {thread.supplements?.length ? (
+                          <div className="mt-3 space-y-2 border-l-2 border-[#F3E2C8] pl-3">
+                            {thread.supplements.map((sup) => (
+                              <div key={sup.id}>
+                                <p className="text-xs font-semibold text-[#6E5A51]">
+                                  {t(lang, "farm.review.supplement")} · {"★".repeat(sup.rating)}
+                                </p>
+                                {sup.body ? (
+                                  <p className="text-sm text-[#2B1E19]">{sup.body}</p>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-[#6E5A51] py-8 text-center">
+                    {t(lang, "farm.reviews.empty")}
+                  </p>
+                )}
+              </div>
+            )}
+
             {tab === "warranty" && (
               <FarmWarrantyTab
                 lang={lang}
@@ -1017,6 +1151,18 @@ export function FarmDetail({
           <aside className="w-full lg:w-[30%] lg:sticky lg:top-24 space-y-4">
             {!isOwner && (
               <div className="bg-white border border-[#F3E2C8] rounded-2xl p-4 space-y-2.5 shadow-[0_10px_30px_-24px_rgba(217,119,6,0.35)]">
+                {isLoggedIn ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (tab !== "reviews") selectTab("reviews");
+                      setReviewOpen(true);
+                    }}
+                    className="w-full py-2.5 border border-[#F3E2C8] text-[#2B1E19] text-sm font-semibold rounded-xl hover:bg-amber-50 transition-colors"
+                  >
+                    ⭐ {t(lang, "farm.review.open")}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => void messageBreeder()}
@@ -1087,7 +1233,12 @@ export function FarmDetail({
                   </>
                 ) : (
                   <>
-                    ⭐ {t(lang, "farm.trust.ratingEmpty")}
+                    ⭐{" "}
+                    {formatBreederReviewLabel(
+                      trustMetrics.rating ?? 0,
+                      reviewCount,
+                      lang,
+                    ) || t(lang, "farm.trust.ratingEmpty")}
                   </>
                 )}
               </p>
@@ -1169,6 +1320,17 @@ export function FarmDetail({
           </div>
         </div>
       )}
+
+      <FarmReviewModal
+        lang={lang}
+        open={reviewOpen}
+        busy={reviewBusy}
+        error={reviewError}
+        onClose={() => {
+          if (!reviewBusy) setReviewOpen(false);
+        }}
+        onSubmit={(payload) => void submitFarmReview(payload)}
+      />
     </div>
   );
 }

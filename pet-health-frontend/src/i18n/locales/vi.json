@@ -388,7 +388,8 @@
       "depositCancelSuccess": "Đã xác nhận hủy cọc.",
       "depositRequestCta": "Xác nhận cọc",
       "dealCompleteCta": "Xác nhận bàn giao",
-      "viewListing": "Xem bài đăng"
+      "viewListing": "Xem bài đăng",
+      "farmSaleReview": "Đánh giá"
     },
     "reportListing": "Báo cáo bài đăng",
     "editListing": "Chỉnh sửa",
@@ -604,8 +605,19 @@
     "reviews": {
       "empty": "Chưa có đánh giá từ khách"
     },
+    "review": {
+      "open": "Đánh giá",
+      "modalTitle": "Đánh giá trại",
+      "modalHint": "Lần đầu là đánh giá chính; các lần sau hiển thị như bổ sung.",
+      "bodyPlaceholder": "Chia sẻ trải nghiệm (tuỳ chọn)",
+      "submit": "Gửi đánh giá",
+      "submitting": "Đang gửi…",
+      "failed": "Không gửi được đánh giá.",
+      "supplement": "Cập nhật",
+      "loginRequired": "Vui lòng đăng nhập để đánh giá trại."
+    },
     "cta": {
-      "message": "Nhắn Tin Với Breeder",
+      "message": "Nhắn tin",
       "video": "Yêu Cầu Gọi Video Xem Bé",
       "videoSoon": "Tính năng đang phát triển"
     },
@@ -2629,6 +2641,28 @@
         "cat": "Ảnh que test nhanh có ngày giờ (Panleukopenia / FIP)"
       },
       "vet_diagnosis_or_pcr": "Chẩn đoán / PCR từ thú y"
+    }
+  },
+  "listing": {
+    "availability": {
+      "available": "Có sẵn",
+      "depositHold": "Đã cọc"
+    },
+    "statusChoice": {
+      "published": "Có sẵn",
+      "deposit_hold": "Đã cọc",
+      "sold": "Đã bán"
+    },
+    "statusModal": {
+      "open": "Cập nhật trạng thái",
+      "title": "Cập nhật trạng thái bài đăng",
+      "saleChannel": "Bán trong hay ngoài sàn?",
+      "onPlatform": "Trong sàn PetCare",
+      "offPlatform": "Ngoài sàn",
+      "buyerEmailOptional": "Email Sen (tuỳ chọn, để mời đánh giá)",
+      "save": "Lưu",
+      "saving": "Đang lưu…",
+      "failed": "Không cập nhật được trạng thái."
     }
   }
 }

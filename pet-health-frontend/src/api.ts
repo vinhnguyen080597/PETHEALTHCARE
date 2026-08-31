@@ -1046,6 +1046,65 @@ export async function deletePetFeedPostComment(token: string, commentId: string)
   });
 }
 
+export async function getBreederFarmReviews(token: string | null, profileId: string) {
+  return requestJson<{ data: { threads?: unknown[]; review_count?: number; review_avg?: number } }>(
+    `/pet-feed/breeder-profiles/${encodeURIComponent(profileId)}/reviews`,
+    { headers: token ? authHeaders(token) : {} },
+  );
+}
+
+export async function createBreederFarmReview(
+  token: string,
+  profileId: string,
+  body: { rating: number; body?: string; photoUrls?: string[] },
+) {
+  return requestJson<{ data: unknown }>(
+    `/pet-feed/breeder-profiles/${encodeURIComponent(profileId)}/reviews`,
+    {
+      method: 'POST',
+      headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function patchListingStatus(
+  token: string,
+  postId: string,
+  body: { status: string; saleChannel?: string; buyerEmail?: string },
+) {
+  return requestJson<{ data: PetFeedPost }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/listing-status`,
+    {
+      method: 'PATCH',
+      headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function getMySaleReview(token: string, postId: string) {
+  return requestJson<{ data: { review: unknown | null; hasReviewed: boolean } }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/sale-review/me`,
+    { headers: authHeaders(token) },
+  );
+}
+
+export async function createSaleFarmReview(
+  token: string,
+  postId: string,
+  body: { rating: number; body?: string; photoUrls?: string[] },
+) {
+  return requestJson<{ data: unknown }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/sale-review`,
+    {
+      method: 'POST',
+      headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
 export async function listPetFeedNotifications(token: string) {
   return requestJson<{ data: PetFeedNotification[]; unread_count: number }>('/pet-feed/notifications', {
     headers: authHeaders(token),

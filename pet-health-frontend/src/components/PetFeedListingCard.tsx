@@ -10,6 +10,10 @@ import { computeBreederTrust } from '../utils/breederTrust';
 import { farmImageSource, resolveFarmAvatarUrl } from '../utils/farmProfileDisplay';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
+  listingAvailabilityBadgeKey,
+  listingAvailabilityBadgeLabelKey,
+} from '../utils/listingAvailabilityBadge';
+import {
   fillTemplate,
   listingAvailability,
   isOwnListingPost,
@@ -120,6 +124,9 @@ function PetFeedListingCardComponent({
   const isCancelled = post.status === 'cancelled' || listingMetadataMarksCancelled(meta);
   const isSold = post.status === 'sold' || listingMetadataMarksSold(meta);
   const availability = listingAvailability(post);
+  const availabilityBadgeKey = listingAvailabilityBadgeLabelKey(
+    listingAvailabilityBadgeKey(post.status),
+  );
   const trustScore = breeder ? computeBreederTrust(breeder, [post]).score : 0;
   const breederFooterMetrics = listingBreederFooterMetrics(post, trustScore);
   const breederAvatarUrl = breeder ? resolveFarmAvatarUrl(breeder) : null;
@@ -142,6 +149,13 @@ function PetFeedListingCardComponent({
             <Ionicons name="paw-outline" size={42} color={BRAND.btnPrimary} />
           </View>
         )}
+        {availabilityBadgeKey ? (
+          <View className="absolute right-3 top-3">
+            <OverlayPill style={{ backgroundColor: 'rgba(217,119,6,0.95)', color: BRAND.textInverse }}>
+              {t(availabilityBadgeKey)}
+            </OverlayPill>
+          </View>
+        ) : null}
         <View className="absolute left-3 top-3 max-w-[75%] gap-1.5">
           <OverlayPill style={{ borderColor: `${BRAND.borderBrand}CC` }}>
             {`${listingSpeciesEmoji(post.species)} ${speciesLabel}`}

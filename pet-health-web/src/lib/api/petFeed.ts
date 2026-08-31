@@ -513,9 +513,65 @@ export async function uploadDealPhoto(token: string, formData: FormData) {
 }
 
 export async function getBreederDealReviews(token: string | null, profileId: string) {
-  return fetchJson<{ data: import("../breederDealReviews").BreederDealReviewAggregate }>(
+  return fetchJson<{ data: import("../breederFarmReviews").BreederFarmReviewAggregate }>(
     `/pet-feed/breeder-profiles/${encodeURIComponent(profileId)}/reviews`,
     { token, cache: "no-store" },
+  );
+}
+
+export async function createBreederFarmReview(
+  token: string,
+  profileId: string,
+  body: { rating: number; body?: string; photoUrls?: string[] },
+) {
+  return fetchJson<{ data: { review: unknown; kind: string } }>(
+    `/pet-feed/breeder-profiles/${encodeURIComponent(profileId)}/reviews`,
+    { method: "POST", token, body },
+  );
+}
+
+export async function uploadFarmReviewPhoto(token: string, formData: FormData) {
+  return fetchJson<{ data: { publicUrl: string; kind: string } }>(
+    "/pet-feed/uploads/farm-review-photo",
+    {
+      method: "POST",
+      token,
+      formData,
+      timeoutMs: UPLOAD_TIMEOUT_MS,
+    },
+  );
+}
+
+export async function patchListingStatus(
+  token: string,
+  postId: string,
+  body: {
+    status: string;
+    saleChannel?: string;
+    buyerEmail?: string;
+  },
+) {
+  return fetchJson<{ data: ApiPetFeedPost }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/listing-status`,
+    { method: "PATCH", token, body },
+  );
+}
+
+export async function getMySaleReview(token: string, postId: string) {
+  return fetchJson<{ data: { review: unknown | null; hasReviewed: boolean } }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/sale-review/me`,
+    { token, cache: "no-store" },
+  );
+}
+
+export async function createSaleFarmReview(
+  token: string,
+  postId: string,
+  body: { rating: number; body?: string; photoUrls?: string[] },
+) {
+  return fetchJson<{ data: { review: unknown } }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/sale-review`,
+    { method: "POST", token, body },
   );
 }
 

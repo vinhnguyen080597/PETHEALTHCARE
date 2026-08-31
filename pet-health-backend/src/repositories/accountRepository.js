@@ -56,6 +56,35 @@ export async function getAccountProfile(userId) {
   return toAccount(data);
 }
 
+/** Resolve buyer account by email or login identifier (case-insensitive). */
+export async function findAccountByEmail(email) {
+  const normalized = trimText(email, 320).toLowerCase();
+  if (!normalized) return null;
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    const row = memoryAccounts.find((account) => {
+      const accountEmail = trimText(account.email, 320).toLowerCase();
+      const loginId = trimText(account.login_identifier, 320).toLowerCase();
+      return accountEmail === normalized || loginId === normalized;
+    });
+    return toAccount(row ?? null);
+  }
+  const { data: byEmail, error: emailError } = await supabase
+    .from('app_user_profiles')
+    .select('*')
+    .ilike('email', normalized)
+    .maybeSingle();
+  if (emailError) throw emailError;
+  if (byEmail) return toAccount(byEmail);
+  const { data: byLogin, error: loginError } = await supabase
+    .from('app_user_profiles')
+    .select('*')
+    .ilike('login_identifier', normalized)
+    .maybeSingle();
+  if (loginError) throw loginError;
+  return toAccount(byLogin);
+}
+
 export async function ensureAccountProfile({
   userId,
   email,

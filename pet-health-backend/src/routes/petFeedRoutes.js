@@ -36,6 +36,7 @@ import {
   createBreederProfileSubmission,
   listMyBreederProfileSubmissions,
   cancelMyBreederProfileSubmission,
+  updateOwnerListingStatus,
 } from '../repositories/petFeedRepository.js';
 import {
   getPetFeedConversation,
@@ -48,6 +49,7 @@ import {
 } from '../repositories/petFeedMessagingRepository.js';
 import {
   createAdminRequestNotifications,
+  createDealNotification,
   createPostCommentNotification,
   createTransparencyWarningNotification,
   listPetFeedNotifications,
@@ -79,7 +81,17 @@ import {
   storePetFeedVideo,
 } from '../services/imageStorageService.js';
 import { breederSubmissionTypeLabel } from '../utils/breederProfileSubmissions.js';
-import { getBreederDealReviewAggregate } from '../repositories/breederDealReviewsRepository.js';
+import {
+  buildFarmReviewedNotificationPreview,
+  buildFarmSaleReviewRequestPreview,
+} from '../utils/breederFarmReviews.js';
+import {
+  createBreederFarmReview,
+  createSaleFarmReview,
+  getBreederFarmReviewAggregate,
+  getMySaleReviewForPost,
+  normalizeFarmReviewPhotoUrlsFromBody,
+} from '../repositories/breederFarmReviewsRepository.js';
 import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 const router = Router();
@@ -450,6 +462,33 @@ router.post('/uploads/file', requireAnyRole('breeder', 'admin'), petFeedUpload.s
         ? await storePetFeedThumb({ userId: req.user.id, file, accessToken: req.accessToken })
         : await storePetFeedImage({ userId: req.user.id, file, accessToken: req.accessToken });
     return res.status(201).json({ data: { publicUrl, kind } });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/** Farm review photos (public bucket). */
+router.post('/uploads/farm-review-photo', petFeedUpload.single('file'), async (req, res, next) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'file is required', code: 'PET_FEED_FILE_REQUIRED' });
+    }
+    if (!SUPPORTED_IMAGE_MIMES.has(file.mimetype)) {
+      return res.status(400).json({ error: 'Unsupported photo type.', code: 'PET_FEED_UNSUPPORTED_PHOTO' });
+    }
+    if (file.size > PET_FEED_PHOTO_MAX_BYTES) {
+      return res.status(400).json({
+        error: `Photo is too large. Please use photos under ${petFeedPhotoMaxLabel()}.`,
+        code: 'PET_FEED_PHOTO_TOO_LARGE',
+      });
+    }
+    const publicUrl = await storePetFeedImage({
+      userId: req.user.id,
+      file,
+      accessToken: req.accessToken,
+    });
+    return res.status(201).json({ data: { publicUrl, kind: 'photo' } });
   } catch (err) {
     return next(err);
   }
@@ -1419,8 +1458,149 @@ router.get('/breeder-profiles/:profileId/reviews', async (req, res, next) => {
     if (!profileId) {
       return res.status(400).json({ error: 'profileId is required', code: 'MISSING_PROFILE_ID' });
     }
-    const aggregate = await getBreederDealReviewAggregate(profileId, req.accessToken);
+    const aggregate = await getBreederFarmReviewAggregate(profileId, req.accessToken);
     return res.json({ data: aggregate });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/breeder-profiles/:profileId/reviews', async (req, res, next) => {
+  try {
+    const profileId = cleanId(req.params.profileId);
+    if (!profileId) {
+      return res.status(400).json({ error: 'profileId is required', code: 'MISSING_PROFILE_ID' });
+    }
+    const body = req.body ?? {};
+    const photoUrls = normalizeFarmReviewPhotoUrlsFromBody(body);
+    const result = await createBreederFarmReview(
+      req.user.id,
+      profileId,
+      { ...body, photoUrls },
+      req.accessToken,
+    );
+    if (result.notify_user_id && result.notify_user_id !== req.user.id) {
+      void createDealNotification({
+        recipientUserId: result.notify_user_id,
+        actorUserId: req.user.id,
+        postId: null,
+        type: 'farm_reviewed',
+        bodyPreview: buildFarmReviewedNotificationPreview({
+          rating: result.review.rating,
+          body: result.review.body,
+        }),
+        metadata: {
+          breeder_profile_id: profileId,
+          review_id: result.review.id,
+          cta_href: `/app/breeders/${encodeURIComponent(profileId)}?tab=reviews`,
+          cta_label: 'Xem đánh giá',
+        },
+        accessToken: req.accessToken,
+      });
+    }
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'farm_review_created',
+      metadata: { breeder_profile_id: profileId, kind: result.kind },
+    });
+    return res.status(201).json({ data: result });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/posts/:postId/sale-review/me', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) {
+      return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    }
+    const review = await getMySaleReviewForPost(req.user.id, postId, req.accessToken);
+    return res.json({ data: { review, hasReviewed: Boolean(review?.id) } });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/posts/:postId/sale-review', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) {
+      return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    }
+    const body = req.body ?? {};
+    const photoUrls = normalizeFarmReviewPhotoUrlsFromBody(body);
+    const result = await createSaleFarmReview(
+      req.user.id,
+      postId,
+      { ...body, photoUrls },
+      req.accessToken,
+    );
+    if (result.notify_user_id && result.notify_user_id !== req.user.id) {
+      void createDealNotification({
+        recipientUserId: result.notify_user_id,
+        actorUserId: req.user.id,
+        postId,
+        type: 'farm_reviewed',
+        bodyPreview: buildFarmReviewedNotificationPreview({
+          rating: result.review.rating,
+          body: result.review.body,
+        }),
+        metadata: {
+          breeder_profile_id: result.breeder_profile_id,
+          review_id: result.review.id,
+          cta_href: `/app/breeders/${encodeURIComponent(result.breeder_profile_id)}?tab=reviews`,
+          cta_label: 'Xem đánh giá',
+        },
+        accessToken: req.accessToken,
+      });
+    }
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'farm_sale_review_created',
+      metadata: { post_id: postId, breeder_profile_id: result.breeder_profile_id },
+    });
+    return res.status(201).json({ data: result });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.patch('/posts/:postId/listing-status', async (req, res, next) => {
+  try {
+    const postId = cleanId(req.params.postId);
+    if (!postId) {
+      return res.status(400).json({ error: 'postId is required', code: 'MISSING_POST_ID' });
+    }
+    const body = req.body ?? {};
+    const result = await updateOwnerListingStatus(req.user.id, postId, body, req.accessToken);
+    if (!result) {
+      return res.status(404).json({ error: 'Listing not found', code: 'PET_FEED_POST_NOT_FOUND' });
+    }
+    if (result.notifyBuyerUserId) {
+      void createDealNotification({
+        recipientUserId: result.notifyBuyerUserId,
+        actorUserId: req.user.id,
+        postId,
+        type: 'farm_sale_review_request',
+        bodyPreview: buildFarmSaleReviewRequestPreview({
+          farmName: result.farmName,
+          postTitle: result.postTitle,
+        }),
+        metadata: {
+          breeder_profile_id: result.breederProfileId,
+          cta_href: `/app/pet-feed/posts/${encodeURIComponent(postId)}?saleReview=1`,
+          cta_label: 'Đánh giá',
+        },
+        accessToken: req.accessToken,
+      });
+    }
+    void recordProductEvent({
+      userId: req.user.id,
+      event: 'listing_status_updated',
+      metadata: { post_id: postId, status: body.status },
+    });
+    return res.json({ data: result.post });
   } catch (err) {
     return next(err);
   }

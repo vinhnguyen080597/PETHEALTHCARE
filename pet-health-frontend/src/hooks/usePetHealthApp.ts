@@ -77,6 +77,8 @@ import {
   appealTransparencyWarning,
   openPetFeedConversation,
   openBreederFarmConversation,
+  patchListingStatus,
+  createSaleFarmReview,
   sendPetFeedConversationMessage,
   uploadPetFeedChatMedia,
   requestBreedRecognition,
@@ -486,6 +488,7 @@ export function usePetHealthApp() {
   const [petFeedFocusPostId, setPetFeedFocusPostId] = useState<string | null>(null);
   /** When opening post detail from a comment notification, scroll to this comment. */
   const [petFeedFocusCommentId, setPetFeedFocusCommentId] = useState<string | null>(null);
+  const [petFeedOpenSaleReview, setPetFeedOpenSaleReview] = useState(false);
   const [adminAccounts, setAdminAccounts] = useState<AccountProfile[]>([]);
   const [adminBreederProfiles, setAdminBreederProfiles] = useState<BreederProfile[]>([]);
   const [adminFeedPosts, setAdminFeedPosts] = useState<PetFeedPost[]>([]);
@@ -2190,11 +2193,15 @@ export function usePetHealthApp() {
 
   const markNotificationsReadForPostRef = useRef<(postId: string) => void>(() => {});
 
-  function openPetFeedPostDetail(postId: string, options?: { focusCommentId?: string | null }) {
+  function openPetFeedPostDetail(
+    postId: string,
+    options?: { focusCommentId?: string | null; saleReview?: boolean },
+  ) {
     if (!postId) return;
     setSelectedPetFeedPostId(postId);
     setPetFeedFocusPostId(null);
     setPetFeedFocusCommentId(options?.focusCommentId?.trim() || null);
+    setPetFeedOpenSaleReview(Boolean(options?.saleReview));
     setScreen('pet-feed-detail');
     // Deep links can land on detail before the feed tab was opened — warm cache in background.
     void ensurePetFeedCached();
@@ -2229,6 +2236,7 @@ export function usePetHealthApp() {
     const focusPostId = selectedPetFeedPostId;
     setSelectedPetFeedPostId(null);
     setPetFeedFocusCommentId(null);
+    setPetFeedOpenSaleReview(false);
     setMessageThreadModalVisible(false);
     setSelectedPetFeedConversation(null);
     setPetFeedMessages([]);
@@ -2435,6 +2443,45 @@ export function usePetHealthApp() {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
       Alert.alert(i18n.t('petFeed.deleteListingFailed'), message);
+      return false;
+    }
+  }
+
+  async function patchOwnListingStatus(
+    postId: string,
+    body: { status: string; saleChannel?: string; buyerEmail?: string },
+  ): Promise<PetFeedPost | null> {
+    if (!token || !postId) return null;
+    try {
+      const result = await patchListingStatus(token, postId, body);
+      const updated = result.data;
+      if (updated?.id) {
+        setPetFeedPosts((current) =>
+          current.map((item) => (item.id === updated.id ? updated : item)),
+        );
+        await refreshMyPetFeedPosts(token);
+      }
+      return updated ?? null;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('common.unknownError');
+      Alert.alert(i18n.t('common.error'), message);
+      return null;
+    }
+  }
+
+  async function submitSaleFarmReviewForPost(
+    postId: string,
+    body: { rating: number; body?: string },
+  ): Promise<boolean> {
+    if (!token || !postId) return false;
+    try {
+      await createSaleFarmReview(token, postId, body);
+      setPetFeedOpenSaleReview(false);
+      Alert.alert(i18n.t('common.ok'), i18n.t('farm.review.submit'));
+      return true;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : i18n.t('farm.review.failed');
+      Alert.alert(i18n.t('common.error'), message);
       return false;
     }
   }
@@ -2863,6 +2910,10 @@ export function usePetHealthApp() {
     }
     if (type === 'deposit_cancel_request' && notification.post_id) {
       openPetFeedPostDetail(notification.post_id);
+      return;
+    }
+    if (type === 'farm_sale_review_request' && notification.post_id) {
+      openPetFeedPostDetail(notification.post_id, { saleReview: true });
       return;
     }
     if (!notification.post_id) return;
@@ -4841,6 +4892,7 @@ export function usePetHealthApp() {
     selectedPetFeedPostId,
     petFeedFocusPostId,
     petFeedFocusCommentId,
+    petFeedOpenSaleReview,
     breederDetailTab,
     warrantyLibraryEditPolicy,
     openBreederDetail,
@@ -4905,6 +4957,8 @@ export function usePetHealthApp() {
     openCreatePetFeedPost,
     openEditPetFeedDraft,
     deleteOwnPetFeedPost,
+    patchOwnListingStatus,
+    submitSaleFarmReviewForPost,
     openCreateAdminPost,
     closeCreateAdminPost,
     submitAnnouncementPost,
