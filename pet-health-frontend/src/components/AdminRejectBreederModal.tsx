@@ -11,7 +11,7 @@ export type AdminRejectBreederPayload = {
 type AdminRejectBreederModalProps = {
   visible: boolean;
   submitting?: boolean;
-  variant?: 'breeder' | 'listing';
+  variant?: 'breeder' | 'listing' | 'farm_review';
   onClose: () => void;
   onSubmit: (payload: AdminRejectBreederPayload) => void | Promise<void>;
 };
@@ -29,6 +29,7 @@ export function AdminRejectBreederModal({
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const isListing = variant === 'listing';
+  const isFarmReview = variant === 'farm_review';
 
   useEffect(() => {
     if (!visible) return;
@@ -59,10 +60,22 @@ export function AdminRejectBreederModal({
           onPress={(event) => event.stopPropagation?.()}
         >
           <Text className="text-base font-bold text-slate-900">
-            {t(isListing ? 'adminReview.rejectListingTitle' : 'adminReview.rejectTitle')}
+            {t(
+              isFarmReview
+                ? 'adminReview.farmReviews.rejectTitle'
+                : isListing
+                  ? 'adminReview.rejectListingTitle'
+                  : 'adminReview.rejectTitle',
+            )}
           </Text>
           <Text className="mt-1 text-xs leading-5 text-slate-500">
-            {t(isListing ? 'adminReview.rejectListingHint' : 'adminReview.rejectHint')}
+            {t(
+              isFarmReview
+                ? 'adminReview.farmReviews.rejectHint'
+                : isListing
+                  ? 'adminReview.rejectListingHint'
+                  : 'adminReview.rejectHint',
+            )}
           </Text>
 
           <Text className="mt-4 text-xs font-semibold uppercase text-slate-500">
@@ -73,9 +86,11 @@ export function AdminRejectBreederModal({
             multiline
             textAlignVertical="top"
             placeholder={t(
-              isListing
-                ? 'adminReview.rejectListingReasonPlaceholder'
-                : 'adminReview.rejectReasonPlaceholder',
+              isFarmReview
+                ? 'adminReview.farmReviews.rejectReasonPlaceholder'
+                : isListing
+                  ? 'adminReview.rejectListingReasonPlaceholder'
+                  : 'adminReview.rejectReasonPlaceholder',
             )}
             value={reason}
             onChangeText={(value) => {
@@ -85,6 +100,8 @@ export function AdminRejectBreederModal({
             editable={!submitting}
           />
 
+          {!isFarmReview ? (
+            <>
           <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">
             {t('adminReview.rejectAction')}
           </Text>
@@ -106,6 +123,8 @@ export function AdminRejectBreederModal({
             onChangeText={setNote}
             editable={!submitting}
           />
+            </>
+          ) : null}
 
           {error ? <Text className="mt-2 text-sm text-red-600">{error}</Text> : null}
 

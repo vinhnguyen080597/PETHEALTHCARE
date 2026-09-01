@@ -29,6 +29,8 @@ export type BreederFarmReview = {
   photo_urls?: string[];
   status?: FarmReviewStatus;
   created_at?: string;
+  reviewer_display_name?: string;
+  reviewer_avatar_url?: string | null;
 };
 
 export type BreederFarmReviewThread = BreederFarmReview & {

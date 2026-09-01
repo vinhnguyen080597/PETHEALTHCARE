@@ -98,6 +98,7 @@ import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 function notifyAdminFarmReviewPending(req, result) {
   if (!result?.review?.id || result.kind === 'supplement') return;
+  const photoUrls = Array.isArray(result.review.photo_urls) ? result.review.photo_urls : [];
   void createAdminRequestNotifications({
     actorUserId: req.user.id,
     type: 'admin_farm_review_pending',
@@ -112,9 +113,13 @@ function notifyAdminFarmReviewPending(req, result) {
       review_id: result.review.id,
       kind: result.kind,
       rating: result.review.rating,
+      title: result.breeder_display_name || 'Đánh giá trại',
+      thumb_url: photoUrls[0] || undefined,
     },
     accessToken: req.accessToken,
-  }).catch(() => null);
+  }).catch((err) => {
+    console.error('admin_farm_review_pending notification failed', err);
+  });
 }
 
 const router = Router();

@@ -47,18 +47,10 @@ export function filterApprovedFarmReviews(reviews) {
 }
 
 /**
- * Public list: approved rows + caller's own pending rows (not rejected).
+ * Public list: approved reviews only (pending/rejected never shown on farm profile).
  */
-export function filterFarmReviewsForViewer(reviews, viewerUserId) {
-  const viewerId = String(viewerUserId || '').trim();
-  return (Array.isArray(reviews) ? reviews : []).filter((row) => {
-    const status = normalizeFarmReviewStatus(row?.status);
-    if (status === 'approved') return true;
-    if (status === 'pending' && viewerId && String(row.reviewer_user_id || '').trim() === viewerId) {
-      return true;
-    }
-    return false;
-  });
+export function filterFarmReviewsForViewer(reviews, _viewerUserId) {
+  return filterApprovedFarmReviews(reviews);
 }
 
 export function validateFarmReviewInput(payload = {}) {

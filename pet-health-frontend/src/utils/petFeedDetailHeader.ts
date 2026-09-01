@@ -6,7 +6,7 @@ export function petFeedDetailShowsMessageButton(
   return !isOwnPost && hasMessageHandler;
 }
 
-/** Edit CTA in detail header — shown only for listing owner. */
+/** Edit icon in detail header — shown only for listing owner. */
 export function petFeedDetailShowsEditButton(
   isOwnPost: boolean,
   hasEditHandler: boolean,

@@ -8,7 +8,6 @@ import { genderLabel, t } from "@/i18n";
 import { formatPriceVnd, isBlankDisplayValue } from "@/lib/formatPrice";
 import { listingShareUrl } from "@/lib/config";
 import type { PublicComment } from "@/lib/api/public";
-import { DisclaimerBanner } from "./DisclaimerBanner";
 import { VerifiedBadge } from "./Badges";
 import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
 import { mapApiPost } from "@/lib/mappers";
@@ -712,9 +711,6 @@ export function ListingDetail({
         </svg>
         {t(lang, "detail.back")}
       </Link>
-      <div className="mb-5">
-        <DisclaimerBanner lang={lang} />
-      </div>
       {saleReviewNotice ? (
         <div
           role="status"

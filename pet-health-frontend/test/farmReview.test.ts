@@ -4,12 +4,15 @@ import {
   canAddFarmReviewPhoto,
   computeFarmReviewPool,
   farmReviewedBreederProfileId,
+  farmReviewedNotificationReviewId,
   FARM_REVIEW_MAX_PHOTOS,
   mapFarmReviewThreads,
   normalizeFarmReviewPhotoUrls,
   parseSaleReviewFlag,
   formatBreederReviewLabel,
   farmReviewValidationError,
+  farmReviewAuthorLabel,
+  farmReviewStarCount,
   validateFarmReviewInput,
 } from '../src/utils/farmReview.ts';
 
@@ -61,15 +64,53 @@ test('mapFarmReviewThreads keeps supplement rows and photo urls', () => {
       id: 'r1',
       rating: 5,
       body: 'Great',
+      status: 'approved',
+      reviewer_display_name: 'Lan Sen',
+      reviewer_avatar_url: 'https://cdn.example/avatar.jpg',
       photo_urls: ['https://cdn.example/a.jpg'],
-      supplements: [{ id: 's1', rating: 4, body: 'Follow-up', photo_urls: ['https://cdn.example/b.jpg'] }],
+      supplements: [{ id: 's1', rating: 4, body: 'Follow-up', status: 'approved', photo_urls: ['https://cdn.example/b.jpg'] }],
     },
   ]);
   assert.equal(threads.length, 1);
+  assert.equal(threads[0]?.reviewerDisplayName, 'Lan Sen');
+  assert.equal(threads[0]?.reviewerAvatarUrl, 'https://cdn.example/avatar.jpg');
   assert.equal(threads[0]?.photoUrls.length, 1);
   assert.equal(threads[0]?.supplements.length, 1);
   assert.equal(threads[0]?.supplements[0]?.rating, 4);
   assert.equal(threads[0]?.supplements[0]?.photoUrls[0], 'https://cdn.example/b.jpg');
+});
+
+test('mapFarmReviewThreads drops pending primary and supplement rows', () => {
+  const threads = mapFarmReviewThreads([
+    {
+      id: 'r1',
+      rating: 5,
+      body: 'Approved',
+      status: 'approved',
+      supplements: [
+        { id: 's1', rating: 4, body: 'Ok', status: 'approved' },
+        { id: 's2', rating: 5, body: 'Pending', status: 'pending' },
+      ],
+    },
+    {
+      id: 'r2',
+      rating: 4,
+      body: 'Pending primary',
+      status: 'pending',
+      supplements: [],
+    },
+  ]);
+  assert.equal(threads.length, 1);
+  assert.equal(threads[0]?.id, 'r1');
+  assert.equal(threads[0]?.supplements.length, 1);
+  assert.equal(threads[0]?.supplements[0]?.id, 's1');
+});
+
+test('farmReviewAuthorLabel and star count helpers', () => {
+  assert.equal(farmReviewAuthorLabel(' Lan ', 'Khách'), 'Lan');
+  assert.equal(farmReviewAuthorLabel('', 'Khách'), 'Khách');
+  assert.equal(farmReviewStarCount(4.2), 4);
+  assert.equal(farmReviewStarCount(0), 0);
 });
 
 test('formatBreederReviewLabel renders localized summary', () => {
@@ -81,6 +122,14 @@ test('formatBreederReviewLabel renders localized summary', () => {
 test('farmReviewValidationError returns stable codes', () => {
   assert.equal(farmReviewValidationError({ rating: 0 }), 'invalid_rating');
   assert.equal(farmReviewValidationError({ rating: 4, body: 'ok' }), null);
+});
+
+test('farmReviewedNotificationReviewId resolves review id from metadata', () => {
+  assert.equal(
+    farmReviewedNotificationReviewId({ metadata: { review_id: 'rev-1' } }),
+    'rev-1',
+  );
+  assert.equal(farmReviewedNotificationReviewId({ metadata: {} }), null);
 });
 
 test('farmReviewedBreederProfileId resolves breeder profile', () => {

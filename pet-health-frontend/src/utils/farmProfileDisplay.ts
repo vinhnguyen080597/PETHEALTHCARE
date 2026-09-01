@@ -67,6 +67,13 @@ export function farmTabLabelKey(tab: FarmDetailTab): string {
   return `farm.tab.${tab}`;
 }
 
+/** Legacy `?tab=reviews` and unknown values map to overview (reviews live in overview section). */
+export function parseFarmDetailTab(value: string | null | undefined): FarmDetailTab | null {
+  const tab = String(value || '').trim().toLowerCase();
+  if (!tab || tab === 'reviews') return 'overview';
+  return (FARM_DETAIL_TABS as readonly string[]).includes(tab) ? (tab as FarmDetailTab) : null;
+}
+
 /** Tab bar must not flex-grow inside the farm profile scroll content (avoids huge gap above warranty tab). */
 export function farmDetailTabBarLayout() {
   return {

@@ -167,6 +167,29 @@ export function ListingDetailSkeleton() {
   );
 }
 
+export function FarmReviewSectionSkeleton() {
+  return (
+    <div className="space-y-4" role="status" aria-busy="true" aria-label="Loading reviews">
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-3.5 w-2/5 rounded-full" />
+            <Skeleton className="h-3 w-24 rounded-full" />
+          </div>
+        </div>
+        <Skeleton className="h-3.5 w-11/12 rounded-md" />
+        <Skeleton className="h-3.5 w-3/5 rounded-md" />
+        <div className="flex gap-2">
+          <Skeleton className="h-16 w-16 rounded-lg" />
+          <Skeleton className="h-16 w-16 rounded-lg" />
+          <Skeleton className="h-16 w-16 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FarmDetailSkeleton() {
   return (
     <div role="status" aria-busy="true" aria-label="Loading">

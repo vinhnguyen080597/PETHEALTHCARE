@@ -127,6 +127,12 @@ export function PetFeedPostDetailBody({
     return 'paw-outline';
   };
 
+  const showActionRow =
+    (showFavorite && onToggleFavorite)
+    || (showMessageButton && onMessageBreeder)
+    || (showEditButton && onEditPost)
+    || (showStatusButton && onPressStatusUpdate);
+
   return (
     <View className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
       <View className="relative bg-slate-100" style={{ height: LISTING_CARD_IMAGE_HEIGHT }}>
@@ -208,14 +214,14 @@ export function PetFeedPostDetailBody({
             ) : null}
           </View>
 
-          {(showFavorite && onToggleFavorite) || (showMessageButton && onMessageBreeder) || (showEditButton && onEditPost) ? (
+          {showActionRow ? (
             <View className="flex-row items-center justify-between gap-3">
               {showFavorite && onToggleFavorite ? (
                 <Pressable
                   testID={`pet-feed-favorite-button-${post.id}`}
                   accessibilityRole="button"
                   accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
-                  className="flex-row items-center gap-1.5 py-1"
+                  className="shrink-0 flex-row items-center gap-1.5 py-1"
                   onPress={() => onToggleFavorite(post)}
                 >
                   <Ionicons
@@ -228,60 +234,64 @@ export function PetFeedPostDetailBody({
                   </Text>
                 </Pressable>
               ) : (
-                <View />
+                <View className="shrink-0" />
               )}
-              {showMessageButton && onMessageBreeder ? (
-                <Pressable
-                  testID={`pet-feed-message-button-${post.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: post.title })}
-                  className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
-                  style={{
-                    backgroundColor: BRAND.btnSecondary,
-                    borderColor: BRAND.borderBrand,
-                  }}
-                  onPress={() => onMessageBreeder(post)}
-                >
-                  <Ionicons name="chatbubble-ellipses-outline" size={15} color={BRAND.textBrandLink} />
-                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-                    {t('petFeed.messages.messageCta')}
-                  </Text>
-                </Pressable>
-              ) : null}
-              {showEditButton && onEditPost ? (
-                <Pressable
-                  testID={`pet-feed-edit-button-${post.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
-                  className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
-                  style={{
-                    backgroundColor: BRAND.btnSecondary,
-                    borderColor: BRAND.borderBrand,
-                  }}
-                  onPress={() => onEditPost(post)}
-                >
-                  <Ionicons name="create-outline" size={15} color={BRAND.textBrandLink} />
-                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-                    {t('petFeed.editListing')}
-                  </Text>
-                </Pressable>
-              ) : null}
-              {showStatusButton && onPressStatusUpdate ? (
-                <Pressable
-                  accessibilityRole="button"
-                  className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
-                  style={{
-                    backgroundColor: BRAND.btnSecondary,
-                    borderColor: BRAND.borderBrand,
-                  }}
-                  onPress={onPressStatusUpdate}
-                >
-                  <Ionicons name="flag-outline" size={15} color={BRAND.textBrandLink} />
-                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-                    {t('listing.statusModal.open')}
-                  </Text>
-                </Pressable>
-              ) : null}
+              <View className="shrink-0 flex-row flex-wrap items-center justify-end gap-2">
+                {showMessageButton && onMessageBreeder ? (
+                  <Pressable
+                    testID={`pet-feed-message-button-${post.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: post.title })}
+                    className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+                    style={{
+                      backgroundColor: BRAND.btnSecondary,
+                      borderColor: BRAND.borderBrand,
+                    }}
+                    onPress={() => onMessageBreeder(post)}
+                  >
+                    <Ionicons name="chatbubble-ellipses-outline" size={15} color={BRAND.textBrandLink} />
+                    <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                      {t('petFeed.messages.messageCta')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {showEditButton && onEditPost ? (
+                  <Pressable
+                    testID={`pet-feed-edit-button-${post.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
+                    className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+                    style={{
+                      backgroundColor: BRAND.btnSecondary,
+                      borderColor: BRAND.borderBrand,
+                    }}
+                    onPress={() => onEditPost(post)}
+                  >
+                    <Ionicons name="create-outline" size={15} color={BRAND.textBrandLink} />
+                    <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                      {t('petFeed.editListing')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {showStatusButton && onPressStatusUpdate ? (
+                  <Pressable
+                    testID={`pet-feed-status-button-${post.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('listing.statusModal.open')}
+                    className="z-10 flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+                    style={{
+                      backgroundColor: BRAND.btnSecondary,
+                      borderColor: BRAND.borderBrand,
+                    }}
+                    onPress={onPressStatusUpdate}
+                  >
+                    <Ionicons name="flag-outline" size={15} color={BRAND.textBrandLink} />
+                    <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                      {t('listing.statusModal.open')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
           ) : null}
         </View>

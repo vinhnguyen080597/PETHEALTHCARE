@@ -5,6 +5,7 @@ import { asObject } from '../utils/warrantyPolicy.js';
 import {
   computeFarmReviewPool,
   countFiveStarDirectReviews,
+  filterApprovedFarmReviews,
   filterFarmReviewsForViewer,
   isFarmReviewActive,
   isFarmReviewApproved,
@@ -65,7 +66,73 @@ function toReviewRow(row) {
     reviewed_at: row.reviewed_at ?? null,
     reviewed_by: row.reviewed_by ?? null,
     created_at: row.created_at,
+    reviewer_display_name: row.reviewer_display_name ?? '',
+    reviewer_avatar_url: row.reviewer_avatar_url ?? null,
   };
+}
+
+async function loadReviewerPublicProfiles(userIds) {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  const map = new Map();
+  if (!unique.length) return map;
+
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    for (const id of unique) {
+      map.set(id, { display_name: '', avatar_url: null });
+    }
+    return map;
+  }
+
+  const [{ data: profiles, error: profilesError }, { data: breeders, error: breedersError }] =
+    await Promise.all([
+      supabase.from('app_user_profiles').select('user_id, display_name').in('user_id', unique),
+      supabase.from('breeder_profiles').select('user_id, avatar_url').in('user_id', unique),
+    ]);
+  if (profilesError) throw profilesError;
+  if (breedersError) throw breedersError;
+
+  const avatarByUser = new Map(
+    (breeders ?? []).map((row) => [row.user_id, trimText(row.avatar_url, 1000) || null]),
+  );
+  for (const row of profiles ?? []) {
+    map.set(row.user_id, {
+      display_name: trimText(row.display_name, 160) || '',
+      avatar_url: avatarByUser.get(row.user_id) ?? null,
+    });
+  }
+  for (const id of unique) {
+    if (!map.has(id)) {
+      map.set(id, { display_name: '', avatar_url: avatarByUser.get(id) ?? null });
+    }
+  }
+  return map;
+}
+
+function enrichReviewRowWithReviewer(row, reviewerMap) {
+  const info = reviewerMap.get(row.reviewer_user_id) ?? { display_name: '', avatar_url: null };
+  return {
+    ...row,
+    reviewer_display_name: info.display_name,
+    reviewer_avatar_url: info.avatar_url,
+  };
+}
+
+async function enrichReviewThreadsWithReviewers(threads) {
+  const userIds = [];
+  for (const thread of threads) {
+    if (thread.reviewer_user_id) userIds.push(thread.reviewer_user_id);
+    for (const supplement of thread.supplements ?? []) {
+      if (supplement.reviewer_user_id) userIds.push(supplement.reviewer_user_id);
+    }
+  }
+  const reviewerMap = await loadReviewerPublicProfiles(userIds);
+  return threads.map((thread) => ({
+    ...enrichReviewRowWithReviewer(thread, reviewerMap),
+    supplements: (thread.supplements ?? []).map((supplement) =>
+      enrichReviewRowWithReviewer(supplement, reviewerMap),
+    ),
+  }));
 }
 
 async function listReviewsForBreeder(breederProfileId, accessToken) {
@@ -163,20 +230,15 @@ export async function recomputeBreederReviewStats(breederProfileId, accessToken)
 }
 
 function buildReviewThreads(reviews) {
-  const visible = Array.isArray(reviews) ? reviews : [];
-  const approvedPrimaryIds = new Set(
-    visible.filter((row) => row.kind === 'primary' && isFarmReviewApproved(row)).map((row) => row.id),
-  );
+  const visible = filterApprovedFarmReviews(Array.isArray(reviews) ? reviews : []);
   const primaries = visible.filter((row) => row.kind === 'primary');
   const sales = visible.filter((row) => row.kind === 'sale');
+  const approvedPrimaryIds = new Set(primaries.map((row) => row.id));
   const byParent = new Map();
   for (const row of visible) {
     if (row.kind !== 'supplement' || !row.parent_review_id) continue;
     const parentId = String(row.parent_review_id);
-    const parentVisible =
-      approvedPrimaryIds.has(parentId)
-      || primaries.some((primary) => primary.id === parentId && normalizeFarmReviewStatus(primary.status) === 'pending');
-    if (!parentVisible) continue;
+    if (!approvedPrimaryIds.has(parentId)) continue;
     const list = byParent.get(parentId) ?? [];
     list.push(toReviewRow(row));
     byParent.set(parentId, list);
@@ -201,7 +263,7 @@ export async function getBreederFarmReviewAggregate(breederProfileId, accessToke
   const displayReviews = filterFarmReviewsForViewer(reviews, viewerUserId);
   const pool = computeFarmReviewPool(reviews);
   const petsSoldOnPlatform = await countPetsSoldOnPlatform(breederProfileId, accessToken);
-  const threads = buildReviewThreads(displayReviews);
+  const threads = await enrichReviewThreadsWithReviewers(buildReviewThreads(displayReviews));
   return {
     review_count: pool.review_count,
     review_avg: pool.review_avg,

@@ -1,17 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { listAdminActionLogs } from '../api';
 import { AdminHealthEvidencePreview } from '../components/AdminHealthEvidencePreview';
 import { AdminRejectBreederModal } from '../components/AdminRejectBreederModal';
-import type { AccountProfile, AdminActionLog, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
+import type { AccountProfile, AdminActionLog, AdminFarmReview, BreederProfile, PetFeedPost, PetFeedReport, UserRole } from '../types';
 import {
   adminBreederPenaltySummary,
   adminReportReasonLabel,
   adminReportTargetSubtitle,
 } from '../utils/adminModerationDisplay';
+import { normalizeFarmReviewPhotoUrls } from '../utils/farmReview';
 import { confirmAdminModeration } from '../utils/adminConfirmModeration';
+
+function farmReviewKindLabel(
+  kind: string,
+  t: (key: string) => string,
+): string {
+  const safe = ['primary', 'sale', 'supplement'].includes(kind) ? kind : 'primary';
+  const key = `adminReview.farmReviews.kind.${safe}`;
+  const translated = t(key);
+  return translated === key ? kind : translated;
+}
 
 const ROLE_OPTIONS: UserRole[] = ['sen', 'breeder', 'admin'];
 
@@ -48,6 +60,7 @@ type AdminHubScreenProps = {
   breederProfiles: BreederProfile[];
   posts: PetFeedPost[];
   reports: PetFeedReport[];
+  farmReviews: AdminFarmReview[];
   loading: boolean;
   onBack: () => void;
   onRefresh: () => void;
@@ -60,6 +73,11 @@ type AdminHubScreenProps = {
     options?: BreederStatusOptions,
   ) => Promise<void>;
   onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
+  onUpdateFarmReviewStatus: (
+    reviewId: string,
+    status: 'approved' | 'rejected',
+    options?: BreederStatusOptions,
+  ) => Promise<void>;
 };
 
 function notifyUser(title: string, message: string) {
@@ -82,6 +100,7 @@ export function AdminHubScreen({
   breederProfiles,
   posts,
   reports,
+  farmReviews,
   loading,
   onBack,
   onRefresh,
@@ -90,6 +109,7 @@ export function AdminHubScreen({
   onUpdateBreederStatus,
   onUpdatePostStatus,
   onUpdateReportStatus,
+  onUpdateFarmReviewStatus,
 }: AdminHubScreenProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<'users' | 'moderation' | 'history'>('users');
@@ -101,6 +121,7 @@ export function AdminHubScreen({
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [rejectUserId, setRejectUserId] = useState<string | null>(null);
   const [rejectPostId, setRejectPostId] = useState<string | null>(null);
+  const [rejectFarmReviewId, setRejectFarmReviewId] = useState<string | null>(null);
   const [actionLogs, setActionLogs] = useState<AdminActionLog[]>([]);
   const [historyFilter, setHistoryFilter] = useState<(typeof HISTORY_ACTION_FILTERS)[number]>('all');
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -125,6 +146,10 @@ export function AdminHubScreen({
   const pendingBreeders = useMemo(
     () => breederProfiles.filter((profile) => profile.verification_status === 'pending_review'),
     [breederProfiles],
+  );
+  const pendingFarmReviews = useMemo(
+    () => farmReviews.filter((review) => String(review.status || 'pending').toLowerCase() === 'pending'),
+    [farmReviews],
   );
 
   const actionLabel = useCallback(
@@ -295,6 +320,71 @@ export function AdminHubScreen({
                   </View>
                 </View>
               ))}
+            </View>
+
+            <Text className="mt-5 text-base font-bold text-slate-900">{t('adminReview.farmReviews.title')}</Text>
+            <View className="mt-3 gap-3">
+              {pendingFarmReviews.length === 0 ? (
+                <Text className="rounded-2xl bg-white p-4 text-sm text-slate-500">
+                  {t('adminReview.farmReviews.empty')}
+                </Text>
+              ) : null}
+              {pendingFarmReviews.map((review) => {
+                const photos = normalizeFarmReviewPhotoUrls(review.photo_urls);
+                const farmName =
+                  review.breeder_profile?.display_name?.trim() || t('petFeed.breederFallback');
+                return (
+                  <View key={review.id} className="rounded-2xl border border-amber-100 bg-white p-4">
+                    <Text className="text-base font-bold text-slate-900">
+                      {farmReviewKindLabel(review.kind, t)} · {'★'.repeat(review.rating)} ({review.rating}/5)
+                    </Text>
+                    <Text className="mt-1 text-sm text-slate-600">{farmName}</Text>
+                    {review.body?.trim() ? (
+                      <Text className="mt-2 text-sm leading-5 text-slate-700">{review.body.trim()}</Text>
+                    ) : null}
+                    {photos.length > 0 ? (
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
+                        <View className="flex-row gap-2">
+                          {photos.map((url) => (
+                            <Image
+                              key={url}
+                              source={{ uri: url }}
+                              style={{ width: 72, height: 72, borderRadius: 10 }}
+                              contentFit="cover"
+                            />
+                          ))}
+                        </View>
+                      </ScrollView>
+                    ) : null}
+                    <View className="mt-3 flex-row gap-2">
+                      <Pressable
+                        className="flex-1 rounded-xl bg-emerald-600 py-3"
+                        disabled={Boolean(busyKey)}
+                        onPress={() =>
+                          void runAction(
+                            `farm-review-approve-${review.id}`,
+                            () => onUpdateFarmReviewStatus(review.id, 'approved'),
+                            t('adminReview.farmReviews.approveSuccess'),
+                          )
+                        }
+                      >
+                        <Text className="text-center text-xs font-bold text-white">
+                          {t('adminReview.farmReviews.approve')}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        className="flex-1 rounded-xl bg-slate-700 py-3"
+                        disabled={Boolean(busyKey)}
+                        onPress={() => setRejectFarmReviewId(review.id)}
+                      >
+                        <Text className="text-center text-xs font-bold text-white">
+                          {t('adminReview.farmReviews.reject')}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
 
             <Text className="mt-5 text-base font-bold text-slate-900">{t('adminReview.breeders')}</Text>
@@ -482,6 +572,22 @@ export function AdminHubScreen({
             `post-reject-${postId}`,
             () => onUpdatePostStatus(postId, 'archived', payload),
             t('adminReview.rejectListingSuccess'),
+          );
+        }}
+      />
+      <AdminRejectBreederModal
+        visible={Boolean(rejectFarmReviewId)}
+        submitting={Boolean(busyKey)}
+        variant="farm_review"
+        onClose={() => setRejectFarmReviewId(null)}
+        onSubmit={async (payload) => {
+          if (!rejectFarmReviewId) return;
+          const reviewId = rejectFarmReviewId;
+          setRejectFarmReviewId(null);
+          await runAction(
+            `farm-review-reject-${reviewId}`,
+            () => onUpdateFarmReviewStatus(reviewId, 'rejected', payload),
+            t('adminReview.farmReviews.rejectSuccess'),
           );
         }}
       />

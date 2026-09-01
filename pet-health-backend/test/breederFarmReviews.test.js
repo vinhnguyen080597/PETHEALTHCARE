@@ -4,6 +4,8 @@ import {
   buildFarmReviewAdminPendingPreview,
   computeFarmReviewPool,
   countFiveStarDirectReviews,
+  filterApprovedFarmReviews,
+  filterFarmReviewsForViewer,
   validateFarmReviewInput,
 } from '../src/utils/breederFarmReviews.js';
 
@@ -35,6 +37,18 @@ test('buildFarmReviewAdminPendingPreview includes farm and rating', () => {
   assert.match(preview, /Trại Mai/);
   assert.match(preview, /5★/);
   assert.match(preview, /chờ admin duyệt/);
+});
+
+test('filterFarmReviewsForViewer only returns approved rows', () => {
+  const rows = [
+    { id: '1', status: 'approved', reviewer_user_id: 'u1' },
+    { id: '2', status: 'pending', reviewer_user_id: 'u1' },
+    { id: '3', status: 'pending', reviewer_user_id: 'u2' },
+    { id: '4', status: 'rejected', reviewer_user_id: 'u3' },
+  ];
+  assert.equal(filterFarmReviewsForViewer(rows, 'u1').length, 1);
+  assert.equal(filterFarmReviewsForViewer(rows, 'u1')[0].id, '1');
+  assert.equal(filterApprovedFarmReviews(rows).length, 1);
 });
 
 test('computeFarmReviewPool ignores pending reviews', () => {

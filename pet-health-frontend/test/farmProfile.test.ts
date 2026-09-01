@@ -18,6 +18,7 @@ import {
   farmTabLabelKey,
   farmWarrantyPoliciesFromMetadata,
   isBlankImageUrl,
+  parseFarmDetailTab,
   resolveFarmAvatarUrl,
   resolveFarmCoverUrl,
   FARM_DETAIL_TABS,
@@ -105,6 +106,12 @@ test('farmFacilitySocialLinks masks Zalo and keeps https socials', () => {
 
 test('farm detail tabs exclude dedicated reviews tab', () => {
   assert.deepEqual([...FARM_DETAIL_TABS], ['overview', 'listings', 'warranty']);
+});
+
+test('parseFarmDetailTab maps legacy reviews tab to overview', () => {
+  assert.equal(parseFarmDetailTab('reviews'), 'overview');
+  assert.equal(parseFarmDetailTab('warranty'), 'warranty');
+  assert.equal(parseFarmDetailTab('nope'), null);
 });
 
 test('farm profile display helpers', () => {

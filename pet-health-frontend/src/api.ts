@@ -15,6 +15,7 @@ import type {
   AppFeatureFlags,
   AdminActionLog,
   AdminCreateAccountPayload,
+  AdminFarmReview,
   AdminUpdateAccountPayload,
   AnalyzeResponse,
   AuthPayload,
@@ -1403,6 +1404,36 @@ export async function updateAdminPetFeedReportStatus(token: string, reportId: st
     },
     body: JSON.stringify({ status }),
   });
+}
+
+export async function listAdminFarmReviews(token: string, status: string = 'pending') {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return requestJson<{ data: AdminFarmReview[] }>(`/admin/farm-reviews${qs}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export async function updateAdminFarmReviewStatus(
+  token: string,
+  reviewId: string,
+  status: 'approved' | 'rejected',
+  options?: { rejectionReason?: string; adminNote?: string },
+) {
+  return requestJson<{ data: AdminFarmReview }>(
+    `/admin/farm-reviews/${encodeURIComponent(reviewId)}/status`,
+    {
+      method: 'PUT',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status,
+        ...(options?.rejectionReason ? { rejectionReason: options.rejectionReason } : {}),
+        ...(options?.adminNote ? { adminNote: options.adminNote } : {}),
+      }),
+    },
+  );
 }
 
 export async function listAdminUserPets(token: string, userId: string) {

@@ -46,6 +46,7 @@ import {
   getAiCreditSummary,
   listAdminPetFeedPosts,
   listAdminPetFeedReports,
+  listAdminFarmReviews,
   listAdminAccounts,
   listAdminBreederProfiles,
   listAdminUserAnalyses,
@@ -97,6 +98,7 @@ import {
   updateAdminBreederProfileStatus,
   updateAdminPetFeedPostStatus,
   updateAdminPetFeedReportStatus,
+  updateAdminFarmReviewStatus,
   updateMyPetFeedDraft,
   updateMyPetFeedPost,
   updatePet,
@@ -133,6 +135,7 @@ import type {
   AppFeatureFlags,
   AuthSession,
   AdminCreateAccountPayload,
+  AdminFarmReview,
   AdminUpdateAccountPayload,
   BreedRecognitionResult,
   CoreCareRecord,
@@ -181,6 +184,10 @@ import {
 import { postsForBreeder } from '../utils/breederTrust';
 import { canOpenOwnFarmProfile, resolveOwnFarmProfileId } from '../utils/ownFarmProfileNav';
 import { farmChatErrorKey } from '../utils/farmChat';
+import {
+  farmReviewedBreederProfileId,
+  farmReviewedNotificationReviewId,
+} from '../utils/farmReview';
 import { breedRecognitionErrorMessage } from '../utils/breedRecognitionErrors';
 import type { PetFeedSubmitProgressOptions } from '../utils/petFeedSubmitProgress';
 import {
@@ -481,6 +488,9 @@ export function usePetHealthApp() {
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
   const [breederDetailReturnScreen, setBreederDetailReturnScreen] = useState<AppScreen>('pet-feed');
   const [breederDetailTab, setBreederDetailTab] = useState<FarmDetailTab>('overview');
+  const [breederDetailProfilePin, setBreederDetailProfilePin] = useState<BreederProfile | null>(null);
+  const [breederDetailScrollToReviews, setBreederDetailScrollToReviews] = useState(false);
+  const [breederDetailFocusReviewId, setBreederDetailFocusReviewId] = useState<string | null>(null);
   const [breederProfileReturnScreen, setBreederProfileReturnScreen] = useState<AppScreen>('account');
   const [warrantyLibraryEditPolicy, setWarrantyLibraryEditPolicy] = useState<WarrantyPolicy | null>(null);
   const [selectedPetFeedPostId, setSelectedPetFeedPostId] = useState<string | null>(null);
@@ -493,6 +503,7 @@ export function usePetHealthApp() {
   const [adminBreederProfiles, setAdminBreederProfiles] = useState<BreederProfile[]>([]);
   const [adminFeedPosts, setAdminFeedPosts] = useState<PetFeedPost[]>([]);
   const [adminFeedReports, setAdminFeedReports] = useState<PetFeedReport[]>([]);
+  const [adminFarmReviews, setAdminFarmReviews] = useState<AdminFarmReview[]>([]);
   /** After saving pet form opened from profile, return to pet profile instead of home. */
   const [petFormReturnToProfile, setPetFormReturnToProfile] = useState(false);
   /** Return target after leaving create-pet-feed-post (Account vs registration form). */
@@ -553,6 +564,13 @@ export function usePetHealthApp() {
   }, [breederProfile, myPetFeedPosts, petFeedPosts, selectedBreederProfileId]);
   const selectedBreederProfile = useMemo(() => {
     if (!selectedBreederProfileId) return null;
+    if (
+      breederDetailProfilePin &&
+      (breederDetailProfilePin.id === selectedBreederProfileId ||
+        breederDetailProfilePin.user_id === selectedBreederProfileId)
+    ) {
+      return breederDetailProfilePin;
+    }
     const ownMatch =
       breederProfile &&
       (breederProfile.id === selectedBreederProfileId || breederProfile.user_id === selectedBreederProfileId)
@@ -588,7 +606,7 @@ export function usePetHealthApp() {
       registration_unit_other: fromPost.registration_unit_other,
       main_breeds: Array.isArray(fromPost.main_breeds) ? fromPost.main_breeds : [],
     };
-  }, [breederProfile, selectedBreederPosts, selectedBreederProfileId, topBreederProfiles]);
+  }, [breederDetailProfilePin, breederProfile, selectedBreederPosts, selectedBreederProfileId, topBreederProfiles]);
 
   const petFormMode = editingPetId ? 'edit' : 'create';
 
@@ -2085,7 +2103,121 @@ export function usePetHealthApp() {
 
   function closeBreederDetail() {
     setBreederDetailTab('overview');
+    setBreederDetailProfilePin(null);
+    setBreederDetailScrollToReviews(false);
+    setBreederDetailFocusReviewId(null);
     setScreen(breederDetailReturnScreen || 'pet-feed');
+  }
+
+  function findCachedBreederProfileForDetail(profileId: string): BreederProfile | null {
+    const safeId = profileId.trim();
+    if (!safeId) return null;
+
+    const matches = (profile: BreederProfile | null | undefined) =>
+      Boolean(profile && (profile.id === safeId || profile.user_id === safeId));
+
+    if (matches(breederProfile)) return breederProfile;
+    if (matches(breederDetailProfilePin)) return breederDetailProfilePin;
+
+    return (
+      topBreederProfiles.find((profile) => profile.id === safeId || profile.user_id === safeId) ?? null
+    );
+  }
+
+  async function resolveBreederProfileForDetail(profileId: string): Promise<BreederProfile | null> {
+    const safeId = profileId.trim();
+    if (!safeId || !token) return null;
+
+    const matches = (profile: BreederProfile | null | undefined) =>
+      Boolean(profile && (profile.id === safeId || profile.user_id === safeId));
+
+    if (matches(breederProfile)) return breederProfile;
+
+    if (hasAccountRole('breeder')) {
+      try {
+        const profileRes = await getMyBreederProfile(token);
+        setBreederProfile(profileRes.data);
+        if (matches(profileRes.data)) return profileRes.data;
+      } catch {
+        // Fall through to catalog lookup.
+      }
+    }
+
+    const fromCatalog = topBreederProfiles.find(
+      (profile) => profile.id === safeId || profile.user_id === safeId,
+    );
+    if (fromCatalog) return fromCatalog;
+
+    try {
+      const breedersRes = await listVerifiedBreederProfiles(token);
+      const rows = Array.isArray(breedersRes.data) ? breedersRes.data : [];
+      if (rows.length) {
+        setTopBreederProfiles((current) => {
+          const seen = new Set(current.map((profile) => profile.id));
+          const merged = [...current];
+          for (const profile of rows) {
+            if (!seen.has(profile.id)) merged.push(profile);
+          }
+          return merged;
+        });
+      }
+      return rows.find((profile) => profile.id === safeId || profile.user_id === safeId) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  function openFarmReviewedFromNotification(notification: PetFeedNotification) {
+    const profileId = farmReviewedBreederProfileId(notification);
+    if (!profileId || !token) return;
+
+    setBreederDetailReturnScreen('notifications-inbox');
+    setBreederDetailTab('overview');
+    setBreederDetailScrollToReviews(true);
+    setBreederDetailFocusReviewId(farmReviewedNotificationReviewId(notification));
+
+    const cached = findCachedBreederProfileForDetail(profileId);
+    if (cached) {
+      setBreederDetailProfilePin(cached);
+      setSelectedBreederProfileId(
+        resolveOwnFarmProfileId(cached) || cached.id || cached.user_id || profileId,
+      );
+    } else {
+      setSelectedBreederProfileId(profileId);
+    }
+
+    setScreen('breeder-detail');
+
+    void (async () => {
+      const resolved = cached ?? (await resolveBreederProfileForDetail(profileId));
+      if (!resolved) {
+        setBreederDetailScrollToReviews(false);
+        setBreederDetailFocusReviewId(null);
+        setBreederDetailProfilePin(null);
+        setScreen('notifications-inbox');
+        Alert.alert(
+          i18n.t('common.error'),
+          i18n.t('petFeed.notifications.farmReviewOpenFailed'),
+        );
+        return;
+      }
+
+      setBreederDetailProfilePin(resolved);
+      setSelectedBreederProfileId(
+        resolveOwnFarmProfileId(resolved) || resolved.id || resolved.user_id || profileId,
+      );
+
+      if (accountProfile?.user_id === resolved.user_id && hasAccountRole('breeder')) {
+        void refreshMyPetFeedPosts(token).catch(() => {
+          // Detail can still render without listing posts.
+        });
+      }
+    })();
+  }
+
+  function clearBreederDetailReviewFocus() {
+    setBreederDetailScrollToReviews(false);
+    setBreederDetailFocusReviewId(null);
   }
 
   function openFarmHealth() {
@@ -2431,12 +2563,24 @@ export function usePetHealthApp() {
       Alert.alert(i18n.t('petFeed.deleteBlockedTitle'), message);
       return false;
     }
+    const wasEditingThis = editingPetFeedPost?.id === post.id;
+    const wasViewingDetail = selectedPetFeedPostId === post.id;
     try {
       await deleteMyPetFeedPost(token, post.id);
       setPetFeedPosts((current) => current.filter((item) => item.id !== post.id));
       await refreshMyPetFeedPosts(token);
-      if (selectedPetFeedPostId === post.id) {
+      if (wasViewingDetail) {
         setSelectedPetFeedPostId(null);
+      }
+      if (wasEditingThis) {
+        setEditingPetFeedPost(null);
+      }
+      if (wasEditingThis && screen === 'create-pet-feed-post') {
+        const destination =
+          createPetFeedReturnScreen === 'pet-feed-detail' ? 'pet-feed' : createPetFeedReturnScreen;
+        setScreen(destination || 'pet-feed');
+      } else if (wasViewingDetail && screen === 'pet-feed-detail') {
+        setScreen('pet-feed');
       }
       Alert.alert(i18n.t('common.ok'), i18n.t('petFeed.deleteListingSuccess'));
       return true;
@@ -2891,7 +3035,7 @@ export function usePetHealthApp() {
       setScreen('breeder-detail');
       return;
     }
-    if (type === 'breeder_rejected' || type === 'breeder_detail_rejected') {
+    if (type === 'breeder_rejected' || type === 'breeder_detail_rejected' || type === 'farm_review_rejected') {
       return;
     }
     if (
@@ -2914,18 +3058,8 @@ export function usePetHealthApp() {
       return;
     }
     if (type === 'farm_reviewed') {
-      const profileId =
-        String(notification.breeder_profile_id || '').trim()
-        || (typeof notification.metadata?.breeder_profile_id === 'string'
-          ? notification.metadata.breeder_profile_id.trim()
-          : '');
-      if (profileId) {
-        setBreederDetailReturnScreen('notifications-inbox');
-        setBreederDetailTab('overview');
-        setSelectedBreederProfileId(profileId);
-        setScreen('breeder-detail');
-        return;
-      }
+      openFarmReviewedFromNotification(notification);
+      return;
     }
     if (!notification.post_id) return;
     openPetFeedPostDetail(notification.post_id, {
@@ -3472,11 +3606,12 @@ export function usePetHealthApp() {
   async function loadAdminReview(accessToken: string | null = token) {
     if (!accessToken) return;
     const loadGen = ++adminReviewLoadGenRef.current;
-    const [accountsRes, breedersRes, postsRes, reportsRes] = await Promise.all([
+    const [accountsRes, breedersRes, postsRes, reportsRes, farmReviewsRes] = await Promise.all([
       listAdminAccounts(accessToken),
       listAdminBreederProfiles(accessToken),
       listAdminPetFeedPosts(accessToken, ''),
       listAdminPetFeedReports(accessToken, ''),
+      listAdminFarmReviews(accessToken, 'pending').catch(() => ({ data: [] as AdminFarmReview[] })),
     ]);
     // Ignore out-of-order responses so a slower stale fetch cannot wipe a newer update.
     if (loadGen !== adminReviewLoadGenRef.current) return;
@@ -3484,6 +3619,7 @@ export function usePetHealthApp() {
     setAdminBreederProfiles(breedersRes.data);
     setAdminFeedPosts(postsRes.data);
     setAdminFeedReports(reportsRes.data);
+    setAdminFarmReviews(Array.isArray(farmReviewsRes.data) ? farmReviewsRes.data : []);
     adminReviewLoadedRef.current = true;
   }
 
@@ -3590,6 +3726,16 @@ export function usePetHealthApp() {
   async function updateAdminReportStatus(reportId: string, status: string) {
     if (!token) return;
     await updateAdminPetFeedReportStatus(token, reportId, status);
+    await ensureAdminReviewLoaded(token, { force: true });
+  }
+
+  async function updateAdminFarmReviewModeration(
+    reviewId: string,
+    status: 'approved' | 'rejected',
+    options?: { rejectionReason?: string; adminNote?: string },
+  ) {
+    if (!token) return;
+    await updateAdminFarmReviewStatus(token, reviewId, status, options);
     await ensureAdminReviewLoaded(token, { force: true });
   }
 
@@ -4905,6 +5051,9 @@ export function usePetHealthApp() {
     petFeedFocusCommentId,
     petFeedOpenSaleReview,
     breederDetailTab,
+    breederDetailScrollToReviews,
+    breederDetailFocusReviewId,
+    clearBreederDetailReviewFocus,
     warrantyLibraryEditPolicy,
     openBreederDetail,
     openOwnBreederFarmProfile,
@@ -4984,6 +5133,7 @@ export function usePetHealthApp() {
     checkTransparencyWarning,
     adminFeedPosts,
     adminFeedReports,
+    adminFarmReviews,
     adminAccounts,
     adminBreederProfiles,
     openAdminHub,
@@ -5018,6 +5168,7 @@ export function usePetHealthApp() {
     updateAdminBreederStatus,
     updateAdminPostStatus,
     updateAdminReportStatus,
+    updateAdminFarmReviewModeration,
     openBreedRecognition,
     closeBreedRecognition,
     breedRecognitionSlotUris,

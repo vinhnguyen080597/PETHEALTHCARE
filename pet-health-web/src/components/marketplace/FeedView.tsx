@@ -16,7 +16,6 @@ import {
   parseQuickCategory,
   type QuickCategoryId,
 } from "@/lib/marketplaceQuickCategories";
-import { DisclaimerBanner } from "./DisclaimerBanner";
 import { ListingCard } from "./ListingCard";
 import { MarketplaceListingRail } from "./MarketplaceListingRail";
 import { MarketplaceQuickCategories } from "./MarketplaceQuickCategories";
@@ -32,7 +31,6 @@ export function FeedView({
   initialSpecies = "all",
   initialQ = "",
   initialProvince = "",
-  hideDisclaimer = false,
   showEscrowUi = false,
 }: {
   lang: Lang;
@@ -41,7 +39,6 @@ export function FeedView({
   initialSpecies?: string;
   initialQ?: string;
   initialProvince?: string;
-  hideDisclaimer?: boolean;
   showEscrowUi?: boolean;
 }) {
   const [activeSpecies, setActiveSpecies] = useState(
@@ -136,14 +133,7 @@ export function FeedView({
     quickCategory === "all";
 
   return (
-    <div className={hideDisclaimer ? undefined : "min-h-screen bg-[#FDFBF7]"}>
-      <div className={hideDisclaimer ? undefined : "max-w-[1200px] mx-auto px-5 lg:px-8 py-6"}>
-        {!hideDisclaimer ? (
-          <div className="mb-5">
-            <DisclaimerBanner lang={lang} />
-          </div>
-        ) : null}
-
+    <>
         <MarketplaceQuickCategories
           lang={lang}
           value={quickCategory}
@@ -253,7 +243,6 @@ export function FeedView({
             </p>
           </div>
         )}
-      </div>
-    </div>
+    </>
   );
 }

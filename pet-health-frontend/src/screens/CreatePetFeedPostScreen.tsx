@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -50,6 +51,7 @@ import {
   type PetFeedSubmitProgressOptions,
 } from '../utils/petFeedSubmitProgress';
 import { BRAND } from '../theme/brand';
+import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 
 const PRIMARY = BRAND.btnPrimary;
 const MAX_PHOTOS = 6;
@@ -74,7 +76,9 @@ type CreatePetFeedPostScreenProps = {
     media?: CreatePetFeedPostMedia,
     options?: PetFeedSubmitProgressOptions,
   ) => Promise<void>;
+  onDeletePost?: (post: PetFeedPost) => Promise<boolean> | boolean;
   editingPost?: PetFeedPost | null;
+  currentUserId?: string | null;
   role?: UserRole;
 };
 
@@ -218,7 +222,9 @@ export function CreatePetFeedPostScreen({
   onBack,
   onSubmit,
   onUpdate,
+  onDeletePost,
   editingPost = null,
+  currentUserId = null,
   role = 'breeder',
 }: CreatePetFeedPostScreenProps) {
   const { t, i18n } = useTranslation();
@@ -253,6 +259,18 @@ export function CreatePetFeedPostScreen({
   const [submitProgress, setSubmitProgress] = useState<PetFeedSubmitProgress | null>(null);
   const [marketplaceTermsAccepted, setMarketplaceTermsAccepted] = useState(false);
   const isAdmin = role === 'admin';
+  const deleteDecision = useMemo(
+    () => (isEditingPost && editingPost ? evaluatePetFeedPostDelete(editingPost, currentUserId) : null),
+    [currentUserId, editingPost, isEditingPost],
+  );
+  const deleteBlockedMessage = useMemo(() => {
+    if (!deleteDecision || deleteDecision.allowed) return '';
+    if (deleteDecision.reason === 'deposit_hold') return t('petFeed.deleteBlockedDeposit');
+    if (deleteDecision.reason === 'sold_cooldown') {
+      return t('petFeed.deleteBlockedSoldCooldown', { days: deleteDecision.daysRemaining ?? 7 });
+    }
+    return '';
+  }, [deleteDecision, t]);
   const scrollRef = useRef<ScrollView>(null);
   const basicSectionYRef = useRef(0);
   const mediaSectionYRef = useRef(0);
@@ -842,6 +860,27 @@ export function CreatePetFeedPostScreen({
     }
   }
 
+  function confirmDeleteListing() {
+    if (!editingPost || !onDeletePost || !deleteDecision?.allowed || submitting) return;
+
+    const runDelete = () => {
+      void onDeletePost(editingPost);
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = typeof window !== 'undefined'
+        ? window.confirm(`${t('petFeed.deleteListingTitle')}\n\n${t('petFeed.deleteListingBody')}`)
+        : false;
+      if (confirmed) runDelete();
+      return;
+    }
+
+    Alert.alert(t('petFeed.deleteListingTitle'), t('petFeed.deleteListingBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('petFeed.deleteListing'), style: 'destructive', onPress: runDelete },
+    ]);
+  }
+
   return (
     <View testID="create-pet-feed-post-screen" className="flex-1 bg-[#F2F4F8]">
       <View className="flex-row items-center border-b border-gray-200 bg-white px-2 py-2">
@@ -1105,6 +1144,41 @@ export function CreatePetFeedPostScreen({
             <Text className="text-sm font-bold text-white">{t('createPetFeedPost.review')}</Text>
           </Pressable>
         </View>
+
+        {isEditingPost && editingPost && onDeletePost ? (
+          <View className="mt-4 rounded-2xl border border-red-200 bg-white p-4">
+            <Text className="mb-2 text-base font-bold text-slate-900">{t('createPetFeedPost.deleteSectionTitle')}</Text>
+            <Text className="mb-3 text-xs leading-5 text-slate-500">{t('petFeed.deleteListingBody')}</Text>
+            {deleteBlockedMessage ? (
+              <Text className="mb-3 text-xs leading-5 text-amber-800">{deleteBlockedMessage}</Text>
+            ) : null}
+            <Pressable
+              testID="create-pet-feed-post-delete-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('petFeed.accessibility.deleteListing', { title: editingPost.title })}
+              className={`flex-row items-center justify-center gap-2 rounded-xl border py-3 ${
+                deleteDecision?.allowed && !submitting
+                  ? 'border-red-200 bg-red-50 active:bg-red-100'
+                  : 'border-slate-200 bg-slate-100'
+              }`}
+              onPress={confirmDeleteListing}
+              disabled={!deleteDecision?.allowed || submitting}
+            >
+              <Ionicons
+                name="trash-outline"
+                size={18}
+                color={deleteDecision?.allowed && !submitting ? '#DC2626' : '#94A3B8'}
+              />
+              <Text
+                className={`text-sm font-bold ${
+                  deleteDecision?.allowed && !submitting ? 'text-red-600' : 'text-slate-400'
+                }`}
+              >
+                {t('petFeed.deleteListing')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
       </ScrollView>
 
       <ModalScreenShell

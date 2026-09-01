@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -15,7 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getMySaleReview } from '../api';
 import { PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
 import { PetFeedDetailSiblingListingsBar } from '../components/PetFeedDetailSiblingListingsBar';
-import { MarketplaceDisclaimerAlert } from '../components/MarketplaceLegalNotice';
 import { PetFeedPostDetailBody } from '../components/PetFeedPostDetailBody';
 import { FarmReviewModal } from '../components/FarmReviewModal';
 import { ReportModal } from '../components/ReportModal';
@@ -41,7 +39,6 @@ type PetFeedPostDetailScreenProps = {
   onReportPost: (post: PetFeedPost, reason: string, note?: string) => void;
   onMessageBreeder?: (post: PetFeedPost) => void;
   onEditPost?: (post: PetFeedPost) => void;
-  onDeletePost?: (post: PetFeedPost) => Promise<boolean> | boolean;
   onFetchPostDetail?: (postId: string) => Promise<PetFeedPost | null>;
   onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
   onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
@@ -104,7 +101,6 @@ export function PetFeedPostDetailScreen({
   onReportPost,
   onMessageBreeder,
   onEditPost,
-  onDeletePost,
   onFetchPostDetail,
   onFetchPostComments,
   onSubmitPostComment,
@@ -129,6 +125,8 @@ export function PetFeedPostDetailScreen({
   const [reportNote, setReportNote] = useState('');
   const [buyerEmailModalOpen, setBuyerEmailModalOpen] = useState(false);
   const [buyerEmailDraft, setBuyerEmailDraft] = useState('');
+  const [listingStatusModalOpen, setListingStatusModalOpen] = useState(false);
+  const [saleChannelModalOpen, setSaleChannelModalOpen] = useState(false);
   const [saleReviewModalOpen, setSaleReviewModalOpen] = useState(false);
   const [saleReviewBusy, setSaleReviewBusy] = useState(false);
   const [saleReviewError, setSaleReviewError] = useState('');
@@ -187,6 +185,7 @@ export function PetFeedPostDetailScreen({
   );
   const showStatusUpdate = Boolean(
     selectedPost
+    && onPatchListingStatus
     && canShowListingStatusUpdate({ isOwner: isOwnPost, status: selectedPost.status }),
   );
 
@@ -241,62 +240,35 @@ export function PetFeedPostDetailScreen({
     setBuyerEmailDraft('');
   }
 
-  function promptListingStatusUpdate() {
+  function openListingStatusModal() {
     if (!selectedPost || !onPatchListingStatus) return;
-    Alert.alert(t('listing.statusModal.title'), undefined, [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('listing.statusChoice.published'),
-        onPress: () => void onPatchListingStatus(selectedPost.id, { status: 'published' }),
-      },
-      {
-        text: t('listing.statusChoice.deposit_hold'),
-        onPress: () => void onPatchListingStatus(selectedPost.id, { status: 'deposit_hold' }),
-      },
-      {
-        text: t('listing.statusChoice.sold'),
-        onPress: () => {
-          Alert.alert(t('listing.statusModal.saleChannel'), undefined, [
-            { text: t('common.cancel'), style: 'cancel' },
-            {
-              text: t('listing.statusModal.onPlatform'),
-              onPress: () => {
-                setBuyerEmailDraft('');
-                setBuyerEmailModalOpen(true);
-              },
-            },
-            {
-              text: t('listing.statusModal.offPlatform'),
-              onPress: () => void onPatchListingStatus(selectedPost.id, {
-                status: 'sold',
-                saleChannel: 'off_platform',
-              }),
-            },
-          ]);
-        },
-      },
-    ]);
+    setListingStatusModalOpen(true);
   }
 
-  function confirmDeletePost(post: PetFeedPost) {
-    if (!onDeletePost) return;
-    const runDelete = async () => {
-      const ok = await onDeletePost(post);
-      if (ok) onBack();
-    };
+  function applyListingStatus(status: 'published' | 'deposit_hold') {
+    if (!selectedPost || !onPatchListingStatus) return;
+    setListingStatusModalOpen(false);
+    void onPatchListingStatus(selectedPost.id, { status });
+  }
 
-    if (Platform.OS === 'web') {
-      const confirmed = typeof window !== 'undefined'
-        ? window.confirm(`${t('petFeed.deleteListingTitle')}\n\n${t('petFeed.deleteListingBody')}`)
-        : false;
-      if (confirmed) void runDelete();
-      return;
-    }
+  function openSaleChannelModal() {
+    setListingStatusModalOpen(false);
+    setSaleChannelModalOpen(true);
+  }
 
-    Alert.alert(t('petFeed.deleteListingTitle'), t('petFeed.deleteListingBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('petFeed.deleteListing'), style: 'destructive', onPress: () => void runDelete() },
-    ]);
+  function submitSoldOffPlatform() {
+    if (!selectedPost || !onPatchListingStatus) return;
+    setSaleChannelModalOpen(false);
+    void onPatchListingStatus(selectedPost.id, {
+      status: 'sold',
+      saleChannel: 'off_platform',
+    });
+  }
+
+  function openBuyerEmailForSold() {
+    setSaleChannelModalOpen(false);
+    setBuyerEmailDraft('');
+    setBuyerEmailModalOpen(true);
   }
 
   function submitReport() {
@@ -343,14 +315,15 @@ export function PetFeedPostDetailScreen({
             >
               <Ionicons name="flag-outline" size={20} color={BRAND.textSecondary} />
             </Pressable>
-          ) : selectedPost && isOwnPost && onDeletePost ? (
+          ) : selectedPost && isOwnPost && showEditCta ? (
             <Pressable
+              testID={`pet-feed-detail-edit-button-${selectedPost.id}`}
               accessibilityRole="button"
-              accessibilityLabel={t('petFeed.accessibility.deleteListing', { title: selectedPost.title })}
-              className="h-10 w-10 items-center justify-center rounded-full active:bg-red-50"
-              onPress={() => confirmDeletePost(selectedPost)}
+              accessibilityLabel={t('petFeed.accessibility.editListing', { title: selectedPost.title })}
+              className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100"
+              onPress={() => onEditPost?.(selectedPost)}
             >
-              <Ionicons name="trash-outline" size={20} color="#DC2626" />
+              <Ionicons name="create-outline" size={20} color={BRAND.btnPrimary} />
             </Pressable>
           ) : (
             <View className="w-10" />
@@ -369,7 +342,6 @@ export function PetFeedPostDetailScreen({
           paddingBottom: showSiblingBar ? 24 : 16,
         }}
       >
-        <MarketplaceDisclaimerAlert compact className="mb-3" />
         {selectedPost ? (
           <>
             <PetFeedPostDetailBody
@@ -380,9 +352,9 @@ export function PetFeedPostDetailScreen({
               onEditPost={onEditPost}
               showFavorite
               showMessageButton={showMessageCta}
-              showEditButton={showEditCta}
+              showEditButton={false}
               showStatusButton={showStatusUpdate}
-              onPressStatusUpdate={promptListingStatusUpdate}
+              onPressStatusUpdate={openListingStatusModal}
             />
             <View
               collapsable={false}
@@ -459,6 +431,118 @@ export function PetFeedPostDetailScreen({
         }}
         onSubmit={submitSaleReview}
       />
+
+      <Modal
+        visible={listingStatusModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setListingStatusModalOpen(false)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('common.cancel')}
+          className="flex-1 items-center justify-center bg-black/40 px-6"
+          onPress={() => setListingStatusModalOpen(false)}
+        >
+          <Pressable
+            accessibilityRole="menu"
+            className="w-full max-w-md rounded-2xl bg-white p-5"
+            onPress={(event) => event.stopPropagation()}
+          >
+            <Text className="text-base font-bold text-slate-900">{t('listing.statusModal.title')}</Text>
+            <View className="mt-4 gap-2">
+              <Pressable
+                testID="listing-status-published"
+                accessibilityRole="button"
+                className="rounded-xl bg-slate-50 py-3.5 active:bg-slate-100"
+                onPress={() => applyListingStatus('published')}
+              >
+                <Text className="text-center text-sm font-semibold text-slate-800">
+                  {t('listing.statusChoice.published')}
+                </Text>
+              </Pressable>
+              <Pressable
+                testID="listing-status-deposit-hold"
+                accessibilityRole="button"
+                className="rounded-xl bg-slate-50 py-3.5 active:bg-slate-100"
+                onPress={() => applyListingStatus('deposit_hold')}
+              >
+                <Text className="text-center text-sm font-semibold text-slate-800">
+                  {t('listing.statusChoice.deposit_hold')}
+                </Text>
+              </Pressable>
+              <Pressable
+                testID="listing-status-sold"
+                accessibilityRole="button"
+                className="rounded-xl bg-slate-50 py-3.5 active:bg-slate-100"
+                onPress={openSaleChannelModal}
+              >
+                <Text className="text-center text-sm font-semibold text-slate-800">
+                  {t('listing.statusChoice.sold')}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                className="mt-1 rounded-xl border border-slate-200 py-3 active:bg-slate-50"
+                onPress={() => setListingStatusModalOpen(false)}
+              >
+                <Text className="text-center text-sm font-semibold text-slate-600">{t('common.cancel')}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={saleChannelModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSaleChannelModalOpen(false)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('common.cancel')}
+          className="flex-1 items-center justify-center bg-black/40 px-6"
+          onPress={() => setSaleChannelModalOpen(false)}
+        >
+          <Pressable
+            accessibilityRole="menu"
+            className="w-full max-w-md rounded-2xl bg-white p-5"
+            onPress={(event) => event.stopPropagation()}
+          >
+            <Text className="text-base font-bold text-slate-900">{t('listing.statusModal.saleChannel')}</Text>
+            <View className="mt-4 gap-2">
+              <Pressable
+                testID="listing-sale-on-platform"
+                accessibilityRole="button"
+                className="rounded-xl bg-slate-50 py-3.5 active:bg-slate-100"
+                onPress={openBuyerEmailForSold}
+              >
+                <Text className="text-center text-sm font-semibold text-slate-800">
+                  {t('listing.statusModal.onPlatform')}
+                </Text>
+              </Pressable>
+              <Pressable
+                testID="listing-sale-off-platform"
+                accessibilityRole="button"
+                className="rounded-xl bg-slate-50 py-3.5 active:bg-slate-100"
+                onPress={submitSoldOffPlatform}
+              >
+                <Text className="text-center text-sm font-semibold text-slate-800">
+                  {t('listing.statusModal.offPlatform')}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                className="mt-1 rounded-xl border border-slate-200 py-3 active:bg-slate-50"
+                onPress={() => setSaleChannelModalOpen(false)}
+              >
+                <Text className="text-center text-sm font-semibold text-slate-600">{t('common.cancel')}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={buyerEmailModalOpen}

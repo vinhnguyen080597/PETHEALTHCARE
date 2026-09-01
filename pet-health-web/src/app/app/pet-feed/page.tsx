@@ -7,7 +7,6 @@ import { getFeatureFlags, listFeedPosts } from "@/lib/api/petFeed";
 import { mapApiPosts } from "@/lib/mappers";
 import { isExpiredAuthError } from "@/lib/sessionTokens";
 import { FeedView } from "@/components/marketplace/FeedView";
-import { DisclaimerBanner } from "@/components/marketplace/DisclaimerBanner";
 import { LiveActivityTicker } from "@/components/marketplace/LiveActivityTicker";
 import { ListingGridSkeleton } from "@/components/ui/Skeleton";
 import type { Lang, Listing } from "@/lib/types";
@@ -81,14 +80,12 @@ async function PetFeedListings({
           {t(lang, "feed.loadError")}: {loadError}
         </div>
       ) : null}
-      <DisclaimerBanner lang={lang} className="mb-5" />
       <FeedView
         lang={lang}
         listings={listings}
         initialSpecies={initialSpecies}
         initialQ={initialQ}
         initialProvince={initialProvince}
-        hideDisclaimer
         showEscrowUi={showEscrowUi}
       />
     </>

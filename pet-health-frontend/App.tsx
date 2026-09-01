@@ -438,7 +438,6 @@ function AppContent() {
                 onReportPost={app.submitPetFeedReport}
                 onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
                 onEditPost={app.openEditPetFeedDraft}
-                onDeletePost={app.deleteOwnPetFeedPost}
                 onFetchPostDetail={app.fetchPetFeedPostDetail}
                 onFetchPostComments={app.fetchPetFeedPostComments}
                 onSubmitPostComment={app.submitPetFeedComment}
@@ -474,7 +473,14 @@ function AppContent() {
                 currentUserId={app.accountProfile?.user_id ?? null}
                 token={app.token}
                 initialTab={app.breederDetailTab}
+                scrollToReviewsOnMount={app.breederDetailScrollToReviews}
+                focusReviewId={app.breederDetailFocusReviewId}
+                onScrolledToReviews={app.clearBreederDetailReviewFocus}
               />
+              </View>
+            ) : app.screen === 'breeder-detail' ? (
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="large" color={BRAND.primary} />
               </View>
             ) : null}
 
@@ -651,9 +657,11 @@ function AppContent() {
               <CreatePetFeedPostScreen
                 role={app.accountProfile?.primary_role}
                 editingPost={app.editingPetFeedPost}
+                currentUserId={app.accountProfile?.user_id ?? null}
                 onBack={app.closeCreatePetFeedPost}
                 onSubmit={app.submitPetFeedPost}
                 onUpdate={app.updatePetFeedDraft}
+                onDeletePost={app.deleteOwnPetFeedPost}
               />
             )}
 
@@ -671,6 +679,7 @@ function AppContent() {
                 breederProfiles={app.adminBreederProfiles}
                 posts={app.adminFeedPosts}
                 reports={app.adminFeedReports}
+                farmReviews={app.adminFarmReviews}
                 loading={app.loading}
                 onBack={app.closeAdminHub}
                 onRefresh={app.loadAdminReview}
@@ -679,6 +688,7 @@ function AppContent() {
                 onUpdateBreederStatus={app.updateAdminBreederStatus}
                 onUpdatePostStatus={app.updateAdminPostStatus}
                 onUpdateReportStatus={app.updateAdminReportStatus}
+                onUpdateFarmReviewStatus={app.updateAdminFarmReviewModeration}
               />
             )}
 

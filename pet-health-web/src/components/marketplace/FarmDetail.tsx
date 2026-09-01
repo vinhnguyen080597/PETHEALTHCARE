@@ -43,12 +43,31 @@ import {
   startChatMessageKey,
 } from "@/lib/startFarmChat";
 import { ListingCard } from "./ListingCard";
-import { DisclaimerBanner } from "./DisclaimerBanner";
 import { FarmHealth } from "./FarmHealth";
 import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
 import { FarmReviewModal } from "./FarmReviewModal";
+import { FarmReviewStars } from "./FarmReviewStars";
+import { FarmReviewSectionSkeleton } from "@/components/ui/Skeleton";
 import type { BreederFarmReviewThread } from "@/lib/breederFarmReviews";
-import { formatBreederReviewLabel } from "@/lib/breederFarmReviews";
+import {
+  filterApprovedFarmReviews,
+  formatBreederReviewLabel,
+} from "@/lib/breederFarmReviews";
+
+function farmReviewAuthorName(
+  name: string | null | undefined,
+  fallback: string,
+): string {
+  const trimmed = String(name ?? "").trim();
+  return trimmed || fallback;
+}
+
+function farmReviewAuthorInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+}
 
 const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
 
@@ -465,7 +484,7 @@ export function FarmDetail({
   const facilitySocials = farmFacilitySocialLinks(breeder.contact);
 
   useEffect(() => {
-    if (tab !== "reviews" || reviewsLoaded || reviewsLoading) return;
+    if (reviewsLoaded || reviewsLoading) return;
     let cancelled = false;
     setReviewsLoading(true);
     void fetch(`/api/breeders/${encodeURIComponent(breeder.id)}/reviews`)
@@ -473,7 +492,14 @@ export function FarmDetail({
       .then((json) => {
         if (cancelled) return;
         const threads = Array.isArray(json?.data?.threads) ? json.data.threads : [];
-        setReviewThreads(threads);
+        setReviewThreads(
+          filterApprovedFarmReviews(threads).map((thread) => ({
+            ...thread,
+            supplements: Array.isArray(thread.supplements)
+              ? filterApprovedFarmReviews(thread.supplements)
+              : [],
+          })) as BreederFarmReviewThread[],
+        );
         setReviewsLoaded(true);
       })
       .catch(() => {
@@ -485,7 +511,7 @@ export function FarmDetail({
     return () => {
       cancelled = true;
     };
-  }, [tab, breeder.id, reviewsLoaded, reviewsLoading]);
+  }, [breeder.id, reviewsLoaded, reviewsLoading]);
 
   const submitFarmReview = async (payload: {
     rating: number;
@@ -511,7 +537,6 @@ export function FarmDetail({
       setReviewOpen(false);
       setReviewNotice(t(lang, "farm.review.pendingSubmitted"));
       setReviewsLoaded(false);
-      if (tab !== "reviews") selectTab("reviews");
       router.refresh();
     } catch (err) {
       setReviewError(
@@ -889,8 +914,6 @@ export function FarmDetail({
       </section>
 
       <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-6 space-y-5">
-        <DisclaimerBanner lang={lang} />
-
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Left 70% */}
           <div className="w-full lg:w-[70%] min-w-0 space-y-5">
@@ -1011,24 +1034,129 @@ export function FarmDetail({
                   <div className="flex items-center justify-between gap-3">
                     <h2 className="text-base font-semibold text-[#2B1E19]">
                       {t(lang, "farm.tab.reviews")}
+                      {reviewCount > 0 ? ` (${reviewCount})` : ""}
                     </h2>
-                    <button
-                      type="button"
-                      onClick={() => selectTab("reviews")}
-                      className="text-sm font-medium text-[#D97706] hover:text-[#B45309]"
-                    >
-                      {t(lang, "farm.review.viewAll")}
-                    </button>
+                    {!isOwner && isLoggedIn ? (
+                      <button
+                        type="button"
+                        onClick={() => setReviewOpen(true)}
+                        className="rounded-full bg-[#D97706] px-4 py-2 text-sm font-semibold text-white hover:bg-[#B45309]"
+                      >
+                        {t(lang, "farm.review.open")}
+                      </button>
+                    ) : null}
                   </div>
+                  {reviewNotice ? (
+                    <div
+                      role="status"
+                      className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                    >
+                      {reviewNotice}
+                    </div>
+                  ) : null}
                   <div className="bg-white border border-[#F3E2C8] rounded-2xl p-5">
-                    {reviewCount > 0 && trustMetrics.rating != null ? (
-                      <p className="text-sm text-[#2B1E19]">
-                        {formatBreederReviewLabel(
-                          trustMetrics.rating,
-                          reviewCount,
-                          lang,
-                        )}
-                      </p>
+                    {reviewsLoading ? (
+                      <FarmReviewSectionSkeleton />
+                    ) : reviewThreads.length > 0 ? (
+                      <div className="space-y-4">
+                        {reviewThreads.map((thread) => (
+                          <article
+                            key={thread.id}
+                            className="rounded-2xl border border-[#F3E2C8] bg-[#FDFBF7] p-4"
+                          >
+                            <div className="flex items-start gap-3">
+                              {thread.reviewer_avatar_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={thread.reviewer_avatar_url}
+                                  alt=""
+                                  className="h-10 w-10 shrink-0 rounded-full object-cover border border-[#F3E2C8]"
+                                />
+                              ) : (
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E7D5C0] text-xs font-bold text-[#2B1E19]">
+                                  {farmReviewAuthorInitials(
+                                    farmReviewAuthorName(
+                                      thread.reviewer_display_name,
+                                      t(lang, "farm.review.reviewerFallback"),
+                                    ),
+                                  )}
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <p className="text-sm font-semibold text-[#2B1E19]">
+                                    {farmReviewAuthorName(
+                                      thread.reviewer_display_name,
+                                      t(lang, "farm.review.reviewerFallback"),
+                                    )}
+                                  </p>
+                                  <FarmReviewStars rating={thread.rating} />
+                                  <span className="text-xs text-[#6E5A51]">
+                                    ({thread.rating}/5)
+                                  </span>
+                                  {thread.status === "pending" ? (
+                                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                                      {t(lang, "farm.review.pendingBadge")}
+                                    </span>
+                                  ) : null}
+                                </div>
+                            {thread.body ? (
+                              <p className="mt-2 text-sm text-[#2B1E19]">{thread.body}</p>
+                            ) : null}
+                            {thread.photo_urls?.length ? (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {thread.photo_urls.map((url) => (
+                                  <a
+                                    key={url}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block h-16 w-16 overflow-hidden rounded-lg border border-[#F3E2C8]"
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={url} alt="" className="h-full w-full object-cover" />
+                                  </a>
+                                ))}
+                              </div>
+                            ) : null}
+                            {thread.supplements?.length ? (
+                              <div className="mt-3 space-y-2 border-l-2 border-[#F3E2C8] pl-3">
+                                {thread.supplements.map((sup) => (
+                                  <div key={sup.id}>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="text-xs font-semibold text-[#6E5A51]">
+                                        {t(lang, "farm.review.supplement")}
+                                      </p>
+                                      <FarmReviewStars rating={sup.rating} className="text-xs" />
+                                    </div>
+                                    {sup.body ? (
+                                      <p className="text-sm text-[#2B1E19]">{sup.body}</p>
+                                    ) : null}
+                                    {sup.photo_urls?.length ? (
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        {sup.photo_urls.map((url) => (
+                                          <a
+                                            key={url}
+                                            href={url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block h-14 w-14 overflow-hidden rounded-lg border border-[#F3E2C8]"
+                                          >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={url} alt="" className="h-full w-full object-cover" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                              </div>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
                     ) : (
                       <p className="text-sm text-[#6E5A51] py-4 text-center">
                         {t(lang, "farm.reviews.empty")}
@@ -1079,111 +1207,6 @@ export function FarmDetail({
               </div>
             )}
 
-            {tab === "reviews" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-base font-semibold text-[#2B1E19]">
-                    {t(lang, "farm.tab.reviews")}
-                    {reviewCount > 0 ? ` (${reviewCount})` : ""}
-                  </h2>
-                  {!isOwner && isLoggedIn ? (
-                    <button
-                      type="button"
-                      onClick={() => setReviewOpen(true)}
-                      className="rounded-full bg-[#D97706] px-4 py-2 text-sm font-semibold text-white hover:bg-[#B45309]"
-                    >
-                      {t(lang, "farm.review.open")}
-                    </button>
-                  ) : null}
-                </div>
-                {reviewNotice ? (
-                  <div
-                    role="status"
-                    className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-                  >
-                    {reviewNotice}
-                  </div>
-                ) : null}
-                {reviewsLoading ? (
-                  <p className="text-sm text-[#6E5A51]">{t(lang, "common.loading")}</p>
-                ) : reviewThreads.length > 0 ? (
-                  <div className="space-y-3">
-                    {reviewThreads.map((thread) => (
-                      <article
-                        key={thread.id}
-                        className="rounded-2xl border border-[#F3E2C8] bg-white p-4"
-                      >
-                        <p className="text-sm font-semibold text-[#2B1E19]">
-                          {"★".repeat(thread.rating)}
-                          <span className="ml-2 font-normal text-[#6E5A51]">
-                            {thread.rating}/5
-                          </span>
-                          {thread.status === "pending" ? (
-                            <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
-                              {t(lang, "farm.review.pendingBadge")}
-                            </span>
-                          ) : null}
-                        </p>
-                        {thread.body ? (
-                          <p className="mt-2 text-sm text-[#2B1E19]">{thread.body}</p>
-                        ) : null}
-                        {thread.photo_urls?.length ? (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {thread.photo_urls.map((url) => (
-                              <a
-                                key={url}
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block h-16 w-16 overflow-hidden rounded-lg border border-[#F3E2C8]"
-                              >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={url} alt="" className="h-full w-full object-cover" />
-                              </a>
-                            ))}
-                          </div>
-                        ) : null}
-                        {thread.supplements?.length ? (
-                          <div className="mt-3 space-y-2 border-l-2 border-[#F3E2C8] pl-3">
-                            {thread.supplements.map((sup) => (
-                              <div key={sup.id}>
-                                <p className="text-xs font-semibold text-[#6E5A51]">
-                                  {t(lang, "farm.review.supplement")} · {"★".repeat(sup.rating)}
-                                </p>
-                                {sup.body ? (
-                                  <p className="text-sm text-[#2B1E19]">{sup.body}</p>
-                                ) : null}
-                                {sup.photo_urls?.length ? (
-                                  <div className="mt-2 flex flex-wrap gap-2">
-                                    {sup.photo_urls.map((url) => (
-                                      <a
-                                        key={url}
-                                        href={url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="block h-14 w-14 overflow-hidden rounded-lg border border-[#F3E2C8]"
-                                      >
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={url} alt="" className="h-full w-full object-cover" />
-                                      </a>
-                                    ))}
-                                  </div>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-[#6E5A51] py-8 text-center">
-                    {t(lang, "farm.reviews.empty")}
-                  </p>
-                )}
-              </div>
-            )}
-
             {tab === "warranty" && (
               <FarmWarrantyTab
                 lang={lang}
@@ -1203,10 +1226,7 @@ export function FarmDetail({
                 {isLoggedIn ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (tab !== "reviews") selectTab("reviews");
-                      setReviewOpen(true);
-                    }}
+                    onClick={() => setReviewOpen(true)}
                     className="w-full py-2.5 border border-[#F3E2C8] text-[#2B1E19] text-sm font-semibold rounded-xl hover:bg-amber-50 transition-colors"
                   >
                     ⭐ {t(lang, "farm.review.open")}

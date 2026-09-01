@@ -1,5 +1,5 @@
 /** Tabs on the public farm profile (`FarmDetail`). */
-export const FARM_DETAIL_TABS = ["overview", "listings", "reviews", "warranty"] as const;
+export const FARM_DETAIL_TABS = ["overview", "listings", "warranty"] as const;
 
 export type FarmDetailTab = (typeof FARM_DETAIL_TABS)[number];
 
@@ -33,6 +33,7 @@ export function parseFarmDetailTab(
   value: string | null | undefined,
 ): FarmDetailTab | null {
   if (!value) return null;
+  if (value === "reviews") return "overview";
   return (FARM_DETAIL_TABS as readonly string[]).includes(value)
     ? (value as FarmDetailTab)
     : null;

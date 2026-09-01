@@ -381,6 +381,13 @@
       "adminFarmReviewTitle": "New farm review awaiting approval",
       "adminFarmReviewSubtitle": "Needs admin action",
       "adminFarmReviewBody": "A buyer submitted a farm review that needs admin approval.",
+      "farmReviewRejectedTitle": "Review not approved",
+      "farmReviewRejectedSubtitle": "Your farm review was not published",
+      "farmReviewRejectedBody": "Admin did not approve your farm review.",
+      "farmReviewedTitle": "New farm review",
+      "farmReviewedSubtitle": "A buyer reviewed your farm",
+      "farmReviewedBody": "Open your farm profile to read the latest review.",
+      "farmReviewOpenFailed": "Could not open your farm profile. Please try again from the Account tab.",
       "adminAppealTitle": "Transparency warning appeal",
       "adminAppealSubtitle": "Needs admin review",
       "adminAppealBody": "A breeder appealed a low transparency score warning.",
@@ -613,7 +620,7 @@
       "open": "Review",
       "viewAll": "View all",
       "modalTitle": "Review this farm",
-      "modalHint": "Your first review is primary; later updates appear as supplements.",
+      "modalHint": "How was your experience welcoming your pet? Share a review to help other pet parents feel more confident.",
       "bodyPlaceholder": "Share your experience (optional)",
       "submit": "Submit review",
       "submitting": "Submitting…",
@@ -636,7 +643,8 @@
         "tooManyPhotos": "Too many attached photos."
       },
       "pendingSubmitted": "Your review was submitted and is pending admin approval before it appears publicly.",
-      "pendingBadge": "Pending admin review"
+      "pendingBadge": "Pending admin review",
+      "reviewerFallback": "Buyer"
     },
     "cta": {
       "message": "Message",
@@ -1199,6 +1207,7 @@
     "previewUntitled": "Untitled listing",
     "editDraftTitle": "Edit draft",
     "editTitle": "Edit listing",
+    "deleteSectionTitle": "Delete listing",
     "mediaLockedNote": "Photos/video are saved with this draft. To change media, create a new listing.",
     "draftMediaHint": "You can add or change photos/video while editing. Photo + video are required when submitting for review.",
     "publishedEditNote": "Changes to a published listing are sent for admin review before going live again.",
@@ -1516,7 +1525,23 @@
     "confirmSuspendBody": "The breeder will lose posting access until an admin restores verification.",
     "penaltyBadge": "−{{points}} pts · {{count}} violation(s)",
     "healthEvidence": "Vaccine evidence",
-    "healthEvidenceHint": "Listing claims vaccination — review book/stamp photos before approving."
+    "healthEvidenceHint": "Listing claims vaccination — review book/stamp photos before approving.",
+    "farmReviews": {
+      "title": "Farm reviews awaiting approval",
+      "empty": "No farm reviews awaiting approval.",
+      "kind": {
+        "primary": "Direct review",
+        "sale": "Sale review",
+        "supplement": "Supplement"
+      },
+      "approve": "Approve review",
+      "reject": "Reject review",
+      "approveSuccess": "Farm review approved.",
+      "rejectSuccess": "Farm review rejected.",
+      "rejectTitle": "Reject farm review",
+      "rejectHint": "The reviewer will see this reason in their notifications.",
+      "rejectReasonPlaceholder": "e.g. Inappropriate content / spam / not about this farm"
+    }
   },
   "petTypes": {
     "dog": "Dog",

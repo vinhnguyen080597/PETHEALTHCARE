@@ -286,6 +286,19 @@ export type PetFeedComment = {
   updated_at?: string;
 };
 
+export type AdminFarmReview = {
+  id: string;
+  breeder_profile_id: string;
+  reviewer_user_id: string;
+  kind: 'primary' | 'supplement' | 'sale' | string;
+  rating: number;
+  body?: string;
+  photo_urls?: string[];
+  status?: string;
+  created_at?: string;
+  breeder_profile?: { display_name?: string | null } | null;
+};
+
 export type PetFeedNotification = {
   id: string;
   recipient_user_id: string;
@@ -312,6 +325,8 @@ export type PetFeedNotification = {
     rejection_reason?: string;
     admin_action?: string;
     admin_note?: string;
+    breeder_profile_id?: string;
+    review_id?: string;
   };
 };
 

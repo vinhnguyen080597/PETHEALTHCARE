@@ -131,14 +131,40 @@ export type FarmReviewThreadPreview = {
   body: string;
   photoUrls: string[];
   status?: FarmReviewStatus;
+  reviewerDisplayName?: string;
+  reviewerAvatarUrl?: string | null;
   supplements: Array<{
     id: string;
     rating: number;
     body: string;
     photoUrls: string[];
     status?: FarmReviewStatus;
+    reviewerDisplayName?: string;
+    reviewerAvatarUrl?: string | null;
   }>;
 };
+
+export function farmReviewAuthorLabel(name: string | null | undefined, fallback: string): string {
+  const trimmed = String(name ?? '').trim();
+  return trimmed || fallback;
+}
+
+export function farmReviewStarCount(rating: unknown): number {
+  return normalizeFarmReviewRating(rating);
+}
+
+export function filterApprovedFarmReviewThreads<
+  T extends { status?: unknown; supplements?: Array<{ status?: unknown }> },
+>(threads: T[]): T[] {
+  return threads
+    .filter((row) => isFarmReviewApproved(row))
+    .map((row) => ({
+      ...row,
+      supplements: Array.isArray(row.supplements)
+        ? row.supplements.filter((item) => isFarmReviewApproved(item))
+        : [],
+    }));
+}
 
 export function mapFarmReviewThreads(threads: unknown): FarmReviewThreadPreview[] {
   if (!Array.isArray(threads)) return [];
@@ -151,6 +177,8 @@ export function mapFarmReviewThreads(threads: unknown): FarmReviewThreadPreview[
         status?: string;
         photo_urls?: unknown;
         photoUrls?: unknown;
+        reviewer_display_name?: string;
+        reviewer_avatar_url?: string | null;
         supplements?: Array<{
           id?: string;
           rating?: number;
@@ -158,6 +186,8 @@ export function mapFarmReviewThreads(threads: unknown): FarmReviewThreadPreview[
           status?: string;
           photo_urls?: unknown;
           photoUrls?: unknown;
+          reviewer_display_name?: string;
+          reviewer_avatar_url?: string | null;
         }>;
       };
       const id = String(primary.id || '').trim();
@@ -170,15 +200,27 @@ export function mapFarmReviewThreads(threads: unknown): FarmReviewThreadPreview[
               body: String(item.body || '').trim(),
               photoUrls: normalizeFarmReviewPhotoUrls(item.photo_urls ?? item.photoUrls),
               status: normalizeFarmReviewStatus(item.status),
+              reviewerDisplayName: String(item.reviewer_display_name || '').trim(),
+              reviewerAvatarUrl:
+                typeof item.reviewer_avatar_url === 'string' && item.reviewer_avatar_url.trim()
+                  ? item.reviewer_avatar_url.trim()
+                  : null,
             }))
-            .filter((item) => item.id && item.rating > 0)
+            .filter((item) => item.id && item.rating > 0 && isFarmReviewApproved(item))
         : [];
+      const status = normalizeFarmReviewStatus(primary.status);
+      if (!isFarmReviewApproved({ status })) return null;
       return {
         id,
         rating: Number(primary.rating) || 0,
         body: String(primary.body || '').trim(),
         photoUrls: normalizeFarmReviewPhotoUrls(primary.photo_urls ?? primary.photoUrls),
-        status: normalizeFarmReviewStatus(primary.status),
+        status,
+        reviewerDisplayName: String(primary.reviewer_display_name || '').trim(),
+        reviewerAvatarUrl:
+          typeof primary.reviewer_avatar_url === 'string' && primary.reviewer_avatar_url.trim()
+            ? primary.reviewer_avatar_url.trim()
+            : null,
         supplements,
       };
     })
@@ -198,4 +240,12 @@ export function farmReviewedBreederProfileId(item: {
       ? item.metadata.breeder_profile_id.trim()
       : '';
   return meta || null;
+}
+
+export function farmReviewedNotificationReviewId(item: {
+  metadata?: { review_id?: string | null } | null;
+}): string | null {
+  const id =
+    typeof item.metadata?.review_id === 'string' ? item.metadata.review_id.trim() : '';
+  return id || null;
 }

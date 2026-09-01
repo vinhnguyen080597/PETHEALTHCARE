@@ -315,7 +315,7 @@ test("farm sale review notification deep link and CTA", () => {
   );
 });
 
-test("farm reviewed notification opens breeder reviews tab", () => {
+test("farm reviewed notification opens breeder overview", () => {
   assert.equal(isFarmReviewedNotification("farm_reviewed"), true);
   assert.equal(
     farmReviewedNotificationHref({
@@ -323,7 +323,7 @@ test("farm reviewed notification opens breeder reviews tab", () => {
       breeder_profile_id: "farm-9",
       post_id: "post-42",
     }),
-    "/app/breeders/farm-9?tab=reviews",
+    "/app/breeders/farm-9",
   );
   assert.equal(
     notificationInboxCta({ type: "farm_reviewed" }, CTA_FALLBACKS),

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,12 +16,15 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { PetFeedListingCard } from '../components/PetFeedListingCard';
 import { FarmReviewModal } from '../components/FarmReviewModal';
+import { FarmReviewSectionSkeleton } from '../components/FarmReviewSectionSkeleton';
+import { FarmReviewStars } from '../components/FarmReviewStars';
 import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
 import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
 import { createBreederFarmReview, deleteWarrantyPolicy, getBreederFarmReviews } from '../api';
 import type { BreederProfile, PetFeedPost } from '../types';
-import { mapFarmReviewThreads, formatBreederReviewLabel, type FarmReviewThreadPreview } from '../utils/farmReview';
+import { mapFarmReviewThreads, formatBreederReviewLabel, farmReviewAuthorLabel, type FarmReviewThreadPreview } from '../utils/farmReview';
+import { initialsFromName } from '../utils/breederTrustLevel';
 import { breederCardReviewMetrics } from '../utils/breederDirectoryCard';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../assets/farmProfileAssets';
 import { BRAND } from '../theme/brand';
@@ -52,6 +55,7 @@ import {
   farmTabLabelKey,
   farmDetailTabBarLayout,
   farmWarrantyPoliciesFromMetadata,
+  parseFarmDetailTab,
   resolveFarmAvatarUrl,
   resolveFarmCoverUrl,
   type FarmDetailTab,
@@ -87,6 +91,9 @@ type BreederDetailScreenProps = {
   currentUserId?: string | null;
   token?: string | null;
   initialTab?: FarmDetailTab;
+  scrollToReviewsOnMount?: boolean;
+  focusReviewId?: string | null;
+  onScrolledToReviews?: () => void;
 };
 
 const STATUS_ORDER: FarmPetAvailability[] = ['for_sale', 'deposit_hold', 'completed'];
@@ -109,11 +116,15 @@ export function BreederDetailScreen({
   currentUserId,
   token = null,
   initialTab = 'overview',
+  scrollToReviewsOnMount = false,
+  focusReviewId = null,
+  onScrolledToReviews,
 }: BreederDetailScreenProps) {
   const { t, i18n } = useTranslation();
+  const resolvedInitialTab = parseFarmDetailTab(initialTab) ?? 'overview';
   const isOwnProfile = Boolean(currentUserId && profile.user_id === currentUserId);
   const listingPosts = Array.isArray(posts) ? posts : [];
-  const [activeTab, setActiveTab] = useState<FarmDetailTab>(initialTab);
+  const [activeTab, setActiveTab] = useState<FarmDetailTab>(resolvedInitialTab);
   const [petFilter, setPetFilter] = useState<FarmPetAvailabilityFilter>('all');
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [viewingWarranty, setViewingWarranty] = useState<WarrantyPolicy | null>(null);
@@ -126,6 +137,11 @@ export function BreederDetailScreen({
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewError, setReviewError] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollContentRef = useRef<View>(null);
+  const reviewsSectionRef = useRef<View>(null);
+  const reviewRowRefs = useRef<Record<string, View | null>>({});
+  const pendingReviewScrollRef = useRef(false);
 
   const coverUrl = resolveFarmCoverUrl(profile);
   const avatarUrl = resolveFarmAvatarUrl(profile);
@@ -156,8 +172,72 @@ export function BreederDetailScreen({
   const trustRatingLabel = reviewSummaryLabel || t('farm.trust.ratingEmpty');
 
   useEffect(() => {
-    setActiveTab(initialTab);
+    setActiveTab(parseFarmDetailTab(initialTab) ?? 'overview');
   }, [initialTab]);
+
+  const loadFarmReviews = useCallback(async () => {
+    setReviewsLoading(true);
+    try {
+      const res = await getBreederFarmReviews(token, profile.id);
+      const threads = Array.isArray(res.data?.threads) ? res.data.threads : [];
+      setReviewThreads(mapFarmReviewThreads(threads));
+      setReviewsLoaded(true);
+    } catch {
+      setReviewThreads([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [profile.id, token]);
+
+  const scrollToReviewsSection = useCallback(() => {
+    const contentNode = scrollContentRef.current;
+    if (!contentNode) {
+      onScrolledToReviews?.();
+      return;
+    }
+
+    const targetNode =
+      (focusReviewId && reviewRowRefs.current[focusReviewId]) || reviewsSectionRef.current;
+    if (!targetNode) {
+      onScrolledToReviews?.();
+      return;
+    }
+
+    targetNode.measureLayout(
+      contentNode,
+      (_x, y) => {
+        scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+        onScrolledToReviews?.();
+      },
+      () => onScrolledToReviews?.(),
+    );
+  }, [focusReviewId, onScrolledToReviews]);
+
+  useEffect(() => {
+    pendingReviewScrollRef.current = scrollToReviewsOnMount;
+  }, [scrollToReviewsOnMount, profile.id, focusReviewId]);
+
+  useEffect(() => {
+    if (!pendingReviewScrollRef.current || activeTab !== 'overview' || reviewsLoading) return;
+    const timer = setTimeout(() => {
+      if (!pendingReviewScrollRef.current) return;
+      pendingReviewScrollRef.current = false;
+      scrollToReviewsSection();
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [activeTab, reviewsLoading, reviewThreads, scrollToReviewsSection]);
+
+  useEffect(() => {
+    reviewRowRefs.current = {};
+    if (scrollToReviewsOnMount) {
+      setReviewsLoaded(false);
+    }
+  }, [profile.id, scrollToReviewsOnMount]);
+
+  useEffect(() => {
+    if (reviewsLoaded || reviewsLoading) return;
+    void loadFarmReviews();
+  }, [reviewsLoaded, reviewsLoading, loadFarmReviews]);
 
   const tabs = useMemo(
     () =>
@@ -170,28 +250,6 @@ export function BreederDetailScreen({
       })),
     [farmPetCount, t],
   );
-
-  useEffect(() => {
-    if (reviewsLoaded || reviewsLoading) return;
-    let cancelled = false;
-    setReviewsLoading(true);
-    void getBreederFarmReviews(token, profile.id)
-      .then((res) => {
-        if (cancelled) return;
-        const threads = Array.isArray(res.data?.threads) ? res.data.threads : [];
-        setReviewThreads(mapFarmReviewThreads(threads));
-        setReviewsLoaded(true);
-      })
-      .catch(() => {
-        if (!cancelled) setReviewThreads([]);
-      })
-      .finally(() => {
-        if (!cancelled) setReviewsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [profile.id, reviewsLoaded, reviewsLoading, token]);
 
   function promptFarmReview() {
     if (isOwnProfile) return;
@@ -210,7 +268,7 @@ export function BreederDetailScreen({
     try {
       await createBreederFarmReview(token, profile.id, payload);
       setReviewModalOpen(false);
-      setReviewsLoaded(false);
+      void loadFarmReviews();
       Alert.alert(t('common.ok'), t('farm.review.pendingSubmitted'));
     } catch (error: unknown) {
       setReviewError(error instanceof Error ? error.message : t('farm.review.failed'));
@@ -306,11 +364,13 @@ export function BreederDetailScreen({
       </View>
 
       <ScrollView
+        ref={scrollRef}
         style={{ flex: 1, minHeight: 0 }}
         contentContainerStyle={{ paddingBottom: 28, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
       >
+        <View ref={scrollContentRef} collapsable={false}>
         <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
           <View style={{ height: 148, borderRadius: 16, overflow: 'hidden', backgroundColor: '#E7D5C0' }}>
             <Image
@@ -656,26 +716,104 @@ export function BreederDetailScreen({
               </View>
             </View>
 
-            <View>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: FARM_TEXT, marginBottom: 10 }}>
-                {t('farm.tab.reviews')}
-                {reviewCount > 0 ? ` (${reviewCount})` : ''}
-              </Text>
+            <View ref={reviewsSectionRef} collapsable={false}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: FARM_TEXT, flex: 1 }}>
+                  {t('farm.tab.reviews')}
+                  {reviewCount > 0 ? ` (${reviewCount})` : ''}
+                </Text>
+                {!isOwnProfile ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={promptFarmReview}
+                    style={{
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: FARM_BORDER,
+                      backgroundColor: '#fff',
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: FARM_ACCENT_ACTIVE }}>
+                      ⭐ {t('farm.review.open')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
               <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16, gap: 12 }}>
                 {reviewsLoading ? (
-                  <Text style={{ fontSize: 13, color: FARM_MUTED, textAlign: 'center' }}>{t('common.loading')}</Text>
+                  <FarmReviewSectionSkeleton />
                 ) : reviewThreads.length > 0 ? (
-                  reviewThreads.map((thread) => (
-                    <View key={thread.id} style={{ gap: 8 }}>
-                      <Text style={{ fontWeight: '700', color: FARM_TEXT, fontSize: 13 }}>
-                        {'★'.repeat(thread.rating)} ({thread.rating}/5)
-                        {thread.status === 'pending' ? (
-                          <Text style={{ fontSize: 10, fontWeight: '600', color: '#B45309' }}>
-                            {' '}
-                            · {t('farm.review.pendingBadge')}
+                  reviewThreads.map((thread, index) => (
+                    <View
+                      key={thread.id}
+                      ref={(node) => {
+                        reviewRowRefs.current[thread.id] = node;
+                      }}
+                      collapsable={false}
+                      style={{
+                        gap: 8,
+                        paddingBottom: index < reviewThreads.length - 1 ? 12 : 0,
+                        borderBottomWidth: index < reviewThreads.length - 1 ? 1 : 0,
+                        borderBottomColor: FARM_BORDER,
+                        ...(focusReviewId === thread.id
+                          ? {
+                              borderWidth: 1,
+                              borderColor: FARM_ACCENT,
+                              borderRadius: 10,
+                              padding: 8,
+                              backgroundColor: '#FFFBEB',
+                            }
+                          : {}),
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                        {thread.reviewerAvatarUrl ? (
+                          <Image
+                            source={{ uri: thread.reviewerAvatarUrl }}
+                            style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: FARM_BORDER }}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 20,
+                              backgroundColor: '#E7D5C0',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Text style={{ fontSize: 12, fontWeight: '800', color: FARM_TEXT }}>
+                              {initialsFromName(
+                                farmReviewAuthorLabel(thread.reviewerDisplayName, t('farm.review.reviewerFallback')),
+                              )}
+                            </Text>
+                          </View>
+                        )}
+                        <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                          <Text style={{ fontWeight: '700', color: FARM_TEXT, fontSize: 13 }}>
+                            {farmReviewAuthorLabel(thread.reviewerDisplayName, t('farm.review.reviewerFallback'))}
                           </Text>
-                        ) : null}
-                      </Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                            <FarmReviewStars rating={thread.rating} />
+                            <Text style={{ fontSize: 12, color: FARM_MUTED }}>({thread.rating}/5)</Text>
+                            {thread.status === 'pending' ? (
+                              <Text style={{ fontSize: 10, fontWeight: '600', color: '#B45309' }}>
+                                · {t('farm.review.pendingBadge')}
+                              </Text>
+                            ) : null}
+                          </View>
                       {thread.body ? (
                         <Text style={{ fontSize: 13, color: FARM_TEXT, lineHeight: 19 }}>{thread.body}</Text>
                       ) : null}
@@ -702,9 +840,17 @@ export function BreederDetailScreen({
                             paddingLeft: 10,
                           }}
                         >
-                          <Text style={{ fontWeight: '600', color: FARM_MUTED, fontSize: 12 }}>
-                            {t('farm.review.supplement')} · {'★'.repeat(supplement.rating)}
-                          </Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                            <Text style={{ fontWeight: '600', color: FARM_MUTED, fontSize: 12 }}>
+                              {t('farm.review.supplement')}
+                            </Text>
+                            <FarmReviewStars rating={supplement.rating} size={12} />
+                            {supplement.status === 'pending' ? (
+                              <Text style={{ fontSize: 10, fontWeight: '600', color: '#B45309' }}>
+                                · {t('farm.review.pendingBadge')}
+                              </Text>
+                            ) : null}
+                          </View>
                           {supplement.body ? (
                             <Text style={{ fontSize: 12, color: FARM_TEXT, lineHeight: 18 }}>{supplement.body}</Text>
                           ) : null}
@@ -722,6 +868,8 @@ export function BreederDetailScreen({
                           ) : null}
                         </View>
                       ))}
+                        </View>
+                      </View>
                     </View>
                   ))
                 ) : (
@@ -963,6 +1111,7 @@ export function BreederDetailScreen({
             </View>
           </View>
         ) : null}
+        </View>
       </ScrollView>
 
       {!isOwnProfile ? (

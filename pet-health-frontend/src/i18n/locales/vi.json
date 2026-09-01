@@ -381,6 +381,13 @@
       "adminFarmReviewTitle": "Đánh giá trại chờ duyệt",
       "adminFarmReviewSubtitle": "Cần Admin xử lý",
       "adminFarmReviewBody": "Có đánh giá trại mới cần Admin duyệt trước khi hiển thị.",
+      "farmReviewRejectedTitle": "Đánh giá chưa được duyệt",
+      "farmReviewRejectedSubtitle": "Đánh giá trại của bạn chưa được công bố",
+      "farmReviewRejectedBody": "Admin chưa duyệt đánh giá trại của bạn.",
+      "farmReviewedTitle": "Có đánh giá mới",
+      "farmReviewedSubtitle": "Khách đã đánh giá trại của bạn",
+      "farmReviewedBody": "Mở hồ sơ trại để xem đánh giá mới nhất.",
+      "farmReviewOpenFailed": "Không mở được hồ sơ trại. Hãy thử lại từ tab Tài khoản.",
       "adminAppealTitle": "Kháng cáo điểm minh bạch",
       "adminAppealSubtitle": "Cần Admin xử lý",
       "adminAppealBody": "Breeder kháng cáo cảnh báo điểm minh bạch thấp.",
@@ -613,7 +620,7 @@
       "open": "Đánh giá",
       "viewAll": "Xem tất cả",
       "modalTitle": "Đánh giá trại",
-      "modalHint": "Lần đầu là đánh giá chính; các lần sau hiển thị như bổ sung.",
+      "modalHint": "Sen thấy trải nghiệm đón bé thế nào? Hãy chia sẻ đánh giá để giúp các Sen khác yên tâm hơn nhé!",
       "bodyPlaceholder": "Chia sẻ trải nghiệm (tuỳ chọn)",
       "submit": "Gửi đánh giá",
       "submitting": "Đang gửi…",
@@ -636,7 +643,8 @@
         "tooManyPhotos": "Quá nhiều ảnh đính kèm."
       },
       "pendingSubmitted": "Đánh giá đã được gửi và đang chờ admin duyệt trước khi hiển thị công khai.",
-      "pendingBadge": "Chờ admin duyệt"
+      "pendingBadge": "Chờ admin duyệt",
+      "reviewerFallback": "Khách"
     },
     "cta": {
       "message": "Nhắn tin",
@@ -1199,6 +1207,7 @@
     "previewUntitled": "Bài đăng chưa có tiêu đề",
     "editDraftTitle": "Chỉnh sửa bản nháp",
     "editTitle": "Chỉnh sửa bài đăng",
+    "deleteSectionTitle": "Xóa bài đăng",
     "mediaLockedNote": "Ảnh/video đã lưu cùng bản nháp. Để đổi media, hãy tạo bài mới.",
     "draftMediaHint": "Bạn có thể bổ sung hoặc đổi ảnh/video khi chỉnh sửa. Cần đủ ảnh + video khi Gửi duyệt.",
     "publishedEditNote": "Thay đổi bài đăng đã xuất bản sẽ được gửi duyệt lại trước khi hiển thị công khai.",
@@ -1516,7 +1525,23 @@
     "confirmSuspendBody": "Breeder sẽ mất quyền đăng tin cho đến khi admin khôi phục xác minh.",
     "penaltyBadge": "−{{points}} điểm · {{count}} vi phạm",
     "healthEvidence": "Bằng chứng vaccine",
-    "healthEvidenceHint": "Tin khai đã tiêm — hãy xem ảnh sổ/tem trước khi duyệt."
+    "healthEvidenceHint": "Tin khai đã tiêm — hãy xem ảnh sổ/tem trước khi duyệt.",
+    "farmReviews": {
+      "title": "Đánh giá trại chờ duyệt",
+      "empty": "Không có đánh giá trại chờ duyệt.",
+      "kind": {
+        "primary": "Đánh giá trực tiếp",
+        "sale": "Đánh giá giao dịch",
+        "supplement": "Bổ sung"
+      },
+      "approve": "Duyệt đánh giá",
+      "reject": "Từ chối đánh giá",
+      "approveSuccess": "Đã duyệt đánh giá trại.",
+      "rejectSuccess": "Đã từ chối đánh giá trại.",
+      "rejectTitle": "Từ chối đánh giá trại",
+      "rejectHint": "Người đánh giá sẽ thấy lý do trong thông báo.",
+      "rejectReasonPlaceholder": "VD: Nội dung không phù hợp / spam / không liên quan trại"
+    }
   },
   "petTypes": {
     "dog": "Chó",

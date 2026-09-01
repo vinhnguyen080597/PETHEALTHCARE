@@ -165,10 +165,22 @@ async function enrichNotification(row, accessToken) {
   if (ADMIN_NOTIFICATION_TYPES.has(type)) {
     const metadata = normalizeMetadata(row.metadata);
     const defaults = ADMIN_DEFAULT_CTA[type] || ADMIN_DEFAULT_CTA.admin_breeder_pending;
+    let thumb =
+      typeof metadata.thumb_url === 'string' ? metadata.thumb_url : null;
+    let title = trimText(metadata.title || metadata.request_title, 160);
+    if (type === 'admin_farm_review_pending' && row.breeder_profile_id && !thumb) {
+      try {
+        const profile = await loadBreederProfileLite(row.breeder_profile_id);
+        if (!title) title = trimText(profile?.display_name, 160);
+        thumb = typeof profile?.avatar_url === 'string' ? profile.avatar_url : null;
+      } catch {
+        // ignore enrichment failures
+      }
+    }
     return toNotification(row, {
       actor_display_name: actorName,
-      post_title: trimText(metadata.title || metadata.request_title, 160),
-      post_thumb_url: typeof metadata.thumb_url === 'string' ? metadata.thumb_url : null,
+      post_title: title,
+      post_thumb_url: thumb,
       cta_label: metadata.cta_label || defaults.label,
     });
   }

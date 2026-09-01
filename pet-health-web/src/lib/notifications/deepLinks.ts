@@ -288,7 +288,7 @@ export function farmReviewedNotificationHref(
   if (stored.startsWith("/app/breeders/")) return stored;
   const profileId = farmReviewedBreederProfileId(item);
   if (!profileId) return null;
-  return farmDetailHref(profileId, "reviews");
+  return farmDetailHref(profileId, "overview");
 }
 
 export function isDealActionNotification(

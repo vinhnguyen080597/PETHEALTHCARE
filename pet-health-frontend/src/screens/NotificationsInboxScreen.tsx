@@ -106,6 +106,12 @@ export function NotificationsInboxScreen({
     if (type === 'admin_farm_review_pending') {
       return t('petFeed.notifications.adminFarmReviewTitle');
     }
+    if (type === 'farm_review_rejected') {
+      return t('petFeed.notifications.farmReviewRejectedTitle');
+    }
+    if (type === 'farm_reviewed') {
+      return t('petFeed.notifications.farmReviewedTitle');
+    }
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportTitle');
     if (type === 'deposit_cancel_request') return t('petFeed.notifications.depositCancelTitle');
     return item.actor_display_name || t('petFeed.notifications.actorFallback');
@@ -135,6 +141,12 @@ export function NotificationsInboxScreen({
     if (type === 'admin_listing_pending') return t('petFeed.notifications.adminListingSubtitle');
     if (type === 'admin_farm_review_pending') {
       return t('petFeed.notifications.adminFarmReviewSubtitle');
+    }
+    if (type === 'farm_review_rejected') {
+      return t('petFeed.notifications.farmReviewRejectedSubtitle');
+    }
+    if (type === 'farm_reviewed') {
+      return t('petFeed.notifications.farmReviewedSubtitle');
     }
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportSubtitle');
     if (type === 'deposit_cancel_request') return t('petFeed.notifications.depositCancelSubtitle');
@@ -207,6 +219,16 @@ export function NotificationsInboxScreen({
     if (type === 'admin_farm_review_pending') {
       return item.body_preview || t('petFeed.notifications.adminFarmReviewBody');
     }
+    if (type === 'farm_review_rejected') {
+      return (
+        resolveRejectionNotice(item).reason ||
+        item.body_preview ||
+        t('petFeed.notifications.farmReviewRejectedBody')
+      );
+    }
+    if (type === 'farm_reviewed') {
+      return item.body_preview || t('petFeed.notifications.farmReviewedBody');
+    }
     if (type === 'admin_report_open') {
       return item.body_preview || t('petFeed.notifications.adminReportBody');
     }
@@ -248,6 +270,7 @@ export function NotificationsInboxScreen({
       type === 'breeder_rejected' ||
       type === 'listing_rejected' ||
       type === 'breeder_detail_rejected' ||
+      type === 'farm_review_rejected' ||
       type === 'transparency_warning'
     ) {
       return 'close-circle-outline' as const;
@@ -257,6 +280,7 @@ export function NotificationsInboxScreen({
       type === 'admin_breeder_detail_pending' ||
       type === 'admin_transparency_appeal' ||
       type === 'admin_listing_pending' ||
+      type === 'admin_farm_review_pending' ||
       type === 'admin_report_open'
     ) {
       return 'clipboard-outline' as const;
@@ -268,7 +292,8 @@ export function NotificationsInboxScreen({
     if (
       notificationType(item) === 'breeder_rejected' ||
       notificationType(item) === 'listing_rejected' ||
-      notificationType(item) === 'breeder_detail_rejected'
+      notificationType(item) === 'breeder_detail_rejected' ||
+      notificationType(item) === 'farm_review_rejected'
     ) {
       setReasonItem(item);
     }
@@ -383,6 +408,8 @@ export function NotificationsInboxScreen({
                 ? t('petFeed.notifications.listingRejectedTitle')
                 : reasonItem && notificationType(reasonItem) === 'breeder_detail_rejected'
                   ? t('petFeed.notifications.detailRejectedTitle')
+                  : reasonItem && notificationType(reasonItem) === 'farm_review_rejected'
+                    ? t('petFeed.notifications.farmReviewRejectedTitle')
                   : t('petFeed.notifications.rejectedTitle')}
             </Text>
             <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">
@@ -394,6 +421,8 @@ export function NotificationsInboxScreen({
                   ? t('petFeed.notifications.listingRejectedReasonMissing')
                   : reasonItem && notificationType(reasonItem) === 'breeder_detail_rejected'
                     ? t('petFeed.notifications.detailRejectedBody')
+                    : reasonItem && notificationType(reasonItem) === 'farm_review_rejected'
+                      ? t('petFeed.notifications.farmReviewRejectedBody')
                     : t('petFeed.notifications.rejectedBody'))}
             </Text>
             {adminAction ? (

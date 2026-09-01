@@ -15,13 +15,14 @@ import {
   warrantySaveNextHref,
 } from "../src/lib/farmTabs";
 
-test("farm detail tabs include reviews between listings and warranty", () => {
-  assert.deepEqual([...FARM_DETAIL_TABS], ["overview", "listings", "reviews", "warranty"]);
+test("farm detail tabs are overview, listings, warranty", () => {
+  assert.deepEqual([...FARM_DETAIL_TABS], ["overview", "listings", "warranty"]);
 });
 
 test("parseFarmDetailTab accepts known tabs only", () => {
   assert.equal(parseFarmDetailTab("warranty"), "warranty");
   assert.equal(parseFarmDetailTab("listings"), "listings");
+  assert.equal(parseFarmDetailTab("reviews"), "overview");
   assert.equal(parseFarmDetailTab("nope"), null);
   assert.equal(parseFarmDetailTab(null), null);
 });
