@@ -2,18 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getMySaleReview } from '../api';
 import { PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
 import { PetFeedDetailSiblingListingsBar } from '../components/PetFeedDetailSiblingListingsBar';
 import { MarketplaceDisclaimerAlert } from '../components/MarketplaceLegalNotice';
 import { PetFeedPostDetailBody } from '../components/PetFeedPostDetailBody';
+import { FarmReviewModal } from '../components/FarmReviewModal';
 import { ReportModal } from '../components/ReportModal';
 import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
 import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
@@ -26,7 +30,6 @@ import { similarForSaleListings } from '../utils/petFeedDetailSiblingListings';
 import { modalBottomInset } from '../utils/modalSafeArea';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import { canShowListingStatusUpdate } from '../utils/listingAvailabilityBadge';
-import { validateFarmReviewInput } from '../utils/farmReview';
 
 type PetFeedPostDetailScreenProps = {
   postId: string;
@@ -54,7 +57,7 @@ type PetFeedPostDetailScreenProps = {
   ) => Promise<PetFeedPost | null>;
   onSubmitSaleReview?: (
     postId: string,
-    body: { rating: number; body?: string },
+    body: { rating: number; body?: string; photoUrls?: string[] },
   ) => Promise<boolean>;
 };
 
@@ -108,6 +111,7 @@ export function PetFeedPostDetailScreen({
   onDeletePostComment,
   onOpenListing,
   currentUserId,
+  token = null,
   openSaleReviewInitially = false,
   onPatchListingStatus,
   onSubmitSaleReview,
@@ -123,6 +127,12 @@ export function PetFeedPostDetailScreen({
   const [reportVisible, setReportVisible] = useState(false);
   const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
   const [reportNote, setReportNote] = useState('');
+  const [buyerEmailModalOpen, setBuyerEmailModalOpen] = useState(false);
+  const [buyerEmailDraft, setBuyerEmailDraft] = useState('');
+  const [saleReviewModalOpen, setSaleReviewModalOpen] = useState(false);
+  const [saleReviewBusy, setSaleReviewBusy] = useState(false);
+  const [saleReviewError, setSaleReviewError] = useState('');
+  const saleReviewPromptedRef = useRef(false);
 
   const { selectedPost, detailLoading } = usePetFeedPostDetail(
     postId,
@@ -180,23 +190,56 @@ export function PetFeedPostDetailScreen({
     && canShowListingStatusUpdate({ isOwner: isOwnPost, status: selectedPost.status }),
   );
 
+  function openSaleReviewModal() {
+    if (!selectedPost || !onSubmitSaleReview) return;
+    setSaleReviewError('');
+    setSaleReviewModalOpen(true);
+  }
+
+  async function submitSaleReview(payload: { rating: number; body: string; photoUrls: string[] }) {
+    if (!selectedPost || !onSubmitSaleReview) return;
+    setSaleReviewBusy(true);
+    setSaleReviewError('');
+    try {
+      const ok = await onSubmitSaleReview(selectedPost.id, payload);
+      if (ok) setSaleReviewModalOpen(false);
+    } catch (error: unknown) {
+      setSaleReviewError(error instanceof Error ? error.message : t('farm.review.failed'));
+    } finally {
+      setSaleReviewBusy(false);
+    }
+  }
+
   useEffect(() => {
     if (!openSaleReviewInitially || !selectedPost || !onSubmitSaleReview) return;
-    Alert.alert(t('farm.review.modalTitle'), t('farm.review.modalHint'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      ...[5, 4, 3, 2, 1].map((rating) => ({
-        text: `${rating}★`,
-        onPress: () => {
-          const err = validateFarmReviewInput({ rating });
-          if (err) {
-            Alert.alert(t('common.error'), err);
+    if (saleReviewPromptedRef.current) return;
+    saleReviewPromptedRef.current = true;
+    void (async () => {
+      if (token) {
+        try {
+          const res = await getMySaleReview(token, selectedPost.id);
+          if (res.data?.hasReviewed) {
+            Alert.alert(t('common.ok'), t('farm.review.alreadyReviewed'));
             return;
           }
-          void onSubmitSaleReview(selectedPost.id, { rating });
-        },
-      })),
-    ]);
-  }, [openSaleReviewInitially, onSubmitSaleReview, selectedPost, t]);
+        } catch {
+          // Fall through to modal when eligibility check fails.
+        }
+      }
+      openSaleReviewModal();
+    })();
+  }, [openSaleReviewInitially, onSubmitSaleReview, selectedPost, t, token]);
+
+  function submitSoldOnPlatform(buyerEmail?: string) {
+    if (!selectedPost || !onPatchListingStatus) return;
+    void onPatchListingStatus(selectedPost.id, {
+      status: 'sold',
+      saleChannel: 'on_platform',
+      buyerEmail: buyerEmail?.trim() || undefined,
+    });
+    setBuyerEmailModalOpen(false);
+    setBuyerEmailDraft('');
+  }
 
   function promptListingStatusUpdate() {
     if (!selectedPost || !onPatchListingStatus) return;
@@ -217,10 +260,10 @@ export function PetFeedPostDetailScreen({
             { text: t('common.cancel'), style: 'cancel' },
             {
               text: t('listing.statusModal.onPlatform'),
-              onPress: () => void onPatchListingStatus(selectedPost.id, {
-                status: 'sold',
-                saleChannel: 'on_platform',
-              }),
+              onPress: () => {
+                setBuyerEmailDraft('');
+                setBuyerEmailModalOpen(true);
+              },
             },
             {
               text: t('listing.statusModal.offPlatform'),
@@ -405,6 +448,59 @@ export function PetFeedPostDetailScreen({
         onCancel={() => setReportVisible(false)}
         onSubmit={submitReport}
       />
+
+      <FarmReviewModal
+        visible={saleReviewModalOpen}
+        busy={saleReviewBusy}
+        error={saleReviewError}
+        token={token}
+        onClose={() => {
+          if (!saleReviewBusy) setSaleReviewModalOpen(false);
+        }}
+        onSubmit={submitSaleReview}
+      />
+
+      <Modal
+        visible={buyerEmailModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBuyerEmailModalOpen(false)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/40 px-6">
+          <View className="w-full max-w-md rounded-2xl bg-white p-5">
+            <Text className="text-base font-bold text-slate-900">
+              {t('listing.statusModal.saleChannel')}
+            </Text>
+            <Text className="mt-2 text-sm text-slate-600">
+              {t('listing.statusModal.onPlatform')}
+            </Text>
+            <TextInput
+              className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder={t('listing.statusModal.buyerEmailOptional')}
+              value={buyerEmailDraft}
+              onChangeText={setBuyerEmailDraft}
+            />
+            <View className="mt-4 flex-row gap-2">
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setBuyerEmailModalOpen(false)}
+                className="flex-1 items-center rounded-full border border-slate-200 py-2.5"
+              >
+                <Text className="text-sm font-medium text-slate-600">{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => submitSoldOnPlatform(buyerEmailDraft)}
+                className="flex-1 items-center rounded-full bg-[#D97706] py-2.5"
+              >
+                <Text className="text-sm font-medium text-white">{t('listing.statusModal.save')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

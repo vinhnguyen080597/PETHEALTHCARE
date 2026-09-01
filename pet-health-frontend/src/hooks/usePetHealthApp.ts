@@ -2471,19 +2471,15 @@ export function usePetHealthApp() {
 
   async function submitSaleFarmReviewForPost(
     postId: string,
-    body: { rating: number; body?: string },
+    body: { rating: number; body?: string; photoUrls?: string[] },
   ): Promise<boolean> {
-    if (!token || !postId) return false;
-    try {
-      await createSaleFarmReview(token, postId, body);
-      setPetFeedOpenSaleReview(false);
-      Alert.alert(i18n.t('common.ok'), i18n.t('farm.review.submit'));
-      return true;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : i18n.t('farm.review.failed');
-      Alert.alert(i18n.t('common.error'), message);
-      return false;
+    if (!token || !postId) {
+      throw new Error(i18n.t('farm.review.failed'));
     }
+    await createSaleFarmReview(token, postId, body);
+    setPetFeedOpenSaleReview(false);
+    Alert.alert(i18n.t('common.ok'), i18n.t('farm.review.submit'));
+    return true;
   }
 
   function openCreateAdminPost() {
@@ -2915,6 +2911,19 @@ export function usePetHealthApp() {
     if (type === 'farm_sale_review_request' && notification.post_id) {
       openPetFeedPostDetail(notification.post_id, { saleReview: true });
       return;
+    }
+    if (type === 'farm_reviewed') {
+      const profileId =
+        String(notification.breeder_profile_id || '').trim()
+        || (typeof notification.metadata?.breeder_profile_id === 'string'
+          ? notification.metadata.breeder_profile_id.trim()
+          : '');
+      if (profileId) {
+        setBreederDetailReturnScreen('notifications-inbox');
+        setSelectedBreederProfileId(profileId);
+        setScreen('breeder-detail');
+        return;
+      }
     }
     if (!notification.post_id) return;
     openPetFeedPostDetail(notification.post_id, {

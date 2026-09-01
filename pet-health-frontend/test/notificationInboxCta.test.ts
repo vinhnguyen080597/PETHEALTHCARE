@@ -21,6 +21,7 @@ const FALLBACKS = {
   dealCompleteConfirm: 'Confirm handoff',
   viewListing: 'View listing',
   farmSaleReview: 'Leave a review',
+  farmReviewed: 'View reviews',
 };
 
 test('deal reviewed notification uses view listing CTA', () => {
@@ -34,6 +35,13 @@ test('farm sale review request uses review CTA', () => {
   assert.equal(
     notificationInboxCta({ type: 'farm_sale_review_request' }, FALLBACKS),
     'Leave a review',
+  );
+});
+
+test('farm reviewed notification uses view reviews CTA', () => {
+  assert.equal(
+    notificationInboxCta({ type: 'farm_reviewed' }, FALLBACKS),
+    'View reviews',
   );
 });
 

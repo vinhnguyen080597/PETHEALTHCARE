@@ -59,6 +59,13 @@ export function normalizeFarmReviewPhotoUrls(
     .slice(0, max);
 }
 
+export function canAddFarmReviewPhoto(
+  currentCount: number,
+  max = FARM_REVIEW_MAX_PHOTOS,
+): boolean {
+  return currentCount < max;
+}
+
 export function validateFarmReviewInput(input: {
   rating?: unknown;
   body?: unknown;

@@ -19,6 +19,7 @@ export type NotificationInboxCtaFallbacks = {
   dealCompleteConfirm: string;
   viewListing: string;
   farmSaleReview: string;
+  farmReviewed: string;
 };
 
 const DEAL_INFO_TYPES = new Set([
@@ -28,7 +29,6 @@ const DEAL_INFO_TYPES = new Set([
   'deal_reviewed',
   'deal_dispute_opened',
   'deal_dispute_resolved',
-  'farm_reviewed',
 ]);
 
 const ADMIN_QUEUE_TYPES = new Set([
@@ -80,6 +80,9 @@ export function notificationInboxCta(
   }
   if (type === 'farm_sale_review_request') {
     return stored || fallbacks.farmSaleReview;
+  }
+  if (type === 'farm_reviewed') {
+    return stored || fallbacks.farmReviewed;
   }
   if (isAdminQueueNotification(type)) return stored || fallbacks.adminRequest;
   if (

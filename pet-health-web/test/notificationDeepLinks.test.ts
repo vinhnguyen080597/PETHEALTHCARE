@@ -5,9 +5,11 @@ import {
   breederTransparencyNotificationHref,
   farmProfileNotificationHref,
   farmSaleReviewNotificationHref,
+  farmReviewedNotificationHref,
   isAdminQueueNotification,
   isDepositCancelRequestNotification,
   isFarmSaleReviewRequestNotification,
+  isFarmReviewedNotification,
   listingNotificationHref,
   notificationInboxCta,
   isNotificationUnread,
@@ -29,6 +31,7 @@ const CTA_FALLBACKS = {
   dealCompleteConfirm: "Confirm handoff",
   viewListing: "View listing",
   farmSaleReview: "Leave a review",
+  farmReviewed: "View reviews",
 };
 
 test("notificationType defaults to post_comment", () => {
@@ -297,5 +300,21 @@ test("farm sale review notification deep link and CTA", () => {
   assert.equal(
     notificationInboxCta({ type: "farm_sale_review_request" }, CTA_FALLBACKS),
     "Leave a review",
+  );
+});
+
+test("farm reviewed notification opens breeder reviews tab", () => {
+  assert.equal(isFarmReviewedNotification("farm_reviewed"), true);
+  assert.equal(
+    farmReviewedNotificationHref({
+      type: "farm_reviewed",
+      breeder_profile_id: "farm-9",
+      post_id: "post-42",
+    }),
+    "/app/breeders/farm-9?tab=reviews",
+  );
+  assert.equal(
+    notificationInboxCta({ type: "farm_reviewed" }, CTA_FALLBACKS),
+    "View reviews",
   );
 });

@@ -389,7 +389,8 @@
       "depositRequestCta": "Xác nhận cọc",
       "dealCompleteCta": "Xác nhận bàn giao",
       "viewListing": "Xem bài đăng",
-      "farmSaleReview": "Đánh giá"
+      "farmSaleReview": "Đánh giá",
+      "farmReviewed": "Xem đánh giá"
     },
     "reportListing": "Báo cáo bài đăng",
     "editListing": "Chỉnh sửa",
@@ -613,7 +614,14 @@
       "submit": "Gửi đánh giá",
       "submitting": "Đang gửi…",
       "failed": "Không gửi được đánh giá.",
+      "alreadyReviewed": "Bạn đã gửi đánh giá cho giao dịch này.",
       "supplement": "Cập nhật",
+      "photosAdd": "Thêm ảnh",
+      "photosHint": "Tối đa {{count}} ảnh (tuỳ chọn)",
+      "photosLimit": "Chỉ được đính kèm tối đa {{count}} ảnh.",
+      "photosUploading": "Đang tải ảnh lên…",
+      "photoUploadFailed": "Không tải được ảnh.",
+      "photosRemove": "Xóa ảnh",
       "loginRequired": "Vui lòng đăng nhập để đánh giá trại."
     },
     "cta": {

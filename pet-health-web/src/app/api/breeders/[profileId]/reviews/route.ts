@@ -10,6 +10,9 @@ type Params = { params: Promise<{ profileId: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
   const token = await getAccessToken();
+  if (!token) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { profileId } = await params;
   if (!String(profileId || "").trim()) {
     return NextResponse.json({ error: "Missing profile id" }, { status: 400 });

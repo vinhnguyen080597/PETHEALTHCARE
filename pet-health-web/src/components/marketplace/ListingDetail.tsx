@@ -242,8 +242,27 @@ export function ListingDetail({
       router.push(`/login?next=/app/pet-feed/posts/${listing.id}?saleReview=1`);
       return;
     }
-    setSaleReviewOpen(true);
-  }, [searchParams, isLoggedIn, listing.id, router]);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/listings/${encodeURIComponent(listing.id)}/sale-review`,
+        );
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (data?.data?.hasReviewed) {
+          setSaleReviewError(t(lang, "farm.review.alreadyReviewed"));
+          return;
+        }
+        setSaleReviewOpen(true);
+      } catch {
+        if (!cancelled) setSaleReviewOpen(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, isLoggedIn, listing.id, router, lang]);
 
   const submitListingStatus = async (payload: {
     status: "published" | "deposit_hold" | "sold";

@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  canAddFarmReviewPhoto,
   computeFarmReviewPool,
+  FARM_REVIEW_MAX_PHOTOS,
   parseSaleReviewQuery,
   validateFarmReviewInput,
 } from "../src/lib/breederFarmReviews.ts";
@@ -27,4 +29,5 @@ test("parseSaleReviewQuery", () => {
 test("validateFarmReviewInput", () => {
   assert.equal(validateFarmReviewInput({ rating: 3 }), null);
   assert.match(validateFarmReviewInput({ rating: 0 }) || "", /1 and 5/);
+  assert.equal(canAddFarmReviewPhoto(FARM_REVIEW_MAX_PHOTOS), false);
 });

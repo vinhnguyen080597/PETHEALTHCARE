@@ -15,11 +15,13 @@ import { useTranslation } from 'react-i18next';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { PetFeedListingCard } from '../components/PetFeedListingCard';
+import { FarmReviewModal } from '../components/FarmReviewModal';
 import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
 import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
 import { createBreederFarmReview, deleteWarrantyPolicy, getBreederFarmReviews } from '../api';
 import type { BreederProfile, PetFeedPost } from '../types';
+import { mapFarmReviewThreads, type FarmReviewThreadPreview } from '../utils/farmReview';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../assets/farmProfileAssets';
 import { BRAND } from '../theme/brand';
 import { effectiveTrustScore } from '../utils/breederQualityIndex';
@@ -117,9 +119,12 @@ export function BreederDetailScreen({
   const [warrantyMenuId, setWarrantyMenuId] = useState<string | null>(null);
   const [warrantyBusyId, setWarrantyBusyId] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState<FarmPhotoKind | null>(null);
-  const [reviewThreads, setReviewThreads] = useState<Array<{ id: string; rating: number; body?: string }>>([]);
+  const [reviewThreads, setReviewThreads] = useState<FarmReviewThreadPreview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewError, setReviewError] = useState('');
 
   const coverUrl = resolveFarmCoverUrl(profile);
   const avatarUrl = resolveFarmAvatarUrl(profile);
@@ -161,13 +166,7 @@ export function BreederDetailScreen({
       .then((res) => {
         if (cancelled) return;
         const threads = Array.isArray(res.data?.threads) ? res.data.threads : [];
-        setReviewThreads(
-          threads.map((row) => ({
-            id: String((row as { id?: string }).id || ''),
-            rating: Number((row as { rating?: number }).rating) || 0,
-            body: String((row as { body?: string }).body || ''),
-          })),
-        );
+        setReviewThreads(mapFarmReviewThreads(threads));
         setReviewsLoaded(true);
       })
       .catch(() => {
@@ -187,25 +186,24 @@ export function BreederDetailScreen({
       Alert.alert(t('common.error'), t('farm.review.loginRequired'));
       return;
     }
-    Alert.alert(t('farm.review.modalTitle'), t('farm.review.modalHint'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      ...[5, 4, 3, 2, 1].map((rating) => ({
-        text: `${rating}★`,
-        onPress: () => {
-          void createBreederFarmReview(token, profile.id, { rating })
-            .then(() => {
-              setReviewsLoaded(false);
-              Alert.alert(t('common.ok'), t('farm.review.submit'));
-            })
-            .catch((error: unknown) => {
-              Alert.alert(
-                t('common.error'),
-                error instanceof Error ? error.message : t('farm.review.failed'),
-              );
-            });
-        },
-      })),
-    ]);
+    setReviewError('');
+    setReviewModalOpen(true);
+  }
+
+  async function submitFarmReview(payload: { rating: number; body: string; photoUrls: string[] }) {
+    if (!token) return;
+    setReviewBusy(true);
+    setReviewError('');
+    try {
+      await createBreederFarmReview(token, profile.id, payload);
+      setReviewModalOpen(false);
+      setReviewsLoaded(false);
+      Alert.alert(t('common.ok'), t('farm.review.submit'));
+    } catch (error: unknown) {
+      setReviewError(error instanceof Error ? error.message : t('farm.review.failed'));
+    } finally {
+      setReviewBusy(false);
+    }
   }
 
   function confirmDeleteWarranty(policy: WarrantyPolicy) {
@@ -654,15 +652,29 @@ export function BreederDetailScreen({
                   <Text style={{ fontSize: 13, color: FARM_MUTED, textAlign: 'center' }}>{t('common.loading')}</Text>
                 ) : reviewThreads.length > 0 ? (
                   reviewThreads.slice(0, 3).map((thread) => (
-                    <View key={thread.id} style={{ gap: 4 }}>
-                      <Text style={{ fontWeight: '700', color: FARM_TEXT, fontSize: 13 }}>
-                        {'★'.repeat(thread.rating)} ({thread.rating}/5)
-                      </Text>
-                      {thread.body ? (
-                        <Text style={{ fontSize: 13, color: FARM_MUTED }} numberOfLines={3}>
-                          {thread.body}
+                    <View key={thread.id} style={{ gap: 6 }}>
+                      <View style={{ gap: 4 }}>
+                        <Text style={{ fontWeight: '700', color: FARM_TEXT, fontSize: 13 }}>
+                          {'★'.repeat(thread.rating)} ({thread.rating}/5)
                         </Text>
-                      ) : null}
+                        {thread.body ? (
+                          <Text style={{ fontSize: 13, color: FARM_MUTED }} numberOfLines={3}>
+                            {thread.body}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {thread.supplements.map((supplement) => (
+                        <View key={supplement.id} style={{ marginLeft: 12, gap: 2 }}>
+                          <Text style={{ fontWeight: '600', color: FARM_MUTED, fontSize: 12 }}>
+                            {t('farm.review.supplement')}: {'★'.repeat(supplement.rating)} ({supplement.rating}/5)
+                          </Text>
+                          {supplement.body ? (
+                            <Text style={{ fontSize: 12, color: FARM_MUTED }} numberOfLines={2}>
+                              {supplement.body}
+                            </Text>
+                          ) : null}
+                        </View>
+                      ))}
                     </View>
                   ))
                 ) : (
@@ -1002,6 +1014,17 @@ export function BreederDetailScreen({
         policy={viewingWarranty}
         primarySpecies={profile.primary_species}
         onClose={() => setViewingWarranty(null)}
+      />
+
+      <FarmReviewModal
+        visible={reviewModalOpen}
+        busy={reviewBusy}
+        error={reviewError}
+        token={token}
+        onClose={() => {
+          if (!reviewBusy) setReviewModalOpen(false);
+        }}
+        onSubmit={submitFarmReview}
       />
     </View>
   );

@@ -205,6 +205,22 @@ export async function createBreederFarmReview(reviewerUserId, breederProfileId, 
   const kind = existingPrimary ? 'supplement' : 'primary';
   const parentReviewId = existingPrimary?.id ?? null;
 
+  let breederUserId = null;
+  if (!supabase) {
+    const profile = memoryProfilesRef.getter().find((p) => p.id === safeProfileId);
+    breederUserId = profile?.user_id ?? null;
+  } else {
+    const { data: profile } = await supabase
+      .from('breeder_profiles')
+      .select('user_id, display_name')
+      .eq('id', safeProfileId)
+      .maybeSingle();
+    breederUserId = profile?.user_id ?? null;
+  }
+  if (breederUserId && breederUserId === reviewerUserId) {
+    throw httpError('You cannot review your own farm.', 403, 'REVIEW_FORBIDDEN');
+  }
+
   const row = {
     id: randomUUID(),
     breeder_profile_id: safeProfileId,
@@ -244,19 +260,6 @@ export async function createBreederFarmReview(reviewerUserId, breederProfileId, 
   }
 
   await recomputeBreederReviewStats(safeProfileId, accessToken);
-
-  let breederUserId = null;
-  if (!supabase) {
-    const profile = memoryProfilesRef.getter().find((p) => p.id === safeProfileId);
-    breederUserId = profile?.user_id ?? null;
-  } else {
-    const { data: profile } = await supabase
-      .from('breeder_profiles')
-      .select('user_id, display_name')
-      .eq('id', safeProfileId)
-      .maybeSingle();
-    breederUserId = profile?.user_id ?? null;
-  }
 
   return {
     review: toReviewRow(row),

@@ -389,7 +389,8 @@
       "depositRequestCta": "Confirm deposit",
       "dealCompleteCta": "Confirm handoff",
       "viewListing": "View listing",
-      "farmSaleReview": "Leave a review"
+      "farmSaleReview": "Leave a review",
+      "farmReviewed": "View reviews"
     },
     "editListing": "Edit",
     "deleteListing": "Delete",
@@ -613,7 +614,14 @@
       "submit": "Submit review",
       "submitting": "Submitting…",
       "failed": "Could not submit review.",
+      "alreadyReviewed": "You already submitted a review for this purchase.",
       "supplement": "Update",
+      "photosAdd": "Add photos",
+      "photosHint": "Up to {{count}} photos (optional)",
+      "photosLimit": "You can attach up to {{count}} photos.",
+      "photosUploading": "Uploading photos…",
+      "photoUploadFailed": "Could not upload photo.",
+      "photosRemove": "Remove photo",
       "loginRequired": "Please sign in to leave a review."
     },
     "cta": {

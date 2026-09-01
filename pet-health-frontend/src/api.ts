@@ -1068,6 +1068,33 @@ export async function createBreederFarmReview(
   );
 }
 
+export async function uploadFarmReviewPhoto(token: string, imageUri: string): Promise<string> {
+  const formData = new FormData();
+  await appendImageFileToFormData(
+    formData,
+    'file',
+    imageUri,
+    `farm-review-${Date.now()}`,
+    'image/jpeg',
+  );
+  const response = await requestJson<{ data: { publicUrl: string } }>(
+    '/pet-feed/uploads/farm-review-photo',
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    },
+    true,
+    UPLOAD_REQUEST_TIMEOUT_MS,
+  );
+  if (!response.data?.publicUrl) {
+    const err = new ApiRequestError('Photo upload did not return a URL.');
+    err.code = 'PET_FEED_REVIEW_PHOTO_UPLOAD_FAILED';
+    throw err;
+  }
+  return response.data.publicUrl;
+}
+
 export async function patchListingStatus(
   token: string,
   postId: string,

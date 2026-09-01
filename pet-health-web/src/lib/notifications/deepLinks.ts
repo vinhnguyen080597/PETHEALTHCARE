@@ -28,7 +28,6 @@ const DEAL_INFO_NOTIFICATION_TYPES = new Set([
   "deal_reviewed",
   "deal_dispute_opened",
   "deal_dispute_resolved",
-  "farm_reviewed",
 ]);
 
 const FARM_SALE_REVIEW_NOTIFICATION_TYPES = new Set(["farm_sale_review_request"]);
@@ -72,6 +71,7 @@ export type NotificationInboxCtaFallbacks = {
   dealCompleteConfirm: string;
   viewListing: string;
   farmSaleReview: string;
+  farmReviewed: string;
 };
 
 export function notificationType(item: NotificationDeepLinkInput) {
@@ -243,6 +243,36 @@ export function farmSaleReviewNotificationHref(
   return `/app/pet-feed/posts/${encodeURIComponent(postId)}?saleReview=1`;
 }
 
+export function isFarmReviewedNotification(
+  item: NotificationDeepLinkInput | string | null | undefined,
+) {
+  const type =
+    typeof item === "string" || !item ? String(item || "") : notificationType(item);
+  return type === "farm_reviewed";
+}
+
+export function farmReviewedBreederProfileId(item: NotificationDeepLinkInput): string | null {
+  const top = String(item.breeder_profile_id || "").trim();
+  if (top) return top;
+  const meta =
+    typeof item.metadata?.breeder_profile_id === "string"
+      ? item.metadata.breeder_profile_id.trim()
+      : "";
+  return meta || null;
+}
+
+/** Breeder notified of a new farm review — open reviews tab, not the listing. */
+export function farmReviewedNotificationHref(
+  item: NotificationDeepLinkInput,
+): string | null {
+  if (!isFarmReviewedNotification(item)) return null;
+  const stored = storedCtaHref(item);
+  if (stored.startsWith("/app/breeders/")) return stored;
+  const profileId = farmReviewedBreederProfileId(item);
+  if (!profileId) return null;
+  return farmDetailHref(profileId, "reviews");
+}
+
 export function isDealActionNotification(
   _item: NotificationDeepLinkInput | string | null | undefined,
 ) {
@@ -278,6 +308,9 @@ export function notificationInboxCta(
   }
   if (isFarmSaleReviewRequestNotification(type)) {
     return stored || fallbacks.farmSaleReview;
+  }
+  if (isFarmReviewedNotification(type)) {
+    return stored || fallbacks.farmReviewed;
   }
   if (isAdminQueueNotification(type)) {
     return stored || fallbacks.adminRequest;

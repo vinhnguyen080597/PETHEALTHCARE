@@ -11,6 +11,7 @@ import {
   breederTransparencyNotificationHref,
   isAdminQueueNotification,
   farmSaleReviewNotificationHref,
+  farmReviewedNotificationHref,
   isFarmSaleReviewRequestNotification,
   listingNotificationHref,
   notificationInboxCta,
@@ -127,6 +128,11 @@ export function NotificationsClient({
     const farmHref = breederTransparencyNotificationHref(item);
     if (farmHref) {
       router.push(farmHref);
+      return;
+    }
+    const farmReviewedHref = farmReviewedNotificationHref(item);
+    if (farmReviewedHref) {
+      router.push(farmReviewedHref);
       return;
     }
     if (item.post_id) {
@@ -284,6 +290,7 @@ export function NotificationsClient({
       dealCompleteConfirm: t(lang, "notifications.dealCompleteCta"),
       viewListing: t(lang, "notifications.viewListing"),
       farmSaleReview: t(lang, "notifications.farmSaleReview"),
+      farmReviewed: t(lang, "notifications.farmReviewed"),
     });
 
   const rejectionNotice = resolveRejectionNotice(reasonItem);
