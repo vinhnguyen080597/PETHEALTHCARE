@@ -16,13 +16,20 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { uploadFarmReviewPhoto } from '../api';
 import {
   canAddFarmReviewPhoto,
   FARM_REVIEW_BODY_MAX,
   FARM_REVIEW_MAX_PHOTOS,
   validateFarmReviewInput,
 } from '../utils/farmReview';
+import {
+  farmReviewUploadPercent,
+  farmReviewUploadProgressLabel,
+} from '../utils/farmReviewUploadProgress';
+import {
+  uploadFarmReviewPhotoUris,
+  type FarmReviewUploadProgress,
+} from '../utils/uploadFarmReviewPhotos';
 
 const ACCENT = '#D97706';
 
@@ -78,6 +85,7 @@ export function FarmReviewModal({
   const [photoUris, setPhotoUris] = useState<string[]>([]);
   const [localError, setLocalError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<FarmReviewUploadProgress | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -86,6 +94,7 @@ export function FarmReviewModal({
     setPhotoUris([]);
     setLocalError('');
     setUploading(false);
+    setUploadProgress(null);
   }, [visible]);
 
   async function pickPhotos() {
@@ -127,7 +136,7 @@ export function FarmReviewModal({
   }
 
   async function submit() {
-    const validationError = validateFarmReviewInput({ rating, body, photoUrls: photoUris });
+    const validationError = validateFarmReviewInput({ rating, body, photoUrls: [] });
     if (validationError) {
       setLocalError(validationError);
       return;
@@ -138,25 +147,45 @@ export function FarmReviewModal({
     }
     setLocalError('');
     setUploading(true);
+    setUploadProgress({
+      phase: photoUris.length ? 'uploading_photo' : 'submitting',
+      completedSteps: 0,
+      totalSteps: photoUris.length + 1,
+      current: photoUris.length ? 1 : undefined,
+      total: photoUris.length || undefined,
+    });
     try {
-      const photoUrls: string[] = [];
-      for (const uri of photoUris) {
-        photoUrls.push(await uploadFarmReviewPhoto(token, uri));
-      }
+      const photoUrls = photoUris.length
+        ? await uploadFarmReviewPhotoUris(token, photoUris, setUploadProgress)
+        : [];
       const submitError = validateFarmReviewInput({ rating, body, photoUrls });
       if (submitError) {
         setLocalError(submitError);
         return;
       }
+      setUploadProgress({
+        phase: 'submitting',
+        completedSteps: photoUris.length,
+        totalSteps: photoUris.length + 1,
+      });
       await onSubmit({ rating, body: body.trim(), photoUrls });
     } catch (err: unknown) {
-      setLocalError(err instanceof Error ? err.message : t('farm.review.photoUploadFailed'));
+      const message = err instanceof Error ? err.message : t('farm.review.photoUploadFailed');
+      if (/too large|payload too large|entity too large/i.test(message)) {
+        setLocalError(t('farm.review.photosTooLarge'));
+      } else {
+        setLocalError(message);
+      }
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   }
 
   const disabled = busy || uploading;
+  const progressPercent = uploadProgress
+    ? farmReviewUploadPercent(uploadProgress.completedSteps, uploadProgress.totalSteps)
+    : 0;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -164,6 +193,26 @@ export function FarmReviewModal({
         className="flex-1 justify-end bg-black/40"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {uploadProgress ? (
+          <View className="absolute inset-0 z-20 items-center justify-center bg-[#2B1E19]/35 px-6">
+            <View className="w-full max-w-[300px] rounded-2xl border border-[#F0E6D8] bg-[#FDFBF7] px-6 py-8">
+              <ActivityIndicator size="large" color={ACCENT} />
+              <Text className="mt-4 text-center text-sm font-medium text-[#2B1E19]">
+                {farmReviewUploadProgressLabel(uploadProgress, t)}
+              </Text>
+              <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#F0E6D8]">
+                <View
+                  className="h-full rounded-full bg-[#D97706]"
+                  style={{ width: `${Math.max(4, progressPercent)}%` }}
+                />
+              </View>
+              <Text className="mt-2 text-center text-xs text-[#6E5A51]">
+                {t('createPetFeedPost.submitProgress.keepOpen')}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pb-6 pt-5">
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text className="text-lg font-bold text-slate-900">{t('farm.review.modalTitle')}</Text>
@@ -183,6 +232,7 @@ export function FarmReviewModal({
               maxLength={FARM_REVIEW_BODY_MAX}
               value={body}
               onChangeText={setBody}
+              editable={!disabled}
             />
             <Text className="mt-1 text-right text-xs text-slate-400">
               {body.length}/{FARM_REVIEW_BODY_MAX}
@@ -199,6 +249,7 @@ export function FarmReviewModal({
                     accessibilityRole="button"
                     accessibilityLabel={t('farm.review.photosRemove')}
                     onPress={() => removePhoto(uri)}
+                    disabled={disabled}
                     className="absolute right-1 top-1 rounded-full bg-black/60 p-1"
                   >
                     <Ionicons name="close" size={14} color="#fff" />
@@ -220,12 +271,6 @@ export function FarmReviewModal({
 
             {localError || error ? (
               <Text className="mt-3 text-sm text-red-600">{localError || error}</Text>
-            ) : null}
-            {uploading ? (
-              <View className="mt-3 flex-row items-center gap-2">
-                <ActivityIndicator size="small" color={ACCENT} />
-                <Text className="text-sm text-slate-500">{t('farm.review.photosUploading')}</Text>
-              </View>
             ) : null}
 
             <View className="mt-5 flex-row gap-3">

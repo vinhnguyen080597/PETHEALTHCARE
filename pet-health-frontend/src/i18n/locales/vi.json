@@ -620,6 +620,9 @@
       "photosHint": "Tối đa {{count}} ảnh (tuỳ chọn)",
       "photosLimit": "Chỉ được đính kèm tối đa {{count}} ảnh.",
       "photosUploading": "Đang tải ảnh lên…",
+      "uploadingPhoto": "Đang tải ảnh {{current}}/{{total}}…",
+      "submittingReview": "Đang gửi đánh giá…",
+      "photosTooLarge": "Ảnh quá lớn. Hãy thử ít ảnh hơn hoặc ảnh nhỏ hơn.",
       "photoUploadFailed": "Không tải được ảnh.",
       "photosRemove": "Xóa ảnh",
       "loginRequired": "Vui lòng đăng nhập để đánh giá trại."

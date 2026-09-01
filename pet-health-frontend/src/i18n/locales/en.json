@@ -620,6 +620,9 @@
       "photosHint": "Up to {{count}} photos (optional)",
       "photosLimit": "You can attach up to {{count}} photos.",
       "photosUploading": "Uploading photos…",
+      "uploadingPhoto": "Uploading photo {{current}}/{{total}}…",
+      "submittingReview": "Submitting review…",
+      "photosTooLarge": "Photo is too large. Try fewer or smaller images.",
       "photoUploadFailed": "Could not upload photo.",
       "photosRemove": "Remove photo",
       "loginRequired": "Please sign in to leave a review."
