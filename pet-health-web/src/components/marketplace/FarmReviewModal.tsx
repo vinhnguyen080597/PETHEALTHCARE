@@ -9,7 +9,7 @@ import { LoadingPopup } from "@/components/ui/LoadingPopup";
 import {
   FARM_REVIEW_MAX_PHOTOS,
   canAddFarmReviewPhoto,
-  validateFarmReviewInput,
+  farmReviewValidationMessage,
 } from "@/lib/breederFarmReviews";
 import { mergeDealPhotoFiles } from "@/lib/dealPhotoUpload";
 import { farmReviewUploadProgressLabel } from "@/lib/farmReviewUploadProgress";
@@ -21,14 +21,16 @@ import {
 } from "@/lib/uploadFarmReviewMedia";
 
 function StarRow({
+  lang,
   value,
   onChange,
 }: {
+  lang: Lang;
   value: number;
   onChange: (n: number) => void;
 }) {
   return (
-    <div className="flex gap-1" role="radiogroup" aria-label="Rating">
+    <div className="flex gap-1" role="radiogroup" aria-label={t(lang, "farm.review.ratingLabel")}>
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
@@ -121,7 +123,7 @@ export function FarmReviewModal({
   };
 
   const submit = async () => {
-    const err = validateFarmReviewInput({ rating, body, photoUrls: [] });
+    const err = farmReviewValidationMessage(lang, { rating, body, photoUrls: [] });
     if (err) {
       setLocalError(err);
       return;
@@ -139,7 +141,7 @@ export function FarmReviewModal({
       const photoUrls = photoFiles.length
         ? await uploadFarmReviewPhotos(photoFiles, setUploadProgress)
         : [];
-      const photoErr = validateFarmReviewInput({ rating, body, photoUrls });
+      const photoErr = farmReviewValidationMessage(lang, { rating, body, photoUrls });
       if (photoErr) {
         setLocalError(photoErr);
         return;
@@ -185,7 +187,7 @@ export function FarmReviewModal({
           <h2 className="font-bold text-slate-900">{t(lang, "farm.review.modalTitle")}</h2>
           <p className="mt-1 text-sm text-slate-600">{t(lang, "farm.review.modalHint")}</p>
           <div className="mt-4">
-            <StarRow value={rating} onChange={setRating} />
+            <StarRow lang={lang} value={rating} onChange={setRating} />
           </div>
           <textarea
             className="mt-4 w-full min-h-[96px] rounded-xl border border-slate-200 p-3 text-sm"

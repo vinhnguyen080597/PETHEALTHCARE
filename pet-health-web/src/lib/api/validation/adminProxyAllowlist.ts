@@ -59,6 +59,16 @@ export const ADMIN_PROXY_RULES: readonly AdminProxyRule[] = [
   },
   {
     methods: ["GET"],
+    template: "farm-reviews",
+    backend: () => "/admin/farm-reviews",
+  },
+  {
+    methods: ["PUT"],
+    template: "farm-reviews/:reviewId/status",
+    backend: ({ reviewId }) => `/admin/farm-reviews/${enc(reviewId)}/status`,
+  },
+  {
+    methods: ["GET"],
     template: "transparency-warnings",
     backend: () => "/admin/transparency-warnings",
   },
@@ -145,6 +155,7 @@ export const ADMIN_PROXY_BODY_SCHEMAS: Record<string, z.ZodType> = {
     })
     .strict(),
   "PUT breeder-submissions/:submissionId/status": adminStatusBodySchema,
+  "PUT farm-reviews/:reviewId/status": adminStatusBodySchema,
   "PUT transparency-warnings/:warningId/resolve": z
     .object({ resolution: z.enum(["uphold", "restore"]) })
     .strict(),

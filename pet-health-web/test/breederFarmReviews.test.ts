@@ -10,11 +10,11 @@ import {
 
 test("computeFarmReviewPool: users B/C bundles + user D sale x2 → 4.75", () => {
   const reviews = [
-    { kind: "primary", reviewer_user_id: "user-b", rating: 5 },
-    { kind: "supplement", reviewer_user_id: "user-b", rating: 4 },
-    { kind: "primary", reviewer_user_id: "user-c", rating: 5 },
-    { kind: "supplement", reviewer_user_id: "user-c", rating: 4 },
-    { kind: "sale", reviewer_user_id: "user-d", rating: 5, post_id: "post-1" },
+    { kind: "primary", reviewer_user_id: "user-b", rating: 5, status: "approved" },
+    { kind: "supplement", reviewer_user_id: "user-b", rating: 4, status: "approved" },
+    { kind: "primary", reviewer_user_id: "user-c", rating: 5, status: "approved" },
+    { kind: "supplement", reviewer_user_id: "user-c", rating: 4, status: "approved" },
+    { kind: "sale", reviewer_user_id: "user-d", rating: 5, post_id: "post-1", status: "approved" },
   ];
   const result = computeFarmReviewPool(reviews);
   assert.equal(result.review_count, 4);
@@ -24,6 +24,16 @@ test("computeFarmReviewPool: users B/C bundles + user D sale x2 → 4.75", () =>
 test("parseSaleReviewQuery", () => {
   assert.equal(parseSaleReviewQuery("1"), true);
   assert.equal(parseSaleReviewQuery(null), false);
+});
+
+test("computeFarmReviewPool ignores pending reviews", () => {
+  const reviews = [
+    { kind: "primary", reviewer_user_id: "user-a", rating: 5, status: "approved" },
+    { kind: "primary", reviewer_user_id: "user-b", rating: 1, status: "pending" },
+  ];
+  const result = computeFarmReviewPool(reviews);
+  assert.equal(result.review_count, 1);
+  assert.equal(result.review_avg, 5);
 });
 
 test("validateFarmReviewInput", () => {

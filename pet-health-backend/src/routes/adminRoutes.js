@@ -28,6 +28,7 @@ import {
 import {
   createBreederDetailReviewNotification,
   createBreederVerificationNotification,
+  createDealNotification,
   createListingReviewNotification,
   createTransparencyWarningNotification,
 } from '../repositories/petFeedNotificationsRepository.js';
@@ -48,6 +49,11 @@ import { getAiOpsSummary } from '../services/aiEconomicsService.js';
 import { getProductAnalyticsSummary } from '../services/productAnalyticsService.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../services/authIdentifierService.js';
 import { resolveAdminCreatedAuthUser, validateAdminAccountPassword } from '../services/adminAuthUserService.js';
+import {
+  adminUpdateFarmReviewStatus,
+  listAdminFarmReviews,
+} from '../repositories/breederFarmReviewsRepository.js';
+import { buildFarmReviewedNotificationPreview } from '../utils/breederFarmReviews.js';
 import { hasValidAdminSecret, requireAdminOrSecret } from '../middleware/auth.js';
 import { getFeatureFlags, updateFeatureFlags } from '../repositories/featureFlagRepository.js';
 import { breederSubmissionTypeLabel } from '../utils/breederProfileSubmissions.js';
@@ -538,6 +544,92 @@ router.put('/breeder-submissions/:submissionId/status', requireAdminOrSecret, as
     });
 
     return res.json({ data: submission });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/farm-reviews', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const status = typeof req.query.status === 'string' ? req.query.status : 'pending';
+    const reviews = await listAdminFarmReviews(status, req.accessToken);
+    return res.json({ data: reviews });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/farm-reviews/:reviewId/status', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const reviewId = cleanId(req.params.reviewId);
+    if (!reviewId) {
+      return res.status(400).json({ error: 'reviewId is required', code: 'MISSING_REVIEW_ID' });
+    }
+    const nextStatus = String(req.body?.status || '').toLowerCase();
+    const rejectionReason = String(
+      compactText(req.body?.rejectionReason ?? req.body?.rejection_reason ?? '') || '',
+    ).slice(0, 500);
+    const adminNote = String(
+      compactText(req.body?.adminNote ?? req.body?.admin_note ?? '') || '',
+    ).slice(0, 500);
+
+    const result = await adminUpdateFarmReviewStatus(
+      reviewId,
+      nextStatus,
+      req.user?.id || 'admin',
+      req.accessToken,
+      { rejectionReason, adminNote },
+    );
+
+    if (result.notify_breeder_on_approve && result.breeder_user_id) {
+      void createDealNotification({
+        recipientUserId: result.breeder_user_id,
+        actorUserId: req.user?.id || 'admin',
+        postId: result.review?.post_id ?? null,
+        type: 'farm_reviewed',
+        bodyPreview: buildFarmReviewedNotificationPreview({
+          rating: result.review?.rating,
+          body: result.review?.body,
+        }),
+        metadata: {
+          breeder_profile_id: result.breeder_profile_id,
+          review_id: result.review?.id,
+          cta_href: `/app/breeders/${encodeURIComponent(result.breeder_profile_id)}`,
+          cta_label: 'Xem đánh giá',
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
+    if (result.notify_reviewer_on_reject && result.reviewer_user_id) {
+      void createDealNotification({
+        recipientUserId: result.reviewer_user_id,
+        actorUserId: req.user?.id || 'admin',
+        postId: result.review?.post_id ?? null,
+        type: 'farm_review_rejected',
+        bodyPreview: rejectionReason || 'Đánh giá của bạn chưa được duyệt.',
+        metadata: {
+          breeder_profile_id: result.breeder_profile_id,
+          review_id: result.review?.id,
+          rejection_reason: rejectionReason,
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
+
+    await recordAdminAction({
+      ...adminActor(req),
+      action: nextStatus === 'approved' ? 'farm_review.approve' : 'farm_review.reject',
+      targetType: 'breeder_farm_review',
+      targetId: result.review?.id,
+      targetUserId: result.reviewer_user_id,
+      afterState: { status: nextStatus, breeder_profile_id: result.breeder_profile_id },
+      metadata: {
+        rejection_reason: rejectionReason || undefined,
+        admin_note: adminNote || undefined,
+      },
+    });
+
+    return res.json({ data: result });
   } catch (err) {
     return next(err);
   }

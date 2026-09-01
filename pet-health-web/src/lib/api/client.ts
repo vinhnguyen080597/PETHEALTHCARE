@@ -143,6 +143,23 @@ export async function fetchJson<T>(
     if (err instanceof Error && err.name === "AbortError") {
       throw new ApiError("Request timed out", 408, "REQUEST_TIMEOUT");
     }
+    const message = err instanceof Error ? err.message : "";
+    const cause =
+      err instanceof Error && "cause" in err
+        ? (err as Error & { cause?: { code?: string } }).cause
+        : undefined;
+    const isNetwork =
+      err instanceof TypeError ||
+      cause?.code === "ECONNREFUSED" ||
+      cause?.code === "ENOTFOUND" ||
+      /fetch failed|ECONNREFUSED|ENOTFOUND/i.test(message);
+    if (isNetwork) {
+      throw new ApiError(
+        "API server is unreachable",
+        503,
+        "BACKEND_UNAVAILABLE",
+      );
+    }
     throw err;
   } finally {
     clearTimeout(timer);

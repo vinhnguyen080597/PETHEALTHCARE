@@ -38,3 +38,7 @@ app.listen(PORT, HOST, () => {
   }
   void ensureMediaStorageBucketsOnce();
 });
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});

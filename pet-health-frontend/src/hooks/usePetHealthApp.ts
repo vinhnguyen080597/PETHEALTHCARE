@@ -2478,7 +2478,7 @@ export function usePetHealthApp() {
     }
     await createSaleFarmReview(token, postId, body);
     setPetFeedOpenSaleReview(false);
-    Alert.alert(i18n.t('common.ok'), i18n.t('farm.review.submit'));
+    Alert.alert(i18n.t('common.ok'), i18n.t('farm.review.pendingSubmitted'));
     return true;
   }
 
@@ -2920,6 +2920,7 @@ export function usePetHealthApp() {
           : '');
       if (profileId) {
         setBreederDetailReturnScreen('notifications-inbox');
+        setBreederDetailTab('overview');
         setSelectedBreederProfileId(profileId);
         setScreen('breeder-detail');
         return;

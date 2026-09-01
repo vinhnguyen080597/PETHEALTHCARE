@@ -384,6 +384,12 @@ const vi: Record<EnKey, string> = {
   "farm.review.photosTooLarge": "Ảnh quá lớn. Hãy thử ít ảnh hơn hoặc ảnh nhỏ hơn.",
   "farm.review.photoUploadFailed": "Không tải được ảnh.",
   "farm.review.photosRemove": "Xóa ảnh",
+  "farm.review.ratingLabel": "Đánh giá sao",
+  "farm.review.error.rating": "Vui lòng chọn từ 1 đến 5 sao.",
+  "farm.review.error.bodyTooLong": "Nội dung đánh giá quá dài.",
+  "farm.review.error.tooManyPhotos": "Quá nhiều ảnh đính kèm.",
+  "farm.review.pendingSubmitted": "Đánh giá đã được gửi và đang chờ admin duyệt trước khi hiển thị công khai.",
+  "farm.review.pendingBadge": "Chờ admin duyệt",
   "farm.facility.about": "Giới thiệu trại",
   "farm.facility.env": "Môi trường chăm sóc",
   "farm.facility.scale": "Quy mô",
@@ -785,6 +791,10 @@ const vi: Record<EnKey, string> = {
   "auth.forgotSuccess":
     "Đã đặt lại mật khẩu. Bạn có thể đăng nhập bằng mật khẩu mới.",
   "auth.forgot.sendFailed": "Không gửi được OTP. Vui lòng thử lại.",
+  "auth.forgot.backendUnavailable":
+    "Không kết nối được máy chủ. Hãy chạy pet-health-backend (yarn dev cổng 3000) rồi thử lại.",
+  "auth.forgot.serviceUnavailable":
+    "Không thể gửi OTP lúc này. Vui lòng thử lại sau.",
   "auth.forgot.rateLimit":
     "Vì lý do bảo mật, bạn chỉ có thể yêu cầu lại sau {{seconds}} giây.",
   "auth.forgot.newPassword": "Mật khẩu mới",
@@ -1381,6 +1391,12 @@ const vi: Record<EnKey, string> = {
   "admin.requests.type.report": "Báo cáo",
   "admin.requests.type.feedback": "Góp ý",
   "admin.requests.type.scam": "Báo cáo scam",
+  "admin.requests.type.farmReview": "Đánh giá trại",
+  "admin.farmReviews.kind.primary": "Đánh giá trực tiếp",
+  "admin.farmReviews.kind.sale": "Đánh giá giao dịch",
+  "admin.farmReviews.kind.supplement": "Bổ sung",
+  "admin.farmReviews.approve": "Duyệt đánh giá",
+  "admin.farmReviews.reject": "Từ chối đánh giá",
   "admin.support.category": "Phân loại",
   "admin.support.title": "Tiêu đề",
   "admin.support.targetType": "Loại đối tượng",

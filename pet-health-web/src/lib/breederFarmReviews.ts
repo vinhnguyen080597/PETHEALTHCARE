@@ -1,6 +1,8 @@
 /** Farm review helpers — validation, rating pool, display (mirrors backend). */
 
 import { formatBreederReviewLabel, parseReviewStatsFromMeta } from "./breederDealReviews";
+import { t } from "@/i18n";
+import type { Lang } from "./types";
 
 export {
   formatBreederReviewLabel,
@@ -13,6 +15,7 @@ export const FARM_REVIEW_BODY_MAX = 500;
 export const FARM_REVIEW_MAX_PHOTOS = 5;
 
 export type FarmReviewKind = "primary" | "supplement" | "sale";
+export type FarmReviewStatus = "pending" | "approved" | "rejected";
 
 export type BreederFarmReview = {
   id: string;
@@ -24,6 +27,7 @@ export type BreederFarmReview = {
   rating: number;
   body?: string;
   photo_urls?: string[];
+  status?: FarmReviewStatus;
   created_at?: string;
 };
 
@@ -66,28 +70,73 @@ export function canAddFarmReviewPhoto(
   return currentCount < max;
 }
 
+export type FarmReviewValidationError =
+  | "invalid_rating"
+  | "body_too_long"
+  | "too_many_photos";
+
+export function farmReviewValidationError(input: {
+  rating?: unknown;
+  body?: unknown;
+  photoUrls?: unknown;
+}): FarmReviewValidationError | null {
+  const rating = normalizeFarmReviewRating(input.rating);
+  if (!rating) return "invalid_rating";
+  const body = String(input.body ?? "").trim();
+  if (body.length > FARM_REVIEW_BODY_MAX) return "body_too_long";
+  const photos = normalizeFarmReviewPhotoUrls(input.photoUrls);
+  if (photos.length > FARM_REVIEW_MAX_PHOTOS) return "too_many_photos";
+  return null;
+}
+
 export function validateFarmReviewInput(input: {
   rating?: unknown;
   body?: unknown;
   photoUrls?: unknown;
 }): string | null {
-  const rating = normalizeFarmReviewRating(input.rating);
-  if (!rating) return "Rating must be between 1 and 5";
-  const body = String(input.body ?? "").trim();
-  if (body.length > FARM_REVIEW_BODY_MAX) return "Review is too long";
-  const photos = normalizeFarmReviewPhotoUrls(input.photoUrls);
-  if (photos.length > FARM_REVIEW_MAX_PHOTOS) return "Too many photos";
-  return null;
+  const code = farmReviewValidationError(input);
+  if (!code) return null;
+  if (code === "invalid_rating") return "Rating must be between 1 and 5";
+  if (code === "body_too_long") return "Review is too long";
+  return "Too many photos";
+}
+
+export function farmReviewValidationMessage(
+  lang: Lang,
+  input: { rating?: unknown; body?: unknown; photoUrls?: unknown },
+): string | null {
+  const code = farmReviewValidationError(input);
+  if (!code) return null;
+  if (code === "invalid_rating") return t(lang, "farm.review.error.rating");
+  if (code === "body_too_long") return t(lang, "farm.review.error.bodyTooLong");
+  return t(lang, "farm.review.error.tooManyPhotos");
+}
+
+export function normalizeFarmReviewStatus(value: unknown): FarmReviewStatus {
+  const status = String(value || "").trim().toLowerCase();
+  if (status === "approved" || status === "rejected") return status;
+  return "pending";
+}
+
+export function isFarmReviewApproved(row: { status?: unknown }): boolean {
+  return normalizeFarmReviewStatus(row?.status) === "approved";
+}
+
+export function filterApprovedFarmReviews<T extends { status?: unknown }>(
+  reviews: T[],
+): T[] {
+  return reviews.filter((row) => isFarmReviewApproved(row));
 }
 
 /** Rating pool: direct bundle per user + sale rating counted twice. */
 export function computeFarmReviewPool(
-  reviews: Array<{ kind?: string; rating?: unknown; reviewer_user_id?: string }>,
+  reviews: Array<{ kind?: string; rating?: unknown; reviewer_user_id?: string; status?: unknown }>,
 ): { review_avg: number; review_count: number; pool: number[] } {
   const pool: number[] = [];
   const directByUser = new Map<string, number[]>();
+  const rows = filterApprovedFarmReviews(reviews);
 
-  for (const row of reviews) {
+  for (const row of rows) {
     const kind = String(row.kind || "").trim().toLowerCase();
     const rating = normalizeFarmReviewRating(row.rating);
     if (!rating) continue;

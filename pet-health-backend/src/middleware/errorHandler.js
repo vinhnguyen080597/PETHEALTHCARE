@@ -50,6 +50,12 @@ export function errorHandler(err, req, res, _next) {
   }
 
   if (err?.name === 'AuthApiError' || err?.code === 'invalid_credentials' || err?.code === 'weak_password') {
+    if (err?.code === 'over_email_send_rate_limit') {
+      return res.status(429).json({
+        error: err.message || 'Too many requests. Please wait before trying again.',
+        code: 'over_email_send_rate_limit',
+      });
+    }
     if (/email.*invalid|invalid.*email|invalid_email/i.test(String(err.message ?? ''))) {
       return res.status(400).json({
         error: 'Please enter a valid email address.',

@@ -440,6 +440,7 @@ export function FarmDetail({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewError, setReviewError] = useState("");
+  const [reviewNotice, setReviewNotice] = useState("");
   const [reviewThreads, setReviewThreads] = useState<BreederFarmReviewThread[]>([]);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -493,6 +494,7 @@ export function FarmDetail({
   }) => {
     setReviewBusy(true);
     setReviewError("");
+    setReviewNotice("");
     try {
       const res = await fetch(
         `/api/breeders/${encodeURIComponent(breeder.id)}/reviews`,
@@ -507,7 +509,9 @@ export function FarmDetail({
         throw new Error(data.error || t(lang, "farm.review.failed"));
       }
       setReviewOpen(false);
+      setReviewNotice(t(lang, "farm.review.pendingSubmitted"));
       setReviewsLoaded(false);
+      if (tab !== "reviews") selectTab("reviews");
       router.refresh();
     } catch (err) {
       setReviewError(
@@ -1092,6 +1096,14 @@ export function FarmDetail({
                     </button>
                   ) : null}
                 </div>
+                {reviewNotice ? (
+                  <div
+                    role="status"
+                    className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                  >
+                    {reviewNotice}
+                  </div>
+                ) : null}
                 {reviewsLoading ? (
                   <p className="text-sm text-[#6E5A51]">{t(lang, "common.loading")}</p>
                 ) : reviewThreads.length > 0 ? (
@@ -1106,9 +1118,30 @@ export function FarmDetail({
                           <span className="ml-2 font-normal text-[#6E5A51]">
                             {thread.rating}/5
                           </span>
+                          {thread.status === "pending" ? (
+                            <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                              {t(lang, "farm.review.pendingBadge")}
+                            </span>
+                          ) : null}
                         </p>
                         {thread.body ? (
                           <p className="mt-2 text-sm text-[#2B1E19]">{thread.body}</p>
+                        ) : null}
+                        {thread.photo_urls?.length ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {thread.photo_urls.map((url) => (
+                              <a
+                                key={url}
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block h-16 w-16 overflow-hidden rounded-lg border border-[#F3E2C8]"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={url} alt="" className="h-full w-full object-cover" />
+                              </a>
+                            ))}
+                          </div>
                         ) : null}
                         {thread.supplements?.length ? (
                           <div className="mt-3 space-y-2 border-l-2 border-[#F3E2C8] pl-3">
@@ -1119,6 +1152,22 @@ export function FarmDetail({
                                 </p>
                                 {sup.body ? (
                                   <p className="text-sm text-[#2B1E19]">{sup.body}</p>
+                                ) : null}
+                                {sup.photo_urls?.length ? (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {sup.photo_urls.map((url) => (
+                                      <a
+                                        key={url}
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block h-14 w-14 overflow-hidden rounded-lg border border-[#F3E2C8]"
+                                      >
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={url} alt="" className="h-full w-full object-cover" />
+                                      </a>
+                                    ))}
+                                  </div>
                                 ) : null}
                               </div>
                             ))}

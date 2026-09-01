@@ -21,6 +21,10 @@ export async function POST(req: Request) {
         { status: err.status },
       );
     }
-    return NextResponse.json({ error: "Could not send OTP" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Could not send OTP";
+    return NextResponse.json(
+      { error: message, code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }

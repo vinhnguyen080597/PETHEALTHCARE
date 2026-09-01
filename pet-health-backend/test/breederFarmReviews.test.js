@@ -8,11 +8,11 @@ import {
 
 test('computeFarmReviewPool: users B/C bundles + user D sale x2 → 4.75', () => {
   const reviews = [
-    { kind: 'primary', reviewer_user_id: 'user-b', rating: 5 },
-    { kind: 'supplement', reviewer_user_id: 'user-b', rating: 4 },
-    { kind: 'primary', reviewer_user_id: 'user-c', rating: 5 },
-    { kind: 'supplement', reviewer_user_id: 'user-c', rating: 4 },
-    { kind: 'sale', reviewer_user_id: 'user-d', rating: 5, post_id: 'post-1' },
+    { kind: 'primary', reviewer_user_id: 'user-b', rating: 5, status: 'approved' },
+    { kind: 'supplement', reviewer_user_id: 'user-b', rating: 4, status: 'approved' },
+    { kind: 'primary', reviewer_user_id: 'user-c', rating: 5, status: 'approved' },
+    { kind: 'supplement', reviewer_user_id: 'user-c', rating: 4, status: 'approved' },
+    { kind: 'sale', reviewer_user_id: 'user-d', rating: 5, post_id: 'post-1', status: 'approved' },
   ];
   const result = computeFarmReviewPool(reviews);
   assert.equal(result.review_count, 4);
@@ -25,11 +25,21 @@ test('validateFarmReviewInput requires rating 1-5', () => {
   assert.equal(validateFarmReviewInput({ rating: 3, body: 'ok' }).ok, true);
 });
 
+test('computeFarmReviewPool ignores pending reviews', () => {
+  const reviews = [
+    { kind: 'primary', reviewer_user_id: 'user-a', rating: 5, status: 'pending' },
+    { kind: 'sale', reviewer_user_id: 'user-b', rating: 1, status: 'approved' },
+  ];
+  const result = computeFarmReviewPool(reviews);
+  assert.equal(result.review_count, 2);
+  assert.equal(result.review_avg, 1);
+});
+
 test('countFiveStarDirectReviews ignores sale reviews', () => {
   const reviews = [
-    { kind: 'primary', rating: 5 },
-    { kind: 'sale', rating: 5 },
-    { kind: 'supplement', rating: 4 },
+    { kind: 'primary', rating: 5, status: 'approved' },
+    { kind: 'sale', rating: 5, status: 'approved' },
+    { kind: 'supplement', rating: 4, status: 'approved' },
   ];
   assert.equal(countFiveStarDirectReviews(reviews), 1);
 });

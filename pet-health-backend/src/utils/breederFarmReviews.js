@@ -5,6 +5,8 @@ export const FARM_REVIEW_RATING_MAX = 5;
 export const FARM_REVIEW_BODY_MAX = 500;
 export const FARM_REVIEW_MAX_PHOTOS = 5;
 export const FARM_REVIEW_KINDS = new Set(['primary', 'supplement', 'sale']);
+export const FARM_REVIEW_STATUSES = new Set(['pending', 'approved', 'rejected']);
+export const FARM_REVIEW_ACTIVE_STATUSES = new Set(['pending', 'approved']);
 
 function trimText(value, max = 500) {
   if (value === undefined || value === null) return '';
@@ -27,6 +29,38 @@ export function normalizeFarmReviewPhotoUrls(raw, max = FARM_REVIEW_MAX_PHOTOS) 
     .slice(0, max);
 }
 
+export function normalizeFarmReviewStatus(value) {
+  const status = String(value || '').trim().toLowerCase();
+  return FARM_REVIEW_STATUSES.has(status) ? status : 'pending';
+}
+
+export function isFarmReviewApproved(row) {
+  return normalizeFarmReviewStatus(row?.status) === 'approved';
+}
+
+export function isFarmReviewActive(row) {
+  return FARM_REVIEW_ACTIVE_STATUSES.has(normalizeFarmReviewStatus(row?.status));
+}
+
+export function filterApprovedFarmReviews(reviews) {
+  return (Array.isArray(reviews) ? reviews : []).filter((row) => isFarmReviewApproved(row));
+}
+
+/**
+ * Public list: approved rows + caller's own pending rows (not rejected).
+ */
+export function filterFarmReviewsForViewer(reviews, viewerUserId) {
+  const viewerId = String(viewerUserId || '').trim();
+  return (Array.isArray(reviews) ? reviews : []).filter((row) => {
+    const status = normalizeFarmReviewStatus(row?.status);
+    if (status === 'approved') return true;
+    if (status === 'pending' && viewerId && String(row.reviewer_user_id || '').trim() === viewerId) {
+      return true;
+    }
+    return false;
+  });
+}
+
 export function validateFarmReviewInput(payload = {}) {
   const rating = normalizeFarmReviewRating(payload.rating);
   const body = trimText(payload.body ?? payload.comment ?? payload.note, FARM_REVIEW_BODY_MAX);
@@ -44,7 +78,7 @@ export function validateFarmReviewInput(payload = {}) {
  * each sale review → rating counted twice.
  */
 export function computeFarmReviewPool(reviews) {
-  const rows = Array.isArray(reviews) ? reviews : [];
+  const rows = filterApprovedFarmReviews(Array.isArray(reviews) ? reviews : []);
   const pool = [];
   const directByUser = new Map();
 
@@ -84,7 +118,7 @@ export function computeFarmReviewPool(reviews) {
 
 /** Five-star direct reviews only (not sale-doubled) for transparency points. */
 export function countFiveStarDirectReviews(reviews) {
-  const rows = Array.isArray(reviews) ? reviews : [];
+  const rows = filterApprovedFarmReviews(Array.isArray(reviews) ? reviews : []);
   let count = 0;
   for (const row of rows) {
     const kind = String(row.kind || '').trim().toLowerCase();

@@ -83,7 +83,7 @@ type ActionLogRow = {
   metadata?: Record<string, unknown>;
 };
 
-type RequestType = "all" | "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam";
+type RequestType = "all" | "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam" | "farm_review";
 type AnnouncementCategory = "app_update" | "health_tip" | "community" | "general";
 
 type SupportTicketRow = {
@@ -103,9 +103,22 @@ type SupportTicketRow = {
   created_at?: string;
 };
 
+type FarmReviewRow = {
+  id: string;
+  breeder_profile_id: string;
+  reviewer_user_id: string;
+  kind: "primary" | "supplement" | "sale";
+  rating: number;
+  body?: string;
+  photo_urls?: string[];
+  status?: string;
+  created_at?: string;
+  breeder_profile?: { display_name?: string | null } | null;
+};
+
 type RequestItem = {
   id: string;
-  type: "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam";
+  type: "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam" | "farm_review";
   status: string;
   createdAt: string;
   title: string;
@@ -117,6 +130,7 @@ type RequestItem = {
   detail?: BreederProfileSubmission;
   appeal?: TransparencyWarning;
   ticket?: SupportTicketRow;
+  farmReview?: FarmReviewRow;
 };
 
 const PET_FEED_TAB_KEYS: FeatureKey[] = [
@@ -193,6 +207,11 @@ function formatDate(value?: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString();
+}
+
+function farmReviewKindLabel(kind: string, lang: Lang) {
+  const safe = kind === "sale" || kind === "supplement" ? kind : "primary";
+  return t(lang, `admin.farmReviews.kind.${safe}` as EnKey);
 }
 
 async function adminFetch(path: string, init?: RequestInit) {
@@ -295,6 +314,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [breeders, setBreeders] = useState<BreederRow[]>([]);
   const [detailSubmissions, setDetailSubmissions] = useState<BreederProfileSubmission[]>([]);
+  const [farmReviews, setFarmReviews] = useState<FarmReviewRow[]>([]);
   const [appeals, setAppeals] = useState<TransparencyWarning[]>([]);
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicketRow[]>([]);
@@ -325,6 +345,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     | { kind: "breeder"; userId: string }
     | { kind: "listing"; postId: string }
     | { kind: "detail"; submissionId: string }
+    | { kind: "farm_review"; reviewId: string }
     | null
   >(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -353,7 +374,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     setLoading(true);
     setError("");
     try {
-      const [p, b, r, a, f, d, w, st] = await Promise.all([
+      const [p, b, r, a, f, d, w, st, fr] = await Promise.all([
         adminFetch("/posts?status=").catch(() => ({ data: [] })),
         adminFetch("/breeders").catch(() => ({ data: [] })),
         adminFetch("/reports?status=").catch(() => ({ data: [] })),
@@ -362,12 +383,14 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         adminFetch("/breeder-submissions?status=").catch(() => ({ data: [] })),
         adminFetch("/transparency-warnings?status=").catch(() => ({ data: [] })),
         adminFetch("/support-tickets?status=").catch(() => ({ data: [] })),
+        adminFetch("/farm-reviews?status=").catch(() => ({ data: [] })),
       ]);
       setPosts(Array.isArray(p.data) ? p.data : []);
       setBreeders(Array.isArray(b.data) ? b.data : []);
       setReports(Array.isArray(r.data) ? r.data : []);
       setSupportTickets(Array.isArray(st.data) ? st.data : []);
       setDetailSubmissions(Array.isArray(d.data) ? d.data : []);
+      setFarmReviews(Array.isArray(fr.data) ? fr.data : []);
       setAppeals(Array.isArray(w.data) ? w.data : []);
       setAccounts(Array.isArray(a.data) ? a.data : []);
       const flagData = f.data && typeof f.data === "object" && !Array.isArray(f.data)
@@ -401,7 +424,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       typeParam === "detail" ||
       typeParam === "appeal" ||
       typeParam === "feedback" ||
-      typeParam === "scam"
+      typeParam === "scam" ||
+      typeParam === "farm_review"
     ) {
       setSection("requests");
     }
@@ -413,7 +437,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       typeParam === "detail" ||
       typeParam === "appeal" ||
       typeParam === "feedback" ||
-      typeParam === "scam"
+      typeParam === "scam" ||
+      typeParam === "farm_review"
     ) {
       setRequestType(typeParam);
       setRequestStatus("waiting");
@@ -463,6 +488,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const openSupportTickets = supportTickets.filter((r) => r.status === "open");
   const verifiedBreeders = breeders.filter((b) => b.verification_status === "verified");
   const pendingDetailSubmissions = detailSubmissions.filter((s) => s.status === "pending");
+  const pendingFarmReviews = farmReviews.filter(
+    (review) => review.status === "pending" && review.kind !== "supplement",
+  );
   const pendingAppeals = appeals.filter((s) => s.status === "appealed" || s.status === "pending_breeder_action");
   const pendingRequestCount =
     pendingPosts.length +
@@ -470,6 +498,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     openReports.length +
     openSupportTickets.length +
     pendingDetailSubmissions.length +
+    pendingFarmReviews.length +
     pendingAppeals.length;
 
   const requestItems = useMemo<RequestItem[]>(() => {
@@ -561,8 +590,29 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         ticket,
       };
     });
-    return [...breederItems, ...postItems, ...reportItems, ...detailItems, ...appealItems, ...ticketItems];
-  }, [breeders, posts, reports, detailSubmissions, appeals, supportTickets, lang]);
+    const farmReviewItems: RequestItem[] = farmReviews
+      .filter((review) => review.kind !== "supplement")
+      .map((review) => ({
+        id: `farm_review-${review.id}`,
+        type: "farm_review",
+        status: review.status || "pending",
+        createdAt: review.created_at || "",
+        title: `${farmReviewKindLabel(review.kind, lang)} · ${"★".repeat(review.rating)}`,
+        subtitle:
+          review.breeder_profile?.display_name || review.breeder_profile_id || "—",
+        body: review.body || "",
+        farmReview: review,
+      }));
+    return [
+      ...breederItems,
+      ...postItems,
+      ...reportItems,
+      ...detailItems,
+      ...farmReviewItems,
+      ...appealItems,
+      ...ticketItems,
+    ];
+  }, [breeders, posts, reports, detailSubmissions, farmReviews, appeals, supportTickets, lang]);
 
   const filteredRequests = useMemo(() => {
     return sortByDate(
@@ -587,7 +637,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             ? item.post?.id
             : item.type === "detail"
               ? item.detail?.id
-              : item.type === "appeal"
+              : item.type === "farm_review"
+                ? item.farmReview?.id
+                : item.type === "appeal"
                 ? item.appeal?.id
                 : item.type === "feedback" || item.type === "scam"
                   ? item.ticket?.id
@@ -773,6 +825,28 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       "admin.toast.updated",
     );
 
+  const updateFarmReview = (
+    reviewId: string,
+    status: "approved" | "rejected",
+    extras?: { rejectionReason?: string; adminNote?: string },
+  ) =>
+    runAction(
+      `farm_review-${reviewId}-${status}`,
+      () =>
+        adminFetch(`/farm-reviews/${reviewId}/status`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status,
+            ...(extras?.rejectionReason
+              ? { rejectionReason: extras.rejectionReason }
+              : {}),
+            ...(extras?.adminNote ? { adminNote: extras.adminNote } : {}),
+          }),
+        }),
+      "admin.toast.updated",
+    );
+
   const resolveAppeal = (
     warningId: string,
     resolution: "uphold" | "restore",
@@ -792,7 +866,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     target:
       | { kind: "breeder"; userId: string }
       | { kind: "listing"; postId: string }
-      | { kind: "detail"; submissionId: string },
+      | { kind: "detail"; submissionId: string }
+      | { kind: "farm_review"; reviewId: string },
   ) => {
     setRejectTarget(target);
     setRejectReason("");
@@ -828,6 +903,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     }
     if (target.kind === "detail") {
       await updateDetailSubmission(target.submissionId, "rejected", extras);
+      return;
+    }
+    if (target.kind === "farm_review") {
+      await updateFarmReview(target.reviewId, "rejected", extras);
       return;
     }
     await updateBreeder(target.userId, "rejected", extras);
@@ -998,6 +1077,28 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       );
     }
     if (
+      item.type === "farm_review"
+      && item.farmReview?.status === "pending"
+      && item.farmReview.id
+    ) {
+      return (
+        <div className="flex flex-wrap gap-2 mt-3">
+          <ActionButton
+            label={t(lang, "admin.farmReviews.approve")}
+            variant="success"
+            disabled={busyKey !== null}
+            onClick={() => void updateFarmReview(item.farmReview!.id, "approved")}
+          />
+          <ActionButton
+            label={t(lang, "admin.farmReviews.reject")}
+            variant="ghost"
+            disabled={busyKey !== null}
+            onClick={() => openRejectModal({ kind: "farm_review", reviewId: item.farmReview!.id })}
+          />
+        </div>
+      );
+    }
+    if (
       item.type === "appeal"
       && item.appeal?.id
       && (item.appeal.status === "appealed" || item.appeal.status === "pending_breeder_action")
@@ -1155,6 +1256,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     { value: "all", label: t(lang, "admin.filter.all") },
                     { value: "breeder", label: t(lang, "admin.requests.type.breeder") },
                     { value: "detail", label: t(lang, "admin.requests.type.detail") },
+                    { value: "farm_review", label: t(lang, "admin.requests.type.farmReview") },
                     { value: "appeal", label: t(lang, "admin.requests.type.appeal") },
                     { value: "post", label: t(lang, "admin.requests.type.post") },
                     { value: "report", label: t(lang, "admin.requests.type.report") },
@@ -1196,11 +1298,13 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                       ? item.post?.id
                       : item.type === "detail"
                         ? item.detail?.id
-                        : item.type === "appeal"
-                          ? item.appeal?.id
-                          : item.type === "feedback" || item.type === "scam"
-                            ? item.ticket?.id
-                            : item.report?.id;
+                        : item.type === "farm_review"
+                          ? item.farmReview?.id
+                          : item.type === "appeal"
+                            ? item.appeal?.id
+                            : item.type === "feedback" || item.type === "scam"
+                              ? item.ticket?.id
+                              : item.report?.id;
                 const focused = Boolean(focusRequestId && rawId === focusRequestId);
                 const detailsOpen = expandedReviewId === item.id;
                 const linkedPost =
@@ -1239,7 +1343,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                               item.type === "feedback" ||
                               item.type === "scam"
                             ? reportStatusLabel(item.status)
-                            : item.type === "detail"
+                            : item.type === "detail" || item.type === "farm_review"
                               ? item.status
                             : item.status
                       }
@@ -1258,6 +1362,14 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={item.post.media_urls[0]}
+                      alt=""
+                      className="mt-3 h-28 w-full max-w-xs rounded-xl object-cover bg-[#F3EDE3]"
+                    />
+                  ) : null}
+                  {item.farmReview?.photo_urls?.[0] && !detailsOpen ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.farmReview.photo_urls[0]}
                       alt=""
                       className="mt-3 h-28 w-full max-w-xs rounded-xl object-cover bg-[#F3EDE3]"
                     />
@@ -1285,6 +1397,31 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   ) : null}
                   {detailsOpen && item.detail ? (
                     <AdminBreederDetailSubmissionReview lang={lang} submission={item.detail} />
+                  ) : null}
+                  {detailsOpen && item.farmReview ? (
+                    <div className="mt-3 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FDFBF7] p-3 text-sm text-[#5C4A3A]">
+                      <p>
+                        <span className="font-semibold text-[#2B1E19]">
+                          {farmReviewKindLabel(item.farmReview.kind, lang)}
+                        </span>
+                        {" · "}
+                        {"★".repeat(item.farmReview.rating)} ({item.farmReview.rating}/5)
+                      </p>
+                      {item.farmReview.body ? <p>{item.farmReview.body}</p> : null}
+                      {item.farmReview.photo_urls?.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {item.farmReview.photo_urls.map((url) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              key={url}
+                              src={url}
+                              alt=""
+                              className="h-20 w-20 rounded-lg object-cover bg-[#F3EDE3]"
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
                   ) : null}
                   {detailsOpen && item.ticket ? (
                     <div className="mt-3 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FDFBF7] p-3 text-sm text-[#5C4A3A]">

@@ -608,6 +608,7 @@
     },
     "review": {
       "open": "Review",
+      "viewAll": "View all",
       "modalTitle": "Review this farm",
       "modalHint": "Your first review is primary; later updates appear as supplements.",
       "bodyPlaceholder": "Share your experience (optional)",
@@ -625,7 +626,14 @@
       "photosTooLarge": "Photo is too large. Try fewer or smaller images.",
       "photoUploadFailed": "Could not upload photo.",
       "photosRemove": "Remove photo",
-      "loginRequired": "Please sign in to leave a review."
+      "loginRequired": "Please sign in to leave a review.",
+      "error": {
+        "rating": "Please choose a rating between 1 and 5 stars.",
+        "bodyTooLong": "Review text is too long.",
+        "tooManyPhotos": "Too many attached photos."
+      },
+      "pendingSubmitted": "Your review was submitted and is pending admin approval before it appears publicly.",
+      "pendingBadge": "Pending admin review"
     },
     "cta": {
       "message": "Message",

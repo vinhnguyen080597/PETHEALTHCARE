@@ -21,7 +21,8 @@ import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
 import { createBreederFarmReview, deleteWarrantyPolicy, getBreederFarmReviews } from '../api';
 import type { BreederProfile, PetFeedPost } from '../types';
-import { mapFarmReviewThreads, type FarmReviewThreadPreview } from '../utils/farmReview';
+import { mapFarmReviewThreads, formatBreederReviewLabel, type FarmReviewThreadPreview } from '../utils/farmReview';
+import { breederCardReviewMetrics } from '../utils/breederDirectoryCard';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../assets/farmProfileAssets';
 import { BRAND } from '../theme/brand';
 import { effectiveTrustScore } from '../utils/breederQualityIndex';
@@ -145,6 +146,18 @@ export function BreederDetailScreen({
   });
   const warranties = farmWarrantyPoliciesFromMetadata(profile.metadata);
   const locationLabel = profile.location?.trim() || t('farm.locationFallback');
+  const { reviewCount, rating: reviewAvg } = breederCardReviewMetrics(
+    (profile.metadata ?? {}) as Record<string, unknown>,
+  );
+  const reviewSummaryLabel =
+    reviewCount > 0 && reviewAvg != null
+      ? formatBreederReviewLabel(reviewAvg, reviewCount, i18n.language?.startsWith('vi') ? 'vi' : 'en')
+      : '';
+  const trustRatingLabel = reviewSummaryLabel || t('farm.trust.ratingEmpty');
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const tabs = useMemo(
     () =>
@@ -198,7 +211,7 @@ export function BreederDetailScreen({
       await createBreederFarmReview(token, profile.id, payload);
       setReviewModalOpen(false);
       setReviewsLoaded(false);
-      Alert.alert(t('common.ok'), t('farm.review.submit'));
+      Alert.alert(t('common.ok'), t('farm.review.pendingSubmitted'));
     } catch (error: unknown) {
       setReviewError(error instanceof Error ? error.message : t('farm.review.failed'));
     } finally {
@@ -562,7 +575,7 @@ export function BreederDetailScreen({
                 <Text style={{ fontSize: 11, fontWeight: '700', color: FARM_MUTED, textTransform: 'uppercase', letterSpacing: 0.8 }}>
                   {t('farm.trust.title')}
                 </Text>
-                <Text style={{ fontSize: 14, color: FARM_TEXT }}>⭐ {t('farm.trust.ratingEmpty')}</Text>
+                <Text style={{ fontSize: 14, color: FARM_TEXT }}>⭐ {trustRatingLabel}</Text>
                 <Text style={{ fontSize: 14, color: FARM_TEXT }}>⚡ {t('farm.trust.responseEmpty')}</Text>
                 <Text style={{ fontSize: 14, color: FARM_TEXT }}>
                   📦 {petsRehomed} {t('farm.trust.adopted')}
@@ -646,32 +659,66 @@ export function BreederDetailScreen({
             <View>
               <Text style={{ fontSize: 15, fontWeight: '700', color: FARM_TEXT, marginBottom: 10 }}>
                 {t('farm.tab.reviews')}
+                {reviewCount > 0 ? ` (${reviewCount})` : ''}
               </Text>
-              <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16, gap: 10 }}>
+              <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16, gap: 12 }}>
                 {reviewsLoading ? (
                   <Text style={{ fontSize: 13, color: FARM_MUTED, textAlign: 'center' }}>{t('common.loading')}</Text>
                 ) : reviewThreads.length > 0 ? (
-                  reviewThreads.slice(0, 3).map((thread) => (
-                    <View key={thread.id} style={{ gap: 6 }}>
-                      <View style={{ gap: 4 }}>
-                        <Text style={{ fontWeight: '700', color: FARM_TEXT, fontSize: 13 }}>
-                          {'★'.repeat(thread.rating)} ({thread.rating}/5)
-                        </Text>
-                        {thread.body ? (
-                          <Text style={{ fontSize: 13, color: FARM_MUTED }} numberOfLines={3}>
-                            {thread.body}
+                  reviewThreads.map((thread) => (
+                    <View key={thread.id} style={{ gap: 8 }}>
+                      <Text style={{ fontWeight: '700', color: FARM_TEXT, fontSize: 13 }}>
+                        {'★'.repeat(thread.rating)} ({thread.rating}/5)
+                        {thread.status === 'pending' ? (
+                          <Text style={{ fontSize: 10, fontWeight: '600', color: '#B45309' }}>
+                            {' '}
+                            · {t('farm.review.pendingBadge')}
                           </Text>
                         ) : null}
-                      </View>
+                      </Text>
+                      {thread.body ? (
+                        <Text style={{ fontSize: 13, color: FARM_TEXT, lineHeight: 19 }}>{thread.body}</Text>
+                      ) : null}
+                      {thread.photoUrls.length > 0 ? (
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                          {thread.photoUrls.map((url) => (
+                            <Image
+                              key={url}
+                              source={{ uri: url }}
+                              style={{ width: 72, height: 72, borderRadius: 10 }}
+                              contentFit="cover"
+                            />
+                          ))}
+                        </ScrollView>
+                      ) : null}
                       {thread.supplements.map((supplement) => (
-                        <View key={supplement.id} style={{ marginLeft: 12, gap: 2 }}>
+                        <View
+                          key={supplement.id}
+                          style={{
+                            marginLeft: 12,
+                            gap: 4,
+                            borderLeftWidth: 2,
+                            borderLeftColor: FARM_BORDER,
+                            paddingLeft: 10,
+                          }}
+                        >
                           <Text style={{ fontWeight: '600', color: FARM_MUTED, fontSize: 12 }}>
-                            {t('farm.review.supplement')}: {'★'.repeat(supplement.rating)} ({supplement.rating}/5)
+                            {t('farm.review.supplement')} · {'★'.repeat(supplement.rating)}
                           </Text>
                           {supplement.body ? (
-                            <Text style={{ fontSize: 12, color: FARM_MUTED }} numberOfLines={2}>
-                              {supplement.body}
-                            </Text>
+                            <Text style={{ fontSize: 12, color: FARM_TEXT, lineHeight: 18 }}>{supplement.body}</Text>
+                          ) : null}
+                          {supplement.photoUrls.length > 0 ? (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                              {supplement.photoUrls.map((url) => (
+                                <Image
+                                  key={url}
+                                  source={{ uri: url }}
+                                  style={{ width: 64, height: 64, borderRadius: 8 }}
+                                  contentFit="cover"
+                                />
+                              ))}
+                            </ScrollView>
                           ) : null}
                         </View>
                       ))}

@@ -78,6 +78,12 @@ export function resolveForgotError(
   data: { error?: string; code?: string; message?: string },
 ): string {
   const code = data.code || "";
+  if (code === "BACKEND_UNAVAILABLE" || code === "UPSTREAM_TIMEOUT") {
+    return t(lang, "auth.forgot.backendUnavailable");
+  }
+  if (code === "SERVICE_ROLE_REQUIRED") {
+    return t(lang, "auth.forgot.serviceUnavailable");
+  }
   if (code === "over_email_send_rate_limit") {
     return fillSeconds(
       t(lang, "auth.forgot.rateLimit"),

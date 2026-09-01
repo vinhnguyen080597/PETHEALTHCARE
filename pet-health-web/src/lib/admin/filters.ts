@@ -25,7 +25,7 @@ export type DateFilter = "newest" | "oldest" | "today" | "week";
 export type BreederGroup = "all" | "active" | "inactive" | "waiting";
 
 export type RequestStatusInput = {
-  type: "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam";
+  type: "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam" | "farm_review";
   status: string;
 };
 
@@ -39,7 +39,7 @@ export function requestStatusGroup(
   if (item.type === "report" || item.type === "feedback" || item.type === "scam") {
     return item.status === "open" ? "waiting" : "resolved";
   }
-  if (item.type === "detail") {
+  if (item.type === "detail" || item.type === "farm_review") {
     if (item.status === "approved") return "approved";
     if (item.status === "rejected" || item.status === "cancelled") return "rejected";
     return "waiting";

@@ -5,7 +5,11 @@ import { asObject } from '../utils/warrantyPolicy.js';
 import {
   computeFarmReviewPool,
   countFiveStarDirectReviews,
+  filterFarmReviewsForViewer,
+  isFarmReviewActive,
+  isFarmReviewApproved,
   normalizeFarmReviewPhotoUrls,
+  normalizeFarmReviewStatus,
   transparencyPointsForFarmReview,
   validateFarmReviewInput,
 } from '../utils/breederFarmReviews.js';
@@ -55,6 +59,11 @@ function toReviewRow(row) {
     rating: row.rating,
     body: row.body ?? '',
     photo_urls: Array.isArray(row.photo_urls) ? row.photo_urls : [],
+    status: normalizeFarmReviewStatus(row.status),
+    rejection_reason: row.rejection_reason ?? '',
+    admin_note: row.admin_note ?? '',
+    reviewed_at: row.reviewed_at ?? null,
+    reviewed_by: row.reviewed_by ?? null,
     created_at: row.created_at,
   };
 }
@@ -154,27 +163,45 @@ export async function recomputeBreederReviewStats(breederProfileId, accessToken)
 }
 
 function buildReviewThreads(reviews) {
-  const primaries = reviews.filter((r) => r.kind === 'primary');
+  const visible = Array.isArray(reviews) ? reviews : [];
+  const approvedPrimaryIds = new Set(
+    visible.filter((row) => row.kind === 'primary' && isFarmReviewApproved(row)).map((row) => row.id),
+  );
+  const primaries = visible.filter((row) => row.kind === 'primary');
+  const sales = visible.filter((row) => row.kind === 'sale');
   const byParent = new Map();
-  for (const row of reviews) {
+  for (const row of visible) {
     if (row.kind !== 'supplement' || !row.parent_review_id) continue;
-    const list = byParent.get(row.parent_review_id) ?? [];
+    const parentId = String(row.parent_review_id);
+    const parentVisible =
+      approvedPrimaryIds.has(parentId)
+      || primaries.some((primary) => primary.id === parentId && normalizeFarmReviewStatus(primary.status) === 'pending');
+    if (!parentVisible) continue;
+    const list = byParent.get(parentId) ?? [];
     list.push(toReviewRow(row));
-    byParent.set(row.parent_review_id, list);
+    byParent.set(parentId, list);
   }
-  return primaries.map((primary) => ({
+  const primaryThreads = primaries.map((primary) => ({
     ...toReviewRow(primary),
     supplements: (byParent.get(primary.id) ?? []).sort(
       (a, b) => String(a.created_at).localeCompare(String(b.created_at)),
     ),
-  })).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  }));
+  const saleThreads = sales.map((sale) => ({
+    ...toReviewRow(sale),
+    supplements: [],
+  }));
+  return [...primaryThreads, ...saleThreads].sort(
+    (a, b) => String(b.created_at).localeCompare(String(a.created_at)),
+  );
 }
 
-export async function getBreederFarmReviewAggregate(breederProfileId, accessToken) {
+export async function getBreederFarmReviewAggregate(breederProfileId, accessToken, viewerUserId = null) {
   const reviews = await listReviewsForBreeder(breederProfileId, accessToken);
+  const displayReviews = filterFarmReviewsForViewer(reviews, viewerUserId);
   const pool = computeFarmReviewPool(reviews);
   const petsSoldOnPlatform = await countPetsSoldOnPlatform(breederProfileId, accessToken);
-  const threads = buildReviewThreads(reviews);
+  const threads = buildReviewThreads(displayReviews);
   return {
     review_count: pool.review_count,
     review_avg: pool.review_avg,
@@ -188,7 +215,9 @@ export async function getBreederFarmReviewAggregate(breederProfileId, accessToke
 async function getPrimaryReview(userId, breederProfileId, accessToken) {
   const reviews = await listReviewsForBreeder(breederProfileId, accessToken);
   return reviews.find(
-    (row) => row.kind === 'primary' && row.reviewer_user_id === userId,
+    (row) => row.kind === 'primary'
+      && row.reviewer_user_id === userId
+      && isFarmReviewActive(row),
   ) ?? null;
 }
 
@@ -231,6 +260,7 @@ export async function createBreederFarmReview(reviewerUserId, breederProfileId, 
     rating: validated.rating,
     body: validated.body,
     photo_urls: validated.photoUrls,
+    status: 'pending',
     created_at: new Date().toISOString(),
   };
 
@@ -247,6 +277,7 @@ export async function createBreederFarmReview(reviewerUserId, breederProfileId, 
         rating: validated.rating,
         body: validated.body,
         photo_urls: validated.photoUrls,
+        status: 'pending',
       })
       .select('*')
       .single();
@@ -259,13 +290,12 @@ export async function createBreederFarmReview(reviewerUserId, breederProfileId, 
     Object.assign(row, data);
   }
 
-  await recomputeBreederReviewStats(safeProfileId, accessToken);
-
   return {
     review: toReviewRow(row),
     kind,
-    notify_user_id: breederUserId,
-    transparency_points_awarded: transparencyPointsForFarmReview(validated.rating),
+    status: 'pending',
+    notify_user_id: null,
+    transparency_points_awarded: 0,
   };
 }
 
@@ -350,7 +380,7 @@ export async function createSaleFarmReview(reviewerUserId, postId, payload, acce
   }
 
   const existing = await getMySaleReviewForPost(reviewerUserId, safePostId, accessToken);
-  if (existing?.id) {
+  if (existing?.id && isFarmReviewActive(existing)) {
     throw httpError('You already reviewed this sale.', 400, 'REVIEW_ALREADY_EXISTS');
   }
 
@@ -364,6 +394,7 @@ export async function createSaleFarmReview(reviewerUserId, postId, payload, acce
     rating: validated.rating,
     body: validated.body,
     photo_urls: validated.photoUrls,
+    status: 'pending',
     created_at: new Date().toISOString(),
   };
 
@@ -380,6 +411,7 @@ export async function createSaleFarmReview(reviewerUserId, postId, payload, acce
         rating: validated.rating,
         body: validated.body,
         photo_urls: validated.photoUrls,
+        status: 'pending',
       })
       .select('*')
       .single();
@@ -392,13 +424,169 @@ export async function createSaleFarmReview(reviewerUserId, postId, payload, acce
     Object.assign(row, data);
   }
 
-  await recomputeBreederReviewStats(breederProfileId, accessToken);
   return {
     review: toReviewRow(row),
-    notify_user_id: trimText(post.user_id, 80) || null,
+    status: 'pending',
+    notify_user_id: null,
     post_title: trimText(post.title, 200),
     breeder_profile_id: breederProfileId,
-    transparency_points_awarded: transparencyPointsForFarmReview(validated.rating),
+    transparency_points_awarded: 0,
+  };
+}
+
+async function getReviewById(reviewId, accessToken) {
+  const safeId = trimText(reviewId, 64);
+  if (!safeId) return null;
+  const supabase = getSupabase(accessToken);
+  if (!supabase) {
+    return toReviewRow(memoryReviews.find((row) => row.id === safeId) ?? null);
+  }
+  const { data, error } = await supabase
+    .from('breeder_farm_reviews')
+    .select('*')
+    .eq('id', safeId)
+    .maybeSingle();
+  if (error) throw error;
+  return toReviewRow(data);
+}
+
+async function listReviewsByStatus(status, accessToken) {
+  const safeStatus = normalizeFarmReviewStatus(status);
+  const supabase = getSupabaseServiceClient() ?? getSupabase(accessToken);
+  if (!supabase) {
+    return memoryReviews
+      .filter((row) => normalizeFarmReviewStatus(row.status) === safeStatus)
+      .map(toReviewRow)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  }
+  const { data, error } = await supabase
+    .from('breeder_farm_reviews')
+    .select('*, breeder_profiles(display_name)')
+    .eq('status', safeStatus)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    ...toReviewRow(row),
+    breeder_profile: row.breeder_profiles ?? null,
+  }));
+}
+
+async function cascadeReviewStatusForPrimary(primaryId, nextStatus, adminUserId, accessToken, extras = {}) {
+  const supabase = getSupabaseServiceClient() ?? getSupabase(accessToken);
+  if (!supabase) {
+    for (const row of memoryReviews) {
+      if (row.id === primaryId || row.parent_review_id === primaryId) {
+        row.status = nextStatus;
+        row.reviewed_at = new Date().toISOString();
+        row.reviewed_by = adminUserId;
+        if (nextStatus === 'rejected') row.rejection_reason = extras.rejectionReason ?? '';
+        if (extras.adminNote) row.admin_note = extras.adminNote;
+      }
+    }
+    return;
+  }
+  const patch = {
+    status: nextStatus,
+    reviewed_at: new Date().toISOString(),
+    reviewed_by: adminUserId,
+    ...(nextStatus === 'rejected'
+      ? { rejection_reason: trimText(extras.rejectionReason, 500) }
+      : { rejection_reason: '' }),
+    ...(extras.adminNote ? { admin_note: trimText(extras.adminNote, 500) } : {}),
+  };
+  const { error: primaryError } = await supabase
+    .from('breeder_farm_reviews')
+    .update(patch)
+    .eq('id', primaryId);
+  if (primaryError) throw primaryError;
+  const { error: supplementError } = await supabase
+    .from('breeder_farm_reviews')
+    .update(patch)
+    .eq('parent_review_id', primaryId)
+    .eq('status', 'pending');
+  if (supplementError) throw supplementError;
+}
+
+export async function listAdminFarmReviews(status = 'pending', accessToken) {
+  return listReviewsByStatus(status, accessToken);
+}
+
+export async function adminUpdateFarmReviewStatus(
+  reviewId,
+  nextStatus,
+  adminUserId,
+  accessToken,
+  extras = {},
+) {
+  const safeStatus = normalizeFarmReviewStatus(nextStatus);
+  if (!['approved', 'rejected'].includes(safeStatus)) {
+    throw httpError('status must be approved or rejected', 400, 'INVALID_REVIEW_STATUS');
+  }
+  if (safeStatus === 'rejected' && !trimText(extras.rejectionReason, 500)) {
+    throw httpError('rejectionReason is required when rejecting a review', 400, 'MISSING_REJECTION_REASON');
+  }
+
+  const existing = await getReviewById(reviewId, accessToken);
+  if (!existing?.id) {
+    throw httpError('Review not found.', 404, 'REVIEW_NOT_FOUND');
+  }
+  if (normalizeFarmReviewStatus(existing.status) !== 'pending') {
+    throw httpError('Review is not pending moderation.', 400, 'REVIEW_NOT_PENDING');
+  }
+
+  const supabase = getSupabaseServiceClient() ?? getSupabase(accessToken);
+  if (!supabase) {
+    const idx = memoryReviews.findIndex((row) => row.id === existing.id);
+    if (idx >= 0) {
+      memoryReviews[idx] = {
+        ...memoryReviews[idx],
+        status: safeStatus,
+        rejection_reason: safeStatus === 'rejected' ? trimText(extras.rejectionReason, 500) : '',
+        admin_note: trimText(extras.adminNote, 500),
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: adminUserId,
+      };
+    }
+  } else if (existing.kind === 'primary') {
+    await cascadeReviewStatusForPrimary(existing.id, safeStatus, adminUserId, accessToken, extras);
+  } else {
+    const { error } = await supabase
+      .from('breeder_farm_reviews')
+      .update({
+        status: safeStatus,
+        rejection_reason: safeStatus === 'rejected' ? trimText(extras.rejectionReason, 500) : '',
+        admin_note: trimText(extras.adminNote, 500),
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: adminUserId,
+      })
+      .eq('id', existing.id);
+    if (error) throw error;
+  }
+
+  await recomputeBreederReviewStats(existing.breeder_profile_id, accessToken);
+  const updated = await getReviewById(existing.id, accessToken);
+  let breederUserId = null;
+  const supabaseForProfile = getSupabaseServiceClient() ?? getSupabase(accessToken);
+  if (supabaseForProfile) {
+    const { data: profile } = await supabaseForProfile
+      .from('breeder_profiles')
+      .select('user_id')
+      .eq('id', existing.breeder_profile_id)
+      .maybeSingle();
+    breederUserId = profile?.user_id ?? null;
+  } else {
+    const profile = memoryProfilesRef.getter().find((p) => p.id === existing.breeder_profile_id);
+    breederUserId = profile?.user_id ?? null;
+  }
+  return {
+    review: updated,
+    breeder_profile_id: existing.breeder_profile_id,
+    breeder_user_id: breederUserId,
+    reviewer_user_id: existing.reviewer_user_id,
+    notify_breeder_on_approve: safeStatus === 'approved',
+    notify_reviewer_on_reject: safeStatus === 'rejected',
+    transparency_points_awarded:
+      safeStatus === 'approved' ? transparencyPointsForFarmReview(existing.rating) : 0,
   };
 }
 

@@ -608,6 +608,7 @@
     },
     "review": {
       "open": "Đánh giá",
+      "viewAll": "Xem tất cả",
       "modalTitle": "Đánh giá trại",
       "modalHint": "Lần đầu là đánh giá chính; các lần sau hiển thị như bổ sung.",
       "bodyPlaceholder": "Chia sẻ trải nghiệm (tuỳ chọn)",
@@ -625,7 +626,14 @@
       "photosTooLarge": "Ảnh quá lớn. Hãy thử ít ảnh hơn hoặc ảnh nhỏ hơn.",
       "photoUploadFailed": "Không tải được ảnh.",
       "photosRemove": "Xóa ảnh",
-      "loginRequired": "Vui lòng đăng nhập để đánh giá trại."
+      "loginRequired": "Vui lòng đăng nhập để đánh giá trại.",
+      "error": {
+        "rating": "Vui lòng chọn từ 1 đến 5 sao.",
+        "bodyTooLong": "Nội dung đánh giá quá dài.",
+        "tooManyPhotos": "Quá nhiều ảnh đính kèm."
+      },
+      "pendingSubmitted": "Đánh giá đã được gửi và đang chờ admin duyệt trước khi hiển thị công khai.",
+      "pendingBadge": "Chờ admin duyệt"
     },
     "cta": {
       "message": "Nhắn tin",

@@ -20,6 +20,7 @@ import {
   isBlankImageUrl,
   resolveFarmAvatarUrl,
   resolveFarmCoverUrl,
+  FARM_DETAIL_TABS,
 } from '../src/utils/farmProfileDisplay.ts';
 import {
   applyFarmPhotoToProfile,
@@ -100,6 +101,10 @@ test('farmFacilitySocialLinks masks Zalo and keeps https socials', () => {
   assert.equal(maskZaloPublicDisplay('84901234567'), '090***567');
   assert.equal(farmFacilityHasContent({ bio: 'Hello', socialCount: 0 }), true);
   assert.equal(farmFacilityHasContent({ bio: '', socialCount: 0, videoUrl: null }), false);
+});
+
+test('farm detail tabs exclude dedicated reviews tab', () => {
+  assert.deepEqual([...FARM_DETAIL_TABS], ['overview', 'listings', 'warranty']);
 });
 
 test('farm profile display helpers', () => {

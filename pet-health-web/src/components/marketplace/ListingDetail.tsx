@@ -219,6 +219,7 @@ export function ListingDetail({
   const [saleReviewOpen, setSaleReviewOpen] = useState(false);
   const [saleReviewBusy, setSaleReviewBusy] = useState(false);
   const [saleReviewError, setSaleReviewError] = useState("");
+  const [saleReviewNotice, setSaleReviewNotice] = useState("");
   const [reportReason, setReportReason] = useState<string>(REPORT_REASONS[0]);
   const [reportNote, setReportNote] = useState("");
   const [reportDone, setReportDone] = useState(false);
@@ -251,7 +252,7 @@ export function ListingDetail({
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (data?.data?.hasReviewed) {
-          setSaleReviewError(t(lang, "farm.review.alreadyReviewed"));
+          setSaleReviewNotice(t(lang, "farm.review.alreadyReviewed"));
           return;
         }
         setSaleReviewOpen(true);
@@ -319,6 +320,8 @@ export function ListingDetail({
         throw new Error(data.error || t(lang, "farm.review.failed"));
       }
       setSaleReviewOpen(false);
+      setSaleReviewNotice(t(lang, "farm.review.pendingSubmitted"));
+      router.refresh();
     } catch (err) {
       setSaleReviewError(
         err instanceof Error ? err.message : t(lang, "farm.review.failed"),
@@ -712,6 +715,14 @@ export function ListingDetail({
       <div className="mb-5">
         <DisclaimerBanner lang={lang} />
       </div>
+      {saleReviewNotice ? (
+        <div
+          role="status"
+          className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          {saleReviewNotice}
+        </div>
+      ) : null}
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1 lg:flex-[1.4]">
           <div

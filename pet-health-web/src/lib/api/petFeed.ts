@@ -392,6 +392,47 @@ export async function adminReviewBreederSubmission(
   );
 }
 
+export type AdminFarmReviewRow = {
+  id: string;
+  breeder_profile_id: string;
+  reviewer_user_id: string;
+  kind: "primary" | "supplement" | "sale";
+  rating: number;
+  body?: string;
+  photo_urls?: string[];
+  status?: string;
+  created_at?: string;
+  breeder_profile?: { display_name?: string | null } | null;
+};
+
+export async function adminListFarmReviews(token: string, status?: string) {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  return fetchJson<{ data: AdminFarmReviewRow[] }>(`/admin/farm-reviews${qs}`, {
+    token,
+    cache: "no-store",
+  });
+}
+
+export async function adminReviewFarmReview(
+  token: string,
+  reviewId: string,
+  status: "approved" | "rejected",
+  extras?: { rejectionReason?: string; adminNote?: string },
+) {
+  return fetchJson<{ data: { review: AdminFarmReviewRow } }>(
+    `/admin/farm-reviews/${encodeURIComponent(reviewId)}/status`,
+    {
+      method: "PUT",
+      token,
+      body: {
+        status,
+        ...(extras?.rejectionReason ? { rejectionReason: extras.rejectionReason } : {}),
+        ...(extras?.adminNote ? { adminNote: extras.adminNote } : {}),
+      },
+    },
+  );
+}
+
 export async function listMyWarrantyPolicies(token: string) {
   return fetchJson<{
     data: Array<{

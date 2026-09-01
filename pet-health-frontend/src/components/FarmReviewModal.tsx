@@ -20,12 +20,10 @@ import {
   canAddFarmReviewPhoto,
   FARM_REVIEW_BODY_MAX,
   FARM_REVIEW_MAX_PHOTOS,
-  validateFarmReviewInput,
+  farmReviewValidationError,
 } from '../utils/farmReview';
-import {
-  farmReviewUploadPercent,
-  farmReviewUploadProgressLabel,
-} from '../utils/farmReviewUploadProgress';
+import { farmReviewUploadPercent } from '../utils/farmReviewUploadShared';
+import { farmReviewUploadProgressLabel } from '../utils/farmReviewUploadProgress';
 import {
   uploadFarmReviewPhotoUris,
   type FarmReviewUploadProgress,
@@ -136,9 +134,9 @@ export function FarmReviewModal({
   }
 
   async function submit() {
-    const validationError = validateFarmReviewInput({ rating, body, photoUrls: [] });
-    if (validationError) {
-      setLocalError(validationError);
+    const validationCode = farmReviewValidationError({ rating, body, photoUrls: [] });
+    if (validationCode) {
+      setLocalError(t(`farm.review.error.${validationCode === 'invalid_rating' ? 'rating' : validationCode === 'body_too_long' ? 'bodyTooLong' : 'tooManyPhotos'}`));
       return;
     }
     if (!token) {
@@ -158,9 +156,9 @@ export function FarmReviewModal({
       const photoUrls = photoUris.length
         ? await uploadFarmReviewPhotoUris(token, photoUris, setUploadProgress)
         : [];
-      const submitError = validateFarmReviewInput({ rating, body, photoUrls });
-      if (submitError) {
-        setLocalError(submitError);
+      const submitCode = farmReviewValidationError({ rating, body, photoUrls });
+      if (submitCode) {
+        setLocalError(t(`farm.review.error.${submitCode === 'invalid_rating' ? 'rating' : submitCode === 'body_too_long' ? 'bodyTooLong' : 'tooManyPhotos'}`));
         return;
       }
       setUploadProgress({

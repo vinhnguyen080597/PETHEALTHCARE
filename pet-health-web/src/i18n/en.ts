@@ -380,6 +380,12 @@ const en = {
   "farm.review.photosTooLarge": "Photo is too large. Try fewer or smaller images.",
   "farm.review.photoUploadFailed": "Could not upload photo.",
   "farm.review.photosRemove": "Remove photo",
+  "farm.review.ratingLabel": "Star rating",
+  "farm.review.error.rating": "Please choose a rating between 1 and 5 stars.",
+  "farm.review.error.bodyTooLong": "Review text is too long.",
+  "farm.review.error.tooManyPhotos": "Too many attached photos.",
+  "farm.review.pendingSubmitted": "Your review was submitted and is pending admin approval before it appears publicly.",
+  "farm.review.pendingBadge": "Pending admin review",
   "farm.facility.about": "About the kennel",
   "farm.facility.env": "Care environment",
   "farm.facility.scale": "Scale",
@@ -784,6 +790,10 @@ const en = {
   "auth.forgotSuccess":
     "Your password has been reset. You can sign in with your new password.",
   "auth.forgot.sendFailed": "Could not send OTP. Please try again.",
+  "auth.forgot.backendUnavailable":
+    "Cannot reach the server. Make sure pet-health-backend is running (yarn dev on port 3000), then try again.",
+  "auth.forgot.serviceUnavailable":
+    "Password recovery is temporarily unavailable. Please try again later.",
   "auth.forgot.rateLimit":
     "For security purposes, you can only request this after {{seconds}} seconds.",
   "auth.forgot.newPassword": "New password",
@@ -1379,6 +1389,12 @@ const en = {
   "admin.requests.type.report": "Report",
   "admin.requests.type.feedback": "Feedback",
   "admin.requests.type.scam": "Scam report",
+  "admin.requests.type.farmReview": "Farm review",
+  "admin.farmReviews.kind.primary": "Direct review",
+  "admin.farmReviews.kind.sale": "Sale review",
+  "admin.farmReviews.kind.supplement": "Supplement",
+  "admin.farmReviews.approve": "Approve review",
+  "admin.farmReviews.reject": "Reject review",
   "admin.support.category": "Category",
   "admin.support.title": "Title",
   "admin.support.targetType": "Target type",

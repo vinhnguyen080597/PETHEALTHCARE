@@ -61,4 +61,6 @@ test("resolveAuthError / OTP / forgot map codes", () => {
   assert.match(resolveOtpError("EN", { code: "otp_expired" }), /expir/i);
   assert.match(resolveOtpError("EN", { code: "invalid_otp" }), /invalid|wrong|otp/i);
   assert.match(resolveForgotError("EN", { code: "PASSWORD_TOO_SHORT" }), /pass|short|weak/i);
+  assert.match(resolveForgotError("VI", { code: "BACKEND_UNAVAILABLE" }), /máy chủ|kết nối/i);
+  assert.match(resolveForgotError("EN", { code: "over_email_send_rate_limit" }), /wait|second/i);
 });

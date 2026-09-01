@@ -8,19 +8,30 @@ import {
   mapFarmReviewThreads,
   normalizeFarmReviewPhotoUrls,
   parseSaleReviewFlag,
+  formatBreederReviewLabel,
+  farmReviewValidationError,
   validateFarmReviewInput,
 } from '../src/utils/farmReview.ts';
 
 test('computeFarmReviewPool matches B/C/D example', () => {
   const result = computeFarmReviewPool([
-    { kind: 'primary', reviewer_user_id: 'user-b', rating: 5 },
-    { kind: 'supplement', reviewer_user_id: 'user-b', rating: 4 },
-    { kind: 'primary', reviewer_user_id: 'user-c', rating: 5 },
-    { kind: 'supplement', reviewer_user_id: 'user-c', rating: 4 },
-    { kind: 'sale', reviewer_user_id: 'user-d', rating: 5 },
+    { kind: 'primary', reviewer_user_id: 'user-b', rating: 5, status: 'approved' },
+    { kind: 'supplement', reviewer_user_id: 'user-b', rating: 4, status: 'approved' },
+    { kind: 'primary', reviewer_user_id: 'user-c', rating: 5, status: 'approved' },
+    { kind: 'supplement', reviewer_user_id: 'user-c', rating: 4, status: 'approved' },
+    { kind: 'sale', reviewer_user_id: 'user-d', rating: 5, status: 'approved' },
   ]);
   assert.equal(result.review_count, 4);
   assert.equal(result.review_avg, 4.75);
+});
+
+test('computeFarmReviewPool ignores pending reviews', () => {
+  const result = computeFarmReviewPool([
+    { kind: 'primary', reviewer_user_id: 'user-a', rating: 5, status: 'approved' },
+    { kind: 'primary', reviewer_user_id: 'user-b', rating: 1, status: 'pending' },
+  ]);
+  assert.equal(result.review_count, 1);
+  assert.equal(result.review_avg, 5);
 });
 
 test('validateFarmReviewInput requires rating', () => {
@@ -44,18 +55,32 @@ test('parseSaleReviewFlag', () => {
   assert.equal(parseSaleReviewFlag(''), false);
 });
 
-test('mapFarmReviewThreads keeps supplement rows', () => {
+test('mapFarmReviewThreads keeps supplement rows and photo urls', () => {
   const threads = mapFarmReviewThreads([
     {
       id: 'r1',
       rating: 5,
       body: 'Great',
-      supplements: [{ id: 's1', rating: 4, body: 'Follow-up' }],
+      photo_urls: ['https://cdn.example/a.jpg'],
+      supplements: [{ id: 's1', rating: 4, body: 'Follow-up', photo_urls: ['https://cdn.example/b.jpg'] }],
     },
   ]);
   assert.equal(threads.length, 1);
+  assert.equal(threads[0]?.photoUrls.length, 1);
   assert.equal(threads[0]?.supplements.length, 1);
   assert.equal(threads[0]?.supplements[0]?.rating, 4);
+  assert.equal(threads[0]?.supplements[0]?.photoUrls[0], 'https://cdn.example/b.jpg');
+});
+
+test('formatBreederReviewLabel renders localized summary', () => {
+  assert.match(formatBreederReviewLabel(4.8, 12, 'vi'), /4\.8/);
+  assert.match(formatBreederReviewLabel(4.8, 12, 'vi'), /đánh giá/);
+  assert.equal(formatBreederReviewLabel(0, 0, 'en'), '');
+});
+
+test('farmReviewValidationError returns stable codes', () => {
+  assert.equal(farmReviewValidationError({ rating: 0 }), 'invalid_rating');
+  assert.equal(farmReviewValidationError({ rating: 4, body: 'ok' }), null);
 });
 
 test('farmReviewedBreederProfileId resolves breeder profile', () => {
