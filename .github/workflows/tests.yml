@@ -34,6 +34,7 @@ jobs:
           cache: yarn
           cache-dependency-path: pet-health-frontend/yarn.lock
       - run: yarn install --frozen-lockfile
+      - run: yarn lint
       - run: yarn typecheck
       - run: yarn test
       - run: yarn release:verify:public-links
