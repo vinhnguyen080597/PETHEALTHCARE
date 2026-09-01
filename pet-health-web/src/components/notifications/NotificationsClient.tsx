@@ -12,7 +12,6 @@ import {
   isAdminQueueNotification,
   farmSaleReviewNotificationHref,
   farmReviewedNotificationHref,
-  isFarmSaleReviewRequestNotification,
   listingNotificationHref,
   notificationInboxCta,
   notificationType,

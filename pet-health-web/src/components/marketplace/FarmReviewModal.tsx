@@ -77,12 +77,19 @@ export function FarmReviewModal({
 
   if (!open) return null;
 
+  const photosHint = t(lang, "farm.review.photosHint").replace(
+    "{{count}}",
+    String(FARM_REVIEW_MAX_PHOTOS),
+  );
+
   const addPhotos = (files: FileList | null) => {
     if (!files?.length) return;
     const remaining = FARM_REVIEW_MAX_PHOTOS - photoFiles.length;
     const next = Array.from(files).slice(0, remaining);
     if (!next.length) {
-      setLocalError(t(lang, "farm.review.photosLimit", { count: FARM_REVIEW_MAX_PHOTOS }));
+      setLocalError(
+        t(lang, "farm.review.photosLimit").replace("{{count}}", String(FARM_REVIEW_MAX_PHOTOS)),
+      );
       return;
     }
     setPhotoFiles((current) => [...current, ...next].slice(0, FARM_REVIEW_MAX_PHOTOS));
@@ -172,9 +179,7 @@ export function FarmReviewModal({
         />
         <p className="mt-1 text-right text-xs text-slate-400">{body.length}/500</p>
 
-        <p className="mt-3 text-sm font-medium text-slate-700">
-          {t(lang, "farm.review.photosHint", { count: FARM_REVIEW_MAX_PHOTOS })}
-        </p>
+        <p className="mt-3 text-sm font-medium text-slate-700">{photosHint}</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {photoPreviewUrls.map((url, index) => (
             <div key={url} className="relative h-20 w-20 overflow-hidden rounded-xl bg-slate-100">
