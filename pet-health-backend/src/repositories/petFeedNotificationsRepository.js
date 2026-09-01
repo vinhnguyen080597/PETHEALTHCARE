@@ -24,6 +24,7 @@ const ADMIN_NOTIFICATION_TYPES = new Set([
   'admin_report_open',
   'admin_feedback_open',
   'admin_scam_open',
+  'admin_farm_review_pending',
 ]);
 const DEAL_NOTIFICATION_TYPES = new Set([
   'deposit_request',
@@ -37,10 +38,12 @@ const DEAL_NOTIFICATION_TYPES = new Set([
   'deal_dispute_resolved',
   'farm_sale_review_request',
   'farm_reviewed',
+  'farm_review_rejected',
 ]);
 const FARM_REVIEW_NOTIFICATION_TYPES = new Set([
   'farm_sale_review_request',
   'farm_reviewed',
+  'farm_review_rejected',
 ]);
 const ADMIN_DEFAULT_CTA = {
   admin_breeder_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=breeder' },
@@ -50,6 +53,7 @@ const ADMIN_DEFAULT_CTA = {
   admin_report_open: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=report' },
   admin_feedback_open: { label: 'Xem góp ý', href: '/app/admin?section=requests&type=feedback' },
   admin_scam_open: { label: 'Xem báo cáo scam', href: '/app/admin?section=requests&type=scam' },
+  admin_farm_review_pending: { label: 'Xem yêu cầu', href: '/app/admin?section=requests&type=farm_review' },
 };
 
 function getNotificationsSupabase(accessToken) {
@@ -227,11 +231,19 @@ export async function createDealNotification({
 
   const meta = normalizeMetadata(metadata);
   if (!meta.cta_href) {
-    if (safePostId) {
+    if (safeType === 'farm_review_rejected') {
+      const profileId = trimText(metadata?.breeder_profile_id, 64);
+      if (profileId) {
+        meta.cta_href = `/app/breeders/${encodeURIComponent(profileId)}`;
+      }
+    } else if (safePostId) {
       meta.cta_href = `/app/pet-feed/posts/${encodeURIComponent(safePostId)}`;
     }
   }
-  if (!meta.cta_label) meta.cta_label = 'Xem bài đăng';
+  if (!meta.cta_label) {
+    meta.cta_label =
+      safeType === 'farm_review_rejected' ? 'Xem trại' : 'Xem bài đăng';
+  }
 
   const row = {
     id: randomUUID(),
@@ -556,6 +568,11 @@ export async function createAdminRequestNotifications({
     ctaHref = `/app/admin?section=requests&type=feedback&focus=${encodeURIComponent(ticketId)}`;
   } else if (safeType === 'admin_scam_open' && ticketId) {
     ctaHref = `/app/admin?section=requests&type=scam&focus=${encodeURIComponent(ticketId)}`;
+  } else if (safeType === 'admin_farm_review_pending') {
+    const reviewId = trimText(metadata?.review_id, 64);
+    ctaHref = reviewId
+      ? `/app/admin?section=requests&type=farm_review&focus=${encodeURIComponent(reviewId)}`
+      : defaults.href;
   }
 
   const meta = {
@@ -575,6 +592,8 @@ export async function createAdminRequestNotifications({
             ? 'feedback'
             : safeType === 'admin_scam_open'
               ? 'scam'
+              : safeType === 'admin_farm_review_pending'
+                ? 'farm_review'
               : 'report',
   };
   const now = new Date().toISOString();

@@ -2875,6 +2875,7 @@ export function usePetHealthApp() {
       type === 'admin_breeder_detail_pending' ||
       type === 'admin_transparency_appeal' ||
       type === 'admin_listing_pending' ||
+      type === 'admin_farm_review_pending' ||
       type === 'admin_report_open'
     ) {
       void openAdminHub();

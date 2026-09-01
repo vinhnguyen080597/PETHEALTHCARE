@@ -39,6 +39,7 @@ const ADMIN_QUEUE_TYPES = new Set([
   'admin_report_open',
   'admin_feedback_open',
   'admin_scam_open',
+  'admin_farm_review_pending',
 ]);
 
 function storedCtaLabel(item: NotificationInboxCtaInput) {

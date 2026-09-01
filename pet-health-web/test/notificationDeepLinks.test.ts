@@ -160,6 +160,18 @@ test("transparency notification deep links and CTAs", () => {
   assert.equal(isAdminQueueNotification("admin_transparency_appeal"), true);
   assert.equal(isAdminQueueNotification("admin_feedback_open"), true);
   assert.equal(isAdminQueueNotification("admin_scam_open"), true);
+  assert.equal(isAdminQueueNotification("admin_farm_review_pending"), true);
+  assert.equal(
+    adminRequestHref({
+      type: "admin_farm_review_pending",
+      metadata: { review_id: "rev-1" },
+    }),
+    "/app/admin?section=requests&type=farm_review&focus=rev-1",
+  );
+  assert.equal(
+    adminRequestHref({ type: "admin_farm_review_pending" }),
+    "/app/admin?section=requests&type=farm_review",
+  );
   assert.equal(
     breederTransparencyNotificationHref({ type: "transparency_warning" }),
     "/app/account/breeder",

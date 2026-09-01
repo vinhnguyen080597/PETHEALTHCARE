@@ -103,6 +103,9 @@ export function NotificationsInboxScreen({
     if (type === 'admin_breeder_detail_pending') return t('petFeed.notifications.adminDetailTitle');
     if (type === 'admin_transparency_appeal') return t('petFeed.notifications.adminAppealTitle');
     if (type === 'admin_listing_pending') return t('petFeed.notifications.adminListingTitle');
+    if (type === 'admin_farm_review_pending') {
+      return t('petFeed.notifications.adminFarmReviewTitle');
+    }
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportTitle');
     if (type === 'deposit_cancel_request') return t('petFeed.notifications.depositCancelTitle');
     return item.actor_display_name || t('petFeed.notifications.actorFallback');
@@ -130,6 +133,9 @@ export function NotificationsInboxScreen({
       return t('petFeed.notifications.adminAppealSubtitle');
     }
     if (type === 'admin_listing_pending') return t('petFeed.notifications.adminListingSubtitle');
+    if (type === 'admin_farm_review_pending') {
+      return t('petFeed.notifications.adminFarmReviewSubtitle');
+    }
     if (type === 'admin_report_open') return t('petFeed.notifications.adminReportSubtitle');
     if (type === 'deposit_cancel_request') return t('petFeed.notifications.depositCancelSubtitle');
     if (
@@ -197,6 +203,9 @@ export function NotificationsInboxScreen({
     }
     if (type === 'admin_listing_pending') {
       return item.body_preview || t('petFeed.notifications.adminListingBody');
+    }
+    if (type === 'admin_farm_review_pending') {
+      return item.body_preview || t('petFeed.notifications.adminFarmReviewBody');
     }
     if (type === 'admin_report_open') {
       return item.body_preview || t('petFeed.notifications.adminReportBody');

@@ -13,6 +13,7 @@ export type NotificationDeepLinkInput = {
     report_id?: string;
     submission_id?: string;
     warning_id?: string;
+    review_id?: string;
     [key: string]: unknown;
   } | null;
 };
@@ -40,6 +41,7 @@ const ADMIN_QUEUE_NOTIFICATION_TYPES = new Set([
   "admin_report_open",
   "admin_feedback_open",
   "admin_scam_open",
+  "admin_farm_review_pending",
 ]);
 
 /** CTA copy is “view farm profile” — must not land on /app/account/breeder. */
@@ -145,6 +147,14 @@ export function adminRequestHref(item: NotificationDeepLinkInput) {
     }
     return "/app/admin?section=requests&type=appeal";
   }
+  if (type === "admin_farm_review_pending") {
+    const reviewId =
+      (typeof item.metadata?.review_id === "string" && item.metadata.review_id) || "";
+    if (reviewId) {
+      return `/app/admin?section=requests&type=farm_review&focus=${encodeURIComponent(reviewId)}`;
+    }
+    return "/app/admin?section=requests&type=farm_review";
+  }
   if (type === "admin_breeder_pending") {
     return "/app/admin?section=requests&type=breeder";
   }
@@ -249,6 +259,14 @@ export function isFarmReviewedNotification(
   const type =
     typeof item === "string" || !item ? String(item || "") : notificationType(item);
   return type === "farm_reviewed";
+}
+
+export function isFarmReviewRejectedNotification(
+  item: NotificationDeepLinkInput | string | null | undefined,
+) {
+  const type =
+    typeof item === "string" || !item ? String(item || "") : notificationType(item);
+  return type === "farm_review_rejected";
 }
 
 export function farmReviewedBreederProfileId(item: NotificationDeepLinkInput): string | null {

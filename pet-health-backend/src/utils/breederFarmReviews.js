@@ -151,3 +151,14 @@ export function buildFarmReviewedNotificationPreview(input = {}) {
   if (body) preview += ` "${body}"`;
   return trimText(preview, 220);
 }
+
+export function buildFarmReviewAdminPendingPreview(input = {}) {
+  const farmName = trimText(input.farmName ?? input.breederName, 60);
+  const rating = normalizeFarmReviewRating(input.rating) || 0;
+  const kind = String(input.kind || 'primary').trim().toLowerCase();
+  let kindLabel = 'trực tiếp';
+  if (kind === 'sale') kindLabel = 'giao dịch';
+  if (kind === 'supplement') kindLabel = 'bổ sung';
+  const prefix = farmName ? `${farmName}: ` : '';
+  return trimText(`${prefix}Đánh giá ${kindLabel} ${rating || '?'}★ chờ admin duyệt.`, 220);
+}

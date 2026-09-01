@@ -235,9 +235,11 @@ export async function createBreederFarmReview(reviewerUserId, breederProfileId, 
   const parentReviewId = existingPrimary?.id ?? null;
 
   let breederUserId = null;
+  let breederDisplayName = '';
   if (!supabase) {
     const profile = memoryProfilesRef.getter().find((p) => p.id === safeProfileId);
     breederUserId = profile?.user_id ?? null;
+    breederDisplayName = trimText(profile?.display_name, 120);
   } else {
     const { data: profile } = await supabase
       .from('breeder_profiles')
@@ -245,6 +247,7 @@ export async function createBreederFarmReview(reviewerUserId, breederProfileId, 
       .eq('id', safeProfileId)
       .maybeSingle();
     breederUserId = profile?.user_id ?? null;
+    breederDisplayName = trimText(profile?.display_name, 120);
   }
   if (breederUserId && breederUserId === reviewerUserId) {
     throw httpError('You cannot review your own farm.', 403, 'REVIEW_FORBIDDEN');
@@ -295,6 +298,7 @@ export async function createBreederFarmReview(reviewerUserId, breederProfileId, 
     kind,
     status: 'pending',
     notify_user_id: null,
+    breeder_display_name: breederDisplayName,
     transparency_points_awarded: 0,
   };
 }
@@ -424,12 +428,26 @@ export async function createSaleFarmReview(reviewerUserId, postId, payload, acce
     Object.assign(row, data);
   }
 
+  let breederDisplayName = '';
+  if (!supabase) {
+    const profile = memoryProfilesRef.getter().find((p) => p.id === breederProfileId);
+    breederDisplayName = trimText(profile?.display_name, 120);
+  } else {
+    const { data: profile } = await supabase
+      .from('breeder_profiles')
+      .select('display_name')
+      .eq('id', breederProfileId)
+      .maybeSingle();
+    breederDisplayName = trimText(profile?.display_name, 120);
+  }
+
   return {
     review: toReviewRow(row),
     status: 'pending',
     notify_user_id: null,
     post_title: trimText(post.title, 200),
     breeder_profile_id: breederProfileId,
+    breeder_display_name: breederDisplayName,
     transparency_points_awarded: 0,
   };
 }

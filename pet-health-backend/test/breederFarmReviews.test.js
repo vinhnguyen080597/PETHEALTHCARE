@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildFarmReviewAdminPendingPreview,
   computeFarmReviewPool,
   countFiveStarDirectReviews,
   validateFarmReviewInput,
@@ -23,6 +24,17 @@ test('computeFarmReviewPool: users B/C bundles + user D sale x2 → 4.75', () =>
 test('validateFarmReviewInput requires rating 1-5', () => {
   assert.equal(validateFarmReviewInput({ rating: 0 }).ok, false);
   assert.equal(validateFarmReviewInput({ rating: 3, body: 'ok' }).ok, true);
+});
+
+test('buildFarmReviewAdminPendingPreview includes farm and rating', () => {
+  const preview = buildFarmReviewAdminPendingPreview({
+    farmName: 'Trại Mai',
+    rating: 5,
+    kind: 'primary',
+  });
+  assert.match(preview, /Trại Mai/);
+  assert.match(preview, /5★/);
+  assert.match(preview, /chờ admin duyệt/);
 });
 
 test('computeFarmReviewPool ignores pending reviews', () => {

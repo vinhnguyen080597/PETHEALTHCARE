@@ -82,6 +82,7 @@ import {
 } from '../services/imageStorageService.js';
 import { breederSubmissionTypeLabel } from '../utils/breederProfileSubmissions.js';
 import {
+  buildFarmReviewAdminPendingPreview,
   buildFarmReviewedNotificationPreview,
   buildFarmSaleReviewRequestPreview,
 } from '../utils/breederFarmReviews.js';
@@ -94,6 +95,27 @@ import {
 } from '../repositories/breederFarmReviewsRepository.js';
 import { isFarmReviewActive } from '../utils/breederFarmReviews.js';
 import { recordProductEvent } from '../services/productAnalyticsService.js';
+
+function notifyAdminFarmReviewPending(req, result) {
+  if (!result?.review?.id || result.kind === 'supplement') return;
+  void createAdminRequestNotifications({
+    actorUserId: req.user.id,
+    type: 'admin_farm_review_pending',
+    bodyPreview: buildFarmReviewAdminPendingPreview({
+      farmName: result.breeder_display_name,
+      rating: result.review.rating,
+      kind: result.kind,
+    }),
+    breederProfileId: result.review.breeder_profile_id,
+    postId: result.review.post_id ?? null,
+    metadata: {
+      review_id: result.review.id,
+      kind: result.kind,
+      rating: result.review.rating,
+    },
+    accessToken: req.accessToken,
+  }).catch(() => null);
+}
 
 const router = Router();
 const petFeedUpload = multer({
@@ -1484,6 +1506,7 @@ router.post('/breeder-profiles/:profileId/reviews', async (req, res, next) => {
       { ...body, photoUrls },
       req.accessToken,
     );
+    notifyAdminFarmReviewPending(req, result);
     void recordProductEvent({
       userId: req.user.id,
       event: 'farm_review_created',
@@ -1527,6 +1550,7 @@ router.post('/posts/:postId/sale-review', async (req, res, next) => {
       { ...body, photoUrls },
       req.accessToken,
     );
+    notifyAdminFarmReviewPending(req, { ...result, kind: 'sale' });
     void recordProductEvent({
       userId: req.user.id,
       event: 'farm_sale_review_created',

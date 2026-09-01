@@ -119,7 +119,8 @@ export function NotificationsClient({
     if (
       type === "breeder_rejected" ||
       type === "listing_rejected" ||
-      type === "breeder_detail_rejected"
+      type === "breeder_detail_rejected" ||
+      type === "farm_review_rejected"
     ) {
       setReasonItem(item);
       return;
@@ -208,6 +209,12 @@ export function NotificationsClient({
       return t(lang, "notifications.adminAppealTitle");
     }
     if (type === "admin_listing_pending") return t(lang, "notifications.adminListingTitle");
+    if (type === "admin_farm_review_pending") {
+      return t(lang, "notifications.adminFarmReviewTitle");
+    }
+    if (type === "farm_review_rejected") {
+      return t(lang, "notifications.farmReviewRejectedTitle");
+    }
     if (type === "admin_report_open") return t(lang, "notifications.adminReportTitle");
     if (type === "deposit_cancel_request") {
       return t(lang, "notifications.depositCancelTitle");
@@ -263,6 +270,16 @@ export function NotificationsClient({
     }
     if (type === "admin_listing_pending") {
       return item.body_preview || t(lang, "notifications.adminListingBody");
+    }
+    if (type === "admin_farm_review_pending") {
+      return item.body_preview || t(lang, "notifications.adminFarmReviewBody");
+    }
+    if (type === "farm_review_rejected") {
+      return (
+        resolveRejectionNotice(item).reason ||
+        item.body_preview ||
+        t(lang, "notifications.farmReviewRejectedBody")
+      );
     }
     if (type === "admin_report_open") {
       return item.body_preview || t(lang, "notifications.adminReportBody");
@@ -372,6 +389,7 @@ export function NotificationsClient({
                     ) : type === "breeder_rejected" ||
                       type === "listing_rejected" ||
                       type === "breeder_detail_rejected" ||
+                      type === "farm_review_rejected" ||
                       type === "transparency_warning" ? (
                       "⚠️"
                     ) : isAdminQueueNotification(type) ? (
@@ -419,6 +437,8 @@ export function NotificationsClient({
                 ? t(lang, "notifications.listingRejectedTitle")
                 : notificationType(reasonItem) === "breeder_detail_rejected"
                   ? t(lang, "notifications.detailRejectedTitle")
+                  : notificationType(reasonItem) === "farm_review_rejected"
+                    ? t(lang, "notifications.farmReviewRejectedTitle")
                   : t(lang, "notifications.rejectedTitle")}
             </h3>
             <div className="mt-4 space-y-3">
@@ -432,6 +452,8 @@ export function NotificationsClient({
                       ? t(lang, "notifications.listingRejectedReasonMissing")
                       : notificationType(reasonItem) === "breeder_detail_rejected"
                         ? t(lang, "notifications.detailRejectedBody")
+                        : notificationType(reasonItem) === "farm_review_rejected"
+                          ? t(lang, "notifications.farmReviewRejectedBody")
                         : t(lang, "notifications.rejectedBody"))}
                 </p>
               </div>
