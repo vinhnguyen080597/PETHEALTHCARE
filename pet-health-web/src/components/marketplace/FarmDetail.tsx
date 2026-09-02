@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { BreederProfile, Lang, Listing, WarrantyPolicy } from "@/lib/types";
@@ -52,6 +52,8 @@ import type { BreederFarmReviewThread } from "@/lib/breederFarmReviews";
 import {
   filterApprovedFarmReviews,
   formatBreederReviewLabel,
+  parseFarmReviewFocusId,
+  parseFarmReviewScrollQuery,
 } from "@/lib/breederFarmReviews";
 
 function farmReviewAuthorName(
@@ -463,6 +465,11 @@ export function FarmDetail({
   const [reviewThreads, setReviewThreads] = useState<BreederFarmReviewThread[]>([]);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const reviewsSectionRef = useRef<HTMLElement | null>(null);
+  const reviewRowRefs = useRef<Record<string, HTMLElement | null>>({});
+  const pendingReviewScrollRef = useRef(false);
+  const scrollToReviewsOnMount = parseFarmReviewScrollQuery(searchParams.get("reviews"));
+  const focusReviewId = parseFarmReviewFocusId(searchParams.get("focusReview"));
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const pendingPhotoRef = useRef<{ kind: "avatar" | "cover"; url: string } | null>(
@@ -483,8 +490,64 @@ export function FarmDetail({
   const bioText = (lang === "VI" ? breeder.bioVI : breeder.bio).trim();
   const facilitySocials = farmFacilitySocialLinks(breeder.contact);
 
+  const clearReviewFocusFromUrl = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (
+      !url.searchParams.has("reviews") &&
+      !url.searchParams.has("focusReview")
+    ) {
+      return;
+    }
+    url.searchParams.delete("reviews");
+    url.searchParams.delete("focusReview");
+    const qs = url.searchParams.toString();
+    window.history.replaceState({}, "", qs ? `${url.pathname}?${qs}` : url.pathname);
+  }, []);
+
+  const scrollToReviewsSection = useCallback(() => {
+    const target =
+      (focusReviewId && reviewRowRefs.current[focusReviewId]) ||
+      reviewsSectionRef.current;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    clearReviewFocusFromUrl();
+  }, [clearReviewFocusFromUrl, focusReviewId]);
+
   useEffect(() => {
-    if (reviewsLoaded || reviewsLoading) return;
+    pendingReviewScrollRef.current = scrollToReviewsOnMount;
+  }, [scrollToReviewsOnMount, breeder.id]);
+
+  useEffect(() => {
+    reviewRowRefs.current = {};
+    if (scrollToReviewsOnMount) {
+      setReviewsLoaded(false);
+    }
+  }, [breeder.id, scrollToReviewsOnMount]);
+
+  useEffect(() => {
+    if (!pendingReviewScrollRef.current || tab !== "overview" || !isLoggedIn) return;
+    if (reviewsLoading || !reviewsLoaded) return;
+    pendingReviewScrollRef.current = false;
+    const id = window.requestAnimationFrame(() => {
+      scrollToReviewsSection();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [
+    tab,
+    isLoggedIn,
+    reviewsLoading,
+    reviewsLoaded,
+    scrollToReviewsSection,
+  ]);
+
+  useEffect(() => {
+    if (scrollToReviewsOnMount && tab !== "overview") {
+      setTab("overview");
+    }
+  }, [scrollToReviewsOnMount, tab, breeder.id]);
+
+  useEffect(() => {
+    if (!isLoggedIn || reviewsLoaded || reviewsLoading) return;
     let cancelled = false;
     setReviewsLoading(true);
     void fetch(`/api/breeders/${encodeURIComponent(breeder.id)}/reviews`)
@@ -511,7 +574,7 @@ export function FarmDetail({
     return () => {
       cancelled = true;
     };
-  }, [breeder.id, reviewsLoaded, reviewsLoading]);
+  }, [breeder.id, isLoggedIn, reviewsLoaded, reviewsLoading]);
 
   const submitFarmReview = async (payload: {
     rating: number;
@@ -1030,13 +1093,14 @@ export function FarmDetail({
                   </div>
                 </section>
 
-                <section className="space-y-3">
+                {isLoggedIn ? (
+                <section ref={reviewsSectionRef} className="space-y-3 scroll-mt-24">
                   <div className="flex items-center justify-between gap-3">
                     <h2 className="text-base font-semibold text-[#2B1E19]">
                       {t(lang, "farm.tab.reviews")}
                       {reviewCount > 0 ? ` (${reviewCount})` : ""}
                     </h2>
-                    {!isOwner && isLoggedIn ? (
+                    {!isOwner ? (
                       <button
                         type="button"
                         onClick={() => setReviewOpen(true)}
@@ -1062,7 +1126,14 @@ export function FarmDetail({
                         {reviewThreads.map((thread) => (
                           <article
                             key={thread.id}
-                            className="rounded-2xl border border-[#F3E2C8] bg-[#FDFBF7] p-4"
+                            ref={(node) => {
+                              reviewRowRefs.current[thread.id] = node;
+                            }}
+                            className={`rounded-2xl border bg-[#FDFBF7] p-4 ${
+                              focusReviewId === thread.id
+                                ? "border-amber-400 bg-amber-50/80 ring-2 ring-amber-300"
+                                : "border-[#F3E2C8]"
+                            }`}
                           >
                             <div className="flex items-start gap-3">
                               {thread.reviewer_avatar_url ? (
@@ -1164,6 +1235,7 @@ export function FarmDetail({
                     )}
                   </div>
                 </section>
+                ) : null}
               </div>
             )}
 

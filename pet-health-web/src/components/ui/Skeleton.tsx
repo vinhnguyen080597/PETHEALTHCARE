@@ -135,11 +135,12 @@ export function HomeBreederRowSkeleton() {
 export function ListingDetailSkeleton() {
   return (
     <div
-      className="grid grid-cols-1 gap-8 lg:grid-cols-2"
+      className="rounded-2xl border border-slate-100 bg-white p-5 sm:p-6 lg:p-8"
       role="status"
       aria-busy="true"
       aria-label="Loading"
     >
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <div>
         <Skeleton className="mb-3 aspect-[4/3] w-full rounded-2xl" />
         <div className="flex gap-2">
@@ -162,6 +163,7 @@ export function ListingDetailSkeleton() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

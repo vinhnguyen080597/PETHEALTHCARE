@@ -1,4 +1,8 @@
 import { farmDetailHref } from "../farmTabs";
+import {
+  farmReviewedNotificationReviewId,
+  withFarmReviewNotificationParams,
+} from "../breederFarmReviews";
 
 export type NotificationDeepLinkInput = {
   type?: string | null;
@@ -279,16 +283,22 @@ export function farmReviewedBreederProfileId(item: NotificationDeepLinkInput): s
   return meta || null;
 }
 
-/** Breeder notified of a new farm review — open reviews tab, not the listing. */
+/** Breeder notified of a new farm review — open reviews section and focus the row. */
 export function farmReviewedNotificationHref(
   item: NotificationDeepLinkInput,
 ): string | null {
   if (!isFarmReviewedNotification(item)) return null;
+  const focusReviewId = farmReviewedNotificationReviewId(item);
   const stored = storedCtaHref(item);
-  if (stored.startsWith("/app/breeders/")) return stored;
+  if (stored.startsWith("/app/breeders/")) {
+    return withFarmReviewNotificationParams(stored, focusReviewId);
+  }
   const profileId = farmReviewedBreederProfileId(item);
   if (!profileId) return null;
-  return farmDetailHref(profileId, "overview");
+  return withFarmReviewNotificationParams(
+    farmDetailHref(profileId, "overview"),
+    focusReviewId,
+  );
 }
 
 export function isDealActionNotification(

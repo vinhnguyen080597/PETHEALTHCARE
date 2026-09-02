@@ -93,7 +93,7 @@ function SpecCard({
         <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold mb-0.5">
           {label}
         </p>
-        <p className="text-sm font-semibold text-slate-900 leading-snug">
+        <p className="text-sm font-semibold text-slate-900 leading-snug break-words [overflow-wrap:anywhere]">
           {value}
         </p>
       </div>
@@ -235,13 +235,22 @@ export function ListingDetail({
   });
   const activeItem = gallery[Math.min(activeMedia, Math.max(gallery.length - 1, 0))] || gallery[0] || null;
   const price = formatPriceVnd(listing.price) || listing.price;
+  const isSoldListing =
+    String(listing.status || "").trim().toLowerCase() === "sold";
+  const isSoldVisitorView = isSoldListing && !isOwner;
+
+  const clearSaleReviewFromUrl = () => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("saleReview")) return;
+    url.searchParams.delete("saleReview");
+    const qs = url.searchParams.toString();
+    window.history.replaceState({}, "", qs ? `${url.pathname}?${qs}` : url.pathname);
+  };
 
   useEffect(() => {
-    if (!parseSaleReviewQuery(searchParams.get("saleReview"))) return;
-    if (!isLoggedIn) {
-      router.push(`/login?next=/app/pet-feed/posts/${listing.id}?saleReview=1`);
-      return;
-    }
+    if (!isLoggedIn || !isSoldVisitorView) return;
+    const fromSaleReviewPrompt = parseSaleReviewQuery(searchParams.get("saleReview"));
     let cancelled = false;
     void (async () => {
       try {
@@ -250,19 +259,30 @@ export function ListingDetail({
         );
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
+        if (fromSaleReviewPrompt) clearSaleReviewFromUrl();
         if (data?.data?.hasReviewed) {
           setSaleReviewNotice(t(lang, "farm.review.alreadyReviewed"));
           return;
         }
-        setSaleReviewOpen(true);
+        if (fromSaleReviewPrompt) setSaleReviewOpen(true);
       } catch {
-        if (!cancelled) setSaleReviewOpen(true);
+        if (!cancelled && fromSaleReviewPrompt) {
+          clearSaleReviewFromUrl();
+          setSaleReviewOpen(true);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [searchParams, isLoggedIn, listing.id, router, lang]);
+  }, [isLoggedIn, isSoldVisitorView, listing.id, lang, searchParams, router]);
+
+  useEffect(() => {
+    if (!parseSaleReviewQuery(searchParams.get("saleReview"))) return;
+    if (!isLoggedIn) {
+      router.push(`/login?next=/app/pet-feed/posts/${listing.id}?saleReview=1`);
+    }
+  }, [searchParams, isLoggedIn, listing.id, router]);
 
   const submitListingStatus = async (payload: {
     status: "published" | "deposit_hold" | "sold";
@@ -719,8 +739,9 @@ export function ListingDetail({
           {saleReviewNotice}
         </div>
       ) : null}
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="flex-1 lg:flex-[1.4]">
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 sm:p-6 lg:p-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <div className="min-w-0">
           <div
             className="relative rounded-2xl overflow-hidden bg-slate-100 aspect-[4/3] mb-3"
             onContextMenu={blockMediaContextMenu}
@@ -827,30 +848,45 @@ export function ListingDetail({
             </div>
           )}
         </div>
-        <div className="flex-1 lg:sticky lg:top-24 lg:self-start">
-          <div className="bg-white rounded-2xl border border-slate-100 p-6">
+        <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+          <div>
             <div className="mb-4 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="text-xl font-bold text-slate-900 mb-1 leading-snug">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl font-bold text-slate-900 mb-1 leading-snug break-words [overflow-wrap:anywhere]">
                   {title}
                 </h1>
                 {price ? (
-                  <p className="text-2xl font-bold text-[#D97706]">{price}</p>
+                  <p className="text-2xl font-bold text-[#D97706] break-words">
+                    {price}
+                  </p>
                 ) : null}
               </div>
-              <button
-                type="button"
-                onClick={toggleFavorite}
-                disabled={busy === "favorite"}
-                className={`flex-shrink-0 w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
-                  saved
-                    ? "border-rose-200 bg-rose-50 text-rose-600"
-                    : "border-slate-200 text-slate-400 hover:border-rose-200 hover:text-rose-500"
-                }`}
-                aria-label={t(lang, "detail.save")}
-              >
-                {saved ? "♥" : "♡"}
-              </button>
+              {isSoldVisitorView ? (
+                <div
+                  className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-full border ${
+                    saved
+                      ? "border-rose-200 bg-rose-50 text-rose-600"
+                      : "border-slate-200 text-slate-400"
+                  }`}
+                  aria-hidden
+                >
+                  {saved ? "♥" : "♡"}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={toggleFavorite}
+                  disabled={busy === "favorite"}
+                  className={`flex-shrink-0 w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
+                    saved
+                      ? "border-rose-200 bg-rose-50 text-rose-600"
+                      : "border-slate-200 text-slate-400 hover:border-rose-200 hover:text-rose-500"
+                  }`}
+                  aria-label={t(lang, "detail.save")}
+                >
+                  {saved ? "♥" : "♡"}
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3 mb-5">
               <SpecCard
@@ -897,11 +933,11 @@ export function ListingDetail({
                 ))}
               </div>
             )}
-            {!isBlankDisplayValue(description) && (
-              <p className="text-sm text-slate-600 leading-relaxed mb-5">
+            {!isBlankDisplayValue(description) ? (
+              <p className="mb-5 text-sm text-slate-600 leading-relaxed break-words [overflow-wrap:anywhere]">
                 {description}
               </p>
-            )}
+            ) : null}
             <Link
               href={`/app/breeders/${listing.breeder.id}`}
               className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-5 hover:bg-slate-100 transition-colors"
@@ -984,14 +1020,14 @@ export function ListingDetail({
                 </div>
               )}
 
-              {listing.status === "sold" ? (
+              {isOwner && listing.status === "sold" ? (
                 <p className={soldTone.shell}>{t(lang, "deal.completed")}</p>
               ) : null}
-              {listing.status === "cancelled" ? (
+              {isOwner && listing.status === "cancelled" ? (
                 <p className={cancelledTone.shell}>{t(lang, "deal.cancelledClosed")}</p>
               ) : null}
 
-              {showMessage ? (
+              {isSoldVisitorView ? null : showMessage ? (
                 <button
                   type="button"
                   onClick={messageSeller}
@@ -1021,6 +1057,7 @@ export function ListingDetail({
                   {t(lang, "listing.statusModal.open")}
                 </button>
               ) : null}
+              {isSoldVisitorView ? null : (
               <div
                 className={`grid gap-2 ${
                   listingDetailShareActionsCols({
@@ -1075,8 +1112,10 @@ export function ListingDetail({
                   </button>
                 ) : null}
               </div>
+              )}
             </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -1117,6 +1156,7 @@ export function ListingDetail({
             ))
           )}
         </div>
+        {!isSoldVisitorView ? (
         <div className="flex gap-3">
           <div className="w-8 h-8 rounded-full bg-[#D97706] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
             {isLoggedIn ? "Y" : "?"}
@@ -1146,6 +1186,7 @@ export function ListingDetail({
             </button>
           </div>
         </div>
+        ) : null}
       </div>
 
       {attachWarrantyOpen && (
@@ -1339,6 +1380,7 @@ export function ListingDetail({
         onClose={() => setPolicyOpen(false)}
         listingSpecies={listing.species}
       />
+
     </div>
   );
 }

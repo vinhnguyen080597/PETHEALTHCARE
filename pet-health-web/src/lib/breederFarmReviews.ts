@@ -1,7 +1,7 @@
 /** Farm review helpers — validation, rating pool, display (mirrors backend). */
 
 import { formatBreederReviewLabel, parseReviewStatsFromMeta } from "./breederDealReviews";
-import { t } from "@/i18n";
+import { t } from "../i18n";
 import type { Lang } from "./types";
 
 export {
@@ -182,4 +182,46 @@ export function parseSaleReviewQuery(
 ): boolean {
   const v = String(value || "").trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
+}
+
+export const FARM_REVIEW_SCROLL_QUERY = "reviews";
+export const FARM_REVIEW_FOCUS_QUERY = "focusReview";
+
+export function parseFarmReviewScrollQuery(
+  value: string | null | undefined,
+): boolean {
+  return parseSaleReviewQuery(value);
+}
+
+export function parseFarmReviewFocusId(
+  value: string | null | undefined,
+): string | null {
+  const id = String(value || "").trim();
+  return id || null;
+}
+
+export function farmReviewedNotificationReviewId(item: {
+  metadata?: { review_id?: string | null } | null;
+}): string | null {
+  const id =
+    typeof item.metadata?.review_id === "string"
+      ? item.metadata.review_id.trim()
+      : "";
+  return id || null;
+}
+
+/** Append scroll + optional focus params to a breeder profile href. */
+export function withFarmReviewNotificationParams(
+  href: string,
+  focusReviewId?: string | null,
+): string {
+  const trimmed = String(href || "").trim();
+  if (!trimmed) return trimmed;
+  const [path, query = ""] = trimmed.split("?");
+  const params = new URLSearchParams(query);
+  params.set(FARM_REVIEW_SCROLL_QUERY, "1");
+  const focus = String(focusReviewId || "").trim();
+  if (focus) params.set(FARM_REVIEW_FOCUS_QUERY, focus);
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
 }

@@ -323,7 +323,25 @@ test("farm reviewed notification opens breeder overview", () => {
       breeder_profile_id: "farm-9",
       post_id: "post-42",
     }),
-    "/app/breeders/farm-9",
+    "/app/breeders/farm-9?reviews=1",
+  );
+  assert.equal(
+    farmReviewedNotificationHref({
+      type: "farm_reviewed",
+      breeder_profile_id: "farm-9",
+      metadata: { review_id: "rev-42" },
+    }),
+    "/app/breeders/farm-9?reviews=1&focusReview=rev-42",
+  );
+  assert.equal(
+    farmReviewedNotificationHref({
+      type: "farm_reviewed",
+      metadata: {
+        cta_href: "/app/breeders/farm-9?from=account",
+        review_id: "rev-7",
+      },
+    }),
+    "/app/breeders/farm-9?from=account&reviews=1&focusReview=rev-7",
   );
   assert.equal(
     notificationInboxCta({ type: "farm_reviewed" }, CTA_FALLBACKS),

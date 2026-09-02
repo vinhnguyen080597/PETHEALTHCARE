@@ -4,8 +4,12 @@ import {
   canAddFarmReviewPhoto,
   computeFarmReviewPool,
   FARM_REVIEW_MAX_PHOTOS,
+  farmReviewedNotificationReviewId,
+  parseFarmReviewFocusId,
+  parseFarmReviewScrollQuery,
   parseSaleReviewQuery,
   validateFarmReviewInput,
+  withFarmReviewNotificationParams,
 } from "../src/lib/breederFarmReviews.ts";
 
 test("computeFarmReviewPool: users B/C bundles + user D sale x2 → 4.75", () => {
@@ -24,6 +28,20 @@ test("computeFarmReviewPool: users B/C bundles + user D sale x2 → 4.75", () =>
 test("parseSaleReviewQuery", () => {
   assert.equal(parseSaleReviewQuery("1"), true);
   assert.equal(parseSaleReviewQuery(null), false);
+});
+
+test("farm review notification query helpers", () => {
+  assert.equal(parseFarmReviewScrollQuery("true"), true);
+  assert.equal(parseFarmReviewFocusId(" rev-1 "), "rev-1");
+  assert.equal(farmReviewedNotificationReviewId({ metadata: { review_id: "r9" } }), "r9");
+  assert.equal(
+    withFarmReviewNotificationParams("/app/breeders/farm-9", "rev-1"),
+    "/app/breeders/farm-9?reviews=1&focusReview=rev-1",
+  );
+  assert.equal(
+    withFarmReviewNotificationParams("/app/breeders/farm-9?from=account"),
+    "/app/breeders/farm-9?from=account&reviews=1",
+  );
 });
 
 test("computeFarmReviewPool ignores pending reviews", () => {
