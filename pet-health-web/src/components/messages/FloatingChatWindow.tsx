@@ -1,25 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/i18n";
 import { brandUi } from "@/lib/brand";
 import {
   conversationListingTitle,
   conversationPeerName,
   formatMessageTime,
-  inboxPreviewFromMessage,
   isMineMessage,
+  isOptimisticMessageId,
   isPendingChatId,
   listingShareFromMessage,
   mergeMessageLists,
   MESSAGE_MAX_LEN,
   messageHasSendableContent,
-  MESSAGES_POLL_MS,
+  MESSAGES_POLL_ACTIVE_MS,
   CHAT_MESSAGE_ROW_CLASS,
   CHAT_TEXT_WRAP_CLASS,
   CHAT_THREAD_SCROLL_CLASS,
   chatBubbleMaxWidthClass,
-  normalizeMessageMedia,
   normalizeMessages,
   type MessageItem,
 } from "@/lib/messages";
@@ -28,9 +27,8 @@ import { ListingContextCard } from "@/components/messages/ListingContextCard";
 import { ChatComposer } from "@/components/messages/ChatComposer";
 import { ChatMessageMedia } from "@/components/messages/ChatMessageMedia";
 import { MessageThreadSkeleton } from "@/components/ui/Skeleton";
-import { uploadChatMediaFiles } from "@/lib/uploadChatMedia";
-import { DealSubmitError } from "@/lib/dealPhotoUpload";
 import { fetchWithSession } from "@/lib/fetchWithSession";
+import { sendChatMessage } from "@/lib/sendChatMessage";
 
 export function FloatingChatWindow() {
   const dock = useOptionalChatDock();
@@ -45,6 +43,27 @@ export function FloatingChatWindow() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const threadEndRef = useRef<HTMLDivElement | null>(null);
+
+  const refreshThread = useCallback(async () => {
+    if (!conversationId || pending || dock?.chatMinimized) return;
+    const userId = dock?.currentUserId ?? null;
+    try {
+      const res = await fetchWithSession(
+        `/api/messages/${encodeURIComponent(conversationId)}`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) return;
+      const json = await res.json().catch(() => ({ data: [] }));
+      setMessages((prev) =>
+        mergeMessageLists(prev, normalizeMessages(json.data), {
+          currentUserId: userId,
+        }),
+      );
+      dock?.markConversationRead(conversationId);
+    } catch {
+      // Ignore transient poll errors.
+    }
+  }, [conversationId, pending, dock?.chatMinimized, dock?.currentUserId, dock]);
 
   useEffect(() => {
     if (!conversationId || pending) {
@@ -87,33 +106,29 @@ export function FloatingChatWindow() {
   useEffect(() => {
     if (!conversationId || pending || dock?.chatMinimized) return;
     let cancelled = false;
-    const refresh = async () => {
+    const poll = async () => {
+      if (cancelled) return;
       if (typeof document !== "undefined" && document.visibilityState !== "visible") {
         return;
       }
-      try {
-        const res = await fetchWithSession(
-          `/api/messages/${encodeURIComponent(conversationId)}`,
-          { cache: "no-store" },
-        );
-        if (!res.ok) return;
-        const json = await res.json().catch(() => ({ data: [] }));
-        if (cancelled) return;
-        setMessages((prev) => mergeMessageLists(prev, normalizeMessages(json.data)));
-        dock?.markConversationRead(conversationId);
-      } catch {
-        // Ignore transient poll errors.
-      }
+      await refreshThread();
     };
+    void poll();
     const id = window.setInterval(() => {
-      void refresh();
-    }, MESSAGES_POLL_MS);
+      void poll();
+    }, MESSAGES_POLL_ACTIVE_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, pending, dock?.chatMinimized]);
+  }, [conversationId, pending, dock?.chatMinimized, refreshThread]);
 
   if (!dock || !conversationId) return null;
 
@@ -135,7 +150,7 @@ export function FloatingChatWindow() {
     : "";
 
   const send = async () => {
-    if (sending || pending) return;
+    if (sending || pending || !conversationId) return;
     const body = draft.trim().slice(0, MESSAGE_MAX_LEN);
     const pendingFiles = files;
     if (!messageHasSendableContent(body, pendingFiles.length)) return;
@@ -143,54 +158,28 @@ export function FloatingChatWindow() {
     setFiles([]);
     setSending(true);
     setSendError("");
-    try {
-      let mediaUrls: string[] = [];
-      if (pendingFiles.length) {
-        mediaUrls = await uploadChatMediaFiles(pendingFiles);
-      }
-      const res = await fetchWithSession(
-        `/api/messages/${encodeURIComponent(conversationId)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body, media_urls: mediaUrls }),
-        },
-      );
-      if (!res.ok) {
-        setDraft(body);
-        setFiles(pendingFiles);
-        setSendError(t(lang, "messages.sendFailed"));
-        return;
-      }
-      const data = await res.json().catch(() => ({}));
-      const msg: MessageItem = data.data || {
-        id: String(Date.now()),
-        body,
-        media_urls: mediaUrls,
-        sender_user_id: currentUserId || undefined,
-        created_at: new Date().toISOString(),
-      };
-      msg.media_urls = normalizeMessageMedia(msg.media_urls ?? mediaUrls);
-      setMessages((prev) => [...prev, msg]);
-      patchConversationPreview(conversationId, {
-        body: inboxPreviewFromMessage(body, msg.media_urls || mediaUrls),
-        at: msg.created_at || new Date().toISOString(),
-        senderId: currentUserId,
-      });
-    } catch (err) {
+    const result = await sendChatMessage({
+      conversationId,
+      draft: body,
+      files: pendingFiles,
+      currentUserId,
+      updateMessages: setMessages,
+      patchPreview: (preview) => patchConversationPreview(conversationId, preview),
+    });
+    if (!result.ok) {
       setDraft(body);
       setFiles(pendingFiles);
-      const code = err instanceof DealSubmitError ? err.code : "";
       setSendError(
-        err instanceof DealSubmitError
-          ? code === "PET_FEED_VIDEO_TOO_LARGE"
-            ? t(lang, "messages.videoTooLarge")
-            : t(lang, "messages.uploadFailed")
-          : t(lang, "messages.sendFailed"),
+        result.error.kind === "video_too_large"
+          ? t(lang, "messages.videoTooLarge")
+          : result.error.kind === "upload_failed"
+            ? t(lang, "messages.uploadFailed")
+            : t(lang, "messages.sendFailed"),
       );
-    } finally {
-      setSending(false);
+    } else {
+      void refreshThread();
     }
+    setSending(false);
   };
 
   if (chatMinimized) {
@@ -275,10 +264,11 @@ export function FloatingChatWindow() {
           const media = m.media_urls || [];
           const text = String(m.body || "").trim();
           const listingShare = listingShareFromMessage(m);
+          const optimistic = isOptimisticMessageId(m.id);
           return (
             <div
               key={m.id}
-              className={`flex flex-col gap-1 ${CHAT_MESSAGE_ROW_CLASS} ${mine ? "items-end" : "items-start"}`}
+              className={`flex flex-col gap-1 ${CHAT_MESSAGE_ROW_CLASS} ${mine ? "items-end" : "items-start"}${optimistic ? " opacity-70" : ""}`}
             >
               {listingShare ? (
                 <div className={`w-[min(100%,16.5rem)] ${CHAT_MESSAGE_ROW_CLASS}`}>

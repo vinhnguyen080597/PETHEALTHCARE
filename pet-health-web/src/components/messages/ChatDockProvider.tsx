@@ -14,6 +14,7 @@ import {
   countUnreadConversations,
   isPendingChatId,
   mergeConversationLists,
+  MESSAGES_POLL_ACTIVE_MS,
   MESSAGES_POLL_MS,
   MESSAGES_UNREAD_POLL_MS,
   normalizeConversations,
@@ -122,13 +123,11 @@ export function ChatDockProvider({
 
   const replaceChat = useCallback(
     (pendingId: string, conversation: MessageConversation) => {
-      setConversations(
-        (prev) =>
-          replacePendingChat(prev, pendingId, pendingId, conversation)
-            .conversations,
+      setConversations((prev) =>
+        replacePendingChat(prev, null, pendingId, conversation).conversations,
       );
       setActiveChatId((prev) =>
-        prev === String(pendingId || "").trim() ? conversation.id : prev,
+        replacePendingChat([], prev, pendingId, conversation).activeChatId,
       );
       setChatMinimized(false);
     },
@@ -254,7 +253,11 @@ export function ChatDockProvider({
     };
 
     void tick();
-    const intervalMs = inboxOpen || activeChatId ? MESSAGES_POLL_MS : MESSAGES_UNREAD_POLL_MS;
+    const intervalMs = activeChatId
+      ? MESSAGES_POLL_ACTIVE_MS
+      : inboxOpen
+        ? MESSAGES_POLL_MS
+        : MESSAGES_UNREAD_POLL_MS;
     const id = window.setInterval(() => {
       void tick();
     }, intervalMs);

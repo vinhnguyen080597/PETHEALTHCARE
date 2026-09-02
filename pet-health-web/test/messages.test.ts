@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   abortPendingChat,
   appendChatMediaFiles,
+  buildOptimisticMessage,
   chatMediaKindFromFile,
   CHAT_MEDIA_PREVIEW_PHOTO,
   CHAT_MEDIA_PREVIEW_VIDEO,
@@ -17,12 +18,14 @@ import {
   conversationPeerName,
   conversationPreview,
   countUnreadConversations,
+  createOptimisticMessageId,
   filterInboxConversations,
   formatInboxRelativeTime,
   formatInboxTime,
   formatMessageTime,
   INBOX_FILTER_UNREAD,
   inboxPreviewFromMessage,
+  isOptimisticMessageId,
   isPendingChatId,
   listingShareFromMessage,
   isChatVideoUrl,
@@ -31,6 +34,7 @@ import {
   mergeConversationLists,
   mergeMessageLists,
   messageHasSendableContent,
+  messageMatchesOptimistic,
   messagesPageHref,
   MESSAGES_PAGE_HREF,
   normalizeConversations,
@@ -40,6 +44,8 @@ import {
   optimisticChatConversation,
   pendingChatId,
   replacePendingChat,
+  removeMessageFromList,
+  replaceMessageInList,
   resolveConversationPostSummary,
   withConversationPeerLabel,
 } from "../src/lib/messages";
@@ -308,6 +314,29 @@ test("mergeMessageLists and mergeConversationLists prefer remote updates", () =>
   );
   assert.equal(mergedMsgs.find((m) => m.id === "m2")?.body, "remote");
 
+  const optimistic = buildOptimisticMessage({
+    id: createOptimisticMessageId(),
+    body: "hello",
+    senderUserId: "u1",
+  });
+  optimistic.created_at = "2026-01-01T00:03:00.000Z";
+  const deduped = mergeMessageLists(
+    [optimistic],
+    [
+      {
+        id: "m-real",
+        body: "hello",
+        sender_user_id: "u1",
+        created_at: "2026-01-01T00:03:05.000Z",
+      },
+    ],
+    { currentUserId: "u1" },
+  );
+  assert.deepEqual(
+    deduped.map((m) => m.id),
+    ["m-real"],
+  );
+
   const mergedInbox = mergeConversationLists(
     [{ id: "c1", has_unread: true, last_message_at: "2026-01-01T00:00:00.000Z" }],
     [
@@ -416,6 +445,31 @@ test("chat pane classes keep the dock from stretching horizontally", () => {
   assert.ok(CHAT_TEXT_WRAP_CLASS.includes("wrap-anywhere"));
   assert.equal(chatBubbleMaxWidthClass(true), "max-w-[min(82%,100%)]");
   assert.equal(chatBubbleMaxWidthClass(), "max-w-[min(80%,100%)]");
+});
+
+test("optimistic message helpers build, replace, and match server rows", () => {
+  const optimisticId = createOptimisticMessageId();
+  assert.equal(isOptimisticMessageId(optimisticId), true);
+  assert.equal(isOptimisticMessageId("m-real"), false);
+  const optimistic = buildOptimisticMessage({
+    id: optimisticId,
+    body: "Hi",
+    senderUserId: "u1",
+  });
+  assert.equal(optimistic.body, "Hi");
+  assert.equal(optimistic.sender_user_id, "u1");
+  const confirmed = {
+    id: "m-real",
+    body: "Hi",
+    sender_user_id: "u1",
+    created_at: optimistic.created_at,
+  };
+  assert.equal(messageMatchesOptimistic(optimistic, confirmed, "u1"), true);
+  assert.equal(messageMatchesOptimistic(optimistic, { ...confirmed, body: "Nope" }, "u1"), false);
+  const replaced = replaceMessageInList([optimistic], optimisticId, confirmed);
+  assert.deepEqual(replaced.map((m) => m.id), ["m-real"]);
+  const removed = removeMessageFromList([optimistic, confirmed], optimisticId);
+  assert.deepEqual(removed.map((m) => m.id), ["m-real"]);
 });
 
 test("optimistic chat opens with a pending id then swaps to the real thread", () => {

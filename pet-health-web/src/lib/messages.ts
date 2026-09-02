@@ -213,6 +213,89 @@ export function messageHasSendableContent(
   return Boolean(String(body || "").trim()) || mediaCount > 0;
 }
 
+export const OPTIMISTIC_MESSAGE_PREFIX = "optimistic:";
+
+let optimisticMessageNonce = 0;
+
+export function createOptimisticMessageId(): string {
+  optimisticMessageNonce += 1;
+  return `${OPTIMISTIC_MESSAGE_PREFIX}${Date.now()}-${optimisticMessageNonce}`;
+}
+
+export function isOptimisticMessageId(id: string | null | undefined): boolean {
+  return String(id || "").startsWith(OPTIMISTIC_MESSAGE_PREFIX);
+}
+
+export function buildOptimisticMessage(input: {
+  id: string;
+  body: string;
+  mediaUrls?: string[];
+  senderUserId?: string | null;
+}): MessageItem {
+  return {
+    id: input.id,
+    body: input.body,
+    media_urls: normalizeMessageMedia(input.mediaUrls || []),
+    sender_user_id: input.senderUserId || undefined,
+    created_at: new Date().toISOString(),
+  };
+}
+
+export function replaceMessageInList(
+  list: MessageItem[],
+  messageId: string,
+  next: MessageItem,
+): MessageItem[] {
+  const id = String(messageId || "").trim();
+  if (!id) return list;
+  const index = list.findIndex((message) => message.id === id);
+  if (index < 0) return [...list, next];
+  const copy = [...list];
+  copy[index] = next;
+  return copy;
+}
+
+export function removeMessageFromList(
+  list: MessageItem[],
+  messageId: string,
+): MessageItem[] {
+  const id = String(messageId || "").trim();
+  if (!id) return list;
+  return list.filter((message) => message.id !== id);
+}
+
+export function messageMatchesOptimistic(
+  optimistic: MessageItem,
+  remote: MessageItem,
+  currentUserId: string | null,
+): boolean {
+  if (!isOptimisticMessageId(optimistic.id)) return false;
+  if (!isMineMessage(optimistic, currentUserId)) return false;
+  if (!isMineMessage(remote, currentUserId)) return false;
+  const optimisticBody = String(optimistic.body || "").trim();
+  const remoteBody = String(remote.body || "").trim();
+  if (optimisticBody !== remoteBody) return false;
+  const optimisticMediaCount = (optimistic.media_urls || []).length;
+  const remoteMediaCount = (remote.media_urls || []).length;
+  if (optimisticMediaCount > 0 || remoteMediaCount > 0) {
+    if (optimisticMediaCount === 0 || remoteMediaCount === 0) return false;
+  }
+  const optimisticTs = Date.parse(optimistic.created_at || "");
+  const remoteTs = Date.parse(remote.created_at || "");
+  if (Number.isFinite(optimisticTs) && Number.isFinite(remoteTs)) {
+    return Math.abs(remoteTs - optimisticTs) < 120_000;
+  }
+  return true;
+}
+
+export function inboxPreviewFromDraft(body: string, files: File[]): string {
+  const text = String(body || "").trim();
+  if (text) return text.slice(0, 160);
+  if (!files.length) return "";
+  const hasVideo = files.some((file) => chatMediaKindFromFile(file) === "video");
+  return hasVideo ? CHAT_MEDIA_PREVIEW_VIDEO : CHAT_MEDIA_PREVIEW_PHOTO;
+}
+
 export function inboxPreviewFromMessage(
   body: string,
   mediaUrls: string[],
@@ -459,7 +542,10 @@ export function normalizeMessages(raw: unknown): MessageItem[] {
     }));
 }
 
-/** Poll interval while Messages page is open (near-realtime without websocket). */
+/** Poll interval while an active thread is open (dock or messages page). */
+export const MESSAGES_POLL_ACTIVE_MS = 2_500;
+
+/** Poll interval while inbox is open without an active thread. */
 export const MESSAGES_POLL_MS = 5_000;
 
 /** Inbox / chat badge poll (matches notification bell cadence). */
@@ -588,6 +674,7 @@ export function formatInboxRelativeTime(
 export function mergeMessageLists(
   local: MessageItem[],
   remote: MessageItem[],
+  options?: { currentUserId?: string | null },
 ): MessageItem[] {
   const byId = new Map<string, MessageItem>();
   for (const row of local) {
@@ -596,7 +683,18 @@ export function mergeMessageLists(
   for (const row of remote) {
     if (row?.id) byId.set(row.id, row);
   }
-  return [...byId.values()].sort((a, b) =>
+  let merged = [...byId.values()];
+  const currentUserId = options?.currentUserId ?? null;
+  if (currentUserId) {
+    const confirmed = merged.filter((row) => !isOptimisticMessageId(row.id));
+    merged = merged.filter((row) => {
+      if (!isOptimisticMessageId(row.id)) return true;
+      return !confirmed.some((remote) =>
+        messageMatchesOptimistic(row, remote, currentUserId),
+      );
+    });
+  }
+  return merged.sort((a, b) =>
     String(a.created_at || "").localeCompare(String(b.created_at || "")),
   );
 }
