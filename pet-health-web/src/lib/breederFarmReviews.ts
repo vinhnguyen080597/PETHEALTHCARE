@@ -366,3 +366,21 @@ export function withFarmReviewNotificationParams(
   const qs = params.toString();
   return qs ? `${path}?${qs}` : path;
 }
+
+/** Collapse long supplement threads on farm review cards. */
+export const FARM_REVIEW_SUPPLEMENTS_COLLAPSED_VISIBLE = 1;
+export const FARM_REVIEW_SUPPLEMENTS_TOGGLE_MIN = 2;
+
+export function farmReviewSupplementsCollapsible(count: number): boolean {
+  return count >= FARM_REVIEW_SUPPLEMENTS_TOGGLE_MIN;
+}
+
+export function farmReviewSupplementsToShow<T>(supplements: T[], expanded: boolean): T[] {
+  if (!farmReviewSupplementsCollapsible(supplements.length) || expanded) return supplements;
+  return supplements.slice(0, FARM_REVIEW_SUPPLEMENTS_COLLAPSED_VISIBLE);
+}
+
+export function farmReviewSupplementsHiddenCount(supplements: unknown[], expanded: boolean): number {
+  if (!farmReviewSupplementsCollapsible(supplements.length) || expanded) return 0;
+  return Math.max(0, supplements.length - FARM_REVIEW_SUPPLEMENTS_COLLAPSED_VISIBLE);
+}

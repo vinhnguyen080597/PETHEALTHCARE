@@ -19,6 +19,8 @@ import {
   type FarmDetailFrom,
   type FarmDetailTab,
 } from "@/lib/farmTabs";
+import { FarmReviewFromListingBadge } from "./FarmReviewFromListingBadge";
+import { FarmReviewSupplementsList } from "./FarmReviewSupplementsList";
 import {
   FARM_FACILITY_VIDEO_ASPECT,
   FARM_FACILITY_VIDEO_MAX_HEIGHT_PX,
@@ -1185,12 +1187,17 @@ export function FarmDetail({
                                 </div>
                               )}
                               <div className="min-w-0 flex-1 space-y-1.5">
-                                <p className="text-[13px] font-bold text-[#2B1E19]">
-                                  {farmReviewAuthorName(
-                                    thread.reviewer_display_name,
-                                    t(lang, "farm.review.reviewerFallback"),
-                                  )}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <p className="text-[13px] font-bold text-[#2B1E19]">
+                                    {farmReviewAuthorName(
+                                      thread.reviewer_display_name,
+                                      t(lang, "farm.review.reviewerFallback"),
+                                    )}
+                                  </p>
+                                  {isOwner && thread.kind === "sale" ? (
+                                    <FarmReviewFromListingBadge lang={lang} />
+                                  ) : null}
+                                </div>
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   <FarmReviewStars rating={thread.rating} />
                                   <span className="text-xs text-[#6E5A51]">
@@ -1222,42 +1229,7 @@ export function FarmDetail({
                               </div>
                             ) : null}
                             {thread.supplements?.length ? (
-                              <div className="space-y-2 border-l-2 border-[#F3E2C8] pl-2.5">
-                                {thread.supplements.map((sup) => (
-                                  <div key={sup.id} className="space-y-1">
-                                    <div className="flex flex-wrap items-center gap-1.5">
-                                      <p className="text-xs font-semibold text-[#6E5A51]">
-                                        {t(lang, "farm.review.supplement")}
-                                      </p>
-                                      <FarmReviewStars rating={sup.rating} className="text-xs" />
-                                      {sup.status === "pending" ? (
-                                        <span className="text-[10px] font-semibold text-amber-800">
-                                          · {t(lang, "farm.review.pendingBadge")}
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                    {sup.body ? (
-                                      <p className="text-xs leading-[18px] text-[#2B1E19]">{sup.body}</p>
-                                    ) : null}
-                                    {sup.photo_urls?.length ? (
-                                      <div className="flex gap-2 overflow-x-auto pb-1">
-                                        {sup.photo_urls.map((url) => (
-                                          <a
-                                            key={url}
-                                            href={url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="block h-16 w-16 shrink-0 overflow-hidden rounded-lg"
-                                          >
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={url} alt="" className="h-full w-full object-cover" />
-                                          </a>
-                                        ))}
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                ))}
-                              </div>
+                              <FarmReviewSupplementsList lang={lang} supplements={thread.supplements} />
                             ) : null}
                               </div>
                             </div>

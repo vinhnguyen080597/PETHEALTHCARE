@@ -646,7 +646,11 @@
       },
       "pendingSubmitted": "Your review was submitted and is pending admin approval before it appears publicly.",
       "pendingBadge": "Pending admin review",
-      "reviewerFallback": "Buyer"
+      "reviewerFallback": "Buyer",
+      "fromListingBadge": "Listing review",
+      "fromListingTooltip": "The breeder receives double review credit when a review comes from a completed listing.",
+      "showMoreSupplements": "View more",
+      "hideSupplements": "Show less"
     },
     "cta": {
       "message": "Message",

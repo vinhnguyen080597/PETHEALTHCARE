@@ -15,6 +15,8 @@ import { useTranslation } from 'react-i18next';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { PetFeedListingCard } from '../components/PetFeedListingCard';
+import { FarmReviewFromListingBadge } from '../components/FarmReviewFromListingBadge';
+import { FarmReviewSupplementsList } from '../components/FarmReviewSupplementsList';
 import { FarmReviewModal } from '../components/FarmReviewModal';
 import { FarmReviewSectionSkeleton } from '../components/FarmReviewSectionSkeleton';
 import { FarmReviewStars } from '../components/FarmReviewStars';
@@ -23,7 +25,7 @@ import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
 import { createBreederFarmReview, deleteWarrantyPolicy, getBreederFarmReviews, getMyDirectFarmReview } from '../api';
 import type { BreederProfile, PetFeedPost } from '../types';
-import { mapFarmReviewThreads, formatBreederReviewLabel, farmReviewAuthorLabel, type FarmReviewThreadPreview } from '../utils/farmReview';
+import { mapFarmReviewThreads, formatBreederReviewLabel, farmReviewAuthorLabel, isSaleFarmReviewKind, type FarmReviewThreadPreview } from '../utils/farmReview';
 import { initialsFromName } from '../utils/breederTrustLevel';
 import { breederCardReviewMetrics } from '../utils/breederDirectoryCard';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../assets/farmProfileAssets';
@@ -829,9 +831,14 @@ export function BreederDetailScreen({
                           </View>
                         )}
                         <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                          <Text style={{ fontWeight: '700', color: FARM_TEXT, fontSize: 13 }}>
-                            {farmReviewAuthorLabel(thread.reviewerDisplayName, t('farm.review.reviewerFallback'))}
-                          </Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                            <Text style={{ fontWeight: '700', color: FARM_TEXT, fontSize: 13 }}>
+                              {farmReviewAuthorLabel(thread.reviewerDisplayName, t('farm.review.reviewerFallback'))}
+                            </Text>
+                            {isOwnProfile && isSaleFarmReviewKind(thread.kind) ? (
+                              <FarmReviewFromListingBadge />
+                            ) : null}
+                          </View>
                           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
                             <FarmReviewStars rating={thread.rating} />
                             <Text style={{ fontSize: 12, color: FARM_MUTED }}>({thread.rating}/5)</Text>
@@ -856,45 +863,9 @@ export function BreederDetailScreen({
                           ))}
                         </ScrollView>
                       ) : null}
-                      {thread.supplements.map((supplement) => (
-                        <View
-                          key={supplement.id}
-                          style={{
-                            marginLeft: 12,
-                            gap: 4,
-                            borderLeftWidth: 2,
-                            borderLeftColor: FARM_BORDER,
-                            paddingLeft: 10,
-                          }}
-                        >
-                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-                            <Text style={{ fontWeight: '600', color: FARM_MUTED, fontSize: 12 }}>
-                              {t('farm.review.supplement')}
-                            </Text>
-                            <FarmReviewStars rating={supplement.rating} size={12} />
-                            {supplement.status === 'pending' ? (
-                              <Text style={{ fontSize: 10, fontWeight: '600', color: '#B45309' }}>
-                                · {t('farm.review.pendingBadge')}
-                              </Text>
-                            ) : null}
-                          </View>
-                          {supplement.body ? (
-                            <Text style={{ fontSize: 12, color: FARM_TEXT, lineHeight: 18 }}>{supplement.body}</Text>
-                          ) : null}
-                          {supplement.photoUrls.length > 0 ? (
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                              {supplement.photoUrls.map((url) => (
-                                <Image
-                                  key={url}
-                                  source={{ uri: url }}
-                                  style={{ width: 64, height: 64, borderRadius: 8 }}
-                                  contentFit="cover"
-                                />
-                              ))}
-                            </ScrollView>
-                          ) : null}
-                        </View>
-                      ))}
+                      {thread.supplements.length > 0 ? (
+                        <FarmReviewSupplementsList supplements={thread.supplements} />
+                      ) : null}
                         </View>
                       </View>
                     </View>

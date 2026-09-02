@@ -392,6 +392,11 @@ const en = {
   "farm.review.pendingSubmitted": "Your review was submitted and is pending admin approval before it appears publicly.",
   "farm.review.pendingBadge": "Pending admin review",
   "farm.review.reviewerFallback": "Buyer",
+  "farm.review.fromListingBadge": "Listing review",
+  "farm.review.fromListingTooltip":
+    "The breeder receives double review credit when a review comes from a completed listing.",
+  "farm.review.showMoreSupplements": "View more",
+  "farm.review.hideSupplements": "Show less",
   "farm.facility.about": "About the kennel",
   "farm.facility.env": "Care environment",
   "farm.facility.scale": "Scale",

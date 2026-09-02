@@ -646,7 +646,11 @@
       },
       "pendingSubmitted": "Đánh giá đã được gửi và đang chờ admin duyệt trước khi hiển thị công khai.",
       "pendingBadge": "Chờ admin duyệt",
-      "reviewerFallback": "Khách"
+      "reviewerFallback": "Khách",
+      "fromListingBadge": "Đánh giá từ bài đăng",
+      "fromListingTooltip": "Breeder sẽ nhận x2 đánh giá nếu nhận được đánh giá từ bài đăng đã hoàn thành",
+      "showMoreSupplements": "Xem thêm",
+      "hideSupplements": "Ẩn bớt"
     },
     "cta": {
       "message": "Nhắn tin",

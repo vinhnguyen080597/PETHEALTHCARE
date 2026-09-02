@@ -125,8 +125,14 @@ export function parseSaleReviewFlag(value: string | null | undefined): boolean {
   return v === '1' || v === 'true' || v === 'yes';
 }
 
+export function isSaleFarmReviewKind(kind: unknown): boolean {
+  return String(kind || '').trim().toLowerCase() === 'sale';
+}
+
 export type FarmReviewThreadPreview = {
   id: string;
+  kind?: 'primary' | 'supplement' | 'sale';
+  postId?: string | null;
   rating: number;
   body: string;
   photoUrls: string[];
@@ -172,6 +178,8 @@ export function mapFarmReviewThreads(threads: unknown): FarmReviewThreadPreview[
   for (const row of threads) {
     const primary = row as {
       id?: string;
+      kind?: string;
+      post_id?: string | null;
       rating?: number;
       body?: string;
       status?: string;
@@ -214,6 +222,8 @@ export function mapFarmReviewThreads(threads: unknown): FarmReviewThreadPreview[
     if (!rating) continue;
     result.push({
       id,
+      kind: String(primary.kind || 'primary').trim().toLowerCase() as FarmReviewThreadPreview['kind'],
+      postId: primary.post_id ?? null,
       rating,
       body: String(primary.body || '').trim(),
       photoUrls: normalizeFarmReviewPhotoUrls(primary.photo_urls ?? primary.photoUrls),
@@ -250,4 +260,22 @@ export function farmReviewedNotificationReviewId(item: {
   const id =
     typeof item.metadata?.review_id === 'string' ? item.metadata.review_id.trim() : '';
   return id || null;
+}
+
+/** Collapse long supplement threads on farm review cards. */
+export const FARM_REVIEW_SUPPLEMENTS_COLLAPSED_VISIBLE = 1;
+export const FARM_REVIEW_SUPPLEMENTS_TOGGLE_MIN = 2;
+
+export function farmReviewSupplementsCollapsible(count: number): boolean {
+  return count >= FARM_REVIEW_SUPPLEMENTS_TOGGLE_MIN;
+}
+
+export function farmReviewSupplementsToShow<T>(supplements: T[], expanded: boolean): T[] {
+  if (!farmReviewSupplementsCollapsible(supplements.length) || expanded) return supplements;
+  return supplements.slice(0, FARM_REVIEW_SUPPLEMENTS_COLLAPSED_VISIBLE);
+}
+
+export function farmReviewSupplementsHiddenCount(supplements: unknown[], expanded: boolean): number {
+  if (!farmReviewSupplementsCollapsible(supplements.length) || expanded) return 0;
+  return Math.max(0, supplements.length - FARM_REVIEW_SUPPLEMENTS_COLLAPSED_VISIBLE);
 }

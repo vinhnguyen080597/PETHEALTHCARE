@@ -396,6 +396,11 @@ const vi: Record<EnKey, string> = {
   "farm.review.pendingSubmitted": "Đánh giá đã được gửi và đang chờ admin duyệt trước khi hiển thị công khai.",
   "farm.review.pendingBadge": "Chờ admin duyệt",
   "farm.review.reviewerFallback": "Khách",
+  "farm.review.fromListingBadge": "Đánh giá từ bài đăng",
+  "farm.review.fromListingTooltip":
+    "Breeder sẽ nhận x2 đánh giá nếu nhận được đánh giá từ bài đăng đã hoàn thành",
+  "farm.review.showMoreSupplements": "Xem thêm",
+  "farm.review.hideSupplements": "Ẩn bớt",
   "farm.facility.about": "Giới thiệu trại",
   "farm.facility.env": "Môi trường chăm sóc",
   "farm.facility.scale": "Quy mô",

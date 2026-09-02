@@ -6,6 +6,10 @@ import {
   farmReviewedBreederProfileId,
   farmReviewedNotificationReviewId,
   FARM_REVIEW_MAX_PHOTOS,
+  farmReviewSupplementsCollapsible,
+  farmReviewSupplementsHiddenCount,
+  farmReviewSupplementsToShow,
+  isSaleFarmReviewKind,
   mapFarmReviewThreads,
   normalizeFarmReviewPhotoUrls,
   parseSaleReviewFlag,
@@ -104,6 +108,35 @@ test('mapFarmReviewThreads drops pending primary and supplement rows', () => {
   assert.equal(threads[0]?.id, 'r1');
   assert.equal(threads[0]?.supplements.length, 1);
   assert.equal(threads[0]?.supplements[0]?.id, 's1');
+});
+
+test('mapFarmReviewThreads preserves sale kind and post id', () => {
+  const threads = mapFarmReviewThreads([
+    {
+      id: 'sale-1',
+      kind: 'sale',
+      post_id: 'post-99',
+      rating: 5,
+      body: 'Nice',
+      status: 'approved',
+      reviewer_display_name: 'Buyer',
+      supplements: [],
+    },
+  ]);
+  assert.equal(threads.length, 1);
+  assert.equal(threads[0]?.kind, 'sale');
+  assert.equal(threads[0]?.postId, 'post-99');
+  assert.equal(isSaleFarmReviewKind(threads[0]?.kind), true);
+});
+
+test('farmReviewSupplements collapse helpers', () => {
+  const supplements = [{ id: '1' }, { id: '2' }, { id: '3' }];
+  assert.equal(farmReviewSupplementsCollapsible(1), false);
+  assert.equal(farmReviewSupplementsCollapsible(2), true);
+  assert.deepEqual(farmReviewSupplementsToShow(supplements, false), [{ id: '1' }]);
+  assert.deepEqual(farmReviewSupplementsToShow(supplements, true), supplements);
+  assert.equal(farmReviewSupplementsHiddenCount(supplements, false), 2);
+  assert.equal(farmReviewSupplementsHiddenCount(supplements, true), 0);
 });
 
 test('farmReviewAuthorLabel and star count helpers', () => {
