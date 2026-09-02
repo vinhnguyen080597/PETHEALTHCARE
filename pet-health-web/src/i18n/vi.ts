@@ -1642,6 +1642,7 @@ const vi: Record<EnKey, string> = {
   "common.error": "Đã xảy ra lỗi",
   "common.ok": "OK",
   "common.cancel": "Huỷ",
+  "common.back": "Quay lại",
   "common.save": "Lưu",
 };
 

@@ -445,6 +445,9 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     personalityVI: personality,
     vaccineStatus: post.vaccine_status || "",
     dewormingStatus: post.deworming_status || "",
+    paperwork: Array.isArray(post.paperwork)
+      ? post.paperwork.filter((item) => Boolean(String(item || "").trim()))
+      : [],
     mediaUrl: media[0] || PLACEHOLDER_MEDIA,
     mediaUrls: media.length ? media : [PLACEHOLDER_MEDIA],
     videoUrl: post.video_url?.trim() || null,

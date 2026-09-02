@@ -1640,6 +1640,7 @@ const en = {
   "common.error": "Something went wrong",
   "common.ok": "OK",
   "common.cancel": "Cancel",
+  "common.back": "Back",
   "common.save": "Save",
 } as const;
 

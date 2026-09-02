@@ -229,7 +229,7 @@ export function mapFarmReviewThreads(
                   : null,
             } satisfies BreederFarmReview;
           })
-          .filter((item): item is BreederFarmReview => item != null)
+          .filter((item) => item != null)
       : [];
 
     const status = normalizeFarmReviewStatus(primary.status);

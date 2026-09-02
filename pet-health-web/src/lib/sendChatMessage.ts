@@ -17,7 +17,7 @@ import { uploadChatMediaFiles } from "./uploadChatMedia";
 export type SendChatMessageError =
   | { kind: "send_failed" }
   | { kind: "upload_failed"; code?: string }
-  | { kind: "video_too_large" };
+  | { kind: "video_too_large"; code?: string };
 
 export type SendChatMessageResult =
   | { ok: true; message: MessageItem }

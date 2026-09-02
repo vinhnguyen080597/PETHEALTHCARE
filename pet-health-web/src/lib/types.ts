@@ -154,6 +154,7 @@ export interface Listing {
   personalityVI: string[];
   vaccineStatus: string;
   dewormingStatus: string;
+  paperwork?: string[];
   mediaUrl: string;
   mediaUrls: string[];
   /** Short listing video when provided. */
