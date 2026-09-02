@@ -3,6 +3,7 @@
     "stay": "Stay",
     "signOut": "Sign out",
     "cancel": "Cancel",
+    "back": "Back",
     "delete": "Delete",
     "continue": "Continue",
     "done": "Done",
@@ -250,8 +251,6 @@
       "escrow": "Safe deposit",
       "chat": "Chat now",
       "onlineTrust": "Verified farm",
-      "depositHold": "On deposit hold",
-      "reserved": "Reserved",
       "pendingReview": "Pending review",
       "sold": "Sold",
       "cancelled": "Cancelled"
@@ -2706,12 +2705,20 @@
     "statusModal": {
       "open": "Update status",
       "title": "Update listing status",
+      "subtitle": "Choose a new status for your listing",
+      "saleChannelHint": "Pick where the sale happened to finish updating",
+      "currentStatus": "Current: {{status}}",
       "saleChannel": "Where was the pet sold?",
       "onPlatform": "On PetCare marketplace",
       "offPlatform": "Off platform",
       "buyerEmailOptional": "Buyer email (optional, for review invite)",
+      "buyerEmailPlaceholder": "buyer@email.com",
       "save": "Save",
+      "send": "Send",
+      "update": "Update",
       "saving": "Saving…",
+      "sending": "Sending…",
+      "updating": "Updating…",
       "failed": "Could not update status."
     }
   }

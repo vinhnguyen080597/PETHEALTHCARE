@@ -16,7 +16,13 @@ const SITE_PATH_PREFIX = (() => {
 export type PetFeedDeepLink = {
   type: 'pet-feed-post';
   postId: string;
+  saleReview?: boolean;
 };
+
+function parseSaleReviewQuery(value: string | null | undefined): boolean {
+  const v = String(value ?? '').trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
 
 function normalizePostId(value: string | null | undefined) {
   const id = String(value ?? '').trim();
@@ -76,14 +82,25 @@ export function parsePetFeedDeepLink(url: string | null | undefined): PetFeedDee
       const postId = normalizePostId(fromPath)
         || normalizePostId(params.get('id'))
         || normalizePostId(params.get('petFeedPost'));
-      return postId ? { type: 'pet-feed-post', postId } : null;
+      if (!postId) return null;
+      const saleReview = parseSaleReviewQuery(params.get('saleReview'));
+      return saleReview ? { type: 'pet-feed-post', postId, saleReview: true } : { type: 'pet-feed-post', postId };
     }
 
     const absolute = new URL(trimmed);
+    const saleReview = parseSaleReviewQuery(absolute.searchParams.get('saleReview'));
     const fromPath = postIdFromPathname(absolute.pathname);
-    if (fromPath) return { type: 'pet-feed-post', postId: fromPath };
+    if (fromPath) {
+      return saleReview
+        ? { type: 'pet-feed-post', postId: fromPath, saleReview: true }
+        : { type: 'pet-feed-post', postId: fromPath };
+    }
     const fromQuery = normalizePostId(absolute.searchParams.get('id') || absolute.searchParams.get('petFeedPost'));
-    if (fromQuery) return { type: 'pet-feed-post', postId: fromQuery };
+    if (fromQuery) {
+      return saleReview
+        ? { type: 'pet-feed-post', postId: fromQuery, saleReview: true }
+        : { type: 'pet-feed-post', postId: fromQuery };
+    }
   } catch {
     return null;
   }

@@ -421,7 +421,6 @@ function AppContent() {
                 focusPostId={app.screen === 'pet-feed' ? app.petFeedFocusPostId : null}
                 onFocusPostHandled={app.clearPetFeedFocusPostId}
                 enabledTabs={app.petFeedEnabledTabs}
-                marketplaceEscrowEnabled={app.isFeatureEnabled('marketplace_escrow')}
               />
               </View>
             ) : null}

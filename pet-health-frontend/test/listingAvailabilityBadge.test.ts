@@ -4,7 +4,27 @@ import {
   canShowListingStatusUpdate,
   listingAvailabilityBadgeKey,
   listingAvailabilityBadgeLabelKey,
+  listingOverlayStatusLabelKey,
 } from '../src/utils/listingAvailabilityBadge.ts';
+
+test('listingOverlayStatusLabelKey maps availability statuses to top-right labels', () => {
+  assert.equal(
+    listingOverlayStatusLabelKey({ status: 'published', isSold: false, isCancelled: false }),
+    'listing.availability.available',
+  );
+  assert.equal(
+    listingOverlayStatusLabelKey({ status: 'deposit_hold', isSold: false, isCancelled: false }),
+    'listing.availability.depositHold',
+  );
+  assert.equal(
+    listingOverlayStatusLabelKey({ status: 'sold', isSold: true, isCancelled: false }),
+    'petFeed.card.sold',
+  );
+  assert.equal(
+    listingOverlayStatusLabelKey({ status: 'published', isSold: false, isCancelled: true }),
+    null,
+  );
+});
 
 test('listingAvailabilityBadgeKey maps published and deposit_hold', () => {
   assert.equal(listingAvailabilityBadgeKey('published'), 'available');

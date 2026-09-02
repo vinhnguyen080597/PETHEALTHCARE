@@ -52,6 +52,20 @@ test('parses legacy query deep link', () => {
   );
 });
 
+test('parses saleReview query on https post detail link', () => {
+  assert.deepEqual(
+    parsePetFeedDeepLink('https://pet-marketplace.org/app/pet-feed/posts/post-42?saleReview=1'),
+    { type: 'pet-feed-post', postId: 'post-42', saleReview: true },
+  );
+});
+
+test('parses saleReview query on custom scheme link', () => {
+  assert.deepEqual(
+    parsePetFeedDeepLink('pethealthcare://pet-feed/posts/post-42?saleReview=1'),
+    { type: 'pet-feed-post', postId: 'post-42', saleReview: true },
+  );
+});
+
 test('rejects invalid post ids', () => {
   assert.equal(parsePetFeedDeepLink('pethealthcare://pet-feed/posts/../evil'), null);
 });

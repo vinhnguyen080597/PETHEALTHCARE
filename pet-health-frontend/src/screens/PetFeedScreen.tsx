@@ -109,7 +109,6 @@ type PetFeedScreenProps = {
   focusPostId?: string | null;
   onFocusPostHandled?: () => void;
   enabledTabs?: { news: boolean; feed: boolean; breeders: boolean };
-  marketplaceEscrowEnabled?: boolean;
 };
 
 function searchableText(post: PetFeedPost) {
@@ -219,7 +218,6 @@ export function PetFeedScreen({
   focusPostId = null,
   onFocusPostHandled,
   enabledTabs = { news: true, feed: true, breeders: true },
-  marketplaceEscrowEnabled = false,
 }: PetFeedScreenProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -506,7 +504,6 @@ export function PetFeedScreen({
             onEditPost={onEditPost}
             currentUserId={currentUserId}
             showReport={false}
-            showEscrowUi={marketplaceEscrowEnabled}
             onPress={(post) => onOpenPostDetail(post.id)}
           />
         </View>

@@ -15,6 +15,7 @@ import {
 } from '../utils/marketplaceListingCard';
 import { buildPetFeedDetailSpecs } from '../utils/petFeedDetailSpecs';
 import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
+import { ListingMediaOverlayBadges } from './ListingMediaOverlayBadges';
 
 type MediaItem =
   | { type: 'image'; uri: string }
@@ -147,6 +148,7 @@ export function PetFeedPostDetailBody({
             <Ionicons name="paw-outline" size={48} color={BRAND.btnPrimary} />
           </View>
         )}
+        <ListingMediaOverlayBadges post={post} />
         {mediaItems.length > 0 ? (
           <View className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1">
             <Text className="text-xs font-semibold text-white">

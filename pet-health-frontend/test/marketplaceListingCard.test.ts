@@ -116,7 +116,7 @@ test('listingBreederFooterMetrics formats rating and trust score for card footer
 test('pet feed card i18n has EN/VI parity', async () => {
   const en = (await import('../src/i18n/locales/en.json', { with: { type: 'json' } })).default;
   const vi = (await import('../src/i18n/locales/vi.json', { with: { type: 'json' } })).default;
-  for (const key of ['saves', 'new', 'video', 'warranty', 'escrow', 'chat', 'reserved', 'depositHold'] as const) {
+  for (const key of ['saves', 'new', 'video', 'warranty', 'escrow', 'chat'] as const) {
     assert.ok(en.petFeed.card[key], `missing EN petFeed.card.${key}`);
     assert.ok(vi.petFeed.card[key], `missing VI petFeed.card.${key}`);
   }

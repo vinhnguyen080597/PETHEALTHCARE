@@ -3,6 +3,7 @@
     "stay": "Ở lại",
     "signOut": "Đăng xuất",
     "cancel": "Hủy",
+    "back": "Quay lại",
     "delete": "Xóa",
     "continue": "Tiếp tục",
     "done": "Xong",
@@ -250,8 +251,6 @@
       "escrow": "Giữ cọc an toàn",
       "chat": "Chat ngay",
       "onlineTrust": "Trại đã xác minh",
-      "depositHold": "Đang giữ cọc",
-      "reserved": "Đã giữ chỗ",
       "pendingReview": "Chờ admin duyệt",
       "sold": "Đã bán",
       "cancelled": "Đã hủy"
@@ -2703,12 +2702,20 @@
     "statusModal": {
       "open": "Cập nhật trạng thái",
       "title": "Cập nhật trạng thái bài đăng",
+      "subtitle": "Chọn trạng thái mới cho bài đăng của bạn",
+      "saleChannelHint": "Chọn kênh bán để hoàn tất cập nhật",
+      "currentStatus": "Hiện tại: {{status}}",
       "saleChannel": "Bán trong hay ngoài sàn?",
       "onPlatform": "Trong sàn PetCare",
       "offPlatform": "Ngoài sàn",
       "buyerEmailOptional": "Email Sen (tuỳ chọn, để mời đánh giá)",
+      "buyerEmailPlaceholder": "sen@email.com",
       "save": "Lưu",
+      "send": "Gửi",
+      "update": "Cập nhật",
       "saving": "Đang lưu…",
+      "sending": "Đang gửi…",
+      "updating": "Đang cập nhật…",
       "failed": "Không cập nhật được trạng thái."
     }
   }

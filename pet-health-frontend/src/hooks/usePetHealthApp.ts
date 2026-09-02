@@ -2352,7 +2352,7 @@ export function usePetHealthApp() {
         return;
       }
       pendingPetFeedDeepLinkRef.current = null;
-      openPetFeedPostDetail(link.postId);
+      openPetFeedPostDetail(link.postId, { saleReview: link.saleReview });
     });
   }, []);
 
@@ -2361,7 +2361,7 @@ export function usePetHealthApp() {
     const pending = pendingPetFeedDeepLinkRef.current;
     if (!pending?.postId) return;
     pendingPetFeedDeepLinkRef.current = null;
-    openPetFeedPostDetail(pending.postId);
+    openPetFeedPostDetail(pending.postId, { saleReview: pending.saleReview });
   }, [token, sessionBootstrapping]);
 
   function closePetFeedPostDetail() {

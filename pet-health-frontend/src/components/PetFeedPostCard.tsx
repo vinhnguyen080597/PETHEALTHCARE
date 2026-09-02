@@ -42,7 +42,6 @@ type PetFeedPostCardProps = {
   /** Detail is still fetching the full media set — show strip placeholders from media_count. */
   mediaLoading?: boolean;
   onPress?: (post: PetFeedPost) => void;
-  showEscrowUi?: boolean;
   testID?: string;
 };
 
@@ -255,7 +254,6 @@ function PetFeedPostCardComponent({
   showFavorite = true,
   showContact = true,
   showReport = true,
-  showEscrowUi = false,
   variant = 'full',
   autoPlayVideo = false,
   mediaLoading = false,
@@ -349,7 +347,6 @@ function PetFeedPostCardComponent({
           currentUserId={currentUserId}
           showFavorite={showFavorite}
           showContact={showContact}
-          showEscrowUi={showEscrowUi}
           onPress={onPress}
           testID={testID}
         />

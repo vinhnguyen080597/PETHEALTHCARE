@@ -16,6 +16,8 @@ export function resolvePetFeedPostDetailView(
       ...detailPost,
       is_favorited: listPost.is_favorited,
       favorite_count: listPost.favorite_count ?? detailPost.favorite_count,
+      status: listPost.status ?? detailPost.status,
+      metadata: listPost.metadata ?? detailPost.metadata,
     };
   }
   return listPost;

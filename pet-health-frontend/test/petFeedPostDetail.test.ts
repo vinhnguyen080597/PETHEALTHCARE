@@ -57,6 +57,15 @@ test('uses detail post and overlays is_favorited from list', () => {
   assert.equal(view.description, 'full description');
 });
 
+test('overlays listing status from list when detail is stale', () => {
+  const listPost = post({ status: 'deposit_hold', metadata: { sale_channel: 'on_platform' } });
+  const detailPost = post({ status: 'published', metadata: {} });
+  const view = resolvePetFeedPostDetailView('post-1', listPost, detailPost);
+  assert.ok(view);
+  assert.equal(view.status, 'deposit_hold');
+  assert.deepEqual(view.metadata, { sale_channel: 'on_platform' });
+});
+
 test('uses detail post alone when list row is missing', () => {
   const detailPost = post({ media_urls: ['a', 'b'] });
   assert.equal(resolvePetFeedPostDetailView('post-1', null, detailPost), detailPost);

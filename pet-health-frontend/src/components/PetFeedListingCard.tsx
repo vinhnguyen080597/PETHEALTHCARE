@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { memo, type ReactNode } from 'react';
+import { memo } from 'react';
 import { Pressable, Text, View, type GestureResponderEvent } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { BRAND } from '../theme/brand';
@@ -10,29 +10,13 @@ import { computeBreederTrust } from '../utils/breederTrust';
 import { farmImageSource, resolveFarmAvatarUrl } from '../utils/farmProfileDisplay';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
-  listingAvailabilityBadgeKey,
-  listingAvailabilityBadgeLabelKey,
-} from '../utils/listingAvailabilityBadge';
-import {
-  fillTemplate,
-  listingAvailability,
   isOwnListingPost,
   LISTING_CARD_IMAGE_HEIGHT,
   listingBreederFooterMetrics,
   listingCardShowsEditAction,
-  listingHotBadges,
-  formatListingCardPostedDate,
-  listingMetadataMarksCancelled,
-  listingMetadataMarksSold,
   listingPreviewImages,
-  listingSpeciesEmoji,
-  type ListingHotBadge,
 } from '../utils/marketplaceListingCard';
-
-const LISTING_POSTED_DATE_PILL = {
-  backgroundColor: 'rgba(51,65,85,0.88)',
-  color: 'rgba(248,250,252,0.95)',
-} as const;
+import { ListingMediaOverlayBadges } from './ListingMediaOverlayBadges';
 
 type PetFeedListingCardProps = {
   post: PetFeedPost;
@@ -42,56 +26,9 @@ type PetFeedListingCardProps = {
   currentUserId?: string | null;
   showFavorite?: boolean;
   showContact?: boolean;
-  showEscrowUi?: boolean;
   onPress?: (post: PetFeedPost) => void;
   testID?: string;
 };
-
-function OverlayPill({
-  children,
-  style,
-}: {
-  children: ReactNode;
-  style?: { backgroundColor: string; color?: string; borderColor?: string };
-}) {
-  const textColor = style?.color ?? BRAND.textPrimary;
-  return (
-    <View
-      className="self-start rounded-full px-2.5 py-1"
-      style={{
-        backgroundColor: style?.backgroundColor ?? 'rgba(255,255,255,0.95)',
-        borderWidth: style?.borderColor ? 1 : 0,
-        borderColor: style?.borderColor,
-      }}
-    >
-      {typeof children === 'string' ? (
-        <Text className="text-[10px] font-semibold" style={{ color: textColor }}>
-          {children}
-        </Text>
-      ) : (
-        children
-      )}
-    </View>
-  );
-}
-
-function HotBadge({ badge, t }: { badge: ListingHotBadge; t: (key: string, opts?: object) => string }) {
-  if (badge.kind === 'saves') {
-    return (
-      <OverlayPill style={{ backgroundColor: 'rgba(234,88,12,0.95)', color: BRAND.textInverse }}>
-        {`🔥 ${fillTemplate(t('petFeed.card.saves'), badge.count)}`}
-      </OverlayPill>
-    );
-  }
-  if (badge.kind === 'new') {
-    return (
-      <OverlayPill style={{ backgroundColor: 'rgba(251,191,36,0.95)', color: '#78350F' }}>
-        {`✨ ${t('petFeed.card.new')}`}
-      </OverlayPill>
-    );
-  }
-  return null;
-}
 
 function PetFeedListingCardComponent({
   post,
@@ -101,7 +38,6 @@ function PetFeedListingCardComponent({
   currentUserId = null,
   showFavorite = true,
   showContact = true,
-  showEscrowUi: _showEscrowUi = false,
   onPress,
   testID,
 }: PetFeedListingCardProps) {
@@ -113,20 +49,8 @@ function PetFeedListingCardComponent({
   const canShowEdit = listingCardShowsEditAction(isOwnPost, Boolean(onEditPost));
   const showActions = canShowFavorite || canShowContact || canShowEdit;
 
-  const speciesKey = `breederProfile.speciesOptions.${post.species.trim().toLowerCase()}`;
-  const speciesTranslated = post.species ? t(speciesKey) : '';
-  const speciesLabel = speciesTranslated === speciesKey ? post.species : speciesTranslated;
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
   const previewImage = listingPreviewImages(post)[0] ?? null;
-  const hotBadges = listingHotBadges(post);
-  const postedDateLabel = formatListingCardPostedDate(post.created_at, i18n.language);
-  const meta = post.metadata ?? {};
-  const isCancelled = post.status === 'cancelled' || listingMetadataMarksCancelled(meta);
-  const isSold = post.status === 'sold' || listingMetadataMarksSold(meta);
-  const availability = listingAvailability(post);
-  const availabilityBadgeKey = listingAvailabilityBadgeLabelKey(
-    listingAvailabilityBadgeKey(post.status),
-  );
   const trustScore = breeder ? computeBreederTrust(breeder, [post]).score : 0;
   const breederFooterMetrics = listingBreederFooterMetrics(post, trustScore);
   const breederAvatarUrl = breeder ? resolveFarmAvatarUrl(breeder) : null;
@@ -149,51 +73,7 @@ function PetFeedListingCardComponent({
             <Ionicons name="paw-outline" size={42} color={BRAND.btnPrimary} />
           </View>
         )}
-        {availabilityBadgeKey ? (
-          <View className="absolute right-3 top-3">
-            <OverlayPill style={{ backgroundColor: 'rgba(217,119,6,0.95)', color: BRAND.textInverse }}>
-              {t(availabilityBadgeKey)}
-            </OverlayPill>
-          </View>
-        ) : null}
-        <View className="absolute left-3 top-3 max-w-[75%] gap-1.5">
-          <OverlayPill style={{ borderColor: `${BRAND.borderBrand}CC` }}>
-            {`${listingSpeciesEmoji(post.species)} ${speciesLabel}`}
-          </OverlayPill>
-          {hotBadges.map((badge) => (
-            <HotBadge key={badge.kind} badge={badge} t={t} />
-          ))}
-          {availability === 'deposit_hold' ? (
-            <OverlayPill style={{ backgroundColor: 'rgba(245,158,11,0.95)', color: BRAND.textInverse }}>
-              {_showEscrowUi ? t('petFeed.card.depositHold') : t('petFeed.card.reserved')}
-            </OverlayPill>
-          ) : null}
-          {post.status === 'pending_review' ? (
-            <OverlayPill style={{ backgroundColor: 'rgba(245,158,11,0.95)', color: BRAND.textInverse }}>
-              {t('petFeed.card.pendingReview')}
-            </OverlayPill>
-          ) : null}
-          {isSold && !isCancelled ? (
-            <OverlayPill style={{ backgroundColor: 'rgba(15,23,42,0.85)', color: BRAND.textInverse }}>
-              {t('petFeed.card.sold')}
-            </OverlayPill>
-          ) : null}
-          {isCancelled ? (
-            <OverlayPill style={{ backgroundColor: 'rgba(190,18,60,0.9)', color: BRAND.textInverse }}>
-              {t('petFeed.card.cancelled')}
-            </OverlayPill>
-          ) : null}
-          {postedDateLabel ? (
-            <OverlayPill style={LISTING_POSTED_DATE_PILL}>
-              <View className="flex-row items-center gap-1">
-                <Ionicons name="calendar-outline" size={11} color={LISTING_POSTED_DATE_PILL.color} />
-                <Text className="text-[10px] font-semibold" style={{ color: LISTING_POSTED_DATE_PILL.color }}>
-                  {postedDateLabel}
-                </Text>
-              </View>
-            </OverlayPill>
-          ) : null}
-        </View>
+        <ListingMediaOverlayBadges post={post} />
       </View>
 
       <View className="p-4">

@@ -168,9 +168,18 @@ export function filterApprovedFarmReviewThreads<
 
 export function mapFarmReviewThreads(threads: unknown): FarmReviewThreadPreview[] {
   if (!Array.isArray(threads)) return [];
-  return threads
-    .map((row) => {
-      const primary = row as {
+  const result: FarmReviewThreadPreview[] = [];
+  for (const row of threads) {
+    const primary = row as {
+      id?: string;
+      rating?: number;
+      body?: string;
+      status?: string;
+      photo_urls?: unknown;
+      photoUrls?: unknown;
+      reviewer_display_name?: string;
+      reviewer_avatar_url?: string | null;
+      supplements?: Array<{
         id?: string;
         rating?: number;
         body?: string;
@@ -179,52 +188,45 @@ export function mapFarmReviewThreads(threads: unknown): FarmReviewThreadPreview[
         photoUrls?: unknown;
         reviewer_display_name?: string;
         reviewer_avatar_url?: string | null;
-        supplements?: Array<{
-          id?: string;
-          rating?: number;
-          body?: string;
-          status?: string;
-          photo_urls?: unknown;
-          photoUrls?: unknown;
-          reviewer_display_name?: string;
-          reviewer_avatar_url?: string | null;
-        }>;
-      };
-      const id = String(primary.id || '').trim();
-      if (!id) return null;
-      const supplements = Array.isArray(primary.supplements)
-        ? primary.supplements
-            .map((item) => ({
-              id: String(item.id || '').trim(),
-              rating: Number(item.rating) || 0,
-              body: String(item.body || '').trim(),
-              photoUrls: normalizeFarmReviewPhotoUrls(item.photo_urls ?? item.photoUrls),
-              status: normalizeFarmReviewStatus(item.status),
-              reviewerDisplayName: String(item.reviewer_display_name || '').trim(),
-              reviewerAvatarUrl:
-                typeof item.reviewer_avatar_url === 'string' && item.reviewer_avatar_url.trim()
-                  ? item.reviewer_avatar_url.trim()
-                  : null,
-            }))
-            .filter((item) => item.id && item.rating > 0 && isFarmReviewApproved(item))
-        : [];
-      const status = normalizeFarmReviewStatus(primary.status);
-      if (!isFarmReviewApproved({ status })) return null;
-      return {
-        id,
-        rating: Number(primary.rating) || 0,
-        body: String(primary.body || '').trim(),
-        photoUrls: normalizeFarmReviewPhotoUrls(primary.photo_urls ?? primary.photoUrls),
-        status,
-        reviewerDisplayName: String(primary.reviewer_display_name || '').trim(),
-        reviewerAvatarUrl:
-          typeof primary.reviewer_avatar_url === 'string' && primary.reviewer_avatar_url.trim()
-            ? primary.reviewer_avatar_url.trim()
-            : null,
-        supplements,
-      };
-    })
-    .filter((row): row is FarmReviewThreadPreview => Boolean(row?.id && row.rating > 0));
+      }>;
+    };
+    const id = String(primary.id || '').trim();
+    if (!id) continue;
+    const supplements = Array.isArray(primary.supplements)
+      ? primary.supplements
+          .map((item) => ({
+            id: String(item.id || '').trim(),
+            rating: Number(item.rating) || 0,
+            body: String(item.body || '').trim(),
+            photoUrls: normalizeFarmReviewPhotoUrls(item.photo_urls ?? item.photoUrls),
+            status: normalizeFarmReviewStatus(item.status),
+            reviewerDisplayName: String(item.reviewer_display_name || '').trim(),
+            reviewerAvatarUrl:
+              typeof item.reviewer_avatar_url === 'string' && item.reviewer_avatar_url.trim()
+                ? item.reviewer_avatar_url.trim()
+                : null,
+          }))
+          .filter((item) => item.id && item.rating > 0 && isFarmReviewApproved(item))
+      : [];
+    const status = normalizeFarmReviewStatus(primary.status);
+    if (!isFarmReviewApproved({ status })) continue;
+    const rating = Number(primary.rating) || 0;
+    if (!rating) continue;
+    result.push({
+      id,
+      rating,
+      body: String(primary.body || '').trim(),
+      photoUrls: normalizeFarmReviewPhotoUrls(primary.photo_urls ?? primary.photoUrls),
+      status,
+      reviewerDisplayName: String(primary.reviewer_display_name || '').trim(),
+      reviewerAvatarUrl:
+        typeof primary.reviewer_avatar_url === 'string' && primary.reviewer_avatar_url.trim()
+          ? primary.reviewer_avatar_url.trim()
+          : null,
+      supplements,
+    });
+  }
+  return result;
 }
 
 export function farmReviewedBreederProfileId(item: {

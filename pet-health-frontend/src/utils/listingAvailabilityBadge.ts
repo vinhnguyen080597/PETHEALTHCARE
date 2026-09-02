@@ -17,6 +17,22 @@ export function listingAvailabilityBadgeLabelKey(
   return null;
 }
 
+export type ListingOverlayStatusLabelKey =
+  | 'listing.availability.available'
+  | 'listing.availability.depositHold'
+  | 'petFeed.card.sold';
+
+/** Top-right overlay pill: Có sẵn / Đã cọc / Đã bán only. */
+export function listingOverlayStatusLabelKey(input: {
+  status?: string | null;
+  isSold?: boolean;
+  isCancelled?: boolean;
+}): ListingOverlayStatusLabelKey | null {
+  if (input.isCancelled) return null;
+  if (input.isSold) return 'petFeed.card.sold';
+  return listingAvailabilityBadgeLabelKey(listingAvailabilityBadgeKey(input.status));
+}
+
 export function canShowListingStatusUpdate(input: {
   isOwner: boolean;
   status: string | null | undefined;

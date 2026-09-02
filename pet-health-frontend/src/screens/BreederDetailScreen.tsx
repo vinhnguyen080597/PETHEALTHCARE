@@ -191,14 +191,8 @@ export function BreederDetailScreen({
 
   const scrollToReviewsSection = useCallback(() => {
     const contentNode = scrollContentRef.current;
-    if (!contentNode) {
-      onScrolledToReviews?.();
-      return;
-    }
-
-    const targetNode =
-      (focusReviewId && reviewRowRefs.current[focusReviewId]) || reviewsSectionRef.current;
-    if (!targetNode) {
+    const targetNode = reviewsSectionRef.current;
+    if (!contentNode || !targetNode) {
       onScrolledToReviews?.();
       return;
     }
@@ -211,21 +205,25 @@ export function BreederDetailScreen({
       },
       () => onScrolledToReviews?.(),
     );
-  }, [focusReviewId, onScrolledToReviews]);
+  }, [onScrolledToReviews]);
+
+  const scheduleScrollToReviewsSection = useCallback(() => {
+    if (!pendingReviewScrollRef.current || activeTab !== 'overview') return;
+    if (!scrollContentRef.current || !reviewsSectionRef.current) return;
+    pendingReviewScrollRef.current = false;
+    requestAnimationFrame(() => {
+      scrollToReviewsSection();
+    });
+  }, [activeTab, scrollToReviewsSection]);
 
   useEffect(() => {
     pendingReviewScrollRef.current = scrollToReviewsOnMount;
-  }, [scrollToReviewsOnMount, profile.id, focusReviewId]);
+  }, [scrollToReviewsOnMount, profile.id]);
 
   useEffect(() => {
-    if (!pendingReviewScrollRef.current || activeTab !== 'overview' || reviewsLoading) return;
-    const timer = setTimeout(() => {
-      if (!pendingReviewScrollRef.current) return;
-      pendingReviewScrollRef.current = false;
-      scrollToReviewsSection();
-    }, 120);
-    return () => clearTimeout(timer);
-  }, [activeTab, reviewsLoading, reviewThreads, scrollToReviewsSection]);
+    if (!scrollToReviewsOnMount || activeTab !== 'overview') return;
+    scheduleScrollToReviewsSection();
+  }, [activeTab, scrollToReviewsOnMount, scheduleScrollToReviewsSection]);
 
   useEffect(() => {
     reviewRowRefs.current = {};
@@ -716,7 +714,13 @@ export function BreederDetailScreen({
               </View>
             </View>
 
-            <View ref={reviewsSectionRef} collapsable={false}>
+            <View
+              ref={reviewsSectionRef}
+              collapsable={false}
+              onLayout={() => {
+                if (scrollToReviewsOnMount) scheduleScrollToReviewsSection();
+              }}
+            >
               <View
                 style={{
                   flexDirection: 'row',
