@@ -3,11 +3,14 @@ import assert from "node:assert/strict";
 import {
   canAddFarmReviewPhoto,
   computeFarmReviewPool,
+  farmReviewThreadDisplayCount,
   FARM_REVIEW_MAX_PHOTOS,
   farmReviewedNotificationReviewId,
+  mapFarmReviewThreads,
   parseFarmReviewFocusId,
   parseFarmReviewScrollQuery,
   parseSaleReviewQuery,
+  countFarmReviewDisplayThreads,
   validateFarmReviewInput,
   withFarmReviewNotificationParams,
 } from "../src/lib/breederFarmReviews.ts";
@@ -58,4 +61,65 @@ test("validateFarmReviewInput", () => {
   assert.equal(validateFarmReviewInput({ rating: 3 }), null);
   assert.match(validateFarmReviewInput({ rating: 0 }) || "", /1 and 5/);
   assert.equal(canAddFarmReviewPhoto(FARM_REVIEW_MAX_PHOTOS), false);
+});
+
+test("mapFarmReviewThreads maps approved threads and drops pending", () => {
+  const threads = mapFarmReviewThreads([
+    {
+      id: "rev-1",
+      rating: 4,
+      body: "Tuyệt lắm",
+      status: "approved",
+      reviewer_display_name: "Zhen Long",
+      photo_urls: ["https://cdn.test/1.jpg"],
+      supplements: [
+        {
+          id: "sup-1",
+          rating: 5,
+          body: "Cập nhật",
+          status: "approved",
+        },
+      ],
+    },
+    {
+      id: "rev-2",
+      rating: 5,
+      status: "pending",
+      reviewer_display_name: "Pending User",
+    },
+  ]);
+  assert.equal(threads.length, 1);
+  assert.equal(threads[0]?.id, "rev-1");
+  assert.equal(threads[0]?.supplements.length, 1);
+  assert.equal(farmReviewThreadDisplayCount(threads), 1);
+});
+
+test("countFarmReviewDisplayThreads counts cards not pool weight", () => {
+  assert.equal(
+    countFarmReviewDisplayThreads([
+      { kind: "sale", rating: 4, status: "approved" },
+    ]),
+    1,
+  );
+  const pool = computeFarmReviewPool([
+    { kind: "sale", reviewer_user_id: "user-a", rating: 4, status: "approved" },
+  ]);
+  assert.equal(pool.review_count, 2);
+});
+
+test("farmReviewThreadDisplayCount matches visible cards not pool weight", () => {
+  const pool = computeFarmReviewPool([
+    { kind: "sale", reviewer_user_id: "user-a", rating: 4, status: "approved" },
+  ]);
+  assert.equal(pool.review_count, 2);
+  const threads = mapFarmReviewThreads([
+    {
+      id: "sale-1",
+      kind: "sale",
+      rating: 4,
+      status: "approved",
+      reviewer_display_name: "Buyer",
+    },
+  ]);
+  assert.equal(farmReviewThreadDisplayCount(threads), 1);
 });

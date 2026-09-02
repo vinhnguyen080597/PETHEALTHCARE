@@ -21,7 +21,7 @@ import { FarmReviewStars } from '../components/FarmReviewStars';
 import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
 import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
-import { createBreederFarmReview, deleteWarrantyPolicy, getBreederFarmReviews } from '../api';
+import { createBreederFarmReview, deleteWarrantyPolicy, getBreederFarmReviews, getMyDirectFarmReview } from '../api';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { mapFarmReviewThreads, formatBreederReviewLabel, farmReviewAuthorLabel, type FarmReviewThreadPreview } from '../utils/farmReview';
 import { initialsFromName } from '../utils/breederTrustLevel';
@@ -137,6 +137,7 @@ export function BreederDetailScreen({
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewError, setReviewError] = useState('');
+  const [hasReviewedFarm, setHasReviewedFarm] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollContentRef = useRef<View>(null);
   const reviewsSectionRef = useRef<View>(null);
@@ -165,9 +166,12 @@ export function BreederDetailScreen({
   const { reviewCount, rating: reviewAvg } = breederCardReviewMetrics(
     (profile.metadata ?? {}) as Record<string, unknown>,
   );
+  const visibleReviewCount = reviewsLoaded
+    ? reviewThreads.length
+    : reviewCount;
   const reviewSummaryLabel =
-    reviewCount > 0 && reviewAvg != null
-      ? formatBreederReviewLabel(reviewAvg, reviewCount, i18n.language?.startsWith('vi') ? 'vi' : 'en')
+    visibleReviewCount > 0 && reviewAvg != null
+      ? formatBreederReviewLabel(reviewAvg, visibleReviewCount, i18n.language?.startsWith('vi') ? 'vi' : 'en')
       : '';
   const trustRatingLabel = reviewSummaryLabel || t('farm.trust.ratingEmpty');
 
@@ -237,6 +241,24 @@ export function BreederDetailScreen({
     void loadFarmReviews();
   }, [reviewsLoaded, reviewsLoading, loadFarmReviews]);
 
+  useEffect(() => {
+    if (!token || isOwnProfile) {
+      setHasReviewedFarm(false);
+      return;
+    }
+    let cancelled = false;
+    void getMyDirectFarmReview(token, profile.id)
+      .then((res) => {
+        if (!cancelled) setHasReviewedFarm(Boolean(res.data?.hasReviewed));
+      })
+      .catch(() => {
+        if (!cancelled) setHasReviewedFarm(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile.id, token, isOwnProfile]);
+
   const tabs = useMemo(
     () =>
       FARM_DETAIL_TABS.map((key) => ({
@@ -266,6 +288,7 @@ export function BreederDetailScreen({
     try {
       await createBreederFarmReview(token, profile.id, payload);
       setReviewModalOpen(false);
+      setHasReviewedFarm(true);
       void loadFarmReviews();
       Alert.alert(t('common.ok'), t('farm.review.pendingSubmitted'));
     } catch (error: unknown) {
@@ -732,7 +755,7 @@ export function BreederDetailScreen({
               >
                 <Text style={{ fontSize: 15, fontWeight: '700', color: FARM_TEXT, flex: 1 }}>
                   {t('farm.tab.reviews')}
-                  {reviewCount > 0 ? ` (${reviewCount})` : ''}
+                  {visibleReviewCount > 0 ? ` (${visibleReviewCount})` : ''}
                 </Text>
                 {!isOwnProfile ? (
                   <Pressable
@@ -1221,6 +1244,7 @@ export function BreederDetailScreen({
         busy={reviewBusy}
         error={reviewError}
         token={token}
+        alreadyReviewed={hasReviewedFarm}
         onClose={() => {
           if (!reviewBusy) setReviewModalOpen(false);
         }}

@@ -373,6 +373,8 @@ const en = {
   "farm.review.submitting": "Submitting…",
   "farm.review.failed": "Could not submit review.",
   "farm.review.alreadyReviewed": "You already submitted a review for this purchase.",
+  "farm.review.alreadyReviewedFarm":
+    "You already reviewed this farm. Further submissions are recorded as updates and await admin approval.",
   "farm.review.supplement": "Update",
   "farm.review.photosAdd": "Add photos",
   "farm.review.photosHint": "Up to {{count}} photos (optional)",
@@ -1409,7 +1411,7 @@ const en = {
   "admin.requests.type.farmReview": "Farm review",
   "admin.farmReviews.kind.primary": "Direct review",
   "admin.farmReviews.kind.sale": "Sale review",
-  "admin.farmReviews.kind.supplement": "Supplement",
+  "admin.farmReviews.kind.supplement": "Update",
   "admin.farmReviews.approve": "Approve review",
   "admin.farmReviews.reject": "Reject review",
   "admin.support.category": "Category",

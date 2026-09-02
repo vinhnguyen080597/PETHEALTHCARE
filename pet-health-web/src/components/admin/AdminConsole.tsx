@@ -489,7 +489,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const verifiedBreeders = breeders.filter((b) => b.verification_status === "verified");
   const pendingDetailSubmissions = detailSubmissions.filter((s) => s.status === "pending");
   const pendingFarmReviews = farmReviews.filter(
-    (review) => review.status === "pending" && review.kind !== "supplement",
+    (review) => review.status === "pending",
   );
   const pendingAppeals = appeals.filter((s) => s.status === "appealed" || s.status === "pending_breeder_action");
   const pendingRequestCount =
@@ -590,9 +590,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         ticket,
       };
     });
-    const farmReviewItems: RequestItem[] = farmReviews
-      .filter((review) => review.kind !== "supplement")
-      .map((review) => ({
+    const farmReviewItems: RequestItem[] = farmReviews.map((review) => ({
         id: `farm_review-${review.id}`,
         type: "farm_review",
         status: review.status || "pending",

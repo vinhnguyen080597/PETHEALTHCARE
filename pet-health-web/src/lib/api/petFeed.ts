@@ -598,6 +598,13 @@ export async function patchListingStatus(
   );
 }
 
+export async function getMyDirectFarmReview(token: string, profileId: string) {
+  return fetchJson<{ data: { review: unknown | null; hasReviewed: boolean } }>(
+    `/pet-feed/breeder-profiles/${encodeURIComponent(profileId)}/reviews/me`,
+    { token, cache: "no-store" },
+  );
+}
+
 export async function getMySaleReview(token: string, postId: string) {
   return fetchJson<{ data: { review: unknown | null; hasReviewed: boolean } }>(
     `/pet-feed/posts/${encodeURIComponent(postId)}/sale-review/me`,

@@ -627,6 +627,7 @@
       "submitting": "Đang gửi…",
       "failed": "Không gửi được đánh giá.",
       "alreadyReviewed": "Bạn đã gửi đánh giá cho giao dịch này.",
+      "alreadyReviewedFarm": "Bạn đã đánh giá trại này. Lần gửi tiếp theo sẽ được ghi nhận là cập nhật và chờ admin duyệt.",
       "supplement": "Cập nhật",
       "photosAdd": "Thêm ảnh",
       "photosHint": "Tối đa {{count}} ảnh (tuỳ chọn)",

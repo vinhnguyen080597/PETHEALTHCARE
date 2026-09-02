@@ -627,6 +627,7 @@
       "submitting": "Submitting…",
       "failed": "Could not submit review.",
       "alreadyReviewed": "You already submitted a review for this purchase.",
+      "alreadyReviewedFarm": "You already reviewed this farm. Further submissions are recorded as updates and await admin approval.",
       "supplement": "Update",
       "photosAdd": "Add photos",
       "photosHint": "Up to {{count}} photos (optional)",

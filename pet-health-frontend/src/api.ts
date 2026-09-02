@@ -1054,6 +1054,13 @@ export async function getBreederFarmReviews(token: string | null, profileId: str
   );
 }
 
+export async function getMyDirectFarmReview(token: string, profileId: string) {
+  return requestJson<{ data: { review: unknown | null; hasReviewed: boolean } }>(
+    `/pet-feed/breeder-profiles/${encodeURIComponent(profileId)}/reviews/me`,
+    { headers: authHeaders(token) },
+  );
+}
+
 export async function createBreederFarmReview(
   token: string,
   profileId: string,

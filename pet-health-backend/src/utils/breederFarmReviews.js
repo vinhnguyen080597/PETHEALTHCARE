@@ -46,6 +46,17 @@ export function filterApprovedFarmReviews(reviews) {
   return (Array.isArray(reviews) ? reviews : []).filter((row) => isFarmReviewApproved(row));
 }
 
+/** Visible review cards on farm profile (primary + sale threads; supplements nest under primary). */
+export function countFarmReviewDisplayThreads(reviews) {
+  const visible = filterApprovedFarmReviews(Array.isArray(reviews) ? reviews : []);
+  let count = 0;
+  for (const row of visible) {
+    const kind = String(row.kind || '').trim().toLowerCase();
+    if (kind === 'primary' || kind === 'sale') count += 1;
+  }
+  return count;
+}
+
 /**
  * Public list: approved reviews only (pending/rejected never shown on farm profile).
  */

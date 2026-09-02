@@ -19,6 +19,7 @@ export function FarmHealth({
   lang,
   embedded = false,
   isOwner = false,
+  reviewCount: reviewCountOverride,
 }: {
   breeder: BreederProfile;
   lang: Lang;
@@ -26,6 +27,8 @@ export function FarmHealth({
   embedded?: boolean;
   /** Owner-only CTA to the detailed trust guide. */
   isOwner?: boolean;
+  /** Override visible review count (e.g. from loaded review threads). */
+  reviewCount?: number;
 }) {
   const input = transparencyInputFromBreeder(breeder, {}, {
     senConfirmedCompletions: breeder.petsRehomed ?? 0,
@@ -39,7 +42,7 @@ export function FarmHealth({
   const tierMeaning = lang === "VI" ? tier.meaningVI : tier.meaningEN;
   const reviewLabel = formatBreederReviewLabel(
     breeder.reviewAverage ?? 0,
-    breeder.reviewCount ?? 0,
+    reviewCountOverride ?? breeder.reviewCount ?? 0,
     lang,
   );
 

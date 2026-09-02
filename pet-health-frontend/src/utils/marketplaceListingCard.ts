@@ -205,7 +205,9 @@ export function listingBreederFooterMetrics(
   trustScore: number,
 ): ListingBreederFooterMetrics {
   const meta = asRecord(post.breeder_profile?.metadata);
-  const reviewCountRaw = Number(meta.review_count ?? meta.reviewCount);
+  const reviewCountRaw = Number(
+    meta.review_display_count ?? meta.review_count ?? meta.reviewCount,
+  );
   const reviewCount =
     Number.isFinite(reviewCountRaw) && reviewCountRaw > 0 ? Math.floor(reviewCountRaw) : 0;
   const reviewAvg = Number(meta.review_avg ?? meta.reviewAverage);

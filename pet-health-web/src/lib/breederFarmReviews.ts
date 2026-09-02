@@ -130,6 +130,147 @@ export function filterApprovedFarmReviews<T extends { status?: unknown }>(
   return reviews.filter((row) => isFarmReviewApproved(row));
 }
 
+export function filterApprovedFarmReviewThreads<
+  T extends { status?: unknown; supplements?: Array<{ status?: unknown }> },
+>(threads: T[]): T[] {
+  return threads
+    .filter((row) => isFarmReviewApproved(row))
+    .map((row) => ({
+      ...row,
+      supplements: Array.isArray(row.supplements)
+        ? row.supplements.filter((item) => isFarmReviewApproved(item))
+        : [],
+    }));
+}
+
+/** Visible review cards on farm profile (primary + sale; supplements nest under primary). */
+export function countFarmReviewDisplayThreads(
+  reviews: Array<{ kind?: string; status?: unknown }>,
+): number {
+  let count = 0;
+  for (const row of filterApprovedFarmReviews(reviews)) {
+    const kind = String(row.kind || "").trim().toLowerCase();
+    if (kind === "primary" || kind === "sale") count += 1;
+  }
+  return count;
+}
+
+/** Map API review threads for display (mirrors mobile `mapFarmReviewThreads`). */
+export function mapFarmReviewThreads(
+  threads: unknown,
+): BreederFarmReviewThread[] {
+  if (!Array.isArray(threads)) return [];
+  const result: BreederFarmReviewThread[] = [];
+
+  for (const row of threads) {
+    const primary = row as {
+      id?: string;
+      breeder_profile_id?: string;
+      reviewer_user_id?: string;
+      kind?: FarmReviewKind;
+      parent_review_id?: string | null;
+      post_id?: string | null;
+      rating?: number;
+      body?: string;
+      status?: string;
+      created_at?: string;
+      photo_urls?: unknown;
+      photoUrls?: unknown;
+      reviewer_display_name?: string;
+      reviewer_avatar_url?: string | null;
+      supplements?: Array<{
+        id?: string;
+        breeder_profile_id?: string;
+        reviewer_user_id?: string;
+        kind?: FarmReviewKind;
+        parent_review_id?: string | null;
+        post_id?: string | null;
+        rating?: number;
+        body?: string;
+        status?: string;
+        created_at?: string;
+        photo_urls?: unknown;
+        photoUrls?: unknown;
+        reviewer_display_name?: string;
+        reviewer_avatar_url?: string | null;
+      }>;
+    };
+
+    const id = String(primary.id || "").trim();
+    if (!id) continue;
+
+    const supplements = Array.isArray(primary.supplements)
+      ? primary.supplements
+          .map((item) => {
+            const supplementId = String(item.id || "").trim();
+            const rating = normalizeFarmReviewRating(item.rating);
+            if (!supplementId || !rating) return null;
+            const status = normalizeFarmReviewStatus(item.status);
+            if (!isFarmReviewApproved({ status })) return null;
+            return {
+              id: supplementId,
+              breeder_profile_id: String(item.breeder_profile_id || "").trim(),
+              reviewer_user_id: String(item.reviewer_user_id || "").trim(),
+              kind: (item.kind || "supplement") as FarmReviewKind,
+              parent_review_id: item.parent_review_id ?? null,
+              post_id: item.post_id ?? null,
+              rating,
+              body: String(item.body || "").trim(),
+              photo_urls: normalizeFarmReviewPhotoUrls(
+                item.photo_urls ?? item.photoUrls,
+              ),
+              status,
+              created_at: item.created_at,
+              reviewer_display_name: String(item.reviewer_display_name || "").trim(),
+              reviewer_avatar_url:
+                typeof item.reviewer_avatar_url === "string" &&
+                item.reviewer_avatar_url.trim()
+                  ? item.reviewer_avatar_url.trim()
+                  : null,
+            } satisfies BreederFarmReview;
+          })
+          .filter((item): item is BreederFarmReview => item != null)
+      : [];
+
+    const status = normalizeFarmReviewStatus(primary.status);
+    if (!isFarmReviewApproved({ status })) continue;
+    const rating = normalizeFarmReviewRating(primary.rating);
+    if (!rating) continue;
+
+    result.push({
+      id,
+      breeder_profile_id: String(primary.breeder_profile_id || "").trim(),
+      reviewer_user_id: String(primary.reviewer_user_id || "").trim(),
+      kind: (primary.kind || "primary") as FarmReviewKind,
+      parent_review_id: primary.parent_review_id ?? null,
+      post_id: primary.post_id ?? null,
+      rating,
+      body: String(primary.body || "").trim(),
+      photo_urls: normalizeFarmReviewPhotoUrls(
+        primary.photo_urls ?? primary.photoUrls,
+      ),
+      status,
+      created_at: primary.created_at,
+      reviewer_display_name: String(primary.reviewer_display_name || "").trim(),
+      reviewer_avatar_url:
+        typeof primary.reviewer_avatar_url === "string" &&
+        primary.reviewer_avatar_url.trim()
+          ? primary.reviewer_avatar_url.trim()
+          : null,
+      supplements,
+    });
+  }
+
+  return result;
+}
+
+/** Visible review cards for the farm profile section (not pool-weighted count). */
+export function farmReviewThreadDisplayCount(
+  threads: BreederFarmReviewThread[],
+): number {
+  return threads.length;
+}
+
 /** Rating pool: direct bundle per user + sale rating counted twice. */
 export function computeFarmReviewPool(
   reviews: Array<{ kind?: string; rating?: unknown; reviewer_user_id?: string; status?: unknown }>,

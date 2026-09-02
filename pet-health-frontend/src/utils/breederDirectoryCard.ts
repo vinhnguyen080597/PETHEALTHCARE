@@ -115,7 +115,9 @@ export function breederCardReviewMetrics(metadata: Record<string, unknown> | und
   rating: number | null;
 } {
   const meta = asRecord(metadata);
-  const reviewCountRaw = Number(meta.review_count ?? meta.reviewCount);
+  const reviewCountRaw = Number(
+    meta.review_display_count ?? meta.review_count ?? meta.reviewCount,
+  );
   const reviewCount =
     Number.isFinite(reviewCountRaw) && reviewCountRaw > 0 ? Math.floor(reviewCountRaw) : 0;
   const reviewAvg = Number(meta.review_avg ?? meta.reviewAverage);

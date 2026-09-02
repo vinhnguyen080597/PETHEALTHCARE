@@ -63,9 +63,13 @@ export function parseReviewStatsFromMeta(meta: Record<string, unknown>): {
     const n = typeof v === "number" ? v : Number(v);
     return Number.isFinite(n) && n >= 0 ? n : 0;
   };
+  // review_count is the visible review card count (not pool-weighted).
+  const displayCount = Math.floor(
+    num(meta.review_display_count ?? meta.review_count ?? meta.reviewCount),
+  );
   return {
     reviewAverage: num(meta.review_avg ?? meta.reviewAverage),
-    reviewCount: Math.floor(num(meta.review_count ?? meta.reviewCount)),
+    reviewCount: displayCount,
     fiveStarReviewCount: Math.floor(
       num(meta.five_star_review_count ?? meta.review_5star_count),
     ),

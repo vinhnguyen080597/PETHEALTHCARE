@@ -377,6 +377,8 @@ const vi: Record<EnKey, string> = {
   "farm.review.submitting": "Đang gửi…",
   "farm.review.failed": "Không gửi được đánh giá.",
   "farm.review.alreadyReviewed": "Bạn đã gửi đánh giá cho giao dịch này.",
+  "farm.review.alreadyReviewedFarm":
+    "Bạn đã đánh giá trại này. Lần gửi tiếp theo sẽ được ghi nhận là cập nhật và chờ admin duyệt.",
   "farm.review.supplement": "Cập nhật",
   "farm.review.photosAdd": "Thêm ảnh",
   "farm.review.photosHint": "Tối đa {{count}} ảnh (tuỳ chọn)",
@@ -1411,7 +1413,7 @@ const vi: Record<EnKey, string> = {
   "admin.requests.type.farmReview": "Đánh giá trại",
   "admin.farmReviews.kind.primary": "Đánh giá trực tiếp",
   "admin.farmReviews.kind.sale": "Đánh giá giao dịch",
-  "admin.farmReviews.kind.supplement": "Bổ sung",
+  "admin.farmReviews.kind.supplement": "Cập nhật",
   "admin.farmReviews.approve": "Duyệt đánh giá",
   "admin.farmReviews.reject": "Từ chối đánh giá",
   "admin.support.category": "Phân loại",

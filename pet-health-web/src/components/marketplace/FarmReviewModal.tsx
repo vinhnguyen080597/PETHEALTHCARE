@@ -52,6 +52,7 @@ export function FarmReviewModal({
   open,
   busy = false,
   error = "",
+  alreadyReviewed = false,
   onClose,
   onSubmit,
 }: {
@@ -59,6 +60,8 @@ export function FarmReviewModal({
   open: boolean;
   busy?: boolean;
   error?: string;
+  /** User already has a direct farm review — next submit is a supplement. */
+  alreadyReviewed?: boolean;
   onClose: () => void;
   onSubmit: (payload: { rating: number; body: string; photoUrls: string[] }) => void | Promise<void>;
 }) {
@@ -186,6 +189,14 @@ export function FarmReviewModal({
         >
           <h2 className="font-bold text-slate-900">{t(lang, "farm.review.modalTitle")}</h2>
           <p className="mt-1 text-sm text-slate-600">{t(lang, "farm.review.modalHint")}</p>
+          {alreadyReviewed ? (
+            <div
+              role="status"
+              className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900"
+            >
+              {t(lang, "farm.review.alreadyReviewedFarm")}
+            </div>
+          ) : null}
           <div className="mt-4">
             <StarRow lang={lang} value={rating} onChange={setRating} />
           </div>

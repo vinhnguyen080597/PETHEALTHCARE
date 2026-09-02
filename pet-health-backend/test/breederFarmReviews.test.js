@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildFarmReviewAdminPendingPreview,
   computeFarmReviewPool,
+  countFarmReviewDisplayThreads,
   countFiveStarDirectReviews,
   filterApprovedFarmReviews,
   filterFarmReviewsForViewer,
@@ -49,6 +50,23 @@ test('filterFarmReviewsForViewer only returns approved rows', () => {
   assert.equal(filterFarmReviewsForViewer(rows, 'u1').length, 1);
   assert.equal(filterFarmReviewsForViewer(rows, 'u1')[0].id, '1');
   assert.equal(filterApprovedFarmReviews(rows).length, 1);
+});
+
+test('countFarmReviewDisplayThreads counts threads not pool weight', () => {
+  assert.equal(
+    countFarmReviewDisplayThreads([
+      { kind: 'sale', reviewer_user_id: 'user-a', rating: 4, status: 'approved' },
+    ]),
+    1,
+  );
+  assert.equal(
+    countFarmReviewDisplayThreads([
+      { kind: 'primary', reviewer_user_id: 'user-b', rating: 5, status: 'approved' },
+      { kind: 'supplement', reviewer_user_id: 'user-b', rating: 4, status: 'approved' },
+      { kind: 'sale', reviewer_user_id: 'user-c', rating: 5, status: 'approved' },
+    ]),
+    2,
+  );
 });
 
 test('computeFarmReviewPool ignores pending reviews', () => {

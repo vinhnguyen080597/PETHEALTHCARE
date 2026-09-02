@@ -42,6 +42,7 @@ type FarmReviewModalProps = {
   busy?: boolean;
   error?: string;
   token: string | null;
+  alreadyReviewed?: boolean;
   onClose: () => void;
   onSubmit: (payload: FarmReviewSubmitPayload) => void | Promise<void>;
 };
@@ -74,6 +75,7 @@ export function FarmReviewModal({
   busy = false,
   error = '',
   token,
+  alreadyReviewed = false,
   onClose,
   onSubmit,
 }: FarmReviewModalProps) {
@@ -215,6 +217,11 @@ export function FarmReviewModal({
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text className="text-lg font-bold text-slate-900">{t('farm.review.modalTitle')}</Text>
             <Text className="mt-1 text-sm leading-5 text-slate-500">{t('farm.review.modalHint')}</Text>
+            {alreadyReviewed ? (
+              <View className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                <Text className="text-sm leading-5 text-amber-900">{t('farm.review.alreadyReviewedFarm')}</Text>
+              </View>
+            ) : null}
 
             <View className="mt-4">
               <StarRow value={rating} onChange={setRating} />

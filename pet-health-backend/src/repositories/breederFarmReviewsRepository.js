@@ -4,6 +4,7 @@ import { getAccountProfile } from './accountRepository.js';
 import { asObject } from '../utils/warrantyPolicy.js';
 import {
   computeFarmReviewPool,
+  countFarmReviewDisplayThreads,
   countFiveStarDirectReviews,
   filterApprovedFarmReviews,
   filterFarmReviewsForViewer,
@@ -183,8 +184,9 @@ export async function recomputeBreederReviewStats(breederProfileId, accessToken)
   const reviews = await listReviewsForBreeder(safeId, accessToken);
   const pool = computeFarmReviewPool(reviews);
   const petsSoldOnPlatform = await countPetsSoldOnPlatform(safeId, accessToken);
+  const reviewDisplayCount = countFarmReviewDisplayThreads(reviews);
   const patch = {
-    review_count: pool.review_count,
+    review_count: reviewDisplayCount,
     review_avg: pool.review_avg,
     five_star_review_count: countFiveStarDirectReviews(reviews),
     pets_sold_on_platform: petsSoldOnPlatform,
@@ -265,7 +267,7 @@ export async function getBreederFarmReviewAggregate(breederProfileId, accessToke
   const petsSoldOnPlatform = await countPetsSoldOnPlatform(breederProfileId, accessToken);
   const threads = await enrichReviewThreadsWithReviewers(buildReviewThreads(displayReviews));
   return {
-    review_count: pool.review_count,
+    review_count: threads.length,
     review_avg: pool.review_avg,
     five_star_review_count: countFiveStarDirectReviews(reviews),
     pets_sold_on_platform: petsSoldOnPlatform,
@@ -363,6 +365,15 @@ export async function createBreederFarmReview(reviewerUserId, breederProfileId, 
     breeder_display_name: breederDisplayName,
     transparency_points_awarded: 0,
   };
+}
+
+export async function getMyDirectFarmReviewForBreeder(
+  reviewerUserId,
+  breederProfileId,
+  accessToken,
+) {
+  const review = await getPrimaryReview(reviewerUserId, breederProfileId, accessToken);
+  return review ? toReviewRow(review) : null;
 }
 
 export async function getMySaleReviewForPost(reviewerUserId, postId, accessToken) {

@@ -91,13 +91,14 @@ import {
   createSaleFarmReview,
   getBreederFarmReviewAggregate,
   getMySaleReviewForPost,
+  getMyDirectFarmReviewForBreeder,
   normalizeFarmReviewPhotoUrlsFromBody,
 } from '../repositories/breederFarmReviewsRepository.js';
 import { isFarmReviewActive } from '../utils/breederFarmReviews.js';
 import { recordProductEvent } from '../services/productAnalyticsService.js';
 
 function notifyAdminFarmReviewPending(req, result) {
-  if (!result?.review?.id || result.kind === 'supplement') return;
+  if (!result?.review?.id) return;
   const photoUrls = Array.isArray(result.review.photo_urls) ? result.review.photo_urls : [];
   void createAdminRequestNotifications({
     actorUserId: req.user.id,
@@ -1479,6 +1480,28 @@ router.patch(
     }
   },
 );
+
+router.get('/breeder-profiles/:profileId/reviews/me', async (req, res, next) => {
+  try {
+    const profileId = cleanId(req.params.profileId);
+    if (!profileId) {
+      return res.status(400).json({ error: 'profileId is required', code: 'MISSING_PROFILE_ID' });
+    }
+    const review = await getMyDirectFarmReviewForBreeder(
+      req.user.id,
+      profileId,
+      req.accessToken,
+    );
+    return res.json({
+      data: {
+        review,
+        hasReviewed: Boolean(review?.id && isFarmReviewActive(review)),
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 router.get('/breeder-profiles/:profileId/reviews', async (req, res, next) => {
   try {
