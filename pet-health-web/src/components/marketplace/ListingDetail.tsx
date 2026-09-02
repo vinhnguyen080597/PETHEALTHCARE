@@ -17,25 +17,15 @@ import {
   canShowListingUpdateDetails,
   canShowWarrantyUpdateCta,
   isListingOwner,
+  isListingOwnerActionsLocked,
   listingDetailBackHref,
-  listingDetailShareActionsCols,
   listingEditHref,
   listingVisitorActions,
   parseListingDetailFrom,
 } from "@/lib/listingOwnerActions";
-import {
-  listingAvailabilityBadgeI18nKey,
-  listingAvailabilityBadgeKey,
-} from "@/lib/listingAvailabilityBadge";
 import { parseSaleReviewQuery } from "@/lib/breederFarmReviews";
-import { ListingStatusModal } from "./ListingStatusModal";
+import { ListingStatusModal, type ListingStatusSubmitPayload } from "./ListingStatusModal";
 import { SaleReviewModal } from "./SaleReviewModal";
-import {
-  evaluateOwnerDeleteListing,
-  listingDeleteClickAction,
-  ownerDeleteBlockedMessage,
-} from "@/lib/listingOwnerDelete";
-import { ListingDeleteConfirmModal } from "./ListingDeleteConfirmModal";
 import {
   mergeListingAfterWarrantyAttach,
   normalizeWarrantyPolicyOptions,
@@ -57,6 +47,10 @@ import {
 } from "@/lib/listingDetailCardTones";
 import { startChatAndOpenUi, startChatMessageKey } from "@/lib/startFarmChat";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
+import {
+  ListingMediaAvailabilityBadge,
+  ListingMediaOverlayTags,
+} from "./ListingMediaOverlayTags";
 
 const REPORT_REASONS = [
   "scam",
@@ -165,28 +159,9 @@ export function ListingDetail({
     isOwner,
     status: listing.status,
   });
-  const availabilityBadge = listingAvailabilityBadgeKey(listing.status);
-  const availabilityBadgeI18n = listingAvailabilityBadgeI18nKey(availabilityBadge);
   const warrantyTone = listingWarrantyCardTone(Boolean(listing.warrantyPolicy));
   const soldTone = listingDealStatusTone("sold");
   const cancelledTone = listingDealStatusTone("cancelled");
-  const deleteDecision = evaluateOwnerDeleteListing({
-    isOwner,
-    status: listing.status,
-    metadataSold: listing.metadataSold,
-    metadataCancelled: listing.metadataCancelled,
-    ownerDeleted: listing.ownerDeleted,
-    completedAt: listing.deal?.completedAt,
-    senConfirmedCompleteAt: listing.deal?.senConfirmedCompleteAt,
-  });
-  const showDelete =
-    isOwner && listingDeleteClickAction(deleteDecision) !== "hidden";
-  const deleteClickAction = listingDeleteClickAction(deleteDecision);
-  const deleteBlockedHint = ownerDeleteBlockedMessage(deleteDecision, {
-    deposit: t(lang, "detail.deleteBlockedDeposit"),
-    cooldown: t(lang, "detail.deleteBlockedSoldCooldown"),
-    generic: t(lang, "detail.deleteFailed"),
-  });
   const allowMediaDownload = canDownloadPostMedia(isAdmin);
   const blockMediaSave = shouldBlockMediaSave(isAdmin);
   const breederUserId = ownerUserId;
@@ -205,13 +180,13 @@ export function ListingDetail({
   const [attachWarrantyError, setAttachWarrantyError] = useState("");
   const [activeMedia, setActiveMedia] = useState(0);
   const [saved, setSaved] = useState(Boolean(listing.saved));
+  const [favCount, setFavCount] = useState(
+    Math.max(0, Math.floor(Number(listing.favoriteCount) || 0)),
+  );
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [shareNotice, setShareNotice] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
-  const [deleteModalMode, setDeleteModalMode] = useState<
-    "confirm" | "blocked" | null
-  >(null);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [statusBusy, setStatusBusy] = useState(false);
   const [statusError, setStatusError] = useState("");
@@ -238,6 +213,9 @@ export function ListingDetail({
   const isSoldListing =
     String(listing.status || "").trim().toLowerCase() === "sold";
   const isSoldVisitorView = isSoldListing && !isOwner;
+  const isOwnerLockedView =
+    isOwner && isListingOwnerActionsLocked(listing.status);
+  const isReadOnlyEngagement = isSoldVisitorView || isOwnerLockedView;
 
   const clearSaleReviewFromUrl = () => {
     if (typeof window === "undefined") return;
@@ -247,6 +225,11 @@ export function ListingDetail({
     const qs = url.searchParams.toString();
     window.history.replaceState({}, "", qs ? `${url.pathname}?${qs}` : url.pathname);
   };
+
+  useEffect(() => {
+    setSaved(Boolean(listing.saved));
+    setFavCount(Math.max(0, Math.floor(Number(listing.favoriteCount) || 0)));
+  }, [listing.id, listing.saved, listing.favoriteCount]);
 
   useEffect(() => {
     if (!isLoggedIn || !isSoldVisitorView) return;
@@ -284,20 +267,24 @@ export function ListingDetail({
     }
   }, [searchParams, isLoggedIn, listing.id, router]);
 
-  const submitListingStatus = async (payload: {
-    status: "published" | "deposit_hold" | "sold";
-    saleChannel?: "on_platform" | "off_platform";
-    buyerEmail?: string;
-  }) => {
+  const submitListingStatus = async (payload: ListingStatusSubmitPayload) => {
     setStatusBusy(true);
     setStatusError("");
     try {
+      const body =
+        payload.type === "sold"
+          ? {
+              status: "sold" as const,
+              saleChannel: payload.saleChannel,
+              buyerEmail: payload.buyerEmail,
+            }
+          : { status: payload.type };
       const res = await fetch(
         `/api/listings/${encodeURIComponent(listing.id)}/listing-status`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(body),
         },
       );
       const data = await res.json().catch(() => ({}));
@@ -438,6 +425,29 @@ export function ListingDetail({
     };
   }, [isLoggedIn, listing.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/listings/${encodeURIComponent(listing.id)}/comments`,
+          { cache: "no-store" },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (cancelled || !res.ok) return;
+        const rows = Array.isArray(data?.data) ? data.data : [];
+        setComments(
+          rows.map((c: PublicComment) => mapApiComment(c, breederUserId, lang)),
+        );
+      } catch {
+        // Keep SSR comments when refresh fails.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [listing.id, breederUserId, lang]);
+
   const requireLogin = () => {
     router.push(`/login?next=/app/pet-feed/posts/${listing.id}`);
   };
@@ -502,6 +512,7 @@ export function ListingDetail({
   };
 
   const sendComment = async () => {
+    if (isReadOnlyEngagement) return;
     if (!comment.trim()) return;
     if (!isLoggedIn) {
       requireLogin();
@@ -564,38 +575,15 @@ export function ListingDetail({
     }
   };
 
-  const deleteOwnListing = async () => {
-    if (!showDelete || !deleteDecision.allowed) return;
-    setBusy("delete");
-    setActionError("");
-    try {
-      const res = await fetch(`/api/listings/${listing.id}`, { method: "DELETE" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(
-          String((data as { error?: string }).error || t(lang, "detail.deleteFailed")),
-        );
-      }
-      setDeleteModalMode(null);
-      router.push(backHref);
-      router.refresh();
-    } catch (err) {
-      setDeleteModalMode(null);
-      setActionError(
-        err instanceof Error ? err.message : t(lang, "detail.deleteFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  };
-
   const toggleFavorite = async () => {
     if (!isLoggedIn) {
       requireLogin();
       return;
     }
     const next = !saved;
+    const nextCount = Math.max(0, favCount + (next ? 1 : -1));
     setSaved(next);
+    setFavCount(nextCount);
     setBusy("favorite");
     setActionError("");
     try {
@@ -608,6 +596,7 @@ export function ListingDetail({
       }
     } catch (err) {
       setSaved(!next);
+      setFavCount(favCount);
       setActionError(err instanceof Error ? err.message : "Failed");
     } finally {
       setBusy(null);
@@ -778,11 +767,12 @@ export function ListingDetail({
                 {t(lang, "detail.downloadMedia")}
               </button>
             ) : null}
-            {availabilityBadgeI18n ? (
-              <span className="absolute top-3 right-3 z-10 rounded-full bg-[#D97706]/95 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                {t(lang, availabilityBadgeI18n)}
-              </span>
-            ) : null}
+            <ListingMediaAvailabilityBadge listing={listing} lang={lang} />
+            <ListingMediaOverlayTags
+              listing={listing}
+              lang={lang}
+              favoriteCount={favCount}
+            />
           </div>
           <div className="grid grid-cols-5 gap-1.5">
             {gallery.map((item, i) => (
@@ -861,32 +851,59 @@ export function ListingDetail({
                   </p>
                 ) : null}
               </div>
-              {isSoldVisitorView ? (
-                <div
-                  className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-full border ${
-                    saved
-                      ? "border-rose-200 bg-rose-50 text-rose-600"
-                      : "border-slate-200 text-slate-400"
-                  }`}
-                  aria-hidden
-                >
-                  {saved ? "♥" : "♡"}
-                </div>
-              ) : (
+              <div className="flex shrink-0 items-center gap-2">
+                {isReadOnlyEngagement ? (
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border ${
+                      saved
+                        ? "border-rose-200 bg-rose-50 text-rose-600"
+                        : "border-slate-200 text-slate-400"
+                    }`}
+                    aria-hidden
+                  >
+                    {saved ? "♥" : "♡"}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={toggleFavorite}
+                    disabled={busy === "favorite"}
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+                      saved
+                        ? "border-rose-200 bg-rose-50 text-rose-600"
+                        : "border-slate-200 text-slate-400 hover:border-rose-200 hover:text-rose-500"
+                    }`}
+                    aria-label={t(lang, "detail.save")}
+                  >
+                    {saved ? "♥" : "♡"}
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={toggleFavorite}
-                  disabled={busy === "favorite"}
-                  className={`flex-shrink-0 w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
-                    saved
-                      ? "border-rose-200 bg-rose-50 text-rose-600"
-                      : "border-slate-200 text-slate-400 hover:border-rose-200 hover:text-rose-500"
+                  onClick={() => void shareListing()}
+                  className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+                    shareNotice
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                      : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
                   }`}
-                  aria-label={t(lang, "detail.save")}
+                  aria-label={shareNotice || t(lang, "detail.share")}
+                  title={shareNotice || t(lang, "detail.share")}
                 >
-                  {saved ? "♥" : "♡"}
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden
+                  >
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <path d="m16 6-4-4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M12 2v13" strokeLinecap="round" />
+                  </svg>
                 </button>
-              )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-5">
               <SpecCard
@@ -1037,82 +1054,74 @@ export function ListingDetail({
                   💬 {t(lang, "detail.message")}
                 </button>
               ) : null}
-              {showUpdateDetails ? (
-                <Link
-                  href={listingEditHref(listing.id)}
-                  className="w-full py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-full hover:border-slate-300 transition-colors text-center"
-                >
-                  {t(lang, "detail.updateDetails")}
-                </Link>
-              ) : null}
-              {showStatusUpdate ? (
+              {showUpdateDetails || showStatusUpdate ? (
+                <div className="flex gap-2">
+                  {showUpdateDetails ? (
+                    <Link
+                      href={listingEditHref(listing.id)}
+                      className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#D97706] px-3 py-2.5 text-xs font-semibold text-white shadow-sm shadow-amber-200/60 transition-colors hover:bg-[#B45309]"
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        aria-hidden
+                      >
+                        <path d="M12 20h9" strokeLinecap="round" />
+                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" strokeLinejoin="round" />
+                      </svg>
+                      <span className="truncate">{t(lang, "detail.updateDetails")}</span>
+                    </Link>
+                  ) : null}
+                  {showStatusUpdate ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusError("");
+                        setStatusModalOpen(true);
+                      }}
+                      className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold transition-colors ${
+                        showUpdateDetails
+                          ? "border border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                          : "bg-[#D97706] text-white shadow-sm shadow-amber-200/60 hover:bg-[#B45309]"
+                      }`}
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        aria-hidden
+                      >
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1Z" strokeLinejoin="round" />
+                        <path d="M4 22v-7" strokeLinecap="round" />
+                      </svg>
+                      <span className="truncate">{t(lang, "listing.statusModal.open")}</span>
+                    </button>
+                  ) : null}
+                </div>
+              ) : isSoldVisitorView ? null : showReport ? (
+              <div className="grid grid-cols-1 gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    setStatusError("");
-                    setStatusModalOpen(true);
+                    if (!isLoggedIn) {
+                      requireLogin();
+                      return;
+                    }
+                    setReportOpen(true);
                   }}
-                  className="w-full py-2.5 border border-amber-200 text-amber-800 text-sm font-medium rounded-full hover:bg-amber-50 transition-colors"
+                  className="py-2.5 border border-slate-200 text-slate-500 text-sm font-medium rounded-full hover:border-red-200 hover:text-red-500 transition-colors"
                 >
-                  {t(lang, "listing.statusModal.open")}
+                  {t(lang, "detail.report")}
                 </button>
-              ) : null}
-              {isSoldVisitorView ? null : (
-              <div
-                className={`grid gap-2 ${
-                  listingDetailShareActionsCols({
-                    showDelete,
-                    showReport,
-                  }) === 2
-                    ? "grid-cols-2"
-                    : "grid-cols-1"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => void shareListing()}
-                  className={`py-2.5 border text-sm font-medium rounded-full transition-colors ${
-                    shareNotice
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                      : "border-slate-200 text-slate-700 hover:border-slate-300"
-                  }`}
-                >
-                  {shareNotice || t(lang, "detail.share")}
-                </button>
-                {showDelete ? (
-                  <button
-                    type="button"
-                    disabled={busy === "delete"}
-                    onClick={() => {
-                      if (deleteClickAction === "hidden") return;
-                      setDeleteModalMode(
-                        deleteClickAction === "blocked" ? "blocked" : "confirm",
-                      );
-                    }}
-                    className="py-2.5 border border-red-200 text-red-600 text-sm font-medium rounded-full hover:bg-red-50 transition-colors disabled:opacity-50"
-                  >
-                    {busy === "delete"
-                      ? t(lang, "detail.deleting")
-                      : t(lang, "detail.delete")}
-                  </button>
-                ) : null}
-                {showReport ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!isLoggedIn) {
-                        requireLogin();
-                        return;
-                      }
-                      setReportOpen(true);
-                    }}
-                    className="py-2.5 border border-slate-200 text-slate-500 text-sm font-medium rounded-full hover:border-red-200 hover:text-red-500 transition-colors"
-                  >
-                    {t(lang, "detail.report")}
-                  </button>
-                ) : null}
               </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -1123,7 +1132,7 @@ export function ListingDetail({
         <h2 className="font-semibold text-slate-900 mb-5">
           {t(lang, "detail.comments")} ({comments.length})
         </h2>
-        <div className="space-y-4 mb-6">
+        <div className={`space-y-4 ${isReadOnlyEngagement ? "" : "mb-6"}`}>
           {comments.length === 0 ? (
             <p className="text-sm text-slate-400">
               {lang === "VI"
@@ -1156,7 +1165,7 @@ export function ListingDetail({
             ))
           )}
         </div>
-        {!isSoldVisitorView ? (
+        {!isReadOnlyEngagement ? (
         <div className="flex gap-3">
           <div className="w-8 h-8 rounded-full bg-[#D97706] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
             {isLoggedIn ? "Y" : "?"}
@@ -1265,18 +1274,6 @@ export function ListingDetail({
           </div>
         </div>
       )}
-
-      <ListingDeleteConfirmModal
-        lang={lang}
-        open={deleteModalMode != null}
-        mode={deleteModalMode === "blocked" ? "blocked" : "confirm"}
-        blockedMessage={deleteBlockedHint}
-        busy={busy === "delete"}
-        onCancel={() => {
-          if (busy !== "delete") setDeleteModalMode(null);
-        }}
-        onConfirm={() => void deleteOwnListing()}
-      />
 
       <ListingStatusModal
         lang={lang}

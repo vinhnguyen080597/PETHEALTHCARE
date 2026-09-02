@@ -4,8 +4,26 @@ import {
   buildListingEditPayload,
   canAccessListingEditPage,
   listingEditFormDefaults,
+  matchListingStoredOption,
+  resolveListingEditBreed,
 } from "../src/lib/listingEdit";
 import type { Listing } from "../src/lib/types";
+
+function t(_lang: "EN" | "VI", key: string): string {
+  const map: Record<string, string> = {
+    "listing.new.gender.male": "Male",
+    "listing.new.gender.female": "Female",
+    "listing.new.vaccineShort.unknown": "Unknown",
+    "listing.new.vaccineShort.basic_done": "Basic done",
+    "listing.new.dewormingShort.unknown": "Unknown",
+    "listing.new.dewormingShort.recent": "Done",
+    "listing.new.breed.british_longhair": "British Longhair",
+    "listing.new.breed.other": "Other",
+    "listing.new.personality.friendly": "Friendly",
+    "listing.new.paperwork.vaccineBook": "Vaccine book",
+  };
+  return map[key] ?? key;
+}
 
 function sampleListing(overrides: Partial<Listing> = {}): Listing {
   return {
@@ -13,17 +31,17 @@ function sampleListing(overrides: Partial<Listing> = {}): Listing {
     title: "Hello",
     titleVI: "Xin chào",
     species: "cat",
-    breed: "Ba Tư",
-    gender: "Đực",
+    breed: "British Longhair",
+    gender: "Male",
     ageMonths: 2,
     location: "TP. Hồ Chí Minh",
     price: "4.444.444 VNĐ",
     description: "Desc EN",
     descriptionVI: "Desc VI",
-    personality: ["friendly"],
+    personality: ["Friendly"],
     personalityVI: ["thân thiện"],
-    vaccineStatus: "Đủ mũi",
-    dewormingStatus: "Đã tẩy",
+    vaccineStatus: "Basic done",
+    dewormingStatus: "Done",
     mediaUrl: "https://example.com/a.jpg",
     mediaUrls: ["https://example.com/a.jpg"],
     videoUrl: "https://example.com/a.mp4",
@@ -66,29 +84,54 @@ test("buildListingEditPayload trims fields and resubmits for review", () => {
     title: "  Tess  ",
     species: "cat",
     breed: "Ba Tư",
-    gender: "Đực",
+    gender: "Male",
     ageMonths: 2,
     location: "HN",
     priceNote: "1000000",
     description: "  nice  ",
-    vaccineStatus: "Đủ",
-    dewormingStatus: "Có",
-    personality: ["calm"],
+    vaccineStatus: "Basic done",
+    dewormingStatus: "Done",
+    personality: ["Friendly"],
+    paperwork: ["Vaccine book"],
   });
   assert.equal(payload.title, "Tess");
   assert.equal(payload.description, "nice");
   assert.equal(payload.status, "pending_review");
+  assert.deepEqual(payload.paperwork, ["Vaccine book"]);
   assert.equal(payload.mediaUrls, undefined);
   assert.equal(payload.metadata, undefined);
 });
 
 test("listingEditFormDefaults prefer locale and strip price formatting", () => {
   const listing = sampleListing();
-  const vi = listingEditFormDefaults(listing, "VI");
+  const vi = listingEditFormDefaults(listing, "VI", t);
   assert.equal(vi.title, "Xin chào");
   assert.equal(vi.description, "Desc VI");
   assert.equal(vi.priceNote, "4444444");
-  assert.deepEqual(vi.personality, ["thân thiện"]);
+  assert.equal(vi.breedKey, "british_longhair");
+  assert.equal(vi.gender, "male");
+});
+
+test("resolveListingEditBreed maps custom breed labels", () => {
+  const resolved = resolveListingEditBreed(
+    "cat",
+    "Custom breed",
+    (key) => (key === "other" ? "Other" : "British Longhair"),
+  );
+  assert.equal(resolved.breedKey, "other");
+  assert.equal(resolved.customBreed, "Custom breed");
+});
+
+test("matchListingStoredOption matches label or key", () => {
+  assert.equal(
+    matchListingStoredOption(
+      ["male", "female"],
+      "Male",
+      "male",
+      (key) => (key === "male" ? "Male" : "Female"),
+    ),
+    "male",
+  );
 });
 
 test("canAccessListingEditPage only for owner on published", () => {

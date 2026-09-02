@@ -65,14 +65,22 @@ export function canShowWarrantyUpdateCta(input: {
   return isListingAvailableStatus(input.status);
 }
 
-/** Owner may manually update listing availability (có sẵn / đã cọc / đã bán). */
+/** Sold/cancelled: owner cannot edit, update status, favorite, or comment (share only). */
+export function isListingOwnerActionsLocked(
+  status: string | null | undefined,
+): boolean {
+  const s = String(status || "").trim().toLowerCase();
+  return s === "sold" || s === "cancelled";
+}
+
+/** Owner may manually update listing availability (có sẵn / đã cọc only). */
 export function canShowListingStatusUpdate(input: {
   isOwner: boolean;
   status: string | null | undefined;
 }): boolean {
-  if (!input.isOwner) return false;
+  if (!input.isOwner || isListingOwnerActionsLocked(input.status)) return false;
   const s = String(input.status || "").trim().toLowerCase();
-  return s === "published" || s === "deposit_hold" || s === "sold";
+  return s === "published" || s === "deposit_hold";
 }
 
 /** Edit listing page for the owner (web). */

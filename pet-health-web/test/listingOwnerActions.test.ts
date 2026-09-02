@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import {
   canShowBreederMessageAction,
   canShowListingUpdateDetails,
+  canShowListingStatusUpdate,
   canShowWarrantyUpdateCta,
   isListingAvailableStatus,
   isListingOwner,
+  isListingOwnerActionsLocked,
   listingDetailBackHref,
   listingDetailHref,
   listingEditHref,
@@ -122,6 +124,13 @@ test("canShowWarrantyUpdateCta respects owner, available, and freeze", () => {
     canShowWarrantyUpdateCta({ isOwner: false, status: "published" }),
     false,
   );
+});
+
+test("isListingOwnerActionsLocked for sold and cancelled", () => {
+  assert.equal(isListingOwnerActionsLocked("sold"), true);
+  assert.equal(isListingOwnerActionsLocked("cancelled"), true);
+  assert.equal(isListingOwnerActionsLocked("published"), false);
+  assert.equal(isListingOwnerActionsLocked("deposit_hold"), false);
 });
 
 test("listingEditHref encodes post id", () => {
