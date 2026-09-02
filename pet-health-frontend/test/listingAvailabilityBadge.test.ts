@@ -6,6 +6,7 @@ import {
   listingAvailabilityBadgeLabelKey,
   listingOverlayStatusLabelKey,
 } from '../src/utils/listingAvailabilityBadge.ts';
+import { listingPostActionsLocked } from '../src/utils/marketplaceListingCard.ts';
 
 test('listingOverlayStatusLabelKey maps availability statuses to top-right labels', () => {
   assert.equal(
@@ -35,7 +36,18 @@ test('listingAvailabilityBadgeKey maps published and deposit_hold', () => {
   );
 });
 
-test('canShowListingStatusUpdate for owner on published/deposit_hold/sold', () => {
-  assert.equal(canShowListingStatusUpdate({ isOwner: true, status: 'sold' }), true);
+test('canShowListingStatusUpdate for owner on published/deposit_hold only', () => {
+  assert.equal(canShowListingStatusUpdate({ isOwner: true, status: 'published' }), true);
+  assert.equal(canShowListingStatusUpdate({ isOwner: true, status: 'deposit_hold' }), true);
+  assert.equal(canShowListingStatusUpdate({ isOwner: true, status: 'sold' }), false);
   assert.equal(canShowListingStatusUpdate({ isOwner: false, status: 'sold' }), false);
+});
+
+test('listingPostActionsLocked when status sold or metadata marks sold', () => {
+  assert.equal(listingPostActionsLocked({ status: 'sold' }), true);
+  assert.equal(listingPostActionsLocked({ status: 'published' }), false);
+  assert.equal(
+    listingPostActionsLocked({ status: 'published', metadata: { sold: true } }),
+    true,
+  );
 });

@@ -201,6 +201,7 @@ import {
   type FarmPhotoKind,
 } from '../utils/farmPhotos';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
+import { listingPostActionsLocked } from '../utils/marketplaceListingCard';
 import { getAnalyzeBlockReason, mapAnalyzeFriendlyMessage } from './usePetHealthApp.logic';
 import {
   isPetFeedMessagingRealtimeConfigured,
@@ -2532,8 +2533,15 @@ export function usePetHealthApp() {
     setScreen('create-pet-feed-post');
   }
 
+  function blockSoldListingAction(post: PetFeedPost | null | undefined): boolean {
+    if (!post || !listingPostActionsLocked(post)) return false;
+    Alert.alert(i18n.t('petFeed.soldActionsBlockedTitle'), i18n.t('petFeed.soldActionsBlocked'));
+    return true;
+  }
+
   function openEditPetFeedDraft(post: PetFeedPost) {
     if (!hasAccountRole('breeder')) return;
+    if (listingPostActionsLocked(post)) return;
     if (!['draft', 'pending_review', 'published'].includes(post.status)) return;
     if (accountProfile?.user_id && post.user_id !== accountProfile.user_id) return;
     setEditingPetFeedPost(post);
@@ -2551,6 +2559,7 @@ export function usePetHealthApp() {
 
   async function deleteOwnPetFeedPost(post: PetFeedPost): Promise<boolean> {
     if (!token || !post?.id) return false;
+    if (blockSoldListingAction(post)) return false;
     if (accountProfile?.user_id && post.user_id && post.user_id !== accountProfile.user_id) return false;
     const decision = evaluatePetFeedPostDelete(post, accountProfile?.user_id);
     if (!decision.allowed) {
@@ -2596,6 +2605,8 @@ export function usePetHealthApp() {
     body: { status: string; saleChannel?: string; buyerEmail?: string },
   ): Promise<PetFeedPost | null> {
     if (!token || !postId) return null;
+    const existing = petFeedPosts.find((item) => item.id === postId);
+    if (blockSoldListingAction(existing)) return null;
     try {
       const result = await patchListingStatus(token, postId, body);
       const updated = result.data;
@@ -2740,6 +2751,7 @@ export function usePetHealthApp() {
 
   async function submitPetFeedReport(post: PetFeedPost, reason: string, note?: string) {
     if (!token) return;
+    if (blockSoldListingAction(post)) return;
     try {
       await reportPetFeedPost(token, post.id, { reason, note });
       Alert.alert(i18n.t('common.ok'), i18n.t('petFeed.reportSuccess'));
@@ -2820,6 +2832,8 @@ export function usePetHealthApp() {
     parentId?: string | null,
   ): Promise<PetFeedComment | null> => {
     if (!token || !postId) return null;
+    const post = petFeedPosts.find((item) => item.id === postId);
+    if (blockSoldListingAction(post)) return null;
     try {
       const response = await createPetFeedPostComment(token, postId, body, parentId);
       const created = response.data ?? null;
@@ -2842,6 +2856,8 @@ export function usePetHealthApp() {
 
   const deletePetFeedComment = useCallback(async (comment: PetFeedComment, removedCount = 1): Promise<boolean> => {
     if (!token || !comment?.id) return false;
+    const post = petFeedPosts.find((item) => item.id === comment.post_id);
+    if (blockSoldListingAction(post)) return false;
     try {
       await deletePetFeedPostComment(token, comment.id);
       const delta = Math.max(1, removedCount);
@@ -3165,6 +3181,7 @@ export function usePetHealthApp() {
 
   async function openOrCreateConversationFromPost(post: PetFeedPost) {
     if (!token || !post?.id) return;
+    if (blockSoldListingAction(post)) return;
 
     const cached = petFeedConversations.find((item) => item.post_id === post.id);
     if (cached?.id) {
@@ -3741,6 +3758,7 @@ export function usePetHealthApp() {
 
   async function togglePetFeedFavorite(post: PetFeedPost) {
     if (!token) return;
+    if (blockSoldListingAction(post)) return;
     const nextFavorited = !post.is_favorited;
     const nextCount = Math.max(0, (post.favorite_count ?? 0) + (nextFavorited ? 1 : -1));
     const optimistic = { ...post, is_favorited: nextFavorited, favorite_count: nextCount };

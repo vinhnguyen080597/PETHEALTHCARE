@@ -411,6 +411,8 @@
     "deleteBlockedTitle": "Chưa thể xóa tin đăng",
     "deleteBlockedDeposit": "Không thể xóa tin đang được cọc.",
     "deleteBlockedSoldCooldown": "Tin đã hoàn thành chỉ xóa được sau 7 ngày. Còn {{days}} ngày.",
+    "soldActionsBlockedTitle": "Bài đăng đã bán",
+    "soldActionsBlocked": "Không thể thực hiện thao tác này với bài đăng đã bán.",
     "shareTitle": "Chia sẻ bài đăng",
     "shareFallbackTitle": "Bài đăng Pet Feed",
     "shareCopied": "Đã copy link. Người có app sẽ mở được bài đăng; chưa có app sẽ được hướng dẫn tải từ store.",

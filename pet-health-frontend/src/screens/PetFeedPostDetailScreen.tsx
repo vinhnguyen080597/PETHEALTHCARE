@@ -26,7 +26,10 @@ import { petFeedDetailShowsEditButton, petFeedDetailShowsMessageButton } from '.
 import { similarForSaleListings } from '../utils/petFeedDetailSiblingListings';
 import { modalBottomInset } from '../utils/modalSafeArea';
 import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
-import { canShowListingStatusUpdate } from '../utils/listingAvailabilityBadge';
+import { listingPostActionsLocked } from '../utils/marketplaceListingCard';
+import {
+  canShowListingStatusUpdate,
+} from '../utils/listingAvailabilityBadge';
 
 type PetFeedPostDetailScreenProps = {
   postId: string;
@@ -168,8 +171,13 @@ export function PetFeedPostDetailScreen({
   }, [focusCommentId, onFocusCommentHandled]);
 
   const isOwnPost = Boolean(selectedPost && currentUserId && selectedPost.user_id === currentUserId);
-  const showMessageCta = petFeedDetailShowsMessageButton(Boolean(isOwnPost), Boolean(onMessageBreeder));
-  const showEditCta = petFeedDetailShowsEditButton(Boolean(isOwnPost), Boolean(onEditPost));
+  const postActionsLocked = Boolean(selectedPost && listingPostActionsLocked(selectedPost));
+  const showMessageCta =
+    !postActionsLocked
+    && petFeedDetailShowsMessageButton(Boolean(isOwnPost), Boolean(onMessageBreeder));
+  const showEditCta =
+    !postActionsLocked
+    && petFeedDetailShowsEditButton(Boolean(isOwnPost), Boolean(onEditPost));
   const siblingListings = useMemo(
     () => (selectedPost ? similarForSaleListings(listPosts, selectedPost) : []),
     [listPosts, selectedPost],
@@ -183,6 +191,7 @@ export function PetFeedPostDetailScreen({
   const showStatusUpdate = Boolean(
     selectedPost
     && onPatchListingStatus
+    && !postActionsLocked
     && canShowListingStatusUpdate({ isOwner: isOwnPost, status: selectedPost.status }),
   );
 
@@ -280,17 +289,7 @@ export function PetFeedPostDetailScreen({
         </Pressable>
         <Text className="flex-1 text-center text-base font-semibold text-slate-900">{t('petFeed.detailTitle')}</Text>
         <View className="flex-row items-center">
-          {selectedPost ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('petFeed.accessibility.shareListing', { title: selectedPost.title })}
-              className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100"
-              onPress={() => void sharePetFeedPost(selectedPost)}
-            >
-              <Ionicons name="share-outline" size={20} color={BRAND.textSecondary} />
-            </Pressable>
-          ) : null}
-          {selectedPost && !isOwnPost ? (
+          {selectedPost && !isOwnPost && !postActionsLocked ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('petFeed.accessibility.reportListing', { title: selectedPost.title })}
@@ -312,6 +311,16 @@ export function PetFeedPostDetailScreen({
           ) : (
             <View className="w-10" />
           )}
+          {selectedPost ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('petFeed.accessibility.shareListing', { title: selectedPost.title })}
+              className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100"
+              onPress={() => void sharePetFeedPost(selectedPost)}
+            >
+              <Ionicons name="share-outline" size={20} color={BRAND.textSecondary} />
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -335,6 +344,7 @@ export function PetFeedPostDetailScreen({
               onMessageBreeder={onMessageBreeder}
               onEditPost={onEditPost}
               showFavorite
+              favoriteDisabled={postActionsLocked}
               showMessageButton={showMessageCta}
               showEditButton={false}
               showStatusButton={showStatusUpdate}
@@ -353,12 +363,14 @@ export function PetFeedPostDetailScreen({
                 currentUserId={currentUserId}
                 focusCommentId={focusCommentId}
                 onFocusCommentOffset={handleFocusCommentOffset}
-                onReply={setReplyTo}
-                onDelete={(comment) => void removeComment(comment)}
+                onReply={postActionsLocked ? undefined : setReplyTo}
+                onDelete={postActionsLocked ? undefined : (comment) => void removeComment(comment)}
                 commentSubmitting={commentSubmitting}
-                replyTo={replyTo}
+                replyTo={postActionsLocked ? null : replyTo}
                 onCancelReply={() => setReplyTo(null)}
-                onSubmitComment={onSubmitPostComment ? addComment : undefined}
+                onSubmitComment={
+                  postActionsLocked || !onSubmitPostComment ? undefined : addComment
+                }
               />
             </View>
           </>

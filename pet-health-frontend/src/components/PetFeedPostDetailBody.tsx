@@ -68,6 +68,7 @@ type PetFeedPostDetailBodyProps = {
   onMessageBreeder?: (post: PetFeedPost) => void;
   onEditPost?: (post: PetFeedPost) => void;
   showFavorite?: boolean;
+  favoriteDisabled?: boolean;
   showMessageButton?: boolean;
   showEditButton?: boolean;
   showStatusButton?: boolean;
@@ -81,6 +82,7 @@ export function PetFeedPostDetailBody({
   onMessageBreeder,
   onEditPost,
   showFavorite = true,
+  favoriteDisabled = false,
   showMessageButton = false,
   showEditButton = false,
   showStatusButton = false,
@@ -223,8 +225,14 @@ export function PetFeedPostDetailBody({
                   testID={`pet-feed-favorite-button-${post.id}`}
                   accessibilityRole="button"
                   accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
+                  accessibilityState={{ disabled: favoriteDisabled }}
+                  disabled={favoriteDisabled}
                   className="shrink-0 flex-row items-center gap-1.5 py-1"
-                  onPress={() => onToggleFavorite(post)}
+                  style={{ opacity: favoriteDisabled ? 0.45 : 1 }}
+                  onPress={() => {
+                    if (favoriteDisabled) return;
+                    onToggleFavorite(post);
+                  }}
                 >
                   <Ionicons
                     name={post.is_favorited ? 'heart' : 'heart-outline'}

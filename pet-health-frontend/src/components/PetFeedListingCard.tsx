@@ -14,6 +14,7 @@ import {
   LISTING_CARD_IMAGE_HEIGHT,
   listingBreederFooterMetrics,
   listingCardShowsEditAction,
+  listingPostActionsLocked,
   listingPreviewImages,
 } from '../utils/marketplaceListingCard';
 import { ListingMediaOverlayBadges } from './ListingMediaOverlayBadges';
@@ -44,9 +45,11 @@ function PetFeedListingCardComponent({
   const { t, i18n } = useTranslation();
   const breeder = post.breeder_profile;
   const isOwnPost = isOwnListingPost(currentUserId, post);
+  const actionsLocked = listingPostActionsLocked(post);
   const canShowFavorite = showFavorite && Boolean(onToggleFavorite);
-  const canShowContact = showContact && !isOwnPost && Boolean(onMessageBreeder);
-  const canShowEdit = listingCardShowsEditAction(isOwnPost, Boolean(onEditPost));
+  const favoriteDisabled = actionsLocked && canShowFavorite;
+  const canShowContact = showContact && !isOwnPost && Boolean(onMessageBreeder) && !actionsLocked;
+  const canShowEdit = listingCardShowsEditAction(isOwnPost, Boolean(onEditPost)) && !actionsLocked;
   const showActions = canShowFavorite || canShowContact || canShowEdit;
 
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
@@ -132,13 +135,16 @@ function PetFeedListingCardComponent({
                 testID={`pet-feed-favorite-button-${post.id}`}
                 accessibilityRole="button"
                 accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
-                accessibilityState={{ selected: post.is_favorited }}
+                accessibilityState={{ selected: post.is_favorited, disabled: favoriteDisabled }}
+                disabled={favoriteDisabled}
                 className="flex-row items-center gap-1 rounded-xl border px-2.5 py-2"
                 style={{
                   borderColor: post.is_favorited ? '#FECDD3' : BRAND.borderBrand,
                   backgroundColor: post.is_favorited ? '#FFF1F2' : BRAND.card,
+                  opacity: favoriteDisabled ? 0.45 : 1,
                 }}
                 onPress={(event) => {
+                  if (favoriteDisabled) return;
                   stopPress(event);
                   onToggleFavorite?.(post);
                 }}

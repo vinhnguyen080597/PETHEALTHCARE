@@ -410,6 +410,8 @@
     "deleteBlockedTitle": "Cannot delete this listing yet",
     "deleteBlockedDeposit": "Listings with an active deposit cannot be deleted.",
     "deleteBlockedSoldCooldown": "Completed listings can be deleted 7 days after completion. {{days}} day(s) remaining.",
+    "soldActionsBlockedTitle": "Listing sold",
+    "soldActionsBlocked": "This action is not available for sold listings.",
     "shareTitle": "Share listing",
     "shareFallbackTitle": "Pet Feed listing",
     "shareCopied": "Link copied. Recipients with the app can open the listing; others are guided to the store.",

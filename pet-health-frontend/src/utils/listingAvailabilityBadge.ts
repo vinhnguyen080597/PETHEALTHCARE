@@ -39,5 +39,5 @@ export function canShowListingStatusUpdate(input: {
 }): boolean {
   if (!input.isOwner) return false;
   const s = String(input.status || '').trim().toLowerCase();
-  return s === 'published' || s === 'deposit_hold' || s === 'sold';
+  return s === 'published' || s === 'deposit_hold';
 }

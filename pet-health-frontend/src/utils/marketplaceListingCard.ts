@@ -126,6 +126,16 @@ export function listingMetadataMarksSold(metadata: Record<string, unknown>): boo
   return metadata.sold === true || metadata.completed === true || metadata.rehomed === true;
 }
 
+/** Sold listings are read-only except share. */
+export function listingPostActionsLocked(input: {
+  status?: string | null;
+  metadata?: Record<string, unknown> | null;
+}): boolean {
+  const status = String(input.status || '').trim().toLowerCase();
+  if (status === 'sold') return true;
+  return listingMetadataMarksSold(input.metadata ?? {});
+}
+
 export function listingMetadataMarksCancelled(metadata: Record<string, unknown>): boolean {
   const outcome = String(metadata.listing_outcome ?? metadata.outcome ?? '').trim().toLowerCase();
   if (outcome === 'cancelled' || outcome === 'canceled') return true;

@@ -21,6 +21,7 @@ import { confirmAdminModeration } from '../utils/adminConfirmModeration';
 import { modalTopInset } from '../utils/modalSafeArea';
 import { opensMyListingReviewPopup } from '../utils/myListingReviewPopup';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
+import { listingPostActionsLocked } from '../utils/marketplaceListingCard';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { BRAND } from '../theme/brand';
 import {
@@ -1361,8 +1362,9 @@ export function AccountScreen({
                       : undefined
                   }
                   onDelete={
-                    onDeletePetFeedPost &&
-                    evaluatePetFeedPostDelete(post).reason !== 'already_deleted'
+                    onDeletePetFeedPost
+                    && !listingPostActionsLocked(post)
+                    && evaluatePetFeedPostDelete(post).reason !== 'already_deleted'
                       ? () => {
                           setListingMenuPostId(null);
                           const decision = evaluatePetFeedPostDelete(post);

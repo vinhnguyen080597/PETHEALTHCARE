@@ -8,6 +8,7 @@ import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
+import { listingPostActionsLocked } from '../utils/marketplaceListingCard';
 import {
   canDownloadPostMedia,
   selectedMediaDownloadUrl,
@@ -263,12 +264,13 @@ function PetFeedPostCardComponent({
   const { t, i18n } = useTranslation();
   const breeder = post.breeder_profile;
   const isOwnPost = Boolean(currentUserId && post.user_id === currentUserId);
-  const canShowContact = showContact && !isOwnPost;
-  const canShowReport = showReport && !isOwnPost;
-  const canShowEdit = isOwnPost && Boolean(onEditPost);
+  const actionsLocked = listingPostActionsLocked(post);
+  const canShowContact = showContact && !isOwnPost && !actionsLocked;
+  const canShowReport = showReport && !isOwnPost && !actionsLocked;
+  const canShowEdit = isOwnPost && Boolean(onEditPost) && !actionsLocked;
   const deleteDecision = evaluatePetFeedPostDelete(post, currentUserId);
   const canShowDelete =
-    isOwnPost && Boolean(onDeletePost) && deleteDecision.reason !== 'already_deleted';
+    isOwnPost && Boolean(onDeletePost) && deleteDecision.reason !== 'already_deleted' && !actionsLocked;
   const canShowShare = Boolean(onSharePost);
   const canDownloadMedia = canDownloadPostMedia(allowMediaDownload);
   const showActions = canShowContact || canShowReport || canShowEdit || canShowDelete || canShowShare;
