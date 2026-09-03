@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { trustTickColor } from "@/lib/breederTrust";
 
 type Props = {
@@ -10,11 +11,16 @@ type Props = {
   className?: string;
   /** Override tick coloring (defaults to transparency trust bands). */
   tickColor?: (tickIndex: number, score: number) => string;
+  /** Duration of the sweep that fills ticks up to the score, in ms. */
+  sweepMs?: number;
 };
+
+const TICK_FADE_MS = 240;
 
 /**
  * 100 radial ticks gauge — active ticks (≤ score) use band colors;
- * inactive ticks are light gray.
+ * inactive ticks are light gray. On mount the active ticks light up in a
+ * clockwise sweep from tick 1 to the score.
  */
 export function TrustTicksGauge({
   score,
@@ -22,8 +28,32 @@ export function TrustTicksGauge({
   size = 220,
   className = "",
   tickColor = trustTickColor,
+  sweepMs = 900,
 }: Props) {
   const s = Math.max(0, Math.min(100, Math.round(score)));
+  const [lit, setLit] = useState(false);
+  const [animated, setAnimated] = useState(true);
+
+  useEffect(() => {
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    setAnimated(!reduceMotion);
+    if (reduceMotion) {
+      setLit(true);
+      return;
+    }
+    setLit(false);
+    // Two frames so the browser paints the unlit state before the transition.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setLit(true));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [s]);
+
   const cx = size / 2;
   const cy = size / 2;
   const outerR = size * 0.42;
@@ -38,6 +68,9 @@ export function TrustTicksGauge({
     const y1 = cy + Math.sin(rad) * innerR;
     const x2 = cx + Math.cos(rad) * outerR;
     const y2 = cy + Math.sin(rad) * outerR;
+    const isActive = tick <= s;
+    // Passing score 0 asks the palette for its inactive color.
+    const unlitColor = tickColor(tick, 0);
     return (
       <line
         key={tick}
@@ -45,9 +78,17 @@ export function TrustTicksGauge({
         y1={y1}
         x2={x2}
         y2={y2}
-        stroke={tickColor(tick, s)}
+        stroke={lit ? tickColor(tick, s) : unlitColor}
         strokeWidth={size * 0.008}
         strokeLinecap="round"
+        style={
+          animated && isActive
+            ? {
+                transition: `stroke ${TICK_FADE_MS}ms ease-out`,
+                transitionDelay: `${((tick - 1) / s) * sweepMs}ms`,
+              }
+            : undefined
+        }
       />
     );
   });
