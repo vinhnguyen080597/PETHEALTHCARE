@@ -7,6 +7,7 @@ import {
   socialTransparencyPoints,
   TRANSPARENCY_POINTS,
   transparencyProfileCompletionPercent,
+  transparencyScoreColor,
   transparencyTickColor,
   TRANSPARENCY_TICK_INACTIVE,
 } from "../src/lib/breederTransparencyScore";
@@ -120,12 +121,14 @@ test("transparency tiers match new title bands", () => {
   assert.equal(getTransparencyTier(100).nameVI, "Trại uy tín hàng đầu");
 });
 
-test("tick colors follow new score bands", () => {
-  assert.equal(transparencyTickColor(10, 75), "#DC2626");
-  assert.equal(transparencyTickColor(25, 75), "#EF4444");
-  assert.equal(transparencyTickColor(40, 75), "#F97316");
+test("gauge ticks use one accumulation color per score, never alarm red", () => {
+  assert.equal(transparencyScoreColor(30), "#F97316");
+  assert.equal(transparencyScoreColor(75), "#0284C7");
+  assert.equal(transparencyScoreColor(100), "#10B981");
+  assert.equal(transparencyTickColor(10, 75), "#0284C7");
+  assert.equal(transparencyTickColor(25, 30), "#F97316");
   assert.equal(transparencyTickColor(90, 75), TRANSPARENCY_TICK_INACTIVE);
-  assert.equal(transparencyTickColor(100, 100), "#059669");
+  assert.equal(transparencyTickColor(100, 100), "#10B981");
 });
 
 test("social constants match updated transparency formula", () => {

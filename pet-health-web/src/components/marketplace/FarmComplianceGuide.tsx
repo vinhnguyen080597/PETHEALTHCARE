@@ -7,6 +7,7 @@ import {
   complianceBandForScore,
   complianceBandLabel,
   complianceBandMeaning,
+  complianceTickColor,
   getComplianceScoreFromMetadata,
 } from "@/lib/breederComplianceScore";
 import {
@@ -83,6 +84,7 @@ export function FarmComplianceGuide({
           score={complianceScore}
           caption={t(lang, "farm.trust.complianceGaugeCaption")}
           size={180}
+          tickColor={complianceTickColor}
         />
         <div className="min-w-0 text-center sm:text-left space-y-2">
           <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">

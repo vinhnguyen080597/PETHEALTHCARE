@@ -666,7 +666,12 @@ const vi: Record<EnKey, string> = {
   "farm.trust.scoreTitle": "Điểm minh bạch trại giống",
   "farm.trust.scoreSubtitle":
     "Hai thang điểm riêng: minh bạch (hồ sơ đã duyệt) và tuân thủ (bắt đầu từ 100, trừ khi Admin xác nhận vi phạm).",
+  "farm.trust.sectionTitle": "Chỉ số uy tín & tuân thủ trại giống",
+  "farm.trust.sectionSubtitle":
+    "Đánh giá dựa trên hồ sơ đã xác minh và lịch sử chấp hành quy chế hoạt động trên sàn.",
   "farm.trust.gaugeCaption": "Điểm minh bạch",
+  "farm.trust.gaugeOutOf": "Trên 100",
+  "farm.trust.accountStatus": "Trạng thái tài khoản",
   "farm.trust.profileProgress": "Hoàn thiện hồ sơ",
   "farm.trust.breakdownTitle": "Danh mục điểm minh bạch",
   "farm.trust.guide.cta": "Xem chi tiết điểm minh bạch",

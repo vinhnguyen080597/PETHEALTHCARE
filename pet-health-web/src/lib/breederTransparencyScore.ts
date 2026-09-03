@@ -287,6 +287,24 @@ export function getTransparencyTier(score: number): TransparencyTierInfo {
   return TRANSPARENCY_TIERS[0];
 }
 
+/**
+ * Transparency is an accumulative profile signal, so the gauge never uses alarm
+ * red — a low score means "not finished yet", not "penalised".
+ */
+export const TRANSPARENCY_GAUGE_COLORS = {
+  starting: "#F97316",
+  building: "#0284C7",
+  complete: "#10B981",
+} as const;
+
+export function transparencyScoreColor(score: number): string {
+  const s = clampScore(score);
+  if (s >= 80) return TRANSPARENCY_GAUGE_COLORS.complete;
+  if (s >= 40) return TRANSPARENCY_GAUGE_COLORS.building;
+  return TRANSPARENCY_GAUGE_COLORS.starting;
+}
+
+/** @deprecated Per-tick tier colors read as penalties — use transparencyScoreColor. */
 export function transparencyTickBandColor(tickIndex: number): string {
   if (tickIndex <= 15) return TRANSPARENCY_TIERS[0].color;
   if (tickIndex <= 29) return TRANSPARENCY_TIERS[1].color;
@@ -298,7 +316,7 @@ export function transparencyTickBandColor(tickIndex: number): string {
 
 export function transparencyTickColor(tickIndex: number, score: number): string {
   if (tickIndex > score) return TRANSPARENCY_TICK_INACTIVE;
-  return transparencyTickBandColor(tickIndex);
+  return transparencyScoreColor(score);
 }
 
 export function parseApprovedSocialFromMeta(meta: Record<string, unknown>): {

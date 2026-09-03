@@ -30,8 +30,8 @@ test("mapApiBreeder normalizes verification and trust defaults", () => {
   assert.equal(mapped.verified, true);
   assert.equal(mapped.verificationStatus, "verified");
   assert.equal(mapped.breederType, "registered_kennel");
-  // Verified base 30 + approved business license 10
-  assert.equal(mapped.trustScore, 40);
+  // Verified base 30 + approved business license 30
+  assert.equal(mapped.trustScore, 60);
   assert.equal(mapped.verificationTier, 3);
   assert.equal(mapped.template, "T2");
   assert.equal(mapped.activeListings, 3);

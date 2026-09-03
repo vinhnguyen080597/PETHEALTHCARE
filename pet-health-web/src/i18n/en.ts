@@ -664,7 +664,12 @@ const en = {
   "farm.trust.scoreTitle": "Kennel transparency score",
   "farm.trust.scoreSubtitle":
     "Two separate scores: transparency (approved profile) and compliance (starts at 100; deducted only after Admin confirms a violation).",
+  "farm.trust.sectionTitle": "Kennel trust & compliance index",
+  "farm.trust.sectionSubtitle":
+    "Based on your verified profile and your record of following marketplace rules.",
   "farm.trust.gaugeCaption": "Transparency score",
+  "farm.trust.gaugeOutOf": "Out of 100",
+  "farm.trust.accountStatus": "Account status",
   "farm.trust.profileProgress": "Profile completeness",
   "farm.trust.breakdownTitle": "Transparency breakdown",
   "farm.trust.guide.cta": "View transparency details",

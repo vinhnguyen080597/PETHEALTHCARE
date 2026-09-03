@@ -34,12 +34,23 @@ test("profile breakdown lines show fixed point ranges", () => {
   );
 });
 
-test("penalty history row is hidden from breakdown list", () => {
+test("transparency breakdown never reports penalties (compliance owns them)", () => {
   const { lines } = computeTransparencyScore({
     isVerified: true,
     penaltyPoints: 5,
   });
+  assert.equal(lines.some((line) => line.key === "penalty"), false);
   const visible = visibleTransparencyBreakdownLines(lines);
-  assert.equal(visible.some((line) => line.key === "penalty"), false);
-  assert.equal(visible.length, lines.length - 1);
+  assert.equal(visible.length, lines.length);
+});
+
+test("legacy penalty rows are still filtered out of the breakdown list", () => {
+  const visible = visibleTransparencyBreakdownLines([
+    { key: "verifiedBase", group: "profile", val: 30, max: 30, done: true },
+    { key: "penalty", group: "penalty", val: -5, max: 0, done: false },
+  ]);
+  assert.deepEqual(
+    visible.map((line) => line.key),
+    ["verifiedBase"],
+  );
 });
