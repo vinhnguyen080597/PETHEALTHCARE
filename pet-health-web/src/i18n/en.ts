@@ -1626,11 +1626,11 @@ const en = {
 
   "legal.title": "Support and policies",
   "legal.body":
-    "Read how PetCare: Pet Marketplace handles privacy, community terms, marketplace rules, and support requests.",
+    "See how PetCare: Pet Marketplace handles privacy, terms, marketplace rules, and support requests.",
   "legal.privacy": "Privacy Policy",
   "legal.terms": "Terms of Service",
   "legal.guidelines": "Marketplace Guidelines",
-  "legal.support": "Support",
+  "legal.support": "Contact Support",
   "legal.dismissDisclaimer": "Dismiss marketplace notice",
 
   "common.mo": "mo",

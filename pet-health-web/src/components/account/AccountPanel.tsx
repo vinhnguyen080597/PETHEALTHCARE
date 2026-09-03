@@ -547,21 +547,27 @@ export function AccountPanel({
               <h2 className="text-base font-bold text-[#2B1E19]">
                 {t(lang, "legal.title")}
               </h2>
-              <p className="mt-1 text-xs text-stone-500 mb-3">
+              <p className="mt-1 text-sm leading-5 text-stone-500">
                 {t(lang, "legal.body")}
               </p>
-              <Link
-                href="/marketplace-guidelines"
-                className="block text-sm font-medium text-[#D97706] hover:text-[#B45309]"
-              >
-                {t(lang, "legal.guidelines")} →
-              </Link>
-              <Link
-                href="/app/support"
-                className="mt-2 block text-sm font-medium text-[#D97706] hover:text-[#B45309]"
-              >
-                {t(lang, "legal.support")} →
-              </Link>
+              <div className="mt-3 space-y-2">
+                <LegalPolicyLink
+                  href="/privacy-policy"
+                  label={t(lang, "legal.privacy")}
+                />
+                <LegalPolicyLink
+                  href="/terms-of-service"
+                  label={t(lang, "legal.terms")}
+                />
+                <LegalPolicyLink
+                  href="/marketplace-guidelines"
+                  label={t(lang, "legal.guidelines")}
+                />
+                <LegalPolicyLink
+                  href="/app/support"
+                  label={t(lang, "legal.support")}
+                />
+              </div>
             </section>
 
             <button
@@ -703,5 +709,30 @@ export function AccountPanel({
     />
     <TransparencyWarningModal lang={lang} />
     </>
+  );
+}
+
+function LegalPolicyLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+    >
+      <span>{label}</span>
+      <svg
+        aria-hidden
+        viewBox="0 0 24 24"
+        className="h-4 w-4 shrink-0 text-slate-500"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path
+          d="M14 4h6v6M10 14 20 4M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </Link>
   );
 }

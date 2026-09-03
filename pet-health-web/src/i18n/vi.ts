@@ -1628,11 +1628,11 @@ const vi: Record<EnKey, string> = {
 
   "legal.title": "Hỗ trợ và chính sách",
   "legal.body":
-    "Đọc cách PetCare: Pet Marketplace xử lý bảo mật, điều khoản cộng đồng, nội quy marketplace và yêu cầu hỗ trợ.",
+    "Xem cách PetCare: Pet Marketplace xử lý quyền riêng tư, điều khoản, nội quy marketplace và yêu cầu hỗ trợ.",
   "legal.privacy": "Chính sách bảo mật",
   "legal.terms": "Điều khoản dịch vụ",
   "legal.guidelines": "Nội quy Marketplace",
-  "legal.support": "Hỗ trợ",
+  "legal.support": "Liên hệ hỗ trợ",
   "legal.dismissDisclaimer": "Đóng thông báo marketplace",
 
   "common.mo": "tháng",
