@@ -12,7 +12,6 @@ import {
   isFarmReviewApproved,
   normalizeFarmReviewPhotoUrls,
   normalizeFarmReviewStatus,
-  transparencyPointsForFarmReview,
   validateFarmReviewInput,
 } from '../utils/breederFarmReviews.js';
 
@@ -676,8 +675,7 @@ export async function adminUpdateFarmReviewStatus(
     reviewer_user_id: existing.reviewer_user_id,
     notify_breeder_on_approve: safeStatus === 'approved',
     notify_reviewer_on_reject: safeStatus === 'rejected',
-    transparency_points_awarded:
-      safeStatus === 'approved' ? transparencyPointsForFarmReview(existing.rating) : 0,
+    transparency_points_awarded: 0,
   };
 }
 

@@ -54,17 +54,13 @@ test("unearned profile missions show update except activity rows", () => {
     ),
     true,
   );
-  assert.equal(trustGuideEarnShowArrow("completions", false), false);
-  assert.equal(trustGuideEarnShowArrow("reviews", false), false);
+  assert.equal(trustGuideEarnShowArrow("facebook", false), true);
 });
 
-test("activity earn rows use per-occurrence point labels", () => {
+test("earn rows use fixed point labels", () => {
   assert.equal(
-    formatTrustGuideEarnPoints(
-      { id: "completions", points: 3 },
-      "VI",
-    ),
-    "+3/lần",
+    formatTrustGuideEarnPoints({ id: "businessLicense", points: 30 }, "VI"),
+    "+30đ",
   );
   assert.equal(
     formatTrustGuideEarnPoints({ id: "facebook", points: 5 }, "VI"),

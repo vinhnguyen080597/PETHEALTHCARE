@@ -7,6 +7,7 @@ import {
   LIGHT_VIOLATION_EXPIRY_DAYS,
   socialTransparencyPoints,
   TRANSPARENCY_POINTS,
+  transparencyProfileCompletionPercent,
   transparencyTickColor,
   TRANSPARENCY_TICK_INACTIVE,
 } from "../src/lib/breederTransparencyScore";
@@ -41,7 +42,7 @@ test("approved social platforms award 5 points each", () => {
   assert.equal(result.score, 40);
 });
 
-test("profile bonuses and activity stack up to 100 cap", () => {
+test("full profile checklist reaches 100 without activity bonuses", () => {
   const result = computeTransparencyScore({
     isVerified: true,
     approvedFacebook: true,
@@ -52,19 +53,37 @@ test("profile bonuses and activity stack up to 100 cap", () => {
     approvedBusinessLicense: true,
     approvedFirstWarranty: true,
     senConfirmedCompletions: 20,
-    fiveStarReviewCount: 0,
+    fiveStarReviewCount: 10,
   });
+  assert.equal(result.activityPoints, 0);
   assert.equal(result.score, 100);
   assert.equal(getTransparencyTier(result.score).nameVI, "Trại uy tín hàng đầu");
 });
 
-test("five star reviews award 2 points each", () => {
+test("business license awards 30 points", () => {
   const result = computeTransparencyScore({
     isVerified: true,
-    fiveStarReviewCount: 4,
+    approvedBusinessLicense: true,
   });
-  assert.equal(result.activityPoints, 8);
-  assert.equal(result.score, 38);
+  assert.equal(result.score, 60);
+  assert.equal(
+    result.lines.find((line) => line.key === "businessLicense")?.max,
+    30,
+  );
+});
+
+test("activity handoffs and five-star reviews no longer affect score", () => {
+  const result = computeTransparencyScore({
+    isVerified: true,
+    senConfirmedCompletions: 20,
+    fiveStarReviewCount: 10,
+  });
+  assert.equal(result.score, 30);
+  assert.equal(result.activityPoints, 0);
+  assert.equal(
+    result.lines.some((line) => line.key === "completions" || line.key === "reviews"),
+    false,
+  );
 });
 
 test("penalties subtract from transparency score", () => {
@@ -111,9 +130,33 @@ test("tick colors follow new score bands", () => {
   assert.equal(transparencyTickColor(100, 100), "#059669");
 });
 
-test("social constants match spec", () => {
+test("social constants match updated transparency formula", () => {
   assert.equal(TRANSPARENCY_POINTS.verifiedBase, 30);
   assert.equal(TRANSPARENCY_POINTS.socialPlatform, 5);
-  assert.equal(TRANSPARENCY_POINTS.fiveStarReview, 2);
-  assert.equal(TRANSPARENCY_POINTS.senConfirmedCompletion, 3);
+  assert.equal(TRANSPARENCY_POINTS.businessLicense, 30);
+  assert.equal(TRANSPARENCY_POINTS.facilityVideo, 10);
+  assert.equal(TRANSPARENCY_POINTS.firstWarranty, 10);
+});
+
+test("transparencyProfileCompletionPercent uses profile checklist not overall score", () => {
+  assert.equal(
+    transparencyProfileCompletionPercent(computeTransparencyScore({ isVerified: false })),
+    0,
+  );
+  assert.equal(
+    transparencyProfileCompletionPercent(computeTransparencyScore({ isVerified: true })),
+    30,
+  );
+  const fullProfile = computeTransparencyScore({
+    isVerified: true,
+    approvedFacebook: true,
+    approvedZalo: true,
+    approvedTiktok: true,
+    approvedInstagram: true,
+    approvedFacilityVideo: true,
+    approvedBusinessLicense: true,
+    approvedFirstWarranty: true,
+  });
+  assert.equal(transparencyProfileCompletionPercent(fullProfile), 100);
+  assert.equal(fullProfile.score, 100);
 });

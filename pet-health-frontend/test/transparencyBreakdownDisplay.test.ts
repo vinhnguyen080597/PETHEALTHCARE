@@ -7,22 +7,24 @@ import {
   visibleTransparencyBreakdownLines,
 } from '../src/utils/transparencyBreakdownDisplay.ts';
 
-test('transparency breakdown labels use completed handoff and per-review wording', () => {
-  assert.equal(transparencyBreakdownLabel('VI', 'completions'), 'Giao dịch hoàn thành');
-  assert.equal(transparencyBreakdownLabel('VI', 'reviews'), 'Nhận đánh giá 5 sao');
-  assert.equal(transparencyBreakdownLabel('EN', 'completions'), 'Completed handoffs');
+test('transparency breakdown labels cover profile checklist only', () => {
+  assert.equal(transparencyBreakdownLabel('VI', 'businessLicense'), 'Giấy phép kinh doanh');
+  assert.equal(transparencyBreakdownLabel('EN', 'facilityVideo'), 'Facility video');
+  assert.equal(transparencyBreakdownLabel('VI', 'completions'), 'completions');
 });
 
-test('activity breakdown lines show per-occurrence points', () => {
-  const { lines } = computeTransparencyScore({ isVerified: true });
-  const completions = lines.find((line) => line.key === 'completions');
-  const reviews = lines.find((line) => line.key === 'reviews');
-  assert.ok(completions);
-  assert.ok(reviews);
-  assert.equal(formatTransparencyBreakdownPoints(completions!, 'VI'), '+3/lần');
-  assert.equal(formatTransparencyBreakdownPoints(reviews!, 'VI'), '+2/lần');
-  assert.equal(formatTransparencyBreakdownPoints(completions!, 'EN'), '+3/each');
-  assert.equal(formatTransparencyBreakdownPoints(reviews!, 'EN'), '+2/each');
+test('profile breakdown lines show fixed point ranges', () => {
+  const { lines } = computeTransparencyScore({
+    isVerified: true,
+    approvedBusinessLicense: true,
+  });
+  const license = lines.find((line) => line.key === 'businessLicense');
+  assert.ok(license);
+  assert.equal(formatTransparencyBreakdownPoints(license!, 'VI'), '+30 / 30đ');
+  assert.equal(
+    lines.some((line) => line.key === 'completions' || line.key === 'reviews'),
+    false,
+  );
 });
 
 test('penalty history row is hidden from breakdown list', () => {

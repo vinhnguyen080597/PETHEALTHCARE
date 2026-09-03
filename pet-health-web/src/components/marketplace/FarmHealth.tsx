@@ -10,6 +10,7 @@ import {
 } from "@/lib/breederTrust";
 import { farmTrustGuideHref } from "@/lib/farmTrustGuide";
 import { formatBreederReviewLabel } from "@/lib/breederDealReviews";
+import { transparencyProfileCompletionPercent } from "@/lib/breederTransparencyScore";
 import { t } from "@/i18n";
 import { TrustLevelChip } from "./Badges";
 import { TrustTicksGauge } from "./TrustTicksGauge";
@@ -39,12 +40,12 @@ export function FarmHealth({
     : computed.score;
   const tier = getTrustTier(eff);
   const tierLabel = lang === "VI" ? tier.nameVI : tier.nameEN;
-  const tierMeaning = lang === "VI" ? tier.meaningVI : tier.meaningEN;
   const reviewLabel = formatBreederReviewLabel(
     breeder.reviewAverage ?? 0,
     reviewCountOverride ?? breeder.reviewCount ?? 0,
     lang,
   );
+  const profileProgress = transparencyProfileCompletionPercent(computed);
 
   const isPending = breeder.verificationStatus === "pending_review";
   const isRejected =
@@ -87,8 +88,8 @@ export function FarmHealth({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-center">
-        <div className="flex flex-col items-center text-center">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-6 lg:gap-8">
+        <div className="flex shrink-0 flex-col items-center text-center">
           <TrustTicksGauge
             score={eff}
             caption={t(lang, "farm.trust.gaugeCaption")}
@@ -96,20 +97,28 @@ export function FarmHealth({
           />
         </div>
 
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 w-full flex-1 space-y-4">
+          <TrustLevelChip level={tier.level} label={tierLabel} />
+          {reviewLabel ? (
+            <p className="text-sm font-medium text-amber-800">{reviewLabel}</p>
+          ) : (
+            <p className="text-sm text-slate-500">{t(lang, "farm.trust.ratingEmpty")}</p>
+          )}
           <div>
-            <TrustLevelChip level={tier.level} label={tierLabel} />
-            <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-              {lang === "VI"
-                ? `Điểm minh bạch: ${eff}/100`
-                : `Transparency score: ${eff}/100`}
-            </p>
-            <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-              {tierMeaning}
-            </p>
-            {reviewLabel ? (
-              <p className="mt-2 text-sm font-medium text-amber-700">{reviewLabel}</p>
-            ) : null}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-slate-600">
+                {t(lang, "farm.trust.profileProgress")}
+              </span>
+              <span className="text-sm font-semibold tabular-nums text-[#B45309]">
+                {profileProgress}%
+              </span>
+            </div>
+            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#F3E2C8]">
+              <div
+                className="h-full rounded-full bg-[#D97706]"
+                style={{ width: `${profileProgress}%` }}
+              />
+            </div>
           </div>
 
           {isOwner ? (

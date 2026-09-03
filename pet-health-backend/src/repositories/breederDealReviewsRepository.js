@@ -5,7 +5,6 @@ import { isOwnerDeletedListing } from '../utils/listingOwnerDelete.js';
 import {
   isSenConfirmedDeal,
   normalizeDealReviewRating,
-  transparencyPointsForDealReview,
   validateDealReviewInput,
 } from '../utils/breederDealReviews.js';
 
@@ -301,7 +300,7 @@ export async function createBreederDealReview(senUserId, postId, payload, access
     notify_user_id: trimText(post.user_id, 80) || null,
     post_title: trimText(post.title, 200),
     breeder_profile_id: breederProfileId,
-    transparency_points_awarded: transparencyPointsForDealReview(validated.rating),
+    transparency_points_awarded: 0,
   };
 }
 

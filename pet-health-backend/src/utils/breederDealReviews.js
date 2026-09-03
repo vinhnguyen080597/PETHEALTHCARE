@@ -40,9 +40,9 @@ export function isSenConfirmedDeal(deal) {
   return true;
 }
 
-/** Points awarded toward transparency for a single review (5★ only). */
-export function transparencyPointsForDealReview(rating) {
-  return normalizeDealReviewRating(rating) === 5 ? 2 : 0;
+/** Reviews no longer award transparency points (profile-only score). Kept for API compat. */
+export function transparencyPointsForDealReview(_rating) {
+  return 0;
 }
 
 /**
@@ -53,10 +53,8 @@ export function buildDealReviewedNotificationPreview(input = {}) {
   const title = trimText(input.title ?? input.postTitle, 60) || 'tin đăng';
   const rating = normalizeDealReviewRating(input.rating) || 0;
   const body = trimText(input.body ?? input.note ?? input.comment, 100);
-  const points = transparencyPointsForDealReview(rating);
   const stars = rating ? `${rating}★` : '★';
   let preview = `Sen đánh giá ${stars} cho "${title}".`;
-  if (points > 0) preview += ` +${points} điểm minh bạch.`;
   if (body) preview += ` "${body}"`;
   return trimText(preview, 220);
 }

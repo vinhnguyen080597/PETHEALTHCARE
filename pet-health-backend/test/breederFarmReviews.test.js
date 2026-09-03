@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildFarmReviewAdminPendingPreview,
+  buildFarmReviewedNotificationPreview,
   computeFarmReviewPool,
   countFarmReviewDisplayThreads,
   countFiveStarDirectReviews,
   filterApprovedFarmReviews,
   filterFarmReviewsForViewer,
+  transparencyPointsForFarmReview,
   validateFarmReviewInput,
 } from '../src/utils/breederFarmReviews.js';
 
@@ -86,4 +88,21 @@ test('countFiveStarDirectReviews ignores sale reviews', () => {
     { kind: 'supplement', rating: 4, status: 'approved' },
   ];
   assert.equal(countFiveStarDirectReviews(reviews), 1);
+});
+
+test('transparency points are not awarded for farm reviews', () => {
+  assert.equal(transparencyPointsForFarmReview(5), 0);
+  assert.equal(transparencyPointsForFarmReview(4), 0);
+});
+
+test('buildFarmReviewedNotificationPreview omits transparency points', () => {
+  const preview = buildFarmReviewedNotificationPreview({
+    farmName: 'Trại Mai',
+    rating: 5,
+    body: 'Tuyệt vời',
+  });
+  assert.match(preview, /5★/);
+  assert.match(preview, /Trại Mai/);
+  assert.match(preview, /Tuyệt vời/);
+  assert.equal(preview.includes('điểm minh bạch'), false);
 });

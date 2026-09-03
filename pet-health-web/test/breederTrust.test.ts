@@ -82,7 +82,7 @@ test("mapApiBreeder counts approved metadata bonuses only", () => {
     },
   };
   const mapped = mapApiBreeder(profile);
-  assert.equal(mapped.trustScore, 30 + 5 + 10 + 6 + 2);
+  assert.equal(mapped.trustScore, 30 + 5 + 10);
 });
 
 test("public trust metrics use stored trust score without double penalty", () => {

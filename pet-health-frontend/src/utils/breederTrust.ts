@@ -78,10 +78,8 @@ export function computeBreederTrust(profile: BreederProfile, _posts: PetFeedPost
     { key: 'verified', passed: Boolean(lineByKey.verifiedBase?.done), value: lineByKey.verifiedBase?.val ?? 0, max: 30 },
     { key: 'social', passed: Boolean(lineByKey.social?.done), value: lineByKey.social?.val ?? 0, max: 20 },
     { key: 'facility', passed: Boolean(lineByKey.facilityVideo?.done), value: lineByKey.facilityVideo?.val ?? 0, max: 10 },
-    { key: 'license', passed: Boolean(lineByKey.businessLicense?.done), value: lineByKey.businessLicense?.val ?? 0, max: 10 },
+    { key: 'license', passed: Boolean(lineByKey.businessLicense?.done), value: lineByKey.businessLicense?.val ?? 0, max: 30 },
     { key: 'warranty', passed: Boolean(lineByKey.firstWarranty?.done), value: lineByKey.firstWarranty?.val ?? 0, max: 10 },
-    { key: 'completions', passed: Boolean(lineByKey.completions?.done), value: lineByKey.completions?.val ?? 0, max: 0 },
-    { key: 'reviews', passed: Boolean(lineByKey.reviews?.done), value: lineByKey.reviews?.val ?? 0, max: 0 },
   ];
 
   return { score: result.score, signals };

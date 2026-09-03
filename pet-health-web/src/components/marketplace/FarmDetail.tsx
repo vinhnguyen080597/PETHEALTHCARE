@@ -485,7 +485,6 @@ export function FarmDetail({
     listingCount: forSaleCount,
     petsRehomed: countFarmPetsRehomed(listings),
   });
-  const trust = trustMetrics.qualityIndex;
   const reviewCount = trustMetrics.reviewCount;
   const visibleReviewCount =
     reviewsLoaded || reviewThreads.length > 0
@@ -1298,10 +1297,10 @@ export function FarmDetail({
           </div>
 
           {/* Right 30% sticky */}
-          <aside className="w-full lg:w-[30%] lg:sticky lg:top-24 space-y-4">
-            {!isOwner && (
-              <div className="bg-white border border-[#F3E2C8] rounded-2xl p-4 space-y-2.5 shadow-[0_10px_30px_-24px_rgba(217,119,6,0.35)]">
-                {!isOwner ? (
+          <aside className="w-full lg:w-[30%] lg:sticky lg:top-24">
+            <div className="bg-white border border-[#F3E2C8] rounded-2xl p-4 space-y-4 shadow-[0_10px_30px_-24px_rgba(217,119,6,0.35)]">
+              {!isOwner ? (
+                <div className="space-y-2.5">
                   <button
                     type="button"
                     onClick={promptFarmReview}
@@ -1309,18 +1308,58 @@ export function FarmDetail({
                   >
                     ⭐ {t(lang, "farm.review.open")}
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => void messageBreeder()}
-                  disabled={messageBusy}
-                  className="w-full py-3 bg-[#D97706] text-white text-sm font-semibold rounded-xl hover:bg-[#B45309] transition-colors disabled:opacity-60"
-                >
-                  💬 {t(lang, "farm.cta.message")}
-                </button>
-                {messageError ? (
-                  <p className="text-[11px] text-red-600">{messageError}</p>
-                ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void messageBreeder()}
+                    disabled={messageBusy}
+                    className="w-full py-3 bg-[#D97706] text-white text-sm font-semibold rounded-xl hover:bg-[#B45309] transition-colors disabled:opacity-60"
+                  >
+                    💬 {t(lang, "farm.cta.message")}
+                  </button>
+                  {messageError ? (
+                    <p className="text-[11px] text-red-600">{messageError}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className={!isOwner ? "border-t border-[#F3E2C8] pt-4 space-y-3" : "space-y-3"}>
+                <h2 className="text-xs font-semibold tracking-[0.12em] uppercase text-[#6E5A51]">
+                  {t(lang, "farm.trust.title")}
+                </h2>
+                <p className="text-sm text-[#2B1E19]">
+                  ⚡{" "}
+                  {trustMetrics.responseMinutes != null
+                    ? t(lang, "farm.trust.response").replace(
+                        "{minutes}",
+                        String(trustMetrics.responseMinutes),
+                      )
+                    : t(lang, "farm.trust.responseEmpty")}
+                </p>
+                <p className="text-sm text-[#2B1E19]">
+                  📦 {trustMetrics.petsRehomed} {t(lang, "farm.trust.adopted")}
+                </p>
+                <p className="text-sm text-[#2B1E19]">
+                  {trustMetrics.rating != null && visibleReviewCount > 0 ? (
+                    <>
+                      ⭐ {trustMetrics.rating.toFixed(1)} / 5.0{" "}
+                      <span className="text-[#6E5A51]">
+                        ({visibleReviewCount} {t(lang, "breeders.card.reviews")})
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      ⭐{" "}
+                      {formatBreederReviewLabel(
+                        trustMetrics.rating ?? 0,
+                        visibleReviewCount,
+                        lang,
+                      ) || t(lang, "farm.trust.ratingEmpty")}
+                    </>
+                  )}
+                </p>
+              </div>
+
+              {!isOwner ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -1330,64 +1369,11 @@ export function FarmDetail({
                     }
                     setReportOpen(true);
                   }}
-                  className="w-full py-2 text-[#6E5A51] text-xs font-medium hover:text-red-600 transition-colors"
+                  className="w-full border-t border-[#F3E2C8] pt-3 text-[#6E5A51] text-xs font-medium hover:text-red-600 transition-colors"
                 >
                   {t(lang, "detail.report")}
                 </button>
-              </div>
-            )}
-
-            <div className="bg-white border border-[#F3E2C8] rounded-2xl p-4 space-y-4">
-              <h2 className="text-xs font-semibold tracking-[0.12em] uppercase text-[#6E5A51]">
-                {t(lang, "farm.trust.title")}
-              </h2>
-              <div>
-                <div className="flex items-end justify-between mb-1.5">
-                  <span className="text-sm text-[#2B1E19]">
-                    {t(lang, "farm.trust.quality")}
-                  </span>
-                  <span className="font-display text-xl font-semibold text-[#D97706]">
-                    {trust}/100
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-[#F3E2C8] overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[#D97706]"
-                    style={{ width: `${Math.min(100, trust)}%` }}
-                  />
-                </div>
-              </div>
-              <p className="text-sm text-[#2B1E19]">
-                {trustMetrics.rating != null && visibleReviewCount > 0 ? (
-                  <>
-                    ⭐ {trustMetrics.rating.toFixed(1)} / 5.0{" "}
-                    <span className="text-[#6E5A51]">
-                      ({visibleReviewCount} {t(lang, "breeders.card.reviews")})
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    ⭐{" "}
-                    {formatBreederReviewLabel(
-                      trustMetrics.rating ?? 0,
-                      visibleReviewCount,
-                      lang,
-                    ) || t(lang, "farm.trust.ratingEmpty")}
-                  </>
-                )}
-              </p>
-              <p className="text-sm text-[#2B1E19]">
-                ⚡{" "}
-                {trustMetrics.responseMinutes != null
-                  ? t(lang, "farm.trust.response").replace(
-                      "{minutes}",
-                      String(trustMetrics.responseMinutes),
-                    )
-                  : t(lang, "farm.trust.responseEmpty")}
-              </p>
-              <p className="text-sm text-[#2B1E19]">
-                📦 {trustMetrics.petsRehomed} {t(lang, "farm.trust.adopted")}
-              </p>
+              ) : null}
             </div>
           </aside>
         </div>

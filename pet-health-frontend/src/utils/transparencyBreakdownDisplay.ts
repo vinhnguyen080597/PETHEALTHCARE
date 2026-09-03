@@ -1,7 +1,4 @@
-import {
-  TRANSPARENCY_POINTS,
-  type TransparencyBreakdownLine,
-} from './breederTransparencyScore.ts';
+import type { TransparencyBreakdownLine } from './breederTransparencyScore.ts';
 import type { TrustGuideLang } from './farmTrustGuide.ts';
 
 const BREAKDOWN_LABELS: Record<string, { vi: string; en: string }> = {
@@ -25,14 +22,6 @@ const BREAKDOWN_LABELS: Record<string, { vi: string; en: string }> = {
     vi: 'Chính sách bảo hành đầu tiên',
     en: 'First warranty policy',
   },
-  completions: {
-    vi: 'Giao dịch hoàn thành',
-    en: 'Completed handoffs',
-  },
-  reviews: {
-    vi: 'Nhận đánh giá 5 sao',
-    en: '5★ reviews received',
-  },
 };
 
 export function transparencyBreakdownLabel(lang: TrustGuideLang, key: string): string {
@@ -48,16 +37,8 @@ export function visibleTransparencyBreakdownLines(
 
 export function formatTransparencyBreakdownPoints(
   line: TransparencyBreakdownLine,
-  lang: TrustGuideLang,
+  _lang: TrustGuideLang,
 ): string {
-  if (line.key === 'completions') {
-    const pts = TRANSPARENCY_POINTS.senConfirmedCompletion;
-    return lang === 'VI' ? `+${pts}/lần` : `+${pts}/each`;
-  }
-  if (line.key === 'reviews') {
-    const pts = TRANSPARENCY_POINTS.fiveStarReview;
-    return lang === 'VI' ? `+${pts}/lần` : `+${pts}/each`;
-  }
   const sign = line.val > 0 ? '+' : '';
   return `${sign}${line.val} / ${line.max}đ`;
 }

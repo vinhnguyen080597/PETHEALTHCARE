@@ -34,19 +34,19 @@ test('normalizeDealReviewRating rounds', () => {
   assert.equal(normalizeDealReviewRating(4.6), 5);
 });
 
-test('transparency points only for 5-star reviews', () => {
-  assert.equal(transparencyPointsForDealReview(5), 2);
+test('transparency points are not awarded for reviews', () => {
+  assert.equal(transparencyPointsForDealReview(5), 0);
   assert.equal(transparencyPointsForDealReview(4), 0);
 });
 
-test('buildDealReviewedNotificationPreview includes note and points for 5★', () => {
+test('buildDealReviewedNotificationPreview includes note without transparency points', () => {
   const preview = buildDealReviewedNotificationPreview({
     title: 'Persian kitten',
     rating: 5,
     body: 'Rất tuyệt vời',
   });
   assert.match(preview, /5★/);
-  assert.match(preview, /\+2 điểm minh bạch/);
+  assert.equal(preview.includes('điểm minh bạch'), false);
   assert.match(preview, /Rất tuyệt vời/);
   assert.match(preview, /Persian kitten/);
 
@@ -56,5 +56,5 @@ test('buildDealReviewedNotificationPreview includes note and points for 5★', (
     body: '',
   });
   assert.match(fourStar, /4★/);
-  assert.equal(fourStar.includes('+2'), false);
+  assert.equal(fourStar.includes('điểm minh bạch'), false);
 });

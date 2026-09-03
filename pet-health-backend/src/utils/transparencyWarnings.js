@@ -19,10 +19,8 @@ const POINTS = {
   verifiedBase: 30,
   socialPlatform: 5,
   facilityVideo: 10,
-  businessLicense: 10,
+  businessLicense: 30,
   firstWarranty: 10,
-  senConfirmedCompletion: 3,
-  fiveStarReview: 2,
 };
 
 function asObject(value) {
@@ -34,12 +32,6 @@ function flag(meta, ...keys) {
     const v = meta[k];
     return v === true || v === 1 || v === '1' || v === 'true';
   });
-}
-
-function nonNegativeInt(value) {
-  const n = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.floor(n);
 }
 
 function clampScore(value) {
@@ -115,17 +107,11 @@ export function computeTransparencyScoreFromProfile(profile) {
       ? POINTS.firstWarranty
       : 0;
 
-  const completions =
-    nonNegativeInt(
-      meta.sen_confirmed_completions ?? meta.senConfirmedCompletions ?? meta.pets_rehomed,
-    ) * POINTS.senConfirmedCompletion;
-  const reviews =
-    nonNegativeInt(meta.five_star_review_count ?? meta.review_5star_count) * POINTS.fiveStarReview;
   const penaltyPoints = effectivePenaltyPoints(meta);
 
   const profilePoints =
     POINTS.verifiedBase + social + facilityVideo + businessLicense + firstWarranty;
-  const score = clampScore(profilePoints + completions + reviews - penaltyPoints);
+  const score = clampScore(profilePoints - penaltyPoints);
   return { score, isVerified: true, penaltyPoints };
 }
 

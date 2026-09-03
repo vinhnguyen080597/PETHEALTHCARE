@@ -119,7 +119,7 @@ export function computeFarmReviewPool(reviews) {
   };
 }
 
-/** Five-star direct reviews only (not sale-doubled) for transparency points. */
+/** Five-star direct reviews only (not sale-doubled) — stats metadata, not score. */
 export function countFiveStarDirectReviews(reviews) {
   const rows = filterApprovedFarmReviews(Array.isArray(reviews) ? reviews : []);
   let count = 0;
@@ -131,8 +131,9 @@ export function countFiveStarDirectReviews(reviews) {
   return count;
 }
 
-export function transparencyPointsForFarmReview(rating) {
-  return normalizeFarmReviewRating(rating) === 5 ? 2 : 0;
+/** Reviews no longer award transparency points (profile-only score). Kept for API compat. */
+export function transparencyPointsForFarmReview(_rating) {
+  return 0;
 }
 
 export function buildFarmSaleReviewRequestPreview(input = {}) {
@@ -148,9 +149,7 @@ export function buildFarmReviewedNotificationPreview(input = {}) {
   const farmName = trimText(input.farmName ?? input.breederName, 60) || 'Trại';
   const rating = normalizeFarmReviewRating(input.rating) || 0;
   const body = trimText(input.body ?? input.note, 80);
-  const points = transparencyPointsForFarmReview(rating);
   let preview = `Sen đánh giá ${rating}★ cho ${farmName}.`;
-  if (points > 0) preview += ` +${points} điểm minh bạch.`;
   if (body) preview += ` "${body}"`;
   return trimText(preview, 220);
 }

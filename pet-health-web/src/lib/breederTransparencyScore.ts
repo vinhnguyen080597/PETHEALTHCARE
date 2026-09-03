@@ -6,10 +6,8 @@ export const TRANSPARENCY_POINTS = {
   verifiedBase: 30,
   socialPlatform: 5,
   facilityVideo: 10,
-  businessLicense: 10,
+  businessLicense: 30,
   firstWarranty: 10,
-  senConfirmedCompletion: 3,
-  fiveStarReview: 2,
 } as const;
 
 export const SOCIAL_PLATFORMS = [
@@ -31,7 +29,9 @@ export type TransparencyScoreInput = {
   approvedFacilityVideo?: boolean;
   approvedBusinessLicense?: boolean;
   approvedFirstWarranty?: boolean;
+  /** @deprecated No longer used in transparency score. */
   senConfirmedCompletions?: number;
+  /** @deprecated No longer used in transparency score. */
   fiveStarReviewCount?: number;
   penaltyPoints?: number;
   violations?: Array<{ points: number; date?: string; reason?: string }>;
@@ -154,12 +154,6 @@ function clampScore(value: number): number {
   return Math.max(0, Math.min(TRANSPARENCY_SCORE_MAX, Math.round(value)));
 }
 
-function nonNegativeInt(value: unknown): number {
-  const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.floor(n);
-}
-
 function daysBetween(isoDate: string, now: Date): number | null {
   const t = Date.parse(isoDate);
   if (!Number.isFinite(t)) return null;
@@ -236,16 +230,9 @@ export function computeTransparencyScore(
   const firstWarranty = input.approvedFirstWarranty
     ? TRANSPARENCY_POINTS.firstWarranty
     : 0;
-  const completions =
-    nonNegativeInt(input.senConfirmedCompletions) *
-    TRANSPARENCY_POINTS.senConfirmedCompletion;
-  const reviews =
-    nonNegativeInt(input.fiveStarReviewCount) *
-    TRANSPARENCY_POINTS.fiveStarReview;
-
   const profilePoints =
     verifiedBase + social + facilityVideo + businessLicense + firstWarranty;
-  const activityPoints = completions + reviews;
+  const activityPoints = 0;
   const violationPoints = computeEffectiveViolationPoints(input);
   const score = clampScore(profilePoints + activityPoints - violationPoints);
 
@@ -286,20 +273,6 @@ export function computeTransparencyScore(
       done: firstWarranty > 0,
     },
     {
-      key: "completions",
-      group: "activity",
-      val: completions,
-      max: 0,
-      done: completions > 0,
-    },
-    {
-      key: "reviews",
-      group: "activity",
-      val: reviews,
-      max: 0,
-      done: reviews > 0,
-    },
-    {
       key: "penalty",
       group: "penalty",
       val: -violationPoints,
@@ -315,6 +288,17 @@ export function computeTransparencyScore(
     violationPoints,
     lines,
   };
+}
+
+/** Profile-checklist completion (0–100), not the overall transparency score. */
+export function transparencyProfileCompletionPercent(
+  result: Pick<TransparencyScoreResult, "lines">,
+): number {
+  const lines = result.lines.filter((line) => line.group === "profile");
+  const max = lines.reduce((sum, line) => sum + line.max, 0);
+  if (max <= 0) return 0;
+  const val = lines.reduce((sum, line) => sum + Math.max(0, line.val), 0);
+  return Math.max(0, Math.min(100, Math.round((val / max) * 100)));
 }
 
 export function getTransparencyTier(score: number): TransparencyTierInfo {

@@ -54,7 +54,7 @@ test('sen confirm completion + 5-star review updates breeder transparency counts
 
   const reviewResult = await createBreederDealReview(senId, post.id, { rating: 5, body: 'Great!' }, null);
   assert.equal(reviewResult.review.rating, 5);
-  assert.equal(reviewResult.transparency_points_awarded, 2);
+  assert.equal(reviewResult.transparency_points_awarded, 0);
   assert.equal(reviewResult.notify_user_id, breederId);
 
   const agg = await getBreederDealReviewAggregate(profile.id, null);

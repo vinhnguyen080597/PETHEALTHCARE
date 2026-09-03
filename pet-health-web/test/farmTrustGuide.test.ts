@@ -46,6 +46,19 @@ test("trust guide has no CCCD/eKYC missions and covers low-score warning", () =>
   assert.equal(/không bắt buộc|optional/i.test(earnBlob), false);
   assert.equal(/CCCD|eKYC|căn cước/i.test(penaltyBlob), false);
   assert.ok(TRUST_GUIDE_HOW_TO_EARN.some((row) => row.id === "verifiedBase" && row.points === 30));
+  assert.ok(
+    TRUST_GUIDE_HOW_TO_EARN.some((row) => row.id === "businessLicense" && row.points === 30),
+  );
+  assert.equal(
+    TRUST_GUIDE_HOW_TO_EARN.some((row) => row.id === "completions" || row.id === "reviews"),
+    false,
+  );
+  for (let i = 1; i < TRUST_GUIDE_HOW_TO_EARN.length; i += 1) {
+    assert.ok(
+      TRUST_GUIDE_HOW_TO_EARN[i - 1]!.points >= TRUST_GUIDE_HOW_TO_EARN[i]!.points,
+      "earn rows should be sorted high to low by points",
+    );
+  }
   const warning = TRUST_GUIDE_IMPACT.find((row) => row.id === "lowScoreWarning");
   assert.ok(warning);
   assert.match(warning!.bodyEN, /No CCCD \/ eKYC/i);

@@ -7,31 +7,31 @@ import {
   visibleTransparencyBreakdownLines,
 } from "../src/lib/transparencyBreakdownDisplay";
 
-test("transparency breakdown labels use completed handoff and per-review wording", () => {
+test("transparency breakdown labels cover profile checklist only", () => {
   assert.equal(
-    transparencyBreakdownLabel("VI", "completions"),
-    "Giao dịch hoàn thành",
+    transparencyBreakdownLabel("VI", "businessLicense"),
+    "Giấy phép kinh doanh",
   );
   assert.equal(
-    transparencyBreakdownLabel("VI", "reviews"),
-    "Nhận đánh giá 5 sao",
+    transparencyBreakdownLabel("EN", "facilityVideo"),
+    "Facility video",
   );
-  assert.equal(
-    transparencyBreakdownLabel("EN", "completions"),
-    "Completed handoffs",
-  );
+  assert.equal(transparencyBreakdownLabel("VI", "completions"), "completions");
+  assert.equal(transparencyBreakdownLabel("VI", "reviews"), "reviews");
 });
 
-test("activity breakdown lines show per-occurrence points", () => {
-  const { lines } = computeTransparencyScore({ isVerified: true });
-  const completions = lines.find((line) => line.key === "completions");
-  const reviews = lines.find((line) => line.key === "reviews");
-  assert.ok(completions);
-  assert.ok(reviews);
-  assert.equal(formatTransparencyBreakdownPoints(completions!, "VI"), "+3/lần");
-  assert.equal(formatTransparencyBreakdownPoints(reviews!, "VI"), "+2/lần");
-  assert.equal(formatTransparencyBreakdownPoints(completions!, "EN"), "+3/each");
-  assert.equal(formatTransparencyBreakdownPoints(reviews!, "EN"), "+2/each");
+test("profile breakdown lines show fixed point ranges", () => {
+  const { lines } = computeTransparencyScore({
+    isVerified: true,
+    approvedBusinessLicense: true,
+  });
+  const license = lines.find((line) => line.key === "businessLicense");
+  assert.ok(license);
+  assert.equal(formatTransparencyBreakdownPoints(license!, "VI"), "+30 / 30đ");
+  assert.equal(
+    lines.some((line) => line.key === "completions" || line.key === "reviews"),
+    false,
+  );
 });
 
 test("penalty history row is hidden from breakdown list", () => {

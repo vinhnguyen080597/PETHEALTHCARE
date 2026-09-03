@@ -2,7 +2,6 @@ import type { BreederSubmissionType } from "./breederProfileSubmissions";
 import { pickLangText, type TrustGuideHowToEarn } from "./farmTrustGuide";
 import {
   parseTrustAwardedFromMeta,
-  TRANSPARENCY_POINTS,
   type TrustAwardedFlags,
 } from "./breederTransparencyScore";
 import type { Lang } from "./types";
@@ -38,7 +37,7 @@ export type TrustGuideEarnRowState = {
   mediaUrl: string | null;
 };
 
-const REPEATABLE_EARN_IDS = new Set(["completions", "reviews"]);
+const REPEATABLE_EARN_IDS = new Set<string>();
 
 const EARN_ACTION_BY_ID: Record<string, TrustGuideEarnAction> = {
   verifiedBase: { kind: "profile" },
@@ -49,8 +48,6 @@ const EARN_ACTION_BY_ID: Record<string, TrustGuideEarnAction> = {
   farmFacility: { kind: "submission", submissionType: "facility_video" },
   businessLicense: { kind: "submission", submissionType: "business_license" },
   firstWarrantyPolicy: { kind: "warranty" },
-  completions: { kind: "none" },
-  reviews: { kind: "none" },
 };
 
 const CONTACT_KEY_BY_EARN_ID: Record<string, string> = {
@@ -74,8 +71,8 @@ export function trustGuideEarnRowDone(
   ctx: {
     isVerified: boolean;
     awarded: TrustAwardedFlags;
-    senConfirmedCompletions: number;
-    fiveStarReviewCount: number;
+    senConfirmedCompletions?: number;
+    fiveStarReviewCount?: number;
   },
 ): boolean {
   switch (id) {
@@ -95,10 +92,6 @@ export function trustGuideEarnRowDone(
       return ctx.awarded.businessLicense;
     case "firstWarrantyPolicy":
       return ctx.awarded.firstWarranty;
-    case "completions":
-      return ctx.senConfirmedCompletions > 0;
-    case "reviews":
-      return ctx.fiveStarReviewCount > 0;
     default:
       return false;
   }
@@ -167,16 +160,8 @@ export function trustGuideEarnShowArrow(
 
 export function formatTrustGuideEarnPoints(
   row: Pick<TrustGuideHowToEarn, "id" | "points">,
-  lang: Lang,
+  _lang: Lang,
 ): string {
-  if (row.id === "completions") {
-    const pts = TRANSPARENCY_POINTS.senConfirmedCompletion;
-    return lang === "VI" ? `+${pts}/lần` : `+${pts}/each`;
-  }
-  if (row.id === "reviews") {
-    const pts = TRANSPARENCY_POINTS.fiveStarReview;
-    return lang === "VI" ? `+${pts}/lần` : `+${pts}/each`;
-  }
   return `+${row.points}đ`;
 }
 
