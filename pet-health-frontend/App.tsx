@@ -229,6 +229,7 @@ function AppContent() {
   const accountDashboard = (
     <AccountScreen
       account={app.accountProfile}
+      dashboardLoading={app.accountDashboardLoading || !app.accountProfile}
       breederProfile={app.breederProfile}
       petCount={app.pets.length}
       savedPostCount={app.petFeedPosts.filter((post) => post.is_favorited).length}

@@ -29,6 +29,7 @@ import {
   accountListingStatusTone,
 } from '../utils/accountListingStatus';
 import { canOpenOwnFarmProfile } from '../utils/ownFarmProfileNav';
+import { AccountScreenSkeleton } from '../components/AccountScreenSkeleton';
 
 const PRIMARY = BRAND.primary;
 
@@ -131,6 +132,8 @@ type AdminRequestItem =
 
 type AccountScreenProps = {
   account: AccountProfile | null;
+  /** True while role/dashboard is resolving — never flash sen/pre-register UI. */
+  dashboardLoading?: boolean;
   breederProfile: BreederProfile | null;
   petCount: number;
   savedPostCount: number;
@@ -210,6 +213,7 @@ function breederStatusGroup(profile: BreederProfile): Exclude<AdminBreederStatus
 
 export function AccountScreen({
   account,
+  dashboardLoading = false,
   breederProfile,
   petCount,
   savedPostCount,
@@ -452,6 +456,10 @@ export function AccountScreen({
 
   const profileName = account?.display_name?.trim() || account?.login_identifier || t(`account.roles.${role}.title`);
   const profileSubtitle = account?.email || account?.login_identifier || '';
+  // Never treat a missing account as "sen" — that flashes pre-register UI while APIs load.
+  if (dashboardLoading || !account) {
+    return <AccountScreenSkeleton />;
+  }
 
   return (
     <>

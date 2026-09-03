@@ -486,6 +486,8 @@ export function usePetHealthApp() {
   const [adminUserPetsLoading, setAdminUserPetsLoading] = useState(false);
   const [adminAddPetForUserId, setAdminAddPetForUserId] = useState<string | null>(null);
   const [breederProfile, setBreederProfile] = useState<BreederProfile | null>(null);
+  /** True while account role/dashboard is resolving for the Account tab. */
+  const [accountDashboardLoading, setAccountDashboardLoading] = useState(false);
   const [selectedBreederProfileId, setSelectedBreederProfileId] = useState<string | null>(null);
   const [breederDetailReturnScreen, setBreederDetailReturnScreen] = useState<AppScreen>('pet-feed');
   const [breederDetailTab, setBreederDetailTab] = useState<FarmDetailTab>('overview');
@@ -1138,7 +1140,7 @@ export function usePetHealthApp() {
     void refreshVaccinationDueCounts(loadedPets, accessToken, profile.user_id);
     void refreshAiCredits(accessToken);
     void loadFeatureFlags(accessToken);
-    if (profile.primary_role === 'admin') {
+    if (profile.primary_role === 'admin' || profile.primary_role === 'breeder') {
       void loadAccountDashboard(accessToken, profile.primary_role);
     }
   }
@@ -2430,8 +2432,14 @@ export function usePetHealthApp() {
 
   function openAccount() {
     if (screen === 'account') return;
+    // Missing profile → skeleton (never flash sen/pre-register UI). Known role → show cached UI and refresh quietly.
+    const needsSkeleton = !accountProfile;
+    if (needsSkeleton) setAccountDashboardLoading(true);
     setScreen('account');
-    if (!token) return;
+    if (!token) {
+      setAccountDashboardLoading(false);
+      return;
+    }
 
     void (async () => {
       try {
@@ -2443,6 +2451,8 @@ export function usePetHealthApp() {
         void checkTransparencyWarning();
       } catch {
         // Keep the account tab responsive even if the dashboard refresh is slow/offline.
+      } finally {
+        setAccountDashboardLoading(false);
       }
     })();
   }
@@ -4248,6 +4258,7 @@ export function usePetHealthApp() {
     setInitialOnboarding(false);
     setToken(null);
     setAccountProfile(null);
+    setAccountDashboardLoading(false);
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -4872,6 +4883,7 @@ export function usePetHealthApp() {
     toggleLoginSignUpMode,
     token,
     accountProfile,
+    accountDashboardLoading,
     pets,
     petVaccinationDueCounts,
     vaccinationDuePopupVisible,
