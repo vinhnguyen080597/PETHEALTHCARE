@@ -94,6 +94,31 @@ test("mapFarmReviewThreads maps approved threads and drops pending", () => {
   assert.equal(farmReviewThreadDisplayCount(threads), 1);
 });
 
+test("mapFarmReviewThreads skips top-level supplement rows", () => {
+  const threads = mapFarmReviewThreads([
+    {
+      id: "rev-1",
+      kind: "primary",
+      rating: 5,
+      status: "approved",
+      reviewer_display_name: "Bảo",
+      supplements: [
+        { id: "sup-1", kind: "supplement", rating: 5, status: "approved", body: "Cũng tốt" },
+      ],
+    },
+    {
+      id: "sup-orphan",
+      kind: "supplement",
+      rating: 4,
+      status: "approved",
+      reviewer_display_name: "Bảo",
+    },
+  ]);
+  assert.equal(threads.length, 1);
+  assert.equal(threads[0]?.id, "rev-1");
+  assert.equal(farmReviewThreadDisplayCount(threads), 1);
+});
+
 test("countFarmReviewDisplayThreads counts cards not pool weight", () => {
   assert.equal(
     countFarmReviewDisplayThreads([

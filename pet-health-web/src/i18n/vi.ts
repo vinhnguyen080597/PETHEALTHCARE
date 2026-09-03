@@ -660,8 +660,6 @@ const vi: Record<EnKey, string> = {
   "account.breederTrust.warrantyLibrary": "Chính sách bảo hành",
   "farm.trust.line.firstWarrantyPolicy": "Chính sách bảo hành đầu tiên",
   "farm.cta.message": "Nhắn Tin Với Breeder",
-  "farm.cta.video": "Yêu Cầu Gọi Video Xem Bé",
-  "farm.cta.videoSoon": "Tính năng đang phát triển",
   "farm.trust.title": "Chỉ số tin cậy",
   "farm.trust.quality": "Chỉ số chất lượng",
   "farm.trust.scoreTitle": "Điểm minh bạch trại giống",

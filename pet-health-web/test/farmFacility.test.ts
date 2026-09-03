@@ -36,6 +36,19 @@ test("farmFacilitySocialLinks masks Zalo and links other networks", () => {
   assert.equal(links[1]?.href, null);
 });
 
+test("farmFacilitySocialLinks hides localhost and non-platform Facebook URLs", () => {
+  const links = farmFacilitySocialLinks({
+    facebook: "http://localhost:8081",
+    zalo: "0381234452",
+    tiktok: "https://example.com/not-tiktok",
+  });
+  assert.deepEqual(
+    links.map((row) => row.id),
+    ["zalo"],
+  );
+  assert.equal(links[0]?.display, "038***452");
+});
+
 test("publicFacilityVideoUrl only returns admin-approved https clips", () => {
   assert.equal(publicFacilityVideoUrl({}), null);
   assert.equal(

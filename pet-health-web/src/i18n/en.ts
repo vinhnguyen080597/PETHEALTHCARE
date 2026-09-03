@@ -658,8 +658,6 @@ const en = {
   "account.breederTrust.warrantyLibrary": "Warranty policies",
   "farm.trust.line.firstWarrantyPolicy": "First warranty policy",
   "farm.cta.message": "Message breeder",
-  "farm.cta.video": "Request a video call",
-  "farm.cta.videoSoon": "Feature in development",
   "farm.trust.title": "Trust metrics",
   "farm.trust.quality": "Quality index",
   "farm.trust.scoreTitle": "Kennel transparency score",

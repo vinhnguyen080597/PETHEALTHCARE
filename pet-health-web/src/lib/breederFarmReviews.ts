@@ -198,6 +198,8 @@ export function mapFarmReviewThreads(
 
     const id = String(primary.id || "").trim();
     if (!id) continue;
+    const kind = (primary.kind || "primary") as FarmReviewKind;
+    if (kind === "supplement") continue;
 
     const supplements = Array.isArray(primary.supplements)
       ? primary.supplements
@@ -241,7 +243,7 @@ export function mapFarmReviewThreads(
       id,
       breeder_profile_id: String(primary.breeder_profile_id || "").trim(),
       reviewer_user_id: String(primary.reviewer_user_id || "").trim(),
-      kind: (primary.kind || "primary") as FarmReviewKind,
+      kind,
       parent_review_id: primary.parent_review_id ?? null,
       post_id: primary.post_id ?? null,
       rating,

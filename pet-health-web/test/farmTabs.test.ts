@@ -135,11 +135,3 @@ test("farm listings tab is named Thú cưng / Pets", () => {
   assert.equal(viDict["farm.listings.filterAll"], "Tất cả");
   assert.equal(enDict["farm.listings.filterAll"], "All");
 });
-
-test("video CTA soon tooltip exists in EN and VI", () => {
-  const enDict = en as Record<string, string>;
-  const viDict = vi as Record<string, string>;
-  assert.equal(viDict["farm.cta.videoSoon"], "Tính năng đang phát triển");
-  assert.ok(enDict["farm.cta.videoSoon"]);
-  assert.notEqual(enDict["farm.cta.videoSoon"], "farm.cta.videoSoon");
-});

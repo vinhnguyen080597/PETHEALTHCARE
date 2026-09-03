@@ -26,11 +26,11 @@ export function FarmReviewSupplementsList({ lang, supplements }: FarmReviewSuppl
     <div className="space-y-2 border-l-2 border-[#F3E2C8] pl-2.5">
       {visible.map((sup) => (
         <div key={sup.id} className="space-y-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <p className="text-xs font-semibold text-[#6E5A51]">
+          <div className="flex flex-nowrap items-center gap-1.5">
+            <p className="shrink-0 text-xs font-semibold text-[#6E5A51]">
               {t(lang, "farm.review.supplement")}
             </p>
-            <FarmReviewStars rating={sup.rating} className="text-xs" />
+            <FarmReviewStars rating={sup.rating} className="shrink-0 text-xs" />
             {sup.status === "pending" ? (
               <span className="text-[10px] font-semibold text-amber-800">
                 · {t(lang, "farm.review.pendingBadge")}

@@ -174,9 +174,6 @@ function FarmWarrantyTab({
             </Link>
           ) : null}
         </div>
-        <p className="text-xs text-[#6E5A51] mt-1 leading-relaxed">
-          {t(lang, "farm.warranty.note")}
-        </p>
       </div>
       {actionError ? (
         <p className="text-xs text-red-600" role="alert">
@@ -490,9 +487,10 @@ export function FarmDetail({
   });
   const trust = trustMetrics.qualityIndex;
   const reviewCount = trustMetrics.reviewCount;
-  const visibleReviewCount = reviewsLoaded
-    ? farmReviewThreadDisplayCount(reviewThreads)
-    : reviewCount;
+  const visibleReviewCount =
+    reviewsLoaded || reviewThreads.length > 0
+      ? farmReviewThreadDisplayCount(reviewThreads)
+      : reviewCount;
   const cover = coverUrl || FALLBACK_COVER;
   const bioText = (lang === "VI" ? breeder.bioVI : breeder.bio).trim();
   const facilitySocials = farmFacilitySocialLinks(breeder.contact);
@@ -563,6 +561,7 @@ export function FarmDetail({
       setReviewsLoaded(true);
     } catch {
       setReviewThreads([]);
+      setReviewsLoaded(true);
     } finally {
       setReviewsLoading(false);
     }
@@ -1322,19 +1321,6 @@ export function FarmDetail({
                 {messageError ? (
                   <p className="text-[11px] text-red-600">{messageError}</p>
                 ) : null}
-                <span
-                  className="block w-full"
-                  title={t(lang, "farm.cta.videoSoon")}
-                >
-                  <button
-                    type="button"
-                    disabled
-                    aria-disabled="true"
-                    className="w-full py-2.5 border border-[#F3E2C8] text-[#2B1E19]/55 text-sm font-medium rounded-xl cursor-not-allowed opacity-60"
-                  >
-                    📹 {t(lang, "farm.cta.video")}
-                  </button>
-                </span>
                 <button
                   type="button"
                   onClick={() => {

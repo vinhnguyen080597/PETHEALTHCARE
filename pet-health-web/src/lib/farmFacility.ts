@@ -27,6 +27,49 @@ const SOCIAL_ORDER: FarmFacilitySocialId[] = [
   "instagram",
 ];
 
+const SOCIAL_HOSTS: Record<Exclude<FarmFacilitySocialId, "zalo">, readonly string[]> = {
+  facebook: ["facebook.com", "fb.com", "m.facebook.com", "m.me"],
+  tiktok: ["tiktok.com"],
+  instagram: ["instagram.com", "instagr.am"],
+};
+
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function isLocalOrPrivateHost(host: string): boolean {
+  if (!host) return true;
+  if (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host === "0.0.0.0" ||
+    host === "::1"
+  ) {
+    return true;
+  }
+  if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host)) {
+    return true;
+  }
+  return /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+}
+
+function isAllowedPublicSocialHref(
+  id: Exclude<FarmFacilitySocialId, "zalo">,
+  href: string,
+): boolean {
+  if (!/^https?:\/\//i.test(href)) return false;
+  const host = hostnameOf(href);
+  if (isLocalOrPrivateHost(host)) return false;
+  return SOCIAL_HOSTS[id].some(
+    (allowed) => host === allowed || host.endsWith(`.${allowed}`),
+  );
+}
+
 function displayHttpUrl(url: string): string {
   try {
     const parsed = new URL(url);
@@ -83,7 +126,7 @@ export function farmFacilitySocialLinks(contact: {
       continue;
     }
     const href = /^https?:\/\//i.test(raw) ? raw : null;
-    if (!href) continue;
+    if (!href || !isAllowedPublicSocialHref(id, href)) continue;
     const labelKey =
       id === "facebook"
         ? "farm.facility.facebook"
