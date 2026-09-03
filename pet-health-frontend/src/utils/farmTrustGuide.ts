@@ -1,9 +1,11 @@
 import {
-  LIGHT_VIOLATION_EXPIRY_DAYS,
-  LIGHT_VIOLATION_MAX_POINTS,
+  COMPLIANCE_MATRIX,
+  COMPLIANCE_SCORE_DEFAULT,
+  type ComplianceMatrixRow,
+} from './breederComplianceScore.ts';
+import {
   TRANSPARENCY_POINTS,
   TRANSPARENCY_TIERS,
-  TRANSPARENCY_VIOLATION_PENALTIES,
 } from './breederTransparencyScore.ts';
 
 export type TrustGuideLang = 'VI' | 'EN';
@@ -17,6 +19,7 @@ export type TrustGuideHowToEarn = {
   howEN: string;
 };
 
+/** @deprecated Prefer COMPLIANCE_MATRIX — kept for older imports. */
 export type TrustGuidePenalty = {
   id: string;
   points: number;
@@ -24,6 +27,9 @@ export type TrustGuidePenalty = {
   titleEN: string;
   actionVI: string;
   actionEN: string;
+  behaviorsVI?: string;
+  behaviorsEN?: string;
+  tier?: number;
 };
 
 export type TrustGuideImpact = {
@@ -101,48 +107,19 @@ export const TRUST_GUIDE_HOW_TO_EARN: TrustGuideHowToEarn[] = [
   },
 ];
 
-export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = [
-  {
-    id: 'inaccurate_listing',
-    points: TRANSPARENCY_VIOLATION_PENALTIES.inaccurate_listing,
-    titleVI: 'Đăng thông tin không chính xác',
-    titleEN: 'Inaccurate listing information',
-    actionVI: 'An ninh gỡ bài vi phạm.',
-    actionEN: 'Security removes the violating listing.',
-  },
-  {
-    id: 'stock_photo_spam',
-    points: TRANSPARENCY_VIOLATION_PENALTIES.stock_photo_spam,
-    titleVI: 'Dùng ảnh mạng / spam bài ảo',
-    titleEN: 'Stock photos / fake spam listings',
-    actionVI: 'Tạm ẩn bài đăng.',
-    actionEN: 'Listing is temporarily hidden.',
-  },
-  {
-    id: 'abusive_communication',
-    points: TRANSPARENCY_VIOLATION_PENALTIES.abusive_communication,
-    titleVI: 'Thái độ giao tiếp độc hại',
-    titleEN: 'Abusive communication',
-    actionVI: 'Cảnh cáo hệ thống.',
-    actionEN: 'System warning issued.',
-  },
-  {
-    id: 'concealed_illness',
-    points: TRANSPARENCY_VIOLATION_PENALTIES.concealed_illness,
-    titleVI: 'Che giấu bệnh nặng (Care/Parvo…)',
-    titleEN: 'Concealing serious illness',
-    actionVI: 'Yêu cầu đền bù theo chính sách sàn.',
-    actionEN: 'Compensation may be required per platform policy.',
-  },
-  {
-    id: 'confirmed_scam',
-    points: TRANSPARENCY_VIOLATION_PENALTIES.confirmed_scam,
-    titleVI: 'Lừa đảo / tráo bé cưng (xác nhận)',
-    titleEN: 'Confirmed scam / bait-and-switch',
-    actionVI: 'Tạm khóa tin đăng / liên hệ 30 ngày (và khóa nhận cọc nếu Escrow đang mở).',
-    actionEN: 'Pause listings/contact for 30 days (and lock deposit intake if Escrow is on).',
-  },
-];
+export const TRUST_GUIDE_COMPLIANCE_MATRIX: ComplianceMatrixRow[] = COMPLIANCE_MATRIX;
+
+export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = COMPLIANCE_MATRIX.map((row) => ({
+  id: `tier_${row.tier}`,
+  points: row.points,
+  tier: row.tier,
+  titleVI: row.titleVI,
+  titleEN: row.titleEN,
+  behaviorsVI: row.behaviorsVI,
+  behaviorsEN: row.behaviorsEN,
+  actionVI: row.actionVI,
+  actionEN: row.actionEN,
+}));
 
 export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
   {
@@ -151,30 +128,33 @@ export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
     titleEN: 'Buyer confidence',
     bodyVI:
       'Điểm minh bạch và danh hiệu trại hiện trên hồ sơ công khai giúp khách đánh giá trước khi nhắn tin.',
-    bodyEN: 'Transparency score and kennel titles appear on your public farm page for buyers.',
+    bodyEN:
+      'Transparency score and kennel titles appear on your public farm page for buyers.',
   },
   {
     id: 'visibility',
     titleVI: 'Độ nổi bật trong danh mục',
     titleEN: 'Directory visibility',
-    bodyVI: 'Trại điểm cao hơn thường được ưu tiên hiển thị và tạo ấn tượng tốt hơn trên thẻ trại / tin đăng.',
-    bodyEN: 'Higher scores tend to present stronger trust signals on farm cards and listings.',
-  },
-  {
-    id: 'penalties',
-    titleVI: 'Vi phạm làm giảm điểm',
-    titleEN: 'Violations reduce score',
-    bodyVI: `Chỉ trừ điểm khi báo cáo được Admin xác nhận. Vi phạm nhẹ (≤${LIGHT_VIOLATION_MAX_POINTS}đ) có thể hết hiệu lực sau ${LIGHT_VIOLATION_EXPIRY_DAYS} ngày nếu không tái phạm.`,
-    bodyEN: `Points drop only after Admin confirms a report. Light penalties (≤${LIGHT_VIOLATION_MAX_POINTS}) may expire after ${LIGHT_VIOLATION_EXPIRY_DAYS} days without repeat offenses.`,
-  },
-  {
-    id: 'lowScoreWarning',
-    titleVI: 'Cảnh báo ≤15 điểm',
-    titleEN: 'Warning at ≤15 points',
     bodyVI:
-      'Sau phạt nếu điểm minh bạch ≤15, bạn nhận popup: Xác nhận (tạm khóa tài khoản) hoặc Kháng cáo (Admin xem xét). Không thu thập CCCD / eKYC.',
+      'Trại điểm cao hơn thường được ưu tiên hiển thị và tạo ấn tượng tốt hơn trên thẻ trại / tin đăng.',
     bodyEN:
-      'After a penalty, if transparency score is ≤15 you get a popup: Confirm (suspend account) or Appeal (Admin review). No CCCD / eKYC collection.',
+      'Higher scores tend to present stronger trust signals on farm cards and listings.',
+  },
+  {
+    id: 'compliance',
+    titleVI: 'Điểm tuân thủ (riêng biệt)',
+    titleEN: 'Separate compliance score',
+    bodyVI: `Mỗi trại bắt đầu với ${COMPLIANCE_SCORE_DEFAULT} điểm tuân thủ. Chỉ trừ khi Admin xác nhận báo cáo. Mốc: 80–100 bình thường · 50–79 cảnh báo · 1–49 hạn chế · 0 khóa tài khoản.`,
+    bodyEN: `Every kennel starts at ${COMPLIANCE_SCORE_DEFAULT} compliance points. Deductions only after Admin confirms a report. Bands: 80–100 normal · 50–79 warning · 1–49 severe · 0 account lock.`,
+  },
+  {
+    id: 'recoverySoon',
+    titleVI: 'Phục hồi điểm (sắp có)',
+    titleEN: 'Score recovery (coming soon)',
+    bodyVI:
+      'Phục hồi tự động +10 sau 30 ngày không vi phạm và reset năm về 100 sẽ bổ sung sau. Hiện tại điểm tuân thủ chỉ trừ khi Admin xác nhận báo cáo.',
+    bodyEN:
+      'Auto +10 after 30 clean days and annual reset to 100 will ship later. For now, compliance only decreases when Admin confirms a report.',
   },
 ];
 
@@ -182,15 +162,20 @@ export function trustGuideTierSummary(lang: TrustGuideLang): string[] {
   return TRANSPARENCY_TIERS.map((tier) => {
     const name = lang === 'VI' ? tier.nameVI : tier.nameEN;
     const meaning = lang === 'VI' ? tier.meaningVI : tier.meaningEN;
-    const range = tier.min === tier.max ? `${tier.min}` : `${tier.min}–${tier.max}`;
+    const range =
+      tier.min === tier.max ? `${tier.min}` : `${tier.min}–${tier.max}`;
     return `${tier.level} (${range}): ${name} — ${meaning}`;
   });
 }
 
-export function pickLangText(lang: TrustGuideLang, vi: string, en: string): string {
-  return lang === 'VI' ? vi : en;
-}
-
 export function trustGuideLangFromLocale(locale: string | undefined): TrustGuideLang {
   return String(locale || '').toLowerCase().startsWith('vi') ? 'VI' : 'EN';
+}
+
+export function pickLangText(
+  lang: TrustGuideLang,
+  vi: string,
+  en: string,
+): string {
+  return lang === 'VI' ? vi : en;
 }

@@ -36,8 +36,10 @@ export function PendingBadge() {
 export function TrustLevelChip({
   level,
   label,
+  showLevelPrefix = true,
 }: {
   level: TrustLevel;
+  showLevelPrefix?: boolean;
   label: string;
 }) {
   const colorMap: Record<TrustLevel, string> = {
@@ -52,7 +54,7 @@ export function TrustLevelChip({
     <span
       className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border ${colorMap[level]}`}
     >
-      {level} · {label}
+      {showLevelPrefix ? `${level} · ${label}` : label}
     </span>
   );
 }

@@ -4,7 +4,6 @@ import {
   computeEffectiveViolationPoints,
   computeTransparencyScore,
   getTransparencyTier,
-  LIGHT_VIOLATION_EXPIRY_DAYS,
   socialTransparencyPoints,
   TRANSPARENCY_POINTS,
   transparencyProfileCompletionPercent,
@@ -86,7 +85,7 @@ test("activity handoffs and five-star reviews no longer affect score", () => {
   );
 });
 
-test("penalties subtract from transparency score", () => {
+test("legacy violations no longer subtract from transparency score", () => {
   const now = new Date("2026-08-08T00:00:00Z");
   const recent = new Date(now);
   recent.setDate(recent.getDate() - 10);
@@ -95,19 +94,18 @@ test("penalties subtract from transparency score", () => {
     violations: [{ points: 15, date: recent.toISOString() }],
     now,
   });
-  assert.equal(penalized.violationPoints, 15);
-  assert.equal(penalized.score, 15);
-  assert.equal(getTransparencyTier(penalized.score).level, "L0");
+  assert.equal(penalized.violationPoints, 0);
+  assert.equal(penalized.score, 30);
+  assert.equal(getTransparencyTier(penalized.score).level, "L2");
 });
 
-test("light violations expire after 90 days", () => {
+test("computeEffectiveViolationPoints always returns 0", () => {
   const now = new Date("2026-08-08T00:00:00Z");
-  const old = new Date(now);
-  old.setDate(old.getDate() - (LIGHT_VIOLATION_EXPIRY_DAYS + 1));
   assert.equal(
     computeEffectiveViolationPoints({
       now,
-      violations: [{ points: 10, date: old.toISOString() }],
+      violations: [{ points: 10, date: now.toISOString() }],
+      penaltyPoints: 40,
     }),
     0,
   );

@@ -13,15 +13,13 @@ const {
   getMyBreederProfile,
 } = await import('../src/repositories/petFeedRepository.js');
 const {
-  appealTransparencyWarning,
-  confirmTransparencyWarning,
   getMyOpenTransparencyWarning,
-  adminResolveTransparencyWarning,
   resetTransparencyWarningMemoryForTests,
+  maybeCreateTransparencyWarningAfterPenalty,
 } = await import('../src/repositories/transparencyWarningsRepository.js');
 const { getAccountProfile, ensureAccountProfile } = await import('../src/repositories/accountRepository.js');
 
-test('two report penalties trigger warning; confirm suspends account', async () => {
+test('reviewed reports apply compliance and no longer create transparency warnings', async () => {
   resetTransparencyWarningMemoryForTests();
   const breederId = `warn-breeder-${Date.now()}`;
   const reporterId = `warn-reporter-${Date.now()}`;
@@ -34,54 +32,66 @@ test('two report penalties trigger warning; confirm suspends account', async () 
   await adminUpdateBreederProfileStatus(breederId, 'verified');
   const profile = await getMyBreederProfile(breederId, null);
 
-  // First 10-pt penalty → score 20 — no warning yet
-  const report1 = await reportBreederProfile(reporterId, profile.id, { reason: 'spam' }, null);
+  const report1 = await reportBreederProfile(reporterId, profile.id, { reason: 'stock_photo_spam' }, null);
   const reviewed1 = await adminUpdatePetFeedReportStatus(report1.id, 'reviewed');
   assert.equal(reviewed1.transparency_warning, null);
+  assert.equal(reviewed1.compliance_penalty?.scoreAfter, 95);
   assert.equal((await getMyOpenTransparencyWarning(breederId, null)), null);
 
-  // Second 10-pt penalty → score 10 — warning
-  const report2 = await reportBreederProfile(`r2-${Date.now()}`, profile.id, { reason: 'scam' }, null);
+  const report2 = await reportBreederProfile(`r2-${Date.now()}`, profile.id, { reason: 'inaccurate_listing' }, null);
   const reviewed2 = await adminUpdatePetFeedReportStatus(report2.id, 'reviewed');
-  assert.ok(reviewed2.transparency_warning?.id);
-  assert.equal(reviewed2.transparency_warning.score_at_trigger, 10);
-
-  const open = await getMyOpenTransparencyWarning(breederId, null);
-  assert.equal(open?.status, 'pending_breeder_action');
-
-  await confirmTransparencyWarning(breederId, open.id, null);
-  const account = await getAccountProfile(breederId);
-  assert.equal(account.account_status, 'suspended');
-  const after = await getMyBreederProfile(breederId, null);
-  assert.equal(after.verification_status, 'suspended');
+  assert.equal(reviewed2.transparency_warning, null);
+  assert.equal(reviewed2.compliance_penalty?.scoreAfter, 85);
 });
 
-test('appeal then admin restore waives penalty and keeps account active', async () => {
+test('tier-4 confirmed_scam permanently suspends via compliance', async () => {
   resetTransparencyWarningMemoryForTests();
-  const breederId = `appeal-breeder-${Date.now()}`;
-  await ensureAccountProfile({ userId: breederId, displayName: 'Appeal Farm', primaryRole: 'breeder' });
+  const breederId = `scam-breeder-${Date.now()}`;
+  await ensureAccountProfile({ userId: breederId, displayName: 'Scam Farm', primaryRole: 'breeder' });
   await upsertMyBreederProfile(breederId, {
-    displayName: 'Appeal Farm',
+    displayName: 'Scam Farm',
     location: 'Huế',
     verificationStatus: 'pending_review',
   }, null);
   await adminUpdateBreederProfileStatus(breederId, 'verified');
   const profile = await getMyBreederProfile(breederId, null);
 
-  const r1 = await reportBreederProfile(`a1-${Date.now()}`, profile.id, { reason: 'x' }, null);
-  await adminUpdatePetFeedReportStatus(r1.id, 'reviewed');
-  const r2 = await reportBreederProfile(`a2-${Date.now()}`, profile.id, { reason: 'y' }, null);
-  const reviewed = await adminUpdatePetFeedReportStatus(r2.id, 'reviewed');
-  const warningId = reviewed.transparency_warning.id;
+  const report = await reportBreederProfile(`scam-${Date.now()}`, profile.id, { reason: 'confirmed_scam' }, null);
+  const reviewed = await adminUpdatePetFeedReportStatus(report.id, 'reviewed');
+  assert.equal(reviewed.compliance_penalty?.scoreAfter, 50);
+  assert.equal(reviewed.compliance_penalty?.mapping?.tier, 4);
+  assert.ok(reviewed.compliance_penalty?.actions?.includes('permanent_suspend'));
 
-  await appealTransparencyWarning(breederId, warningId, null);
-  const restored = await adminResolveTransparencyWarning(warningId, 'restore', {
-    adminNote: 'Good faith',
-    adminUserId: 'admin',
-  });
-  assert.equal(restored.status, 'restored');
   const account = await getAccountProfile(breederId);
-  assert.equal(account.account_status, 'active');
+  assert.equal(account.account_status, 'suspended');
   const after = await getMyBreederProfile(breederId, null);
-  assert.ok((after.metadata?.penaltyPoints ?? 0) < 20);
+  assert.equal(after.verification_status, 'suspended');
+  assert.equal(after.metadata?.compliance?.restrictions?.permanentBan, true);
+});
+
+test('legacy maybeCreateTransparencyWarningAfterPenalty no longer fires from penalty metadata alone', async () => {
+  resetTransparencyWarningMemoryForTests();
+  const breederId = `legacy-warn-${Date.now()}`;
+  await ensureAccountProfile({ userId: breederId, displayName: 'Legacy Farm', primaryRole: 'breeder' });
+  await upsertMyBreederProfile(breederId, {
+    displayName: 'Legacy Farm',
+    location: 'Đà Nẵng',
+    verificationStatus: 'pending_review',
+  }, null);
+  await adminUpdateBreederProfileStatus(breederId, 'verified');
+  const profile = await getMyBreederProfile(breederId, null);
+
+  const warning = await maybeCreateTransparencyWarningAfterPenalty({
+    profileBefore: { ...profile, metadata: { ...profile.metadata, penaltyPoints: 0 } },
+    profileAfter: {
+      ...profile,
+      metadata: {
+        ...profile.metadata,
+        penaltyPoints: 20,
+        violations: [{ id: 'legacy-v1', points: 20, status: 'active' }],
+      },
+    },
+    triggerViolationId: 'legacy-v1',
+  });
+  assert.equal(warning, null);
 });

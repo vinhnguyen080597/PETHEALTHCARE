@@ -40,7 +40,7 @@ test('penalty that drops verified score to ≤15 triggers warning', () => {
   );
 });
 
-test('computeTransparencyScoreFromProfile applies verified base and penalties', () => {
+test('computeTransparencyScoreFromProfile ignores legacy penalties', () => {
   const before = computeTransparencyScoreFromProfile({
     verification_status: 'verified',
     metadata: { penaltyPoints: 0 },
@@ -49,11 +49,13 @@ test('computeTransparencyScoreFromProfile applies verified base and penalties', 
   const after = computeTransparencyScoreFromProfile({
     verification_status: 'verified',
     metadata: {
+      penaltyPoints: 40,
       violations: [
         { id: 'v1', points: 10, status: 'active' },
         { id: 'v2', points: 10, status: 'active' },
       ],
     },
   });
-  assert.equal(after.score, 10);
+  assert.equal(after.score, 30);
+  assert.equal(after.penaltyPoints, 0);
 });

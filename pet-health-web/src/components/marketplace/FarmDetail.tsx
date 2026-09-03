@@ -77,11 +77,14 @@ function farmReviewAuthorInitials(name: string): string {
 const FALLBACK_COVER = DEFAULT_BREEDER_COVER_PATH;
 
 const BREEDER_REPORT_REASONS = [
-  "scam",
-  "misleading_health_claims",
-  "abusive_content",
-  "fake_contact",
-  "unsafe_transaction",
+  "stock_photo_spam",
+  "wrong_category_species",
+  "inaccurate_listing",
+  "abusive_communication",
+  "concealed_illness",
+  "forged_documents",
+  "confirmed_scam",
+  "prohibited_wildlife",
 ] as const;
 
 function PhotoLoadingSpinner({ size = 28 }: { size?: number }) {
@@ -765,17 +768,21 @@ export function FarmDetail({
   };
 
   const reasonLabels: Record<string, string> = {
-    scam: lang === "VI" ? "Lừa đảo / đáng ngờ" : "Scam or suspicious",
-    misleading_health_claims:
-      lang === "VI"
-        ? "Thông tin sức khỏe sai lệch"
-        : "Misleading health claims",
-    abusive_content:
-      lang === "VI" ? "Nội dung không phù hợp" : "Abusive content",
-    fake_contact:
-      lang === "VI" ? "Liên hệ giả / không liên lạc được" : "Fake contact",
-    unsafe_transaction:
-      lang === "VI" ? "Giao dịch không an toàn" : "Unsafe transaction",
+    stock_photo_spam:
+      lang === "VI" ? "Ảnh mạng / spam bài trùng" : "Stock photos / spam",
+    wrong_category_species:
+      lang === "VI" ? "Sai danh mục / giống loài" : "Wrong category / species",
+    inaccurate_listing:
+      lang === "VI" ? "Sai thông tin tin đăng" : "Inaccurate listing info",
+    abusive_communication:
+      lang === "VI" ? "Thái độ độc hại / quấy rối" : "Abusive communication",
+    concealed_illness:
+      lang === "VI" ? "Che giấu bệnh truyền nhiễm" : "Concealed illness",
+    forged_documents: lang === "VI" ? "Giả mạo giấy tờ" : "Forged documents",
+    confirmed_scam:
+      lang === "VI" ? "Lừa đảo cọc / tráo bé" : "Scam / bait-and-switch",
+    prohibited_wildlife:
+      lang === "VI" ? "Động vật hoang dã / cấm" : "Prohibited wildlife",
   };
 
   return (
@@ -1032,7 +1039,6 @@ export function FarmDetail({
                     lang={lang}
                     embedded
                     isOwner={isOwner}
-                    reviewCount={visibleReviewCount}
                   />
                 </section>
 

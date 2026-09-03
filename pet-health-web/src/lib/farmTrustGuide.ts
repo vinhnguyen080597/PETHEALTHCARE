@@ -1,15 +1,26 @@
 import type { Lang } from "./types";
 import {
-  LIGHT_VIOLATION_EXPIRY_DAYS,
-  LIGHT_VIOLATION_MAX_POINTS,
+  COMPLIANCE_BANDS,
+  COMPLIANCE_MATRIX,
+  COMPLIANCE_SCORE_DEFAULT,
+  complianceBandLabel,
+  complianceBandMeaning,
+  type ComplianceBandId,
+  type ComplianceMatrixRow,
+} from "./breederComplianceScore";
+import {
   TRANSPARENCY_POINTS,
   TRANSPARENCY_TIERS,
-  TRANSPARENCY_VIOLATION_PENALTIES,
 } from "./breederTransparencyScore";
 
 /** Owner-only transparency guide page. */
 export function farmTrustGuideHref(profileId: string): string {
   return `/app/breeders/${encodeURIComponent(profileId)}/trust`;
+}
+
+/** Owner-only compliance guide page. */
+export function farmComplianceGuideHref(profileId: string): string {
+  return `/app/breeders/${encodeURIComponent(profileId)}/compliance`;
 }
 
 export type TrustGuideHowToEarn = {
@@ -21,6 +32,7 @@ export type TrustGuideHowToEarn = {
   howEN: string;
 };
 
+/** @deprecated Prefer COMPLIANCE_MATRIX — kept for older imports. */
 export type TrustGuidePenalty = {
   id: string;
   points: number;
@@ -28,6 +40,9 @@ export type TrustGuidePenalty = {
   titleEN: string;
   actionVI: string;
   actionEN: string;
+  behaviorsVI?: string;
+  behaviorsEN?: string;
+  tier?: number;
 };
 
 export type TrustGuideImpact = {
@@ -105,50 +120,23 @@ export const TRUST_GUIDE_HOW_TO_EARN: TrustGuideHowToEarn[] = [
   },
 ];
 
-export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = [
-  {
-    id: "inaccurate_listing",
-    points: TRANSPARENCY_VIOLATION_PENALTIES.inaccurate_listing,
-    titleVI: "Đăng thông tin không chính xác",
-    titleEN: "Inaccurate listing information",
-    actionVI: "An ninh gỡ bài vi phạm.",
-    actionEN: "Security removes the violating listing.",
-  },
-  {
-    id: "stock_photo_spam",
-    points: TRANSPARENCY_VIOLATION_PENALTIES.stock_photo_spam,
-    titleVI: "Dùng ảnh mạng / spam bài ảo",
-    titleEN: "Stock photos / fake spam listings",
-    actionVI: "Tạm ẩn bài đăng.",
-    actionEN: "Listing is temporarily hidden.",
-  },
-  {
-    id: "abusive_communication",
-    points: TRANSPARENCY_VIOLATION_PENALTIES.abusive_communication,
-    titleVI: "Thái độ giao tiếp độc hại",
-    titleEN: "Abusive communication",
-    actionVI: "Cảnh cáo hệ thống.",
-    actionEN: "System warning issued.",
-  },
-  {
-    id: "concealed_illness",
-    points: TRANSPARENCY_VIOLATION_PENALTIES.concealed_illness,
-    titleVI: "Che giấu bệnh nặng (Care/Parvo…)",
-    titleEN: "Concealing serious illness",
-    actionVI: "Yêu cầu đền bù theo chính sách sàn.",
-    actionEN: "Compensation may be required per platform policy.",
-  },
-  {
-    id: "confirmed_scam",
-    points: TRANSPARENCY_VIOLATION_PENALTIES.confirmed_scam,
-    titleVI: "Lừa đảo / tráo bé cưng (xác nhận)",
-    titleEN: "Confirmed scam / bait-and-switch",
-    actionVI: "Tạm khóa tin đăng / liên hệ 30 ngày (và khóa nhận cọc nếu Escrow đang mở).",
-    actionEN: "Pause listings/contact for 30 days (and lock deposit intake if Escrow is on).",
-  },
-];
+/** Compliance matrix rows for the rules card (Điểm tuân thủ). */
+export const TRUST_GUIDE_COMPLIANCE_MATRIX: ComplianceMatrixRow[] = COMPLIANCE_MATRIX;
 
-export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
+/** Flat penalty rows derived from compliance matrix (UI compatibility). */
+export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = COMPLIANCE_MATRIX.map((row) => ({
+  id: `tier_${row.tier}`,
+  points: row.points,
+  tier: row.tier,
+  titleVI: row.titleVI,
+  titleEN: row.titleEN,
+  behaviorsVI: row.behaviorsVI,
+  behaviorsEN: row.behaviorsEN,
+  actionVI: row.actionVI,
+  actionEN: row.actionEN,
+}));
+
+export const TRUST_GUIDE_TRANSPARENCY_IMPACT: TrustGuideImpact[] = [
   {
     id: "buyer_trust",
     titleVI: "Niềm tin người mua",
@@ -167,22 +155,31 @@ export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
     bodyEN:
       "Higher scores tend to present stronger trust signals on farm cards and listings.",
   },
+];
+
+export const COMPLIANCE_GUIDE_IMPACT: TrustGuideImpact[] = [
   {
-    id: "penalties",
-    titleVI: "Vi phạm làm giảm điểm",
-    titleEN: "Violations reduce score",
-    bodyVI: `Chỉ trừ điểm khi báo cáo được Admin xác nhận. Vi phạm nhẹ (≤${LIGHT_VIOLATION_MAX_POINTS}đ) có thể hết hiệu lực sau ${LIGHT_VIOLATION_EXPIRY_DAYS} ngày nếu không tái phạm.`,
-    bodyEN: `Points drop only after Admin confirms a report. Light penalties (≤${LIGHT_VIOLATION_MAX_POINTS}) may expire after ${LIGHT_VIOLATION_EXPIRY_DAYS} days without repeat offenses.`,
+    id: "compliance",
+    titleVI: "Điểm tuân thủ (riêng biệt)",
+    titleEN: "Separate compliance score",
+    bodyVI: `Mỗi trại bắt đầu với ${COMPLIANCE_SCORE_DEFAULT} điểm tuân thủ. Chỉ trừ khi Admin xác nhận báo cáo. Mốc: 80–100 bình thường · 50–79 cảnh báo · 1–49 hạn chế · 0 khóa tài khoản.`,
+    bodyEN: `Every kennel starts at ${COMPLIANCE_SCORE_DEFAULT} compliance points. Deductions only after Admin confirms a report. Bands: 80–100 normal · 50–79 warning · 1–49 severe · 0 account lock.`,
   },
   {
-    id: "lowScoreWarning",
-    titleVI: "Cảnh báo ≤15 điểm",
-    titleEN: "Warning at ≤15 points",
+    id: "recoverySoon",
+    titleVI: "Phục hồi điểm (sắp có)",
+    titleEN: "Score recovery (coming soon)",
     bodyVI:
-      "Sau phạt nếu điểm minh bạch ≤15, bạn nhận popup: Xác nhận (tạm khóa tài khoản) hoặc Kháng cáo (Admin xem xét). Không thu thập CCCD / eKYC.",
+      "Phục hồi tự động +10 sau 30 ngày không vi phạm và reset năm về 100 sẽ bổ sung sau. Hiện tại điểm tuân thủ chỉ trừ khi Admin xác nhận báo cáo.",
     bodyEN:
-      "After a penalty, if transparency score is ≤15 you get a popup: Confirm (suspend account) or Appeal (Admin review). No CCCD / eKYC collection.",
+      "Auto +10 after 30 clean days and annual reset to 100 will ship later. For now, compliance only decreases when Admin confirms a report.",
   },
+];
+
+/** @deprecated Prefer TRUST_GUIDE_TRANSPARENCY_IMPACT + COMPLIANCE_GUIDE_IMPACT */
+export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
+  ...TRUST_GUIDE_TRANSPARENCY_IMPACT,
+  ...COMPLIANCE_GUIDE_IMPACT,
 ];
 
 export function trustGuideTierSummary(lang: Lang): string[] {
@@ -192,6 +189,19 @@ export function trustGuideTierSummary(lang: Lang): string[] {
     const range =
       tier.min === tier.max ? `${tier.min}` : `${tier.min}–${tier.max}`;
     return `${tier.level} (${range}): ${name} — ${meaning}`;
+  });
+}
+
+export function complianceGuideBandSummary(lang: Lang): string[] {
+  const locale = lang === "VI" ? "VI" : "EN";
+  const bandOrder: ComplianceBandId[] = ["normal", "warning", "severe", "banned"];
+  return bandOrder.map((bandId) => {
+    const band = COMPLIANCE_BANDS[bandId];
+    const range =
+      band.min === band.max ? `${band.min}` : `${band.min}–${band.max}`;
+    const label = complianceBandLabel(bandId, locale);
+    const meaning = complianceBandMeaning(bandId, locale);
+    return `${range}: ${label} — ${meaning}`;
   });
 }
 

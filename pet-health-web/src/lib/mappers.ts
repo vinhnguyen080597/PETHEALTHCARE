@@ -23,6 +23,7 @@ import {
   listingMetadataMarksSold,
 } from "./farmPets";
 import { metadataMarksOwnerDeleted } from "./listingOwnerDelete";
+import { getComplianceScoreFromMetadata } from "./breederComplianceScore";
 import { parseReviewStatsFromMeta } from "./breederDealReviews";
 import {
   coverUrlFromMetadata,
@@ -326,6 +327,7 @@ export function mapApiBreeder(
     bio,
     bioVI: bio,
     trustScore,
+    complianceScore: getComplianceScoreFromMetadata(meta),
     penaltyPoints,
     violations,
     activeListings,

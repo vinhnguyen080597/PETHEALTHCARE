@@ -17,7 +17,7 @@ test('trust guide content catalogs are non-empty', () => {
   assert.ok(trustGuideTierSummary('VI')[0].startsWith('L0'));
 });
 
-test('trust guide has no CCCD/eKYC missions and covers low-score warning', () => {
+test('trust guide has no CCCD/eKYC missions and covers compliance recovery note', () => {
   const earnBlob = TRUST_GUIDE_HOW_TO_EARN.flatMap((row) => [
     row.titleVI,
     row.titleEN,
@@ -34,10 +34,11 @@ test('trust guide has no CCCD/eKYC missions and covers low-score warning', () =>
   assert.equal(/không bắt buộc|optional/i.test(earnBlob), false);
   assert.equal(/CCCD|eKYC|căn cước/i.test(penaltyBlob), false);
   assert.ok(TRUST_GUIDE_HOW_TO_EARN.some((row) => row.id === 'verifiedBase' && row.points === 30));
-  const warning = TRUST_GUIDE_IMPACT.find((row) => row.id === 'lowScoreWarning');
-  assert.ok(warning);
-  assert.match(warning!.bodyEN, /No CCCD \/ eKYC/i);
-  assert.match(warning!.bodyVI, /Không thu thập CCCD/);
+  assert.equal(TRUST_GUIDE_PENALTIES[0]?.points, 5);
+  assert.equal(TRUST_GUIDE_PENALTIES[3]?.points, 50);
+  const recovery = TRUST_GUIDE_IMPACT.find((row) => row.id === 'recoverySoon');
+  assert.ok(recovery);
+  assert.match(recovery!.bodyEN, /ship later/i);
 });
 
 test('trust guide i18n keys exist in EN and VI', () => {

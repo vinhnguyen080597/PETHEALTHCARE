@@ -208,7 +208,7 @@ test('comment replies, delete, and list comment_count', async () => {
   assert.equal(afterDelete.length, 0);
 });
 
-test('admin reviewed report appends breeder violation once; dismiss does not', async () => {
+test('admin reviewed report appends compliance penalty once; dismiss does not', async () => {
   const breederId = `penalty-breeder-${Date.now()}`;
   const reporterId = `penalty-reporter-${Date.now()}`;
   const created = await upsertMyBreederProfile(breederId, {
@@ -218,24 +218,25 @@ test('admin reviewed report appends breeder violation once; dismiss does not', a
   }, null);
   await adminUpdateBreederProfileStatus(breederId, 'verified');
 
-  const openReport = await reportBreederProfile(reporterId, created.id, { reason: 'misleading', note: 'fake vaccine' }, null);
-  const dismissed = await reportBreederProfile(reporterId, created.id, { reason: 'spam', note: 'noise' }, null);
+  const openReport = await reportBreederProfile(reporterId, created.id, { reason: 'inaccurate_listing', note: 'fake vaccine' }, null);
+  const dismissed = await reportBreederProfile(reporterId, created.id, { reason: 'stock_photo_spam', note: 'noise' }, null);
 
   await adminUpdatePetFeedReportStatus(dismissed.id, 'dismissed');
   let profile = await getMyBreederProfile(breederId, null);
-  assert.equal(profile.metadata?.penaltyPoints ?? 0, 0);
-  assert.equal(Array.isArray(profile.metadata?.violations) ? profile.metadata.violations.length : 0, 0);
+  assert.equal(profile.metadata?.compliance?.score ?? 100, 100);
+  assert.equal(Array.isArray(profile.metadata?.compliance?.events) ? profile.metadata.compliance.events.length : 0, 0);
 
   await adminUpdatePetFeedReportStatus(openReport.id, 'reviewed');
   profile = await getMyBreederProfile(breederId, null);
-  assert.equal(profile.metadata.penaltyPoints, 10);
-  assert.equal(profile.metadata.violations.length, 1);
-  assert.equal(profile.metadata.violations[0].reportId, openReport.id);
+  assert.equal(profile.metadata.compliance.score, 90);
+  assert.equal(profile.metadata.compliance.events.length, 1);
+  assert.equal(profile.metadata.compliance.events[0].reportId, openReport.id);
+  assert.equal(profile.metadata.compliance.events[0].points, 10);
 
   await adminUpdatePetFeedReportStatus(openReport.id, 'reviewed');
   profile = await getMyBreederProfile(breederId, null);
-  assert.equal(profile.metadata.violations.length, 1);
-  assert.equal(profile.metadata.penaltyPoints, 10);
+  assert.equal(profile.metadata.compliance.events.length, 1);
+  assert.equal(profile.metadata.compliance.score, 90);
 });
 
 test('admin reviewed post report applies penalty to listing owner breeder', async () => {
@@ -265,13 +266,14 @@ test('admin reviewed post report applies penalty to listing owner breeder', asyn
   }, null);
   assert.equal(post.breeder_profile_id, created.id);
 
-  const report = await reportPetFeedPost(reporterId, post.id, { reason: 'misleading_health_claims', note: 'fake papers' }, null);
+  const report = await reportPetFeedPost(reporterId, post.id, { reason: 'concealed_illness', note: 'fake papers' }, null);
   await adminUpdatePetFeedReportStatus(report.id, 'reviewed');
 
   const profile = await getMyBreederProfile(breederId, null);
-  assert.equal(profile.metadata.penaltyPoints, 10);
-  assert.equal(profile.metadata.violations.length, 1);
-  assert.equal(profile.metadata.violations[0].reportId, report.id);
+  assert.equal(profile.metadata.compliance.score, 75);
+  assert.equal(profile.metadata.compliance.events.length, 1);
+  assert.equal(profile.metadata.compliance.events[0].reportId, report.id);
+  assert.equal(profile.metadata.compliance.events[0].points, 25);
 });
 
 test('deposit_hold listings stay readable and commentable for Sen', async () => {

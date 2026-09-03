@@ -3,10 +3,17 @@ import { createSupabaseWithUserAccessToken, getSupabaseServiceClient } from '../
 import { assertHealthEvidenceForReview } from '../utils/petFeedHealthEvidence.js';
 import { resolveBreederPetType, resolvePostPetType } from '../utils/petType.js';
 import {
+  adminUpdateAccountProfile,
   findAccountByEmail,
   getAccountProfile,
   normalizeUserRole as normalizeAccountUserRole,
 } from './accountRepository.js';
+import {
+  applyComplianceDeduction,
+  dailyListingCapForCompliance,
+  isCompliancePostBanned,
+  shouldHideComplianceContact,
+} from '../utils/breederComplianceScore.js';
 import {
   asObject,
   buildWarrantySnapshot,
@@ -46,10 +53,7 @@ import {
 } from './breederDealReviewsRepository.js';
 import {
   bindTransparencyWarningMemoryProfiles,
-  maybeCreateTransparencyWarningAfterPenalty,
 } from './transparencyWarningsRepository.js';
-
-const DEFAULT_VIOLATION_PENALTY_POINTS = 10;
 
 const POST_STATUSES = new Set(['draft', 'pending_review', 'published', 'deposit_hold', 'archived', 'sold', 'cancelled']);
 const CLOSED_LISTING_STATUSES = new Set(['sold', 'cancelled']);
@@ -1289,19 +1293,22 @@ function toPublicListPost(row) {
   };
 }
 
-/** Public detail: full media/description; contact kept for marketplace outreach. */
+/** Public detail: full media/description; contact kept for marketplace outreach unless compliance band hides it. */
 function toPublicDetailPost(row) {
   const post = toPost(row, new Set());
   if (!post) return post;
+  const profile = post.breeder_profile
+    ? {
+        ...post.breeder_profile,
+        contact: post.breeder_profile.contact ?? {},
+      }
+    : null;
+  const hideContact = shouldHideComplianceContact(profile?.metadata);
   return {
     ...post,
     is_favorited: false,
-    breeder_profile: post.breeder_profile
-      ? {
-          ...post.breeder_profile,
-          contact: post.breeder_profile.contact ?? {},
-        }
-      : null,
+    contact: hideContact ? {} : post.contact,
+    breeder_profile: hideContact ? stripContactFromProfile(profile) : profile,
   };
 }
 
@@ -1792,10 +1799,13 @@ export async function createPetFeedPost(userId, payload, accessToken, _options =
   const profile = await getMyBreederProfile(userId, accessToken);
   assertVerifiedBreederProfile(profile);
   assertHealthEvidenceForReview(payload);
+  const nextStatus = normalizeUserEditablePostStatus(payload.status, 'draft');
+  assertComplianceAllowsPublishing(profile, nextStatus);
+  await assertComplianceDailyListingCap(userId, profile, nextStatus);
   const base = {
     ...normalizePostPayload(userId, { ...payload, breederProfileId: profile?.id, postKind: 'listing' }),
     post_kind: 'listing',
-    status: normalizeUserEditablePostStatus(payload.status, 'draft'),
+    status: nextStatus,
     created_at: new Date().toISOString(),
   };
   const row = applyWarrantyPolicyBind(null, base, profile);
@@ -1969,12 +1979,20 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
     if (memoryPosts[idx].status === 'deposit_hold' || CLOSED_LISTING_STATUSES.has(memoryPosts[idx].status)) {
       throw httpError('This listing cannot be edited while deposit is held or completed.', 400, 'LISTING_LOCKED');
     }
+    const nextStatus = normalizeUserEditablePostStatus(payload.status, memoryPosts[idx].status);
+    const wasPublic = ['published', 'pending_review', 'deposit_hold'].includes(String(memoryPosts[idx].status || ''));
+    if (!wasPublic && (nextStatus === 'published' || nextStatus === 'pending_review')) {
+      assertComplianceAllowsPublishing(profile, nextStatus);
+      await assertComplianceDailyListingCap(userId, profile, nextStatus);
+    } else {
+      assertComplianceAllowsPublishing(profile, nextStatus);
+    }
     const nextRow = applyWarrantyPolicyBind(
       memoryPosts[idx],
       {
         ...memoryPosts[idx],
         ...normalizePostPayload(userId, payload, memoryPosts[idx]),
-        status: normalizeUserEditablePostStatus(payload.status, memoryPosts[idx].status),
+        status: nextStatus,
       },
       profile,
     );
@@ -1988,11 +2006,19 @@ export async function updatePetFeedPost(userId, postId, payload, accessToken) {
   }
   const profile = await getMyBreederProfile(userId, accessToken);
   assertVerifiedBreederProfile(profile);
+  const nextStatus = normalizeUserEditablePostStatus(payload.status, existing.status);
+  const wasPublic = ['published', 'pending_review', 'deposit_hold'].includes(String(existing.status || ''));
+  if (!wasPublic && (nextStatus === 'published' || nextStatus === 'pending_review')) {
+    assertComplianceAllowsPublishing(profile, nextStatus);
+    await assertComplianceDailyListingCap(userId, profile, nextStatus);
+  } else {
+    assertComplianceAllowsPublishing(profile, nextStatus);
+  }
   const updates = applyWarrantyPolicyBind(
     existing,
     {
       ...normalizePostPayload(userId, payload, existing),
-      status: normalizeUserEditablePostStatus(payload.status, existing.status),
+      status: nextStatus,
     },
     profile,
   );
@@ -2631,47 +2657,9 @@ async function findBreederProfileRowForPenalty({ breederProfileId, postId }) {
   return data;
 }
 
-async function appendBreederViolationFromReport(report) {
-  const profileRow = await findBreederProfileRowForPenalty({
-    breederProfileId: report.breeder_profile_id,
-    postId: report.post_id,
-  });
-  if (!profileRow?.id) return null;
-
-  const profileBefore = {
-    ...profileRow,
-    metadata: profileRow.metadata && typeof profileRow.metadata === 'object'
-      ? { ...profileRow.metadata }
-      : {},
-  };
-
-  const metadata = profileRow.metadata && typeof profileRow.metadata === 'object' ? { ...profileRow.metadata } : {};
-  const existingViolations = Array.isArray(metadata.violations) ? [...metadata.violations] : [];
-  if (existingViolations.some((item) => item && item.reportId === report.id)) {
-    return null;
-  }
-
-  const points = DEFAULT_VIOLATION_PENALTY_POINTS;
-  const violationId = randomUUID();
-  existingViolations.push({
-    id: violationId,
-    reportId: report.id,
-    reason: trimText(report.reason, 120) || 'report_upheld',
-    points,
-    date: new Date().toISOString().slice(0, 10),
-    createdAt: new Date().toISOString(),
-    status: 'active',
-  });
-  const penaltyPoints = existingViolations
-    .filter((item) => item && item.status === 'active')
-    .reduce((sum, item) => sum + (Number.isFinite(Number(item.points)) ? Math.max(0, Math.floor(Number(item.points))) : 0), 0);
-
-  metadata.violations = existingViolations;
-  metadata.penaltyPoints = penaltyPoints;
+async function persistBreederProfileMetadata(profileRow, metadata) {
   const updatedAt = new Date().toISOString();
-
   const supabase = getSupabaseServiceClient();
-  let profileAfter = null;
   if (!supabase) {
     const idx = memoryProfiles.findIndex((profile) => profile.id === profileRow.id);
     if (idx < 0) return null;
@@ -2680,25 +2668,224 @@ async function appendBreederViolationFromReport(report) {
       metadata,
       updated_at: updatedAt,
     };
-    profileAfter = memoryProfiles[idx];
-  } else {
-    const { data, error } = await supabase
-      .from('breeder_profiles')
-      .update({ metadata, updated_at: updatedAt })
-      .eq('id', profileRow.id)
-      .select('*')
-      .single();
-    if (error) throw error;
-    profileAfter = data;
+    return memoryProfiles[idx];
+  }
+  const { data, error } = await supabase
+    .from('breeder_profiles')
+    .update({ metadata, updated_at: updatedAt })
+    .eq('id', profileRow.id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function hideListingForCompliance(postId, reasonCode) {
+  const safeId = trimText(postId, 64);
+  if (!safeId) return null;
+  return adminUpdatePetFeedPostStatus(safeId, 'archived', {
+    adminAction: 'compliance_hide',
+    adminNote: `Hidden after confirmed violation (${reasonCode || 'report'}).`,
+    rejectionReason: reasonCode || 'compliance_violation',
+    metadata: {
+      compliance_hidden: true,
+      compliance_hidden_reason: reasonCode || 'report',
+      compliance_hidden_at: new Date().toISOString(),
+    },
+  });
+}
+
+async function unpublishAllListingsForBreeder(breederProfileId, userId) {
+  const profileId = trimText(breederProfileId, 64);
+  const ownerId = trimText(userId, 80);
+  const supabase = getSupabaseServiceClient();
+  const active = new Set(['published', 'deposit_hold', 'pending_review']);
+  const now = new Date().toISOString();
+  if (!supabase) {
+    for (let i = 0; i < memoryPosts.length; i += 1) {
+      const post = memoryPosts[i];
+      if (normalizePostKind(post.post_kind, 'listing') !== 'listing') continue;
+      if (profileId && post.breeder_profile_id !== profileId && post.user_id !== ownerId) continue;
+      if (!profileId && post.user_id !== ownerId) continue;
+      if (!active.has(String(post.status || ''))) continue;
+      memoryPosts[i] = {
+        ...post,
+        status: 'archived',
+        metadata: {
+          ...(asObject(post.metadata) || {}),
+          compliance_hidden: true,
+          compliance_hidden_reason: 'permanent_ban',
+          compliance_hidden_at: now,
+        },
+        updated_at: now,
+      };
+    }
+    return;
+  }
+  let query = supabase
+    .from('pet_feed_posts')
+    .select('id, status, metadata, breeder_profile_id, user_id, post_kind')
+    .eq('post_kind', 'listing')
+    .in('status', ['published', 'deposit_hold', 'pending_review']);
+  if (profileId) query = query.eq('breeder_profile_id', profileId);
+  else if (ownerId) query = query.eq('user_id', ownerId);
+  const { data, error } = await query;
+  if (error) throw error;
+  for (const row of data ?? []) {
+    await adminUpdatePetFeedPostStatus(row.id, 'archived', {
+      adminAction: 'compliance_unpublish_all',
+      adminNote: 'Unpublished after compliance permanent ban.',
+      metadata: {
+        compliance_hidden: true,
+        compliance_hidden_reason: 'permanent_ban',
+        compliance_hidden_at: now,
+      },
+    });
+  }
+}
+
+async function countPublishedListingsCreatedToday(userId) {
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  const sinceIso = start.toISOString();
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    return memoryPosts.filter(
+      (post) =>
+        post.user_id === userId
+        && normalizePostKind(post.post_kind, 'listing') === 'listing'
+        && ['published', 'pending_review', 'deposit_hold'].includes(String(post.status || ''))
+        && String(post.created_at || '') >= sinceIso,
+    ).length;
+  }
+  const { count, error } = await supabase
+    .from('pet_feed_posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('post_kind', 'listing')
+    .in('status', ['published', 'pending_review', 'deposit_hold'])
+    .gte('created_at', sinceIso);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+function assertComplianceAllowsPublishing(profile, nextStatus) {
+  const status = normalizeStatus(nextStatus, 'draft');
+  if (status !== 'published' && status !== 'pending_review') return;
+  const meta = asObject(profile?.metadata);
+  if (asObject(asObject(meta).compliance).restrictions?.permanentBan === true) {
+    throw httpError('Account permanently banned for compliance violations.', 403, 'COMPLIANCE_PERMANENT_BAN');
+  }
+  if (isCompliancePostBanned(meta)) {
+    throw httpError('Posting is temporarily banned due to compliance score.', 403, 'COMPLIANCE_POST_BAN');
+  }
+  const cap = dailyListingCapForCompliance(meta);
+  if (cap === 0) {
+    throw httpError('Posting is restricted due to low compliance score.', 403, 'COMPLIANCE_POST_BAN');
+  }
+}
+
+async function assertComplianceDailyListingCap(userId, profile, nextStatus) {
+  const status = normalizeStatus(nextStatus, 'draft');
+  if (status !== 'published' && status !== 'pending_review') return;
+  const cap = dailyListingCapForCompliance(asObject(profile?.metadata));
+  if (cap == null) return;
+  if (cap <= 0) {
+    throw httpError('Posting is restricted due to low compliance score.', 403, 'COMPLIANCE_POST_BAN');
+  }
+  const used = await countPublishedListingsCreatedToday(userId);
+  if (used >= cap) {
+    throw httpError(
+      `Compliance warning band limits you to ${cap} new listing(s) per day.`,
+      429,
+      'COMPLIANCE_DAILY_LISTING_CAP',
+    );
+  }
+}
+
+async function applyCompliancePenaltyFromReport(report) {
+  const profileRow = await findBreederProfileRowForPenalty({
+    breederProfileId: report.breeder_profile_id,
+    postId: report.post_id,
+  });
+  if (!profileRow?.id) return null;
+
+  const metadata = profileRow.metadata && typeof profileRow.metadata === 'object'
+    ? { ...profileRow.metadata }
+    : {};
+  const result = applyComplianceDeduction(metadata, {
+    reportId: report.id,
+    reason: report.reason,
+    eventId: randomUUID(),
+  });
+  if (!result.applied) {
+    return {
+      profile: profileRow,
+      compliance: result.compliance,
+      applied: false,
+      mapping: result.mapping,
+      actions: [],
+      scoreBefore: result.scoreBefore,
+      scoreAfter: result.scoreAfter,
+      band: result.band,
+    };
   }
 
-  const warning = await maybeCreateTransparencyWarningAfterPenalty({
-    profileBefore,
-    profileAfter,
-    triggerViolationId: violationId,
-  }).catch(() => null);
+  metadata.compliance = result.compliance;
+  const profileAfter = await persistBreederProfileMetadata(profileRow, metadata);
+  const actions = [...result.actions];
 
-  return { profile: profileAfter, warning, violationId };
+  if (actions.includes('hide_listing') && report.post_id) {
+    await hideListingForCompliance(report.post_id, result.mapping.reasonCode).catch(() => null);
+  }
+
+  if (actions.includes('permanent_suspend') || result.band === 'banned') {
+    const ownerId = trimText(profileAfter?.user_id || profileRow.user_id, 80);
+    if (ownerId) {
+      await adminUpdateAccountProfile(ownerId, { accountStatus: 'suspended' }).catch(() => null);
+    }
+    const supabase = getSupabaseServiceClient();
+    const updatedAt = new Date().toISOString();
+    if (!supabase) {
+      const idx = memoryProfiles.findIndex((p) => p.id === profileRow.id);
+      if (idx >= 0) {
+        memoryProfiles[idx] = {
+          ...memoryProfiles[idx],
+          verification_status: 'suspended',
+          updated_at: updatedAt,
+        };
+      }
+    } else {
+      await supabase
+        .from('breeder_profiles')
+        .update({ verification_status: 'suspended', updated_at: updatedAt })
+        .eq('id', profileRow.id);
+    }
+  }
+
+  if (actions.includes('unpublish_all_listings') || result.band === 'banned') {
+    await unpublishAllListingsForBreeder(
+      profileRow.id,
+      profileAfter?.user_id || profileRow.user_id,
+    ).catch(() => null);
+  }
+
+  return {
+    profile: profileAfter,
+    compliance: result.compliance,
+    applied: true,
+    mapping: result.mapping,
+    actions,
+    scoreBefore: result.scoreBefore,
+    scoreAfter: result.scoreAfter,
+    band: result.band,
+    notify_system_warning: actions.includes('system_warning'),
+  };
+}
+
+/** @deprecated Use applyCompliancePenaltyFromReport — kept name for call sites during transition. */
+async function appendBreederViolationFromReport(report) {
+  return applyCompliancePenaltyFromReport(report);
 }
 
 export async function adminUpdatePetFeedReportStatus(reportId, status) {
@@ -2711,12 +2898,11 @@ export async function adminUpdatePetFeedReportStatus(reportId, status) {
     if (idx < 0) return null;
     const previous = memoryReports[idx];
     memoryReports[idx] = { ...previous, status: safeStatus, updated_at: new Date().toISOString() };
-    let transparencyWarning = null;
+    let compliancePenalty = null;
     if (safeStatus === 'reviewed' && previous.status !== 'reviewed') {
-      const penaltyResult = await appendBreederViolationFromReport(memoryReports[idx]);
-      transparencyWarning = penaltyResult?.warning ?? null;
+      compliancePenalty = await applyCompliancePenaltyFromReport(memoryReports[idx]);
     }
-    return { ...toReport(memoryReports[idx]), transparency_warning: transparencyWarning };
+    return { ...toReport(memoryReports[idx]), compliance_penalty: compliancePenalty, transparency_warning: null };
   }
   const { data: existing, error: existingError } = await supabase
     .from('pet_feed_reports')
@@ -2733,12 +2919,11 @@ export async function adminUpdatePetFeedReportStatus(reportId, status) {
     .select('*')
     .maybeSingle();
   if (error) throw error;
-  let transparencyWarning = null;
+  let compliancePenalty = null;
   if (safeStatus === 'reviewed' && existing.status !== 'reviewed') {
-    const penaltyResult = await appendBreederViolationFromReport(data);
-    transparencyWarning = penaltyResult?.warning ?? null;
+    compliancePenalty = await applyCompliancePenaltyFromReport(data);
   }
-  return { ...toReport(data), transparency_warning: transparencyWarning };
+  return { ...toReport(data), compliance_penalty: compliancePenalty, transparency_warning: null };
 }
 
 export function listMyWarrantyPolicies(profile) {

@@ -525,8 +525,13 @@ export function FarmHealthScreen({
                 <Text style={{ flex: 1, fontSize: 13, fontWeight: '700', color: FARM_TEXT }}>
                   {pickLangText(lang, row.titleVI, row.titleEN)}
                 </Text>
-                <Text style={{ fontSize: 11, fontWeight: '800', color: '#B91C1C' }}>?{row.points}?</Text>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#B91C1C' }}>−{row.points}đ</Text>
               </View>
+              {row.behaviorsVI ? (
+                <Text style={{ marginTop: 4, fontSize: 13, lineHeight: 19, color: FARM_TEXT }}>
+                  {pickLangText(lang, row.behaviorsVI, row.behaviorsEN || row.behaviorsVI)}
+                </Text>
+              ) : null}
               <Text style={{ marginTop: 4, fontSize: 13, lineHeight: 19, color: FARM_MUTED }}>
                 {pickLangText(lang, row.actionVI, row.actionEN)}
               </Text>

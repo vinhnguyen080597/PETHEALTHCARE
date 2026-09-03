@@ -24,6 +24,7 @@ const SEGMENT_LABEL: Record<string, EnKey> = {
   news: "nav.news",
   health: "breadcrumb.farmHealth",
   trust: "breadcrumb.farmTrust",
+  compliance: "breadcrumb.farmCompliance",
   account: "nav.account",
   saved: "account.savedPage.title",
   breeder: "breadcrumb.breederProfile",
@@ -181,6 +182,36 @@ export function buildSiteBreadcrumbs(
         {
           href: `/app/breeders/${id}/trust`,
           labelKey: "breadcrumb.farmTrust",
+        },
+      ];
+    }
+  }
+
+  {
+    const complianceMatch = path.match(/^\/app\/breeders\/([^/]+)\/compliance\/?$/);
+    if (complianceMatch) {
+      const id = parseFarmBreadcrumbId(complianceMatch[1]) || complianceMatch[1];
+      if (fromAccount) {
+        return [
+          { href: "/", labelKey: "breadcrumb.home" },
+          { href: "/app/account", labelKey: "nav.account" },
+          {
+            href: farmDetailHref(id, "overview", { from: "account" }),
+            labelKey: "breadcrumb.farmProfile",
+          },
+          {
+            href: `/app/breeders/${id}/compliance`,
+            labelKey: "breadcrumb.farmCompliance",
+          },
+        ];
+      }
+      return [
+        { href: "/", labelKey: "breadcrumb.home" },
+        { href: "/app/breeders", labelKey: "nav.breeders" },
+        { href: `/app/breeders/${id}`, labelKey: "breadcrumb.farmProfile" },
+        {
+          href: `/app/breeders/${id}/compliance`,
+          labelKey: "breadcrumb.farmCompliance",
         },
       ];
     }

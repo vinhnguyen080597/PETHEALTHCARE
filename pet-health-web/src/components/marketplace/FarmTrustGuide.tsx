@@ -17,8 +17,7 @@ import {
 } from "@/lib/transparencyBreakdownDisplay";
 import {
   TRUST_GUIDE_HOW_TO_EARN,
-  TRUST_GUIDE_IMPACT,
-  TRUST_GUIDE_PENALTIES,
+  TRUST_GUIDE_TRANSPARENCY_IMPACT,
   pickLangText,
   trustGuideTierSummary,
 } from "@/lib/farmTrustGuide";
@@ -145,8 +144,8 @@ export function FarmTrustGuide({
           <TrustLevelChip level={tier.level} label={tierLabel} />
           <p className="text-sm text-slate-600">
             {lang === "VI"
-              ? `Điểm hiện tại: ${eff}/100 · Hồ sơ ${computed.profilePoints} · Hoạt động ${computed.activityPoints} · Phạt −${computed.violationPoints}`
-              : `Current: ${eff}/100 · Profile ${computed.profilePoints} · Activity ${computed.activityPoints} · Penalties −${computed.violationPoints}`}
+              ? `Điểm minh bạch: ${eff}/100 · Hồ sơ ${computed.profilePoints}`
+              : `Transparency: ${eff}/100 · Profile ${computed.profilePoints}`}
           </p>
           <p className="text-xs text-slate-400 leading-relaxed">
             {lang === "VI" ? tier.meaningVI : tier.meaningEN}
@@ -187,27 +186,6 @@ export function FarmTrustGuide({
             </li>
           ))}
         </ul>
-        {breeder.violations.length > 0 ? (
-          <div className="rounded-xl border border-red-100 bg-red-50/60 p-3 space-y-2 mt-2">
-            <p className="text-xs font-semibold text-red-800">
-              {t(lang, "farm.trust.guide.confirmedViolations")}
-            </p>
-            {breeder.violations.map((v) => (
-              <div
-                key={v.id}
-                className="flex items-start justify-between gap-2 text-sm"
-              >
-                <div>
-                  <p className="text-red-800 font-medium">{v.reason}</p>
-                  <p className="text-xs text-red-400">{v.date}</p>
-                </div>
-                <span className="text-red-600 font-bold shrink-0">
-                  −{v.points}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </section>
 
       {/* How to improve */}
@@ -330,43 +308,13 @@ export function FarmTrustGuide({
         ) : null}
       </section>
 
-      {/* Rules / avoid penalties */}
-      <section className="bg-white border border-slate-100 rounded-2xl p-5 sm:p-6 space-y-4">
-        <h2 className="text-sm font-bold tracking-wide text-slate-800 uppercase">
-          ⚠️ {t(lang, "farm.trust.guide.rulesTitle")}
-        </h2>
-        <p className="text-sm text-slate-500">
-          {t(lang, "farm.trust.guide.rulesIntro")}
-        </p>
-        <ul className="space-y-3">
-          {TRUST_GUIDE_PENALTIES.map((row) => (
-            <li
-              key={row.id}
-              className="rounded-xl border border-red-50 bg-red-50/40 px-4 py-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold text-slate-800">
-                  {pickLangText(lang, row.titleVI, row.titleEN)}
-                </p>
-                <span className="text-xs font-bold text-red-700 shrink-0">
-                  −{row.points}đ
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-                {pickLangText(lang, row.actionVI, row.actionEN)}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
       {/* Impact */}
       <section className="bg-white border border-slate-100 rounded-2xl p-5 sm:p-6 space-y-4">
         <h2 className="text-sm font-bold tracking-wide text-slate-800 uppercase">
           🎯 {t(lang, "farm.trust.guide.impactTitle")}
         </h2>
         <ul className="space-y-3">
-          {TRUST_GUIDE_IMPACT.map((row) => (
+          {TRUST_GUIDE_TRANSPARENCY_IMPACT.map((row) => (
             <li key={row.id} className="space-y-1">
               <p className="text-sm font-semibold text-slate-800">
                 {pickLangText(lang, row.titleVI, row.titleEN)}

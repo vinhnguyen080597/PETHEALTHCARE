@@ -421,11 +421,14 @@
     "reportNotePlaceholder": "Ghi chú thêm cho admin nếu cần",
     "submitReport": "Gửi báo cáo",
     "reportReasons": {
-      "scam": "Nghi lừa đảo hoặc hoạt động đáng ngờ",
-      "misleading_health_claims": "Cam kết sức khỏe gây hiểu nhầm",
-      "abusive_content": "Nội dung không phù hợp hoặc xúc phạm",
-      "fake_contact": "Liên hệ giả hoặc không liên lạc được",
-      "unsafe_transaction": "Yêu cầu giao dịch không an toàn"
+      "stock_photo_spam": "Dùng ảnh mạng / spam bài trùng lặp",
+      "wrong_category_species": "Chọn sai danh mục / sai giống loài",
+      "inaccurate_listing": "Đăng sai thông tin (giá, tuổi, vắc-xin)",
+      "abusive_communication": "Thái độ độc hại / quấy rối trong chat",
+      "concealed_illness": "Che giấu bệnh truyền nhiễm (Care, Parvo…)",
+      "forged_documents": "Giả mạo giấy tờ vắc-xin / gia phả",
+      "confirmed_scam": "Lừa đảo cọc / tráo bé cưng",
+      "prohibited_wildlife": "Động vật hoang dã / loài bị cấm (CITES)"
     },
     "blockBreederSuccess": "Đã ẩn breeder này khỏi Pet Feed của Sen.",
     "blockBreederFailed": "Không thể ẩn breeder",
@@ -513,11 +516,14 @@
     "blockBody": "Sen sẽ không còn thấy hồ sơ hoặc bài đăng của breeder này trong Pet Feed trên tài khoản này.",
     "blockConfirm": "Ẩn breeder",
     "reportReasons": {
-      "scam": "Nghi lừa đảo hoặc hoạt động đáng ngờ",
-      "misleading_health_claims": "Cam kết sức khỏe gây hiểu nhầm",
-      "abusive_content": "Nội dung không phù hợp hoặc xúc phạm",
-      "fake_contact": "Liên hệ giả hoặc không liên lạc được",
-      "unsafe_transaction": "Yêu cầu giao dịch không an toàn"
+      "stock_photo_spam": "Dùng ảnh mạng / spam bài trùng lặp",
+      "wrong_category_species": "Chọn sai danh mục / sai giống loài",
+      "inaccurate_listing": "Đăng sai thông tin (giá, tuổi, vắc-xin)",
+      "abusive_communication": "Thái độ độc hại / quấy rối trong chat",
+      "concealed_illness": "Che giấu bệnh truyền nhiễm (Care, Parvo…)",
+      "forged_documents": "Giả mạo giấy tờ vắc-xin / gia phả",
+      "confirmed_scam": "Lừa đảo cọc / tráo bé cưng",
+      "prohibited_wildlife": "Động vật hoang dã / loài bị cấm (CITES)"
     },
     "gender": {
       "all": "Tất cả giới tính",
@@ -683,11 +689,12 @@
         "earnVideoFallback": "Không phát được video này.",
         "earnOpenProfile": "Mở hồ sơ trại",
         "earnOpenWarranty": "Mở chính sách bảo hành",
-        "rulesTitle": "Nội quy — tránh bị trừ điểm",
-        "rulesIntro": "Chỉ trừ điểm khi báo cáo từ người dùng được Admin xác nhận là đúng.",
+        "rulesTitle": "Điểm tuân thủ — nội quy trừ điểm",
+        "rulesIntro": "Mỗi trại bắt đầu từ 100 điểm tuân thủ (tách biệt điểm minh bạch). Chỉ trừ khi báo cáo được Admin xác nhận.",
+        "complianceScore": "Điểm tuân thủ",
         "impactTitle": "Điểm ảnh hưởng đến bạn như thế nào",
         "tiersTitle": "Các danh hiệu minh bạch",
-        "scoreSnapshot": "Điểm hiện tại: {{score}}/100 · Hồ sơ {{profile}} · Hoạt động {{activity}} · Phạt −{{penalty}}"
+        "scoreSnapshot": "Điểm minh bạch: {{score}}/100 · Hồ sơ {{profile}} · Tuân thủ {{compliance}}/100"
       },
       "ratingEmpty": "Chưa có đánh giá",
       "response": "Tốc độ trả lời: < {{minutes}} phút",

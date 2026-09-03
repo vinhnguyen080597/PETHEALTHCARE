@@ -241,6 +241,21 @@ test("edit listing trail links detail then edit", () => {
   assertLinksAreRealPages(path);
 });
 
+test("compliance guide trail parents are breeders + farm", () => {
+  const crumbs = buildSiteBreadcrumbs(`/app/breeders/${FARM_ID}/compliance`);
+  assert.ok(crumbs);
+  assert.deepEqual(
+    crumbs.map((c) => c.href),
+    [
+      "/",
+      "/app/breeders",
+      `/app/breeders/${FARM_ID}`,
+      `/app/breeders/${FARM_ID}/compliance`,
+    ],
+  );
+  assert.equal(crumbs[3]?.labelKey, "breadcrumb.farmCompliance");
+});
+
 test("trust guide trail parents are breeders + farm", () => {
   const crumbs = buildSiteBreadcrumbs(`/app/breeders/${FARM_ID}/trust`);
   assert.ok(crumbs);
@@ -278,6 +293,7 @@ test("marketplace and legal trails have real parent links", () => {
   assertLinksAreRealPages("/app/breeders");
   assertLinksAreRealPages(`/app/breeders/${FARM_ID}`);
   assertLinksAreRealPages(`/app/breeders/${FARM_ID}/trust`);
+  assertLinksAreRealPages(`/app/breeders/${FARM_ID}/compliance`);
   assertLinksAreRealPages("/app/support");
   assertLinksAreRealPages("/app/messages");
   assertLinksAreRealPages("/app/notifications");
@@ -313,4 +329,6 @@ test("breadcrumb.farmTrust i18n exists EN/VI", () => {
   const viDict = vi as Record<string, string>;
   assert.ok(enDict["breadcrumb.farmTrust"]);
   assert.ok(viDict["breadcrumb.farmTrust"]);
+  assert.ok(enDict["breadcrumb.farmCompliance"]);
+  assert.ok(viDict["breadcrumb.farmCompliance"]);
 });

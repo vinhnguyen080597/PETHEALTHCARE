@@ -38,24 +38,15 @@ function clampScore(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-/** Effective penalty from violations list or legacy penaltyPoints. */
-export function effectivePenaltyPoints(meta = {}) {
-  const list = Array.isArray(meta.violations) ? meta.violations : [];
-  if (list.length > 0) {
-    let sum = 0;
-    for (const v of list) {
-      if (!v || v.status === 'waived' || v.status === 'expired') continue;
-      const pts = Math.max(0, Number(v.points) || 0);
-      sum += pts;
-    }
-    return sum;
-  }
-  return Math.max(0, Number(meta.penaltyPoints) || 0);
+/** Effective penalty from violations — always 0; penalties moved to compliance score. */
+export function effectivePenaltyPoints(_meta = {}) {
+  return 0;
 }
 
 /**
  * Compute transparency score for a breeder profile row.
  * Unverified → 0 (never triggers warning).
+ * Profile points only — compliance violations do not reduce this score.
  */
 export function computeTransparencyScoreFromProfile(profile) {
   const verification = String(profile?.verification_status || '').toLowerCase();
@@ -107,12 +98,10 @@ export function computeTransparencyScoreFromProfile(profile) {
       ? POINTS.firstWarranty
       : 0;
 
-  const penaltyPoints = effectivePenaltyPoints(meta);
-
   const profilePoints =
     POINTS.verifiedBase + social + facilityVideo + businessLicense + firstWarranty;
-  const score = clampScore(profilePoints - penaltyPoints);
-  return { score, isVerified: true, penaltyPoints };
+  const score = clampScore(profilePoints);
+  return { score, isVerified: true, penaltyPoints: 0 };
 }
 
 export function shouldTriggerTransparencyWarning({ scoreBefore, scoreAfter, isVerified }) {

@@ -60,6 +60,8 @@ export interface BreederProfile {
   bio: string;
   bioVI: string;
   trustScore: number;
+  /** Compliance score 0–100 (defaults to 100). Separate from transparency. */
+  complianceScore?: number;
   penaltyPoints: number;
   violations: Violation[];
   activeListings: number;

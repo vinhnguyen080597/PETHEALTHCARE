@@ -763,7 +763,28 @@ router.put('/pet-feed/reports/:reportId/status', requireAdminOrSecret, async (re
     const report = await adminUpdatePetFeedReportStatus(reportId, req.body?.status);
     if (!report) return res.status(404).json({ error: 'Report not found', code: 'PET_FEED_REPORT_NOT_FOUND' });
     const reviewedNow = report.status === 'reviewed' && before?.status !== 'reviewed';
+    const compliancePenalty = report.compliance_penalty || null;
     const transparencyWarning = report.transparency_warning || null;
+    if (compliancePenalty?.notify_system_warning && compliancePenalty?.profile) {
+      const profile = compliancePenalty.profile;
+      void createTransparencyWarningNotification({
+        recipientUserId: profile.user_id,
+        actorUserId: req.user?.id || 'admin',
+        breederProfileId: profile.id,
+        type: 'transparency_warning',
+        bodyPreview: `Cảnh cáo tuân thủ: −${compliancePenalty.mapping?.points || 0}đ (còn ${compliancePenalty.scoreAfter}/100).`,
+        metadata: {
+          compliance_score: compliancePenalty.scoreAfter,
+          compliance_tier: compliancePenalty.mapping?.tier,
+          reason_code: compliancePenalty.mapping?.reasonCode,
+          cta_label: 'Xem điểm tuân thủ',
+          cta_href: profile.id
+            ? `/app/breeders/${encodeURIComponent(profile.id)}/trust`
+            : '/app/account/breeder',
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
+    }
     if (transparencyWarning?.id) {
       void createTransparencyWarningNotification({
         recipientUserId: transparencyWarning.user_id,
@@ -799,11 +820,28 @@ router.put('/pet-feed/reports/:reportId/status', requireAdminOrSecret, async (re
         post_id: report.post_id || before?.post_id || null,
         breeder_profile_id: report.breeder_profile_id || before?.breeder_profile_id || null,
         penalty_applied: reviewedNow,
+        compliance_score_after: compliancePenalty?.scoreAfter,
+        compliance_tier: compliancePenalty?.mapping?.tier,
         transparency_warning_id: transparencyWarning?.id || undefined,
       },
     });
-    const { transparency_warning: _tw, ...reportData } = report;
-    return res.json({ data: reportData, transparency_warning: transparencyWarning });
+    const { transparency_warning: _tw, compliance_penalty: _cp, ...reportData } = report;
+    return res.json({
+      data: reportData,
+      compliance_penalty: compliancePenalty
+        ? {
+            applied: compliancePenalty.applied,
+            score_before: compliancePenalty.scoreBefore,
+            score_after: compliancePenalty.scoreAfter,
+            band: compliancePenalty.band,
+            tier: compliancePenalty.mapping?.tier,
+            points: compliancePenalty.mapping?.points,
+            reason_code: compliancePenalty.mapping?.reasonCode,
+            actions: compliancePenalty.actions,
+          }
+        : null,
+      transparency_warning: transparencyWarning,
+    });
   } catch (err) {
     return next(err);
   }

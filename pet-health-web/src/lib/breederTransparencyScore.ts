@@ -139,9 +139,12 @@ export const TRANSPARENCY_TIERS: TransparencyTierInfo[] = [
 
 export const TRANSPARENCY_TICK_INACTIVE = "#E5E7EB";
 
+/** @deprecated Violations moved to compliance score — always ignored for transparency. */
 export const LIGHT_VIOLATION_EXPIRY_DAYS = 90;
+/** @deprecated */
 export const LIGHT_VIOLATION_MAX_POINTS = 10;
 
+/** @deprecated Use COMPLIANCE_MATRIX / mapReportReasonToCompliance instead. */
 export const TRANSPARENCY_VIOLATION_PENALTIES = {
   inaccurate_listing: 10,
   stock_photo_spam: 5,
@@ -154,31 +157,11 @@ function clampScore(value: number): number {
   return Math.max(0, Math.min(TRANSPARENCY_SCORE_MAX, Math.round(value)));
 }
 
-function daysBetween(isoDate: string, now: Date): number | null {
-  const t = Date.parse(isoDate);
-  if (!Number.isFinite(t)) return null;
-  return (now.getTime() - t) / (1000 * 60 * 60 * 24);
-}
-
+/** @deprecated Transparency no longer subtracts violations (compliance score owns penalties). */
 export function computeEffectiveViolationPoints(
-  input: Pick<TransparencyScoreInput, "penaltyPoints" | "violations" | "now">,
+  _input: Pick<TransparencyScoreInput, "penaltyPoints" | "violations" | "now">,
 ): number {
-  const now = input.now ?? new Date();
-  const list = input.violations;
-  if (Array.isArray(list) && list.length > 0) {
-    let sum = 0;
-    for (const v of list) {
-      const pts = Math.max(0, Number(v.points) || 0);
-      if (pts <= 0) continue;
-      if (pts <= LIGHT_VIOLATION_MAX_POINTS && v.date) {
-        const age = daysBetween(v.date, now);
-        if (age != null && age > LIGHT_VIOLATION_EXPIRY_DAYS) continue;
-      }
-      sum += pts;
-    }
-    return sum;
-  }
-  return Math.max(0, Number(input.penaltyPoints) || 0);
+  return 0;
 }
 
 export function socialTransparencyPoints(
@@ -233,8 +216,8 @@ export function computeTransparencyScore(
   const profilePoints =
     verifiedBase + social + facilityVideo + businessLicense + firstWarranty;
   const activityPoints = 0;
-  const violationPoints = computeEffectiveViolationPoints(input);
-  const score = clampScore(profilePoints + activityPoints - violationPoints);
+  const violationPoints = 0;
+  const score = clampScore(profilePoints + activityPoints);
 
   const lines: TransparencyBreakdownLine[] = [
     {
@@ -271,13 +254,6 @@ export function computeTransparencyScore(
       val: firstWarranty,
       max: TRANSPARENCY_POINTS.firstWarranty,
       done: firstWarranty > 0,
-    },
-    {
-      key: "penalty",
-      group: "penalty",
-      val: -violationPoints,
-      max: 0,
-      done: violationPoints === 0,
     },
   ];
 

@@ -8,6 +8,8 @@ type Props = {
   caption: string;
   size?: number;
   className?: string;
+  /** Override tick coloring (defaults to transparency trust bands). */
+  tickColor?: (tickIndex: number, score: number) => string;
 };
 
 /**
@@ -19,6 +21,7 @@ export function TrustTicksGauge({
   caption,
   size = 220,
   className = "",
+  tickColor = trustTickColor,
 }: Props) {
   const s = Math.max(0, Math.min(100, Math.round(score)));
   const cx = size / 2;
@@ -42,7 +45,7 @@ export function TrustTicksGauge({
         y1={y1}
         x2={x2}
         y2={y2}
-        stroke={trustTickColor(tick, s)}
+        stroke={tickColor(tick, s)}
         strokeWidth={size * 0.008}
         strokeLinecap="round"
       />

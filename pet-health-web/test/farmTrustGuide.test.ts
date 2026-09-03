@@ -3,10 +3,14 @@ import assert from "node:assert/strict";
 import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
 import {
+  farmComplianceGuideHref,
   farmTrustGuideHref,
   TRUST_GUIDE_HOW_TO_EARN,
   TRUST_GUIDE_IMPACT,
   TRUST_GUIDE_PENALTIES,
+  TRUST_GUIDE_TRANSPARENCY_IMPACT,
+  COMPLIANCE_GUIDE_IMPACT,
+  complianceGuideBandSummary,
   trustGuideTierSummary,
 } from "../src/lib/farmTrustGuide";
 
@@ -21,15 +25,26 @@ test("farmTrustGuideHref builds owner guide path", () => {
   );
 });
 
+test("farmComplianceGuideHref builds owner compliance guide path", () => {
+  assert.equal(
+    farmComplianceGuideHref("bp-123"),
+    "/app/breeders/bp-123/compliance",
+  );
+});
+
 test("trust guide content catalogs are non-empty", () => {
   assert.ok(TRUST_GUIDE_HOW_TO_EARN.length >= 5);
   assert.ok(TRUST_GUIDE_PENALTIES.length >= 4);
+  assert.ok(TRUST_GUIDE_TRANSPARENCY_IMPACT.length >= 2);
+  assert.ok(COMPLIANCE_GUIDE_IMPACT.length >= 2);
   assert.ok(TRUST_GUIDE_IMPACT.length >= 3);
   assert.equal(trustGuideTierSummary("VI").length, 6);
+  assert.equal(complianceGuideBandSummary("VI").length, 4);
   assert.ok(trustGuideTierSummary("VI")[0].startsWith("L0"));
+  assert.match(complianceGuideBandSummary("VI")[0], /80–100/);
 });
 
-test("trust guide has no CCCD/eKYC missions and covers low-score warning", () => {
+test("trust guide has no CCCD/eKYC missions and covers compliance recovery note", () => {
   const earnBlob = TRUST_GUIDE_HOW_TO_EARN.flatMap((row) => [
     row.titleVI,
     row.titleEN,
@@ -59,10 +74,14 @@ test("trust guide has no CCCD/eKYC missions and covers low-score warning", () =>
       "earn rows should be sorted high to low by points",
     );
   }
-  const warning = TRUST_GUIDE_IMPACT.find((row) => row.id === "lowScoreWarning");
-  assert.ok(warning);
-  assert.match(warning!.bodyEN, /No CCCD \/ eKYC/i);
-  assert.match(warning!.bodyVI, /Không thu thập CCCD/);
+  assert.equal(TRUST_GUIDE_PENALTIES[0]?.points, 5);
+  assert.equal(TRUST_GUIDE_PENALTIES[3]?.points, 50);
+  const recovery = COMPLIANCE_GUIDE_IMPACT.find((row) => row.id === "recoverySoon");
+  assert.ok(recovery);
+  assert.match(recovery!.bodyEN, /ship later/i);
+  const compliance = COMPLIANCE_GUIDE_IMPACT.find((row) => row.id === "compliance");
+  assert.ok(compliance);
+  assert.match(compliance!.bodyVI, /100 điểm tuân thủ/);
 });
 
 test("trust guide i18n keys exist in EN and VI", () => {
@@ -79,9 +98,15 @@ test("trust guide i18n keys exist in EN and VI", () => {
     "farm.trust.guide.earnRejected",
     "farm.trust.guide.earnAlreadyPending",
     "farm.trust.guide.earnVideoFallback",
-    "farm.trust.guide.rulesTitle",
     "farm.trust.guide.impactTitle",
     "breadcrumb.farmTrust",
+    "breadcrumb.farmCompliance",
+    "farm.compliance.guide.cta",
+    "farm.compliance.guide.title",
+    "farm.compliance.guide.intro",
+    "farm.compliance.guide.rulesTitle",
+    "farm.compliance.guide.impactTitle",
+    "farm.compliance.guide.bandsTitle",
     "farm.warranty.createCta",
     "warranty.library.trustAwarded",
   ] as const;
@@ -93,11 +118,13 @@ test("trust guide i18n keys exist in EN and VI", () => {
     assert.notEqual(enDict[key], key);
     assert.notEqual(viDict[key], key);
   }
-  assert.equal(viDict["farm.trust.guide.cta"], "Xem chi tiết điểm & hướng dẫn");
+  assert.equal(viDict["farm.trust.guide.cta"], "Xem chi tiết điểm minh bạch");
+  assert.equal(viDict["farm.compliance.guide.cta"], "Xem chi tiết điểm tuân thủ");
   assert.equal(viDict["farm.trust.guide.earnPending"], "Chờ duyệt");
   assert.equal(viDict["farm.trust.guide.earnRejected"], "Từ chối");
   assert.equal(viDict["farm.trust.guide.earnUpdate"], "Cập nhật");
   assert.equal(viDict["breadcrumb.farmTrust"], "Điểm minh bạch");
+  assert.equal(viDict["breadcrumb.farmCompliance"], "Điểm tuân thủ");
   assert.match(viDict["farm.warranty.createCta"], /điểm minh bạch/);
   assert.match(viDict["warranty.library.trustAwarded"], /điểm minh bạch/);
   assert.ok(enDict["notifications.transparencyWarningTitle"]);

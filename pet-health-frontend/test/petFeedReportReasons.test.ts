@@ -4,10 +4,13 @@ import { PET_FEED_REPORT_REASONS } from '../src/constants/petFeedReportReasons.t
 
 test('pet feed report reasons stay stable for Phase 0 shared ReportModal', () => {
   assert.deepEqual([...PET_FEED_REPORT_REASONS], [
-    'scam',
-    'misleading_health_claims',
-    'abusive_content',
-    'fake_contact',
-    'unsafe_transaction',
+    'stock_photo_spam',
+    'wrong_category_species',
+    'inaccurate_listing',
+    'abusive_communication',
+    'concealed_illness',
+    'forged_documents',
+    'confirmed_scam',
+    'prohibited_wildlife',
   ]);
 });

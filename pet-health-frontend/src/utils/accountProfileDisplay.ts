@@ -16,11 +16,13 @@ export function accountProfileInitials(displayName?: string | null, emailOrLogin
   return local.slice(0, 2).toUpperCase() || '?';
 }
 
-/** Show green "Verified" badge for admin or verified breeders. */
+/** Show green "Verified" badge for admin or verified breeders (hidden when compliance-stripped). */
 export function accountShowsVerifiedBadge(
   role: UserRole | undefined,
   breederStatus: BreederVerificationStatus | string | undefined,
+  options?: { complianceStripped?: boolean },
 ) {
+  if (options?.complianceStripped) return false;
   if (role === 'admin') return true;
   return breederStatus === 'verified';
 }

@@ -421,11 +421,14 @@
     "reportNotePlaceholder": "Optional note for admin",
     "submitReport": "Submit report",
     "reportReasons": {
-      "scam": "Scam or suspicious activity",
-      "misleading_health_claims": "Misleading health claims",
-      "abusive_content": "Abusive or objectionable content",
-      "fake_contact": "Fake or unreachable contact",
-      "unsafe_transaction": "Unsafe transaction request"
+      "stock_photo_spam": "Stock photos / duplicate spam listings",
+      "wrong_category_species": "Wrong category or species",
+      "inaccurate_listing": "Inaccurate listing (price, age, vaccines)",
+      "abusive_communication": "Abusive / harassing communication",
+      "concealed_illness": "Concealing infectious disease (distemper, parvo…)",
+      "forged_documents": "Forged vaccine / pedigree documents",
+      "confirmed_scam": "Deposit scam / bait-and-switch",
+      "prohibited_wildlife": "Prohibited wildlife / CITES species"
     },
     "blockBreederSuccess": "This breeder is hidden from your Pet Feed.",
     "blockBreederFailed": "Could not hide breeder",
@@ -513,11 +516,14 @@
     "blockBody": "You will no longer see this breeder's profile or listings in Pet Feed on this account.",
     "blockConfirm": "Hide breeder",
     "reportReasons": {
-      "scam": "Scam or suspicious activity",
-      "misleading_health_claims": "Misleading health claims",
-      "abusive_content": "Abusive or objectionable content",
-      "fake_contact": "Fake or unreachable contact",
-      "unsafe_transaction": "Unsafe transaction request"
+      "stock_photo_spam": "Stock photos / duplicate spam listings",
+      "wrong_category_species": "Wrong category or species",
+      "inaccurate_listing": "Inaccurate listing (price, age, vaccines)",
+      "abusive_communication": "Abusive / harassing communication",
+      "concealed_illness": "Concealing infectious disease (distemper, parvo…)",
+      "forged_documents": "Forged vaccine / pedigree documents",
+      "confirmed_scam": "Deposit scam / bait-and-switch",
+      "prohibited_wildlife": "Prohibited wildlife / CITES species"
     },
     "gender": {
       "all": "All genders",
@@ -683,11 +689,12 @@
         "earnVideoFallback": "This video cannot be played.",
         "earnOpenProfile": "Open breeder profile",
         "earnOpenWarranty": "Open warranty policy",
-        "rulesTitle": "Rules — avoid losing points",
-        "rulesIntro": "Penalties apply only after a buyer report is confirmed by Admin.",
+        "rulesTitle": "Compliance score — violation rules",
+        "rulesIntro": "Every kennel starts at 100 compliance points (separate from transparency). Penalties apply only after Admin confirms a report.",
+        "complianceScore": "Compliance score",
         "impactTitle": "How your score affects you",
         "tiersTitle": "Transparency titles",
-        "scoreSnapshot": "Current: {{score}}/100 · Profile {{profile}} · Activity {{activity}} · Penalties −{{penalty}}"
+        "scoreSnapshot": "Transparency: {{score}}/100 · Profile {{profile}} · Compliance {{compliance}}/100"
       },
       "ratingEmpty": "No ratings yet",
       "response": "Response time: < {{minutes}} min",
