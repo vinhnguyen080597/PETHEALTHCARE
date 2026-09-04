@@ -1,6 +1,10 @@
 import {
+  COMPLIANCE_BANDS,
   COMPLIANCE_MATRIX,
   COMPLIANCE_SCORE_DEFAULT,
+  complianceBandLabel,
+  complianceBandMeaning,
+  type ComplianceBandId,
   type ComplianceMatrixRow,
 } from './breederComplianceScore.ts';
 import {
@@ -121,7 +125,7 @@ export const TRUST_GUIDE_PENALTIES: TrustGuidePenalty[] = COMPLIANCE_MATRIX.map(
   actionEN: row.actionEN,
 }));
 
-export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
+export const TRUST_GUIDE_TRANSPARENCY_IMPACT: TrustGuideImpact[] = [
   {
     id: 'buyer_trust',
     titleVI: 'Niềm tin người mua',
@@ -140,6 +144,9 @@ export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
     bodyEN:
       'Higher scores tend to present stronger trust signals on farm cards and listings.',
   },
+];
+
+export const COMPLIANCE_GUIDE_IMPACT: TrustGuideImpact[] = [
   {
     id: 'compliance',
     titleVI: 'Điểm tuân thủ (riêng biệt)',
@@ -158,13 +165,31 @@ export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
   },
 ];
 
+/** @deprecated Prefer TRUST_GUIDE_TRANSPARENCY_IMPACT + COMPLIANCE_GUIDE_IMPACT */
+export const TRUST_GUIDE_IMPACT: TrustGuideImpact[] = [
+  ...TRUST_GUIDE_TRANSPARENCY_IMPACT,
+  ...COMPLIANCE_GUIDE_IMPACT,
+];
+
 export function trustGuideTierSummary(lang: TrustGuideLang): string[] {
   return TRANSPARENCY_TIERS.map((tier) => {
     const name = lang === 'VI' ? tier.nameVI : tier.nameEN;
     const meaning = lang === 'VI' ? tier.meaningVI : tier.meaningEN;
     const range =
       tier.min === tier.max ? `${tier.min}` : `${tier.min}–${tier.max}`;
-    return `${tier.level} (${range}): ${name} — ${meaning}`;
+    return `${range}: ${name} — ${meaning}`;
+  });
+}
+
+export function complianceGuideBandSummary(lang: TrustGuideLang): string[] {
+  const bandOrder: ComplianceBandId[] = ['normal', 'warning', 'severe', 'banned'];
+  return bandOrder.map((bandId) => {
+    const band = COMPLIANCE_BANDS[bandId];
+    const range =
+      band.min === band.max ? `${band.min}` : `${band.min}–${band.max}`;
+    const label = complianceBandLabel(bandId, lang);
+    const meaning = complianceBandMeaning(bandId, lang);
+    return `${range}: ${label} — ${meaning}`;
   });
 }
 

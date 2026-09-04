@@ -214,7 +214,7 @@ test('isHomeBreederEligible requires trust and home breeder type', () => {
   );
 });
 
-test('effectiveTrustScore subtracts penalty points and lists active violations', () => {
+test('effectiveTrustScore ignores penalty points (compliance owns deductions)', () => {
   const withPenalty = profile({
     id: 'p',
     user_id: 'p',
@@ -244,6 +244,5 @@ test('effectiveTrustScore subtracts penalty points and lists active violations',
   });
   const posts = [post({ id: '1', user_id: 'p' })];
   assert.equal(getActiveBreederViolations(withPenalty).length, 1);
-  assert.ok(effectiveTrustScore(withPenalty, posts) <= effectiveTrustScore(base, posts));
-  assert.equal(effectiveTrustScore(withPenalty, posts), Math.max(0, effectiveTrustScore(base, posts) - 10));
+  assert.equal(effectiveTrustScore(withPenalty, posts), effectiveTrustScore(base, posts));
 });

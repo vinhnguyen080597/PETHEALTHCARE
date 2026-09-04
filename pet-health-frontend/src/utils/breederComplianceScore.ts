@@ -259,17 +259,35 @@ export function complianceBandMeaning(
 }
 
 const COMPLIANCE_TICK_INACTIVE = "#E5E7EB";
-const COMPLIANCE_BAND_COLORS: Record<ComplianceBandId, string> = {
-  normal: "#059669",
+export const COMPLIANCE_BAND_COLORS: Record<ComplianceBandId, string> = {
+  normal: "#10B981",
   warning: "#F59E0B",
   severe: "#EF4444",
   banned: "#DC2626",
 };
 
+const COMPLIANCE_BAND_CHIP_STYLES: Record<
+  ComplianceBandId,
+  { bg: string; text: string; border: string }
+> = {
+  normal: { bg: "#ECFDF5", text: "#047857", border: "#A7F3D0" },
+  warning: { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" },
+  severe: { bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA" },
+  banned: { bg: "#FEE2E2", text: "#991B1B", border: "#FCA5A5" },
+};
+
+export function complianceScoreColor(score: number): string {
+  return COMPLIANCE_BAND_COLORS[complianceBandForScore(score)];
+}
+
+export function complianceBandChipStyle(band: ComplianceBandId) {
+  return COMPLIANCE_BAND_CHIP_STYLES[band];
+}
+
 /** Tick color for compliance gauge (band of the active score). */
 export function complianceTickColor(tickIndex: number, score: number): string {
   if (tickIndex > score) return COMPLIANCE_TICK_INACTIVE;
-  return COMPLIANCE_BAND_COLORS[complianceBandForScore(score)];
+  return complianceScoreColor(score);
 }
 
 export function isComplianceVerifiedStripped(

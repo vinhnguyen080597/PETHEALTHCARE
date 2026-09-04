@@ -666,15 +666,22 @@
     "trust": {
       "title": "Trust metrics",
       "quality": "Quality index",
+      "sectionTitle": "Kennel trust & compliance index",
+      "sectionSubtitle": "Based on your verified profile and your record of following marketplace rules.",
       "scoreTitle": "Kennel transparency score",
-      "scoreSubtitle": "Transparency reflects approved profile details, verification documents, and real transactions.",
+      "scoreSubtitle": "Two separate scores: transparency (approved profile) and compliance (starts at 100; deducted only after Admin confirms a violation).",
       "scoreLine": "Transparency score: {{score}}/100",
       "gaugeCaption": "Transparency score",
+      "gaugeOutOf": "Out of 100",
+      "profileProgress": "Profile completeness",
+      "accountStatus": "Account status",
+      "complianceGaugeCaption": "Compliance score",
+      "complianceHint": "Starts at 100. Deducted only after Admin confirms a violation report.",
       "breakdownTitle": "Transparency breakdown",
-      "guideCta": "View score details & guide",
+      "guideCta": "View details",
       "guide": {
         "title": "Transparency score details for your kennel",
-        "intro": "See why you have this score, how to improve it, what causes penalties, and how the score affects your farm.",
+        "intro": "See why you have this transparency score, how to improve it, and how it affects your public farm profile.",
         "ownerOnly": "Owner only",
         "back": "Back to farm profile",
         "breakdownHint": "Live breakdown from your current profile signals. Incomplete items show ○.",
@@ -694,12 +701,25 @@
         "complianceScore": "Compliance score",
         "impactTitle": "How your score affects you",
         "tiersTitle": "Transparency titles",
-        "scoreSnapshot": "Transparency: {{score}}/100 · Profile {{profile}} · Compliance {{compliance}}/100"
+        "scoreSnapshot": "Transparency: {{score}}/100 · Profile {{profile}}"
       },
       "ratingEmpty": "No ratings yet",
       "response": "Response time: < {{minutes}} min",
       "responseEmpty": "Response time: not enough data yet",
       "adopted": "pets rehomed"
+    },
+    "compliance": {
+      "guideCta": "View details",
+      "guide": {
+        "title": "Compliance score details for your kennel",
+        "intro": "Understand how compliance scoring works, violation deductions, and account restrictions at each score band.",
+        "ownerOnly": "Owner only",
+        "back": "Back to farm profile",
+        "rulesTitle": "Compliance violation rules",
+        "rulesIntro": "Every kennel starts at 100 compliance points (separate from transparency). Penalties apply only after Admin confirms a report.",
+        "impactTitle": "How compliance affects you",
+        "bandsTitle": "Compliance score bands"
+      }
     },
     "owner": {
       "editProfile": "Edit profile",

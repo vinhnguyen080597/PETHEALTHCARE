@@ -46,6 +46,7 @@ import {
   BreederDetailScreen,
   BreederProfileScreen,
   FarmHealthScreen,
+  FarmComplianceGuideScreen,
   WarrantyLibraryScreen,
   CoreCareInfoScreen,
   CoreCareScreen,
@@ -461,6 +462,7 @@ function AppContent() {
                 onBack={app.closeBreederDetail}
                 onOpenPostDetail={app.openPetFeedPostDetail}
                 onOpenFarmHealth={app.openFarmHealth}
+                onOpenFarmCompliance={app.openFarmCompliance}
                 onOpenTemplatePicker={app.openTemplatePicker}
                 onOpenBreederProfile={app.openBreederProfile}
                 onOpenCreatePetFeedPost={app.openCreatePetFeedPost}
@@ -492,6 +494,13 @@ function AppContent() {
                 onBack={app.closeFarmHealth}
                 onOpenBreederProfile={() => void app.openBreederProfile()}
                 onOpenWarranty={app.openWarrantyFromTrustGuide}
+              />
+            ) : null}
+
+            {app.screen === 'farm-compliance' && app.selectedBreederProfile ? (
+              <FarmComplianceGuideScreen
+                profile={app.selectedBreederProfile}
+                onBack={app.closeFarmCompliance}
               />
             ) : null}
 

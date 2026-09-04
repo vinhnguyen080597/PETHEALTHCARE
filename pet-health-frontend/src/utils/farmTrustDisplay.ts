@@ -1,12 +1,8 @@
 import { getTransparencyTier } from './breederTransparencyScore.ts';
 
-/** Web-aligned chip copy: `L3 • Trại tiềm năng`. */
-export function farmTrustLevelChipLabel(level: string, levelName: string): string {
-  const safeLevel = String(level || '').trim();
-  const safeName = String(levelName || '').trim();
-  if (!safeLevel) return safeName;
-  if (!safeName) return safeLevel;
-  return `${safeLevel} • ${safeName}`;
+/** Chip copy shows the title only — no Lx prefix (parity with web). */
+export function farmTrustLevelChipLabel(_level: string, levelName: string): string {
+  return String(levelName || '').trim();
 }
 
 export function farmTransparencyMeaning(score: number, lang: string): string {

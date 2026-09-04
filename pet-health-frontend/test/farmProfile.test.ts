@@ -248,7 +248,7 @@ test('farm photo helpers apply avatar and cover updates', () => {
 });
 
 test('farm trust display helpers', () => {
-  assert.equal(farmTrustLevelChipLabel('L3', 'Trại tiềm năng'), 'L3 • Trại tiềm năng');
+  assert.equal(farmTrustLevelChipLabel('L3', 'Trại tiềm năng'), 'Trại tiềm năng');
   assert.match(farmTransparencyMeaning(50, 'vi'), /uy tín|minh bạch/i);
   assert.match(farmTransparencyMeaning(50, 'en'), /reputation|transparency/i);
   assert.equal(transparencyTickColor(10, 30).startsWith('#'), true);
@@ -279,8 +279,12 @@ test('farm tab i18n EN/VI parity', () => {
   assert.equal(en.farm.trust.title, 'Trust metrics');
   assert.equal(vi.farm.trust.gaugeCaption.length > 0, true);
   assert.equal(en.farm.trust.gaugeCaption.length > 0, true);
-  assert.equal(vi.farm.trust.guideCta, 'Xem chi tiết điểm & hướng dẫn');
-  assert.equal(en.farm.trust.guideCta.length > 0, true);
+  assert.equal(vi.farm.trust.guideCta, 'Xem chi tiết');
+  assert.equal(en.farm.trust.guideCta, 'View details');
+  assert.equal(vi.farm.compliance.guideCta, 'Xem chi tiết');
+  assert.equal(en.farm.compliance.guideCta, 'View details');
+  assert.equal(vi.farm.trust.sectionTitle.length > 0, true);
+  assert.equal(en.farm.trust.sectionTitle.length > 0, true);
   assert.equal(vi.farm.trust.guide.ownerOnly, 'Chỉ chủ trại');
   assert.equal(en.farm.trust.guide.ownerOnly, 'Owner only');
   assert.equal(vi.farm.trust.guide.earnTitle.length > 0, true);

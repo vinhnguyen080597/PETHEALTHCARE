@@ -44,6 +44,10 @@ export const BreedRecognitionResultScreen = lazyNamed(
 );
 export const BreederDetailScreen = lazyNamed(() => import('./BreederDetailScreen'), 'BreederDetailScreen');
 export const FarmHealthScreen = lazyNamed(() => import('./FarmHealthScreen'), 'FarmHealthScreen');
+export const FarmComplianceGuideScreen = lazyNamed(
+  () => import('./FarmComplianceGuideScreen'),
+  'FarmComplianceGuideScreen',
+);
 export const WarrantyLibraryScreen = lazyNamed(
   () => import('../components/WarrantyLibraryScreen'),
   'WarrantyLibraryScreen',

@@ -2232,6 +2232,15 @@ export function usePetHealthApp() {
     setScreen('breeder-detail');
   }
 
+  function openFarmCompliance() {
+    if (!selectedBreederProfileId) return;
+    setScreen('farm-compliance');
+  }
+
+  function closeFarmCompliance() {
+    setScreen('breeder-detail');
+  }
+
   function applyBreederProfileUpdate(nextProfile: BreederProfile) {
     setBreederProfile(nextProfile);
     setTopBreederProfiles((profiles) =>
@@ -5090,6 +5099,8 @@ export function usePetHealthApp() {
     closeBreederDetail,
     openFarmHealth,
     closeFarmHealth,
+    openFarmCompliance,
+    closeFarmCompliance,
     openWarrantyLibrary,
     closeWarrantyLibrary,
     openWarrantyFromTrustGuide,

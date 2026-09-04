@@ -20,8 +20,7 @@ import { FarmReviewSupplementsList } from '../components/FarmReviewSupplementsLi
 import { FarmReviewModal } from '../components/FarmReviewModal';
 import { FarmReviewSectionSkeleton } from '../components/FarmReviewSectionSkeleton';
 import { FarmReviewStars } from '../components/FarmReviewStars';
-import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
-import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
+import { FarmScoreCard } from '../components/breeder/FarmScoreCard';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
 import { createBreederFarmReview, deleteWarrantyPolicy, getBreederFarmReviews, getMyDirectFarmReview } from '../api';
 import type { BreederProfile, PetFeedPost } from '../types';
@@ -31,7 +30,6 @@ import { breederCardReviewMetrics } from '../utils/breederDirectoryCard';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../assets/farmProfileAssets';
 import { BRAND } from '../theme/brand';
 import { effectiveTrustScore } from '../utils/breederQualityIndex';
-import { trustLevelFromScore } from '../utils/breederTrustLevel';
 import {
   farmFacilityHasContent,
   farmFacilitySocialLinks,
@@ -62,10 +60,6 @@ import {
   resolveFarmCoverUrl,
   type FarmDetailTab,
 } from '../utils/farmProfileDisplay';
-import {
-  farmTransparencyMeaning,
-  farmTrustLevelChipLabel,
-} from '../utils/farmTrustDisplay';
 import type { WarrantyPolicy } from '../utils/warrantyPolicy';
 
 const FARM_BG = '#FDFBF7';
@@ -81,6 +75,7 @@ type BreederDetailScreenProps = {
   onBack: () => void;
   onOpenPostDetail: (postId: string) => void;
   onOpenFarmHealth?: () => void;
+  onOpenFarmCompliance?: () => void;
   onOpenTemplatePicker?: () => void;
   onOpenBreederProfile?: () => void;
   onOpenCreatePetFeedPost?: () => void;
@@ -106,6 +101,7 @@ export function BreederDetailScreen({
   onBack,
   onOpenPostDetail,
   onOpenFarmHealth,
+  onOpenFarmCompliance,
   onOpenTemplatePicker,
   onOpenBreederProfile,
   onOpenCreatePetFeedPost,
@@ -153,9 +149,6 @@ export function BreederDetailScreen({
   const visiblePets = filterFarmPetsByAvailability(listingPosts, petFilter);
   const petsRehomed = countFarmPetsRehomed(listingPosts);
   const score = effectiveTrustScore(profile, listingPosts);
-  const trustLevel = trustLevelFromScore(score);
-  const trustChipLabel = farmTrustLevelChipLabel(trustLevel.level, t(trustLevel.labelKey));
-  const transparencyMeaning = farmTransparencyMeaning(score, i18n.language || 'en');
   const facilitySocials = farmFacilitySocialLinks(profile.contact || {});
   const facilityVideoUrl = publicFacilityVideoUrl(profile.metadata);
   const hasFacility = farmFacilityHasContent({
@@ -602,68 +595,32 @@ export function BreederDetailScreen({
 
         {activeTab === 'overview' ? (
           <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 14 }}>
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16 }}>
-              <Text style={{ fontSize: 13, fontWeight: '800', color: FARM_TEXT, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                {t('farm.trust.scoreTitle')}
+            <FarmScoreCard
+              profile={profile}
+              transparencyScore={score}
+              isOwnProfile={isOwnProfile}
+              onOpenTransparencyGuide={onOpenFarmHealth}
+              onOpenComplianceGuide={onOpenFarmCompliance}
+            />
+
+            <View
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: FARM_BORDER,
+                padding: 16,
+                gap: 10,
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '700', color: FARM_MUTED, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                {t('farm.trust.title')}
               </Text>
-              <Text style={{ marginTop: 6, fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
-                {t('farm.trust.scoreSubtitle')}
+              <Text style={{ fontSize: 14, color: FARM_TEXT }}>⭐ {trustRatingLabel}</Text>
+              <Text style={{ fontSize: 14, color: FARM_TEXT }}>⚡ {t('farm.trust.responseEmpty')}</Text>
+              <Text style={{ fontSize: 14, color: FARM_TEXT }}>
+                📦 {petsRehomed} {t('farm.trust.adopted')}
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 }}>
-                <TrustTicksGauge score={score} caption={t('farm.trust.gaugeCaption')} size={148} />
-                <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                  <TrustLevelChip level={trustLevel.level} label={trustChipLabel} />
-                  <Text style={{ fontSize: 13, color: FARM_TEXT, fontWeight: '600' }}>
-                    {t('farm.trust.scoreLine', { score })}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: FARM_MUTED, lineHeight: 17 }}>
-                    {transparencyMeaning}
-                  </Text>
-                </View>
-              </View>
-              {isOwnProfile && onOpenFarmHealth ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('farm.trust.guideCta')}
-                  onPress={onOpenFarmHealth}
-                  style={{
-                    marginTop: 14,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: FARM_BORDER,
-                    backgroundColor: FARM_BG,
-                    paddingVertical: 11,
-                    paddingHorizontal: 12,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <Text style={{ fontSize: 13 }}>📋</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: FARM_ACCENT_ACTIVE }}>
-                    {t('farm.trust.guideCta')}
-                  </Text>
-                </Pressable>
-              ) : null}
-              <View
-                style={{
-                  marginTop: 16,
-                  paddingTop: 14,
-                  borderTopWidth: 1,
-                  borderTopColor: FARM_BORDER,
-                  gap: 10,
-                }}
-              >
-                <Text style={{ fontSize: 11, fontWeight: '700', color: FARM_MUTED, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                  {t('farm.trust.title')}
-                </Text>
-                <Text style={{ fontSize: 14, color: FARM_TEXT }}>⭐ {trustRatingLabel}</Text>
-                <Text style={{ fontSize: 14, color: FARM_TEXT }}>⚡ {t('farm.trust.responseEmpty')}</Text>
-                <Text style={{ fontSize: 14, color: FARM_TEXT }}>
-                  📦 {petsRehomed} {t('farm.trust.adopted')}
-                </Text>
-              </View>
             </View>
 
             <View>

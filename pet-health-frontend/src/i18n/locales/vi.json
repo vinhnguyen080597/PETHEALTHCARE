@@ -666,15 +666,22 @@
     "trust": {
       "title": "Chỉ số tin cậy",
       "quality": "Chỉ số chất lượng",
+      "sectionTitle": "Chỉ số uy tín & tuân thủ trại giống",
+      "sectionSubtitle": "Đánh giá dựa trên hồ sơ đã xác minh và lịch sử chấp hành quy chế hoạt động trên sàn.",
       "scoreTitle": "Điểm minh bạch trại giống",
-      "scoreSubtitle": "Điểm minh bạch phản ánh hồ sơ đã duyệt, tài liệu xác minh và giao dịch thực tế.",
+      "scoreSubtitle": "Hai thang điểm riêng: minh bạch (hồ sơ đã duyệt) và tuân thủ (bắt đầu từ 100, trừ khi Admin xác nhận vi phạm).",
       "scoreLine": "Điểm minh bạch: {{score}}/100",
       "gaugeCaption": "Điểm minh bạch",
+      "gaugeOutOf": "Trên 100",
+      "profileProgress": "Hoàn thiện hồ sơ",
+      "accountStatus": "Trạng thái tài khoản",
+      "complianceGaugeCaption": "Điểm tuân thủ",
+      "complianceHint": "Bắt đầu từ 100. Chỉ trừ khi Admin xác nhận báo cáo vi phạm.",
       "breakdownTitle": "Danh mục điểm minh bạch",
-      "guideCta": "Xem chi tiết điểm & hướng dẫn",
+      "guideCta": "Xem chi tiết",
       "guide": {
         "title": "Chi tiết điểm minh bạch trại của bạn",
-        "intro": "Hiểu vì sao bạn đang có mức điểm này, cần làm gì để tăng điểm, tránh bị trừ điểm, và điểm ảnh hưởng hồ sơ trại như thế nào.",
+        "intro": "Hiểu vì sao bạn đang có mức điểm này, cần làm gì để tăng điểm minh bạch, và điểm ảnh hưởng hồ sơ trại như thế nào.",
         "ownerOnly": "Chỉ chủ trại",
         "back": "Quay lại hồ sơ trại",
         "breakdownHint": "Phân bổ điểm theo tín hiệu hồ sơ hiện tại. Mục chưa đạt hiện ○.",
@@ -694,12 +701,25 @@
         "complianceScore": "Điểm tuân thủ",
         "impactTitle": "Điểm ảnh hưởng đến bạn như thế nào",
         "tiersTitle": "Các danh hiệu minh bạch",
-        "scoreSnapshot": "Điểm minh bạch: {{score}}/100 · Hồ sơ {{profile}} · Tuân thủ {{compliance}}/100"
+        "scoreSnapshot": "Điểm minh bạch: {{score}}/100 · Hồ sơ {{profile}}"
       },
       "ratingEmpty": "Chưa có đánh giá",
       "response": "Tốc độ trả lời: < {{minutes}} phút",
       "responseEmpty": "Tốc độ trả lời: chưa đủ dữ liệu",
       "adopted": "bé đã về nhà mới"
+    },
+    "compliance": {
+      "guideCta": "Xem chi tiết",
+      "guide": {
+        "title": "Chi tiết điểm tuân thủ trại của bạn",
+        "intro": "Hiểu cách điểm tuân thủ hoạt động, các mức trừ điểm khi vi phạm, và hạn chế tài khoản theo từng mốc điểm.",
+        "ownerOnly": "Chỉ chủ trại",
+        "back": "Quay lại hồ sơ trại",
+        "rulesTitle": "Nội quy trừ điểm tuân thủ",
+        "rulesIntro": "Mỗi trại bắt đầu từ 100 điểm tuân thủ (tách biệt điểm minh bạch). Chỉ trừ khi báo cáo được Admin xác nhận.",
+        "impactTitle": "Điểm tuân thủ ảnh hưởng đến bạn như thế nào",
+        "bandsTitle": "Các mốc điểm tuân thủ"
+      }
     },
     "owner": {
       "editProfile": "Chỉnh sửa hồ sơ",

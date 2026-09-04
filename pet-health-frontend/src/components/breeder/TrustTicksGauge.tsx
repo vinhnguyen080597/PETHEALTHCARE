@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AccessibilityInfo, Text, View } from 'react-native';
 import Svg, { Line, Text as SvgText } from 'react-native-svg';
 import { transparencyTickColor } from '../../utils/breederTransparencyScore';
 
@@ -6,14 +7,27 @@ type TrustTicksGaugeProps = {
   score: number;
   caption: string;
   size?: number;
+  /** Override tick coloring (defaults to transparency score bands). */
+  tickColor?: (tickIndex: number, score: number) => string;
+  /** Duration of the sweep that fills ticks up to the score, in ms. */
+  sweepMs?: number;
 };
+
+const TICK_STEP_MS = 12;
 
 /**
  * 100 radial ticks gauge — matches web TrustTicksGauge.
- * Active ticks (≤ score) use band colors; inactive ticks are light gray.
+ * On mount, active ticks light up in a clockwise sweep from tick 1 to the score.
  */
-export function TrustTicksGauge({ score, caption, size = 168 }: TrustTicksGaugeProps) {
+export function TrustTicksGauge({
+  score,
+  caption,
+  size = 168,
+  tickColor = transparencyTickColor,
+  sweepMs = 900,
+}: TrustTicksGaugeProps) {
   const s = Math.max(0, Math.min(100, Math.round(score)));
+  const [litThrough, setLitThrough] = useState(0);
   const cx = size / 2;
   const cy = size / 2;
   const outerR = size * 0.42;
@@ -21,10 +35,41 @@ export function TrustTicksGauge({ score, caption, size = 168 }: TrustTicksGaugeP
   const labelR = size * 0.47;
   const strokeWidth = Math.max(1.2, size * 0.008);
 
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let frame = 0;
+
+    AccessibilityInfo.isReduceMotionEnabled().then((reduceMotion) => {
+      if (cancelled) return;
+      if (reduceMotion || s <= 0) {
+        setLitThrough(s);
+        return;
+      }
+      setLitThrough(0);
+      const stepMs = Math.max(TICK_STEP_MS, Math.floor(sweepMs / s));
+      const tick = () => {
+        frame += 1;
+        const next = Math.min(s, frame);
+        setLitThrough(next);
+        if (next < s) {
+          timer = setTimeout(tick, stepMs);
+        }
+      };
+      timer = setTimeout(tick, stepMs);
+    });
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [s, sweepMs]);
+
   const ticks = Array.from({ length: 100 }, (_, i) => {
     const tick = i + 1;
     const angleDeg = (tick / 100) * 360 - 90;
     const rad = (angleDeg * Math.PI) / 180;
+    const activeScore = tick <= litThrough ? s : 0;
     return (
       <Line
         key={tick}
@@ -32,7 +77,7 @@ export function TrustTicksGauge({ score, caption, size = 168 }: TrustTicksGaugeP
         y1={cy + Math.sin(rad) * innerR}
         x2={cx + Math.cos(rad) * outerR}
         y2={cy + Math.sin(rad) * outerR}
-        stroke={transparencyTickColor(tick, s)}
+        stroke={tickColor(tick, activeScore)}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
       />

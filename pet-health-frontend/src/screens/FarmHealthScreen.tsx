@@ -8,7 +8,6 @@ import { TrustLevelChip } from '../components/breeder/TrustLevelChip';
 import { TrustTicksGauge } from '../components/breeder/TrustTicksGauge';
 import type { BreederProfile, PetFeedPost } from '../types';
 import type { EarnSubmissionLite } from '../utils/trustGuideEarnStatus';
-import { getActiveBreederViolations } from '../utils/breederQualityIndex';
 import {
   computeTransparencyScore,
   getTransparencyTier,
@@ -18,8 +17,7 @@ import {
 import {
   pickLangText,
   TRUST_GUIDE_HOW_TO_EARN,
-  TRUST_GUIDE_IMPACT,
-  TRUST_GUIDE_PENALTIES,
+  TRUST_GUIDE_TRANSPARENCY_IMPACT,
   trustGuideLangFromLocale,
   trustGuideTierSummary,
   type TrustGuideHowToEarn,
@@ -127,7 +125,6 @@ export function FarmHealthScreen({
     lang === 'VI' ? tier.nameVI : tier.nameEN,
   );
   const tierMeaning = lang === 'VI' ? tier.meaningVI : tier.meaningEN;
-  const violations = getActiveBreederViolations(profile);
   const earnRows = useMemo(
     () =>
       buildTrustGuideEarnRowStates(TRUST_GUIDE_HOW_TO_EARN, {
@@ -240,8 +237,6 @@ export function FarmHealthScreen({
               {t('farm.trust.guide.scoreSnapshot', {
                 score,
                 profile: computed.profilePoints,
-                activity: computed.activityPoints,
-                penalty: computed.violationPoints,
               })}
             </Text>
             <Text style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center', lineHeight: 18 }}>
@@ -301,34 +296,6 @@ export function FarmHealthScreen({
               </Text>
             </View>
           ))}
-          {violations.length > 0 ? (
-            <View
-              style={{
-                marginTop: 12,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: '#FEE2E2',
-                backgroundColor: '#FEF2F2',
-                padding: 12,
-                gap: 8,
-              }}
-            >
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#991B1B' }}>
-                {t('farm.trust.guide.confirmedViolations')}
-              </Text>
-              {violations.map((v) => (
-                <View key={v.id} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#991B1B' }}>{v.reason}</Text>
-                    {v.createdAt ? (
-                      <Text style={{ fontSize: 11, color: '#F87171', marginTop: 2 }}>{v.createdAt}</Text>
-                    ) : null}
-                  </View>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#DC2626' }}>?{v.points}</Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
         </View>
 
         {/* How to earn */}
@@ -482,63 +449,6 @@ export function FarmHealthScreen({
           })}
         </View>
 
-        {/* Rules */}
-        <View
-          style={{
-            backgroundColor: FARM_CARD,
-            borderWidth: 1,
-            borderColor: '#F1F5F9',
-            borderRadius: 16,
-            padding: 18,
-            marginBottom: 14,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 12,
-              fontWeight: '800',
-              color: FARM_TEXT,
-              textTransform: 'uppercase',
-              letterSpacing: 0.4,
-              marginBottom: 6,
-            }}
-          >
-            ?? {t('farm.trust.guide.rulesTitle')}
-          </Text>
-          <Text style={{ fontSize: 13, color: FARM_MUTED, marginBottom: 12, lineHeight: 19 }}>
-            {t('farm.trust.guide.rulesIntro')}
-          </Text>
-          {TRUST_GUIDE_PENALTIES.map((row) => (
-            <View
-              key={row.id}
-              style={{
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: '#FEF2F2',
-                backgroundColor: '#FEF2F2',
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                marginBottom: 10,
-              }}
-            >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-                <Text style={{ flex: 1, fontSize: 13, fontWeight: '700', color: FARM_TEXT }}>
-                  {pickLangText(lang, row.titleVI, row.titleEN)}
-                </Text>
-                <Text style={{ fontSize: 11, fontWeight: '800', color: '#B91C1C' }}>−{row.points}đ</Text>
-              </View>
-              {row.behaviorsVI ? (
-                <Text style={{ marginTop: 4, fontSize: 13, lineHeight: 19, color: FARM_TEXT }}>
-                  {pickLangText(lang, row.behaviorsVI, row.behaviorsEN || row.behaviorsVI)}
-                </Text>
-              ) : null}
-              <Text style={{ marginTop: 4, fontSize: 13, lineHeight: 19, color: FARM_MUTED }}>
-                {pickLangText(lang, row.actionVI, row.actionEN)}
-              </Text>
-            </View>
-          ))}
-        </View>
-
         {/* Impact */}
         <View
           style={{
@@ -559,9 +469,9 @@ export function FarmHealthScreen({
               marginBottom: 12,
             }}
           >
-            ?? {t('farm.trust.guide.impactTitle')}
+            {t('farm.trust.guide.impactTitle')}
           </Text>
-          {TRUST_GUIDE_IMPACT.map((row) => (
+          {TRUST_GUIDE_TRANSPARENCY_IMPACT.map((row) => (
             <View key={row.id} style={{ marginBottom: 12 }}>
               <Text style={{ fontSize: 13, fontWeight: '700', color: FARM_TEXT, marginBottom: 4 }}>
                 {pickLangText(lang, row.titleVI, row.titleEN)}
