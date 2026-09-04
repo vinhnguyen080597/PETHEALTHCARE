@@ -23,7 +23,10 @@ import {
   listingMetadataMarksSold,
 } from "./farmPets";
 import { metadataMarksOwnerDeleted } from "./listingOwnerDelete";
-import { getComplianceScoreFromMetadata } from "./breederComplianceScore";
+import {
+  getComplianceScoreFromMetadata,
+  isComplianceVerifiedStripped,
+} from "./breederComplianceScore";
 import { parseReviewStatsFromMeta } from "./breederDealReviews";
 import {
   coverUrlFromMetadata,
@@ -318,6 +321,7 @@ export function mapApiBreeder(
     displayNameVI: name,
     location: profile?.location || "",
     verified,
+    complianceVerifiedStripped: isComplianceVerifiedStripped(meta),
     verificationStatus,
     breederType: normalizeBreederType(meta.breeder_type ?? meta.breederType),
     primarySpecies: profile?.primary_species || [],

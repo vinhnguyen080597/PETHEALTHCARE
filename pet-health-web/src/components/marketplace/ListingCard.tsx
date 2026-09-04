@@ -15,6 +15,7 @@ import {
   ListingMediaOverlayTags,
 } from "./ListingMediaOverlayTags";
 import { startChatAndOpenUi } from "@/lib/startFarmChat";
+import { showBreederVerifiedBadge } from "@/lib/breederVerificationUi";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
 
 export function ListingCard({
@@ -187,7 +188,10 @@ export function ListingCard({
           className="h-6 w-6 shrink-0 rounded-full object-cover"
         />
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
-          {listing.breeder.verified ? (
+          {showBreederVerifiedBadge(listing.breeder.verified, {
+            complianceStripped: listing.breeder.complianceVerifiedStripped,
+            gated: false,
+          }) ? (
             <span
               className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
               title={t(lang, "feed.card.onlineTrust")}

@@ -7,6 +7,7 @@ import { BRAND } from '../theme/brand';
 import { DEFAULT_FARM_AVATAR } from '../assets/farmProfileAssets';
 import type { PetFeedPost } from '../types';
 import { computeBreederTrust } from '../utils/breederTrust';
+import { isComplianceVerifiedStripped } from '../utils/breederComplianceScore';
 import { farmImageSource, resolveFarmAvatarUrl } from '../utils/farmProfileDisplay';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
@@ -109,7 +110,8 @@ function PetFeedListingCardComponent({
             accessibilityLabel={breeder?.display_name ?? t('petFeed.breederFallback')}
           />
           <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-            {breeder?.verification_status === 'verified' ? (
+            {breeder?.verification_status === 'verified' &&
+            !isComplianceVerifiedStripped(breeder.metadata) ? (
               <View className="h-1.5 w-1.5 rounded-full bg-emerald-500" accessibilityLabel={t('petFeed.card.onlineTrust')} />
             ) : null}
             <Text className="min-w-0 flex-1 text-xs font-medium text-slate-900" numberOfLines={1}>

@@ -1403,7 +1403,19 @@ export async function listAdminPetFeedReports(token: string, status: string = 'o
 }
 
 export async function updateAdminPetFeedReportStatus(token: string, reportId: string, status: string) {
-  return requestJson<{ data: PetFeedReport }>(`/admin/pet-feed/reports/${encodeURIComponent(reportId)}/status`, {
+  return requestJson<{
+    data: PetFeedReport;
+    compliance_penalty?: {
+      applied?: boolean;
+      score_before?: number;
+      score_after?: number;
+      band?: string;
+      tier?: number;
+      points?: number;
+      reason_code?: string;
+      actions?: string[];
+    } | null;
+  }>(`/admin/pet-feed/reports/${encodeURIComponent(reportId)}/status`, {
     method: 'PUT',
     headers: {
       ...authHeaders(token),

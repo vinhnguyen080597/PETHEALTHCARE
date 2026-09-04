@@ -22,10 +22,11 @@ describe('accountProfileDisplay', () => {
   });
 
   it('shows verified badge for admin and verified breeders only', () => {
-    assert.equal(accountShowsVerifiedBadge('admin', 'unverified'), true);
-    assert.equal(accountShowsVerifiedBadge('breeder', 'verified'), true);
-    assert.equal(accountShowsVerifiedBadge('breeder', 'pending_review'), false);
-    assert.equal(accountShowsVerifiedBadge('sen', 'unverified'), false);
+  assert.equal(accountShowsVerifiedBadge('admin', 'unverified'), true);
+  assert.equal(accountShowsVerifiedBadge('breeder', 'verified'), true);
+  assert.equal(accountShowsVerifiedBadge('breeder', 'pending_review'), false);
+  assert.equal(accountShowsVerifiedBadge('sen', 'unverified'), false);
+  assert.equal(accountShowsVerifiedBadge('breeder', 'verified', { complianceStripped: true }), false);
   });
 });
 

@@ -40,6 +40,10 @@ test('trust guide has no CCCD/eKYC missions and covers compliance recovery note'
   assert.equal(/không bắt buộc|optional/i.test(earnBlob), false);
   assert.equal(/CCCD|eKYC|căn cước/i.test(penaltyBlob), false);
   assert.ok(TRUST_GUIDE_HOW_TO_EARN.some((row) => row.id === 'verifiedBase' && row.points === 30));
+  const warranty = TRUST_GUIDE_HOW_TO_EARN.find((row) => row.id === 'firstWarrantyPolicy');
+  assert.ok(warranty);
+  assert.match(warranty!.howEN, /no admin review/i);
+  assert.match(warranty!.howVI, /không cần admin duyệt/i);
   assert.equal(TRUST_GUIDE_PENALTIES[0]?.points, 5);
   assert.equal(TRUST_GUIDE_PENALTIES[3]?.points, 50);
   const recovery = COMPLIANCE_GUIDE_IMPACT.find((row) => row.id === 'recoverySoon');

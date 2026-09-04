@@ -8,6 +8,7 @@ import { ListingCard } from "@/components/marketplace/ListingCard";
 import { AppDownloadBanner } from "@/components/marketplace/AppDownloadBanner";
 import { SiteFooter } from "@/components/marketplace/SiteFooter";
 import { VerifiedBadge } from "@/components/marketplace/Badges";
+import { showBreederVerifiedBadge } from "@/lib/breederVerificationUi";
 import { HomeValueProps } from "@/components/marketplace/HomeValueProps";
 import { HomeSearchSection } from "@/components/marketplace/HomeSearchSection";
 import { HomeGuestGate } from "@/components/marketplace/HomeGuestGate";
@@ -94,7 +95,10 @@ async function HomeFeaturedBreeders({ lang }: { lang: Lang }) {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {b.verified && <VerifiedBadge size="xs" />}
+            {showBreederVerifiedBadge(b.verified, {
+              complianceStripped: b.complianceVerifiedStripped,
+              gated: false,
+            }) && <VerifiedBadge size="xs" />}
             <span className="text-xs text-stone-400">{b.trustScore}/100</span>
           </div>
         </Link>

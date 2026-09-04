@@ -3759,10 +3759,18 @@ export function usePetHealthApp() {
     await ensureAdminReviewLoaded(token, { force: true });
   }
 
-  async function updateAdminReportStatus(reportId: string, status: string) {
+  async function updateAdminReportStatus(reportId: string, status: string): Promise<string | void> {
     if (!token) return;
-    await updateAdminPetFeedReportStatus(token, reportId, status);
+    const res = await updateAdminPetFeedReportStatus(token, reportId, status);
     await ensureAdminReviewLoaded(token, { force: true });
+    const penalty = res.compliance_penalty;
+    if (status === 'reviewed' && penalty?.applied) {
+      return i18n.t('adminReview.confirmViolationSuccessDetail', {
+        points: penalty.points ?? 0,
+        scoreAfter: penalty.score_after ?? '—',
+        band: penalty.band ?? '—',
+      });
+    }
   }
 
   async function updateAdminFarmReviewModeration(

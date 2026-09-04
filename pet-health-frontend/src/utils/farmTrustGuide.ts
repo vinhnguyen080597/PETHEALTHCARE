@@ -74,8 +74,8 @@ export const TRUST_GUIDE_HOW_TO_EARN: TrustGuideHowToEarn[] = [
     points: TRANSPARENCY_POINTS.firstWarranty,
     titleVI: 'Chính sách bảo hành đầu tiên',
     titleEN: 'First warranty policy',
-    howVI: 'Hoàn thành form bảo hành lần đầu, admin duyệt (+10).',
-    howEN: 'Complete your first warranty policy form for admin review (+10).',
+    howVI: 'Hoàn thành form bảo hành lần đầu → nhận ngay +10 (không cần admin duyệt).',
+    howEN: 'Complete your first warranty policy form to earn +10 immediately (no admin review).',
   },
   {
     id: 'facebook',

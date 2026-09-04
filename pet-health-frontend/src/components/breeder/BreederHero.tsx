@@ -18,9 +18,15 @@ export type BreederHeroData = {
   listingsCount: number;
   reportsCount?: number;
   verified?: boolean;
+  /** Hide Verified badge when compliance strip is active. */
+  complianceStripped?: boolean;
   coverImageUrl?: string | null;
   registeredKennelName?: string;
 };
+
+function showHeroVerified(data: BreederHeroData) {
+  return data.verified !== false && !data.complianceStripped;
+}
 
 type BreederHeroProps = {
   data: BreederHeroData;
@@ -92,7 +98,7 @@ function HeroT1({ data }: { data: BreederHeroData }) {
               ) : null}
             </View>
             <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-              {data.verified !== false ? <VerifiedBadge dark /> : null}
+              {showHeroVerified(data) ? <VerifiedBadge dark /> : null}
               <TrustLevelChip level={trust.level} label={t(trust.labelKey)} invert />
             </View>
           </View>
@@ -195,7 +201,7 @@ function HeroT2({ data }: { data: BreederHeroData }) {
             {data.name}
           </Text>
           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            {data.verified !== false ? <VerifiedBadge dark /> : null}
+            {showHeroVerified(data) ? <VerifiedBadge dark /> : null}
             <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }} numberOfLines={1}>
               {[data.location, data.speciesLabel].filter(Boolean).join(' · ')}
             </Text>
@@ -231,7 +237,7 @@ function HeroT3({ data }: { data: BreederHeroData }) {
             {data.name}
           </Text>
           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            {data.verified !== false ? <VerifiedBadge /> : null}
+            {showHeroVerified(data) ? <VerifiedBadge /> : null}
             <Text style={{ fontSize: 11, color: '#94A3B8' }} numberOfLines={1}>
               {[data.location, data.speciesLabel].filter(Boolean).join(' · ')}
             </Text>
@@ -309,7 +315,7 @@ function HeroT4({ data }: { data: BreederHeroData }) {
           <Text style={{ fontSize: 12, color: '#047857', marginBottom: 6 }} numberOfLines={1}>
             {[data.location ? `📍 ${data.location}` : '', data.speciesLabel ? `🐾 ${data.speciesLabel}` : ''].filter(Boolean).join('  ·  ')}
           </Text>
-          {data.verified !== false ? <VerifiedBadge /> : null}
+          {showHeroVerified(data) ? <VerifiedBadge /> : null}
         </View>
       </View>
       <View style={{ backgroundColor: 'rgba(255,255,255,0.65)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16 }}>
@@ -370,7 +376,7 @@ function HeroT5({ data }: { data: BreederHeroData }) {
             {data.name}
           </Text>
           <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 5 }}>
-            {data.verified !== false ? (
+            {showHeroVerified(data) ? (
               <View
                 style={{
                   backgroundColor: 'rgba(245,158,11,0.15)',

@@ -37,7 +37,7 @@ type AdminReviewScreenProps = {
     status: string,
     options?: BreederStatusOptions,
   ) => Promise<void>;
-  onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
+  onUpdateReportStatus: (reportId: string, status: string) => Promise<string | void>;
 };
 
 const ROLE_OPTIONS: UserRole[] = ['sen', 'breeder', 'admin', 'vet'];
@@ -128,10 +128,11 @@ export function AdminReviewScreen({
     const run = async () => {
       setLoading(true);
       try {
-        await onUpdateReportStatus(reportId, status);
+        const detail = await onUpdateReportStatus(reportId, status);
         notifyUser(
           t('adminReview.updateSuccess'),
-          status === 'reviewed' ? t('adminReview.confirmViolationSuccess') : t('adminReview.dismissSuccess'),
+          detail ||
+            (status === 'reviewed' ? t('adminReview.confirmViolationSuccess') : t('adminReview.dismissSuccess')),
         );
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : t('common.unknownError');

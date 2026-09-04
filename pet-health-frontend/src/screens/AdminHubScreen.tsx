@@ -72,7 +72,7 @@ type AdminHubScreenProps = {
     status: string,
     options?: BreederStatusOptions,
   ) => Promise<void>;
-  onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
+  onUpdateReportStatus: (reportId: string, status: string) => Promise<string | void>;
   onUpdateFarmReviewStatus: (
     reviewId: string,
     status: 'approved' | 'rejected',
@@ -206,12 +206,12 @@ export function AdminHubScreen({
     setNewPassword('');
   }
 
-  async function runAction(key: string, action: () => Promise<void>, successMessage: string) {
+  async function runAction(key: string, action: () => Promise<string | void>, successMessage: string) {
     if (busyKey) return;
     setBusyKey(key);
     try {
-      await action();
-      notifyUser(t('adminReview.updateSuccess'), successMessage);
+      const detail = await action();
+      notifyUser(t('adminReview.updateSuccess'), detail || successMessage);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
       notifyUser(t('adminReview.updateFailed'), message);

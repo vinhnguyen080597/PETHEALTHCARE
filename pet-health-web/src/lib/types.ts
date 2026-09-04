@@ -51,6 +51,8 @@ export interface BreederProfile {
   displayNameVI: string;
   location: string;
   verified: boolean;
+  /** True when compliance restrictions hide the public Verified badge. */
+  complianceVerifiedStripped?: boolean;
   verificationStatus: VerificationStatus;
   breederType: BreederType;
   primarySpecies: string[];

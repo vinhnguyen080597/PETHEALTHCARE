@@ -28,6 +28,7 @@ test("mapApiBreeder normalizes verification and trust defaults", () => {
   const mapped = mapApiBreeder(profile, { activeListings: 3 });
   assert.equal(mapped.id, "bp-1");
   assert.equal(mapped.verified, true);
+  assert.equal(mapped.complianceVerifiedStripped, false);
   assert.equal(mapped.verificationStatus, "verified");
   assert.equal(mapped.breederType, "registered_kennel");
   // Verified base 30 + approved business license 30
@@ -65,6 +66,22 @@ test("mapApiBreeder exposes approved facility video on the public farm", () => {
     },
   });
   assert.equal(mapped.facilityVideoUrl, "https://cdn.example/tour.mp4");
+});
+
+test("mapApiBreeder marks Verified as stripped under compliance restrictions", () => {
+  const mapped = mapApiBreeder({
+    id: "bp-strip",
+    display_name: "Stripped Farm",
+    verification_status: "verified",
+    metadata: {
+      compliance: {
+        score: 40,
+        restrictions: { verifiedStrippedUntil: "2099-01-01T00:00:00.000Z" },
+      },
+    },
+  });
+  assert.equal(mapped.verified, true);
+  assert.equal(mapped.complianceVerifiedStripped, true);
 });
 
 test("mapApiPost formats price gender and escrow", () => {

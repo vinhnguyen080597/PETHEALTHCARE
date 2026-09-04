@@ -38,7 +38,10 @@ import {
 } from "@/lib/farmPets";
 import { t } from "@/i18n";
 import { farmTemplateHref } from "@/lib/siteBreadcrumbs";
-import { SHOW_BREEDER_VERIFICATION_BADGES } from "@/lib/breederVerificationUi";
+import {
+  SHOW_BREEDER_VERIFICATION_BADGES,
+  showBreederVerifiedBadge,
+} from "@/lib/breederVerificationUi";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
 import {
   startChatAndOpenUi,
@@ -935,7 +938,9 @@ export function FarmDetail({
                 className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-[4px] border-white shadow-lg bg-white"
               />
             )}
-            {SHOW_BREEDER_VERIFICATION_BADGES && breeder.verified ? (
+            {showBreederVerifiedBadge(breeder.verified, {
+              complianceStripped: breeder.complianceVerifiedStripped,
+            }) ? (
               <span className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-emerald-500 border-[3px] border-white flex items-center justify-center text-white text-sm shadow pointer-events-none">
                 ✓
               </span>
@@ -987,18 +992,18 @@ export function FarmDetail({
                 </div>
               ) : null}
             </div>
-            {SHOW_BREEDER_VERIFICATION_BADGES ? (
+            {SHOW_BREEDER_VERIFICATION_BADGES && !breeder.complianceVerifiedStripped ? (
               <div className="flex flex-wrap gap-2 mt-3">
                 {(breeder.verified || breeder.verificationTier >= 2) && (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#B45309] text-[11px] font-semibold border border-amber-200">
                     🛡️ {t(lang, "farm.badge.inspected")}
                   </span>
                 )}
-                {breeder.verified && (
+                {breeder.verified ? (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200">
                     ✓ {t(lang, "farm.badge.idVerified")}
                   </span>
-                )}
+                ) : null}
               </div>
             ) : null}
             {photoError ? (

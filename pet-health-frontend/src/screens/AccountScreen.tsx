@@ -173,7 +173,7 @@ type AccountScreenProps = {
     status: string,
     options?: { rejectionReason?: string; adminAction?: string; adminNote?: string },
   ) => Promise<void>;
-  onUpdateReportStatus: (reportId: string, status: string) => Promise<void>;
+  onUpdateReportStatus: (reportId: string, status: string) => Promise<string | void>;
   onRefreshAdmin?: () => Promise<void>;
   onLogout: () => void;
   onConfirmDeleteAccount: () => Promise<void>;
@@ -395,13 +395,14 @@ export function AccountScreen({
         { key: 'pets', label: t('account.pets'), value: petCount },
         { key: 'saved', label: t('account.savedPosts'), value: savedPostCount },
       ];
-  async function runAdminAction(actionKey: string, action: () => Promise<void>, successMessage?: string) {
+  async function runAdminAction(actionKey: string, action: () => Promise<string | void>, successMessage?: string) {
     if (adminActionBusyKey) return;
     setAdminActionBusyKey(actionKey);
     try {
-      await action();
-      if (successMessage) {
-        notifyUser(t('adminReview.updateSuccess'), successMessage);
+      const detail = await action();
+      const message = detail || successMessage;
+      if (message) {
+        notifyUser(t('adminReview.updateSuccess'), message);
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');

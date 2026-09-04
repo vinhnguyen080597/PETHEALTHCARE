@@ -9,6 +9,7 @@ import { formatPriceVnd, isBlankDisplayValue } from "@/lib/formatPrice";
 import { listingShareUrl } from "@/lib/config";
 import type { PublicComment } from "@/lib/api/public";
 import { VerifiedBadge } from "./Badges";
+import { showBreederVerifiedBadge } from "@/lib/breederVerificationUi";
 import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
 import { mapApiPost } from "@/lib/mappers";
 import type { ApiPetFeedPost } from "@/lib/types";
@@ -978,7 +979,10 @@ export function ListingDetail({
                   <p className="text-sm font-semibold text-slate-900">
                     {listing.breeder.name}
                   </p>
-                  {listing.breeder.verified && <VerifiedBadge />}
+                  {showBreederVerifiedBadge(listing.breeder.verified, {
+                    complianceStripped: listing.breeder.complianceVerifiedStripped,
+                    gated: false,
+                  }) && <VerifiedBadge />}
                 </div>
                 <p className="text-xs text-slate-400">
                   {listing.breeder.location}
@@ -1164,7 +1168,11 @@ export function ListingDetail({
                     <p className="text-xs font-semibold text-slate-900">
                       {c.author}
                     </p>
-                    {c.isBreeder && <VerifiedBadge size="xs" />}
+                    {c.isBreeder &&
+                      showBreederVerifiedBadge(true, {
+                        complianceStripped: listing.breeder.complianceVerifiedStripped,
+                        gated: false,
+                      }) && <VerifiedBadge size="xs" />}
                     <p className="text-[10px] text-slate-400">{c.time}</p>
                   </div>
                   <p className="text-sm text-slate-600">{c.text}</p>

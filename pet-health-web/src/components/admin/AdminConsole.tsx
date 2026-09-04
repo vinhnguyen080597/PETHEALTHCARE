@@ -750,17 +750,60 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       "admin.toast.updated",
     );
 
-  const updateReport = (reportId: string, status: string) =>
-    runAction(
-      `report-${reportId}-${status}`,
-      () =>
-        adminFetch(`/reports/${reportId}/status`, {
+  const updateReport = (reportId: string, status: string) => {
+    if (busyKey) return;
+    const key = `report-${reportId}-${status}`;
+    setBusyKey(key);
+    setError("");
+    void (async () => {
+      try {
+        const res = await adminFetch(`/reports/${reportId}/status`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status }),
-        }),
-      "admin.toast.updated",
-    );
+        });
+        const penalty = res?.compliance_penalty as
+          | {
+              applied?: boolean;
+              points?: number;
+              score_before?: number;
+              score_after?: number;
+              band?: string;
+              tier?: number;
+              actions?: string[];
+            }
+          | null
+          | undefined;
+        if (status === "reviewed" && penalty?.applied) {
+          const points = Number(penalty.points) || 0;
+          const scoreAfter =
+            typeof penalty.score_after === "number" ? penalty.score_after : "—";
+          const band = String(penalty.band || "").trim() || "—";
+          const actions = Array.isArray(penalty.actions)
+            ? penalty.actions.filter(Boolean).join(", ")
+            : "";
+          const base =
+            lang === "VI"
+              ? `Đã xác nhận vi phạm: −${points}đ tuân thủ → còn ${scoreAfter}/100 (${band}).`
+              : `Violation confirmed: −${points} compliance → ${scoreAfter}/100 (${band}).`;
+          showToast(actions ? `${base} ${actions}` : base);
+        } else if (status === "reviewed") {
+          showToast(
+            lang === "VI"
+              ? "Đã xác nhận báo cáo (không trừ điểm thêm)."
+              : "Report confirmed (no additional compliance deduction).",
+          );
+        } else {
+          showToast(t(lang, "admin.toast.updated"));
+        }
+        await load();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t(lang, "common.error"));
+      } finally {
+        setBusyKey(null);
+      }
+    })();
+  };
 
   const updateSupportTicket = (ticketId: string, status: string) =>
     runAction(
