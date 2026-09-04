@@ -54,7 +54,11 @@ export type TransparencyScoreResult = {
   lines: TransparencyBreakdownLine[];
 };
 
-export type TransparencyTierId = "L0" | "L1" | "L2" | "L3" | "L4" | "L5";
+/**
+ * Bands below 30 were dropped: an approved profile always scores at least the
+ * `verifiedBase` 30, and violations no longer subtract from transparency.
+ */
+export type TransparencyTierId = "L2" | "L3" | "L4" | "L5";
 
 export type TransparencyTierInfo = {
   level: TransparencyTierId;
@@ -69,28 +73,6 @@ export type TransparencyTierInfo = {
 };
 
 export const TRANSPARENCY_TIERS: TransparencyTierInfo[] = [
-  {
-    level: "L0",
-    nameVI: "Sắp bị khóa",
-    nameEN: "At risk of suspension",
-    meaningVI: "Điểm minh bạch rất thấp — cần khắc phục ngay.",
-    meaningEN: "Very low transparency — immediate action required.",
-    chipClass: "bg-red-100 text-red-800 border-red-300",
-    min: 0,
-    max: 15,
-    color: "#DC2626",
-  },
-  {
-    level: "L1",
-    nameVI: "Trại bị cảnh báo",
-    nameEN: "Warning",
-    meaningVI: "Điểm minh bạch dưới mức an toàn — hoàn thiện hồ sơ và giảm vi phạm.",
-    meaningEN: "Transparency below safe level — complete your profile and avoid violations.",
-    chipClass: "bg-red-50 text-red-700 border-red-200",
-    min: 16,
-    max: 29,
-    color: "#EF4444",
-  },
   {
     level: "L2",
     nameVI: "Trại mới",
@@ -279,11 +261,10 @@ export function transparencyProfileCompletionPercent(
 
 export function getTransparencyTier(score: number): TransparencyTierInfo {
   const s = clampScore(score);
-  if (s >= 100) return TRANSPARENCY_TIERS[5];
-  if (s >= 80) return TRANSPARENCY_TIERS[4];
-  if (s >= 50) return TRANSPARENCY_TIERS[3];
-  if (s >= 30) return TRANSPARENCY_TIERS[2];
-  if (s >= 16) return TRANSPARENCY_TIERS[1];
+  if (s >= 100) return TRANSPARENCY_TIERS[3];
+  if (s >= 80) return TRANSPARENCY_TIERS[2];
+  if (s >= 50) return TRANSPARENCY_TIERS[1];
+  // Below 30 only happens before approval; show the entry title, not an alarm.
   return TRANSPARENCY_TIERS[0];
 }
 
@@ -302,16 +283,6 @@ export function transparencyScoreColor(score: number): string {
   if (s >= 80) return TRANSPARENCY_GAUGE_COLORS.complete;
   if (s >= 40) return TRANSPARENCY_GAUGE_COLORS.building;
   return TRANSPARENCY_GAUGE_COLORS.starting;
-}
-
-/** @deprecated Per-tick tier colors read as penalties — use transparencyScoreColor. */
-export function transparencyTickBandColor(tickIndex: number): string {
-  if (tickIndex <= 15) return TRANSPARENCY_TIERS[0].color;
-  if (tickIndex <= 29) return TRANSPARENCY_TIERS[1].color;
-  if (tickIndex <= 49) return TRANSPARENCY_TIERS[2].color;
-  if (tickIndex <= 79) return TRANSPARENCY_TIERS[3].color;
-  if (tickIndex <= 99) return TRANSPARENCY_TIERS[4].color;
-  return TRANSPARENCY_TIERS[5].color;
 }
 
 export function transparencyTickColor(tickIndex: number, score: number): string {

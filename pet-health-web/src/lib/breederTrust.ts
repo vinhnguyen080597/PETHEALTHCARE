@@ -11,7 +11,6 @@ import {
   TRANSPARENCY_TIERS,
   TRANSPARENCY_TICK_INACTIVE,
   TRANSPARENCY_VIOLATION_PENALTIES,
-  transparencyTickBandColor,
   transparencyTickColor,
   type TransparencyScoreInput,
   type TransparencyScoreResult,
@@ -97,7 +96,6 @@ export function contactFieldCount(
   ).length;
 }
 
-export const trustTickBandColor = transparencyTickBandColor;
 export const trustTickColor = transparencyTickColor;
 export const getTrustTier = getTransparencyTier;
 

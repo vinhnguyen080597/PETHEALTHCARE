@@ -16,7 +16,7 @@ export type VerificationStatus =
   | "rejected"
   | "suspended";
 
-export type TrustLevel = "L0" | "L1" | "L2" | "L3" | "L4" | "L5";
+export type TrustLevel = "L2" | "L3" | "L4" | "L5";
 
 /** Verification tier shown on public breeder cards (product Phase 1+). */
 export type VerificationTier = 1 | 2 | 3;
@@ -333,19 +333,6 @@ export const templateMeta: Record<
       "Banner credentials. Trust + Verified nhấn mạnh. Phù hợp trại đăng ký chính thức.",
   },
 };
-
-export function getTrustLevel(
-  score: number,
-  _verified?: boolean,
-): { level: TrustLevel; label: string } {
-  const s = Math.max(0, Math.min(100, Math.round(score)));
-  if (s >= 100) return { level: "L5", label: "Trại uy tín hàng đầu" };
-  if (s >= 80) return { level: "L4", label: "Ngôi sao đang lên" };
-  if (s >= 50) return { level: "L3", label: "Trại tiềm năng" };
-  if (s >= 30) return { level: "L2", label: "Trại mới" };
-  if (s >= 16) return { level: "L1", label: "Trại bị cảnh báo" };
-  return { level: "L0", label: "Sắp bị khóa" };
-}
 
 export function getEffectiveTrust(score: number, _penalty: number): number {
   return Math.max(0, Math.min(100, Math.round(score)));

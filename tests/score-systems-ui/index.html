@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Test case UI — 3 hệ thống điểm</title>
+    <link rel="stylesheet" href="./score-systems-ui.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <h1>Test case UI — 3 hệ thống điểm</h1>
+        <p>
+          Checklist thủ công cho web (<code>pet-health-web</code>). Tick Pass khi
+          case đạt — trạng thái lưu trong trình duyệt (<code>localStorage</code>).
+        </p>
+        <div class="stats" id="stats"></div>
+        <div class="actions">
+          <button type="button" id="mark-all" class="btn btn-secondary">Đánh dấu tất cả pass</button>
+          <button type="button" id="clear-all" class="btn btn-ghost">Xóa hết tick</button>
+          <span class="hint">Mở bằng trình duyệt: double-click file này hoặc Live Server.</span>
+        </div>
+      </header>
+
+      <section class="callout callout-ok">
+        <strong>Đã chốt:</strong> bỏ hai bậc danh hiệu dưới 30 điểm. Hồ sơ được duyệt luôn có tối thiểu 30 điểm nền → danh hiệu thấp nhất là “Trại mới”. Hồ sơ chưa duyệt cũng hiện “Trại mới”, không còn nhãn đỏ “Sắp bị khóa”.
+      </section>
+
+      <section>
+        <h2>Thang danh hiệu minh bạch</h2>
+        <table>
+          <thead><tr><th>Bậc</th><th>Khoảng điểm</th><th>Danh hiệu</th><th>Trạng thái</th></tr></thead>
+          <tbody>
+            <tr class="tone-danger"><td>—</td><td>0 – 15</td><td>Sắp bị khóa</td><td>Đã xoá</td></tr>
+            <tr class="tone-danger"><td>—</td><td>16 – 29</td><td>Trại bị cảnh báo</td><td>Đã xoá</td></tr>
+            <tr class="tone-success"><td>L2</td><td>30 – 49</td><td>Trại mới</td><td>Bậc khởi điểm</td></tr>
+            <tr><td>L3</td><td>50 – 79</td><td>Trại tiềm năng</td><td>Giữ nguyên</td></tr>
+            <tr><td>L4</td><td>80 – 99</td><td>Ngôi sao đang lên</td><td>Giữ nguyên</td></tr>
+            <tr><td>L5</td><td>100</td><td>Trại uy tín hàng đầu</td><td>Giữ nguyên</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Dải màu chuẩn của hai gauge</h2>
+        <table>
+          <thead><tr><th>Thang điểm</th><th>Khoảng</th><th>Màu vạch gauge</th><th>Ý nghĩa hiển thị</th></tr></thead>
+          <tbody>
+            <tr><td>Minh bạch</td><td>0 – 39</td><td><span class="swatch" style="background:#F97316"></span>#F97316 · cam</td><td>Trại mới / cần bổ sung hồ sơ</td></tr>
+            <tr><td>Minh bạch</td><td>40 – 79</td><td><span class="swatch" style="background:#0284C7"></span>#0284C7 · xanh dương</td><td>Hồ sơ khá đầy đủ</td></tr>
+            <tr><td>Minh bạch</td><td>80 – 100</td><td><span class="swatch" style="background:#10B981"></span>#10B981 · xanh lá</td><td>Hồ sơ minh bạch tối đa</td></tr>
+            <tr><td>Tuân thủ</td><td>80 – 100</td><td><span class="swatch" style="background:#10B981"></span>#10B981 · xanh lá</td><td>Bình thường, đủ tính năng</td></tr>
+            <tr><td>Tuân thủ</td><td>50 – 79</td><td><span class="swatch" style="background:#F59E0B"></span>#F59E0B · vàng</td><td>Cảnh báo, mất Verified, 1 tin/ngày</td></tr>
+            <tr><td>Tuân thủ</td><td>1 – 49</td><td><span class="swatch" style="background:#EF4444"></span>#EF4444 · đỏ</td><td>Hạn chế nghiêm trọng, ẩn liên hệ</td></tr>
+            <tr><td>Tuân thủ</td><td>0</td><td><span class="swatch" style="background:#DC2626"></span>#DC2626 · đỏ đậm</td><td>Khóa tài khoản, gỡ tin đăng</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div id="sections"></div>
+
+      <section>
+        <h2>Cách dựng dữ liệu để chạy</h2>
+        <p class="muted">
+          Điểm minh bạch đọc từ <code>metadata.trust_score</code> — seed thẳng biên 39/40/79/80 để kiểm màu nhanh. Điểm tuân thủ nằm ở <code>metadata.compliance.score</code> và nên thay qua luồng Admin xác nhận báo cáo để test luôn chế tài. Hai trang chi tiết (<code>/trust</code>, <code>/compliance</code>) chỉ mở được bằng tài khoản chủ trại.
+        </p>
+      </section>
+    </main>
+    <script src="./score-systems-ui.js"></script>
+  </body>
+</html>

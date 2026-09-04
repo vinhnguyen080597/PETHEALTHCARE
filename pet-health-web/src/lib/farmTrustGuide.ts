@@ -188,7 +188,7 @@ export function trustGuideTierSummary(lang: Lang): string[] {
     const meaning = lang === "VI" ? tier.meaningVI : tier.meaningEN;
     const range =
       tier.min === tier.max ? `${tier.min}` : `${tier.min}–${tier.max}`;
-    return `${tier.level} (${range}): ${name} — ${meaning}`;
+    return `${range}: ${name} — ${meaning}`;
   });
 }
 

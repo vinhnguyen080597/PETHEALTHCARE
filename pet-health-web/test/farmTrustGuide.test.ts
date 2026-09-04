@@ -38,9 +38,9 @@ test("trust guide content catalogs are non-empty", () => {
   assert.ok(TRUST_GUIDE_TRANSPARENCY_IMPACT.length >= 2);
   assert.ok(COMPLIANCE_GUIDE_IMPACT.length >= 2);
   assert.ok(TRUST_GUIDE_IMPACT.length >= 3);
-  assert.equal(trustGuideTierSummary("VI").length, 6);
+  assert.equal(trustGuideTierSummary("VI").length, 4);
   assert.equal(complianceGuideBandSummary("VI").length, 4);
-  assert.ok(trustGuideTierSummary("VI")[0].startsWith("L0"));
+  assert.ok(trustGuideTierSummary("VI")[0].startsWith("30–49: Trại mới"));
   assert.match(complianceGuideBandSummary("VI")[0], /80–100/);
 });
 

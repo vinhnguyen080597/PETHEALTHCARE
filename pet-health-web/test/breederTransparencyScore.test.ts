@@ -6,6 +6,7 @@ import {
   getTransparencyTier,
   socialTransparencyPoints,
   TRANSPARENCY_POINTS,
+  TRANSPARENCY_TIERS,
   transparencyProfileCompletionPercent,
   transparencyScoreColor,
   transparencyTickColor,
@@ -112,9 +113,12 @@ test("computeEffectiveViolationPoints always returns 0", () => {
   );
 });
 
-test("transparency tiers match new title bands", () => {
-  assert.equal(getTransparencyTier(0).nameVI, "Sắp bị khóa");
-  assert.equal(getTransparencyTier(16).nameVI, "Trại bị cảnh báo");
+test("transparency tiers start at Trại mới — no bands below 30", () => {
+  assert.equal(TRANSPARENCY_TIERS.length, 4);
+  assert.equal(TRANSPARENCY_TIERS[0].min, 30);
+  // Pre-approval scores floor to the entry title instead of an alarm band.
+  assert.equal(getTransparencyTier(0).nameVI, "Trại mới");
+  assert.equal(getTransparencyTier(16).nameVI, "Trại mới");
   assert.equal(getTransparencyTier(30).nameVI, "Trại mới");
   assert.equal(getTransparencyTier(50).nameVI, "Trại tiềm năng");
   assert.equal(getTransparencyTier(80).nameVI, "Ngôi sao đang lên");
