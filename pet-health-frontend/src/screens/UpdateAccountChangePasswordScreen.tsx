@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 type UpdateAccountChangePasswordScreenProps = {
@@ -22,6 +22,16 @@ type UpdateAccountChangePasswordScreenProps = {
   onSubmit: () => void;
 };
 
+function inputBorderClass(hasError: boolean, focused: boolean) {
+  if (hasError) return 'border-red-400';
+  if (focused) return 'border-[#CBD5E1]';
+  return 'border-[#E2E8F0]';
+}
+
+const webTextInputReset = Platform.OS === 'web'
+  ? ({ outlineStyle: 'none', boxShadow: 'none' } as any)
+  : undefined;
+
 function PasswordField({
   label,
   value,
@@ -36,19 +46,23 @@ function PasswordField({
   testID: string;
 }) {
   const [visible, setVisible] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm text-slate-700">{label}</Text>
-      <View className={`flex-row items-center rounded-xl border bg-white ${error ? 'border-red-400' : 'border-gray-300'}`}>
+      <View className={`flex-row items-center rounded-xl border bg-white px-4 ${inputBorderClass(Boolean(error), focused)}`}>
         <TextInput
           testID={testID}
-          className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
+          className="min-h-[48px] flex-1 py-3 text-base text-slate-900"
+          style={webTextInputReset}
           secureTextEntry={!visible}
           value={value}
           onChangeText={onChangeText}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
-        <Pressable className="px-3 py-3" onPress={() => setVisible((v) => !v)}>
+        <Pressable className="py-3 pl-3" onPress={() => setVisible((v) => !v)}>
           <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={22} color="#64748b" />
         </Pressable>
       </View>

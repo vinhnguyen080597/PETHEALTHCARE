@@ -585,42 +585,16 @@ export function AccountPanel({
               <p className="mt-2 text-sm leading-relaxed text-red-800">
                 {t(lang, "account.deleteAccount.cardBody")}
               </p>
-              {!deleteOpen ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeleteError(null);
-                    setDeleteOpen(true);
-                  }}
-                  className="mt-4 w-full rounded-xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700"
-                >
-                  {t(lang, "account.deleteAccount.cta")}
-                </button>
-              ) : (
-                <div className="mt-4 space-y-2">
-                  <button
-                    type="button"
-                    disabled={deleting}
-                    onClick={() => void deleteAccount()}
-                    className="w-full rounded-xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
-                  >
-                    {deleting
-                      ? t(lang, "account.deleteAccount.busy")
-                      : t(lang, "account.deleteAccount.confirm")}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={deleting}
-                    onClick={() => {
-                      setDeleteOpen(false);
-                      setDeleteError(null);
-                    }}
-                    className="w-full rounded-xl border border-red-200 bg-white py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
-                  >
-                    {t(lang, "common.cancel")}
-                  </button>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteOpen(true);
+                }}
+                className="mt-4 w-full rounded-xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700"
+              >
+                {t(lang, "account.deleteAccount.cta")}
+              </button>
               {deleteError ? (
                 <p className="mt-2 text-xs text-red-700">{deleteError}</p>
               ) : null}
@@ -707,6 +681,52 @@ export function AccountPanel({
         if (listingToDelete) void deleteOwnListing(listingToDelete);
       }}
     />
+    {deleteOpen ? (
+      <div
+        className="fixed inset-0 z-[130] flex items-center justify-center bg-[#2B1E19]/45 backdrop-blur-[2px] px-5"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-account-title"
+        onClick={() => {
+          if (!deleting) setDeleteOpen(false);
+        }}
+      >
+        <div
+          className="w-full max-w-sm rounded-2xl border border-red-100 bg-red-50 p-5 shadow-[0_24px_60px_-20px_rgba(43,30,25,0.5)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 id="delete-account-title" className="text-base font-bold text-red-900">
+            {t(lang, "account.deleteAccount.cardTitle")}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-red-800">
+            {t(lang, "account.deleteAccount.cardBody")}
+          </p>
+          <div className="mt-4 space-y-3">
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => void deleteAccount()}
+              className="w-full rounded-xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
+            >
+              {deleting
+                ? t(lang, "account.deleteAccount.busy")
+                : t(lang, "account.deleteAccount.confirm")}
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => {
+                setDeleteOpen(false);
+                setDeleteError(null);
+              }}
+              className="w-full rounded-xl border border-red-200 bg-white py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+            >
+              {t(lang, "common.cancel")}
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
     <TransparencyWarningModal lang={lang} />
     </>
   );

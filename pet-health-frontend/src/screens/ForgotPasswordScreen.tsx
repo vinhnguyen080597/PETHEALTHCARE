@@ -15,6 +15,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthWarmBackdrop } from '../components/AuthWarmBackdrop';
 import { BRAND } from '../theme/brand';
 
+const webTextInputReset = Platform.OS === 'web'
+  ? ({ outlineStyle: 'none', boxShadow: 'none' } as any)
+  : undefined;
+
 type ForgotPasswordScreenProps = {
   email: string;
   error?: string;
@@ -45,7 +49,7 @@ type ForgotPasswordScreenProps = {
 
 function inputBorderClass(hasError: boolean, focused: boolean) {
   if (hasError) return 'border-red-400';
-  if (focused) return 'border-[#F97316]';
+  if (focused) return 'border-[#CBD5E1]';
   return 'border-[#E2E8F0]';
 }
 
@@ -68,17 +72,18 @@ function PasswordField({
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm text-slate-700">{label}</Text>
-      <View className={`flex-row items-center rounded-xl border bg-white ${inputBorderClass(Boolean(error), focused)}`}>
+      <View className={`flex-row items-center rounded-xl border bg-white px-4 ${inputBorderClass(Boolean(error), focused)}`}>
         <TextInput
           testID={testID}
-          className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
+          className="min-h-[48px] flex-1 py-3 text-base text-slate-900"
+          style={webTextInputReset}
           secureTextEntry={!visible}
           value={value}
           onChangeText={onChangeText}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
         />
-        <Pressable className="px-3 py-3" onPress={() => setVisible((v) => !v)}>
+        <Pressable className="py-3 pl-3" onPress={() => setVisible((v) => !v)}>
           <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={22} color="#64748b" />
         </Pressable>
       </View>
@@ -158,6 +163,7 @@ export function ForgotPasswordScreen({
                   Boolean(fieldErrors?.email),
                   emailFocused,
                 )}`}
+                style={webTextInputReset}
                 placeholder={t('login.placeholderEmail')}
                 placeholderTextColor="#94a3b8"
                 autoCapitalize="none"
@@ -222,6 +228,7 @@ export function ForgotPasswordScreen({
                   Boolean(fieldErrors?.otp || otpError),
                   otpFocused,
                 )}`}
+                style={webTextInputReset}
                 placeholder={t('account.updateAccount.recoverOtpPlaceholder')}
                 placeholderTextColor="#94a3b8"
                 keyboardType="number-pad"

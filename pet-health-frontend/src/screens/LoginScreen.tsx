@@ -46,6 +46,10 @@ type LoginScreenProps = {
 
 type FocusField = 'email' | 'password' | 'confirmPassword' | null;
 
+const webTextInputReset = Platform.OS === 'web'
+  ? ({ outlineStyle: 'none', boxShadow: 'none' } as any)
+  : undefined;
+
 function FieldInlineError({ message }: { message?: string }) {
   if (!message) return null;
   return <Text className="mt-1.5 text-xs font-medium text-red-600">{message}</Text>;
@@ -53,7 +57,7 @@ function FieldInlineError({ message }: { message?: string }) {
 
 function inputBorderClass(hasError: boolean, focused: boolean) {
   if (hasError) return 'border-red-400';
-  if (focused) return 'border-[#F97316]';
+  if (focused) return 'border-[#CBD5E1]';
   return 'border-[#E2E8F0]';
 }
 
@@ -231,6 +235,7 @@ export function LoginScreen({
                     Boolean(fieldErrors?.email),
                     focusedField === 'email',
                   )}`}
+                  style={webTextInputReset}
                   placeholder={t('login.placeholderEmail')}
                   placeholderTextColor="#94a3b8"
                   autoCapitalize="none"
@@ -245,7 +250,7 @@ export function LoginScreen({
               <View className={isSignUp ? 'mb-4' : 'mb-6'}>
                 <Text className="mb-2 text-sm text-slate-700">{t('login.password')}</Text>
                 <View
-                  className={`flex-row items-center rounded-xl border bg-white ${inputBorderClass(
+                  className={`flex-row items-center rounded-xl border bg-white px-4 ${inputBorderClass(
                     Boolean(fieldErrors?.password),
                     focusedField === 'password',
                   )}`}
@@ -253,7 +258,8 @@ export function LoginScreen({
                   <TextInput
                     testID="login-password-input"
                     accessibilityLabel="Password"
-                    className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
+                    className="min-h-[48px] flex-1 py-3 text-base text-slate-900"
+                    style={webTextInputReset}
                     placeholder={t('login.placeholderPassword')}
                     placeholderTextColor="#94a3b8"
                     secureTextEntry={!showPassword}
@@ -267,7 +273,7 @@ export function LoginScreen({
                     accessibilityRole="button"
                     accessibilityLabel={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                     hitSlop={8}
-                    className="px-3 py-3"
+                    className="py-3 pl-3"
                     onPress={() => setShowPassword((v) => !v)}
                   >
                     <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#64748b" />
@@ -284,7 +290,7 @@ export function LoginScreen({
                 <View className="mb-6">
                   <Text className="mb-2 text-sm text-slate-700">{t('login.confirmPassword')}</Text>
                   <View
-                    className={`flex-row items-center rounded-xl border bg-white ${inputBorderClass(
+                    className={`flex-row items-center rounded-xl border bg-white px-4 ${inputBorderClass(
                       Boolean(fieldErrors?.confirmPassword),
                       focusedField === 'confirmPassword',
                     )}`}
@@ -292,7 +298,8 @@ export function LoginScreen({
                     <TextInput
                       testID="login-confirm-password-input"
                       accessibilityLabel="Confirm password"
-                      className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
+                      className="min-h-[48px] flex-1 py-3 text-base text-slate-900"
+                      style={webTextInputReset}
                       placeholder={t('login.placeholderConfirmPassword')}
                       placeholderTextColor="#94a3b8"
                       secureTextEntry={!showConfirmPassword}
@@ -306,7 +313,7 @@ export function LoginScreen({
                       accessibilityRole="button"
                       accessibilityLabel={showConfirmPassword ? t('login.hidePassword') : t('login.showPassword')}
                       hitSlop={8}
-                      className="px-3 py-3"
+                      className="py-3 pl-3"
                       onPress={() => setShowConfirmPassword((v) => !v)}
                     >
                       <Ionicons

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 type UpdateAccountRecoverPasswordScreenProps = {
@@ -28,6 +28,16 @@ type UpdateAccountRecoverPasswordScreenProps = {
   onSubmitRecover: () => void;
 };
 
+function inputBorderClass(hasError: boolean, focused: boolean) {
+  if (hasError) return 'border-red-400';
+  if (focused) return 'border-[#CBD5E1]';
+  return 'border-[#E2E8F0]';
+}
+
+const webTextInputReset = Platform.OS === 'web'
+  ? ({ outlineStyle: 'none', boxShadow: 'none' } as any)
+  : undefined;
+
 function PasswordField({
   label,
   value,
@@ -42,19 +52,23 @@ function PasswordField({
   testID: string;
 }) {
   const [visible, setVisible] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm text-slate-700">{label}</Text>
-      <View className={`flex-row items-center rounded-xl border bg-white ${error ? 'border-red-400' : 'border-gray-300'}`}>
+      <View className={`flex-row items-center rounded-xl border bg-white px-4 ${inputBorderClass(Boolean(error), focused)}`}>
         <TextInput
           testID={testID}
-          className="min-h-[48px] flex-1 px-4 py-3 text-base text-slate-900"
+          className="min-h-[48px] flex-1 py-3 text-base text-slate-900"
+          style={webTextInputReset}
           secureTextEntry={!visible}
           value={value}
           onChangeText={onChangeText}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
-        <Pressable className="px-3 py-3" onPress={() => setVisible((v) => !v)}>
+        <Pressable className="py-3 pl-3" onPress={() => setVisible((v) => !v)}>
           <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={22} color="#64748b" />
         </Pressable>
       </View>
@@ -84,6 +98,7 @@ export function UpdateAccountRecoverPasswordScreen({
   onSubmitRecover,
 }: UpdateAccountRecoverPasswordScreenProps) {
   const { t } = useTranslation();
+  const [otpFocused, setOtpFocused] = useState(false);
 
   return (
     <>
@@ -150,13 +165,19 @@ export function UpdateAccountRecoverPasswordScreen({
               <Text className="mb-2 mt-4 text-sm text-slate-700">{t('account.updateAccount.recoverOtpLabel')}</Text>
               <TextInput
                 testID="update-account-recover-otp-input"
-                className={`rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${fieldErrors?.otp || otpError ? 'border-red-400' : 'border-gray-300'}`}
+                className={`rounded-xl border bg-white px-4 py-3 text-base text-slate-900 ${inputBorderClass(
+                  Boolean(fieldErrors?.otp || otpError),
+                  otpFocused,
+                )}`}
+                style={webTextInputReset}
                 placeholder={t('account.updateAccount.recoverOtpPlaceholder')}
                 placeholderTextColor="#9ca3af"
                 keyboardType="number-pad"
                 maxLength={8}
                 value={otp}
                 onChangeText={onChangeOtp}
+                onFocus={() => setOtpFocused(true)}
+                onBlur={() => setOtpFocused(false)}
               />
               {fieldErrors?.otp ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.otp}</Text> : null}
               <Text className="mt-2 text-xs text-slate-500">{t('account.updateAccount.recoverOtpHelper')}</Text>
