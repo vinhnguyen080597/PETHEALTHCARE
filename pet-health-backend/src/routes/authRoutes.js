@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supabase.js';
-import { deleteAccountData, ensureAccountProfile, updateSelfDisplayName } from '../repositories/accountRepository.js';
+import { deleteAccountData, deleteAccountRowsByColumns, ensureAccountProfile, updateSelfDisplayName } from '../repositories/accountRepository.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail, requireSignupEmail } from '../services/authIdentifierService.js';
 import { getPendingSignUpLoginBlockCode, requestEmailSignUpOtp } from '../services/signupAuthService.js';
 import {
@@ -17,6 +17,46 @@ import { requireUser } from '../middleware/auth.js';
 import { deleteUserImageStorage } from '../services/imageStorageService.js';
 
 const router = Router();
+
+function parseDeleteUserForeignKeyFallback(err) {
+  const message = String(err?.message ?? '');
+  const constraint = message.match(/constraint "([^"]+)"/i)?.[1] ?? '';
+  const table = message.match(/table "([^"]+)"/gi)?.at(-1)?.match(/table "([^"]+)"/i)?.[1] ?? '';
+  if (!constraint || !table) return null;
+
+  const candidates = new Set();
+  const normalizedPrefix = `${table}_`;
+  if (constraint.startsWith(normalizedPrefix) && constraint.endsWith('_fkey')) {
+    candidates.add(constraint.slice(normalizedPrefix.length, -'_fkey'.length));
+  }
+
+  for (const column of [
+    'user_id',
+    'owner_user_id',
+    'customer_user_id',
+    'pet_owner_user_id',
+    'sen_user_id',
+    'breeder_user_id',
+    'vet_user_id',
+    'assigned_vet_user_id',
+    'creator_user_id',
+    'sender_user_id',
+    'author_user_id',
+    'participant_user_id',
+    'account_user_id',
+    'profile_user_id',
+    'owner_id',
+    'vet_id',
+    'user_uuid',
+  ]) {
+    candidates.add(column);
+  }
+
+  return {
+    table,
+    columns: [...candidates].filter(Boolean),
+  };
+}
 
 router.post('/signup', async (req, res, next) => {
   try {
@@ -488,11 +528,32 @@ router.delete('/me', requireUser, async (req, res, next) => {
 
     await deleteUserImageStorage(req.user.id);
     await deleteAccountData(req.user.id);
-    const { error } = await admin.auth.admin.deleteUser(req.user.id);
+    let { error } = await admin.auth.admin.deleteUser(req.user.id);
+    if (error?.code === '23503') {
+      const fallback = parseDeleteUserForeignKeyFallback(error);
+      if (fallback) {
+        console.warn('[auth.delete.me] retrying legacy FK cleanup', {
+          userId: req.user.id,
+          table: fallback.table,
+          columnsTried: fallback.columns,
+          code: error.code,
+          message: error.message,
+        });
+        await deleteAccountRowsByColumns(req.user.id, fallback.table, fallback.columns, { ignoreMissing: true });
+        ({ error } = await admin.auth.admin.deleteUser(req.user.id));
+      }
+    }
     if (error) throw error;
 
     return res.status(204).send();
   } catch (err) {
+    console.error('[auth.delete.me] failed', {
+      userId: req.user?.id,
+      code: err?.code,
+      message: err?.message,
+      details: err?.details,
+      hint: err?.hint,
+    });
     return next(err);
   }
 });

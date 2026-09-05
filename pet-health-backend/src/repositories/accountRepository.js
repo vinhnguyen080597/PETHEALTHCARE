@@ -344,6 +344,24 @@ export async function clearPendingPasswordRecovery(userId) {
   return toAccount(data);
 }
 
+function isIgnorableDeleteError(error) {
+  const code = String(error?.code ?? '');
+  return code === '42P01' || code === '42703' || code === 'PGRST205' || code === 'PGRST204';
+}
+
+export async function deleteAccountRowsByColumns(userId, table, columns = [], { ignoreMissing = false } = {}) {
+  const supabase = getSupabaseServiceClient();
+  if (!supabase || !userId || !table || !Array.isArray(columns) || columns.length === 0) return;
+
+  for (const column of columns) {
+    const { error } = await supabase.from(table).delete().eq(column, userId);
+    if (error) {
+      if (ignoreMissing && isIgnorableDeleteError(error)) continue;
+      throw error;
+    }
+  }
+}
+
 export async function deleteAccountData(userId) {
   const supabase = getSupabaseServiceClient();
   if (!supabase) {
@@ -352,10 +370,37 @@ export async function deleteAccountData(userId) {
     return;
   }
 
-  const deleteFrom = async (table, column = 'user_id') => {
+  const deleteFrom = async (table, column = 'user_id', { ignoreMissing = false } = {}) => {
     const { error } = await supabase.from(table).delete().eq(column, userId);
-    if (error) throw error;
+    if (error) {
+      if (ignoreMissing && isIgnorableDeleteError(error)) return;
+      throw error;
+    }
   };
+
+  const deleteFromAnyColumn = async (table, columns, options) => {
+    for (const column of columns) {
+      await deleteFrom(table, column, options);
+    }
+  };
+
+  // Remove child rows first so auth user deletion is not blocked by legacy FKs.
+  await deleteFromAnyColumn('pet_feed_messages', ['sender_user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('pet_feed_notifications', ['recipient_user_id', 'actor_user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('pet_feed_comments', ['user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('pet_feed_reports', ['user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('pet_feed_favorites', ['user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('pet_feed_blocked_breeders', ['user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('pet_feed_conversations', ['sen_user_id', 'breeder_user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('breeder_profile_submissions', ['user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('breeder_deal_reviews', ['sen_user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('transparency_warnings', ['user_id', 'admin_resolved_by'], { ignoreMissing: true });
+  await deleteFromAnyColumn('admin_action_logs', ['actor_user_id', 'target_user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('vet_med_messages', ['sender_user_id', 'user_id', 'vet_user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('vet_med_attachments', ['user_id', 'vet_user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('vet_med_notes', ['user_id', 'vet_user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('vet_med_prescriptions', ['user_id', 'vet_user_id'], { ignoreMissing: true });
+  await deleteFromAnyColumn('vet_med_conversations', ['user_id', 'vet_user_id', 'owner_user_id'], { ignoreMissing: true });
 
   await deleteFrom('pet_feed_blocked_breeders');
   await deleteFrom('pet_feed_reports');
@@ -363,6 +408,7 @@ export async function deleteAccountData(userId) {
   await deleteFrom('pet_feed_favorites');
   await deleteFrom('pet_feed_posts');
   await deleteFrom('breeder_profiles');
+  await deleteFrom('pet_feed_notifications', 'recipient_user_id', { ignoreMissing: true });
   await deleteFrom('pet_care_records');
   await deleteFrom('analyses');
   await deleteFrom('pets');
