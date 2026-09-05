@@ -194,6 +194,24 @@
       "breeders": "Breeders"
     },
     "newsEmpty": "No news from PetCare: Pet Marketplace yet",
+    "newsCard": {
+      "featured": "Featured",
+      "readMore": "Read more",
+      "readLess": "Read less",
+      "readMinutes": "{{count}} min read",
+      "favorite": "Favorite",
+      "bookmark": "Save",
+      "saved": "Liked",
+      "share": "Share",
+      "bookmarked": "Saved"
+    },
+    "newsFilters": {
+      "all": "All",
+      "app_update": "App Updates",
+      "health_tip": "Care Tips",
+      "community": "Breeder Corner",
+      "general": "General"
+    },
     "topBreeders": {
       "verified": "Verified",
       "posts": "Listings",

@@ -2839,6 +2839,13 @@ export function usePetHealthApp() {
               : item
           )),
         );
+        setAnnouncementPosts((current) =>
+          current.map((item) => (
+            item.id === postId
+              ? { ...item, comment_count: (item.comment_count ?? 0) + 1 }
+              : item
+          )),
+        );
       }
       return created;
     } catch (error: unknown) {
@@ -2856,6 +2863,13 @@ export function usePetHealthApp() {
       await deletePetFeedPostComment(token, comment.id);
       const delta = Math.max(1, removedCount);
       setPetFeedPosts((current) =>
+        current.map((item) => {
+          if (item.id !== comment.post_id) return item;
+          const nextCount = Math.max(0, (item.comment_count ?? delta) - delta);
+          return { ...item, comment_count: nextCount };
+        }),
+      );
+      setAnnouncementPosts((current) =>
         current.map((item) => {
           if (item.id !== comment.post_id) return item;
           const nextCount = Math.max(0, (item.comment_count ?? delta) - delta);
@@ -3770,6 +3784,7 @@ export function usePetHealthApp() {
       return items.map((item) => (item.id === post.id ? optimistic : item));
     };
     setPetFeedPosts(applyFavorite);
+    setAnnouncementPosts(applyFavorite);
     try {
       if (post.is_favorited) {
         await unfavoritePetFeedPost(token, post.id);
@@ -3778,6 +3793,15 @@ export function usePetHealthApp() {
       }
     } catch (error: unknown) {
       setPetFeedPosts((prev) => {
+        const idx = prev.findIndex((item) => item.id === post.id);
+        if (idx < 0) return prev.filter((item) => item.id !== post.id);
+        return prev.map((item) =>
+          item.id === post.id
+            ? { ...item, is_favorited: post.is_favorited, favorite_count: post.favorite_count }
+            : item,
+        );
+      });
+      setAnnouncementPosts((prev) => {
         const idx = prev.findIndex((item) => item.id === post.id);
         if (idx < 0) return prev.filter((item) => item.id !== post.id);
         return prev.map((item) =>

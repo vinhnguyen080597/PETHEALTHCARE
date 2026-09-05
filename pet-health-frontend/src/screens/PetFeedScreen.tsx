@@ -21,7 +21,7 @@ import { TopBreederCard } from '../components/breeder/TopBreederCard';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { PetTypeFilterRow } from '../components/PetTypeFilterRow';
-import type { BreederProfile, PetFeedPost } from '../types';
+import type { AnnouncementCategory, BreederProfile, PetFeedComment, PetFeedPost } from '../types';
 import { ALL_PROVINCES_FILTER, VIETNAM_PROVINCES, type ProvinceFilter } from '../constants/vietnamProvinces';
 import { metadataString } from '../utils/breederTrust';
 import {
@@ -79,6 +79,8 @@ type ChipItem<T extends string> = {
   icon: keyof typeof Ionicons.glyphMap;
 };
 
+type AnnouncementFilter = 'all' | AnnouncementCategory;
+
 type PetFeedScreenProps = {
   posts: PetFeedPost[];
   announcementPosts: PetFeedPost[];
@@ -100,6 +102,9 @@ type PetFeedScreenProps = {
   onOpenBreederDetail: (profileId: string) => void;
   onOpenPostDetail: (postId: string) => void;
   onToggleFavorite?: (post: PetFeedPost) => void;
+  onFetchPostComments?: (postId: string) => Promise<PetFeedComment[]>;
+  onSubmitPostComment?: (postId: string, body: string, parentId?: string | null) => Promise<PetFeedComment | null>;
+  onDeletePostComment?: (comment: PetFeedComment, removedCount?: number) => Promise<boolean>;
   onMessageBreeder?: (post: PetFeedPost) => void;
   onMessageFarm?: (profile: BreederProfile) => void;
   onOpenBreederProfile?: () => void;
@@ -139,6 +144,14 @@ function searchableAnnouncementText(post: PetFeedPost) {
     String(post.metadata?.ctaLabel ?? ''),
     'pet health care',
   ].filter(Boolean).join(' '));
+}
+
+function announcementCategoryKey(post: PetFeedPost): AnnouncementCategory {
+  const raw = String(post.metadata?.category ?? '').trim().toLowerCase();
+  if (raw === 'app_update' || raw === 'health_tip' || raw === 'community' || raw === 'general') {
+    return raw;
+  }
+  return 'general';
 }
 
 function createdTime(post: PetFeedPost) {
@@ -210,6 +223,9 @@ export function PetFeedScreen({
   onOpenBreederDetail,
   onOpenPostDetail,
   onToggleFavorite,
+  onFetchPostComments,
+  onSubmitPostComment,
+  onDeletePostComment,
   onMessageBreeder,
   onMessageFarm,
   onOpenBreederProfile,
@@ -245,6 +261,7 @@ export function PetFeedScreen({
   const [filterVisible, setFilterVisible] = useState(false);
   const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
+  const [announcementFilter, setAnnouncementFilter] = useState<AnnouncementFilter>('all');
 
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query]);
   const searchMatchedPosts = useMemo(() => {
@@ -310,11 +327,32 @@ export function PetFeedScreen({
     });
   }, [genderFilter, provinceMatchedPosts, sortDirection, sortField]);
 
+  const categoryFilteredAnnouncements = useMemo(() => {
+    if (announcementFilter === 'all') return searchMatchedAnnouncements;
+    return searchMatchedAnnouncements.filter((post) => announcementCategoryKey(post) === announcementFilter);
+  }, [announcementFilter, searchMatchedAnnouncements]);
+
   const filteredAnnouncements = useMemo(() => {
-    return [...searchMatchedAnnouncements].sort((a, b) => (
+    return [...categoryFilteredAnnouncements].sort((a, b) => (
       sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a)
     ));
-  }, [searchMatchedAnnouncements, sortDirection]);
+  }, [categoryFilteredAnnouncements, sortDirection]);
+
+  const announcementFilterItems = useMemo(() => {
+    const items: Array<{ key: AnnouncementFilter; label: string }> = [
+      { key: 'all', label: t('petFeed.newsFilters.all') },
+      { key: 'app_update', label: t('petFeed.newsFilters.app_update') },
+      { key: 'health_tip', label: t('petFeed.newsFilters.health_tip') },
+      { key: 'community', label: t('petFeed.newsFilters.community') },
+      { key: 'general', label: t('petFeed.newsFilters.general') },
+    ];
+    return items.map((item) => ({
+      ...item,
+      count: item.key === 'all'
+        ? searchMatchedAnnouncements.length
+        : searchMatchedAnnouncements.filter((post) => announcementCategoryKey(post) === item.key).length,
+    }));
+  }, [searchMatchedAnnouncements, t]);
 
   const selectedAnnouncement = selectedAnnouncementId ? announcementPosts.find((post) => post.id === selectedAnnouncementId) ?? null : null;
   const topBreeders = useMemo<TopBreeder[]>(() => {
@@ -482,12 +520,21 @@ export function PetFeedScreen({
     setSortDirection(DEFAULT_PET_FEED_SORT_DIRECTION);
   }, []);
 
-  const renderListItem = useCallback(({ item }: { item: FeedListItem }) => {
+  const renderListItem = useCallback(({ item, index }: { item: FeedListItem; index: number }) => {
     if (item.type === 'post') {
       if (activeTab === 'news') {
         return (
           <View className="px-5">
-            <AdminPostCard post={item.post} onPress={(post) => setSelectedAnnouncementId(post.id)} />
+            <AdminPostCard
+              post={item.post}
+              featured={index === 0}
+              onToggleFavorite={onToggleFavorite}
+              currentUserId={currentUserId}
+              onFetchComments={onFetchPostComments}
+              onSubmitComment={onSubmitPostComment}
+              onDeleteComment={onDeletePostComment}
+              onPress={(post) => setSelectedAnnouncementId(post.id)}
+            />
           </View>
         );
       }
@@ -558,6 +605,9 @@ export function PetFeedScreen({
     onMessageFarm,
     onOpenBreederProfile,
     onEditPost,
+    onFetchPostComments,
+    onSubmitPostComment,
+    onDeletePostComment,
     onOpenBreederDetail,
     onOpenPostDetail,
     onToggleFavorite,
@@ -805,6 +855,39 @@ export function PetFeedScreen({
             </View>
           </View>
         ) : null}
+        {activeTab === 'news' ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 10, gap: 8 }}
+          >
+            {announcementFilterItems.map((item) => {
+              const active = announcementFilter === item.key;
+              return (
+                <Pressable
+                  key={item.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.label}
+                  accessibilityState={{ selected: active }}
+                  className="rounded-full px-4 py-2"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: active ? BRAND.btnPrimary : '#F3D7B2',
+                    backgroundColor: active ? BRAND.btnPrimary : '#FFFFFF',
+                  }}
+                  onPress={() => setAnnouncementFilter(item.key)}
+                >
+                  <Text
+                    className="text-sm font-semibold"
+                    style={{ color: active ? BRAND.textInverse : '#6E5A51' }}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        ) : null}
       </View>
 
     <FlatList
@@ -1029,7 +1112,16 @@ export function PetFeedScreen({
       closeTestID="announcement-detail-back-button"
       onClose={() => setSelectedAnnouncementId(null)}
     >
-      {selectedAnnouncement ? <AdminPostCard post={selectedAnnouncement} /> : null}
+      {selectedAnnouncement ? (
+        <AdminPostCard
+          post={selectedAnnouncement}
+          onToggleFavorite={onToggleFavorite}
+          currentUserId={currentUserId}
+          onFetchComments={onFetchPostComments}
+          onSubmitComment={onSubmitPostComment}
+          onDeleteComment={onDeletePostComment}
+        />
+      ) : null}
     </ModalScreenShell>
     </>
   );

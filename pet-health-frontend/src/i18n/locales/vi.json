@@ -194,6 +194,24 @@
       "breeders": "Trại giống"
     },
     "newsEmpty": "Chưa có tin từ PetCare: Pet Marketplace",
+    "newsCard": {
+      "featured": "Nổi bật",
+      "readMore": "Xem thêm",
+      "readLess": "Thu gọn",
+      "readMinutes": "{{count}} phút đọc",
+      "favorite": "Thả tim",
+      "bookmark": "Lưu",
+      "saved": "Thả tim",
+      "share": "Chia sẻ",
+      "bookmarked": "Đã lưu"
+    },
+    "newsFilters": {
+      "all": "Tất cả",
+      "app_update": "Thông báo App",
+      "health_tip": "Mẹo chăm sóc",
+      "community": "Góc Breeder",
+      "general": "Chung"
+    },
     "topBreeders": {
       "verified": "Đã xác minh",
       "posts": "Tin đăng",

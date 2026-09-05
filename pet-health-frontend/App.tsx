@@ -415,6 +415,9 @@ function AppContent() {
                 onOpenBreederDetail={app.openBreederDetail}
                 onOpenPostDetail={app.openPetFeedPostDetail}
                 onToggleFavorite={app.togglePetFeedFavorite}
+                onFetchPostComments={app.fetchPetFeedPostComments}
+                onSubmitPostComment={app.submitPetFeedComment}
+                onDeletePostComment={app.deletePetFeedComment}
                 onMessageBreeder={(post) => void app.openOrCreateConversationFromPost(post)}
                 onMessageFarm={(profile) => void app.openOrCreateConversationFromFarm(profile)}
                 onOpenBreederProfile={() => void app.openBreederProfile()}
