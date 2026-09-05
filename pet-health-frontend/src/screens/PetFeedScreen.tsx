@@ -855,11 +855,14 @@ export function PetFeedScreen({
             </View>
           </View>
         ) : null}
-        {activeTab === 'news' ? (
+      </View>
+      {activeTab === 'news' ? (
+        <View className="bg-[#F2F4F8] pb-3 pt-1">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 10, gap: 8 }}
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 4, gap: 6, alignItems: 'center' }}
           >
             {announcementFilterItems.map((item) => {
               const active = announcementFilter === item.key;
@@ -869,16 +872,16 @@ export function PetFeedScreen({
                   accessibilityRole="button"
                   accessibilityLabel={item.label}
                   accessibilityState={{ selected: active }}
-                  className="rounded-full px-4 py-2"
+                  className="self-center rounded-full px-2.5 py-1"
                   style={{
                     borderWidth: 1,
                     borderColor: active ? BRAND.btnPrimary : '#F3D7B2',
-                    backgroundColor: active ? BRAND.btnPrimary : '#FFFFFF',
+                    backgroundColor: active ? BRAND.btnPrimary : 'transparent',
                   }}
                   onPress={() => setAnnouncementFilter(item.key)}
                 >
                   <Text
-                    className="text-sm font-semibold"
+                    className="text-[11px] font-semibold"
                     style={{ color: active ? BRAND.textInverse : '#6E5A51' }}
                   >
                     {item.label}
@@ -887,8 +890,8 @@ export function PetFeedScreen({
               );
             })}
           </ScrollView>
-        ) : null}
-      </View>
+        </View>
+      ) : null}
 
     <FlatList
       ref={listRef}
