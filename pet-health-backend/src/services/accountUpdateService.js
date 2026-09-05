@@ -335,7 +335,12 @@ export async function requestPublicPasswordRecovery(identifier) {
     throw err;
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(realEmail);
+  const { error } = await supabase.auth.signInWithOtp({
+    email: realEmail,
+    options: {
+      shouldCreateUser: false,
+    },
+  });
   if (error) throw error;
 
   await setPendingPasswordRecovery(resolved.authUser.id, { email: realEmail });
@@ -384,7 +389,12 @@ export async function verifyRecoverPasswordRequest({ user, account }) {
     throw err;
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(realEmail);
+  const { error } = await supabase.auth.signInWithOtp({
+    email: realEmail,
+    options: {
+      shouldCreateUser: false,
+    },
+  });
   if (error) throw error;
 
   await setPendingPasswordRecovery(user.id, { email: realEmail });
@@ -424,13 +434,19 @@ export async function applyRecoverPassword({ user, account, otp, newPassword }) 
     throw err;
   }
 
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     email: realEmail,
     token: cleanOtp,
-    type: 'recovery',
+    type: 'email',
   });
   if (error) {
     throwOtpVerificationError(error);
+  }
+  if (data.user?.id && data.user.id !== user.id) {
+    const err = new Error('Incorrect or expired OTP.');
+    err.status = 400;
+    err.code = 'otp_invalid';
+    throw err;
   }
 
   const admin = getSupabaseServiceClient();

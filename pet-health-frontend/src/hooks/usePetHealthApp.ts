@@ -1393,31 +1393,6 @@ export function usePetHealthApp() {
       await applySession(session);
     } catch (error: unknown) {
       if (
-        !isSignUp &&
-        error instanceof ApiRequestError &&
-        error.code === 'SIGNUP_OTP_PENDING' &&
-        password &&
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-      ) {
-        try {
-          const signUpEmail = email.trim();
-          await requestSignUpOtp({ email: signUpEmail, password });
-          setPendingSignUpEmail(signUpEmail);
-          setPendingSignUpPassword(password);
-          setSignUpOtp('');
-          setSignUpDisplayName('');
-          setSignUpOtpError('');
-          setSignUpOtpFieldErrors({});
-          armSignUpOtpResendCooldown();
-          setAuthError('');
-          setScreen('signup-otp-verification');
-          return;
-        } catch (resendError: unknown) {
-          setAuthError(resolveAuthErrorMessage(resendError, true));
-          return;
-        }
-      }
-      if (
         isSignUp &&
         error instanceof ApiRequestError &&
         (error.code === 'PASSWORD_TOO_SHORT' || error.code === 'weak_password')
