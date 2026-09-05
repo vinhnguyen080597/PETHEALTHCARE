@@ -66,6 +66,7 @@ type AccountRow = {
   login_identifier?: string;
   primary_role?: string;
   account_status?: string;
+  isForTesting?: boolean;
 };
 
 type ActionLogRow = {

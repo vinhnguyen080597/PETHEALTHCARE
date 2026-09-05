@@ -287,6 +287,7 @@ export interface ApiAccount {
   email?: string;
   display_name?: string;
   primary_role?: string;
+  isForTesting?: boolean;
   roles?: string[];
 }
 

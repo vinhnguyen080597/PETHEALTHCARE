@@ -33,6 +33,7 @@ export type AccountProfile = {
   display_name: string;
   primary_role: UserRole;
   account_status: AccountStatus;
+  isForTesting: boolean;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at?: string;

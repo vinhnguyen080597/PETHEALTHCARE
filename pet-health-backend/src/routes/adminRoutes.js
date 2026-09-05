@@ -301,6 +301,7 @@ router.post('/accounts', requireAdminOrSecret, async (req, res, next) => {
         display_name: account?.display_name || name || null,
         primary_role: account?.primary_role || role,
         account_status: account?.account_status || 'active',
+        is_for_testing: account?.isForTesting ?? false,
       },
       metadata: {
         created_new_auth_user: Boolean(created),
@@ -329,11 +330,13 @@ router.put('/accounts/:userId', requireAdminOrSecret, async (req, res, next) => 
         primary_role: before?.primary_role || null,
         account_status: before?.account_status || null,
         display_name: before?.display_name || null,
+        is_for_testing: before?.isForTesting ?? false,
       },
       afterState: {
         primary_role: account.primary_role || null,
         account_status: account.account_status || null,
         display_name: account.display_name || null,
+        is_for_testing: account.isForTesting ?? false,
       },
       metadata: {},
     });

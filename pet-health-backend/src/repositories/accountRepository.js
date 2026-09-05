@@ -25,6 +25,11 @@ function normalizeAccountStatus(value) {
   return ACCOUNT_STATUSES.has(status) ? status : 'active';
 }
 
+function normalizeBooleanFlag(value, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  return fallback;
+}
+
 function toAccount(row) {
   if (!row) return row;
   return {
@@ -34,6 +39,7 @@ function toAccount(row) {
     display_name: row.display_name ?? '',
     primary_role: normalizeUserRole(row.primary_role, 'sen'),
     account_status: normalizeAccountStatus(row.account_status),
+    isForTesting: normalizeBooleanFlag(row.is_for_testing ?? row.isForTesting, false),
     metadata: row.metadata ?? {},
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -105,6 +111,7 @@ export async function ensureAccountProfile({
     display_name: trimText(displayName, 160) || trimText(loginIdentifier, 160) || 'Pet Health user',
     primary_role: existing?.primary_role ?? initialRole,
     account_status: existing?.account_status ?? 'active',
+    is_for_testing: existing?.isForTesting ?? false,
     metadata: { ...(existing?.metadata ?? {}), ...(metadata && typeof metadata === 'object' ? metadata : {}) },
     updated_at: now,
   };
@@ -197,6 +204,7 @@ export async function adminUpdateAccountProfile(userId, payload) {
     primary_role: normalizeUserRole(payload.primaryRole ?? payload.primary_role, existing.primary_role),
     account_status: normalizeAccountStatus(payload.accountStatus ?? payload.account_status ?? existing.account_status),
     display_name: trimText(payload.displayName ?? payload.display_name, 160) || existing.display_name,
+    is_for_testing: normalizeBooleanFlag(payload.isForTesting ?? payload.is_for_testing, existing.isForTesting),
     updated_at: new Date().toISOString(),
   };
   const supabase = getSupabaseServiceClient();
