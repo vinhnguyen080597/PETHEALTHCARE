@@ -502,6 +502,8 @@ const en = {
   "warranty.field.responseHours": "Breeder response time",
   "warranty.value.yes": "Yes",
   "warranty.value.no": "No",
+  "warranty.value.other": "Other",
+  "warranty.value.dayUnit": "day",
   "warranty.value.shots": "{n} shot(s)",
   "warranty.value.days": "{n} days",
   "warranty.value.hours": "{n} hours",

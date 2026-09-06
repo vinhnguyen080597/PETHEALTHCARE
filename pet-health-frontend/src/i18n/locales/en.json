@@ -609,9 +609,9 @@
       "filterAll": "All",
       "filterEmpty": "No pets in this status.",
       "status": {
-        "for_sale": "seeking a home",
-        "deposit_hold": "reserved",
-        "completed": "completed"
+        "for_sale": "Available",
+        "deposit_hold": "On deposit",
+        "completed": "Sold"
       }
     },
     "facility": {
@@ -2711,6 +2711,8 @@
     "value": {
       "yes": "Yes",
       "no": "No",
+      "other": "Other",
+      "dayUnit": "day",
       "shots": "{n} shot(s)",
       "days": "{n} days",
       "hours": "{n} hours"

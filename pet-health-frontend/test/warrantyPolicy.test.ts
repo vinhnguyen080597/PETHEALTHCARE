@@ -50,12 +50,14 @@ test('warranty form round-trips to API body', () => {
     vaccineShotsCount: 3 as const,
     vaccineTypes: ' 5-in-1 ',
     medicalFeeSupportPercent: 100 as const,
+    careParvoCoverageDays: 45,
   };
   const body = warrantyFormToApiBody(values);
   assert.equal(body.title, 'Standard');
   assert.equal(body.vaccine_shots_count, 3);
   assert.equal(body.vaccine_types, '5-in-1');
   assert.equal(body.medical_fee_support_percent, 100);
+  assert.equal(body.care_parvo_coverage_days, 45);
   assert.equal(body.has_health_book, true);
 
   const back = warrantyPolicyToFormValues({
@@ -83,6 +85,14 @@ test('warranty form round-trips to API body', () => {
   assert.equal(formatDewormingDateLabel('2026-01-15'), '15-1-2026');
   assert.deepEqual(toggleIdInList(['a', 'b'], 'b'), ['a']);
   assert.deepEqual(toggleIdInList(['a'], 'c'), ['a', 'c']);
+});
+
+test('warranty form preserves custom infectious coverage days', () => {
+  const back = warrantyPolicyToFormValues({
+    title: 'Custom coverage',
+    careParvoCoverageDays: 45,
+  });
+  assert.equal(back.careParvoCoverageDays, 45);
 });
 
 test('warranty species copy keys are nested-safe', () => {

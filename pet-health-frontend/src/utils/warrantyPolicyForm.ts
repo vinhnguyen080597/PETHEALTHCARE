@@ -41,7 +41,7 @@ export type WarrantyPolicyFormValues = {
   vaccineTypes: string;
   dewormingNote: string;
   hasHealthBook: boolean;
-  careParvoCoverageDays: 7 | 14 | 30;
+  careParvoCoverageDays: number;
   respiratorySkinCoverageDays: 3 | 7;
   congenitalCoverageDays: 30 | 60 | 90;
   reportWithinHours: 12 | 24;
@@ -84,7 +84,7 @@ export function warrantyFormToApiBody(values: WarrantyPolicyFormValues) {
     vaccine_types: values.vaccineTypes.trim(),
     deworming_note: values.dewormingNote.trim(),
     has_health_book: values.hasHealthBook,
-    care_parvo_coverage_days: values.careParvoCoverageDays,
+    care_parvo_coverage_days: Math.max(1, Math.round(Number(values.careParvoCoverageDays) || 0)),
     respiratory_skin_coverage_days: values.respiratorySkinCoverageDays,
     congenital_coverage_days: values.congenitalCoverageDays,
     report_within_hours: values.reportWithinHours,
@@ -107,6 +107,11 @@ function pickOption<T extends number>(
   return (options as readonly number[]).includes(Number(value))
     ? (Number(value) as T)
     : fallback;
+}
+
+function pickPositiveNumber(value: number | undefined, fallback: number): number {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
 function filterKnownIds<T extends string>(
@@ -152,9 +157,8 @@ export function warrantyPolicyToFormValues(
     vaccineTypes: String(policy.vaccineTypes || ""),
     dewormingNote: String(policy.dewormingNote || ""),
     hasHealthBook: Boolean(policy.hasHealthBook),
-    careParvoCoverageDays: pickOption(
+    careParvoCoverageDays: pickPositiveNumber(
       policy.careParvoCoverageDays,
-      CARE_PARVO_DAY_OPTIONS,
       defaults.careParvoCoverageDays,
     ),
     respiratorySkinCoverageDays: pickOption(

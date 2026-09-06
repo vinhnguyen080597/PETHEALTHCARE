@@ -19,13 +19,11 @@ import { mapWarrantyPolicy } from '../utils/warrantyPolicy';
 import {
   BUYER_GUIDELINE_OPTIONS,
   CARE_PARVO_DAY_OPTIONS,
-  CONGENITAL_DAY_OPTIONS,
   defaultWarrantyFormValues,
   EVIDENCE_OPTIONS,
   EXCLUSION_OPTIONS,
   MEDICAL_FEE_OPTIONS,
   REPORT_HOUR_OPTIONS,
-  RESPIRATORY_DAY_OPTIONS,
   RESPONSE_HOUR_OPTIONS,
   toggleIdInList,
   VACCINE_SHOT_OPTIONS,
@@ -38,7 +36,6 @@ import {
   resolveWarrantyFarmSpecies,
   warrantyInfectiousFieldKey,
   warrantyRapidTestEvidenceKey,
-  warrantyRespiratoryFieldKey,
   warrantyVaccinePlaceholderKey,
   warrantyVaccinePresetIds,
   warrantyVaccinePresetLabelKey,
@@ -57,6 +54,9 @@ type WarrantyLibraryScreenProps = {
   ) => void;
 };
 
+const INPUT_CLASS = 'rounded-xl border border-[#F0E6D8] bg-white px-4 py-2.5 text-sm text-[#2B1E19]';
+const LABEL_CLASS = 'text-xs font-medium text-[#6E5A51]';
+
 function ChipOption({
   label,
   active,
@@ -70,10 +70,46 @@ function ChipOption({
     <Pressable
       onPress={onPress}
       className={`mr-2 mb-2 rounded-full border px-3 py-1.5 ${
-        active ? 'border-[#D97706] bg-[#FFF7ED]' : 'border-slate-200 bg-white'
+        active ? 'border-[#D97706] bg-[#FFF7ED]' : 'border-[#E8DFD0] bg-[#FDF8F0]'
       }`}
     >
-      <Text className={`text-xs font-semibold ${active ? 'text-[#B45309]' : 'text-slate-700'}`}>{label}</Text>
+      <Text className={`text-xs font-semibold ${active ? 'text-[#B45309]' : 'text-[#5C4A3A]'}`}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <Text className={LABEL_CLASS}>{children}</Text>;
+}
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View className="rounded-xl border border-[#F3E2C8] bg-white p-4">
+      <Text className="text-xs font-bold uppercase tracking-wide text-[#B45309]">{title}</Text>
+      <View className="mt-3">{children}</View>
+    </View>
+  );
+}
+
+function ChecklistRow({
+  label,
+  checked,
+  onPress,
+}: {
+  label: string;
+  checked: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable className="mb-2 flex-row items-start gap-2" onPress={onPress}>
+      <View
+        className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
+          checked ? 'border-[#D97706] bg-[#D97706]' : 'border-slate-300 bg-white'
+        }`}
+      >
+        {checked ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+      </View>
+      <Text className="flex-1 text-sm text-[#5C4A3A]">{label}</Text>
     </Pressable>
   );
 }
@@ -94,6 +130,9 @@ export function WarrantyLibraryScreen({
   const [titleError, setTitleError] = useState('');
   const isEdit = Boolean(editPolicy?.id);
   const presets = useMemo(() => warrantyVaccinePresetIds(species), [species]);
+  const careParvoPreset = CARE_PARVO_DAY_OPTIONS.includes(values.careParvoCoverageDays as 7 | 14 | 30)
+    ? String(values.careParvoCoverageDays)
+    : 'other';
 
   function patch(next: Partial<WarrantyPolicyFormValues>) {
     setValues((current) => ({ ...current, ...next }));
@@ -144,250 +183,274 @@ export function WarrantyLibraryScreen({
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text className="mb-3 text-sm leading-5 text-[#6E5A51]">{t('warranty.library.subtitle')}</Text>
-        {!isEdit ? (
-          <Text className="mb-4 text-xs leading-4 text-[#B45309]">{t('warranty.library.trustHint')}</Text>
-        ) : null}
-
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">
-          {t('warranty.library.name')} <Text className="text-red-500">*</Text>
-        </Text>
-        <TextInput
-          className={`mb-1 rounded-xl border bg-white px-3 py-3 text-sm text-[#2B1E19] ${
-            titleError ? 'border-red-400' : 'border-slate-200'
-          }`}
-          value={values.title}
-          onChangeText={(title) => {
-            setTitleError('');
-            patch({ title });
-          }}
-          placeholder={t('warranty.library.name')}
-          placeholderTextColor="#94A3B8"
-        />
-        {titleError ? <Text className="mb-3 text-xs font-semibold text-red-600">{titleError}</Text> : <View className="mb-3" />}
-
-        <Text className="mb-2 text-xs font-extrabold uppercase text-[#2B1E19]">1. {t('warranty.pillar.handover')}</Text>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.vaccineShots')}</Text>
-        <View className="mb-3 flex-row flex-wrap">
-          {VACCINE_SHOT_OPTIONS.map((n) => (
-            <ChipOption
-              key={n}
-              label={String(n)}
-              active={values.vaccineShotsCount === n}
-              onPress={() => patch({ vaccineShotsCount: n })}
-            />
-          ))}
+        <View className="rounded-2xl border border-[#F3E2C8] bg-white p-5">
+          <Text className="text-lg font-bold text-[#2B1E19]">{t('warranty.library.title')}</Text>
+          <Text className="mt-1 text-sm leading-5 text-[#6E5A51]">{t('warranty.library.subtitle')}</Text>
+          {!isEdit ? (
+            <Text className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+              {t('warranty.library.trustHint')}
+            </Text>
+          ) : null}
         </View>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.vaccineTypes')}</Text>
-        <TextInput
-          className="mb-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-[#2B1E19]"
-          value={values.vaccineTypes}
-          onChangeText={(vaccineTypes) => patch({ vaccineTypes })}
-          placeholder={t(warrantyVaccinePlaceholderKey(species))}
-          placeholderTextColor="#94A3B8"
-        />
-        <View className="mb-3 flex-row flex-wrap">
-          {presets.map((id) => (
-            <ChipOption
-              key={id}
-              label={t(warrantyVaccinePresetLabelKey(id))}
-              active={values.vaccineTypes.toLowerCase().includes(t(warrantyVaccinePresetLabelKey(id)).toLowerCase())}
-              onPress={() =>
-                patch({
-                  vaccineTypes: appendWarrantyVaccinePreset(
-                    values.vaccineTypes,
-                    t(warrantyVaccinePresetLabelKey(id)),
-                  ),
-                })
-              }
-            />
-          ))}
-        </View>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.deworming')}</Text>
-        <TextInput
-          className="mb-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-[#2B1E19]"
-          value={values.dewormingNote}
-          onChangeText={(dewormingNote) => patch({ dewormingNote })}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#94A3B8"
-        />
-        <Pressable
-          className="mb-4 flex-row items-center gap-2"
-          onPress={() => patch({ hasHealthBook: !values.hasHealthBook })}
-        >
-          <View
-            className={`h-5 w-5 items-center justify-center rounded border ${
-              values.hasHealthBook ? 'border-[#D97706] bg-[#D97706]' : 'border-slate-300 bg-white'
-            }`}
-          >
-            {values.hasHealthBook ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+
+        <View className="mt-5 rounded-2xl border border-[#F3E2C8] bg-white p-5">
+          <View className="mb-5 flex-row items-center justify-between gap-3">
+            <Text className="text-sm font-semibold text-[#2B1E19]">
+              {t(isEdit ? 'warranty.library.edit' : 'warranty.library.title')}
+            </Text>
           </View>
-          <Text className="text-sm text-[#2B1E19]">{t('warranty.field.healthBook')}</Text>
-        </Pressable>
 
-        <Text className="mb-2 text-xs font-extrabold uppercase text-[#2B1E19]">2. {t('warranty.pillar.coverage')}</Text>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t(warrantyInfectiousFieldKey(species))}</Text>
-        <View className="mb-3 flex-row flex-wrap">
-          {CARE_PARVO_DAY_OPTIONS.map((n) => (
-            <ChipOption
-              key={n}
-              label={`${n}d`}
-              active={values.careParvoCoverageDays === n}
-              onPress={() => patch({ careParvoCoverageDays: n })}
-            />
-          ))}
-        </View>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t(warrantyRespiratoryFieldKey(species))}</Text>
-        <View className="mb-3 flex-row flex-wrap">
-          {RESPIRATORY_DAY_OPTIONS.map((n) => (
-            <ChipOption
-              key={n}
-              label={`${n}d`}
-              active={values.respiratorySkinCoverageDays === n}
-              onPress={() => patch({ respiratorySkinCoverageDays: n })}
-            />
-          ))}
-        </View>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.congenital')}</Text>
-        <View className="mb-4 flex-row flex-wrap">
-          {CONGENITAL_DAY_OPTIONS.map((n) => (
-            <ChipOption
-              key={n}
-              label={`${n}d`}
-              active={values.congenitalCoverageDays === n}
-              onPress={() => patch({ congenitalCoverageDays: n })}
-            />
-          ))}
-        </View>
+          <FieldLabel>
+            {t('warranty.library.name')} <Text className="text-red-500">*</Text>
+          </FieldLabel>
+          <TextInput
+            className={`mt-1.5 ${INPUT_CLASS} ${titleError ? 'border-red-400' : ''}`}
+            value={values.title}
+            onChangeText={(title) => {
+              setTitleError('');
+              patch({ title });
+            }}
+            placeholder={t('warranty.library.name')}
+            placeholderTextColor="#94A3B8"
+          />
+          {titleError ? <Text className="mt-1.5 text-xs font-semibold text-red-600">{titleError}</Text> : null}
 
-        <Text className="mb-2 text-xs font-extrabold uppercase text-[#2B1E19]">3. {t('warranty.pillar.buyer')}</Text>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.reportHours')}</Text>
-        <View className="mb-3 flex-row flex-wrap">
-          {REPORT_HOUR_OPTIONS.map((n) => (
-            <ChipOption
-              key={n}
-              label={`${n}h`}
-              active={values.reportWithinHours === n}
-              onPress={() => patch({ reportWithinHours: n })}
-            />
-          ))}
-        </View>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.vet')}</Text>
-        <View className="mb-3 flex-row flex-wrap">
-          {(['licensed', 'farm_designated', 'either'] as const).map((id) => (
-            <ChipOption
-              key={id}
-              label={t(`warranty.vet.${id}`)}
-              active={values.vetRequirement === id}
-              onPress={() => patch({ vetRequirement: id })}
-            />
-          ))}
-        </View>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.guidelines')}</Text>
-        <View className="mb-4">
-          {BUYER_GUIDELINE_OPTIONS.map((id) => (
-            <Pressable
-              key={id}
-              className="mb-2 flex-row items-start gap-2"
-              onPress={() => patch({ buyerGuidelines: toggleIdInList(values.buyerGuidelines, id) })}
-            >
-              <Text className="text-[#D97706]">{values.buyerGuidelines.includes(id) ? '☑' : '☐'}</Text>
-              <Text className="flex-1 text-sm text-[#2B1E19]">{t(`warranty.guideline.${id}`)}</Text>
-            </Pressable>
-          ))}
-        </View>
+          <View className="mt-5 gap-4">
+            <SectionCard title={`1. ${t('warranty.pillar.handover')}`}>
+              <FieldLabel>{t('warranty.field.vaccineShots')}</FieldLabel>
+              <View className="mt-1.5 mb-3 flex-row flex-wrap">
+                {VACCINE_SHOT_OPTIONS.map((n) => (
+                  <ChipOption
+                    key={n}
+                    label={String(n)}
+                    active={values.vaccineShotsCount === n}
+                    onPress={() => patch({ vaccineShotsCount: n })}
+                  />
+                ))}
+              </View>
 
-        <Text className="mb-2 text-xs font-extrabold uppercase text-[#2B1E19]">4. {t('warranty.pillar.exclusions')}</Text>
-        <View className="mb-4">
-          {EXCLUSION_OPTIONS.map((id) => (
-            <Pressable
-              key={id}
-              className="mb-2 flex-row items-start gap-2"
-              onPress={() => patch({ exclusions: toggleIdInList(values.exclusions, id) })}
-            >
-              <Text className="text-[#D97706]">{values.exclusions.includes(id) ? '☑' : '☐'}</Text>
-              <Text className="flex-1 text-sm text-[#2B1E19]">{t(`warranty.exclusion.${id}`)}</Text>
-            </Pressable>
-          ))}
-        </View>
+              <FieldLabel>{t('warranty.field.vaccineTypes')}</FieldLabel>
+              <TextInput
+                className={`mt-1.5 mb-2 ${INPUT_CLASS}`}
+                value={values.vaccineTypes}
+                onChangeText={(vaccineTypes) => patch({ vaccineTypes })}
+                placeholder={t(warrantyVaccinePlaceholderKey(species))}
+                placeholderTextColor="#94A3B8"
+              />
+              <View className="mb-3 flex-row flex-wrap">
+                {presets.map((id) => (
+                  <ChipOption
+                    key={id}
+                    label={t(warrantyVaccinePresetLabelKey(id))}
+                    active={values.vaccineTypes.toLowerCase().includes(t(warrantyVaccinePresetLabelKey(id)).toLowerCase())}
+                    onPress={() =>
+                      patch({
+                        vaccineTypes: appendWarrantyVaccinePreset(
+                          values.vaccineTypes,
+                          t(warrantyVaccinePresetLabelKey(id)),
+                        ),
+                      })
+                    }
+                  />
+                ))}
+              </View>
 
-        <Text className="mb-2 text-xs font-extrabold uppercase text-[#2B1E19]">5. {t('warranty.pillar.remedies')}</Text>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.medicalFee')}</Text>
-        <View className="mb-3 flex-row flex-wrap">
-          {MEDICAL_FEE_OPTIONS.map((n) => (
-            <ChipOption
-              key={n}
-              label={`${n}%`}
-              active={values.medicalFeeSupportPercent === n}
-              onPress={() => patch({ medicalFeeSupportPercent: n })}
-            />
-          ))}
-        </View>
-        <Pressable
-          className="mb-3 flex-row items-center gap-2"
-          onPress={() => patch({ allowEquivalentSwap: !values.allowEquivalentSwap })}
-        >
-          <Text className="text-[#D97706]">{values.allowEquivalentSwap ? '☑' : '☐'}</Text>
-          <Text className="flex-1 text-sm text-[#2B1E19]">{t('warranty.field.swap')}</Text>
-        </Pressable>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.shipping')}</Text>
-        <View className="mb-4 flex-row flex-wrap">
-          {(['buyer', 'breeder', 'split'] as const).map((id) => (
-            <ChipOption
-              key={id}
-              label={t(`warranty.shipping.${id}`)}
-              active={values.shippingParty === id}
-              onPress={() => patch({ shippingParty: id })}
-            />
-          ))}
-        </View>
+              <FieldLabel>{t('warranty.field.deworming')}</FieldLabel>
+              <TextInput
+                className={`mt-1.5 mb-3 ${INPUT_CLASS}`}
+                value={values.dewormingNote}
+                onChangeText={(dewormingNote) => patch({ dewormingNote })}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#94A3B8"
+              />
 
-        <Text className="mb-2 text-xs font-extrabold uppercase text-[#2B1E19]">6. {t('warranty.pillar.claim')}</Text>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.evidence')}</Text>
-        <View className="mb-3">
-          {EVIDENCE_OPTIONS.map((id) => {
-            const key = id === 'rapid_test_photo' ? warrantyRapidTestEvidenceKey(species) : `warranty.evidence.${id}`;
-            return (
-              <Pressable
-                key={id}
-                className="mb-2 flex-row items-start gap-2"
-                onPress={() => patch({ evidenceRequired: toggleIdInList(values.evidenceRequired, id) })}
-              >
-                <Text className="text-[#D97706]">{values.evidenceRequired.includes(id) ? '☑' : '☐'}</Text>
-                <Text className="flex-1 text-sm text-[#2B1E19]">{t(key)}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <Text className="mb-1 text-xs font-semibold text-[#6E5A51]">{t('warranty.field.responseHours')}</Text>
-        <View className="mb-5 flex-row flex-wrap">
-          {RESPONSE_HOUR_OPTIONS.map((n) => (
-            <ChipOption
-              key={n}
-              label={`${n}h`}
-              active={values.breederResponseHours === n}
-              onPress={() => patch({ breederResponseHours: n })}
-            />
-          ))}
-        </View>
+              <ChecklistRow
+                label={t('warranty.field.healthBook')}
+                checked={values.hasHealthBook}
+                onPress={() => patch({ hasHealthBook: !values.hasHealthBook })}
+              />
+            </SectionCard>
 
-        <Pressable
-          testID="warranty-library-save-button"
-          disabled={saving}
-          onPress={() => void save()}
-          style={{
-            backgroundColor: saving ? '#FDBA74' : FARM_ACCENT,
-            borderRadius: 12,
-            paddingVertical: 14,
-            alignItems: 'center',
-          }}
-        >
-          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>
-            {saving
-              ? t('common.loading')
-              : t(isEdit ? 'warranty.library.update' : 'warranty.library.save')}
-          </Text>
-        </Pressable>
+            <SectionCard title={`2. ${t('warranty.pillar.coverage')}`}>
+              <FieldLabel>{t(warrantyInfectiousFieldKey(species))}</FieldLabel>
+              <View className="mt-1.5 mb-3 flex-row flex-wrap">
+                {CARE_PARVO_DAY_OPTIONS.map((n) => (
+                  <ChipOption
+                    key={n}
+                    label={`${n}d`}
+                    active={values.careParvoCoverageDays === n}
+                    onPress={() => patch({ careParvoCoverageDays: n })}
+                  />
+                ))}
+                <ChipOption
+                  label={t('warranty.value.other')}
+                  active={careParvoPreset === 'other'}
+                  onPress={() =>
+                    patch({
+                      careParvoCoverageDays: CARE_PARVO_DAY_OPTIONS.includes(values.careParvoCoverageDays as 7 | 14 | 30)
+                        ? 45
+                        : values.careParvoCoverageDays > 0
+                          ? values.careParvoCoverageDays
+                          : 45,
+                    })
+                  }
+                />
+              </View>
+              {careParvoPreset === 'other' ? (
+                <View className="relative">
+                  <TextInput
+                    className={`${INPUT_CLASS} pr-16`}
+                    value={String(values.careParvoCoverageDays || '')}
+                    onChangeText={(text) =>
+                      patch({ careParvoCoverageDays: Math.max(1, Number(text.replace(/[^\d]/g, '')) || 1) })
+                    }
+                    placeholder="45"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="number-pad"
+                  />
+                  <View className="absolute bottom-0 right-4 top-0 justify-center">
+                    <Text className="text-sm font-medium text-[#6E5A51]">
+                      {t('warranty.value.dayUnit')}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+            </SectionCard>
+
+            <SectionCard title={`3. ${t('warranty.pillar.buyer')}`}>
+              <FieldLabel>{t('warranty.field.reportHours')}</FieldLabel>
+              <View className="mt-1.5 mb-3 flex-row flex-wrap">
+                {REPORT_HOUR_OPTIONS.map((n) => (
+                  <ChipOption
+                    key={n}
+                    label={`${n}h`}
+                    active={values.reportWithinHours === n}
+                    onPress={() => patch({ reportWithinHours: n })}
+                  />
+                ))}
+              </View>
+
+              <FieldLabel>{t('warranty.field.vet')}</FieldLabel>
+              <View className="mt-1.5 mb-3 flex-row flex-wrap">
+                {(['licensed', 'farm_designated', 'either'] as const).map((id) => (
+                  <ChipOption
+                    key={id}
+                    label={t(`warranty.vet.${id}`)}
+                    active={values.vetRequirement === id}
+                    onPress={() => patch({ vetRequirement: id })}
+                  />
+                ))}
+              </View>
+
+              <FieldLabel>{t('warranty.field.guidelines')}</FieldLabel>
+              <View className="mt-2">
+                {BUYER_GUIDELINE_OPTIONS.map((id) => (
+                  <ChecklistRow
+                    key={id}
+                    label={t(`warranty.guideline.${id}`)}
+                    checked={values.buyerGuidelines.includes(id)}
+                    onPress={() => patch({ buyerGuidelines: toggleIdInList(values.buyerGuidelines, id) })}
+                  />
+                ))}
+              </View>
+            </SectionCard>
+
+            <SectionCard title={`4. ${t('warranty.pillar.exclusions')}`}>
+              <View>
+                {EXCLUSION_OPTIONS.map((id) => (
+                  <ChecklistRow
+                    key={id}
+                    label={t(`warranty.exclusion.${id}`)}
+                    checked={values.exclusions.includes(id)}
+                    onPress={() => patch({ exclusions: toggleIdInList(values.exclusions, id) })}
+                  />
+                ))}
+              </View>
+            </SectionCard>
+
+            <SectionCard title={`5. ${t('warranty.pillar.remedies')}`}>
+              <FieldLabel>{t('warranty.field.medicalFee')}</FieldLabel>
+              <View className="mt-1.5 mb-3 flex-row flex-wrap">
+                {MEDICAL_FEE_OPTIONS.map((n) => (
+                  <ChipOption
+                    key={n}
+                    label={`${n}%`}
+                    active={values.medicalFeeSupportPercent === n}
+                    onPress={() => patch({ medicalFeeSupportPercent: n })}
+                  />
+                ))}
+              </View>
+
+              <ChecklistRow
+                label={t('warranty.field.swap')}
+                checked={values.allowEquivalentSwap}
+                onPress={() => patch({ allowEquivalentSwap: !values.allowEquivalentSwap })}
+              />
+
+              <View className="mt-1">
+                <FieldLabel>{t('warranty.field.shipping')}</FieldLabel>
+                <View className="mt-1.5 flex-row flex-wrap">
+                  {(['buyer', 'breeder', 'split'] as const).map((id) => (
+                    <ChipOption
+                      key={id}
+                      label={t(`warranty.shipping.${id}`)}
+                      active={values.shippingParty === id}
+                      onPress={() => patch({ shippingParty: id })}
+                    />
+                  ))}
+                </View>
+              </View>
+            </SectionCard>
+
+            <SectionCard title={`6. ${t('warranty.pillar.claim')}`}>
+              <FieldLabel>{t('warranty.field.evidence')}</FieldLabel>
+              <View className="mt-2 mb-3">
+                {EVIDENCE_OPTIONS.map((id) => {
+                  const key = id === 'rapid_test_photo' ? warrantyRapidTestEvidenceKey(species) : `warranty.evidence.${id}`;
+                  return (
+                    <ChecklistRow
+                      key={id}
+                      label={t(key)}
+                      checked={values.evidenceRequired.includes(id)}
+                      onPress={() => patch({ evidenceRequired: toggleIdInList(values.evidenceRequired, id) })}
+                    />
+                  );
+                })}
+              </View>
+
+              <FieldLabel>{t('warranty.field.responseHours')}</FieldLabel>
+              <View className="mt-1.5 flex-row flex-wrap">
+                {RESPONSE_HOUR_OPTIONS.map((n) => (
+                  <ChipOption
+                    key={n}
+                    label={`${n}h`}
+                    active={values.breederResponseHours === n}
+                    onPress={() => patch({ breederResponseHours: n })}
+                  />
+                ))}
+              </View>
+            </SectionCard>
+          </View>
+
+          <Pressable
+            testID="warranty-library-save-button"
+            disabled={saving}
+            onPress={() => void save()}
+            style={{
+              backgroundColor: saving ? '#FDBA74' : FARM_ACCENT,
+              borderRadius: 12,
+              paddingVertical: 14,
+              alignItems: 'center',
+              marginTop: 20,
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>
+              {saving
+                ? t('common.loading')
+                : t(isEdit ? 'warranty.library.update' : 'warranty.library.save')}
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );

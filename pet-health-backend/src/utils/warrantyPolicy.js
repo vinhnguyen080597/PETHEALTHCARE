@@ -41,6 +41,11 @@ function pickNumber(value, allowed, fallback) {
   return allowed.includes(n) ? n : fallback;
 }
 
+function pickPositiveNumber(value, fallback) {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 function pickEnum(value, allowed, fallback) {
   const v = String(value ?? '').trim();
   return allowed.includes(v) ? v : fallback;
@@ -74,7 +79,7 @@ export function normalizeWarrantyPolicy(raw) {
   const careDays = pickNumber(
     row.care_parvo_coverage_days ?? row.careParvoCoverageDays,
     CARE_PARVO_DAY_OPTIONS,
-    14,
+    pickPositiveNumber(row.care_parvo_coverage_days ?? row.careParvoCoverageDays, 14),
   );
   const respiratoryDays = pickNumber(
     row.respiratory_skin_coverage_days ?? row.respiratorySkinCoverageDays,

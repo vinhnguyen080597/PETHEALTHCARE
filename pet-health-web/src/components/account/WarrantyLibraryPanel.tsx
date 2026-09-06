@@ -13,13 +13,11 @@ import { scrollFieldIntoView } from "@/lib/formFocus";
 import {
   BUYER_GUIDELINE_OPTIONS,
   CARE_PARVO_DAY_OPTIONS,
-  CONGENITAL_DAY_OPTIONS,
   defaultWarrantyFormValues,
   EVIDENCE_OPTIONS,
   EXCLUSION_OPTIONS,
   MEDICAL_FEE_OPTIONS,
   REPORT_HOUR_OPTIONS,
-  RESPIRATORY_DAY_OPTIONS,
   RESPONSE_HOUR_OPTIONS,
   toggleIdInList,
   VACCINE_SHOT_OPTIONS,
@@ -33,7 +31,6 @@ import {
   resolveWarrantyFarmSpecies,
   warrantyInfectiousFieldKey,
   warrantyRapidTestEvidenceKey,
-  warrantyRespiratoryFieldKey,
   warrantyVaccinePlaceholderKey,
   warrantyVaccinePresetIds,
   warrantyVaccinePresetLabelKey,
@@ -157,6 +154,9 @@ export function WarrantyLibraryPanel({
   const [viewing, setViewing] = useState<WarrantyPolicy | null>(null);
   const [askCreateAnother, setAskCreateAnother] = useState(false);
   const [trustAwardedOnSave, setTrustAwardedOnSave] = useState(false);
+  const careParvoPreset = CARE_PARVO_DAY_OPTIONS.includes(form.careParvoCoverageDays as 7 | 14 | 30)
+    ? String(form.careParvoCoverageDays)
+    : "other";
 
   useEffect(() => {
     setPolicies(initialPolicies);
@@ -433,11 +433,17 @@ export function WarrantyLibraryPanel({
             {t(lang, warrantyInfectiousFieldKey(farmSpecies) as EnKey)}
             <select
               className={inputCls}
-              value={form.careParvoCoverageDays}
+              value={careParvoPreset}
               onChange={(e) =>
                 setField(
                   "careParvoCoverageDays",
-                  Number(e.target.value) as 7 | 14 | 30,
+                  e.target.value === "other"
+                    ? CARE_PARVO_DAY_OPTIONS.includes(form.careParvoCoverageDays as 7 | 14 | 30)
+                      ? 45
+                      : form.careParvoCoverageDays > 0
+                        ? form.careParvoCoverageDays
+                        : 45
+                    : Number(e.target.value),
                 )
               }
             >
@@ -446,45 +452,27 @@ export function WarrantyLibraryPanel({
                   {t(lang, "warranty.value.days").replace("{n}", String(n))}
                 </option>
               ))}
+              <option value="other">{t(lang, "warranty.value.other")}</option>
             </select>
-          </FieldLabel>
-          <FieldLabel>
-            {t(lang, warrantyRespiratoryFieldKey(farmSpecies) as EnKey)}
-            <select
-              className={inputCls}
-              value={form.respiratorySkinCoverageDays}
-              onChange={(e) =>
-                setField(
-                  "respiratorySkinCoverageDays",
-                  Number(e.target.value) as 3 | 7,
-                )
-              }
-            >
-              {RESPIRATORY_DAY_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {t(lang, "warranty.value.days").replace("{n}", String(n))}
-                </option>
-              ))}
-            </select>
-          </FieldLabel>
-          <FieldLabel>
-            {t(lang, "warranty.field.congenital")}
-            <select
-              className={inputCls}
-              value={form.congenitalCoverageDays}
-              onChange={(e) =>
-                setField(
-                  "congenitalCoverageDays",
-                  Number(e.target.value) as 30 | 60 | 90,
-                )
-              }
-            >
-              {CONGENITAL_DAY_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {t(lang, "warranty.value.days").replace("{n}", String(n))}
-                </option>
-              ))}
-            </select>
+            {careParvoPreset === "other" ? (
+              <div className="relative mt-2">
+                <input
+                  className={`${inputCls} pr-16`}
+                  value={String(form.careParvoCoverageDays || "")}
+                  onChange={(e) =>
+                    setField(
+                      "careParvoCoverageDays",
+                      Math.max(1, Number(e.target.value.replace(/[^\d]/g, "")) || 1),
+                    )
+                  }
+                  inputMode="numeric"
+                  placeholder="45"
+                />
+                <span className="pointer-events-none absolute bottom-0 right-3 top-0 inline-flex items-center text-sm font-medium text-[#6E5A51]">
+                  {t(lang, "warranty.value.dayUnit")}
+                </span>
+              </div>
+            ) : null}
           </FieldLabel>
         </div>
 

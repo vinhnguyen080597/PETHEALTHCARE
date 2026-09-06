@@ -609,9 +609,9 @@
       "filterAll": "Tất cả",
       "filterEmpty": "Không có thú cưng ở trạng thái này.",
       "status": {
-        "for_sale": "đang tìm chủ",
-        "deposit_hold": "đã giữ chỗ",
-        "completed": "đã hoàn thành"
+        "for_sale": "Có sẵn",
+        "deposit_hold": "Đã cọc",
+        "completed": "Đã bán"
       }
     },
     "facility": {
@@ -2708,6 +2708,8 @@
     "value": {
       "yes": "Có",
       "no": "Không",
+      "other": "Khác",
+      "dayUnit": "ngày",
       "shots": "{n} mũi",
       "days": "{n} ngày",
       "hours": "{n} giờ"

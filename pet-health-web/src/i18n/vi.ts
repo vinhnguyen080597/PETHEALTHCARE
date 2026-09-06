@@ -505,6 +505,8 @@ const vi: Record<EnKey, string> = {
   "warranty.field.responseHours": "Thời hạn Breeder phản hồi",
   "warranty.value.yes": "Có",
   "warranty.value.no": "Không",
+  "warranty.value.other": "Khác",
+  "warranty.value.dayUnit": "ngày",
   "warranty.value.shots": "{n} mũi",
   "warranty.value.days": "{n} ngày",
   "warranty.value.hours": "{n} giờ",
