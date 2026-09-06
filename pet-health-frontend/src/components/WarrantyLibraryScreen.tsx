@@ -195,13 +195,8 @@ export function WarrantyLibraryScreen({
         fileName: asset.name || `warranty-policy-${Date.now()}`,
         mimeType: asset.mimeType || 'application/octet-stream',
       });
-      const policy = mapWarrantyPolicy(uploadResult.data);
-      if (!policy) throw new Error(t('common.unknownError'));
-      onSaved(policy, {
-        trustAwarded: Boolean(uploadResult.trust_awarded),
-        profile: uploadResult.profile,
-      });
-      Alert.alert(t('common.success'), t('warranty.library.uploaded'));
+      if (!uploadResult.data) throw new Error(t('common.unknownError'));
+      Alert.alert(t('common.ok'), t('account.breederDetails.saved'));
     } catch (error) {
       Alert.alert(
         t('common.error'),

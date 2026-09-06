@@ -3,6 +3,7 @@
 export const BREEDER_SUBMISSION_TYPES = [
   'facility_video',
   'business_license',
+  'warranty_policy_file',
   'social_facebook',
   'social_zalo',
   'social_tiktok',
@@ -18,7 +19,7 @@ export type BreederProfileSubmission = {
   breeder_profile_id: string;
   user_id: string;
   submission_type: BreederSubmissionType;
-  payload: { url?: string; note?: string };
+  payload: { url?: string; note?: string; title?: string; content_type?: string };
   status: BreederSubmissionStatus;
   rejection_reason?: string;
   admin_note?: string;

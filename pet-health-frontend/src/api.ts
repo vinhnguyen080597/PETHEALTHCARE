@@ -121,17 +121,13 @@ async function appendGenericFileToFormData(
 ) {
   const safeName = String(filename || 'warranty-policy').trim() || 'warranty-policy';
   const safeMime = String(mimeHint || 'application/octet-stream').trim() || 'application/octet-stream';
-  if (Platform.OS === 'web') {
-    const res = await fetch(fileUri);
-    const blob = await res.blob();
-    formData.append(fieldName, blob, safeName);
-    return;
-  }
-  formData.append(fieldName, {
-    uri: fileUri,
-    name: safeName,
-    type: safeMime,
-  } as any);
+  const res = await fetch(fileUri);
+  const blob = await res.blob();
+  const typedBlob =
+    blob.type && blob.type !== 'application/octet-stream'
+      ? blob
+      : new Blob([blob], { type: safeMime });
+  formData.append(fieldName, typedBlob, safeName);
 }
 
 function mergeHeaders(init?: HeadersInit): Record<string, string> {
@@ -749,8 +745,6 @@ export async function uploadWarrantyPolicyFile(
   );
   return requestJson<{
     data: unknown;
-    profile?: BreederProfile;
-    trust_awarded?: boolean;
   }>(
     '/pet-feed/breeder-profile/me/warranty-policies/upload',
     {

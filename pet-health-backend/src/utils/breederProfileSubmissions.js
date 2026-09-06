@@ -1,8 +1,11 @@
+import { randomUUID } from 'node:crypto';
+
 /** Breeder transparency detail submissions — types, validation, profile merge on approve. */
 
 export const BREEDER_SUBMISSION_TYPES = [
   'facility_video',
   'business_license',
+  'warranty_policy_file',
   'social_facebook',
   'social_zalo',
   'social_tiktok',
@@ -63,6 +66,7 @@ export function breederSubmissionTypeLabel(type, locale = 'vi') {
     vi: {
       facility_video: 'Video cơ sở',
       business_license: 'Giấy phép kinh doanh',
+      warranty_policy_file: 'Chính sách bảo hành upload',
       social_facebook: 'Facebook',
       social_zalo: 'Zalo',
       social_tiktok: 'TikTok',
@@ -71,6 +75,7 @@ export function breederSubmissionTypeLabel(type, locale = 'vi') {
     en: {
       facility_video: 'Facility video',
       business_license: 'Business license',
+      warranty_policy_file: 'Uploaded warranty policy',
       social_facebook: 'Facebook',
       social_zalo: 'Zalo',
       social_tiktok: 'TikTok',
@@ -182,11 +187,17 @@ export function validateBreederSubmissionPayload(submissionType, payload = {}) {
     if (!/^https?:\/\//i.test(url)) {
       return { ok: false, code: 'INVALID_LICENSE_URL', error: 'Invalid business license URL' };
     }
+  } else if (submissionType === 'warranty_policy_file') {
+    if (!/^https?:\/\//i.test(url)) {
+      return { ok: false, code: 'INVALID_WARRANTY_URL', error: 'Invalid warranty policy file URL' };
+    }
   }
   return {
     ok: true,
     payload: {
       url,
+      title: trimText(payload.title, 160),
+      content_type: trimText(payload.content_type ?? payload.contentType, 120).toLowerCase(),
       ...(note ? { note } : {}),
     },
   };
@@ -215,6 +226,45 @@ export function applyApprovedBreederSubmission(profile, submission, reviewedAt) 
     metadata.business_license_url = url;
     metadata.business_license_approved_at = now;
     markTrustAwarded(metadata, SUBMISSION_TYPE_TO_TRUST_AWARDED.business_license);
+  } else if (submissionType === 'warranty_policy_file') {
+    const rawPolicies = Array.isArray(metadata.warranty_policies) ? metadata.warranty_policies : [];
+    const title = trimText(payload.title, 160) || trimText(payload.note, 160) || 'Uploaded warranty policy';
+    const contentType = trimText(payload.content_type ?? payload.contentType, 120).toLowerCase();
+    const exists = rawPolicies.some(
+      (item) =>
+        trimText(item?.file_url ?? item?.fileUrl, 2000) === url
+        && trimText(item?.title, 160) === title,
+    );
+    if (!exists) {
+      rawPolicies.push({
+        id: randomUUID(),
+        title,
+        created_at: now,
+        vaccine_shots_count: 2,
+        vaccine_types: '',
+        deworming_note: '',
+        has_health_book: true,
+        care_parvo_coverage_days: 14,
+        respiratory_skin_coverage_days: 3,
+        congenital_coverage_days: 30,
+        report_within_hours: 24,
+        vet_requirement: 'licensed',
+        buyer_guidelines: ['keep_farm_diet_3_5_days', 'no_bath_7_days'],
+        exclusions: ['accident_trauma', 'poisoning_wrong_food', 'self_treatment_no_notice'],
+        medical_fee_support_percent: 50,
+        allow_equivalent_swap: true,
+        shipping_party: 'split',
+        evidence_required: ['symptom_video', 'rapid_test_photo', 'vet_diagnosis_or_pcr'],
+        breeder_response_hours: 24,
+        file_url: url,
+        content_type: contentType,
+      });
+      metadata.warranty_policies = rawPolicies;
+    }
+    if (!metadata.warranty_policy_trust_awarded && rawPolicies.length === 1) {
+      metadata.warranty_policy_trust_awarded = true;
+      metadata.first_warranty_approved = true;
+    }
   } else if (isSocialBreederSubmissionType(submissionType)) {
     const contactKey = SOCIAL_TYPE_TO_CONTACT_KEY[submissionType];
     const flagKey = SOCIAL_TYPE_TO_APPROVAL_FLAG[submissionType];

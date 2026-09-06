@@ -10,6 +10,7 @@ export const WEB_EDIT_BREEDER_SHOWS_TRANSPARENCY_DETAILS = false;
 export const BREEDER_SUBMISSION_TYPES = [
   "facility_video",
   "business_license",
+  "warranty_policy_file",
   "social_facebook",
   "social_zalo",
   "social_tiktok",
@@ -29,7 +30,7 @@ export type BreederProfileSubmission = {
   breeder_profile_id: string;
   user_id: string;
   submission_type: BreederSubmissionType;
-  payload: { url?: string; note?: string };
+  payload: { url?: string; note?: string; title?: string; content_type?: string };
   status: BreederSubmissionStatus;
   rejection_reason?: string;
   admin_note?: string;
@@ -54,6 +55,7 @@ export function breederSubmissionTypeLabel(
   const vi: Record<string, string> = {
     facility_video: "Video cơ sở",
     business_license: "Giấy phép kinh doanh",
+    warranty_policy_file: "Chính sách bảo hành upload",
     social_facebook: "Facebook",
     social_zalo: "Zalo",
     social_tiktok: "TikTok",
@@ -62,6 +64,7 @@ export function breederSubmissionTypeLabel(
   const en: Record<string, string> = {
     facility_video: "Facility video",
     business_license: "Business license",
+    warranty_policy_file: "Uploaded warranty policy",
     social_facebook: "Facebook",
     social_zalo: "Zalo",
     social_tiktok: "TikTok",

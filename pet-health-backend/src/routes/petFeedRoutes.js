@@ -30,7 +30,6 @@ import {
   upsertMyBreederProfile,
   updateMyBreederProfilePhotos,
   createMyWarrantyPolicy,
-  createMyWarrantyPolicyUpload,
   deleteMyWarrantyPolicy,
   updateMyWarrantyPolicy,
   listMyWarrantyPolicies,
@@ -1457,24 +1456,35 @@ router.post(
           code: 'WARRANTY_MEDIA_STORAGE_UNAVAILABLE',
         });
       }
-      const result = await createMyWarrantyPolicyUpload(
+      const submission = await createBreederProfileSubmission(
         req.user.id,
         {
+          submissionType: 'warranty_policy_file',
+          url: publicUrl,
           title: title || file.originalname || `Warranty policy ${new Date().toISOString().slice(0, 10)}`,
-          file_url: publicUrl,
           content_type: file.mimetype,
         },
         req.accessToken,
       );
+      void createAdminRequestNotifications({
+        actorUserId: req.user.id,
+        type: 'admin_breeder_detail_pending',
+        bodyPreview: `${breederSubmissionTypeLabel(submission.submission_type)} — chờ admin duyệt.`,
+        breederProfileId: submission.breeder_profile_id,
+        metadata: {
+          submission_id: submission.id,
+          submission_type: submission.submission_type,
+          title: breederSubmissionTypeLabel(submission.submission_type),
+        },
+        accessToken: req.accessToken,
+      }).catch(() => null);
       void recordProductEvent({
         userId: req.user.id,
-        event: 'warranty_policy_uploaded',
-        metadata: { trust_awarded: result.trust_awarded, content_type: file.mimetype },
+        event: 'warranty_policy_upload_submitted',
+        metadata: { content_type: file.mimetype, submission_id: submission.id },
       });
       return res.status(201).json({
-        data: result.policy,
-        profile: result.profile,
-        trust_awarded: result.trust_awarded,
+        data: submission,
       });
     } catch (err) {
       return next(err);

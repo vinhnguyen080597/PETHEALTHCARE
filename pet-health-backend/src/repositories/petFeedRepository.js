@@ -2964,49 +2964,6 @@ export async function createMyWarrantyPolicy(userId, payload, accessToken) {
   };
 }
 
-export async function createMyWarrantyPolicyUpload(userId, payload, accessToken) {
-  const profile = await getMyBreederProfile(userId, accessToken);
-  if (!profile) throw httpError('Breeder profile not found.', 404, 'BREEDER_PROFILE_NOT_FOUND');
-
-  const title = trimText(payload?.title, 160);
-  const fileUrl = trimText(payload?.file_url ?? payload?.fileUrl, 500);
-  const contentType = trimText(payload?.content_type ?? payload?.contentType, 120).toLowerCase();
-  if (!title || !fileUrl) {
-    throw httpError('Warranty policy title and file are required.', 400, 'WARRANTY_UPLOAD_INVALID');
-  }
-
-  const baseFields = parseWarrantyPolicyInput({ title });
-  if (!baseFields) {
-    throw httpError('Warranty policy is invalid.', 400, 'WARRANTY_INVALID');
-  }
-
-  const policy = normalizeWarrantyPolicy({
-    id: randomUUID(),
-    ...baseFields,
-    file_url: fileUrl,
-    content_type: contentType,
-    created_at: new Date().toISOString(),
-  });
-  if (!policy) {
-    throw httpError('Warranty policy is invalid.', 400, 'WARRANTY_INVALID');
-  }
-
-  const meta = asObject(profile.metadata);
-  const policies = listWarrantyPoliciesFromMetadata(meta);
-  const isFirst = policies.length === 0 && !meta.warranty_policy_trust_awarded;
-  const nextMeta = {
-    ...meta,
-    warranty_policies: [...policies, policy],
-    warranty_policy_trust_awarded: Boolean(meta.warranty_policy_trust_awarded) || isFirst,
-  };
-  const updated = await persistBreederMetadata(userId, nextMeta, accessToken);
-  return {
-    profile: updated,
-    policy,
-    trust_awarded: isFirst,
-  };
-}
-
 export async function deleteMyWarrantyPolicy(userId, policyId, accessToken) {
   const profile = await getMyBreederProfile(userId, accessToken);
   if (!profile) throw httpError('Breeder profile not found.', 404, 'BREEDER_PROFILE_NOT_FOUND');
@@ -3160,17 +3117,20 @@ export async function createBreederProfileSubmission(userId, payload, accessToke
   if (!validated.ok) {
     throw httpError(validated.error, 400, validated.code);
   }
+  const allowMultiplePending = submissionType === 'warranty_policy_file';
 
   const now = new Date().toISOString();
   const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
 
   if (!supabase) {
-    const pendingIdx = memorySubmissions.findIndex(
-      (row) =>
-        row.user_id === userId
-        && row.submission_type === submissionType
-        && row.status === 'pending',
-    );
+    const pendingIdx = allowMultiplePending
+      ? -1
+      : memorySubmissions.findIndex(
+        (row) =>
+          row.user_id === userId
+          && row.submission_type === submissionType
+          && row.status === 'pending',
+      );
     if (pendingIdx >= 0) {
       throw httpError(
         'A pending submission already exists for this item.',
@@ -3194,21 +3154,23 @@ export async function createBreederProfileSubmission(userId, payload, accessToke
     return toBreederSubmission(row);
   }
 
-  const { data: existingPending, error: pendingError } = await supabase
-    .from('breeder_profile_submissions')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('submission_type', submissionType)
-    .eq('status', 'pending')
-    .maybeSingle();
-  if (pendingError) throw pendingError;
+  if (!allowMultiplePending) {
+    const { data: existingPending, error: pendingError } = await supabase
+      .from('breeder_profile_submissions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('submission_type', submissionType)
+      .eq('status', 'pending')
+      .maybeSingle();
+    if (pendingError) throw pendingError;
 
-  if (existingPending?.id) {
-    throw httpError(
-      'A pending submission already exists for this item.',
-      409,
-      'SUBMISSION_ALREADY_PENDING',
-    );
+    if (existingPending?.id) {
+      throw httpError(
+        'A pending submission already exists for this item.',
+        409,
+        'SUBMISSION_ALREADY_PENDING',
+      );
+    }
   }
 
   const { data, error } = await supabase
