@@ -2964,6 +2964,49 @@ export async function createMyWarrantyPolicy(userId, payload, accessToken) {
   };
 }
 
+export async function createMyWarrantyPolicyUpload(userId, payload, accessToken) {
+  const profile = await getMyBreederProfile(userId, accessToken);
+  if (!profile) throw httpError('Breeder profile not found.', 404, 'BREEDER_PROFILE_NOT_FOUND');
+
+  const title = trimText(payload?.title, 160);
+  const fileUrl = trimText(payload?.file_url ?? payload?.fileUrl, 500);
+  const contentType = trimText(payload?.content_type ?? payload?.contentType, 120).toLowerCase();
+  if (!title || !fileUrl) {
+    throw httpError('Warranty policy title and file are required.', 400, 'WARRANTY_UPLOAD_INVALID');
+  }
+
+  const baseFields = parseWarrantyPolicyInput({ title });
+  if (!baseFields) {
+    throw httpError('Warranty policy is invalid.', 400, 'WARRANTY_INVALID');
+  }
+
+  const policy = normalizeWarrantyPolicy({
+    id: randomUUID(),
+    ...baseFields,
+    file_url: fileUrl,
+    content_type: contentType,
+    created_at: new Date().toISOString(),
+  });
+  if (!policy) {
+    throw httpError('Warranty policy is invalid.', 400, 'WARRANTY_INVALID');
+  }
+
+  const meta = asObject(profile.metadata);
+  const policies = listWarrantyPoliciesFromMetadata(meta);
+  const isFirst = policies.length === 0 && !meta.warranty_policy_trust_awarded;
+  const nextMeta = {
+    ...meta,
+    warranty_policies: [...policies, policy],
+    warranty_policy_trust_awarded: Boolean(meta.warranty_policy_trust_awarded) || isFirst,
+  };
+  const updated = await persistBreederMetadata(userId, nextMeta, accessToken);
+  return {
+    profile: updated,
+    policy,
+    trust_awarded: isFirst,
+  };
+}
+
 export async function deleteMyWarrantyPolicy(userId, policyId, accessToken) {
   const profile = await getMyBreederProfile(userId, accessToken);
   if (!profile) throw httpError('Breeder profile not found.', 404, 'BREEDER_PROFILE_NOT_FOUND');
@@ -3019,6 +3062,8 @@ export async function updateMyWarrantyPolicy(userId, policyId, payload, accessTo
     ...fields,
     id: existing.id,
     created_at: existing.created_at,
+    file_url: existing.file_url,
+    content_type: existing.content_type,
   });
   if (!policy) {
     throw httpError('Warranty policy is invalid.', 400, 'WARRANTY_INVALID');

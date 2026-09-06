@@ -30,6 +30,7 @@ import {
   upsertMyBreederProfile,
   updateMyBreederProfilePhotos,
   createMyWarrantyPolicy,
+  createMyWarrantyPolicyUpload,
   deleteMyWarrantyPolicy,
   updateMyWarrantyPolicy,
   listMyWarrantyPolicies,
@@ -76,6 +77,7 @@ import {
   isOwnedPetFeedPublicMediaUrl,
   storeBreederProfileImage,
   storeBreederTransparencyMedia,
+  storeWarrantyPolicyFile,
   storePetFeedImage,
   storePetFeedThumb,
   storePetFeedVideo,
@@ -1231,6 +1233,12 @@ const BREEDER_TRANSPARENCY_LICENSE_MIMES = new Set([
   ...SUPPORTED_IMAGE_MIMES,
   'application/pdf',
 ]);
+const WARRANTY_POLICY_UPLOAD_MIMES = new Set([
+  ...SUPPORTED_IMAGE_MIMES,
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
 const BREEDER_FACILITY_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
 const BREEDER_LICENSE_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -1414,6 +1422,65 @@ router.get('/breeder-profile/me/warranty-policies', requireAnyRole('breeder', 'a
     return next(err);
   }
 });
+
+router.post(
+  '/breeder-profile/me/warranty-policies/upload',
+  requireAnyRole('breeder', 'admin'),
+  petFeedUpload.single('file'),
+  async (req, res, next) => {
+    try {
+      const file = req.file;
+      const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
+      if (!file) {
+        return res.status(400).json({ error: 'file is required', code: 'WARRANTY_FILE_REQUIRED' });
+      }
+      if (!WARRANTY_POLICY_UPLOAD_MIMES.has(file.mimetype)) {
+        return res.status(400).json({
+          error: 'Unsupported file type. Use JPEG, PNG, WebP, PDF, DOC, or DOCX.',
+          code: 'WARRANTY_UNSUPPORTED_FILE',
+        });
+      }
+      if (file.size > BREEDER_LICENSE_MAX_BYTES) {
+        return res.status(400).json({
+          error: 'Warranty policy file is too large. Please use a file under 10MB.',
+          code: 'WARRANTY_FILE_TOO_LARGE',
+        });
+      }
+      const publicUrl = await storeWarrantyPolicyFile({
+        userId: req.user.id,
+        file,
+        accessToken: req.accessToken,
+      });
+      if (typeof publicUrl === 'string' && publicUrl.startsWith('memory://')) {
+        return res.status(503).json({
+          error: 'Media storage is unavailable. Please retry shortly.',
+          code: 'WARRANTY_MEDIA_STORAGE_UNAVAILABLE',
+        });
+      }
+      const result = await createMyWarrantyPolicyUpload(
+        req.user.id,
+        {
+          title: title || file.originalname || `Warranty policy ${new Date().toISOString().slice(0, 10)}`,
+          file_url: publicUrl,
+          content_type: file.mimetype,
+        },
+        req.accessToken,
+      );
+      void recordProductEvent({
+        userId: req.user.id,
+        event: 'warranty_policy_uploaded',
+        metadata: { trust_awarded: result.trust_awarded, content_type: file.mimetype },
+      });
+      return res.status(201).json({
+        data: result.policy,
+        profile: result.profile,
+        trust_awarded: result.trust_awarded,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
 router.post(
   '/breeder-profile/me/warranty-policies',

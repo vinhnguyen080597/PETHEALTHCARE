@@ -3685,6 +3685,11 @@ expo-crypto@~57.0.2:
   resolved "https://registry.yarnpkg.com/expo-crypto/-/expo-crypto-57.0.2.tgz#53e0a337a26d8b583e19c8895225c1cda48d508d"
   integrity sha512-OGLvHK7Hb7qsONMWGB9pJw3n+iY4OnZQmM/KwQEHRMrrOmNg0Lxj9+tp9bj46aAMMzXx0FTVA2jUKoplpXPnkA==
 
+expo-document-picker@^57.0.1:
+  version "57.0.1"
+  resolved "https://registry.yarnpkg.com/expo-document-picker/-/expo-document-picker-57.0.1.tgz#c5a2bd3c431fcce1f3cf5b98661500f08d5b3285"
+  integrity sha512-qBwM5oxDZ3I9kwFD3pUE1oK/WNv9artoEKO6UpqhQgNRr0XA1ALRVWYjkF4+ge9lUNDRehjTm/jenINkzqg84g==
+
 expo-file-system@~57.0.6:
   version "57.0.6"
   resolved "https://registry.yarnpkg.com/expo-file-system/-/expo-file-system-57.0.6.tgz#83cb02ad19dff1b23c8e48d5435e04c51791f2a9"

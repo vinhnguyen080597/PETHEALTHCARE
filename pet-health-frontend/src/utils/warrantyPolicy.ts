@@ -19,6 +19,8 @@ export type WarrantyPolicy = {
   shippingParty?: string;
   evidenceRequired?: string[];
   breederResponseHours?: number;
+  fileUrl?: string;
+  contentType?: string;
 };
 
 function asStringArray(value: unknown): string[] {
@@ -61,6 +63,8 @@ export function mapWarrantyPolicy(raw: unknown): WarrantyPolicy | null {
     shippingParty: String(row.shipping_party ?? row.shippingParty ?? ''),
     evidenceRequired: asStringArray(row.evidence_required ?? row.evidenceRequired),
     breederResponseHours: numOrUndef(row.breeder_response_hours ?? row.breederResponseHours),
+    fileUrl: String(row.file_url ?? row.fileUrl ?? ''),
+    contentType: String(row.content_type ?? row.contentType ?? ''),
   };
 }
 

@@ -112,6 +112,28 @@ async function appendVideoFileToFormData(
   } as any);
 }
 
+async function appendGenericFileToFormData(
+  formData: FormData,
+  fieldName: string,
+  fileUri: string,
+  filename: string,
+  mimeHint: string,
+) {
+  const safeName = String(filename || 'warranty-policy').trim() || 'warranty-policy';
+  const safeMime = String(mimeHint || 'application/octet-stream').trim() || 'application/octet-stream';
+  if (Platform.OS === 'web') {
+    const res = await fetch(fileUri);
+    const blob = await res.blob();
+    formData.append(fieldName, blob, safeName);
+    return;
+  }
+  formData.append(fieldName, {
+    uri: fileUri,
+    name: safeName,
+    type: safeMime,
+  } as any);
+}
+
 function mergeHeaders(init?: HeadersInit): Record<string, string> {
   const out: Record<string, string> = { ...tunnelHeaders() };
   if (!init) return out;
@@ -709,6 +731,35 @@ export async function deleteWarrantyPolicy(token: string, policyId: string) {
       method: 'DELETE',
       headers: authHeaders(token),
     },
+  );
+}
+
+export async function uploadWarrantyPolicyFile(
+  token: string,
+  input: { title?: string; fileUri: string; fileName: string; mimeType: string },
+) {
+  const formData = new FormData();
+  if (input.title?.trim()) formData.append('title', input.title.trim());
+  await appendGenericFileToFormData(
+    formData,
+    'file',
+    input.fileUri,
+    input.fileName,
+    input.mimeType,
+  );
+  return requestJson<{
+    data: unknown;
+    profile?: BreederProfile;
+    trust_awarded?: boolean;
+  }>(
+    '/pet-feed/breeder-profile/me/warranty-policies/upload',
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: formData,
+    },
+    true,
+    UPLOAD_REQUEST_TIMEOUT_MS,
   );
 }
 

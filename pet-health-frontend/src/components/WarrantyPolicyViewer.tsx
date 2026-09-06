@@ -1,4 +1,4 @@
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { WarrantyPolicy } from '../utils/warrantyPolicy';
 import { formatDewormingDateLabel } from '../utils/warrantyPolicyForm';
@@ -34,6 +34,7 @@ export function WarrantyPolicyViewer({
 }: WarrantyPolicyViewerProps) {
   const { t } = useTranslation();
   if (!policy) return null;
+  const isUploadedFilePolicy = Boolean(policy.fileUrl);
   const species: WarrantyFarmSpecies = resolveWarrantyFarmSpecies({ primarySpecies });
   const chips = warrantySummaryChips(policy);
   const handover = warrantyHandoverCards(policy);
@@ -57,6 +58,27 @@ export function WarrantyPolicyViewer({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
+            {isUploadedFilePolicy ? (
+              <View className="mb-4 rounded-2xl border border-[#F3E2C8] bg-[#FFFBF5] p-4">
+                <Text className="text-xs font-extrabold uppercase tracking-wide text-[#D97706]">
+                  {t('warranty.viewer.uploadedTitle')}
+                </Text>
+                <Text className="mt-2 text-sm leading-6 text-[#5C4A3A]">
+                  {t('warranty.viewer.uploadedBody')}
+                </Text>
+                <Pressable
+                  className="mt-4 items-center rounded-xl bg-[#D97706] px-4 py-3"
+                  onPress={() => {
+                    if (policy.fileUrl) void Linking.openURL(policy.fileUrl);
+                  }}
+                >
+                  <Text className="text-sm font-bold text-white">{t('warranty.viewer.openFile')}</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {!isUploadedFilePolicy ? (
+              <>
             {chips.length > 0 ? (
               <View className="mb-4 flex-row flex-wrap gap-2">
                 {chips.map((chip) => {
@@ -193,6 +215,8 @@ export function WarrantyPolicyViewer({
                 </Text>
               );
             })}
+              </>
+            ) : null}
             <View className="h-6" />
           </ScrollView>
         </View>

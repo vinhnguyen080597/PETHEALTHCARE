@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Linking,
   Modal,
@@ -836,16 +835,33 @@ export function BreederDetailScreen({
                       <Pressable
                         style={{ flex: 1, minWidth: 0 }}
                         onPress={() => {
-                          setWarrantyMenuId(null);
                           setViewingWarranty(policy);
                         }}
                       >
                         <Text style={{ fontSize: 14, fontWeight: '700', color: FARM_TEXT }} numberOfLines={1}>
                           🛡️ {policy.title}
                         </Text>
-                        <Text style={{ marginTop: 4, fontSize: 12, fontWeight: '600', color: FARM_ACCENT }}>
-                          {t('warranty.viewCta')}
-                        </Text>
+                        <View style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                          {policy.fileUrl ? (
+                            <View
+                              style={{
+                                borderRadius: 999,
+                                borderWidth: 1,
+                                borderColor: FARM_BORDER,
+                                backgroundColor: '#FFFBF5',
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                              }}
+                            >
+                              <Text style={{ fontSize: 11, fontWeight: '700', color: FARM_ACCENT }}>
+                                {t('farm.warranty.fileBadge')}
+                              </Text>
+                            </View>
+                          ) : null}
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: FARM_ACCENT }}>
+                            {t(policy.fileUrl ? 'farm.warranty.openFile' : 'warranty.viewCta')}
+                          </Text>
+                        </View>
                       </Pressable>
                       {isOwnProfile ? (
                         <View style={{ position: 'relative' }}>

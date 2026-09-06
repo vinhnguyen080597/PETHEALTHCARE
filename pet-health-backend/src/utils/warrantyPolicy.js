@@ -70,6 +70,8 @@ export function normalizeWarrantyPolicy(raw) {
   const id = String(row.id ?? '').trim();
   const title = trimText(row.title, 160);
   if (!id || !title) return null;
+  const fileUrl = trimText(row.file_url ?? row.fileUrl, 500);
+  const contentType = trimText(row.content_type ?? row.contentType, 120).toLowerCase();
 
   const vaccineShots = pickNumber(
     row.vaccine_shots_count ?? row.vaccineShotsCount,
@@ -149,6 +151,8 @@ export function normalizeWarrantyPolicy(raw) {
       EVIDENCE_OPTIONS,
     ),
     breeder_response_hours: responseHours,
+    file_url: fileUrl,
+    content_type: contentType,
   };
 }
 
@@ -219,6 +223,8 @@ export function parseWarrantyPolicyInput(body) {
     shipping_party: body?.shipping_party ?? body?.shippingParty,
     evidence_required: body?.evidence_required ?? body?.evidenceRequired,
     breeder_response_hours: body?.breeder_response_hours ?? body?.breederResponseHours,
+    file_url: body?.file_url ?? body?.fileUrl,
+    content_type: body?.content_type ?? body?.contentType,
     created_at: new Date().toISOString(),
   };
   const normalized = normalizeWarrantyPolicy(draft);

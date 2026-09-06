@@ -372,6 +372,10 @@ export async function storeWarrantyPolicyFile({ userId, file, accessToken }) {
   const mime = String(file?.mimetype || '').toLowerCase();
   const extension = mime === 'application/pdf'
     ? 'pdf'
+    : mime === 'application/msword'
+      ? 'doc'
+      : mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ? 'docx'
     : mime === 'image/png'
       ? 'png'
       : mime === 'image/webp'
