@@ -7,7 +7,8 @@ node_modules/
 .expo/
 dist/
 web-build/
-expo-env.d.ts
+# expo-env.d.ts is committed, not ignored: no Expo CLI command regenerates it, and
+# `release:check` runs `yarn typecheck` before anything else on a fresh clone.
 
 # Native
 .kotlin/

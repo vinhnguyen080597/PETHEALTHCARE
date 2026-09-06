@@ -19,7 +19,6 @@ const baseConfig = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
-  newArchEnabled: true,
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
@@ -43,7 +42,6 @@ const baseConfig = {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
-    edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     intentFilters: [
       {
@@ -76,6 +74,8 @@ const baseConfig = {
     'expo-font',
     'expo-splash-screen',
     'expo-video',
+    'expo-image',
+    'expo-status-bar',
     [
       'expo-notifications',
       {

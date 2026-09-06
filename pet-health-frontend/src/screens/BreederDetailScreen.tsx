@@ -43,11 +43,13 @@ import {
   type FarmPetAvailability,
   type FarmPetAvailabilityFilter,
 } from '../utils/farmPets';
+import { FarmCoverCropModal, resolveCoverCropSource } from '../components/form/FarmCoverCropModal';
 import {
   farmPhotoPickerAspect,
   farmPhotoResizeWidth,
   type FarmPhotoKind,
 } from '../utils/farmPhotos';
+import type { CoverCropSource } from '../utils/farmCoverCrop';
 import {
   FARM_DETAIL_TABS,
   farmImageSource,
@@ -129,6 +131,7 @@ export function BreederDetailScreen({
   const [warrantyMenuId, setWarrantyMenuId] = useState<string | null>(null);
   const [warrantyBusyId, setWarrantyBusyId] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState<FarmPhotoKind | null>(null);
+  const [coverCropSource, setCoverCropSource] = useState<CoverCropSource | null>(null);
   const [reviewThreads, setReviewThreads] = useState<FarmReviewThreadPreview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
@@ -321,6 +324,27 @@ export function BreederDetailScreen({
     ]);
   }
 
+  async function uploadFarmPhoto(kind: FarmPhotoKind, imageUri: string) {
+    if (!onUploadFarmPhoto) return;
+    setPhotoBusy(kind);
+    try {
+      const resized =
+        kind === 'cover'
+          ? { uri: imageUri }
+          : await ImageManipulator.manipulateAsync(
+              imageUri,
+              [{ resize: { width: farmPhotoResizeWidth(kind) } }],
+              { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+            );
+      await onUploadFarmPhoto(kind, resized.uri);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t('farm.owner.photoUploadFailed');
+      Alert.alert(t('farm.owner.photoUploadFailed'), message);
+    } finally {
+      setPhotoBusy(null);
+    }
+  }
+
   async function changeFarmPhoto(kind: FarmPhotoKind) {
     if (!isOwnProfile || !onUploadFarmPhoto || photoBusy) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -330,26 +354,22 @@ export function BreederDetailScreen({
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: farmPhotoPickerAspect(kind),
-      quality: 0.85,
+      allowsEditing: kind === 'avatar',
+      aspect: kind === 'avatar' ? farmPhotoPickerAspect('avatar') : undefined,
+      quality: kind === 'avatar' ? 0.85 : 1,
     });
     if (result.canceled || !result.assets[0]?.uri) return;
 
-    setPhotoBusy(kind);
-    try {
-      const resized = await ImageManipulator.manipulateAsync(
-        result.assets[0].uri,
-        [{ resize: { width: farmPhotoResizeWidth(kind) } }],
-        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
-      );
-      await onUploadFarmPhoto(kind, resized.uri);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t('farm.owner.photoUploadFailed');
-      Alert.alert(t('farm.owner.photoUploadFailed'), message);
-    } finally {
-      setPhotoBusy(null);
+    if (kind === 'cover') {
+      try {
+        setCoverCropSource(await resolveCoverCropSource(result.assets[0]));
+      } catch {
+        Alert.alert(t('farm.owner.photoUploadFailed'), t('breederProfile.coverCropFailed'));
+      }
+      return;
     }
+
+    await uploadFarmPhoto(kind, result.assets[0].uri);
   }
 
   return (
@@ -1177,6 +1197,14 @@ export function BreederDetailScreen({
           if (!reviewBusy) setReviewModalOpen(false);
         }}
         onSubmit={submitFarmReview}
+      />
+      <FarmCoverCropModal
+        source={coverCropSource}
+        onCancel={() => setCoverCropSource(null)}
+        onConfirm={(croppedUri) => {
+          setCoverCropSource(null);
+          void uploadFarmPhoto('cover', croppedUri);
+        }}
       />
     </View>
   );

@@ -87,16 +87,23 @@ test('resolveBreederProfileReturnScreen keeps prior farm/account screens', () =>
 });
 
 test('breederProfile edit/create i18n EN/VI parity', () => {
-  assert.equal(vi.breederProfile.editTitle, 'Chỉnh sửa hồ sơ');
-  assert.equal(en.breederProfile.editTitle, 'Edit profile');
+  assert.equal(vi.breederProfile.editTitle, 'Chỉnh sửa hồ sơ Breeder');
+  assert.equal(en.breederProfile.editTitle, 'Edit Breeder profile');
   assert.equal(vi.farm.owner.editProfile, 'Chỉnh sửa hồ sơ');
   assert.equal(en.farm.owner.editProfile, 'Edit profile');
   assert.equal(vi.breederProfile.createTitle.length > 0, true);
   assert.equal(en.breederProfile.subtitle.length > 0, true);
   assert.equal(vi.breederProfile.mainBreedsHint.length > 0, true);
   assert.equal(en.breederProfile.registeredAtPlaceholder, 'YYYY');
-  assert.equal(vi.breederProfile.applicationType, 'Loại hình đăng ký');
-  assert.equal(vi.breederProfile.breederTypes.registered_kennel, 'Trại đăng ký chính thức');
+  assert.equal(vi.breederProfile.applicationType, 'Loại hình');
+  assert.equal(vi.breederProfile.breederTypes.registered_kennel, 'Trại đã đăng ký chính thức');
+  assert.equal(vi.breederProfile.displayName, 'Tên hiển thị');
+  assert.equal(vi.breederProfile.commitmentsTitle, 'Cam kết');
+  assert.equal(vi.breederProfile.save, 'Gửi duyệt');
+  assert.equal(vi.breederProfile.photos, 'Ảnh hồ sơ trại');
+  assert.equal(en.breederProfile.photos, 'Farm photos');
+  assert.equal(vi.breederProfile.coverCropTitle, 'Chỉnh ảnh bìa');
+  assert.equal(en.breederProfile.coverCropConfirm, 'Use this photo');
   assert.equal(vi.breederProfile.registrationUnitPlaceholder.length > 0, true);
   assert.equal(en.breederProfile.registrationUnitPlaceholder.length > 0, true);
 });

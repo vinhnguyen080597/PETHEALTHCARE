@@ -380,6 +380,7 @@ export type UpsertBreederProfilePayload = {
   displayName: string;
   bio?: string;
   location?: string;
+  avatarUrl?: string;
   contact?: BreederContact;
   primarySpecies?: string[];
   registrationUnit?: string;

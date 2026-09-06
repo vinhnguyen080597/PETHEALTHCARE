@@ -24,7 +24,7 @@ export function OnboardingIntroScreen({ onGo }: OnboardingIntroScreenProps) {
     <View testID="onboarding-intro-screen" className="flex-1 bg-white">
       <Image
         source={MAI_AND_PETS}
-        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]}
+        style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
         contentFit="cover"
         cachePolicy="memory-disk"
         accessibilityLabel="Mai and pets"

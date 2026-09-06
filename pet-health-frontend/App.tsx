@@ -390,7 +390,7 @@ function AppContent() {
                 style={
                   app.screen === 'pet-feed'
                     ? { flex: 1, minHeight: 0 }
-                    : [StyleSheet.absoluteFillObject, { opacity: 0 }]
+                    : [StyleSheet.absoluteFill, { opacity: 0 }]
                 }
                 importantForAccessibility={app.screen === 'pet-feed' ? 'yes' : 'no-hide-descendants'}
               >
@@ -661,6 +661,7 @@ function AppContent() {
                   profile={app.breederProfile}
                   onBack={app.closeBreederProfile}
                   onSaveProfile={app.saveBreederProfile}
+                  onUploadPhoto={app.uploadBreederFormPhoto}
                 />
               </View>
             )}

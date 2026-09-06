@@ -1,0 +1,35 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Test case auth flows - mobile</title>
+    <link rel="stylesheet" href="./auth-flows-ui.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <h1>Test case auth flows - Mobile</h1>
+        <p>
+          Checklist thu cong cho <code>pet-health-frontend</code>. Tick Pass khi case dat;
+          trang thai luu trong <code>localStorage</code> tren browser hien tai.
+        </p>
+        <div class="stats" id="stats"></div>
+        <div class="actions">
+          <button type="button" id="mark-all" class="btn btn-secondary">Danh dau tat ca pass</button>
+          <button type="button" id="clear-all" class="btn btn-ghost">Xoa het tick</button>
+          <span class="hint">Mo file nay bang browser hoac Live Server.</span>
+        </div>
+      </header>
+
+      <section class="callout callout-warn">
+        <strong>Luu y:</strong> mobile khong co OAuth tren auth screen, va sign up ket thuc theo flow
+        <code>Dang ky -> OTP -> Complete Profile</code>. Ngoai ra, login gap <code>SIGNUP_OTP_PENDING</code>
+        khong duoc tu dong nhay sang sign up nua.
+      </section>
+
+      <div id="sections"></div>
+    </main>
+    <script src="./auth-flows-ui.js"></script>
+  </body>
+</html>

@@ -3291,6 +3291,19 @@ export function usePetHealthApp() {
     }
   }
 
+  /** Upload farm avatar/cover for the registration form without persisting until submit. */
+  async function uploadBreederFormPhoto(kind: FarmPhotoKind, imageUri: string): Promise<string> {
+    if (!token) {
+      throw new Error(i18n.t('alerts.signInRequired.message'));
+    }
+    const response = await uploadBreederProfileImage(token, kind, imageUri, { persist: false });
+    const publicUrl = response.data?.publicUrl;
+    if (!publicUrl || isUnusableFarmPhotoUrl(publicUrl)) {
+      throw new Error(i18n.t('breederProfile.uploadFailed'));
+    }
+    return publicUrl;
+  }
+
   /** Persist farm avatar/cover from a local image URI (picker + resize happen in the screen). */
   async function uploadOwnFarmProfilePhoto(kind: FarmPhotoKind, imageUri: string): Promise<boolean> {
     if (!token) {
@@ -5149,6 +5162,7 @@ export function usePetHealthApp() {
     openOrCreateConversationFromPost,
     openOrCreateConversationFromFarm,
     uploadOwnFarmProfilePhoto,
+    uploadBreederFormPhoto,
     closeMessageThread,
     refreshPetFeedConversations,
     refreshPetFeedMessages,

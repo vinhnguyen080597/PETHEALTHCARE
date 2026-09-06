@@ -179,7 +179,7 @@ export function OnboardingHealthPromptScreen({
       <View className="flex-1">
         <Image
           source={SERVICES_BACKGROUND}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           contentFit="cover"
           cachePolicy="memory-disk"
           accessibilityIgnoresInvertColors

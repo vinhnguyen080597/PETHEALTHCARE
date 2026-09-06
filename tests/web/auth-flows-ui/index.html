@@ -1,0 +1,34 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Test case auth flows - web</title>
+    <link rel="stylesheet" href="./auth-flows-ui.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <h1>Test case auth flows - Web</h1>
+        <p>
+          Checklist thu cong cho <code>pet-health-web</code>. Tick Pass khi case dat;
+          trang thai luu trong <code>localStorage</code> tren browser hien tai.
+        </p>
+        <div class="stats" id="stats"></div>
+        <div class="actions">
+          <button type="button" id="mark-all" class="btn btn-secondary">Danh dau tat ca pass</button>
+          <button type="button" id="clear-all" class="btn btn-ghost">Xoa het tick</button>
+          <span class="hint">Mo file nay bang browser hoac Live Server.</span>
+        </div>
+      </header>
+
+      <section class="callout callout-warn">
+        <strong>Luu y:</strong> web ho tro login bang <code>email hoac login name</code>, co OAuth,
+        va hien tai van auto dua user sang buoc OTP neu login gap <code>SIGNUP_OTP_PENDING</code>.
+      </section>
+
+      <div id="sections"></div>
+    </main>
+    <script src="./auth-flows-ui.js"></script>
+  </body>
+</html>
