@@ -94,7 +94,9 @@ export function ListingMediaOverlayBadges({
       ? { backgroundColor: 'rgba(15,23,42,0.85)', color: BRAND.textInverse }
       : statusLabelKey === 'listing.availability.available'
         ? { backgroundColor: 'rgba(5,150,105,0.95)', color: BRAND.textInverse }
-        : { backgroundColor: 'rgba(217,119,6,0.95)', color: BRAND.textInverse };
+        : statusLabelKey === 'petFeed.card.pendingReview'
+          ? { backgroundColor: 'rgba(245,158,11,0.95)', color: BRAND.textInverse }
+          : { backgroundColor: 'rgba(217,119,6,0.95)', color: BRAND.textInverse };
 
   return (
     <>
@@ -114,11 +116,6 @@ export function ListingMediaOverlayBadges({
         {hotBadges.map((badge) => (
           <HotBadge key={badge.kind} badge={badge} t={t} />
         ))}
-        {post.status === 'pending_review' ? (
-          <OverlayPill style={{ backgroundColor: 'rgba(245,158,11,0.95)', color: BRAND.textInverse }}>
-            {t('petFeed.card.pendingReview')}
-          </OverlayPill>
-        ) : null}
         {isCancelled ? (
           <OverlayPill style={{ backgroundColor: 'rgba(190,18,60,0.9)', color: BRAND.textInverse }}>
             {t('petFeed.card.cancelled')}

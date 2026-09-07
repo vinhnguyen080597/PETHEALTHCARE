@@ -8,11 +8,12 @@ import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
-import { listingPostActionsLocked } from '../utils/marketplaceListingCard';
+import { listingPostActionsLocked, listThumbUrlFromMetadata } from '../utils/marketplaceListingCard';
 import {
   canDownloadPostMedia,
   selectedMediaDownloadUrl,
 } from '../utils/mediaDownload';
+import { ListingMediaOverlayBadges } from './ListingMediaOverlayBadges';
 import { ReportModal } from './ReportModal';
 import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
 import { PetFeedListingCard } from './PetFeedListingCard';
@@ -42,6 +43,8 @@ type PetFeedPostCardProps = {
   autoPlayVideo?: boolean;
   /** Detail is still fetching the full media set — show strip placeholders from media_count. */
   mediaLoading?: boolean;
+  /** Preview: overlay listing-card tags on the thumbnail slide so it is easy to review. */
+  showFeedThumbOverlay?: boolean;
   onPress?: (post: PetFeedPost) => void;
   testID?: string;
 };
@@ -258,6 +261,7 @@ function PetFeedPostCardComponent({
   variant = 'full',
   autoPlayVideo = false,
   mediaLoading = false,
+  showFeedThumbOverlay = false,
   onPress,
   testID,
 }: PetFeedPostCardProps) {
@@ -282,6 +286,18 @@ function PetFeedPostCardComponent({
   const [loadedImageUris, setLoadedImageUris] = useState<Record<string, true>>({});
   const mediaItems = mediaItemsForPost(post);
   const selectedMedia = mediaItems[Math.min(selectedMediaIndex, Math.max(mediaItems.length - 1, 0))] ?? null;
+  const listThumbUri = listThumbUrlFromMetadata(post.metadata);
+  const isListThumbUri = (uri: string) => {
+    if (listThumbUri) return uri === listThumbUri;
+    return false;
+  };
+  const selectedIsListThumb =
+    showFeedThumbOverlay
+    && selectedMedia?.type === 'image'
+    && (
+      isListThumbUri(selectedMedia.uri)
+      || (!listThumbUri && selectedMediaIndex === 0)
+    );
 
   const posterUri =
     typeof post.metadata?.video_poster_url === 'string' ? post.metadata.video_poster_url.trim() : '';
@@ -372,7 +388,7 @@ function PetFeedPostCardComponent({
 
   const content = (
     <>
-      <View className="h-80 overflow-hidden bg-slate-200">
+      <View className="relative h-80 overflow-hidden bg-slate-200">
         {!selectedMedia && (mediaLoading || expectedStripCount > 0) ? (
           <MediaSkeleton className="h-full w-full" />
         ) : (
@@ -384,6 +400,14 @@ function PetFeedPostCardComponent({
             onImageLoaded={markImageLoaded}
           />
         )}
+        {selectedIsListThumb ? (
+          <>
+            <ListingMediaOverlayBadges post={post} />
+            <View className="absolute bottom-3 left-3 z-10 rounded-full bg-orange-500 px-2.5 py-1">
+              <Text className="text-[10px] font-bold text-white">{t('createPetFeedPost.thumbBadge')}</Text>
+            </View>
+          </>
+        ) : null}
         {canDownloadMedia && selectedMediaDownloadUrl(selectedMedia) ? (
           <Pressable
             accessibilityRole="button"
@@ -459,6 +483,13 @@ function PetFeedPostCardComponent({
                       <View className="h-7 w-7 items-center justify-center rounded-full bg-black/65">
                         <Ionicons name="play" size={14} color="#fff" />
                       </View>
+                    </View>
+                  ) : null}
+                  {showFeedThumbOverlay && item.type === 'image' && (isListThumbUri(item.uri) || (!listThumbUri && index === 0)) ? (
+                    <View className="absolute bottom-0 left-0 right-0 bg-orange-500/95 px-0.5 py-0.5">
+                      <Text className="text-center text-[8px] font-bold text-white" numberOfLines={1}>
+                        {t('createPetFeedPost.thumbBadge')}
+                      </Text>
                     </View>
                   ) : null}
                 </Pressable>

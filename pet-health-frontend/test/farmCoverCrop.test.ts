@@ -7,6 +7,7 @@ import {
   coverCropSourceFromPicker,
   coverCropViewportSize,
   coverFillScale,
+  listingThumbCropViewportSize,
 } from '../src/utils/farmCoverCrop.ts';
 
 test('16:9 image at scale 1 crops the full photo', () => {
@@ -71,4 +72,11 @@ test('coverCropViewportSize keeps a 16:9 frame', () => {
   const view = coverCropViewportSize(400, 40);
   assert.equal(view.width, 360);
   assert.equal(view.height, Math.round(360 / COVER_CROP_ASPECT));
+});
+
+test('listingThumbCropViewportSize matches listing-card aspect', () => {
+  const view = listingThumbCropViewportSize(400, 900, 288, 40);
+  assert.equal(view.width, 360);
+  assert.equal(view.height, 288);
+  assert.ok(Math.abs(view.width / view.height - 360 / 288) < 0.01);
 });

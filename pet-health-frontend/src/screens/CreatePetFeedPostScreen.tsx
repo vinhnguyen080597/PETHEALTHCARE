@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Alert,
   ActivityIndicator,
+  Dimensions,
   Image,
   Modal,
   Platform,
@@ -18,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { MarketplaceListingTermsCheckbox } from '../components/MarketplaceLegalNotice';
 import { ListingVideoPreview, ListingVideoPreparingPlaceholder } from '../components/ListingVideoPreview';
+import { FarmCoverCropModal, resolveCoverCropSource } from '../components/form/FarmCoverCropModal';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { ApiRequestError } from '../api';
 import type { CreatePetFeedPostMedia, CreatePetFeedPostPayload, PetFeedPost, UserRole } from '../types';
@@ -39,6 +41,7 @@ import {
   optimizePetFeedPhotoUri,
   isPetFeedVideoDurationAllowed,
   resolvePetFeedPickedVideoSize,
+  PET_FEED_LIST_THUMB_WIDTH,
   PET_FEED_VIDEO_MAX_DURATION_SECONDS,
   PET_FEED_VIDEO_MAX_BYTES,
 } from '../utils/petFeedMedia';
@@ -53,6 +56,8 @@ import {
 } from '../utils/petFeedSubmitProgress';
 import { BRAND } from '../theme/brand';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
+import { LISTING_CARD_IMAGE_HEIGHT, listThumbUrlFromMetadata } from '../utils/marketplaceListingCard';
+import { listingThumbCropViewportSize, type CoverCropSource } from '../utils/farmCoverCrop';
 
 const PRIMARY = BRAND.btnPrimary;
 const MAX_PHOTOS = 6;
@@ -254,6 +259,9 @@ export function CreatePetFeedPostScreen({
   const [videoUri, setVideoUri] = useState(editingPost?.video_url ?? '');
   const [videoSizeBytes, setVideoSizeBytes] = useState<number | null>(null);
   const [videoPreparing, setVideoPreparing] = useState(false);
+  const [listThumbUri, setListThumbUri] = useState(() => listThumbUrlFromMetadata(editingPost?.metadata));
+  const [thumbDirty, setThumbDirty] = useState(false);
+  const [thumbCropSource, setThumbCropSource] = useState<CoverCropSource | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video', string>>
@@ -381,6 +389,20 @@ export function CreatePetFeedPostScreen({
   const priceUnit = petFeedPriceInputUnit(i18n.language);
   const canonicalPriceNote = normalizePetFeedPriceInput(priceNote, i18n.language);
 
+  const previewThumbUri = listThumbUri || photoUris[0] || '';
+  const previewMediaUrls = useMemo(() => {
+    const photos = photoUris.filter(Boolean);
+    const thumb = listThumbUri.trim();
+    if (thumb && thumb !== photos[0]) {
+      return [thumb, ...photos.filter((uri) => uri !== thumb)];
+    }
+    return photos;
+  }, [listThumbUri, photoUris]);
+  const thumbCropViewport = useMemo(() => {
+    const window = Dimensions.get('window');
+    return listingThumbCropViewportSize(window.width, window.height, LISTING_CARD_IMAGE_HEIGHT);
+  }, []);
+
   const previewPost: PetFeedPost = {
     id: 'preview',
     user_id: 'preview',
@@ -397,11 +419,13 @@ export function CreatePetFeedPostScreen({
     vaccine_status: selectedVaccineLabel,
     deworming_status: selectedDewormingLabel,
     paperwork,
-    media_urls: photoUris,
+    media_urls: previewMediaUrls,
     video_url: videoUri || null,
     contact: {},
     status: isAdmin ? 'published' : isEditingPost ? (editingStatus ?? 'draft') : 'pending_review',
-    metadata: {},
+    metadata: previewThumbUri
+      ? { list_thumb_url: previewThumbUri, video_poster_url: previewThumbUri }
+      : {},
     breeder_profile: null,
     is_favorited: false,
     created_at: new Date().toISOString(),
@@ -426,6 +450,25 @@ export function CreatePetFeedPostScreen({
     }
     setPhotoUris((current) => [...current, ...newUris].slice(0, MAX_PHOTOS));
     clearFieldError('photos');
+  }
+
+  function removePhoto(index: number) {
+    setPhotoUris((current) => current.filter((_, i) => i !== index));
+    if (index === 0) {
+      setListThumbUri('');
+      setThumbDirty(true);
+    }
+  }
+
+  async function openThumbCrop() {
+    const uri = photoUris[0];
+    if (!uri) return;
+    try {
+      const source = await resolveCoverCropSource({ uri });
+      setThumbCropSource(source);
+    } catch {
+      Alert.alert(t('createPetFeedPost.submitFailed'), t('createPetFeedPost.thumbCropFailed'));
+    }
   }
 
   async function pickVideo() {
@@ -572,7 +615,28 @@ export function CreatePetFeedPostScreen({
     const origEvidence = healthEvidenceUrlsFromMetadata(editingPost.metadata);
     if (healthEvidenceUris.length !== origEvidence.length) return true;
     if (healthEvidenceUris.some((uri, index) => uri !== origEvidence[index])) return true;
+    if (thumbDirty) return true;
+    if (listThumbUri && !isRemoteMediaUri(listThumbUri)) return true;
+    if ((listThumbUri || '') !== listThumbUrlFromMetadata(editingPost.metadata)) return true;
     return false;
+  }
+
+  function thumbPreparePlan() {
+    const readyLocalThumb = Boolean(listThumbUri && !isRemoteMediaUri(listThumbUri));
+    const reuseRemoteThumb = Boolean(listThumbUri && isRemoteMediaUri(listThumbUri) && !thumbDirty);
+    return {
+      readyLocalThumb,
+      reuseRemoteThumb,
+      prepareThumb: photoUris.length > 0 && !readyLocalThumb && !reuseRemoteThumb,
+    };
+  }
+
+  async function resolveSubmitListThumb(optimizedPhotos: string[]): Promise<string | undefined> {
+    if (listThumbUri && !isRemoteMediaUri(listThumbUri)) return listThumbUri;
+    if (listThumbUri && isRemoteMediaUri(listThumbUri) && !thumbDirty) return listThumbUri;
+    const source = optimizedPhotos[0];
+    if (!source) return undefined;
+    return optimizePetFeedListThumbUri(source);
   }
 
   function resolveEditNextStatus(submitStatus: CreatePetFeedPostPayload['status']): CreatePetFeedPostPayload['status'] {
@@ -692,12 +756,15 @@ export function CreatePetFeedPostScreen({
         const needsMediaUpload = editMediaNeedsUpload();
         let mediaPayload: CreatePetFeedPostMedia | undefined;
         if (needsMediaUpload) {
-          const { preparePhotoCount, prepareThumb } = countPetFeedPrepareSteps(photoUris);
+          const { preparePhotoCount } = countPetFeedPrepareSteps(photoUris);
+          const { prepareThumb } = thumbPreparePlan();
           const prepareSteps = preparePhotoCount + (prepareThumb ? 1 : 0);
           const uploadSaveSteps = countPetFeedUploadAndSaveSteps({
             photoUris: photoUris.map((uri) => (isRemoteMediaUri(uri) ? uri : 'file://local')),
             videoUri: videoUri && !isRemoteMediaUri(videoUri) ? 'file://local-video' : videoUri,
-            listThumbUri: prepareThumb ? 'file://pending-thumb' : undefined,
+            listThumbUri: prepareThumb || (listThumbUri && !isRemoteMediaUri(listThumbUri))
+              ? (listThumbUri && !isRemoteMediaUri(listThumbUri) ? listThumbUri : 'file://pending-thumb')
+              : listThumbUri,
             healthEvidenceUris: (healthEvidenceUris ?? []).map((uri) =>
               isRemoteMediaUri(uri) ? uri : 'file://local-evidence',
             ),
@@ -716,12 +783,13 @@ export function CreatePetFeedPostScreen({
             optimizedPhotos.push(await optimizePetFeedPhotoUri(uri));
             completedSteps += 1;
           }
-          const localForThumb = optimizedPhotos.find((uri) => !isRemoteMediaUri(uri));
-          let listThumbUri: string | undefined;
-          if (localForThumb) {
+          let listThumbForSave: string | undefined;
+          if (prepareThumb) {
             reportProgress('preparing_thumb', totalSteps);
-            listThumbUri = await optimizePetFeedListThumbUri(localForThumb);
+            listThumbForSave = await resolveSubmitListThumb(optimizedPhotos);
             completedSteps += 1;
+          } else {
+            listThumbForSave = await resolveSubmitListThumb(optimizedPhotos);
           }
           const oversized = await findOversizedPetFeedMedia({
             photoUris: optimizedPhotos.filter((uri) => !isRemoteMediaUri(uri)),
@@ -745,7 +813,7 @@ export function CreatePetFeedPostScreen({
           mediaPayload = {
             photoUris: optimizedPhotos,
             videoUri: videoUri || undefined,
-            listThumbUri,
+            listThumbUri: listThumbForSave,
             healthEvidenceUris,
           };
           const prepareDone = completedSteps;
@@ -781,12 +849,15 @@ export function CreatePetFeedPostScreen({
         return;
       }
 
+      const { prepareThumb } = thumbPreparePlan();
       const createPreparePhotos = photoUris.length;
-      const createPrepareSteps = createPreparePhotos + (photoUris.length > 0 ? 1 : 0);
+      const createPrepareSteps = createPreparePhotos + (prepareThumb ? 1 : 0);
       const createUploadSaveSteps = countPetFeedUploadAndSaveSteps({
         photoUris: photoUris.map(() => 'file://local'),
         videoUri: videoUri || undefined,
-        listThumbUri: photoUris.length > 0 ? 'file://pending-thumb' : undefined,
+        listThumbUri: prepareThumb || (listThumbUri && !isRemoteMediaUri(listThumbUri))
+          ? (listThumbUri && !isRemoteMediaUri(listThumbUri) ? listThumbUri : 'file://pending-thumb')
+          : undefined,
         healthEvidenceUris: (healthEvidenceUris ?? []).map((uri) =>
           isRemoteMediaUri(uri) ? uri : 'file://local-evidence',
         ),
@@ -799,11 +870,13 @@ export function CreatePetFeedPostScreen({
         optimizedPhotos.push(await optimizePetFeedPhotoUri(photoUris[index]!));
         completedSteps += 1;
       }
-      let listThumbUri: string | undefined;
-      if (optimizedPhotos[0]) {
+      let listThumbForSave: string | undefined;
+      if (prepareThumb) {
         reportProgress('preparing_thumb', totalSteps);
-        listThumbUri = await optimizePetFeedListThumbUri(optimizedPhotos[0]);
+        listThumbForSave = await resolveSubmitListThumb(optimizedPhotos);
         completedSteps += 1;
+      } else {
+        listThumbForSave = await resolveSubmitListThumb(optimizedPhotos);
       }
       const oversized = await findOversizedPetFeedMedia({
         photoUris: optimizedPhotos,
@@ -830,7 +903,7 @@ export function CreatePetFeedPostScreen({
         {
           photoUris: optimizedPhotos,
           videoUri: videoUri || undefined,
-          listThumbUri,
+          listThumbUri: listThumbForSave,
           healthEvidenceUris,
         },
         { onProgress: mapUploadProgress(prepareDone, totalSteps) },
@@ -1101,13 +1174,26 @@ export function CreatePetFeedPostScreen({
                     <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
                     <Pressable
                       className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1"
-                      onPress={() => setPhotoUris((current) => current.filter((_, i) => i !== index))}
+                      onPress={() => removePhoto(index)}
                     >
                       <Ionicons name="close" size={14} color="#fff" />
                     </Pressable>
                   </View>
                 ))}
               </View>
+            ) : null}
+            {photoUris[0] ? (
+              <>
+                <Pressable
+                  testID="create-pet-feed-post-thumb-edit"
+                  className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-2.5 active:bg-slate-100"
+                  onPress={() => void openThumbCrop()}
+                >
+                  <Ionicons name="crop-outline" size={16} color={PRIMARY} />
+                  <Text className="text-sm font-bold text-slate-700">{t('createPetFeedPost.thumbEdit')}</Text>
+                </Pressable>
+                <Text className="mt-1.5 text-xs text-slate-500">{t('createPetFeedPost.thumbHint')}</Text>
+              </>
             ) : null}
             {fieldErrors.photos ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.photos}</Text> : null}
           </View>
@@ -1268,8 +1354,31 @@ export function CreatePetFeedPostScreen({
           </View>
         )}
       >
-        <PetFeedPostCard post={previewPost} showFavorite={false} showContact={false} showReport={false} testID="create-pet-feed-post-preview-card" />
+        <PetFeedPostCard
+          key={previewMediaUrls[0] || 'preview'}
+          post={previewPost}
+          showFavorite={false}
+          showContact={false}
+          showReport={false}
+          showFeedThumbOverlay
+          testID="create-pet-feed-post-preview-card"
+        />
       </ModalScreenShell>
+      <FarmCoverCropModal
+        source={thumbCropSource}
+        title={t('createPetFeedPost.thumbCropTitle')}
+        hint={t('createPetFeedPost.thumbCropHint')}
+        confirmLabel={t('createPetFeedPost.thumbCropConfirm')}
+        failedLabel={t('createPetFeedPost.thumbCropFailed')}
+        viewportSize={thumbCropViewport}
+        resizeWidth={PET_FEED_LIST_THUMB_WIDTH}
+        onCancel={() => setThumbCropSource(null)}
+        onConfirm={(croppedUri) => {
+          setThumbCropSource(null);
+          setListThumbUri(croppedUri);
+          setThumbDirty(true);
+        }}
+      />
     </View>
   );
 }

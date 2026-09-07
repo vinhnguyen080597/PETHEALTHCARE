@@ -50,15 +50,36 @@ type FarmCoverCropModalProps = {
   source: CoverCropSource | null;
   onCancel: () => void;
   onConfirm: (croppedUri: string) => void;
+  title?: string;
+  hint?: string;
+  confirmLabel?: string;
+  failedLabel?: string;
+  viewportSize?: { width: number; height: number };
+  resizeWidth?: number;
 };
 
-export function FarmCoverCropModal({ source, onCancel, onConfirm }: FarmCoverCropModalProps) {
+export function FarmCoverCropModal({
+  source,
+  onCancel,
+  onConfirm,
+  title,
+  hint,
+  confirmLabel,
+  failedLabel,
+  viewportSize,
+  resizeWidth,
+}: FarmCoverCropModalProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const viewport = useMemo(
-    () => coverCropViewportSize(Dimensions.get('window').width),
-    [],
+    () => viewportSize ?? coverCropViewportSize(Dimensions.get('window').width),
+    [viewportSize],
   );
+  const outputWidth = resizeWidth ?? farmPhotoResizeWidth('cover');
+  const cropTitle = title ?? t('breederProfile.coverCropTitle');
+  const cropHint = hint ?? t('breederProfile.coverCropHint');
+  const cropConfirm = confirmLabel ?? t('breederProfile.coverCropConfirm');
+  const cropFailed = failedLabel ?? t('breederProfile.coverCropFailed');
   const [resolved, setResolved] = useState<CoverCropSource | null>(source);
   const [transform, setTransform] = useState<CoverCropTransform>({ tx: 0, ty: 0, scale: 1 });
   const [busy, setBusy] = useState(false);
@@ -171,13 +192,13 @@ export function FarmCoverCropModal({ source, onCancel, onConfirm }: FarmCoverCro
         resolved.uri,
         [
           { crop },
-          { resize: { width: farmPhotoResizeWidth('cover') } },
+          { resize: { width: outputWidth } },
         ],
         { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
       );
       onConfirm(result.uri);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('breederProfile.coverCropFailed'));
+      setError(err instanceof Error ? err.message : cropFailed);
     } finally {
       setBusy(false);
     }
@@ -193,10 +214,10 @@ export function FarmCoverCropModal({ source, onCancel, onConfirm }: FarmCoverCro
         }}
       >
         <Text className="px-5 text-center text-lg font-bold text-white">
-          {t('breederProfile.coverCropTitle')}
+          {cropTitle}
         </Text>
         <Text className="mt-2 px-6 text-center text-sm leading-5 text-white/80">
-          {t('breederProfile.coverCropHint')}
+          {cropHint}
         </Text>
 
         <View className="mt-6 items-center px-5">
@@ -272,7 +293,7 @@ export function FarmCoverCropModal({ source, onCancel, onConfirm }: FarmCoverCro
               <ActivityIndicator color="#fff" />
             ) : (
               <Text className="text-center text-sm font-bold text-white">
-                {t('breederProfile.coverCropConfirm')}
+                {cropConfirm}
               </Text>
             )}
           </Pressable>

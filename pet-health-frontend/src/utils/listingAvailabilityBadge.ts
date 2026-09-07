@@ -20,9 +20,10 @@ export function listingAvailabilityBadgeLabelKey(
 export type ListingOverlayStatusLabelKey =
   | 'listing.availability.available'
   | 'listing.availability.depositHold'
-  | 'petFeed.card.sold';
+  | 'petFeed.card.sold'
+  | 'petFeed.card.pendingReview';
 
-/** Top-right overlay pill: Có sẵn / Đã cọc / Đã bán only. */
+/** Top-right overlay pill: Có sẵn / Đã cọc / Đã bán / Chờ admin duyệt. */
 export function listingOverlayStatusLabelKey(input: {
   status?: string | null;
   isSold?: boolean;
@@ -30,6 +31,8 @@ export function listingOverlayStatusLabelKey(input: {
 }): ListingOverlayStatusLabelKey | null {
   if (input.isCancelled) return null;
   if (input.isSold) return 'petFeed.card.sold';
+  const status = String(input.status || '').trim().toLowerCase();
+  if (status === 'pending_review') return 'petFeed.card.pendingReview';
   return listingAvailabilityBadgeLabelKey(listingAvailabilityBadgeKey(input.status));
 }
 

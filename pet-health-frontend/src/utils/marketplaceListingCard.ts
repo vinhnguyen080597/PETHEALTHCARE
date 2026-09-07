@@ -73,9 +73,19 @@ export function formatListingCardPostedDate(
   });
 }
 
-export function listingPreviewImages(post: Pick<PetFeedPost, 'media_urls'>, max = 4): string[] {
+export function listThumbUrlFromMetadata(metadata: Record<string, unknown> | null | undefined): string {
+  const url = metadata && typeof metadata.list_thumb_url === 'string' ? metadata.list_thumb_url.trim() : '';
+  return url;
+}
+
+export function listingPreviewImages(
+  post: Pick<PetFeedPost, 'media_urls'> & { metadata?: Record<string, unknown> | null },
+  max = 4,
+): string[] {
   const unique: string[] = [];
-  for (const url of post.media_urls) {
+  const metaThumb = listThumbUrlFromMetadata(post.metadata);
+  const urls = metaThumb ? [metaThumb, ...post.media_urls] : post.media_urls;
+  for (const url of urls) {
     const trimmed = String(url ?? '').trim();
     if (!trimmed || unique.includes(trimmed)) continue;
     unique.push(trimmed);

@@ -47,9 +47,16 @@ test('create listing form description section has no contact fields copy', () =>
   assert.equal(vi.createPetFeedPost.descriptionAndContact, 'Mô tả');
 });
 
-test('create listing screen title is create listing / tạo bài đăng', () => {
-  assert.equal(en.createPetFeedPost.title, 'Create listing');
-  assert.equal(vi.createPetFeedPost.title, 'Tạo bài đăng');
+test('create listing preview label is Xem trước in Vietnamese', () => {
+  assert.equal(en.createPetFeedPost.review, 'Preview');
+  assert.equal(vi.createPetFeedPost.review, 'Xem trước');
+});
+
+test('create listing thumb crop label mentions thumbnail', () => {
+  assert.equal(en.createPetFeedPost.thumbEdit, 'Adjust thumbnail focal point');
+  assert.equal(vi.createPetFeedPost.thumbEdit, 'Chỉnh tâm ảnh cho thumbnail');
+  assert.equal(en.createPetFeedPost.thumbBadge, 'Thumbnail');
+  assert.equal(vi.createPetFeedPost.thumbBadge, 'Thumbnail');
 });
 
 test('create listing media hint does not mention drafts', () => {

@@ -113,7 +113,21 @@ export function coverCropSourceFromPicker(asset: {
   return { uri, width, height };
 }
 
-export function coverCropViewportSize(windowWidth: number, horizontalPadding = 40) {
+export function coverCropViewportSize(windowWidth: number, horizontalPadding = 40, aspect = COVER_CROP_ASPECT) {
   const width = Math.max(240, windowWidth - horizontalPadding);
-  return { width, height: Math.round(width / COVER_CROP_ASPECT) };
+  return { width, height: Math.round(width / aspect) };
+}
+
+/** Listing-card crop frame: same aspect as the feed hero (full width × 288). */
+export function listingThumbCropViewportSize(
+  windowWidth: number,
+  windowHeight: number,
+  frameHeight = 288,
+  horizontalPadding = 40,
+) {
+  const width = Math.max(240, windowWidth - horizontalPadding);
+  const aspect = width / Math.max(1, frameHeight);
+  const maxHeight = Math.max(160, Math.round(windowHeight * 0.4));
+  const height = Math.min(frameHeight, maxHeight);
+  return { width: Math.round(height * aspect), height };
 }

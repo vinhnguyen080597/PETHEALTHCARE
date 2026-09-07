@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { API_BASE_URL, API_HEALTH_URL } from './config';
 import { resolveAuthorizedToken, retryAfterUnauthorized } from './utils/authSessionManager';
 import {
@@ -65,9 +64,24 @@ function tunnelHeaders(): Record<string, string> {
 }
 
 /**
- * Web `FormData` does not accept RN's `{ uri, name, type }` — it becomes `[object Object]`.
- * Native keeps that shape; web fetches the blob/data URL and appends a real `Blob`.
+ * Expo SDK 56+ winter fetch rejects RN `{ uri, name, type }` parts with
+ * "unsupported FormDataPart implementation". Append a real Blob on every platform.
  */
+async function blobFromLocalUri(uri: string, mimeHint: string): Promise<Blob> {
+  const res = await fetch(uri);
+  const blob = await res.blob();
+  if (blob.type && blob.type !== 'application/octet-stream') return blob;
+  try {
+    return new Blob([blob], { type: mimeHint });
+  } catch {
+    return blob;
+  }
+}
+
+function appendBlobToFormData(formData: FormData, fieldName: string, blob: Blob, filename: string) {
+  formData.append(fieldName, blob, filename);
+}
+
 async function appendImageFileToFormData(
   formData: FormData,
   fieldName: string,
@@ -75,19 +89,10 @@ async function appendImageFileToFormData(
   filenameBase: string,
   mimeHint: string,
 ) {
-  if (Platform.OS === 'web') {
-    const res = await fetch(imageUri);
-    const blob = await res.blob();
-    const type = blob.type && blob.type !== 'application/octet-stream' ? blob.type : mimeHint;
-    const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
-    formData.append(fieldName, blob, `${filenameBase}.${ext}`);
-    return;
-  }
-  formData.append(fieldName, {
-    uri: imageUri,
-    name: `${filenameBase}.jpg`,
-    type: mimeHint,
-  } as any);
+  const blob = await blobFromLocalUri(imageUri, mimeHint);
+  const type = blob.type && blob.type !== 'application/octet-stream' ? blob.type : mimeHint;
+  const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
+  appendBlobToFormData(formData, fieldName, blob, `${filenameBase}.${ext}`);
 }
 
 async function appendVideoFileToFormData(
@@ -97,19 +102,10 @@ async function appendVideoFileToFormData(
   filenameBase: string,
   mimeHint: string = 'video/mp4',
 ) {
-  if (Platform.OS === 'web') {
-    const res = await fetch(videoUri);
-    const blob = await res.blob();
-    const type = blob.type && blob.type.startsWith('video/') ? blob.type : mimeHint;
-    const ext = type.includes('webm') ? 'webm' : type.includes('quicktime') ? 'mov' : 'mp4';
-    formData.append(fieldName, blob, `${filenameBase}.${ext}`);
-    return;
-  }
-  formData.append(fieldName, {
-    uri: videoUri,
-    name: `${filenameBase}.mp4`,
-    type: mimeHint,
-  } as any);
+  const blob = await blobFromLocalUri(videoUri, mimeHint);
+  const type = blob.type && blob.type.startsWith('video/') ? blob.type : mimeHint;
+  const ext = type.includes('webm') ? 'webm' : type.includes('quicktime') ? 'mov' : 'mp4';
+  appendBlobToFormData(formData, fieldName, blob, `${filenameBase}.${ext}`);
 }
 
 async function appendGenericFileToFormData(
@@ -121,13 +117,8 @@ async function appendGenericFileToFormData(
 ) {
   const safeName = String(filename || 'warranty-policy').trim() || 'warranty-policy';
   const safeMime = String(mimeHint || 'application/octet-stream').trim() || 'application/octet-stream';
-  const res = await fetch(fileUri);
-  const blob = await res.blob();
-  const typedBlob =
-    blob.type && blob.type !== 'application/octet-stream'
-      ? blob
-      : new Blob([blob], { type: safeMime });
-  formData.append(fieldName, typedBlob, safeName);
+  const blob = await blobFromLocalUri(fileUri, safeMime);
+  appendBlobToFormData(formData, fieldName, blob, safeName);
 }
 
 function mergeHeaders(init?: HeadersInit): Record<string, string> {

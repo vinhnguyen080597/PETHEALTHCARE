@@ -73,11 +73,14 @@ export async function optimizePetFeedPhotoUri(uri: string): Promise<string> {
   return bestUri;
 }
 
-/** Small feed-card thumbnail derived from the first listing photo. */
+/** Small feed-card thumbnail width after crop. */
+export const PET_FEED_LIST_THUMB_WIDTH = 720;
+
+/** Small feed-card thumbnail derived from the chosen listing photo. */
 export async function optimizePetFeedListThumbUri(uri: string): Promise<string> {
   const optimized = await ImageManipulator.manipulateAsync(
     uri,
-    [{ resize: { width: 720 } }],
+    [{ resize: { width: PET_FEED_LIST_THUMB_WIDTH } }],
     { compress: 0.72, format: ImageManipulator.SaveFormat.JPEG },
   );
   return optimized.uri;

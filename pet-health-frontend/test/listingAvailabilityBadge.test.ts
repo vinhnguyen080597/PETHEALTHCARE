@@ -25,6 +25,10 @@ test('listingOverlayStatusLabelKey maps availability statuses to top-right label
     listingOverlayStatusLabelKey({ status: 'published', isSold: false, isCancelled: true }),
     null,
   );
+  assert.equal(
+    listingOverlayStatusLabelKey({ status: 'pending_review', isSold: false, isCancelled: false }),
+    'petFeed.card.pendingReview',
+  );
 });
 
 test('listingAvailabilityBadgeKey maps published and deposit_hold', () => {

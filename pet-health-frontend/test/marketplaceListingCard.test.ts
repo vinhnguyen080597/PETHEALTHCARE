@@ -9,6 +9,8 @@ import {
   listingCardShowsEditAction,
   LISTING_CARD_IMAGE_HEIGHT,
   listingHotBadges,
+  listingPreviewImages,
+  listThumbUrlFromMetadata,
   listingSpeciesEmoji,
   listingWarrantyCoverageDays,
   readListingWarrantyPolicy,
@@ -50,6 +52,17 @@ test('listingSpeciesEmoji maps common species', () => {
 
 test('listing card image height matches pet feed detail hero', () => {
   assert.equal(LISTING_CARD_IMAGE_HEIGHT, 288);
+});
+
+test('listingPreviewImages prefers metadata.list_thumb_url', () => {
+  assert.equal(listThumbUrlFromMetadata({ list_thumb_url: ' https://cdn/t.jpg ' }), 'https://cdn/t.jpg');
+  assert.deepEqual(
+    listingPreviewImages({
+      media_urls: ['https://cdn/a.jpg', 'https://cdn/b.jpg'],
+      metadata: { list_thumb_url: 'https://cdn/t.jpg' },
+    }),
+    ['https://cdn/t.jpg', 'https://cdn/a.jpg', 'https://cdn/b.jpg'],
+  );
 });
 
 test('formatListingCardPostedDate returns locale short date', () => {
