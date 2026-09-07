@@ -9,9 +9,12 @@ export function formatBytesAsMb(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / (1024 * 1024)))}MB`;
 }
 
-/** Expo ImagePicker Asset.duration is milliseconds for videos. */
+/**
+ * Expo ImagePicker Asset.duration is milliseconds on iOS / current Android,
+ * but some Android / web builds still report seconds.
+ */
 export function isPetFeedVideoDurationAllowed(duration: number | null | undefined): boolean {
   if (duration == null || !Number.isFinite(duration) || duration <= 0) return true;
-  const seconds = duration / 1000;
+  const seconds = duration >= 1000 ? duration / 1000 : duration;
   return seconds <= PET_FEED_VIDEO_MAX_DURATION_SECONDS + 0.5;
 }

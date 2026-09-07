@@ -36,4 +36,15 @@ describe('isPetFeedVideoDurationAllowed', () => {
     assert.equal(isPetFeedVideoDurationAllowed(null), true);
     assert.equal(isPetFeedVideoDurationAllowed(undefined), true);
   });
+
+  it('accepts short clips whether duration is seconds or milliseconds', () => {
+    assert.equal(isPetFeedVideoDurationAllowed(9), true);
+    assert.equal(isPetFeedVideoDurationAllowed(9_000), true);
+    assert.equal(isPetFeedVideoDurationAllowed(180), true);
+  });
+
+  it('rejects over-limit duration reported in seconds', () => {
+    assert.equal(isPetFeedVideoDurationAllowed(181), false);
+    assert.equal(isPetFeedVideoDurationAllowed(200), false);
+  });
 });

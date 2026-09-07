@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { MarketplaceListingTermsCheckbox } from '../components/MarketplaceLegalNotice';
+import { ListingVideoPreview, ListingVideoPreparingPlaceholder } from '../components/ListingVideoPreview';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { ApiRequestError } from '../api';
 import type { CreatePetFeedPostMedia, CreatePetFeedPostPayload, PetFeedPost, UserRole } from '../types';
@@ -34,10 +35,10 @@ import { modalBottomInset } from '../utils/modalSafeArea';
 import {
   findOversizedPetFeedMedia,
   formatBytesAsMb,
-  getLocalUriByteSize,
   optimizePetFeedListThumbUri,
   optimizePetFeedPhotoUri,
   isPetFeedVideoDurationAllowed,
+  resolvePetFeedPickedVideoSize,
   PET_FEED_VIDEO_MAX_DURATION_SECONDS,
   PET_FEED_VIDEO_MAX_BYTES,
 } from '../utils/petFeedMedia';
@@ -251,6 +252,8 @@ export function CreatePetFeedPostScreen({
     () => healthEvidenceUrlsFromMetadata(editingPost?.metadata),
   );
   const [videoUri, setVideoUri] = useState(editingPost?.video_url ?? '');
+  const [videoSizeBytes, setVideoSizeBytes] = useState<number | null>(null);
+  const [videoPreparing, setVideoPreparing] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video', string>>
@@ -426,36 +429,52 @@ export function CreatePetFeedPostScreen({
   }
 
   async function pickVideo() {
+    if (videoPreparing) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(t('alerts.permissionGallery.title'), t('alerts.permissionGallery.message'));
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'],
-      videoMaxDuration: PET_FEED_VIDEO_MAX_DURATION_SECONDS,
-      videoQuality: ImagePicker.UIImagePickerControllerQualityType.IFrame1280x720,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets[0]?.uri) return;
-    const asset = result.assets[0];
-    if (!isPetFeedVideoDurationAllowed(asset.duration)) {
-      Alert.alert(
-        t('createPetFeedPost.submitFailed'),
-        t('createPetFeedPost.errors.videoTooLong', { seconds: PET_FEED_VIDEO_MAX_DURATION_SECONDS }),
-      );
-      return;
+    // Show the placeholder before the picker so it is already visible when iOS
+    // dismisses the gallery and keeps transcoding in the background.
+    setVideoPreparing(true);
+    try {
+      // SDK 54+ defaults to Passthrough + original HEVC/4K, so a 9s phone clip can exceed 50MB.
+      // Export 720p H.264 (web-compatible) so short listing videos stay under the storage cap.
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        videoMaxDuration: PET_FEED_VIDEO_MAX_DURATION_SECONDS,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.IFrame1280x720,
+        videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+        preferredAssetRepresentationMode:
+          ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      });
+      if (result.canceled || !result.assets[0]?.uri) return;
+      const asset = result.assets[0];
+      if (!isPetFeedVideoDurationAllowed(asset.duration)) {
+        Alert.alert(
+          t('createPetFeedPost.submitFailed'),
+          t('createPetFeedPost.errors.videoTooLong', { seconds: PET_FEED_VIDEO_MAX_DURATION_SECONDS }),
+        );
+        return;
+      }
+      const sizeBytes = await resolvePetFeedPickedVideoSize(asset);
+      if (sizeBytes != null && sizeBytes > PET_FEED_VIDEO_MAX_BYTES) {
+        Alert.alert(
+          t('createPetFeedPost.submitFailed'),
+          t('createPetFeedPost.errors.videoTooLarge', { size: formatBytesAsMb(sizeBytes) }),
+        );
+        return;
+      }
+      setVideoUri(asset.uri);
+      setVideoSizeBytes(sizeBytes);
+      clearFieldError('video');
+    } catch (error: unknown) {
+      const raw = error instanceof Error ? error.message : '';
+      Alert.alert(t('createPetFeedPost.submitFailed'), raw || t('common.unknownError'));
+    } finally {
+      setVideoPreparing(false);
     }
-    const sizeBytes = asset.fileSize ?? (await getLocalUriByteSize(asset.uri));
-    if (sizeBytes != null && sizeBytes > PET_FEED_VIDEO_MAX_BYTES) {
-      Alert.alert(
-        t('createPetFeedPost.submitFailed'),
-        t('createPetFeedPost.errors.videoTooLarge', { size: formatBytesAsMb(sizeBytes) }),
-      );
-      return;
-    }
-    setVideoUri(asset.uri);
-    clearFieldError('video');
   }
 
   function markFieldOffset(key: BasicFieldKey, y: number) {
@@ -1094,29 +1113,66 @@ export function CreatePetFeedPostScreen({
           </View>
           <View onLayout={(event) => markFieldOffset('video', event.nativeEvent.layout.y)}>
             <Pressable
+              disabled={videoPreparing}
               className={`mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-dashed py-3 active:opacity-80 ${
                 fieldErrors.video ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
-              }`}
+              } ${videoPreparing ? 'opacity-60' : ''}`}
               onPress={pickVideo}
             >
-              <Ionicons
-                name={videoUri ? 'videocam' : 'videocam-outline'}
-                size={18}
-                color={fieldErrors.video ? '#dc2626' : videoUri ? PRIMARY : '#64748b'}
-              />
+              {videoPreparing ? (
+                <ActivityIndicator size="small" color={PRIMARY} />
+              ) : (
+                <Ionicons
+                  name={videoUri ? 'videocam' : 'videocam-outline'}
+                  size={18}
+                  color={fieldErrors.video ? '#dc2626' : videoUri ? PRIMARY : '#64748b'}
+                />
+              )}
               <Text
                 className={`text-sm font-bold ${
-                  fieldErrors.video ? 'text-red-600' : videoUri ? 'text-orange-600' : 'text-slate-600'
+                  fieldErrors.video ? 'text-red-600' : videoUri || videoPreparing ? 'text-orange-600' : 'text-slate-600'
                 }`}
               >
-                {videoUri ? t('createPetFeedPost.videoSelected') : t('createPetFeedPost.pickVideo')}
+                {videoPreparing
+                  ? t('createPetFeedPost.videoPreparing')
+                  : videoUri
+                    ? t('createPetFeedPost.changeVideo')
+                    : t('createPetFeedPost.pickVideo')}
               </Text>
             </Pressable>
+            <Text className="mt-1.5 text-xs text-slate-500">{t('createPetFeedPost.videoHint')}</Text>
             {fieldErrors.video ? <Text className="mt-1.5 text-xs font-medium text-red-600">{fieldErrors.video}</Text> : null}
-            {videoUri ? (
-              <Pressable className="mt-2 self-start active:opacity-80" onPress={() => setVideoUri('')}>
-                <Text className="text-sm font-bold text-red-600">{t('createPetFeedPost.removeVideo')}</Text>
-              </Pressable>
+            {videoPreparing || videoUri ? (
+              <View className="mt-3">
+                {videoUri ? (
+                  <View className="relative">
+                    <ListingVideoPreview key={videoUri} uri={videoUri} testID="create-pet-feed-post-video-preview" />
+                    {videoPreparing ? (
+                      <View className="absolute inset-0 overflow-hidden rounded-xl">
+                        <ListingVideoPreparingPlaceholder testID="create-pet-feed-post-video-preparing" />
+                      </View>
+                    ) : null}
+                  </View>
+                ) : (
+                  <ListingVideoPreparingPlaceholder testID="create-pet-feed-post-video-preparing" />
+                )}
+                {videoUri && !videoPreparing && videoSizeBytes != null ? (
+                  <Text className="mt-1.5 text-xs text-slate-500">
+                    {t('createPetFeedPost.videoSelected')} · {formatBytesAsMb(videoSizeBytes)}
+                  </Text>
+                ) : null}
+                {videoUri && !videoPreparing ? (
+                  <Pressable
+                    className="mt-2 self-start active:opacity-80"
+                    onPress={() => {
+                      setVideoUri('');
+                      setVideoSizeBytes(null);
+                    }}
+                  >
+                    <Text className="text-sm font-bold text-red-600">{t('createPetFeedPost.removeVideo')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
             ) : null}
           </View>
         </View>

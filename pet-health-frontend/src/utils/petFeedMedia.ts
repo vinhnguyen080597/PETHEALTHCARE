@@ -26,11 +26,29 @@ const PHOTO_QUALITY_LADDER: Array<{ width: number; compress: number }> = [
 export async function getLocalUriByteSize(uri: string): Promise<number | null> {
   try {
     const response = await fetch(uri);
+    const header = response.headers.get('Content-Length') ?? response.headers.get('content-length');
+    if (header) {
+      const parsed = Number(header);
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
     const blob = await response.blob();
-    return typeof blob.size === 'number' ? blob.size : null;
+    return typeof blob.size === 'number' && blob.size > 0 ? blob.size : null;
   } catch {
     return null;
   }
+}
+
+/** Prefer the copied/transcoded file at `uri` over ImagePicker's original-library fileSize. */
+export async function resolvePetFeedPickedVideoSize(asset: {
+  uri: string;
+  fileSize?: number | null;
+}): Promise<number | null> {
+  const actual = await getLocalUriByteSize(asset.uri);
+  if (actual != null && actual > 0) return actual;
+  if (typeof asset.fileSize === 'number' && Number.isFinite(asset.fileSize) && asset.fileSize > 0) {
+    return asset.fileSize;
+  }
+  return null;
 }
 
 /**
