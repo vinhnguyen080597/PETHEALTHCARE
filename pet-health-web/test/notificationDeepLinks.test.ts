@@ -4,6 +4,7 @@ import {
   adminRequestHref,
   breederTransparencyNotificationHref,
   farmProfileNotificationHref,
+  farmDetailTabFromNotification,
   farmSaleReviewNotificationHref,
   farmReviewedNotificationHref,
   isAdminQueueNotification,
@@ -182,6 +183,32 @@ test("transparency notification deep links and CTAs", () => {
       breeder_profile_id: "bp-9",
     }),
     "/app/breeders/bp-9",
+  );
+  assert.equal(
+    farmProfileNotificationHref({
+      type: "breeder_detail_approved",
+      breeder_profile_id: "bp-9",
+      metadata: { submission_type: "warranty_policy_file" },
+    }),
+    "/app/breeders/bp-9?tab=warranty",
+  );
+  assert.equal(
+    farmDetailTabFromNotification({
+      type: "breeder_detail_approved",
+      metadata: { submission_type: "facility_video" },
+    }),
+    "overview",
+  );
+  assert.equal(
+    farmProfileNotificationHref({
+      type: "breeder_detail_approved",
+      breeder_profile_id: "bp-9",
+      metadata: {
+        submission_type: "warranty_policy_file",
+        cta_href: "/app/account/breeder",
+      },
+    }),
+    "/app/breeders/bp-9?tab=warranty",
   );
   assert.equal(
     notificationInboxCta({ type: "transparency_warning" }, CTA_FALLBACKS),

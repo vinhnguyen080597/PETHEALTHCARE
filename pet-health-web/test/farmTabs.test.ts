@@ -7,6 +7,7 @@ import {
   farmDetailHref,
   farmProfileFromAccountHref,
   farmTabI18nKey,
+  farmWarrantyOwnerEmptyCtaKey,
   parseFarmDetailTab,
   parseWarrantyLibraryFrom,
   farmNameMarginClass,
@@ -25,6 +26,11 @@ test("parseFarmDetailTab accepts known tabs only", () => {
   assert.equal(parseFarmDetailTab("reviews"), "overview");
   assert.equal(parseFarmDetailTab("nope"), null);
   assert.equal(parseFarmDetailTab(null), null);
+});
+
+test("owner empty warranty CTA hides +10 copy after first award", () => {
+  assert.equal(farmWarrantyOwnerEmptyCtaKey(false), "farm.warranty.createCta");
+  assert.equal(farmWarrantyOwnerEmptyCtaKey(true), null);
 });
 
 test("farm name margin applies only for visitor view", () => {

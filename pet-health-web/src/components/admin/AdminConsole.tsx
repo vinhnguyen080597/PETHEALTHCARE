@@ -352,6 +352,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectAction, setRejectAction] = useState("");
   const [rejectNote, setRejectNote] = useState("");
+  const [rejectPenaltyPoints, setRejectPenaltyPoints] = useState("");
+  const [rejectPenaltyKind, setRejectPenaltyKind] = useState<
+    "" | "transparency" | "compliance" | "review"
+  >("");
   const [rejectError, setRejectError] = useState("");
   const [newsBody, setNewsBody] = useState("");
   const [newsCategory, setNewsCategory] = useState<AnnouncementCategory>("general");
@@ -825,6 +829,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       rejectionReason?: string;
       adminAction?: string;
       adminNote?: string;
+      penaltyPoints?: number;
+      penaltyKind?: "transparency" | "compliance" | "review";
     },
   ) =>
     runAction(
@@ -840,6 +846,12 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               : {}),
             ...(extras?.adminAction ? { adminAction: extras.adminAction } : {}),
             ...(extras?.adminNote ? { adminNote: extras.adminNote } : {}),
+            ...(extras?.penaltyPoints && extras?.penaltyKind
+              ? {
+                  penaltyPoints: extras.penaltyPoints,
+                  penaltyKind: extras.penaltyKind,
+                }
+              : {}),
           }),
         }),
       "admin.toast.updated",
@@ -848,7 +860,12 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const updateDetailSubmission = (
     submissionId: string,
     status: "approved" | "rejected",
-    extras?: { rejectionReason?: string; adminNote?: string },
+    extras?: {
+      rejectionReason?: string;
+      adminNote?: string;
+      penaltyPoints?: number;
+      penaltyKind?: "transparency" | "compliance" | "review";
+    },
   ) =>
     runAction(
       `detail-${submissionId}-${status}`,
@@ -862,6 +879,12 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               ? { rejectionReason: extras.rejectionReason }
               : {}),
             ...(extras?.adminNote ? { adminNote: extras.adminNote } : {}),
+            ...(extras?.penaltyPoints && extras?.penaltyKind
+              ? {
+                  penaltyPoints: extras.penaltyPoints,
+                  penaltyKind: extras.penaltyKind,
+                }
+              : {}),
           }),
         }),
       "admin.toast.updated",
@@ -915,6 +938,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     setRejectReason("");
     setRejectAction("");
     setRejectNote("");
+    setRejectPenaltyPoints("");
+    setRejectPenaltyKind("");
     setRejectError("");
   };
 
@@ -932,13 +957,38 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       );
       return;
     }
-    const target = rejectTarget;
-    setRejectTarget(null);
-    const extras = {
+    const extras: {
+      rejectionReason: string;
+      adminAction?: string;
+      adminNote?: string;
+      penaltyPoints?: number;
+      penaltyKind?: "transparency" | "compliance" | "review";
+    } = {
       rejectionReason: reason,
       adminAction: rejectAction.trim() || undefined,
       adminNote: rejectNote.trim() || undefined,
     };
+    if (rejectTarget.kind === "breeder" || rejectTarget.kind === "detail") {
+      const pointsText = rejectPenaltyPoints.trim();
+      const kind = rejectPenaltyKind;
+      const hasPoints = pointsText.length > 0;
+      const hasKind = kind === "transparency" || kind === "compliance" || kind === "review";
+      if (hasPoints !== hasKind) {
+        setRejectError(t(lang, "admin.breeders.rejectPenaltyRequired"));
+        return;
+      }
+      if (hasPoints && hasKind) {
+        const pts = Number(pointsText);
+        if (!Number.isFinite(pts) || pts !== Math.round(pts) || pts < 1 || pts > 100) {
+          setRejectError(t(lang, "admin.breeders.rejectPenaltyInvalid"));
+          return;
+        }
+        extras.penaltyPoints = pts;
+        extras.penaltyKind = kind;
+      }
+    }
+    const target = rejectTarget;
+    setRejectTarget(null);
     if (target.kind === "listing") {
       await updatePost(target.postId, "archived", extras);
       return;
@@ -2469,7 +2519,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       </div>
       {rejectTarget ? (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#2B1E19]/40 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#E8DFD0] bg-white p-5 shadow-xl">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[#E8DFD0] bg-white p-5 shadow-xl">
             <h3 className="text-base font-bold text-[#2B1E19]">
               {t(
                 lang,
@@ -2548,6 +2598,52 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   : "admin.breeders.rejectNotePlaceholder",
               )}
             />
+            {rejectTarget.kind === "breeder" || rejectTarget.kind === "detail" ? (
+              <>
+                <label className="mt-3 block text-xs font-semibold text-[#6E5A51]">
+                  {t(lang, "admin.breeders.rejectPenaltyPoints")}
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  inputMode="numeric"
+                  value={rejectPenaltyPoints}
+                  onChange={(e) => {
+                    setRejectPenaltyPoints(e.target.value);
+                    setRejectError("");
+                  }}
+                  className="mt-1.5 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+                  placeholder={t(lang, "admin.breeders.rejectPenaltyPointsPlaceholder")}
+                />
+                <label className="mt-3 block text-xs font-semibold text-[#6E5A51]">
+                  {t(lang, "admin.breeders.rejectPenaltyKind")}
+                </label>
+                <select
+                  value={rejectPenaltyKind}
+                  onChange={(e) => {
+                    setRejectPenaltyKind(
+                      e.target.value as "" | "transparency" | "compliance" | "review",
+                    );
+                    setRejectError("");
+                  }}
+                  className="mt-1.5 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+                >
+                  <option value="">
+                    {t(lang, "admin.breeders.rejectPenaltyKindPlaceholder")}
+                  </option>
+                  <option value="transparency">
+                    {t(lang, "admin.breeders.rejectPenaltyKind.transparency")}
+                  </option>
+                  <option value="compliance">
+                    {t(lang, "admin.breeders.rejectPenaltyKind.compliance")}
+                  </option>
+                  <option value="review">
+                    {t(lang, "admin.breeders.rejectPenaltyKind.review")}
+                  </option>
+                </select>
+              </>
+            ) : null}
             {rejectError ? (
               <p className="mt-2 text-xs font-medium text-red-600">{rejectError}</p>
             ) : null}

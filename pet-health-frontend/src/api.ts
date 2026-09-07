@@ -764,6 +764,16 @@ export async function listMyBreederProfileSubmissions(token: string) {
   );
 }
 
+export async function cancelMyBreederProfileSubmission(token: string, submissionId: string) {
+  return requestJson<{ data: import('./utils/breederProfileSubmissions').BreederProfileSubmission }>(
+    `/pet-feed/breeder-profile/me/submissions/${encodeURIComponent(submissionId)}/cancel`,
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+    },
+  );
+}
+
 export async function createBreederProfileSubmission(
   token: string,
   payload: { submissionType: string; url: string; note?: string },
@@ -1393,6 +1403,8 @@ export async function updateAdminBreederProfileStatus(
     rejectionReason?: string;
     adminAction?: string;
     adminNote?: string;
+    penaltyPoints?: number;
+    penaltyKind?: 'transparency' | 'compliance' | 'review';
   },
 ) {
   return requestJson<{ data: BreederProfile }>(`/admin/breeder-profiles/${encodeURIComponent(userId)}/status`, {
@@ -1406,6 +1418,9 @@ export async function updateAdminBreederProfileStatus(
       ...(options?.rejectionReason ? { rejectionReason: options.rejectionReason } : {}),
       ...(options?.adminAction ? { adminAction: options.adminAction } : {}),
       ...(options?.adminNote ? { adminNote: options.adminNote } : {}),
+      ...(options?.penaltyPoints && options?.penaltyKind
+        ? { penaltyPoints: options.penaltyPoints, penaltyKind: options.penaltyKind }
+        : {}),
     }),
   });
 }

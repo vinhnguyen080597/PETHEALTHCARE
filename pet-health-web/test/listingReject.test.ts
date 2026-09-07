@@ -19,6 +19,11 @@ const KEYS = [
   "admin.listings.rejectActionPlaceholder",
   "admin.listings.rejectNote",
   "admin.listings.rejectNotePlaceholder",
+  "admin.breeders.rejectPenaltyPoints",
+  "admin.breeders.rejectPenaltyKind",
+  "admin.breeders.rejectPenaltyKind.transparency",
+  "admin.breeders.rejectPenaltyKind.compliance",
+  "admin.breeders.rejectPenaltyKind.review",
 ] as const;
 
 test("listing reject i18n keys exist in EN and VI", () => {

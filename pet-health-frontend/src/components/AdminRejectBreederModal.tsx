@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+
+export type AdminRejectScoreKind = 'transparency' | 'compliance' | 'review';
 
 export type AdminRejectBreederPayload = {
   rejectionReason: string;
   adminAction?: string;
   adminNote?: string;
+  penaltyPoints?: number;
+  penaltyKind?: AdminRejectScoreKind;
 };
+
+const SCORE_KINDS: AdminRejectScoreKind[] = ['transparency', 'compliance', 'review'];
 
 type AdminRejectBreederModalProps = {
   visible: boolean;
@@ -15,6 +21,24 @@ type AdminRejectBreederModalProps = {
   onClose: () => void;
   onSubmit: (payload: AdminRejectBreederPayload) => void | Promise<void>;
 };
+
+function parsePenaltyFields(
+  pointsText: string,
+  kind: string,
+):
+  | { ok: true; penaltyPoints?: number; penaltyKind?: AdminRejectScoreKind }
+  | { ok: false; errorKey: 'adminReview.rejectPenaltyRequired' | 'adminReview.rejectPenaltyInvalid' } {
+  const trimmed = pointsText.trim();
+  const hasPoints = trimmed.length > 0;
+  const hasKind = SCORE_KINDS.includes(kind as AdminRejectScoreKind);
+  if (!hasPoints && !hasKind) return { ok: true };
+  if (!hasPoints || !hasKind) return { ok: false, errorKey: 'adminReview.rejectPenaltyRequired' };
+  const pts = Number(trimmed);
+  if (!Number.isFinite(pts) || pts !== Math.round(pts) || pts < 1 || pts > 100) {
+    return { ok: false, errorKey: 'adminReview.rejectPenaltyInvalid' };
+  }
+  return { ok: true, penaltyPoints: pts, penaltyKind: kind as AdminRejectScoreKind };
+}
 
 export function AdminRejectBreederModal({
   visible,
@@ -27,15 +51,22 @@ export function AdminRejectBreederModal({
   const [reason, setReason] = useState('');
   const [action, setAction] = useState('');
   const [note, setNote] = useState('');
+  const [penaltyPoints, setPenaltyPoints] = useState('');
+  const [penaltyKind, setPenaltyKind] = useState('');
+  const [kindOpen, setKindOpen] = useState(false);
   const [error, setError] = useState('');
   const isListing = variant === 'listing';
   const isFarmReview = variant === 'farm_review';
+  const showScoreFields = variant === 'breeder';
 
   useEffect(() => {
     if (!visible) return;
     setReason('');
     setAction('');
     setNote('');
+    setPenaltyPoints('');
+    setPenaltyKind('');
+    setKindOpen(false);
     setError('');
   }, [visible]);
 
@@ -45,10 +76,17 @@ export function AdminRejectBreederModal({
       setError(t('adminReview.rejectReasonRequired'));
       return;
     }
+    const penalty = parsePenaltyFields(penaltyPoints, penaltyKind);
+    if (!penalty.ok) {
+      setError(t(penalty.errorKey));
+      return;
+    }
     await onSubmit({
       rejectionReason: trimmed,
       adminAction: action.trim() || undefined,
       adminNote: note.trim() || undefined,
+      penaltyPoints: penalty.penaltyPoints,
+      penaltyKind: penalty.penaltyKind,
     });
   };
 
@@ -56,9 +94,10 @@ export function AdminRejectBreederModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 items-center justify-center bg-black/40 px-5" onPress={onClose}>
         <Pressable
-          className="w-full max-w-md rounded-2xl bg-white p-4"
+          className="w-full max-w-md max-h-[88%] rounded-2xl bg-white p-4"
           onPress={(event) => event.stopPropagation?.()}
         >
+          <ScrollView keyboardShouldPersistTaps="handled">
           <Text className="text-base font-bold text-slate-900">
             {t(
               isFarmReview
@@ -126,6 +165,60 @@ export function AdminRejectBreederModal({
             </>
           ) : null}
 
+          {showScoreFields ? (
+            <>
+              <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">
+                {t('adminReview.rejectPenaltyPoints')}
+              </Text>
+              <TextInput
+                className="mt-1.5 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3 text-sm text-slate-900"
+                placeholder={t('adminReview.rejectPenaltyPointsPlaceholder')}
+                keyboardType="number-pad"
+                value={penaltyPoints}
+                onChangeText={(value) => {
+                  setPenaltyPoints(value.replace(/[^\d]/g, ''));
+                  if (error) setError('');
+                }}
+                editable={!submitting}
+              />
+
+              <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">
+                {t('adminReview.rejectPenaltyKind')}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                disabled={submitting}
+                onPress={() => setKindOpen((open) => !open)}
+                className="mt-1.5 rounded-xl border border-gray-200 bg-slate-50 px-3 py-3"
+              >
+                <Text className={`text-sm ${penaltyKind ? 'text-slate-900' : 'text-slate-400'}`}>
+                  {penaltyKind
+                    ? t(`adminReview.rejectPenaltyKindOptions.${penaltyKind}`)
+                    : t('adminReview.rejectPenaltyKindPlaceholder')}
+                </Text>
+              </Pressable>
+              {kindOpen ? (
+                <View className="mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                  {SCORE_KINDS.map((kind) => (
+                    <Pressable
+                      key={kind}
+                      onPress={() => {
+                        setPenaltyKind(kind);
+                        setKindOpen(false);
+                        if (error) setError('');
+                      }}
+                      className="border-b border-gray-100 px-3 py-3 last:border-b-0"
+                    >
+                      <Text className={`text-sm ${penaltyKind === kind ? 'font-bold text-amber-700' : 'text-slate-900'}`}>
+                        {t(`adminReview.rejectPenaltyKindOptions.${kind}`)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+            </>
+          ) : null}
+
           {error ? <Text className="mt-2 text-sm text-red-600">{error}</Text> : null}
 
           <View className="mt-4 flex-row gap-2">
@@ -146,6 +239,7 @@ export function AdminRejectBreederModal({
               </Text>
             </Pressable>
           </View>
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>

@@ -514,6 +514,7 @@ function AppContent() {
                 editPolicy={app.warrantyLibraryEditPolicy}
                 onBack={app.closeWarrantyLibrary}
                 onSaved={app.onWarrantyPolicySaved}
+                onUploadSubmitted={app.onWarrantyUploadSubmitted}
               />
             ) : null}
 

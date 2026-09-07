@@ -4,6 +4,7 @@ import { farmPetAvailability } from './farmPets.ts';
 import { farmWarrantyPoliciesFromMetadata } from './farmProfileDisplay.ts';
 import { parsePetFeedPriceToVnd } from './petFeedCurrency.ts';
 import { computeBreederTrust } from './breederTrust.ts';
+import { applyAdminReviewPenalty } from './breederTransparencyScore.ts';
 
 export type BreederPetThumb = {
   listingId: string;
@@ -120,7 +121,7 @@ export function breederCardReviewMetrics(metadata: Record<string, unknown> | und
   );
   const reviewCount =
     Number.isFinite(reviewCountRaw) && reviewCountRaw > 0 ? Math.floor(reviewCountRaw) : 0;
-  const reviewAvg = Number(meta.review_avg ?? meta.reviewAverage);
+  const reviewAvg = applyAdminReviewPenalty(Number(meta.review_avg ?? meta.reviewAverage), meta);
   const rating =
     reviewCount > 0 && Number.isFinite(reviewAvg) && reviewAvg > 0
       ? Math.round(reviewAvg * 10) / 10

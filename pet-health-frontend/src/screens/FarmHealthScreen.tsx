@@ -13,6 +13,7 @@ import {
   getTransparencyTier,
   parseApprovedSocialFromMeta,
   parseTransparencyActivityFromMeta,
+  adminTransparencyPenaltyFromMeta,
 } from '../utils/breederTransparencyScore';
 import {
   pickLangText,
@@ -115,8 +116,9 @@ export function FarmHealthScreen({
           typeof metadata.penaltyPoints === 'number'
             ? metadata.penaltyPoints
             : Number(metadata.penaltyPoints) || 0,
+        adminPenaltyPoints: adminTransparencyPenaltyFromMeta(metadata),
       }),
-    [activity, isVerified, metadata.penaltyPoints, social],
+    [activity, isVerified, metadata, social],
   );
   const score = computed.score;
   const tier = getTransparencyTier(score);

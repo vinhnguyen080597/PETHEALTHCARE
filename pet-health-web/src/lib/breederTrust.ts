@@ -12,6 +12,7 @@ import {
   TRANSPARENCY_TICK_INACTIVE,
   TRANSPARENCY_VIOLATION_PENALTIES,
   transparencyTickColor,
+  adminTransparencyPenaltyFromMeta,
   type TransparencyScoreInput,
   type TransparencyScoreResult,
   type TransparencyTierInfo,
@@ -138,6 +139,7 @@ function normalizeTransparencyInput(
     senConfirmedCompletions: input.senConfirmedCompletions,
     fiveStarReviewCount: input.fiveStarReviewCount,
     penaltyPoints: input.penaltyPoints,
+    adminPenaltyPoints: input.adminPenaltyPoints,
     violations: input.violations,
     now: input.now,
   };
@@ -176,6 +178,7 @@ export function transparencyInputFromBreeder(
     fiveStarReviewCount:
       extras?.fiveStarReviewCount ?? activity.fiveStarReviewCount,
     penaltyPoints: breeder.penaltyPoints,
+    adminPenaltyPoints: adminTransparencyPenaltyFromMeta(meta),
     violations: breeder.violations,
   };
 }

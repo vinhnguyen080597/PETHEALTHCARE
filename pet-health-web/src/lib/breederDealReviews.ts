@@ -1,3 +1,5 @@
+import { applyAdminReviewPenalty } from "./breederTransparencyScore";
+
 /** Sen deal reviews — shared validation + display helpers. */
 
 export const DEAL_REVIEW_RATING_MIN = 1;
@@ -68,7 +70,7 @@ export function parseReviewStatsFromMeta(meta: Record<string, unknown>): {
     num(meta.review_display_count ?? meta.review_count ?? meta.reviewCount),
   );
   return {
-    reviewAverage: num(meta.review_avg ?? meta.reviewAverage),
+    reviewAverage: applyAdminReviewPenalty(num(meta.review_avg ?? meta.reviewAverage), meta),
     reviewCount: displayCount,
     fiveStarReviewCount: Math.floor(
       num(meta.five_star_review_count ?? meta.review_5star_count),

@@ -125,3 +125,8 @@ export function warrantyLibraryEditHref(
 ): string {
   return warrantyLibraryHref({ ...options, edit: policyId });
 }
+
+/** +10 first-policy empty CTA is only shown until that task has been awarded. */
+export function farmWarrantyOwnerEmptyCtaKey(firstWarrantyAwarded: boolean) {
+  return firstWarrantyAwarded ? null : ("farm.warranty.createCta" as const);
+}

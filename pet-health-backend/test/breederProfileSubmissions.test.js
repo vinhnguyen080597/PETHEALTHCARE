@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   applyApprovedBreederSubmission,
+  approvedBreederDetailCtaHref,
   normalizeBreederSubmissionType,
   validateBreederSubmissionPayload,
 } from "../src/utils/breederProfileSubmissions.js";
@@ -86,6 +87,87 @@ test("re-approved submission does not reset one-time trust award", () => {
   assert.equal(merged.contact.facebook, "https://facebook.com/new");
   assert.equal(merged.metadata.social_facebook_approved, true);
   assert.equal(merged.metadata.social_facebook_trust_awarded, true);
+});
+
+test("applyApprovedBreederSubmission awards first warranty file once", () => {
+  const profile = { contact: {}, metadata: {} };
+  const first = applyApprovedBreederSubmission(profile, {
+    submission_type: "warranty_policy_file",
+    payload: {
+      url: "https://cdn.example/policy.pdf",
+      title: "Chính sách trại",
+      content_type: "application/pdf",
+    },
+  }, "2026-09-07T00:00:00.000Z");
+  assert.equal(first.metadata.warranty_policy_trust_awarded, true);
+  assert.equal(first.metadata.first_warranty_approved, true);
+  assert.equal(first.metadata.warranty_policies.length, 1);
+  assert.equal(first.metadata.warranty_policies[0].file_url, "https://cdn.example/policy.pdf");
+  assert.equal(first.metadata.warranty_policies[0].title, "Chính sách trại");
+
+  const second = applyApprovedBreederSubmission(
+    { contact: {}, metadata: first.metadata },
+    {
+      submission_type: "warranty_policy_file",
+      payload: {
+        url: "https://cdn.example/policy-2.pdf",
+        title: "Chính sách bổ sung",
+      },
+    },
+    "2026-09-07T01:00:00.000Z",
+  );
+  assert.equal(second.metadata.warranty_policy_trust_awarded, true);
+  assert.equal(second.metadata.warranty_policies.length, 2);
+});
+
+test("applyApprovedBreederSubmission does not re-award existing warranty trust", () => {
+  const profile = {
+    contact: {},
+    metadata: {
+      warranty_policy_trust_awarded: true,
+      first_warranty_approved: true,
+      warranty_policies: [
+        { id: "p1", title: "Structured", vaccine_shots_count: 2 },
+      ],
+    },
+  };
+  const merged = applyApprovedBreederSubmission(profile, {
+    submission_type: "warranty_policy_file",
+    payload: { url: "https://cdn.example/file.pdf", title: "Upload" },
+  }, "2026-09-07T00:00:00.000Z");
+  assert.equal(merged.metadata.warranty_policy_trust_awarded, true);
+  assert.equal(merged.metadata.warranty_policies.length, 2);
+  assert.equal(
+    merged.metadata.warranty_policies.some((p) => p.file_url === "https://cdn.example/file.pdf"),
+    true,
+  );
+});
+
+test("applyApprovedBreederSubmission awards warranty file even if other policies exist", () => {
+  const profile = {
+    contact: {},
+    metadata: {
+      warranty_policies: [{ id: "p1", title: "Structured" }],
+    },
+  };
+  const merged = applyApprovedBreederSubmission(profile, {
+    submission_type: "warranty_policy_file",
+    payload: { url: "https://cdn.example/file.pdf", title: "Upload" },
+  }, "2026-09-07T00:00:00.000Z");
+  assert.equal(merged.metadata.warranty_policy_trust_awarded, true);
+  assert.equal(merged.metadata.first_warranty_approved, true);
+  assert.equal(merged.metadata.warranty_policies.length, 2);
+});
+
+test("approvedBreederDetailCtaHref opens warranty tab for policy files", () => {
+  assert.equal(
+    approvedBreederDetailCtaHref("bp-9", "warranty_policy_file"),
+    "/app/breeders/bp-9?tab=warranty",
+  );
+  assert.equal(
+    approvedBreederDetailCtaHref("bp-9", "facility_video"),
+    "/app/breeders/bp-9",
+  );
 });
 
 test("normalizeBreederSubmissionType rejects unknown types", () => {

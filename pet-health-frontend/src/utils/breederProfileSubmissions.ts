@@ -27,6 +27,25 @@ export type BreederProfileSubmission = {
   reviewed_at?: string | null;
 };
 
+export function pendingWarrantyUploadsFromSubmissions(
+  rows: BreederProfileSubmission[] | unknown,
+): Array<{ id: string; title: string; fileUrl: string }> {
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .filter((row) => row.submission_type === 'warranty_policy_file' && row.status === 'pending')
+    .map((row) => {
+      const fileUrl = String(row.payload?.url ?? '').trim();
+      const fromTitle = String(row.payload?.title ?? '').trim();
+      const fromFile = fileUrl.split(/[/?#]/).filter(Boolean).pop() || '';
+      return {
+        id: String(row.id),
+        title: fromTitle || fromFile.replace(/\.[^.]+$/, '') || 'Warranty policy',
+        fileUrl,
+      };
+    })
+    .filter((item) => Boolean(item.fileUrl));
+}
+
 export function isSocialSubmissionType(type: string): boolean {
   return type.startsWith('social_');
 }

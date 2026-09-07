@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import {
+  ActivityIndicator,
   Alert,
+  LayoutChangeEvent,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -55,6 +58,7 @@ type WarrantyLibraryScreenProps = {
     policy: WarrantyPolicy,
     meta?: { trustAwarded?: boolean; profile?: BreederProfile },
   ) => void;
+  onUploadSubmitted?: () => void;
 };
 
 const INPUT_CLASS = 'rounded-xl border border-[#F0E6D8] bg-white px-4 py-2.5 text-sm text-[#2B1E19]';
@@ -123,6 +127,7 @@ export function WarrantyLibraryScreen({
   editPolicy = null,
   onBack,
   onSaved,
+  onUploadSubmitted,
 }: WarrantyLibraryScreenProps) {
   const { t } = useTranslation();
   const species = resolveWarrantyFarmSpecies({ primarySpecies });
@@ -131,10 +136,12 @@ export function WarrantyLibraryScreen({
     editPolicy ? warrantyPolicyToFormValues(editPolicy) : defaultWarrantyFormValues(),
   );
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success'>('idle');
   const [titleError, setTitleError] = useState('');
   const isEdit = Boolean(editPolicy?.id);
   const [entryMode, setEntryMode] = useState<'none' | 'form'>(() => (isEdit ? 'form' : 'none'));
+  const scrollRef = useRef<ScrollView>(null);
+  const titleFieldY = useRef(0);
   const presets = useMemo(() => warrantyVaccinePresetIds(species), [species]);
   const careParvoPreset = CARE_PARVO_DAY_OPTIONS.includes(values.careParvoCoverageDays as 7 | 14 | 30)
     ? String(values.careParvoCoverageDays)
@@ -144,9 +151,23 @@ export function WarrantyLibraryScreen({
     setValues((current) => ({ ...current, ...next }));
   }
 
+  function rememberFieldY(ref: React.MutableRefObject<number>, event: LayoutChangeEvent) {
+    ref.current = event.nativeEvent.layout.y;
+  }
+
+  function scrollToFirstValidationError() {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(titleFieldY.current - 24, 0),
+        animated: true,
+      });
+    });
+  }
+
   async function save() {
     if (!values.title.trim()) {
       setTitleError(t('warranty.library.formRequired'));
+      scrollToFirstValidationError();
       return;
     }
     setTitleError('');
@@ -173,7 +194,6 @@ export function WarrantyLibraryScreen({
   }
 
   async function pickAndUploadPolicy() {
-    setUploading(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({
         multiple: false,
@@ -188,6 +208,7 @@ export function WarrantyLibraryScreen({
         copyToCacheDirectory: true,
       });
       if (result.canceled || !result.assets?.[0]) return;
+      setUploadStatus('uploading');
       const asset = result.assets[0];
       const uploadResult = await uploadWarrantyPolicyFile(token, {
         title: asset.name?.replace(/\.[^.]+$/, '') || '',
@@ -196,19 +217,68 @@ export function WarrantyLibraryScreen({
         mimeType: asset.mimeType || 'application/octet-stream',
       });
       if (!uploadResult.data) throw new Error(t('common.unknownError'));
-      Alert.alert(t('common.ok'), t('account.breederDetails.saved'));
+      setUploadStatus('success');
     } catch (error) {
+      setUploadStatus('idle');
       Alert.alert(
         t('common.error'),
         error instanceof Error ? error.message : t('common.unknownError'),
       );
-    } finally {
-      setUploading(false);
     }
   }
 
   return (
     <View testID="warranty-library-screen" className="flex-1 bg-[#FDFBF7]">
+      <Modal
+        visible={uploadStatus !== 'idle'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (uploadStatus === 'success') setUploadStatus('idle');
+        }}
+      >
+        <View className="flex-1 items-center justify-center bg-black/30 px-6">
+          <View className="w-full max-w-[320px] rounded-3xl bg-white px-6 py-7">
+            {uploadStatus === 'uploading' ? (
+              <View className="items-center">
+                <ActivityIndicator size="large" color={FARM_ACCENT} />
+                <Text className="mt-4 text-base font-extrabold text-[#2B1E19]">
+                  {t('warranty.library.uploadingTitle')}
+                </Text>
+                <Text className="mt-2 text-center text-sm leading-6 text-[#6E5A51]">
+                  {t('warranty.library.uploadingBody')}
+                </Text>
+              </View>
+            ) : (
+              <View className="items-center">
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
+                  <Ionicons name="checkmark-circle" size={32} color="#059669" />
+                </View>
+                <Text className="mt-4 text-base font-extrabold text-[#2B1E19]">
+                  {t('warranty.library.submitSuccessTitle')}
+                </Text>
+                <Text className="mt-2 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                  {t('account.breederDetails.status.pending')}
+                </Text>
+                <Text className="mt-3 text-center text-sm leading-6 text-[#6E5A51]">
+                  {t('warranty.library.submitSuccessBody')}
+                </Text>
+                <Pressable
+                  className="mt-5 w-full items-center rounded-xl px-4 py-3"
+                  style={{ backgroundColor: FARM_ACCENT }}
+                  onPress={() => {
+                    setUploadStatus('idle');
+                    onUploadSubmitted?.();
+                  }}
+                >
+                  <Text className="text-sm font-bold text-white">{t('common.done')}</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
       <View className="flex-row items-center border-b border-[#F3E2C8] bg-white px-2 py-2">
         <Pressable className="w-14 rounded-lg p-2" onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
@@ -220,6 +290,7 @@ export function WarrantyLibraryScreen({
       </View>
 
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
@@ -234,12 +305,12 @@ export function WarrantyLibraryScreen({
               <View className="mt-4 flex-row gap-3">
                 <Pressable
                   testID="warranty-library-upload-button"
-                  disabled={uploading}
+                  disabled={uploadStatus === 'uploading'}
                   onPress={() => void pickAndUploadPolicy()}
                   className="flex-1 items-center rounded-xl border border-[#F3E2C8] bg-[#FDF8F0] px-4 py-3"
                 >
                   <Text className="text-sm font-bold text-[#8A5A16]">
-                    {uploading ? t('common.loading') : t('warranty.library.upload')}
+                    {t('warranty.library.upload')}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -286,20 +357,22 @@ export function WarrantyLibraryScreen({
                 </View>
               ) : (
                 <>
-              <FieldLabel>
-                {t('warranty.library.name')} <Text className="text-red-500">*</Text>
-              </FieldLabel>
-              <TextInput
-                className={`mt-1.5 ${INPUT_CLASS} ${titleError ? 'border-red-400' : ''}`}
-                value={values.title}
-                onChangeText={(title) => {
-                  setTitleError('');
-                  patch({ title });
-                }}
-                placeholder={t('warranty.library.name')}
-                placeholderTextColor="#94A3B8"
-              />
-              {titleError ? <Text className="mt-1.5 text-xs font-semibold text-red-600">{titleError}</Text> : null}
+              <View onLayout={(event) => rememberFieldY(titleFieldY, event)}>
+                <FieldLabel>
+                  {t('warranty.library.name')} <Text className="text-red-500">*</Text>
+                </FieldLabel>
+                <TextInput
+                  className={`mt-1.5 ${INPUT_CLASS} ${titleError ? 'border-red-400' : ''}`}
+                  value={values.title}
+                  onChangeText={(title) => {
+                    setTitleError('');
+                    patch({ title });
+                  }}
+                  placeholder={t('warranty.library.name')}
+                  placeholderTextColor="#94A3B8"
+                />
+                {titleError ? <Text className="mt-1.5 text-xs font-semibold text-red-600">{titleError}</Text> : null}
+              </View>
 
               <View className="mt-5 gap-4">
             <SectionCard title={`1. ${t('warranty.pillar.handover')}`}>

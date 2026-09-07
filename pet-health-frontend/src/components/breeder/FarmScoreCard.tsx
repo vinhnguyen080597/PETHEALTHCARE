@@ -20,6 +20,7 @@ import {
   transparencyScoreColor,
   parseApprovedSocialFromMeta,
   parseTransparencyActivityFromMeta,
+  adminTransparencyPenaltyFromMeta,
 } from '../../utils/breederTransparencyScore';
 import { farmTrustLevelChipLabel } from '../../utils/farmTrustDisplay';
 import { trustGuideLangFromLocale } from '../../utils/farmTrustGuide';
@@ -175,6 +176,7 @@ export function FarmScoreCard({
     approvedFacilityVideo: activity.approvedFacilityVideo,
     approvedBusinessLicense: activity.approvedBusinessLicense,
     approvedFirstWarranty: activity.approvedFirstWarranty,
+    adminPenaltyPoints: adminTransparencyPenaltyFromMeta(metadata),
   });
   const profileProgress = transparencyProfileCompletionPercent(computed);
   const tier = getTransparencyTier(transparencyScore);

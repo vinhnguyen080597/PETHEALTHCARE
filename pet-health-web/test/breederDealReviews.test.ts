@@ -35,3 +35,12 @@ test("parseReviewStatsFromMeta", () => {
   assert.equal(stats.fiveStarReviewCount, 3);
   assert.equal(stats.senConfirmedCompletions, 5);
 });
+
+test("parseReviewStatsFromMeta applies admin review penalty on 0-100 scale", () => {
+  const stats = parseReviewStatsFromMeta({
+    review_avg: 5,
+    review_count: 2,
+    admin_review_penalty: 10,
+  });
+  assert.equal(stats.reviewAverage, 4.5);
+});

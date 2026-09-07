@@ -25,6 +25,11 @@ test("verified breeder starts at 30 base points", () => {
   assert.equal(getTransparencyTier(result.score).nameVI, "Trại mới");
 });
 
+test("adminPenaltyPoints subtract from transparency score", () => {
+  const result = computeTransparencyScore({ isVerified: true, adminPenaltyPoints: 10 });
+  assert.equal(result.score, 20);
+});
+
 test("approved social platforms award 5 points each", () => {
   assert.equal(
     socialTransparencyPoints({

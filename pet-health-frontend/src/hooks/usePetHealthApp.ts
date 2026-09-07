@@ -158,7 +158,7 @@ import type {
   UserRole,
 } from '../types';
 import type { AppScreen } from '../screens/types';
-import type { FarmDetailTab } from '../utils/farmProfileDisplay';
+import { farmDetailTabFromNotificationMetadata, type FarmDetailTab } from '../utils/farmProfileDisplay';
 import type { WarrantyPolicy } from '../utils/warrantyPolicy';
 import { resolveBreederProfileReturnScreen } from '../utils/breederProfileNavigation';
 import {
@@ -2109,6 +2109,16 @@ export function usePetHealthApp() {
     const matches = (profile: BreederProfile | null | undefined) =>
       Boolean(profile && (profile.id === safeId || profile.user_id === safeId));
 
+    if (matches(breederProfile) && hasAccountRole('breeder')) {
+      try {
+        const profileRes = await getMyBreederProfile(token);
+        setBreederProfile(profileRes.data);
+        if (matches(profileRes.data)) return profileRes.data;
+      } catch {
+        return breederProfile;
+      }
+    }
+
     if (matches(breederProfile)) return breederProfile;
 
     if (hasAccountRole('breeder')) {
@@ -2265,6 +2275,12 @@ export function usePetHealthApp() {
         ? i18n.t('warranty.library.trustAwarded')
         : i18n.t(wasEdit ? 'warranty.library.updated' : 'warranty.library.created'),
     );
+  }
+
+  function onWarrantyUploadSubmitted() {
+    setWarrantyLibraryEditPolicy(null);
+    setBreederDetailTab('warranty');
+    setScreen('breeder-detail');
   }
 
   function openTemplatePicker() {
@@ -3054,9 +3070,19 @@ export function usePetHealthApp() {
       (type === 'breeder_verified' || type === 'breeder_detail_approved') &&
       notification.breeder_profile_id
     ) {
+      const profileId = notification.breeder_profile_id;
+      const tab =
+        type === 'breeder_detail_approved'
+          ? farmDetailTabFromNotificationMetadata(notification.metadata)
+          : 'overview';
       setBreederDetailReturnScreen('notifications-inbox');
-      setSelectedBreederProfileId(notification.breeder_profile_id);
+      setBreederDetailProfilePin(null);
+      setBreederDetailScrollToReviews(false);
+      setBreederDetailFocusReviewId(null);
+      setBreederDetailTab(tab);
+      setSelectedBreederProfileId(profileId);
       setScreen('breeder-detail');
+      void resolveBreederProfileForDetail(profileId);
       return;
     }
     if (type === 'breeder_rejected' || type === 'breeder_detail_rejected' || type === 'farm_review_rejected') {
@@ -3704,6 +3730,8 @@ export function usePetHealthApp() {
       rejectionReason?: string;
       adminAction?: string;
       adminNote?: string;
+      penaltyPoints?: number;
+      penaltyKind?: 'transparency' | 'compliance' | 'review';
     },
   ) {
     if (!token) {
@@ -5125,6 +5153,7 @@ export function usePetHealthApp() {
     closeWarrantyLibrary,
     openWarrantyFromTrustGuide,
     onWarrantyPolicySaved,
+    onWarrantyUploadSubmitted,
     applyBreederProfileUpdate,
     openTemplatePicker,
     closeTemplatePicker,

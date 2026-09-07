@@ -4,6 +4,7 @@ import {
   getTransparencyTier,
   parseApprovedSocialFromMeta,
   parseTransparencyActivityFromMeta,
+  adminTransparencyPenaltyFromMeta,
 } from './breederTransparencyScore.ts';
 
 export type TrustSignalKey =
@@ -71,6 +72,7 @@ export function computeBreederTrust(profile: BreederProfile, _posts: PetFeedPost
     senConfirmedCompletions: activity.senConfirmedCompletions,
     fiveStarReviewCount: activity.fiveStarReviewCount,
     penaltyPoints: penaltyPointsFromMetadata(metadata),
+    adminPenaltyPoints: adminTransparencyPenaltyFromMeta(metadata),
   });
 
   const lineByKey = Object.fromEntries(result.lines.map((line) => [line.key, line]));

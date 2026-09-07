@@ -207,6 +207,8 @@ export type PetFeedNotification = {
     request_kind?: string;
     title?: string;
     thumb_url?: string | null;
+    submission_id?: string;
+    submission_type?: string;
   };
 };
 
@@ -670,6 +672,8 @@ export async function adminUpdateBreederStatus(
     rejectionReason?: string;
     adminAction?: string;
     adminNote?: string;
+    penaltyPoints?: number;
+    penaltyKind?: "transparency" | "compliance" | "review";
   },
 ) {
   return fetchJson(`/admin/breeder-profiles/${encodeURIComponent(userId)}/status`, {
@@ -680,6 +684,9 @@ export async function adminUpdateBreederStatus(
       ...(extras?.rejectionReason ? { rejectionReason: extras.rejectionReason } : {}),
       ...(extras?.adminAction ? { adminAction: extras.adminAction } : {}),
       ...(extras?.adminNote ? { adminNote: extras.adminNote } : {}),
+      ...(extras?.penaltyPoints && extras?.penaltyKind
+        ? { penaltyPoints: extras.penaltyPoints, penaltyKind: extras.penaltyKind }
+        : {}),
     },
   });
 }

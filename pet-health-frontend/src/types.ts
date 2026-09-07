@@ -328,6 +328,8 @@ export type PetFeedNotification = {
     admin_note?: string;
     breeder_profile_id?: string;
     review_id?: string;
+    submission_id?: string;
+    submission_type?: string;
   };
 };
 

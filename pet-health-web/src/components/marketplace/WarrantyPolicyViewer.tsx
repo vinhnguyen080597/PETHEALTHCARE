@@ -132,6 +132,7 @@ export function WarrantyPolicyViewer({
 }) {
   if (!open || !policy) return null;
 
+  const isUploadedFilePolicy = Boolean(policy.fileUrl);
   const species =
     farmSpecies ||
     resolveWarrantyFarmSpecies({ primarySpecies, listingSpecies });
@@ -204,6 +205,27 @@ export function WarrantyPolicyViewer({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          {isUploadedFilePolicy ? (
+            <div className="rounded-2xl border border-[#F3E2C8] bg-[#FFFBF5] p-4 space-y-3">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-[#D97706]">
+                {t(lang, "warranty.viewer.uploadedTitle")}
+              </p>
+              <p className="text-sm leading-6 text-[#5C4A3A]">
+                {t(lang, "warranty.viewer.uploadedBody")}
+              </p>
+              {policy.fileUrl ? (
+                <a
+                  href={policy.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-full rounded-xl bg-[#D97706] px-4 py-3 text-sm font-bold text-white hover:bg-[#B45309]"
+                >
+                  {t(lang, "warranty.viewer.openFile")}
+                </a>
+              ) : null}
+            </div>
+          ) : (
+          <>
           <div className="space-y-3">
             <p className="flex items-center gap-2 text-base font-extrabold uppercase tracking-[0.06em] text-[#D97706]">
               <span className="text-lg" aria-hidden>
@@ -390,6 +412,8 @@ export function WarrantyPolicyViewer({
               </div>
             </section>
           ) : null}
+          </>
+          )}
         </div>
       </div>
     </div>

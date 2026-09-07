@@ -70,7 +70,7 @@ export function normalizeWarrantyPolicy(raw) {
   const id = String(row.id ?? '').trim();
   const title = trimText(row.title, 160);
   if (!id || !title) return null;
-  const fileUrl = trimText(row.file_url ?? row.fileUrl, 500);
+  const fileUrl = trimText(row.file_url ?? row.fileUrl, 2000);
   const contentType = trimText(row.content_type ?? row.contentType, 120).toLowerCase();
 
   const vaccineShots = pickNumber(

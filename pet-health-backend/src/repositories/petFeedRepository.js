@@ -14,6 +14,7 @@ import {
   isCompliancePostBanned,
   shouldHideComplianceContact,
 } from '../utils/breederComplianceScore.js';
+import { applyAdminScorePenalty } from '../utils/adminScorePenalty.js';
 import {
   asObject,
   buildWarrantySnapshot,
@@ -80,6 +81,19 @@ bindTransparencyWarningMemoryProfiles(
     memoryProfiles[idx] = next;
   },
 );
+
+function applyOptionalScorePenalty(metadata, options = {}, nowIso, reason = '') {
+  const next = { ...(asObject(metadata) || {}) };
+  const penaltyPoints = Number(options.penaltyPoints ?? options.penalty_points);
+  const penaltyKind = options.penaltyKind ?? options.penalty_kind;
+  if (!Number.isFinite(penaltyPoints) || penaltyPoints <= 0 || !penaltyKind) return next;
+  return applyAdminScorePenalty(next, {
+    kind: penaltyKind,
+    points: penaltyPoints,
+    reason,
+    now: new Date(nowIso),
+  }).metadata;
+}
 const DEFAULT_FEED_PAGE_LIMIT = 12;
 const MAX_FEED_PAGE_LIMIT = 30;
 
@@ -2560,6 +2574,7 @@ export async function adminUpdateBreederProfileStatus(userId, verificationStatus
       else delete metadata.admin_action;
       metadata.rejected_at = now;
       delete metadata.verified_at;
+      Object.assign(metadata, applyOptionalScorePenalty(metadata, options, now, rejectionReason));
     } else if (safeStatus === 'verified') {
       delete metadata.rejection_reason;
       delete metadata.admin_note;
@@ -2594,6 +2609,7 @@ export async function adminUpdateBreederProfileStatus(userId, verificationStatus
     else delete metadata.admin_action;
     metadata.rejected_at = now;
     delete metadata.verified_at;
+    Object.assign(metadata, applyOptionalScorePenalty(metadata, options, now, rejectionReason));
   } else if (safeStatus === 'verified') {
     delete metadata.rejection_reason;
     delete metadata.admin_note;
@@ -3314,6 +3330,19 @@ export async function adminReviewBreederProfileSubmission(
         };
         submission.breeder_profile = toProfile(memoryProfiles[profileIdx]);
       }
+    } else if (safeStatus === 'rejected') {
+      const profileIdx = memoryProfiles.findIndex((p) => p.id === existing.breeder_profile_id);
+      if (profileIdx >= 0) {
+        const profile = memoryProfiles[profileIdx];
+        memoryProfiles[profileIdx] = {
+          ...profile,
+          metadata: sanitizeBreederProfileMetadata(
+            applyOptionalScorePenalty(profile.metadata, options, now, rejectionReason),
+          ),
+          updated_at: now,
+        };
+        submission.breeder_profile = toProfile(memoryProfiles[profileIdx]);
+      }
     }
     return submission;
   }
@@ -3350,6 +3379,27 @@ export async function adminReviewBreederProfileSubmission(
       .update({
         contact: merged.contact,
         metadata: sanitizeBreederProfileMetadata(merged.metadata),
+        updated_at: now,
+      })
+      .eq('id', profile.id)
+      .select('*')
+      .single();
+    if (profileError) throw profileError;
+    return toBreederSubmission({
+      ...updatedSubmission,
+      breeder_profile: updatedProfile,
+    });
+  }
+
+  if (safeStatus === 'rejected' && existing.breeder_profile) {
+    const profile = toProfile(existing.breeder_profile);
+    const nextMetadata = sanitizeBreederProfileMetadata(
+      applyOptionalScorePenalty(profile.metadata, options, now, rejectionReason),
+    );
+    const { data: updatedProfile, error: profileError } = await supabase
+      .from('breeder_profiles')
+      .update({
+        metadata: nextMetadata,
         updated_at: now,
       })
       .eq('id', profile.id)

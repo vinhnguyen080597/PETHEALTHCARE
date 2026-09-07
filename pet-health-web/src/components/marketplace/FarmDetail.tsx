@@ -16,6 +16,7 @@ import {
   parseFarmDetailTab,
   warrantyLibraryEditHref,
   warrantyLibraryHref,
+  farmWarrantyOwnerEmptyCtaKey,
   type FarmDetailFrom,
   type FarmDetailTab,
 } from "@/lib/farmTabs";
@@ -107,6 +108,7 @@ function FarmWarrantyTab({
   profileId,
   farmFrom = null,
   primarySpecies = [],
+  firstWarrantyAwarded = false,
 }: {
   lang: Lang;
   policies: WarrantyPolicy[];
@@ -114,6 +116,7 @@ function FarmWarrantyTab({
   profileId: string;
   farmFrom?: FarmDetailFrom | null;
   primarySpecies?: string[];
+  firstWarrantyAwarded?: boolean;
 }) {
   const router = useRouter();
   const [viewing, setViewing] = useState<WarrantyPolicy | null>(null);
@@ -124,6 +127,7 @@ function FarmWarrantyTab({
     farm: profileId,
     from: farmFrom,
   } as const;
+  const ownerEmptyCtaKey = farmWarrantyOwnerEmptyCtaKey(firstWarrantyAwarded);
 
   useEffect(() => {
     if (!menuOpenId) return;
@@ -188,9 +192,11 @@ function FarmWarrantyTab({
       ) : null}
       {policies.length > 0 ? (
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {policies.map((p) => (
+          {policies.map((p) => {
+            const isFilePolicy = Boolean(p.fileUrl);
+            return (
             <li key={p.id} className="relative">
-              <div className="rounded-xl border border-[#F3E2C8] px-3.5 py-3 hover:bg-[#FFF8EF] transition-colors">
+              <div className={`rounded-xl border border-[#F3E2C8] px-3.5 py-3 hover:bg-[#FFF8EF] transition-colors ${isOwner && isFilePolicy ? "pr-10" : ""}`}>
                 <div className="flex items-start gap-2">
                   <button
                     type="button"
@@ -200,11 +206,21 @@ function FarmWarrantyTab({
                     <p className="text-sm font-semibold text-[#2B1E19] truncate">
                       🛡️ {p.title}
                     </p>
-                    <p className="text-xs text-[#D97706] mt-1 font-medium">
-                      {t(lang, "warranty.viewCta")}
-                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      {isFilePolicy ? (
+                        <span className="inline-flex rounded-full border border-[#F3E2C8] bg-[#FFFBF5] px-2 py-0.5 text-[11px] font-bold text-[#D97706]">
+                          {t(lang, "farm.warranty.fileBadge")}
+                        </span>
+                      ) : null}
+                      <p className="text-xs text-[#D97706] font-medium">
+                        {t(
+                          lang,
+                          isFilePolicy ? "farm.warranty.openFile" : "warranty.viewCta",
+                        )}
+                      </p>
+                    </div>
                   </button>
-                  {isOwner ? (
+                  {isOwner && !isFilePolicy ? (
                     <div
                       className="relative shrink-0"
                       data-warranty-menu={p.id}
@@ -243,14 +259,28 @@ function FarmWarrantyTab({
                   ) : null}
                 </div>
               </div>
+              {isOwner && isFilePolicy ? (
+                <button
+                  type="button"
+                  aria-label={t(lang, "farm.warranty.delete")}
+                  disabled={busyId === p.id}
+                  onClick={() => void onDelete(p)}
+                  className="absolute right-2 top-2 h-7 w-7 inline-flex items-center justify-center rounded-full text-[#6E5A51] hover:bg-[#F3E2C8]/70 disabled:opacity-50"
+                >
+                  ×
+                </button>
+              ) : null}
             </li>
-          ))}
+            );
+          })}
         </ul>
-      ) : (
+      ) : isOwner && ownerEmptyCtaKey ? (
         <p className="text-sm text-[#6E5A51] leading-relaxed">
-          {isOwner
-            ? t(lang, "farm.warranty.createCta")
-            : t(lang, "farm.warranty.fallback")}
+          {t(lang, ownerEmptyCtaKey)}
+        </p>
+      ) : isOwner ? null : (
+        <p className="text-sm text-[#6E5A51] leading-relaxed">
+          {t(lang, "farm.warranty.fallback")}
         </p>
       )}
       <WarrantyPolicyViewer
@@ -1303,6 +1333,7 @@ export function FarmDetail({
                 profileId={breeder.id}
                 farmFrom={farmFrom}
                 primarySpecies={breeder.primarySpecies}
+                firstWarrantyAwarded={Boolean(breeder.warrantyPolicyTrustAwarded)}
               />
             )}
           </div>

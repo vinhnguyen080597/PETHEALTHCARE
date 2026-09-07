@@ -116,7 +116,7 @@ export interface WarrantyPolicy {
   shippingParty?: string;
   evidenceRequired?: string[];
   breederResponseHours?: number;
-  /** @deprecated file-based policies removed; kept for old snapshots */
+  /** Uploaded warranty document URL (admin-approved file policies). */
   fileUrl?: string;
   contentType?: string;
 }

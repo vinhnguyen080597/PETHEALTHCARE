@@ -74,6 +74,21 @@ export function parseFarmDetailTab(value: string | null | undefined): FarmDetail
   return (FARM_DETAIL_TABS as readonly string[]).includes(tab) ? (tab as FarmDetailTab) : null;
 }
 
+/** Warranty-policy file approval opens Hồ sơ trại on the warranty tab. */
+export function farmDetailTabFromNotificationMetadata(
+  metadata: { submission_type?: unknown; cta_href?: unknown } | null | undefined,
+): FarmDetailTab {
+  const submissionType = String(metadata?.submission_type ?? '').trim();
+  if (submissionType === 'warranty_policy_file') return 'warranty';
+  const stored = String(metadata?.cta_href ?? '').trim();
+  try {
+    const url = new URL(stored, 'https://petcare.local');
+    return parseFarmDetailTab(url.searchParams.get('tab')) ?? 'overview';
+  } catch {
+    return 'overview';
+  }
+}
+
 /** Tab bar must not flex-grow inside the farm profile scroll content (avoids huge gap above warranty tab). */
 export function farmDetailTabBarLayout() {
   return {
@@ -98,4 +113,9 @@ export function farmWarrantyPoliciesFromMetadata(
       ? record.warrantyPolicies
       : [];
   return mapWarrantyPolicies(raw);
+}
+
+/** +10 first-policy empty CTA is only shown until that task has been awarded. */
+export function farmWarrantyOwnerEmptyCtaKey(firstWarrantyAwarded: boolean) {
+  return firstWarrantyAwarded ? null : ('farm.warranty.createCta' as const);
 }

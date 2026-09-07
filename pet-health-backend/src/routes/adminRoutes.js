@@ -48,6 +48,7 @@ import { sendTestAlertEmail } from '../services/errorNotifierService.js';
 import { getAiOpsSummary } from '../services/aiEconomicsService.js';
 import { getProductAnalyticsSummary } from '../services/productAnalyticsService.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../services/authIdentifierService.js';
+import { parseAdminScorePenaltyInput } from '../utils/adminScorePenalty.js';
 import { resolveAdminCreatedAuthUser, validateAdminAccountPassword } from '../services/adminAuthUserService.js';
 import {
   adminUpdateFarmReviewStatus,
@@ -56,7 +57,7 @@ import {
 import { buildFarmReviewedNotificationPreview } from '../utils/breederFarmReviews.js';
 import { hasValidAdminSecret, requireAdminOrSecret } from '../middleware/auth.js';
 import { getFeatureFlags, updateFeatureFlags } from '../repositories/featureFlagRepository.js';
-import { breederSubmissionTypeLabel } from '../utils/breederProfileSubmissions.js';
+import { approvedBreederDetailCtaHref, breederSubmissionTypeLabel } from '../utils/breederProfileSubmissions.js';
 
 const router = Router();
 
@@ -370,6 +371,10 @@ router.put('/breeder-profiles/:userId/status', requireAdminOrSecret, async (req,
     const adminAction = String(
       compactText(req.body?.adminAction ?? req.body?.admin_action ?? '') || '',
     ).slice(0, 300);
+    const parsedPenalty = parseAdminScorePenaltyInput(req.body);
+    if (!parsedPenalty.ok) {
+      return res.status(400).json({ error: parsedPenalty.error, code: parsedPenalty.code });
+    }
 
     if (String(verificationStatus || '').toLowerCase() === 'rejected' && !rejectionReason) {
       return res.status(400).json({
@@ -383,6 +388,8 @@ router.put('/breeder-profiles/:userId/status', requireAdminOrSecret, async (req,
       rejectionReason,
       adminNote,
       adminAction,
+      penaltyPoints: parsedPenalty.penaltyPoints,
+      penaltyKind: parsedPenalty.penaltyKind,
     });
     if (!profile) return res.status(404).json({ error: 'Breeder profile not found', code: 'BREEDER_PROFILE_NOT_FOUND' });
     if (profile.verification_status === 'verified') {
@@ -437,6 +444,8 @@ router.put('/breeder-profiles/:userId/status', requireAdminOrSecret, async (req,
         rejection_reason: rejectionReason || undefined,
         admin_note: adminNote || undefined,
         admin_action: adminAction || undefined,
+        penalty_points: parsedPenalty.penaltyPoints || undefined,
+        penalty_kind: parsedPenalty.penaltyKind || undefined,
         role_side_effect:
           profile.verification_status === 'verified'
             ? 'breeder'
@@ -475,6 +484,10 @@ router.put('/breeder-submissions/:submissionId/status', requireAdminOrSecret, as
     const adminNote = String(
       compactText(req.body?.adminNote ?? req.body?.admin_note ?? '') || '',
     ).slice(0, 500);
+    const parsedPenalty = parseAdminScorePenaltyInput(req.body);
+    if (!parsedPenalty.ok) {
+      return res.status(400).json({ error: parsedPenalty.error, code: parsedPenalty.code });
+    }
 
     if (nextStatus === 'rejected' && !rejectionReason) {
       return res.status(400).json({
@@ -487,6 +500,8 @@ router.put('/breeder-submissions/:submissionId/status', requireAdminOrSecret, as
     const submission = await adminReviewBreederProfileSubmission(submissionId, nextStatus, {
       rejectionReason,
       adminNote,
+      penaltyPoints: parsedPenalty.penaltyPoints,
+      penaltyKind: parsedPenalty.penaltyKind,
     });
     if (!submission) {
       return res.status(404).json({ error: 'Submission not found', code: 'SUBMISSION_NOT_FOUND' });
@@ -504,7 +519,10 @@ router.put('/breeder-submissions/:submissionId/status', requireAdminOrSecret, as
           submission_id: submission.id,
           submission_type: submission.submission_type,
           cta_label: 'Xem hồ sơ trại',
-          cta_href: `/app/breeders/${encodeURIComponent(submission.breeder_profile_id)}`,
+          cta_href: approvedBreederDetailCtaHref(
+            submission.breeder_profile_id,
+            submission.submission_type,
+          ),
         },
         accessToken: req.accessToken,
       }).catch(() => null);
@@ -543,6 +561,8 @@ router.put('/breeder-submissions/:submissionId/status', requireAdminOrSecret, as
       metadata: {
         rejection_reason: rejectionReason || undefined,
         admin_note: adminNote || undefined,
+        penalty_points: parsedPenalty.penaltyPoints || undefined,
+        penalty_kind: parsedPenalty.penaltyKind || undefined,
       },
     });
 

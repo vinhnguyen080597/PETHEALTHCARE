@@ -34,6 +34,8 @@ export type TransparencyScoreInput = {
   /** @deprecated No longer used in transparency score. */
   fiveStarReviewCount?: number;
   penaltyPoints?: number;
+  /** Admin-assigned transparency deduction (0–100), stored as admin_transparency_penalty. */
+  adminPenaltyPoints?: number;
   violations?: Array<{ points: number; date?: string; reason?: string }>;
   now?: Date;
 };
@@ -198,8 +200,9 @@ export function computeTransparencyScore(
   const profilePoints =
     verifiedBase + social + facilityVideo + businessLicense + firstWarranty;
   const activityPoints = 0;
-  const violationPoints = 0;
-  const score = clampScore(profilePoints + activityPoints);
+  const adminPenalty = Math.max(0, Math.floor(Number(input.adminPenaltyPoints) || 0));
+  const violationPoints = adminPenalty;
+  const score = clampScore(profilePoints + activityPoints - adminPenalty);
 
   const lines: TransparencyBreakdownLine[] = [
     {
@@ -420,3 +423,18 @@ export function parseTransparencyActivityFromMeta(
     approvedFirstWarranty: awarded.firstWarranty,
   };
 }
+
+export function adminTransparencyPenaltyFromMeta(meta: Record<string, unknown>): number {
+  const raw = meta.admin_transparency_penalty ?? meta.adminTransparencyPenalty;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+export function applyAdminReviewPenalty(average: number, meta: Record<string, unknown>): number {
+  const avg = Number.isFinite(average) && average > 0 ? average : 0;
+  const raw = meta.admin_review_penalty ?? meta.adminReviewPenalty;
+  const penalty = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(penalty) || penalty <= 0) return avg;
+  return Math.max(0, Math.round((avg * 20 - penalty) * 5) / 100);
+}
+

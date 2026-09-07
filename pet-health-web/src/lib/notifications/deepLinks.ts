@@ -1,4 +1,4 @@
-import { farmDetailHref } from "../farmTabs";
+import { farmDetailHref, parseFarmDetailTab, type FarmDetailTab } from "../farmTabs";
 import {
   farmReviewedNotificationReviewId,
   withFarmReviewNotificationParams,
@@ -16,6 +16,7 @@ export type NotificationDeepLinkInput = {
     cta_label?: string;
     report_id?: string;
     submission_id?: string;
+    submission_type?: string;
     warning_id?: string;
     review_id?: string;
     [key: string]: unknown;
@@ -183,18 +184,34 @@ function storedCtaHref(item: NotificationDeepLinkInput) {
     : "";
 }
 
+/** Warranty-policy file approval opens Hồ sơ trại on the warranty tab. */
+export function farmDetailTabFromNotification(
+  item: NotificationDeepLinkInput,
+): FarmDetailTab {
+  const submissionType = String(item.metadata?.submission_type ?? "").trim();
+  if (submissionType === "warranty_policy_file") return "warranty";
+  const stored = storedCtaHref(item);
+  try {
+    const url = new URL(stored, "https://petcare.local");
+    return parseFarmDetailTab(url.searchParams.get("tab")) ?? "overview";
+  } catch {
+    return "overview";
+  }
+}
+
 /** Public farm profile for “Xem hồ sơ trại”. Ignores stored account/breeder hrefs. */
 export function farmProfileNotificationHref(
   item: NotificationDeepLinkInput,
 ): string | null {
+  const tab = farmDetailTabFromNotification(item);
   const profileId = String(item.breeder_profile_id || "").trim();
-  if (profileId) return farmDetailHref(profileId);
+  if (profileId) return farmDetailHref(profileId, tab);
   const storedMatch = storedCtaHref(item).match(FARM_PROFILE_HREF);
   if (storedMatch?.[1]) {
     try {
-      return farmDetailHref(decodeURIComponent(storedMatch[1]));
+      return farmDetailHref(decodeURIComponent(storedMatch[1]), tab);
     } catch {
-      return farmDetailHref(storedMatch[1]);
+      return farmDetailHref(storedMatch[1], tab);
     }
   }
   return null;

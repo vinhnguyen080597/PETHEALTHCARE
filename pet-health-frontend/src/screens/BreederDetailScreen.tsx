@@ -19,7 +19,15 @@ import { FarmReviewSectionSkeleton } from '../components/FarmReviewSectionSkelet
 import { FarmReviewStars } from '../components/FarmReviewStars';
 import { FarmScoreCard } from '../components/breeder/FarmScoreCard';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
-import { createBreederFarmReview, deleteWarrantyPolicy, getBreederFarmReviews, getMyDirectFarmReview } from '../api';
+import {
+  cancelMyBreederProfileSubmission,
+  createBreederFarmReview,
+  deleteWarrantyPolicy,
+  getBreederFarmReviews,
+  getMyDirectFarmReview,
+  listMyBreederProfileSubmissions,
+} from '../api';
+import { pendingWarrantyUploadsFromSubmissions } from '../utils/breederProfileSubmissions';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { mapFarmReviewThreads, formatBreederReviewLabel, farmReviewAuthorLabel, isSaleFarmReviewKind, type FarmReviewThreadPreview } from '../utils/farmReview';
 import { initialsFromName } from '../utils/breederTrustLevel';
@@ -47,12 +55,14 @@ import {
   farmNameExtraMargin,
   farmTabLabelKey,
   farmDetailTabBarLayout,
+  farmWarrantyOwnerEmptyCtaKey,
   farmWarrantyPoliciesFromMetadata,
   parseFarmDetailTab,
   resolveFarmAvatarUrl,
   resolveFarmCoverUrl,
   type FarmDetailTab,
 } from '../utils/farmProfileDisplay';
+import { parseTrustAwardedFromMeta } from '../utils/breederTransparencyScore';
 import type { WarrantyPolicy } from '../utils/warrantyPolicy';
 
 const FARM_BG = '#FDFBF7';
@@ -120,6 +130,14 @@ export function BreederDetailScreen({
   const [viewingWarranty, setViewingWarranty] = useState<WarrantyPolicy | null>(null);
   const [warrantyMenuId, setWarrantyMenuId] = useState<string | null>(null);
   const [warrantyBusyId, setWarrantyBusyId] = useState<string | null>(null);
+  const [warrantyDeleteTarget, setWarrantyDeleteTarget] = useState<
+    | { kind: 'policy'; policy: WarrantyPolicy }
+    | { kind: 'pending'; item: { id: string; title: string; fileUrl: string } }
+    | null
+  >(null);
+  const [pendingWarrantyUploads, setPendingWarrantyUploads] = useState<
+    Array<{ id: string; title: string; fileUrl: string }>
+  >([]);
   const [reviewThreads, setReviewThreads] = useState<FarmReviewThreadPreview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
@@ -148,6 +166,19 @@ export function BreederDetailScreen({
     videoUrl: facilityVideoUrl,
   });
   const warranties = farmWarrantyPoliciesFromMetadata(profile.metadata);
+  const firstWarrantyAwarded = parseTrustAwardedFromMeta(
+    (profile.metadata ?? {}) as Record<string, unknown>,
+  ).firstWarranty;
+  const ownerEmptyCtaKey = farmWarrantyOwnerEmptyCtaKey(firstWarrantyAwarded);
+  const approvedFileUrls = useMemo(
+    () => new Set(warranties.map((policy) => String(policy.fileUrl || '').trim()).filter(Boolean)),
+    [warranties],
+  );
+  const visiblePendingUploads = useMemo(
+    () => pendingWarrantyUploads.filter((item) => !approvedFileUrls.has(item.fileUrl)),
+    [approvedFileUrls, pendingWarrantyUploads],
+  );
+  const hasWarrantyItems = warranties.length > 0 || visiblePendingUploads.length > 0;
   const locationLabel = profile.location?.trim() || t('farm.locationFallback');
   const { reviewCount, rating: reviewAvg } = breederCardReviewMetrics(
     (profile.metadata ?? {}) as Record<string, unknown>,
@@ -228,6 +259,25 @@ export function BreederDetailScreen({
   }, [reviewsLoaded, reviewsLoading, loadFarmReviews]);
 
   useEffect(() => {
+    if (!token || !isOwnProfile) {
+      setPendingWarrantyUploads([]);
+      return;
+    }
+    let cancelled = false;
+    void listMyBreederProfileSubmissions(token)
+      .then((res) => {
+        if (cancelled) return;
+        setPendingWarrantyUploads(pendingWarrantyUploadsFromSubmissions(res.data));
+      })
+      .catch(() => {
+        if (!cancelled) setPendingWarrantyUploads([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOwnProfile, token, profile.id]);
+
+  useEffect(() => {
     if (!token || isOwnProfile) {
       setHasReviewedFarm(false);
       return;
@@ -286,30 +336,41 @@ export function BreederDetailScreen({
 
   function confirmDeleteWarranty(policy: WarrantyPolicy) {
     if (!token) return;
-    Alert.alert(t('farm.warranty.delete'), t('farm.warranty.deleteConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('farm.warranty.delete'),
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            setWarrantyMenuId(null);
-            setWarrantyBusyId(policy.id);
-            try {
-              const result = await deleteWarrantyPolicy(token, policy.id);
-              onBreederProfileUpdated?.(result.data);
-            } catch (error) {
-              Alert.alert(
-                t('common.error'),
-                error instanceof Error ? error.message : t('farm.warranty.deleteFailed'),
-              );
-            } finally {
-              setWarrantyBusyId(null);
-            }
-          })();
-        },
-      },
-    ]);
+    setWarrantyMenuId(null);
+    setWarrantyDeleteTarget({ kind: 'policy', policy });
+  }
+
+  function confirmDeletePendingWarranty(item: { id: string; title: string; fileUrl: string }) {
+    if (!token) return;
+    setWarrantyDeleteTarget({ kind: 'pending', item });
+  }
+
+  async function executeWarrantyDelete() {
+    if (!token || !warrantyDeleteTarget) return;
+    const targetId =
+      warrantyDeleteTarget.kind === 'policy'
+        ? warrantyDeleteTarget.policy.id
+        : warrantyDeleteTarget.item.id;
+    setWarrantyBusyId(targetId);
+    try {
+      if (warrantyDeleteTarget.kind === 'policy') {
+        const result = await deleteWarrantyPolicy(token, warrantyDeleteTarget.policy.id);
+        onBreederProfileUpdated?.(result.data);
+      } else {
+        await cancelMyBreederProfileSubmission(token, warrantyDeleteTarget.item.id);
+        setPendingWarrantyUploads((current) =>
+          current.filter((row) => row.id !== warrantyDeleteTarget.item.id),
+        );
+      }
+      setWarrantyDeleteTarget(null);
+    } catch (error) {
+      Alert.alert(
+        t('common.error'),
+        error instanceof Error ? error.message : t('farm.warranty.deleteFailed'),
+      );
+    } finally {
+      setWarrantyBusyId(null);
+    }
   }
 
   return (
@@ -819,16 +880,85 @@ export function BreederDetailScreen({
                 ) : null}
               </View>
               <Text style={{ fontSize: 12, color: FARM_MUTED, lineHeight: 18 }}>{t('farm.warranty.note')}</Text>
-              {warranties.length > 0 ? (
-                warranties.map((policy) => (
+              {hasWarrantyItems ? (
+                <>
+                  {visiblePendingUploads.map((item) => (
+                    <View
+                      key={`pending-${item.id}`}
+                      style={{
+                        position: 'relative',
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: FARM_BORDER,
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        paddingRight: isOwnProfile ? 40 : 14,
+                        backgroundColor: '#FFFBF5',
+                      }}
+                    >
+                      <Pressable
+                        style={{ minWidth: 0 }}
+                        onPress={() => {
+                          if (item.fileUrl) void Linking.openURL(item.fileUrl);
+                        }}
+                      >
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: FARM_TEXT }} numberOfLines={1}>
+                          🛡️ {item.title}
+                        </Text>
+                        <View style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                          <View
+                            style={{
+                              borderRadius: 999,
+                              borderWidth: 1,
+                              borderColor: '#FDE68A',
+                              backgroundColor: '#FFFBEB',
+                              paddingHorizontal: 8,
+                              paddingVertical: 4,
+                            }}
+                          >
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: FARM_ACCENT }}>
+                              {t('farm.warranty.pendingBadge')}
+                            </Text>
+                          </View>
+                          <View
+                            style={{
+                              borderRadius: 999,
+                              borderWidth: 1,
+                              borderColor: FARM_BORDER,
+                              backgroundColor: '#fff',
+                              paddingHorizontal: 8,
+                              paddingVertical: 4,
+                            }}
+                          >
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: FARM_ACCENT }}>
+                              {t('farm.warranty.fileBadge')}
+                            </Text>
+                          </View>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: FARM_ACCENT }}>
+                            {t('farm.warranty.openFile')}
+                          </Text>
+                        </View>
+                      </Pressable>
+                      {isOwnProfile ? (
+                        <WarrantyFileDeleteButton
+                          disabled={warrantyBusyId === item.id}
+                          accessibilityLabel={t('farm.warranty.delete')}
+                          onPress={() => confirmDeletePendingWarranty(item)}
+                        />
+                      ) : null}
+                    </View>
+                  ))}
+                  {warranties.map((policy) => (
                   <View
                     key={policy.id}
                     style={{
+                      position: 'relative',
                       borderRadius: 12,
                       borderWidth: 1,
                       borderColor: FARM_BORDER,
                       paddingHorizontal: 14,
                       paddingVertical: 12,
+                      paddingRight: isOwnProfile && policy.fileUrl ? 40 : 14,
                     }}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
@@ -863,7 +993,7 @@ export function BreederDetailScreen({
                           </Text>
                         </View>
                       </Pressable>
-                      {isOwnProfile ? (
+                      {isOwnProfile && !policy.fileUrl ? (
                         <View style={{ position: 'relative' }}>
                           <Pressable
                             accessibilityRole="button"
@@ -923,15 +1053,23 @@ export function BreederDetailScreen({
                         </View>
                       ) : null}
                     </View>
+                    {isOwnProfile && policy.fileUrl ? (
+                      <WarrantyFileDeleteButton
+                        disabled={warrantyBusyId === policy.id}
+                        accessibilityLabel={t('farm.warranty.delete')}
+                        onPress={() => confirmDeleteWarranty(policy)}
+                      />
+                    ) : null}
                   </View>
-                ))
-              ) : isOwnProfile ? (
+                ))}
+                </>
+              ) : isOwnProfile && ownerEmptyCtaKey ? (
                 <Pressable onPress={() => onOpenWarrantyLibrary?.(null)}>
                   <Text style={{ fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
-                    {t('farm.warranty.createCta')}
+                    {t(ownerEmptyCtaKey)}
                   </Text>
                 </Pressable>
-              ) : (
+              ) : isOwnProfile ? null : (
                 <Text style={{ fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
                   {t('farm.warranty.fallback')}
                 </Text>
@@ -1033,6 +1171,72 @@ export function BreederDetailScreen({
         </Pressable>
       </Modal>
 
+      <Modal
+        visible={Boolean(warrantyDeleteTarget)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!warrantyBusyId) setWarrantyDeleteTarget(null);
+        }}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}
+          onPress={() => {
+            if (!warrantyBusyId) setWarrantyDeleteTarget(null);
+          }}
+        >
+          <Pressable
+            onPress={() => {}}
+            style={{
+              width: '100%',
+              maxWidth: 320,
+              borderRadius: 24,
+              backgroundColor: '#fff',
+              paddingHorizontal: 24,
+              paddingVertical: 28,
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '800', color: FARM_TEXT, textAlign: 'center' }}>
+              {t('farm.warranty.delete')}
+            </Text>
+            <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 22, color: FARM_MUTED, textAlign: 'center' }}>
+              {t('farm.warranty.deleteConfirm')}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              disabled={Boolean(warrantyBusyId)}
+              onPress={() => void executeWarrantyDelete()}
+              style={{
+                marginTop: 20,
+                borderRadius: 12,
+                backgroundColor: '#DC2626',
+                paddingVertical: 12,
+                alignItems: 'center',
+                opacity: warrantyBusyId ? 0.6 : 1,
+              }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>{t('farm.warranty.delete')}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={Boolean(warrantyBusyId)}
+              onPress={() => setWarrantyDeleteTarget(null)}
+              style={{
+                marginTop: 10,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: FARM_BORDER,
+                backgroundColor: '#fff',
+                paddingVertical: 12,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '700', color: FARM_TEXT }}>{t('common.cancel')}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <WarrantyPolicyViewer
         visible={Boolean(viewingWarranty)}
         policy={viewingWarranty}
@@ -1052,6 +1256,43 @@ export function BreederDetailScreen({
         onSubmit={submitFarmReview}
       />
     </View>
+  );
+}
+
+function WarrantyFileDeleteButton({
+  disabled,
+  onPress,
+  accessibilityLabel,
+}: {
+  disabled: boolean;
+  onPress: () => void;
+  accessibilityLabel: string;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={8}
+      disabled={disabled}
+      onPress={onPress}
+      style={{
+        position: 'absolute',
+        top: 6,
+        right: 6,
+        zIndex: 5,
+        height: 26,
+        width: 26,
+        borderRadius: 13,
+        borderWidth: 1,
+        borderColor: FARM_BORDER,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <Ionicons name="close" size={16} color={FARM_MUTED} />
+    </Pressable>
   );
 }
 

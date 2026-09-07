@@ -140,21 +140,47 @@ const adminStatusBodySchema = z
   })
   .strict();
 
+const adminScorePenaltyKindSchema = z.enum(["transparency", "compliance", "review"]);
+
+function penaltyFieldsTogether(value: {
+  penaltyPoints?: number;
+  penaltyKind?: "transparency" | "compliance" | "review";
+}) {
+  return Boolean(value.penaltyPoints) === Boolean(value.penaltyKind);
+}
+
+const adminBreederStatusBodySchema = z
+  .object({
+    verificationStatus: z.string().trim().min(1).max(40),
+    rejectionReason: z.string().trim().max(500).optional(),
+    adminAction: z.string().trim().max(300).optional(),
+    adminNote: z.string().trim().max(500).optional(),
+    penaltyPoints: z.number().int().min(1).max(100).optional(),
+    penaltyKind: adminScorePenaltyKindSchema.optional(),
+  })
+  .strict()
+  .refine(penaltyFieldsTogether, "penaltyPoints and penaltyKind are required together");
+
+const adminSubmissionStatusBodySchema = z
+  .object({
+    status: z.string().trim().min(1).max(40),
+    rejectionReason: z.string().trim().max(500).optional(),
+    adminAction: z.string().trim().max(300).optional(),
+    adminNote: z.string().trim().max(500).optional(),
+    penaltyPoints: z.number().int().min(1).max(100).optional(),
+    penaltyKind: adminScorePenaltyKindSchema.optional(),
+  })
+  .strict()
+  .refine(penaltyFieldsTogether, "penaltyPoints and penaltyKind are required together");
+
 export const ADMIN_PROXY_BODY_SCHEMAS: Record<string, z.ZodType> = {
   "PUT posts/:postId/status": adminStatusBodySchema,
   "PUT reports/:reportId/status": z.object({ status: z.string().trim().min(1).max(40) }).strict(),
   "PUT support-tickets/:ticketId/status": z
     .object({ status: z.string().trim().min(1).max(40) })
     .strict(),
-  "PUT breeders/:userId/status": z
-    .object({
-      verificationStatus: z.string().trim().min(1).max(40),
-      rejectionReason: z.string().trim().max(500).optional(),
-      adminAction: z.string().trim().max(300).optional(),
-      adminNote: z.string().trim().max(500).optional(),
-    })
-    .strict(),
-  "PUT breeder-submissions/:submissionId/status": adminStatusBodySchema,
+  "PUT breeders/:userId/status": adminBreederStatusBodySchema,
+  "PUT breeder-submissions/:submissionId/status": adminSubmissionStatusBodySchema,
   "PUT farm-reviews/:reviewId/status": adminStatusBodySchema,
   "PUT transparency-warnings/:warningId/resolve": z
     .object({ resolution: z.enum(["uphold", "restore"]) })

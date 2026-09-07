@@ -31,6 +31,7 @@ const SOCIAL_TYPE_TO_APPROVAL_FLAG = {
 const SUBMISSION_TYPE_TO_TRUST_AWARDED = {
   facility_video: 'facility_video_trust_awarded',
   business_license: 'business_license_trust_awarded',
+  warranty_policy_file: 'warranty_policy_trust_awarded',
   social_facebook: 'social_facebook_trust_awarded',
   social_zalo: 'social_zalo_trust_awarded',
   social_tiktok: 'social_tiktok_trust_awarded',
@@ -227,7 +228,9 @@ export function applyApprovedBreederSubmission(profile, submission, reviewedAt) 
     metadata.business_license_approved_at = now;
     markTrustAwarded(metadata, SUBMISSION_TYPE_TO_TRUST_AWARDED.business_license);
   } else if (submissionType === 'warranty_policy_file') {
-    const rawPolicies = Array.isArray(metadata.warranty_policies) ? metadata.warranty_policies : [];
+    const rawPolicies = Array.isArray(metadata.warranty_policies)
+      ? [...metadata.warranty_policies]
+      : [];
     const title = trimText(payload.title, 160) || trimText(payload.note, 160) || 'Uploaded warranty policy';
     const contentType = trimText(payload.content_type ?? payload.contentType, 120).toLowerCase();
     const exists = rawPolicies.some(
@@ -261,8 +264,8 @@ export function applyApprovedBreederSubmission(profile, submission, reviewedAt) 
       });
       metadata.warranty_policies = rawPolicies;
     }
-    if (!metadata.warranty_policy_trust_awarded && rawPolicies.length === 1) {
-      metadata.warranty_policy_trust_awarded = true;
+    if (!metadata.warranty_policy_trust_awarded) {
+      markTrustAwarded(metadata, SUBMISSION_TYPE_TO_TRUST_AWARDED.warranty_policy_file);
       metadata.first_warranty_approved = true;
     }
   } else if (isSocialBreederSubmissionType(submissionType)) {
@@ -280,4 +283,14 @@ export function applyApprovedBreederSubmission(profile, submission, reviewedAt) 
 export function adminBreederDetailPendingHref(submissionId) {
   const focus = encodeURIComponent(submissionId);
   return `/app/admin?section=requests&type=detail&focus=${focus}`;
+}
+
+/** Public farm profile after admin approves a detail submission. */
+export function approvedBreederDetailCtaHref(breederProfileId, submissionType) {
+  const id = encodeURIComponent(String(breederProfileId || '').trim());
+  if (!id) return '/app/account/breeder';
+  const base = `/app/breeders/${id}`;
+  return normalizeBreederSubmissionType(submissionType) === 'warranty_policy_file'
+    ? `${base}?tab=warranty`
+    : base;
 }

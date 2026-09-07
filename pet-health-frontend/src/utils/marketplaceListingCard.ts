@@ -1,4 +1,5 @@
 import type { PetFeedPost } from '../types';
+import { applyAdminReviewPenalty } from './breederTransparencyScore';
 
 const NEW_LISTING_MS = 24 * 60 * 60 * 1000;
 
@@ -210,7 +211,7 @@ export function listingBreederFooterMetrics(
   );
   const reviewCount =
     Number.isFinite(reviewCountRaw) && reviewCountRaw > 0 ? Math.floor(reviewCountRaw) : 0;
-  const reviewAvg = Number(meta.review_avg ?? meta.reviewAverage);
+  const reviewAvg = applyAdminReviewPenalty(Number(meta.review_avg ?? meta.reviewAverage), meta);
   const ratingText =
     reviewCount > 0 && Number.isFinite(reviewAvg) && reviewAvg > 0
       ? `${(Math.round(reviewAvg * 10) / 10).toFixed(1)}/5 (${reviewCount})`

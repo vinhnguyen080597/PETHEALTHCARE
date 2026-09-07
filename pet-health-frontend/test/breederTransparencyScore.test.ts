@@ -55,3 +55,16 @@ test('gauge ticks use one accumulation color per score, never alarm red', () => 
   assert.equal(transparencyTickColor(10, 75), '#0284C7');
   assert.equal(transparencyTickColor(90, 75), TRANSPARENCY_TICK_INACTIVE);
 });
+
+test('admin transparency penalty subtracts from verified score', () => {
+  const profile = {
+    id: 'bp-3',
+    user_id: 'u-3',
+    display_name: 'Farm',
+    verification_status: 'verified',
+    metadata: { admin_transparency_penalty: 10 },
+  } as BreederProfile;
+  assert.equal(computeBreederTrust(profile, []).score, 20);
+  assert.equal(computeTransparencyScore({ isVerified: true, adminPenaltyPoints: 10 }).score, 20);
+});
+
