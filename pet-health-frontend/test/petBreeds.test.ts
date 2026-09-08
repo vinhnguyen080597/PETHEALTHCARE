@@ -57,6 +57,8 @@ test('create listing thumb crop label mentions thumbnail', () => {
   assert.equal(vi.createPetFeedPost.thumbEdit, 'Chỉnh tâm ảnh cho thumbnail');
   assert.equal(en.createPetFeedPost.thumbBadge, 'Thumbnail');
   assert.equal(vi.createPetFeedPost.thumbBadge, 'Thumbnail');
+  assert.match(en.createPetFeedPost.thumbHint, /replaces that photo/i);
+  assert.match(vi.createPetFeedPost.thumbHint, /thay ảnh đó/);
 });
 
 test('create listing media hint does not mention drafts', () => {

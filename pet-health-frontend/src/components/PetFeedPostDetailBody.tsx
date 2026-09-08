@@ -14,6 +14,7 @@ import {
   readListingWarrantyPolicy,
 } from '../utils/marketplaceListingCard';
 import { buildPetFeedDetailSpecs } from '../utils/petFeedDetailSpecs';
+import { listingDetailMediaSlideCount } from '../utils/petFeedPostDetail';
 import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
 import { ListingMediaOverlayBadges } from './ListingMediaOverlayBadges';
 
@@ -24,6 +25,10 @@ type MediaItem =
 function mediaItemsForPost(post: PetFeedPost): MediaItem[] {
   const images = post.media_urls.filter(Boolean).map((uri) => ({ type: 'image' as const, uri }));
   return post.video_url ? [...images, { type: 'video' as const, uri: post.video_url }] : images;
+}
+
+function MediaSkeleton({ className = '' }: { className?: string }) {
+  return <View className={`bg-slate-200 ${className}`} />;
 }
 
 function AutoPlayVideo({ uri }: { uri: string }) {
@@ -92,6 +97,8 @@ export function PetFeedPostDetailBody({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const mediaItems = useMemo(() => mediaItemsForPost(post), [post]);
   const selected = mediaItems[Math.min(selectedIndex, Math.max(mediaItems.length - 1, 0))] ?? null;
+  const expectedStripCount = listingDetailMediaSlideCount(post);
+  const showMediaStrip = expectedStripCount > 1;
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -142,39 +149,59 @@ export function PetFeedPostDetailBody({
         {selected?.type === 'video' ? (
           <AutoPlayVideo uri={selected.uri} />
         ) : selected?.type === 'image' ? (
-          <Image source={{ uri: selected.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+          <Image
+            source={{ uri: selected.uri }}
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+          />
         ) : mediaLoading ? (
-          <View className="h-full w-full bg-slate-200" />
+          <MediaSkeleton className="h-full w-full" />
         ) : (
           <View className="h-full w-full items-center justify-center">
             <Ionicons name="paw-outline" size={48} color={BRAND.btnPrimary} />
           </View>
         )}
         <ListingMediaOverlayBadges post={post} />
-        {mediaItems.length > 0 ? (
+        {expectedStripCount > 0 ? (
           <View className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1">
             <Text className="text-xs font-semibold text-white">
               {t('petFeed.detail.mediaCount', {
-                current: Math.min(selectedIndex + 1, mediaItems.length),
-                total: mediaItems.length,
+                current: Math.min(selectedIndex + 1, Math.max(expectedStripCount, 1)),
+                total: expectedStripCount,
               })}
             </Text>
           </View>
         ) : null}
       </View>
 
-      {mediaItems.length > 1 ? (
+      {showMediaStrip ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           className="border-b border-slate-100 bg-white"
           contentContainerStyle={{ gap: 8, paddingHorizontal: 12, paddingVertical: 10 }}
         >
-          {mediaItems.map((item, index) => {
-            const active = index === selectedIndex;
+          {Array.from({ length: expectedStripCount }, (_, index) => {
+            const item = mediaItems[index] ?? null;
+            const active = Boolean(item) && index === selectedIndex;
             const poster =
               typeof post.metadata?.video_poster_url === 'string' ? post.metadata.video_poster_url.trim() : '';
-            const thumbUri = item.type === 'image' ? item.uri : poster || post.media_urls[0] || '';
+            const thumbUri = item
+              ? (item.type === 'image' ? item.uri : poster || post.media_urls[0] || '')
+              : '';
+
+            if (!item) {
+              return (
+                <View
+                  key={`media-skeleton-${index}`}
+                  className="h-14 w-14 overflow-hidden rounded-xl border border-slate-200"
+                >
+                  <MediaSkeleton className="h-full w-full" />
+                </View>
+              );
+            }
+
             return (
               <Pressable
                 key={`${item.type}-${item.uri}-${index}`}

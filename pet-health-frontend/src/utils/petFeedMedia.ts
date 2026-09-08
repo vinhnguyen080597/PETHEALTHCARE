@@ -15,8 +15,10 @@ export {
   PET_FEED_VIDEO_MAX_DURATION_SECONDS,
 } from './petFeedMediaLimits';
 
+export const PET_FEED_PHOTO_RESIZE_WIDTH = 2048;
+
 const PHOTO_QUALITY_LADDER: Array<{ width: number; compress: number }> = [
-  { width: 2048, compress: 0.85 },
+  { width: PET_FEED_PHOTO_RESIZE_WIDTH, compress: 0.85 },
   { width: 1920, compress: 0.8 },
   { width: 1600, compress: 0.75 },
   { width: 1280, compress: 0.7 },

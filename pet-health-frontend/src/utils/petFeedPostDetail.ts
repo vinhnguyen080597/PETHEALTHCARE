@@ -22,3 +22,13 @@ export function resolvePetFeedPostDetailView(
   }
   return listPost;
 }
+
+/** Hero + strip slots: list DTO may truncate media_urls but still send media_count + video_url. */
+export function listingDetailMediaSlideCount(
+  post: Pick<PetFeedPost, 'media_urls' | 'video_url' | 'media_count'>,
+): number {
+  const loadedImages = Array.isArray(post.media_urls) ? post.media_urls.filter(Boolean).length : 0;
+  const imageCount = Math.max(Number(post.media_count) || 0, loadedImages);
+  const hasVideo = Boolean(typeof post.video_url === 'string' && post.video_url.trim());
+  return imageCount + (hasVideo ? 1 : 0);
+}

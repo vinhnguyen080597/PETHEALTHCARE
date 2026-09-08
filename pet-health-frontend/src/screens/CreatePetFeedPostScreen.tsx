@@ -41,7 +41,7 @@ import {
   optimizePetFeedPhotoUri,
   isPetFeedVideoDurationAllowed,
   resolvePetFeedPickedVideoSize,
-  PET_FEED_LIST_THUMB_WIDTH,
+  PET_FEED_PHOTO_RESIZE_WIDTH,
   PET_FEED_VIDEO_MAX_DURATION_SECONDS,
   PET_FEED_VIDEO_MAX_BYTES,
 } from '../utils/petFeedMedia';
@@ -622,7 +622,9 @@ export function CreatePetFeedPostScreen({
   }
 
   function thumbPreparePlan() {
-    const readyLocalThumb = Boolean(listThumbUri && !isRemoteMediaUri(listThumbUri));
+    const readyLocalThumb = Boolean(
+      listThumbUri && !isRemoteMediaUri(listThumbUri) && listThumbUri !== photoUris[0],
+    );
     const reuseRemoteThumb = Boolean(listThumbUri && isRemoteMediaUri(listThumbUri) && !thumbDirty);
     return {
       readyLocalThumb,
@@ -632,10 +634,13 @@ export function CreatePetFeedPostScreen({
   }
 
   async function resolveSubmitListThumb(optimizedPhotos: string[]): Promise<string | undefined> {
-    if (listThumbUri && !isRemoteMediaUri(listThumbUri)) return listThumbUri;
     if (listThumbUri && isRemoteMediaUri(listThumbUri) && !thumbDirty) return listThumbUri;
+    if (listThumbUri && !isRemoteMediaUri(listThumbUri) && listThumbUri !== photoUris[0] && listThumbUri !== optimizedPhotos[0]) {
+      return listThumbUri;
+    }
     const source = optimizedPhotos[0];
     if (!source) return undefined;
+    if (isRemoteMediaUri(source)) return source;
     return optimizePetFeedListThumbUri(source);
   }
 
@@ -1371,10 +1376,15 @@ export function CreatePetFeedPostScreen({
         confirmLabel={t('createPetFeedPost.thumbCropConfirm')}
         failedLabel={t('createPetFeedPost.thumbCropFailed')}
         viewportSize={thumbCropViewport}
-        resizeWidth={PET_FEED_LIST_THUMB_WIDTH}
+        resizeWidth={PET_FEED_PHOTO_RESIZE_WIDTH}
         onCancel={() => setThumbCropSource(null)}
         onConfirm={(croppedUri) => {
           setThumbCropSource(null);
+          setPhotoUris((current) => {
+            if (current.length === 0) return [croppedUri];
+            if (current[0] === croppedUri) return current;
+            return [croppedUri, ...current.slice(1)];
+          });
           setListThumbUri(croppedUri);
           setThumbDirty(true);
         }}

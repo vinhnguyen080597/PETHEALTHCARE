@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { PetFeedPost } from '../src/types.ts';
-import { resolvePetFeedPostDetailView } from '../src/utils/petFeedPostDetail.ts';
+import { resolvePetFeedPostDetailView, listingDetailMediaSlideCount } from '../src/utils/petFeedPostDetail.ts';
 
 function post(overrides: Partial<PetFeedPost> = {}): PetFeedPost {
   return {
@@ -69,4 +69,23 @@ test('overlays listing status from list when detail is stale', () => {
 test('uses detail post alone when list row is missing', () => {
   const detailPost = post({ media_urls: ['a', 'b'] });
   assert.equal(resolvePetFeedPostDetailView('post-1', null, detailPost), detailPost);
+});
+
+test('listingDetailMediaSlideCount uses media_count while list urls are truncated', () => {
+  assert.equal(
+    listingDetailMediaSlideCount({
+      media_urls: ['https://cdn.example/thumb.jpg'],
+      video_url: 'https://cdn.example/clip.mp4',
+      media_count: 3,
+    }),
+    4,
+  );
+  assert.equal(
+    listingDetailMediaSlideCount({
+      media_urls: ['https://cdn.example/a.jpg', 'https://cdn.example/b.jpg'],
+      video_url: null,
+      media_count: 2,
+    }),
+    2,
+  );
 });
