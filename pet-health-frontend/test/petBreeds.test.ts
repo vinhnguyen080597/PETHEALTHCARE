@@ -53,10 +53,10 @@ test('create listing preview label is Xem trước in Vietnamese', () => {
 });
 
 test('create listing thumb crop label mentions thumbnail', () => {
-  assert.equal(en.createPetFeedPost.thumbEdit, 'Adjust thumbnail focal point');
-  assert.equal(vi.createPetFeedPost.thumbEdit, 'Chỉnh tâm ảnh cho thumbnail');
-  assert.equal(en.createPetFeedPost.thumbBadge, 'Thumbnail');
-  assert.equal(vi.createPetFeedPost.thumbBadge, 'Thumbnail');
+  assert.equal(en.createPetFeedPost.thumbEdit, 'Edit cover photo');
+  assert.equal(vi.createPetFeedPost.thumbEdit, 'Chỉnh ảnh bìa');
+  assert.equal(en.createPetFeedPost.thumbBadge, 'Cover photo');
+  assert.equal(vi.createPetFeedPost.thumbBadge, 'Ảnh bìa');
   assert.match(en.createPetFeedPost.thumbHint, /replaces that photo/i);
   assert.match(vi.createPetFeedPost.thumbHint, /thay ảnh đó/);
 });

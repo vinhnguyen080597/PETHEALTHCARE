@@ -64,7 +64,7 @@ function PetFeedListingCardComponent({
     event.stopPropagation?.();
   }
 
-  const body = (
+  const listingPreview = (
     <>
       <View
         className="relative w-full overflow-hidden bg-slate-100"
@@ -80,7 +80,7 @@ function PetFeedListingCardComponent({
         <ListingMediaOverlayBadges post={post} />
       </View>
 
-      <View className="p-4">
+      <View className={showActions ? 'px-4 pt-4' : 'p-4'}>
         <Text className="text-sm font-semibold leading-snug text-slate-900" numberOfLines={2}>
           {post.title}
         </Text>
@@ -129,88 +129,73 @@ function PetFeedListingCardComponent({
             </Text>
           </View>
         </View>
-
-        {showActions ? (
-          <View className="mt-3 flex-row items-center gap-2">
-            {canShowFavorite ? (
-              <Pressable
-                testID={`pet-feed-favorite-button-${post.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
-                accessibilityState={{ selected: post.is_favorited, disabled: favoriteDisabled }}
-                disabled={favoriteDisabled}
-                className="flex-row items-center gap-1 rounded-xl border px-2.5 py-2"
-                style={{
-                  borderColor: post.is_favorited ? '#FECDD3' : BRAND.borderBrand,
-                  backgroundColor: post.is_favorited ? '#FFF1F2' : BRAND.card,
-                  opacity: favoriteDisabled ? 0.45 : 1,
-                }}
-                onPress={(event) => {
-                  if (favoriteDisabled) return;
-                  stopPress(event);
-                  onToggleFavorite?.(post);
-                }}
-              >
-                <Text className="text-xs font-semibold" style={{ color: post.is_favorited ? '#E11D48' : '#6E5A51' }}>
-                  {post.is_favorited ? '♥' : '♡'}
-                </Text>
-                <Text className="text-xs font-semibold" style={{ color: post.is_favorited ? '#E11D48' : '#6E5A51' }}>
-                  {post.favorite_count ?? 0}
-                </Text>
-              </Pressable>
-            ) : null}
-            {canShowEdit ? (
-              <Pressable
-                testID={`pet-feed-edit-button-${post.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
-                className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2"
-                style={{ backgroundColor: BRAND.btnPrimary }}
-                onPress={(event) => {
-                  stopPress(event);
-                  onEditPost?.(post);
-                }}
-              >
-                <Ionicons name="create-outline" size={15} color={BRAND.textInverse} />
-                <Text className="text-xs font-semibold text-white">{t('petFeed.editListing')}</Text>
-              </Pressable>
-            ) : null}
-            {canShowContact ? (
-              <Pressable
-                testID={`pet-feed-message-button-${post.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: post.title })}
-                className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2"
-                style={{ backgroundColor: BRAND.btnPrimary }}
-                onPress={(event) => {
-                  stopPress(event);
-                  onMessageBreeder?.(post);
-                }}
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={15} color={BRAND.textInverse} />
-                <Text className="text-xs font-semibold text-white">{t('petFeed.card.chat')}</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : null}
       </View>
     </>
   );
 
-  if (onPress) {
-    return (
-      <Pressable
-        testID={testID ?? `pet-feed-post-${post.id}`}
-        accessibilityRole="button"
-        accessibilityLabel={t('petFeed.accessibility.openListing', { title: post.title })}
-        className="overflow-hidden rounded-2xl bg-white active:opacity-95"
-        style={{ borderWidth: 1, borderColor: BRAND.borderBrand }}
-        onPress={() => onPress(post)}
-      >
-        {body}
-      </Pressable>
-    );
-  }
+  const actionsRow = showActions ? (
+    <View className="mt-3 flex-row items-center gap-2 px-4 pb-4">
+      {canShowFavorite ? (
+        <Pressable
+          testID={`pet-feed-favorite-button-${post.id}`}
+          accessibilityRole="button"
+          accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
+          accessibilityState={{ selected: post.is_favorited, disabled: favoriteDisabled }}
+          disabled={favoriteDisabled}
+          className="flex-row items-center gap-1 rounded-xl border px-2.5 py-2"
+          style={{
+            borderColor: post.is_favorited ? '#FECDD3' : BRAND.borderBrand,
+            backgroundColor: post.is_favorited ? '#FFF1F2' : BRAND.card,
+            opacity: favoriteDisabled ? 0.45 : 1,
+          }}
+          onPress={(event) => {
+            if (favoriteDisabled) return;
+            stopPress(event);
+            onToggleFavorite?.(post);
+          }}
+        >
+          <Text className="text-xs font-semibold" style={{ color: post.is_favorited ? '#E11D48' : '#6E5A51' }}>
+            {post.is_favorited ? '♥' : '♡'}
+          </Text>
+          <Text className="text-xs font-semibold" style={{ color: post.is_favorited ? '#E11D48' : '#6E5A51' }}>
+            {post.favorite_count ?? 0}
+          </Text>
+        </Pressable>
+      ) : null}
+      {canShowEdit ? (
+        <Pressable
+          testID={`pet-feed-edit-button-${post.id}`}
+          accessibilityRole="button"
+          accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
+          className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2"
+          style={{ backgroundColor: BRAND.btnPrimary }}
+          onPress={(event) => {
+            stopPress(event);
+            onEditPost?.(post);
+          }}
+        >
+          <Ionicons name="create-outline" size={15} color={BRAND.textInverse} />
+          <Text className="text-xs font-semibold text-white">{t('petFeed.editListing')}</Text>
+        </Pressable>
+      ) : null}
+      {canShowContact ? (
+        <Pressable
+          testID={`pet-feed-message-button-${post.id}`}
+          accessibilityRole="button"
+          accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: post.title })}
+          className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2"
+          style={{ backgroundColor: BRAND.btnPrimary }}
+          onPress={(event) => {
+            stopPress(event);
+            onMessageBreeder?.(post);
+          }}
+        >
+          <Ionicons name="chatbubble-ellipses-outline" size={15} color={BRAND.textInverse} />
+          <Text className="text-xs font-semibold text-white">{t('petFeed.card.chat')}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  ) : null;
 
   return (
     <View
@@ -218,7 +203,19 @@ function PetFeedListingCardComponent({
       className="overflow-hidden rounded-2xl bg-white"
       style={{ borderWidth: 1, borderColor: BRAND.borderBrand }}
     >
-      {body}
+      {onPress ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('petFeed.accessibility.openListing', { title: post.title })}
+          className="active:opacity-95"
+          onPress={() => onPress(post)}
+        >
+          {listingPreview}
+        </Pressable>
+      ) : (
+        listingPreview
+      )}
+      {actionsRow}
     </View>
   );
 }
