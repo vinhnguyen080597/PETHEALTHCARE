@@ -1080,7 +1080,9 @@ const en = {
   "breederForm.careChecklist": "Care & transparency",
   "breederForm.commitments": "Commitments",
   "breederForm.submit": "Submit for review",
+  "breederForm.update": "Update",
   "breederForm.saved": "Submitted for admin review.",
+  "breederForm.updated": "Your kennel profile has been updated.",
   "breederForm.saveFailed": "Could not submit breeder request.",
   "breederForm.commitmentsRequired":
     "Please accept the transparency commitment before submitting.",

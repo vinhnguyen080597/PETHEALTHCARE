@@ -23,7 +23,7 @@ import { ACTIVE_BREEDER_SPECIES_OPTIONS } from '../constants/petSpecies';
 import { VIETNAM_PROVINCES } from '../constants/vietnamProvinces';
 import { APP_LINKS } from '../config';
 import type { BreederProfile, UpsertBreederProfilePayload } from '../types';
-import { showAccountBreederStatusBadge } from '../utils/accountBreederStatusBadge';
+import { breederProfileSavePublishesImmediately, showAccountBreederStatusBadge } from '../utils/accountBreederStatusBadge';
 import {
   hasAllBreederCommitments,
   setBreederCommitmentsAccepted,
@@ -291,6 +291,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
     }
     setCommitmentsError('');
 
+    const publishesImmediately = breederProfileSavePublishesImmediately(status);
     setSubmitting(true);
     try {
       const speciesPayload = breederSpeciesForSave(primarySpecies);
@@ -326,8 +327,8 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
       });
       setSubmitDialog({
         type: 'success',
-        title: t('breederProfile.submitSuccessTitle'),
-        message: t('breederProfile.saved'),
+        title: t(publishesImmediately ? 'breederProfile.updateSuccessTitle' : 'breederProfile.submitSuccessTitle'),
+        message: t(publishesImmediately ? 'breederProfile.updated' : 'breederProfile.saved'),
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : t('common.unknownError');
@@ -699,7 +700,7 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
             disabled={submitting || photoBusy !== null}
           >
             <Text className="text-sm font-semibold text-white">
-              {submitting ? t('common.loading') : t('breederProfile.save')}
+              {submitting ? t('common.loading') : t(breederProfileSavePublishesImmediately(status) ? 'breederProfile.update' : 'breederProfile.save')}
             </Text>
           </Pressable>
         </ScrollView>

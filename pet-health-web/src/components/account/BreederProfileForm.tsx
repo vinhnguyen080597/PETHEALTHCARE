@@ -31,7 +31,7 @@ import {
   splitRegistrationUnitForForm,
 } from "@/lib/breederRegistrationUnits";
 import { validateRegisteredKennelFields } from "@/lib/breederRegisteredKennelValidation";
-import { showAccountBreederStatusBadge } from "@/lib/accountBreederStatusBadge";
+import { breederProfileSavePublishesImmediately, showAccountBreederStatusBadge } from "@/lib/accountBreederStatusBadge";
 import { TransparencyWarningModal } from "@/components/account/TransparencyWarningModal";
 
 const BREEDER_TYPES = [
@@ -352,8 +352,11 @@ export function BreederProfileForm({
       if (!res.ok) {
         throw new Error(data.error || t(lang, "breederForm.saveFailed"));
       }
-      setOk(t(lang, "breederForm.saved"));
-      router.push("/app/account");
+      const liveUpdate = breederProfileSavePublishesImmediately(status);
+      setOk(t(lang, liveUpdate ? "breederForm.updated" : "breederForm.saved"));
+      if (!liveUpdate) {
+        router.push("/app/account");
+      }
       router.refresh();
     } catch (err) {
       setError(
@@ -776,7 +779,7 @@ export function BreederProfileForm({
           disabled={busy || uploadBusy !== null}
           className="w-full py-3 rounded-full bg-[#D97706] text-white text-sm font-semibold hover:bg-[#B45309] disabled:opacity-60 shadow-sm shadow-amber-200/60"
         >
-          {busy ? t(lang, "common.loading") : t(lang, "breederForm.submit")}
+          {busy ? t(lang, "common.loading") : t(lang, breederProfileSavePublishesImmediately(status) ? "breederForm.update" : "breederForm.submit")}
         </button>
       </form>
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { showAccountBreederStatusBadge } from '../src/utils/accountBreederStatusBadge.ts';
+import { breederProfileSavePublishesImmediately, showAccountBreederStatusBadge } from '../src/utils/accountBreederStatusBadge.ts';
 import {
   hasAllBreederCommitments,
   setBreederCommitmentsAccepted,
@@ -17,6 +17,13 @@ test('showAccountBreederStatusBadge hides verified only', () => {
   assert.equal(showAccountBreederStatusBadge('pending_review'), true);
   assert.equal(showAccountBreederStatusBadge('rejected'), true);
   assert.equal(showAccountBreederStatusBadge('unverified'), true);
+});
+
+test('verified profile edits publish immediately without admin review', () => {
+  assert.equal(breederProfileSavePublishesImmediately('verified'), true);
+  assert.equal(breederProfileSavePublishesImmediately('pending_review'), false);
+  assert.equal(breederProfileSavePublishesImmediately('rejected'), false);
+  assert.equal(breederProfileSavePublishesImmediately('unverified'), false);
 });
 
 test('breeder commitments toggle both keys', () => {
@@ -100,6 +107,10 @@ test('breederProfile edit/create i18n EN/VI parity', () => {
   assert.equal(vi.breederProfile.displayName, 'Tên hiển thị');
   assert.equal(vi.breederProfile.commitmentsTitle, 'Cam kết');
   assert.equal(vi.breederProfile.save, 'Gửi duyệt');
+  assert.equal(vi.breederProfile.update, 'Cập nhật');
+  assert.equal(vi.breederProfile.updateSuccessTitle, 'Cập nhật thành công');
+  assert.equal(vi.breederProfile.updated, 'Hồ sơ trại đã được cập nhật.');
+  assert.equal(en.breederProfile.updateSuccessTitle, 'Updated successfully');
   assert.equal(vi.breederProfile.photos, 'Ảnh hồ sơ trại');
   assert.equal(en.breederProfile.photos, 'Farm photos');
   assert.equal(vi.breederProfile.coverCropTitle, 'Chỉnh ảnh bìa');

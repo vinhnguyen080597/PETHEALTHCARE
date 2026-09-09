@@ -1142,8 +1142,11 @@
       "registeredAtRequired": "Please enter the registration year."
     },
     "save": "Submit for review",
+    "update": "Update",
     "submitSuccessTitle": "Request submitted",
     "saved": "Submitted for admin review.",
+    "updateSuccessTitle": "Updated successfully",
+    "updated": "Your kennel profile has been updated.",
     "saveFailed": "Could not submit breeder request.",
     "rejectionBannerTitle": "Application rejected",
     "rejectionReason": "Reason",

@@ -18,7 +18,6 @@ const BORDER = '#F3E2C8';
 const MUTED = '#6E5A51';
 const INK = '#2B1E19';
 const ACCENT = '#D97706';
-const ACCENT_DEEP = '#B45309';
 const PRICE = '#9A3412';
 
 export type TopBreederCardData = {
@@ -149,6 +148,24 @@ export function TopBreederCard({
           }}
           contentFit="cover"
         />
+        <View
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            maxWidth: '52%',
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 999,
+            backgroundColor: 'rgba(248,238,221,0.95)',
+            borderWidth: 1,
+            borderColor: BORDER,
+          }}
+        >
+          <Text style={{ fontSize: 11, fontWeight: '500', color: MUTED }} numberOfLines={1}>
+            {data.specialtyLabel}
+          </Text>
+        </View>
         <ActivityChip kind={data.activityKind} />
       </View>
 
@@ -188,24 +205,6 @@ export function TopBreederCard({
         <Text style={{ marginTop: 4, fontSize: 14, color: '#6B7280' }} numberOfLines={1}>
           {`📍 ${data.location}`}
         </Text>
-
-        <View style={{ marginTop: 12, flexDirection: 'row', flexWrap: 'wrap' }}>
-          <View
-            style={{
-              maxWidth: '100%',
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: 999,
-              backgroundColor: '#F8EEDD',
-              borderWidth: 1,
-              borderColor: BORDER,
-            }}
-          >
-            <Text style={{ fontSize: 11, fontWeight: '500', color: MUTED }} numberOfLines={1}>
-              {data.specialtyLabel}
-            </Text>
-          </View>
-        </View>
 
         <View style={{ marginTop: 16, minHeight: hasPets ? 84 : undefined }}>
           <Text style={{ fontSize: 11, fontWeight: '600', color: MUTED, marginBottom: hasPets ? 8 : 0 }}>
@@ -260,26 +259,21 @@ export function TopBreederCard({
           ) : null}
         </View>
 
-        <View style={{ marginTop: 20, flexDirection: 'row', gap: 8 }}>
+        <View className="mt-5 w-full flex-row items-center gap-2">
           {showMessageButton ? (
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={t('petFeed.breedersCard.message')}
               onPress={onPressMessage}
-              style={({ pressed }) => ({
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                borderRadius: 12,
-                borderWidth: 1,
+              className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5"
+              style={{
                 borderColor: BORDER,
-                backgroundColor: pressed ? '#FDFBF7' : '#fff',
-                paddingVertical: 10,
-              })}
+                backgroundColor: '#fff',
+                maxWidth: '48%',
+              }}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={15} color={INK} />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: INK }}>
+              <Text className="text-xs font-bold" style={{ color: INK }} numberOfLines={1}>
                 {t('petFeed.breedersCard.message')}
               </Text>
             </Pressable>
@@ -289,44 +283,29 @@ export function TopBreederCard({
               accessibilityRole="button"
               accessibilityLabel={t('farm.owner.editProfile')}
               onPress={onPressEditProfile}
-              style={({ pressed }) => ({
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                borderRadius: 12,
-                borderWidth: 1,
+              className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5"
+              style={{
                 borderColor: BORDER,
-                backgroundColor: pressed ? '#FDFBF7' : '#fff',
-                paddingVertical: 10,
-              })}
+                backgroundColor: '#fff',
+                maxWidth: '48%',
+              }}
             >
               <Ionicons name="create-outline" size={15} color={INK} />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: INK }}>
+              <Text className="text-xs font-bold" style={{ color: INK }} numberOfLines={1}>
                 {t('farm.owner.editProfile')}
               </Text>
             </Pressable>
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
+          ) : null}
           <Pressable
+            testID="top-breeder-visit-button"
             accessibilityRole="button"
-            accessibilityLabel={accessibilityLabel}
+            accessibilityLabel={t('petFeed.breedersCard.cta')}
             onPress={onPressVisit}
-            style={({ pressed }) => ({
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              borderRadius: 12,
-              backgroundColor: pressed ? ACCENT_DEEP : ACCENT,
-              paddingVertical: 10,
-            })}
+            className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2.5"
+            style={{ backgroundColor: ACCENT }}
           >
             <Ionicons name="storefront-outline" size={15} color="#fff" />
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>
+            <Text className="min-w-0 shrink text-xs font-bold text-white" numberOfLines={1}>
               {t('petFeed.breedersCard.cta')}
             </Text>
           </Pressable>

@@ -19,6 +19,7 @@ const {
   listPetFeedPostComments,
   listPublishedPetFeedPostPage,
   listPublicPetFeedPostPage,
+  listVerifiedBreederProfiles,
   reportBreederProfile,
   reportPetFeedPost,
   upsertMyBreederProfile,
@@ -159,6 +160,42 @@ test('cancelMyBreederVerificationRequest withdraws pending requests only', async
     () => cancelMyBreederVerificationRequest(userId, null),
     (error) => error?.code === 'BREEDER_CANCEL_NOT_ALLOWED',
   );
+});
+
+test('verified breeder profile edit stays published and keeps transparency awards', async () => {
+  const { computeTransparencyScoreFromProfile } = await import('../src/utils/transparencyWarnings.js');
+  const userId = `verified-edit-${Date.now()}`;
+  await upsertMyBreederProfile(userId, {
+    displayName: 'Live Cattery',
+    location: 'Hà Nội',
+    primarySpecies: ['cat'],
+    metadata: {
+      social_facebook_trust_awarded: true,
+      warranty_policy_trust_awarded: true,
+    },
+  }, null);
+  await adminUpdateBreederProfileStatus(userId, 'verified');
+
+  const before = await getMyBreederProfile(userId, null);
+  assert.equal(before.verification_status, 'verified');
+  const scoreBefore = computeTransparencyScoreFromProfile(before).score;
+  assert.ok(scoreBefore >= 40);
+
+  const updated = await upsertMyBreederProfile(userId, {
+    displayName: 'Live Cattery Updated',
+    location: 'TP. Hồ Chí Minh',
+    primarySpecies: ['cat'],
+    metadata: { breederType: 'home_breeder' },
+  }, null);
+
+  assert.equal(updated.verification_status, 'verified');
+  assert.equal(updated.display_name, 'Live Cattery Updated');
+  assert.equal(updated.metadata.social_facebook_trust_awarded, true);
+  assert.equal(updated.metadata.warranty_policy_trust_awarded, true);
+  assert.equal(computeTransparencyScoreFromProfile(updated).score, scoreBefore);
+
+  const directory = await listVerifiedBreederProfiles(userId, null);
+  assert.ok(directory.some((row) => row.id === updated.id));
 });
 
 test('listPetFeedPostComments returns comments in chronological order', async () => {

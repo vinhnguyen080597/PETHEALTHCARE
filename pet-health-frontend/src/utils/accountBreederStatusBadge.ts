@@ -6,3 +6,8 @@
 export function showAccountBreederStatusBadge(status: string): boolean {
   return String(status || '').toLowerCase() !== 'verified';
 }
+
+/** Verified kennel profile edits go live immediately — no admin re-review. */
+export function breederProfileSavePublishesImmediately(status: string | null | undefined): boolean {
+  return String(status || '').trim().toLowerCase() === 'verified';
+}

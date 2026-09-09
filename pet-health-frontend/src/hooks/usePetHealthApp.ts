@@ -2496,7 +2496,9 @@ export function usePetHealthApp() {
   }
 
   async function saveBreederProfile(payload: UpsertBreederProfilePayload) {
-    if (!token) return;
+    if (!token) {
+      throw new Error(i18n.t('common.unknownError'));
+    }
     setLoading(true);
     try {
       const existingMeta = breederProfile?.metadata ?? {};
@@ -2509,6 +2511,18 @@ export function usePetHealthApp() {
         metadata: nextMeta,
       });
       setBreederProfile(response.data);
+      setTopBreederProfiles((profiles) => {
+        const next = profiles.map((profile) =>
+          profile.id === response.data.id ? { ...profile, ...response.data } : profile,
+        );
+        if (
+          response.data.verification_status === 'verified'
+          && !next.some((profile) => profile.id === response.data.id)
+        ) {
+          return [response.data, ...next];
+        }
+        return next;
+      });
       if (hasAccountRole('breeder')) {
         await refreshMyPetFeedPosts(token);
       }

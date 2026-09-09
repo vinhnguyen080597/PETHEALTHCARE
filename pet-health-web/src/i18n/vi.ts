@@ -1083,7 +1083,9 @@ const vi: Record<EnKey, string> = {
   "breederForm.careChecklist": "Chăm sóc & minh bạch",
   "breederForm.commitments": "Cam kết",
   "breederForm.submit": "Gửi duyệt",
+  "breederForm.update": "Cập nhật",
   "breederForm.saved": "Đã gửi để admin duyệt.",
+  "breederForm.updated": "Hồ sơ trại đã được cập nhật.",
   "breederForm.saveFailed": "Không gửi được hồ sơ Breeder.",
   "breederForm.commitmentsRequired":
     "Vui lòng chấp nhận cam kết minh bạch trước khi gửi.",

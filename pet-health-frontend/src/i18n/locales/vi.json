@@ -1142,8 +1142,11 @@
       "registeredAtRequired": "Vui lòng nhập năm đăng ký."
     },
     "save": "Gửi duyệt",
+    "update": "Cập nhật",
     "submitSuccessTitle": "Đã gửi yêu cầu",
     "saved": "Đã gửi để admin duyệt.",
+    "updateSuccessTitle": "Cập nhật thành công",
+    "updated": "Hồ sơ trại đã được cập nhật.",
     "saveFailed": "Không gửi được hồ sơ Breeder.",
     "rejectionBannerTitle": "Hồ sơ bị từ chối",
     "rejectionReason": "Lý do",
