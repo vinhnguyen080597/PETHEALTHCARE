@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { fetchJson } from "./client";
+import { fetchJson, isApiNotFound } from "./client";
 import type { ApiBreederProfile, ApiPetFeedPost, PageResult } from "../types";
 import { mapApiBreeder, mapApiPost, mapApiPosts } from "../mappers";
 import {
@@ -7,6 +7,18 @@ import {
   countFarmPetsRehomed,
 } from "../farmPets";
 import type { BreederProfile, Listing } from "../types";
+
+async function catchPublicNotFound<T>(
+  work: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await work();
+  } catch (err) {
+    if (isApiNotFound(err)) return fallback;
+    throw err;
+  }
+}
 
 const PUBLIC_LIST_REVALIDATE = 30;
 const PUBLIC_DETAIL_REVALIDATE = 60;
@@ -42,24 +54,19 @@ export async function listPublicPosts(options?: {
 }
 
 export async function getPublicPostDetail(postId: string): Promise<Listing | null> {
-  try {
-    return await unstable_cache(
-      async () => {
+  return unstable_cache(
+    () =>
+      catchPublicNotFound(async () => {
         const res = await fetchJson<{ data: ApiPetFeedPost }>(
           `/public/pet-feed/posts/${encodeURIComponent(postId)}/detail`,
           { next: { revalidate: PUBLIC_DETAIL_REVALIDATE } },
         );
         if (!res?.data) return null;
         return mapApiPost(res.data);
-      },
-      ["public-post-detail", postId],
-      { revalidate: PUBLIC_DETAIL_REVALIDATE, tags: ["public-posts", postId] },
-    )();
-  } catch (err) {
-    const status = (err as { status?: number })?.status;
-    if (status === 404) return null;
-    throw err;
-  }
+      }, null),
+    ["public-post-detail", postId],
+    { revalidate: PUBLIC_DETAIL_REVALIDATE, tags: ["public-posts", postId] },
+  )();
 }
 
 export type PublicComment = {
@@ -75,23 +82,18 @@ export type PublicComment = {
 export async function listPublicPostComments(
   postId: string,
 ): Promise<PublicComment[]> {
-  try {
-    return await unstable_cache(
-      async () => {
+  return unstable_cache(
+    () =>
+      catchPublicNotFound(async () => {
         const res = await fetchJson<{ data: PublicComment[] }>(
           `/public/pet-feed/posts/${encodeURIComponent(postId)}/comments`,
           { next: { revalidate: PUBLIC_LIST_REVALIDATE } },
         );
         return Array.isArray(res?.data) ? res.data : [];
-      },
-      ["public-post-comments", postId],
-      { revalidate: PUBLIC_LIST_REVALIDATE, tags: ["public-posts", postId] },
-    )();
-  } catch (err) {
-    const status = (err as { status?: number })?.status;
-    if (status === 404) return [];
-    throw err;
-  }
+      }, []),
+    ["public-post-comments", postId],
+    { revalidate: PUBLIC_LIST_REVALIDATE, tags: ["public-posts", postId] },
+  )();
 }
 
 export async function listPublicBreeders(options?: {
@@ -118,9 +120,9 @@ export async function listPublicBreeders(options?: {
 export async function getPublicBreeder(
   profileId: string,
 ): Promise<{ profile: BreederProfile; listings: Listing[] } | null> {
-  try {
-    return await unstable_cache(
-      async () => {
+  return unstable_cache(
+    () =>
+      catchPublicNotFound(async () => {
         const res = await fetchJson<{
           data: { profile: ApiBreederProfile; listings: ApiPetFeedPost[] };
         }>(`/public/pet-feed/breeders/${encodeURIComponent(profileId)}`, {
@@ -136,16 +138,11 @@ export async function getPublicBreeder(
           }),
           listings,
         };
-      },
-      ["public-breeder", profileId],
-      {
-        revalidate: PUBLIC_DETAIL_REVALIDATE,
-        tags: ["public-breeders", profileId],
-      },
-    )();
-  } catch (err) {
-    const status = (err as { status?: number })?.status;
-    if (status === 404) return null;
-    throw err;
-  }
+      }, null),
+    ["public-breeder", profileId],
+    {
+      revalidate: PUBLIC_DETAIL_REVALIDATE,
+      tags: ["public-breeders", profileId],
+    },
+  )();
 }

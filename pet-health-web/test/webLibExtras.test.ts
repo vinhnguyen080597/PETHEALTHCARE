@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { resolveRouteError } from "../src/lib/api/routeError";
+import { ApiError, isApiNotFound } from "../src/lib/api/client";
 import {
   langCookieOptions,
   parseLang,
@@ -26,6 +27,18 @@ test("resolveRouteError remaps 204/205 and falls back", () => {
     status: 500,
     body: { error: "Oops" },
   });
+});
+
+test("isApiNotFound treats 404 and *_NOT_FOUND codes as missing", () => {
+  assert.equal(
+    isApiNotFound(new ApiError("Breeder profile not found", 404, "BREEDER_PROFILE_NOT_FOUND")),
+    true,
+  );
+  assert.equal(isApiNotFound({ status: 404 }), true);
+  assert.equal(isApiNotFound({ code: "PET_FEED_POST_NOT_FOUND" }), true);
+  assert.equal(isApiNotFound({ cause: { status: 404 } }), true);
+  assert.equal(isApiNotFound(new ApiError("API server is unreachable", 503, "BACKEND_UNAVAILABLE")), false);
+  assert.equal(isApiNotFound(new Error("Breeder profile not found")), false);
 });
 
 test("sessionOptions parseLang and cookie flags", () => {

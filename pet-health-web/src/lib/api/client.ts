@@ -14,6 +14,16 @@ export class ApiError extends Error {
   }
 }
 
+/** True for HTTP 404 or API `*_NOT_FOUND` codes (including wrapped/cached errors). */
+export function isApiNotFound(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { status?: unknown; code?: unknown; cause?: unknown };
+  if (e.status === 404) return true;
+  if (typeof e.code === "string" && /NOT_FOUND$/i.test(e.code)) return true;
+  if (e.cause !== undefined) return isApiNotFound(e.cause);
+  return false;
+}
+
 export type FetchJsonOptions = {
   method?: string;
   body?: unknown;

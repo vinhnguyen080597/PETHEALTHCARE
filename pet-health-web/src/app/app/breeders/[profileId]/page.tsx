@@ -35,45 +35,36 @@ async function FarmDetailData({
   profileId: string;
   lang: Lang;
 }) {
-  const data = await getPublicBreeder(profileId).catch(() => null);
-  if (!data) {
-    return (
-      <ResourceNotFound
-        lang={lang}
-        titleKey="notFound.breeder.title"
-        bodyKey="notFound.breeder.body"
-        primaryHref="/app/breeders"
-        primaryLabelKey="nav.breeders"
-        secondaryHref="/app/pet-feed"
-        secondaryLabelKey="nav.browse"
-      />
-    );
-  }
-
   const session = await getSessionUser();
+  const data = await getPublicBreeder(profileId).catch(() => null);
   let isOwner = false;
   let allowTemplateChange = false;
-  let breeder = data.profile;
+  let breeder = data?.profile ?? null;
+  const listings = data?.listings ?? [];
+
   if (session.token) {
     try {
       const mine = await getMyBreederProfile(session.token);
       isOwner = mine.data?.id === profileId;
       // Owner view: merge latest avatar/cover from /me so photo updates
       // are visible immediately even if the public breeder cache is stale.
+      // Unverified owners still preview their farm (public API returns 404).
       if (isOwner && mine.data) {
         const fresh = mapApiBreeder(mine.data, {
-          activeListings: data.listings.length,
+          activeListings: listings.length,
         });
-        // Owner view: merge latest photos + warranty policies from /me so
-        // edits are visible immediately even if public cache is stale.
-        breeder = {
-          ...data.profile,
-          avatar: fresh.avatar,
-          coverUrl: fresh.coverUrl,
-          warrantyPolicies: fresh.warrantyPolicies,
-          warrantyPolicyTrustAwarded: fresh.warrantyPolicyTrustAwarded,
-          trustScore: fresh.trustScore,
-        };
+        if (breeder) {
+          breeder = {
+            ...breeder,
+            avatar: fresh.avatar,
+            coverUrl: fresh.coverUrl,
+            warrantyPolicies: fresh.warrantyPolicies,
+            warrantyPolicyTrustAwarded: fresh.warrantyPolicyTrustAwarded,
+            trustScore: fresh.trustScore,
+          };
+        } else {
+          breeder = fresh;
+        }
       }
     } catch {
       isOwner = false;
@@ -95,11 +86,25 @@ async function FarmDetailData({
     }
   }
 
+  if (!breeder) {
+    return (
+      <ResourceNotFound
+        lang={lang}
+        titleKey="notFound.breeder.title"
+        bodyKey="notFound.breeder.body"
+        primaryHref="/app/breeders"
+        primaryLabelKey="nav.breeders"
+        secondaryHref="/app/pet-feed"
+        secondaryLabelKey="nav.browse"
+      />
+    );
+  }
+
   return (
     <FarmDetail
       breeder={breeder}
       lang={lang}
-      listings={data.listings}
+      listings={listings}
       isOwner={isOwner}
       isLoggedIn={session.isLoggedIn}
       allowTemplateChange={allowTemplateChange}
