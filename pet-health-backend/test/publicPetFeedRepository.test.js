@@ -65,7 +65,7 @@ test('public breeder directory and profile include only verified breeders', asyn
     displayName: 'Public Cattery',
     bio: 'Indoor cats',
     location: 'TP.HCM',
-    contact: { zalo: '0901111222' },
+    contact: { zalo: '0901111222', facebook: 'https://facebook.com/public-cattery' },
     primarySpecies: ['cat'],
     mainBreeds: ['British Shorthair'],
     careEnvironment: 'Indoor',
@@ -99,12 +99,13 @@ test('public breeder directory and profile include only verified breeders', asyn
   const listed = breeders.data.find((row) => row.id === profile.id);
   assert.ok(listed);
   assert.equal(listed.verification_status, 'verified');
-  assert.equal(listed.contact, undefined);
+  assert.equal(listed.contact?.zalo, undefined);
+  assert.equal(listed.contact?.facebook, 'https://facebook.com/public-cattery');
   assert.equal(listed.metadata?.active_listings, 1);
   assert.deepEqual(listed.metadata?.contact_presence, {
     zalo: true,
     phone: false,
-    facebook: false,
+    facebook: true,
     tiktok: false,
   });
 

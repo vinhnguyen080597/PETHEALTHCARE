@@ -237,7 +237,8 @@
       "activeKennel": "Online",
       "petsPreviewCount": "Litter on sale ({{n}} pets):",
       "petsPreviewEmpty": "No pets currently for sale",
-      "message": "Message"
+      "message": "Message",
+      "sendReview": "Send review"
     },
     "searchPlaceholder": "Which pet are you looking for?",
     "filtersTitle": "Quick filters",
@@ -624,6 +625,7 @@
       "zalo": "Zalo",
       "tiktok": "TikTok",
       "instagram": "Instagram",
+      "twitter": "X",
       "video": "Facility video",
       "empty": "Farm details will appear here once the breeder adds them.",
       "openVideo": "Open facility video"

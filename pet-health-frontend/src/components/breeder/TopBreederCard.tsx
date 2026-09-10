@@ -1,24 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_FARM_AVATAR, DEFAULT_FARM_COVER } from '../../assets/farmProfileAssets';
 import {
   breederCardFooterMetrics,
   breederCardHasPetPreview,
   breederCardPetsPreviewTitleKey,
-  shortPetPriceLabel,
   type BreederActivityCue,
+  type BreederCardSocialId,
   type BreederPetThumb,
 } from '../../utils/breederDirectoryCard';
 import { farmImageSource } from '../../utils/farmProfileDisplay';
-import { listingSpeciesEmoji } from '../../utils/marketplaceListingCard';
 
 const BORDER = '#F3E2C8';
 const MUTED = '#6E5A51';
 const INK = '#2B1E19';
 const ACCENT = '#D97706';
-const PRICE = '#9A3412';
 
 export type TopBreederCardData = {
   name: string;
@@ -33,18 +31,53 @@ export type TopBreederCardData = {
   showSold: boolean;
   activityKind: BreederActivityCue['kind'];
   petThumbs: BreederPetThumb[];
+  socialLinks?: { id: BreederCardSocialId; href: string | null }[];
 };
 
 type TopBreederCardProps = {
   data: TopBreederCardData;
   showMessageButton: boolean;
   showEditProfileButton?: boolean;
+  showVisitButton?: boolean;
+  showReviewButton?: boolean;
   onPressVisit: () => void;
   onPressMessage?: () => void;
   onPressEditProfile?: () => void;
+  onPressReview?: () => void;
   onPressPet?: (listingId: string) => void;
   accessibilityLabel?: string;
 };
+
+function SocialGlyph({ id }: { id: BreederCardSocialId }) {
+  if (id === 'facebook') {
+    return <Ionicons name="logo-facebook" size={16} color="#1877F2" />;
+  }
+  if (id === 'instagram') {
+    return <Ionicons name="logo-instagram" size={16} color="#E4405F" />;
+  }
+  if (id === 'tiktok') {
+    return <Ionicons name="logo-tiktok" size={15} color="#111827" />;
+  }
+  if (id === 'twitter') {
+    return (
+      <Text style={{ fontSize: 13, fontWeight: '800', color: '#111827', lineHeight: 16 }}>𝕏</Text>
+    );
+  }
+  return (
+    <View
+      style={{
+        width: 16,
+        height: 16,
+        borderRadius: 4,
+        backgroundColor: '#0068FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text style={{ fontSize: 10, fontWeight: '800', color: '#fff', lineHeight: 12 }}>Z</Text>
+    </View>
+  );
+}
 
 function ActivityChip({ kind }: { kind: BreederActivityCue['kind'] }) {
   const { t } = useTranslation();
@@ -92,9 +125,12 @@ export function TopBreederCard({
   data,
   showMessageButton,
   showEditProfileButton = false,
+  showVisitButton = false,
+  showReviewButton = false,
   onPressVisit,
   onPressMessage,
   onPressEditProfile,
+  onPressReview,
   onPressPet,
   accessibilityLabel,
 }: TopBreederCardProps) {
@@ -104,6 +140,7 @@ export function TopBreederCard({
   const hasPets = breederCardHasPetPreview(data.petThumbs.length);
   const petsTitleKey = breederCardPetsPreviewTitleKey(data.petThumbs.length);
   const footerMetrics = breederCardFooterMetrics(data.rating, data.reviewCount, data.trustScore);
+  const socialLinks = data.socialLinks ?? [];
 
   return (
     <View
@@ -121,17 +158,6 @@ export function TopBreederCard({
           source={farmImageSource(data.coverUrl, DEFAULT_FARM_COVER)}
           style={{ width: '100%', height: '100%' }}
           contentFit="cover"
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 48,
-            backgroundColor: 'rgba(43,30,25,0.28)',
-          }}
         />
         <Image
           source={farmImageSource(data.avatarUrl, DEFAULT_FARM_AVATAR)}
@@ -202,64 +228,115 @@ export function TopBreederCard({
           </View>
         </View>
 
-        <Text style={{ marginTop: 4, fontSize: 14, color: '#6B7280' }} numberOfLines={1}>
-          {`📍 ${data.location}`}
-        </Text>
+        <View
+          style={{
+            marginTop: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            minWidth: 0,
+          }}
+        >
+          <Text
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 13,
+              color: '#6B7280',
+            }}
+            numberOfLines={1}
+          >
+            {`📍 ${data.location}`}
+          </Text>
+          <View
+            style={{
+              flexShrink: 0,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              flexWrap: 'wrap',
+              gap: 8,
+              maxWidth: '58%',
+            }}
+          >
+            {socialLinks.map((link) => {
+              const openable = Boolean(link.href);
+              const glyph = <SocialGlyph id={link.id} />;
+              const label = t(`farm.facility.${link.id === 'twitter' ? 'twitter' : link.id}`);
+              if (!openable) {
+                return (
+                  <View
+                    key={link.id}
+                    accessibilityLabel={label}
+                    style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    {glyph}
+                  </View>
+                );
+              }
+              return (
+                <Pressable
+                  key={link.id}
+                  accessibilityRole="link"
+                  accessibilityLabel={label}
+                  hitSlop={4}
+                  onPress={() => {
+                    if (!link.href) return;
+                    void Linking.openURL(link.href);
+                  }}
+                  style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  {glyph}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
-        <View style={{ marginTop: 16, minHeight: hasPets ? 84 : undefined }}>
+        <View style={{ marginTop: 16, minHeight: hasPets ? 44 : undefined }}>
           <Text style={{ fontSize: 11, fontWeight: '600', color: MUTED, marginBottom: hasPets ? 8 : 0 }}>
             {t(petsTitleKey, { n: data.petThumbs.length })}
           </Text>
           {hasPets ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {data.petThumbs.map((pet) => {
-                const price = shortPetPriceLabel(pet.price);
-                const emoji = listingSpeciesEmoji(pet.species);
-                return (
-                  <Pressable
-                    key={pet.listingId}
-                    accessibilityRole="button"
-                    onPress={() => onPressPet?.(pet.listingId)}
-                    style={{ width: 68, alignItems: 'center', gap: 4 }}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+              {data.petThumbs.map((pet) => (
+                <Pressable
+                  key={pet.listingId}
+                  accessibilityRole="button"
+                  accessibilityLabel={pet.title}
+                  onPress={() => onPressPet?.(pet.listingId)}
+                >
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      overflow: 'hidden',
+                      borderWidth: 2,
+                      borderColor: '#fff',
+                      backgroundColor: '#FDFBF7',
+                      shadowColor: '#000',
+                      shadowOpacity: 0.08,
+                      shadowRadius: 2,
+                      shadowOffset: { width: 0, height: 1 },
+                      elevation: 1,
+                    }}
                   >
-                    <View
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        overflow: 'hidden',
-                        borderWidth: 2,
-                        borderColor: '#fff',
-                        backgroundColor: '#FDFBF7',
-                        shadowColor: '#000',
-                        shadowOpacity: 0.08,
-                        shadowRadius: 2,
-                        shadowOffset: { width: 0, height: 1 },
-                        elevation: 1,
-                      }}
-                    >
-                      <Image
-                        source={{ uri: pet.mediaUrl }}
-                        style={{ width: '100%', height: '100%' }}
-                        contentFit="cover"
-                      />
-                    </View>
-                    {price ? (
-                      <Text
-                        style={{ fontSize: 10, fontWeight: '700', color: PRICE }}
-                        numberOfLines={1}
-                      >
-                        {`${emoji} ${price}`}
-                      </Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
+                    <Image
+                      source={{ uri: pet.mediaUrl }}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                    />
+                  </View>
+                </Pressable>
+              ))}
             </View>
           ) : null}
         </View>
 
-        <View className="mt-5 w-full flex-row items-center gap-2">
+        {(showMessageButton || showEditProfileButton || showVisitButton || showReviewButton) ? (
+          <View className="mt-5 w-full flex-row items-center gap-2">
           {showMessageButton ? (
             <Pressable
               accessibilityRole="button"
@@ -296,20 +373,37 @@ export function TopBreederCard({
               </Text>
             </Pressable>
           ) : null}
-          <Pressable
-            testID="top-breeder-visit-button"
-            accessibilityRole="button"
-            accessibilityLabel={t('petFeed.breedersCard.cta')}
-            onPress={onPressVisit}
-            className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2.5"
-            style={{ backgroundColor: ACCENT }}
-          >
-            <Ionicons name="storefront-outline" size={15} color="#fff" />
-            <Text className="min-w-0 shrink text-xs font-bold text-white" numberOfLines={1}>
-              {t('petFeed.breedersCard.cta')}
-            </Text>
-          </Pressable>
-        </View>
+          {showVisitButton ? (
+            <Pressable
+              testID="top-breeder-visit-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('petFeed.breedersCard.cta')}
+              onPress={onPressVisit}
+              className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2.5"
+              style={{ backgroundColor: ACCENT }}
+            >
+              <Ionicons name="storefront-outline" size={15} color="#fff" />
+              <Text className="min-w-0 shrink text-xs font-bold text-white" numberOfLines={1}>
+                {t('petFeed.breedersCard.cta')}
+              </Text>
+            </Pressable>
+          ) : showReviewButton ? (
+            <Pressable
+              testID="top-breeder-review-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('petFeed.breedersCard.sendReview')}
+              onPress={onPressReview}
+              className="min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2.5"
+              style={{ backgroundColor: ACCENT }}
+            >
+              <Ionicons name="star-outline" size={15} color="#fff" />
+              <Text className="min-w-0 shrink text-xs font-bold text-white" numberOfLines={1}>
+                {t('petFeed.breedersCard.sendReview')}
+              </Text>
+            </Pressable>
+          ) : null}
+          </View>
+        ) : null}
       </View>
     </View>
   );

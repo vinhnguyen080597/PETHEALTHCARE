@@ -17,6 +17,22 @@ export function canShowBreederMessageAction(
   return !isListingOwner(currentUserId, breederUserId);
 }
 
+/** Only the kennel owner may open farm detail from the directory card. */
+export function canShowBreederVisitFarmAction(
+  currentUserId: string | null | undefined,
+  breederUserId: string | null | undefined,
+): boolean {
+  return isListingOwner(currentUserId, breederUserId);
+}
+
+/** Other users (including guests) send a farm review instead of visiting. */
+export function canShowBreederReviewFarmAction(
+  currentUserId: string | null | undefined,
+  breederUserId: string | null | undefined,
+): boolean {
+  return Boolean(String(breederUserId || "").trim()) && !isListingOwner(currentUserId, breederUserId);
+}
+
 export function listingVisitorActions(isOwner: boolean): {
   showMessage: boolean;
   showReport: boolean;

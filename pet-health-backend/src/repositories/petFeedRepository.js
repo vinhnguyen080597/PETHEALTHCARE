@@ -1441,7 +1441,31 @@ function toPublicBreeder(profile, { includeContact = false } = {}) {
     warranty_policy_trust_awarded: Boolean(asObject(mapped.metadata).warranty_policy_trust_awarded),
   };
   if (includeContact) return withPolicies;
-  return stripContactFromProfile(withPolicies);
+  const stripped = stripContactFromProfile(withPolicies);
+  const social = publicDirectorySocialContact(withPolicies.contact, withPolicies.metadata);
+  return social ? { ...stripped, contact: social } : stripped;
+}
+
+/** Public directory cards may show social profile URLs, never phone/Zalo digits. */
+function publicDirectorySocialContact(contact, metadata) {
+  const c = contact && typeof contact === 'object' ? contact : {};
+  const meta = metadata && typeof metadata === 'object' ? metadata : {};
+  const http = (value) => {
+    const raw = String(value || '').trim();
+    return /^https?:\/\//i.test(raw) ? raw : '';
+  };
+  const out = {};
+  const facebook = http(c.facebook) || http(meta.facebook_url);
+  const instagram = http(c.instagram) || http(meta.instagram_url);
+  const tiktok = http(c.tiktok) || http(meta.tiktok_url);
+  const twitter = http(c.twitter) || http(c.x) || http(meta.twitter_url) || http(meta.x_url);
+  if (facebook) out.facebook = facebook;
+  if (instagram) out.instagram = instagram;
+  if (tiktok) out.tiktok = tiktok;
+  if (twitter) out.twitter = twitter;
+  const zaloRaw = String(c.zalo || '').trim();
+  if (/^https?:\/\//i.test(zaloRaw)) out.zalo = zaloRaw;
+  return Object.keys(out).length ? out : null;
 }
 
 async function withPublicBreederListingCounts(profiles) {

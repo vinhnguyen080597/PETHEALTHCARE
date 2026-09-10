@@ -329,6 +329,7 @@ const en = {
   "breeders.card.petsPreviewCount": "Litter on sale ({{n}} pets):",
   "breeders.card.petsPreviewEmpty": "No pets currently for sale",
   "breeders.card.message": "Message",
+  "breeders.card.sendReview": "Send review",
   "breeders.provinceLabel": "Province:",
   "breeders.species.all": "All species",
   "breeders.hall.title": "Top Breeders · month {{month}}",
@@ -406,6 +407,7 @@ const en = {
   "farm.facility.zalo": "Zalo",
   "farm.facility.tiktok": "TikTok",
   "farm.facility.instagram": "Instagram",
+  "farm.facility.twitter": "X",
   "farm.facility.video": "Facility video",
   "farm.facility.empty": "Farm details will appear here once the breeder adds them.",
   "farm.warranty.fallback":

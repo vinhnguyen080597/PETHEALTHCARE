@@ -188,6 +188,7 @@ test("Top Breeders title and sort i18n exist in EN and VI", () => {
     "breeders.sort.name",
     "breeders.hall.title",
     "breeders.card.message",
+    "breeders.card.sendReview",
   ]) {
     assert.ok(enDict[key], `missing EN ${key}`);
     assert.ok(viDict[key], `missing VI ${key}`);

@@ -80,6 +80,7 @@ export interface BreederProfile {
     facebook?: string;
     tiktok?: string;
     instagram?: string;
+    twitter?: string;
   };
   scale: string;
   careEnvironment: string;

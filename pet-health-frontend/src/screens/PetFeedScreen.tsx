@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Platform,
@@ -16,7 +17,9 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { createBreederFarmReview, getMyDirectFarmReview } from '../api';
 import { AdminPostCard } from '../components/AdminPostCard';
+import { FarmReviewModal } from '../components/FarmReviewModal';
 import { TopBreederCard } from '../components/breeder/TopBreederCard';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
@@ -29,6 +32,9 @@ import {
   buildBreederPetThumbs,
   canShowBreederMessageAction,
   canShowBreederEditProfileAction,
+  canShowBreederVisitFarmAction,
+  canShowBreederReviewFarmAction,
+  breederCardSocialLinks,
   getBreederDirectoryCardMetrics,
   resolveBreederCardActivity,
 } from '../utils/breederDirectoryCard';
@@ -110,6 +116,7 @@ type PetFeedScreenProps = {
   onOpenBreederProfile?: () => void;
   onEditPost?: (post: PetFeedPost) => void;
   currentUserId?: string | null;
+  token?: string | null;
   /** When set, switch to feed tab and scroll to this post, then call onFocusPostHandled. */
   focusPostId?: string | null;
   onFocusPostHandled?: () => void;
@@ -231,6 +238,7 @@ export function PetFeedScreen({
   onOpenBreederProfile,
   onEditPost,
   currentUserId = null,
+  token = null,
   focusPostId = null,
   onFocusPostHandled,
   enabledTabs = { news: true, feed: true, breeders: true },
@@ -262,6 +270,10 @@ export function PetFeedScreen({
   const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
   const [announcementFilter, setAnnouncementFilter] = useState<AnnouncementFilter>('all');
+  const [reviewProfile, setReviewProfile] = useState<BreederProfile | null>(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [hasReviewedFarm, setHasReviewedFarm] = useState(false);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query]);
   const searchMatchedPosts = useMemo(() => {
@@ -514,6 +526,38 @@ export function PetFeedScreen({
     setSortDirection(DEFAULT_PET_FEED_SORT_DIRECTION);
   }, []);
 
+  const promptFarmReview = useCallback(async (profile: BreederProfile) => {
+    if (canShowBreederVisitFarmAction(currentUserId, profile.user_id)) return;
+    if (!token) {
+      Alert.alert(t('common.error'), t('farm.review.loginRequired'));
+      return;
+    }
+    setReviewError('');
+    setHasReviewedFarm(false);
+    setReviewProfile(profile);
+    try {
+      const res = await getMyDirectFarmReview(token, profile.id);
+      setHasReviewedFarm(Boolean(res.data?.hasReviewed));
+    } catch {
+      setHasReviewedFarm(false);
+    }
+  }, [currentUserId, t, token]);
+
+  const submitFarmReview = useCallback(async (payload: { rating: number; body: string; photoUrls: string[] }) => {
+    if (!token || !reviewProfile) return;
+    setReviewBusy(true);
+    setReviewError('');
+    try {
+      await createBreederFarmReview(token, reviewProfile.id, payload);
+      setReviewProfile(null);
+      Alert.alert(t('common.ok'), t('farm.review.pendingSubmitted'));
+    } catch (error: unknown) {
+      setReviewError(error instanceof Error ? error.message : t('farm.review.failed'));
+    } finally {
+      setReviewBusy(false);
+    }
+  }, [reviewProfile, t, token]);
+
   const renderListItem = useCallback(({ item, index }: { item: FeedListItem; index: number }) => {
     if (item.type === 'post') {
       if (activeTab === 'news') {
@@ -563,6 +607,8 @@ export function PetFeedScreen({
     const name = profile.display_name || t('petFeed.breederFallback');
     const showMessage = canShowBreederMessageAction(currentUserId, profile.user_id);
     const showEditProfile = canShowBreederEditProfileAction(currentUserId, profile.user_id);
+    const showVisit = canShowBreederVisitFarmAction(currentUserId, profile.user_id);
+    const showReview = canShowBreederReviewFarmAction(currentUserId, profile.user_id);
 
     return (
       <View className="px-5">
@@ -580,13 +626,17 @@ export function PetFeedScreen({
             showSold: metrics.showSold,
             activityKind: activity.kind,
             petThumbs: buildBreederPetThumbs(postsForFarm),
+            socialLinks: breederCardSocialLinks(profile),
           }}
           showMessageButton={showMessage}
           showEditProfileButton={showEditProfile && Boolean(onOpenBreederProfile)}
-          accessibilityLabel={t('petFeed.accessibility.openBreederProfile', { name })}
+          showVisitButton={showVisit}
+          showReviewButton={showReview}
+          accessibilityLabel={name}
           onPressVisit={() => onOpenBreederDetail(profile.id || profile.user_id)}
           onPressMessage={() => onMessageFarm?.(profile)}
           onPressEditProfile={onOpenBreederProfile}
+          onPressReview={() => void promptFarmReview(profile)}
           onPressPet={(listingId) => onOpenPostDetail(listingId)}
         />
       </View>
@@ -605,6 +655,7 @@ export function PetFeedScreen({
     onOpenBreederDetail,
     onOpenPostDetail,
     onToggleFavorite,
+    promptFarmReview,
     t,
   ]);
 
@@ -1112,6 +1163,18 @@ export function PetFeedScreen({
         />
       ) : null}
     </ModalScreenShell>
+    <FarmReviewModal
+      visible={reviewProfile != null}
+      busy={reviewBusy}
+      error={reviewError}
+      token={token}
+      alreadyReviewed={hasReviewedFarm}
+      onClose={() => {
+        setReviewProfile(null);
+        setReviewError('');
+      }}
+      onSubmit={submitFarmReview}
+    />
     </>
   );
 }

@@ -333,6 +333,7 @@ const vi: Record<EnKey, string> = {
   "breeders.card.petsPreviewCount": "Lứa mới đang mở bán ({{n}} bé):",
   "breeders.card.petsPreviewEmpty": "Chưa có bé đang mở bán",
   "breeders.card.message": "Nhắn tin",
+  "breeders.card.sendReview": "Gửi đánh giá",
   "breeders.provinceLabel": "Tỉnh/Thành:",
   "breeders.species.all": "Mọi loài",
   "breeders.hall.title": "Top Breeder tiêu biểu tháng {{month}}",
@@ -410,6 +411,7 @@ const vi: Record<EnKey, string> = {
   "farm.facility.zalo": "Zalo",
   "farm.facility.tiktok": "TikTok",
   "farm.facility.instagram": "Instagram",
+  "farm.facility.twitter": "X",
   "farm.facility.video": "Video cơ sở",
   "farm.facility.empty": "Thông tin cơ sở sẽ hiện khi breeder bổ sung.",
   "farm.warranty.fallback":

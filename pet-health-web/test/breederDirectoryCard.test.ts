@@ -7,6 +7,7 @@ import {
   BREEDER_CARD_PETS_PREVIEW_CLASS,
   breederCardHasPetPreview,
   breederCardPetsPreviewTitleKey,
+  breederCardSocialLinks,
   breederCardVisitCtaClass,
 } from "../src/lib/breederDirectoryCard";
 
@@ -35,4 +36,22 @@ test("empty pets preview copy exists in EN and VI", () => {
   const viDict = vi as Record<string, string>;
   assert.equal(viDict["breeders.card.petsPreviewEmpty"], "Chưa có bé đang mở bán");
   assert.equal(enDict["breeders.card.petsPreviewEmpty"], "No pets currently for sale");
+  assert.equal(viDict["breeders.card.sendReview"], "Gửi đánh giá");
+  assert.equal(enDict["breeders.card.sendReview"], "Send review");
+});
+
+test("breederCardSocialLinks keeps provided platforms in FB-Zalo-IG-X-TikTok order", () => {
+  const links = breederCardSocialLinks({
+    facebook: "https://facebook.com/catties",
+    zalo: "0901234567",
+    instagram: "https://instagram.com/catties",
+    twitter: "https://x.com/catties",
+    tiktok: "https://www.tiktok.com/@catties",
+  });
+  assert.deepEqual(
+    links.map((item) => item.id),
+    ["facebook", "zalo", "instagram", "twitter", "tiktok"],
+  );
+  assert.equal(links[1]?.href, "https://zalo.me/0901234567");
+  assert.deepEqual(breederCardSocialLinks({}), []);
 });

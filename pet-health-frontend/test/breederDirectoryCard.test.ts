@@ -10,6 +10,9 @@ import {
   buildBreederPetThumbs,
   canShowBreederMessageAction,
   canShowBreederEditProfileAction,
+  canShowBreederVisitFarmAction,
+  canShowBreederReviewFarmAction,
+  breederCardSocialLinks,
   shortPetPriceLabel,
 } from '../src/utils/breederDirectoryCard.ts';
 import type { BreederProfile, PetFeedPost } from '../src/types.ts';
@@ -134,6 +137,27 @@ test('sold count and message gate helpers', () => {
   assert.equal(canShowBreederEditProfileAction(null, 'u1'), false);
   assert.equal(canShowBreederEditProfileAction('sen', 'u1'), false);
   assert.equal(canShowBreederEditProfileAction('u1', 'u1'), true);
+  assert.equal(canShowBreederVisitFarmAction('sen', 'u1'), false);
+  assert.equal(canShowBreederVisitFarmAction('u1', 'u1'), true);
+  assert.equal(canShowBreederReviewFarmAction(null, 'u1'), true);
+  assert.equal(canShowBreederReviewFarmAction('u1', 'u1'), false);
+  assert.equal(canShowBreederReviewFarmAction('sen', 'u1'), true);
+});
+
+test('breederCardSocialLinks keeps provided platforms in FB-Zalo-IG-X-TikTok order', () => {
+  const links = breederCardSocialLinks({
+    contact: {
+      facebook: 'https://facebook.com/catties',
+      zalo: '0901234567',
+      instagram: 'https://instagram.com/catties',
+      twitter: 'https://x.com/catties',
+      tiktok: 'https://www.tiktok.com/@catties',
+    },
+    metadata: {},
+  });
+  assert.deepEqual(links.map((item) => item.id), ['facebook', 'zalo', 'instagram', 'twitter', 'tiktok']);
+  assert.equal(links[1]?.href, 'https://zalo.me/0901234567');
+  assert.deepEqual(breederCardSocialLinks({ contact: {}, metadata: {} }), []);
 });
 
 test('breedersCard i18n EN/VI parity', () => {
@@ -147,12 +171,14 @@ test('breedersCard i18n EN/VI parity', () => {
     'petsPreviewCount',
     'petsPreviewEmpty',
     'message',
+    'sendReview',
   ] as const;
   for (const key of keys) {
     assert.ok(en.petFeed.breedersCard[key], `en missing ${key}`);
     assert.ok(vi.petFeed.breedersCard[key], `vi missing ${key}`);
   }
   assert.equal(vi.petFeed.breedersCard.cta, 'Ghé Trại Giống');
+  assert.equal(vi.petFeed.breedersCard.sendReview, 'Gửi đánh giá');
   assert.equal(vi.petFeed.breedersCard.activeKennel, 'Trực tuyến');
   assert.equal(vi.petFeed.breedersCard.message, 'Nhắn tin');
 });

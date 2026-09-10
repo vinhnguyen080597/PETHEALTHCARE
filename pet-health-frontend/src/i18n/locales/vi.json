@@ -237,7 +237,8 @@
       "activeKennel": "Trực tuyến",
       "petsPreviewCount": "Lứa mới đang mở bán ({{n}} bé):",
       "petsPreviewEmpty": "Chưa có bé đang mở bán",
-      "message": "Nhắn tin"
+      "message": "Nhắn tin",
+      "sendReview": "Gửi đánh giá"
     },
     "searchPlaceholder": "Bạn đang tìm bé thú cưng nào",
     "filtersTitle": "Lọc nhanh",
@@ -624,6 +625,7 @@
       "zalo": "Zalo",
       "tiktok": "TikTok",
       "instagram": "Instagram",
+      "twitter": "X",
       "video": "Video cơ sở",
       "empty": "Thông tin cơ sở sẽ hiện khi breeder bổ sung.",
       "openVideo": "Mở video cơ sở"

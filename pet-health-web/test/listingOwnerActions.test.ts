@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   canShowBreederMessageAction,
+  canShowBreederReviewFarmAction,
+  canShowBreederVisitFarmAction,
   canShowListingUpdateDetails,
   canShowListingStatusUpdate,
   canShowWarrantyUpdateCta,
@@ -42,6 +44,15 @@ test("own breeder cards hide the message action", () => {
   assert.equal(canShowBreederMessageAction("u1", "u2"), true);
   assert.equal(canShowBreederMessageAction("u1", "u1"), false);
   assert.equal(canShowBreederMessageAction(" u1 ", "u1"), false);
+});
+
+test("directory cards only let the owner visit; others send a review", () => {
+  assert.equal(canShowBreederVisitFarmAction(null, "u1"), false);
+  assert.equal(canShowBreederVisitFarmAction("u1", "u1"), true);
+  assert.equal(canShowBreederVisitFarmAction("sen", "u1"), false);
+  assert.equal(canShowBreederReviewFarmAction(null, "u1"), true);
+  assert.equal(canShowBreederReviewFarmAction("u1", "u1"), false);
+  assert.equal(canShowBreederReviewFarmAction("sen", "u1"), true);
 });
 
 test("share actions sit beside delete or report", () => {

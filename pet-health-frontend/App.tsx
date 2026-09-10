@@ -423,6 +423,7 @@ function AppContent() {
                 onOpenBreederProfile={() => void app.openBreederProfile()}
                 onEditPost={app.openEditPetFeedDraft}
                 currentUserId={app.accountProfile?.user_id ?? null}
+                token={app.token}
                 focusPostId={app.screen === 'pet-feed' ? app.petFeedFocusPostId : null}
                 onFocusPostHandled={app.clearPetFeedFocusPostId}
                 enabledTabs={app.petFeedEnabledTabs}

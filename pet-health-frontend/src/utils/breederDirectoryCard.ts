@@ -79,6 +79,79 @@ export function canShowBreederEditProfileAction(
   return currentUserId === breederUserId;
 }
 
+/** Only the kennel owner may open the farm detail from the directory card. */
+export function canShowBreederVisitFarmAction(
+  currentUserId: string | null | undefined,
+  breederUserId: string,
+): boolean {
+  return canShowBreederEditProfileAction(currentUserId, breederUserId);
+}
+
+/** Other users (including guests) see “send review” instead of visiting the farm. */
+export function canShowBreederReviewFarmAction(
+  currentUserId: string | null | undefined,
+  breederUserId: string,
+): boolean {
+  if (!breederUserId) return false;
+  return currentUserId !== breederUserId;
+}
+
+export type BreederCardSocialId = 'facebook' | 'zalo' | 'instagram' | 'twitter' | 'tiktok';
+
+const CARD_SOCIAL_ORDER: BreederCardSocialId[] = [
+  'facebook',
+  'zalo',
+  'instagram',
+  'twitter',
+  'tiktok',
+];
+
+function httpUrl(value: unknown): string {
+  const raw = String(value ?? '').trim();
+  return /^https?:\/\//i.test(raw) ? raw : '';
+}
+
+function zaloHref(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  const digits = trimmed.replace(/\D/g, '');
+  return digits.length >= 8 ? `https://zalo.me/${digits}` : null;
+}
+
+function twitterHref(contact: Record<string, unknown>, meta: Record<string, unknown>): string {
+  return (
+    httpUrl(contact.twitter)
+    || httpUrl(contact.x)
+    || httpUrl(meta.twitter_url)
+    || httpUrl(meta.x_url)
+  );
+}
+
+export function breederCardSocialLinks(profile: {
+  contact?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+}): { id: BreederCardSocialId; href: string | null }[] {
+  const contact = profile.contact && typeof profile.contact === 'object' ? profile.contact : {};
+  const meta = profile.metadata && typeof profile.metadata === 'object' ? profile.metadata : {};
+  const links: { id: BreederCardSocialId; href: string | null }[] = [];
+  for (const id of CARD_SOCIAL_ORDER) {
+    if (id === 'twitter') {
+      const href = twitterHref(contact, meta);
+      if (href) links.push({ id, href });
+      continue;
+    }
+    if (id === 'zalo') {
+      const raw = String(contact.zalo || '').trim();
+      if (!raw) continue;
+      links.push({ id, href: zaloHref(raw) });
+      continue;
+    }
+    const href = httpUrl(contact[id]) || httpUrl(meta[`${id}_url`]);
+    if (href) links.push({ id, href });
+  }
+  return links;
+}
+
 export function breederCardSpecialtyLabel(
   profile: Pick<BreederProfile, 'main_breeds' | 'primary_species'>,
   lang: 'vi' | 'en',
