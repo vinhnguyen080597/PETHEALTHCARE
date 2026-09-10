@@ -470,6 +470,7 @@
       "closeNewsDetail": "Back to news list",
       "openListing": "Open listing {{title}}",
       "listingMedia": "Media for listing {{title}}",
+      "swipeListingMedia": "Swipe left or right to see other photos and videos",
       "openListingPhoto": "Show listing photo {{index}}",
       "openListingVideo": "Show listing video",
       "saveListing": "Save pet listing",

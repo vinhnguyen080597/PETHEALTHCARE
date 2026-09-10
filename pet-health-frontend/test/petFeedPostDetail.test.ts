@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { PetFeedPost } from '../src/types.ts';
-import { resolvePetFeedPostDetailView, listingDetailMediaSlideCount } from '../src/utils/petFeedPostDetail.ts';
+import { resolvePetFeedPostDetailView, listingDetailMediaSlideCount, listingMediaPagerIndex } from '../src/utils/petFeedPostDetail.ts';
 
 function post(overrides: Partial<PetFeedPost> = {}): PetFeedPost {
   return {
@@ -113,4 +113,14 @@ test('listingDetailMediaSlideCount uses media_count while list urls are truncate
     }),
     2,
   );
+});
+
+test('listingMediaPagerIndex snaps to the nearest page and stays in range', () => {
+  assert.equal(listingMediaPagerIndex(0, 320, 3), 0);
+  assert.equal(listingMediaPagerIndex(159, 320, 3), 0);
+  assert.equal(listingMediaPagerIndex(160, 320, 3), 1);
+  assert.equal(listingMediaPagerIndex(700, 320, 3), 2);
+  assert.equal(listingMediaPagerIndex(-40, 320, 3), 0);
+  assert.equal(listingMediaPagerIndex(100, 0, 3), 0);
+  assert.equal(listingMediaPagerIndex(100, 320, 0), 0);
 });

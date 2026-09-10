@@ -53,3 +53,13 @@ export function listingDetailMediaSlideCount(
   const hasVideo = Boolean(typeof post.video_url === 'string' && post.video_url.trim());
   return imageCount + (hasVideo ? 1 : 0);
 }
+
+/** Nearest page while the hero media pager is swiped. */
+export function listingMediaPagerIndex(
+  offsetX: number,
+  pageWidth: number,
+  pageCount: number,
+): number {
+  if (!(pageWidth > 0) || !(pageCount > 0)) return 0;
+  return Math.max(0, Math.min(pageCount - 1, Math.round(offsetX / pageWidth)));
+}

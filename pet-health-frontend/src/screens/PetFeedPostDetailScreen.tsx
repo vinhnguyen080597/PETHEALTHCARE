@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getMySaleReview, listMyWarrantyPolicies, updateListingWarrantyPolicy } from '../api';
 import { PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
-import { PetFeedDetailSiblingListingsBar } from '../components/PetFeedDetailSiblingListingsBar';
+import { PetFeedDetailSiblingListingsBar, LISTING_SIMILAR_THUMB_SIZE } from '../components/PetFeedDetailSiblingListingsBar';
 import { PetFeedPostDetailBody } from '../components/PetFeedPostDetailBody';
 import { FarmReviewModal } from '../components/FarmReviewModal';
 import { ListingStatusModal, type ListingStatusSubmitPayload } from '../components/ListingStatusModal';
@@ -39,13 +39,37 @@ function ListingDetailFooterCta({
   icon,
   label,
   onPress,
+  iconOnly = false,
 }: {
   testID: string;
   accessibilityLabel: string;
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
+  label?: string;
   onPress: () => void;
+  iconOnly?: boolean;
 }) {
+  if (iconOnly) {
+    const size = LISTING_SIMILAR_THUMB_SIZE + 10;
+    return (
+      <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        className="items-center justify-center"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: 1.5,
+          backgroundColor: BRAND.btnSecondary,
+          borderColor: BRAND.borderBrand,
+        }}
+        onPress={onPress}
+      >
+        <Ionicons name={icon} size={32} color={BRAND.textBrandLink} />
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       testID={testID}
@@ -59,9 +83,11 @@ function ListingDetailFooterCta({
       onPress={onPress}
     >
       <Ionicons name={icon} size={15} color={BRAND.textBrandLink} />
-      <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-        {label}
-      </Text>
+      {label ? (
+        <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+          {label}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -431,6 +457,8 @@ export function PetFeedPostDetailScreen({
               showFavorite
               favoriteDisabled={postActionsLocked}
               showEditButton={false}
+              showStatusButton={showStatusUpdate}
+              onPressStatusUpdate={openListingStatusModal}
               isOwner={isOwnPost}
               onPressWarrantyUpdate={openWarrantyAttach}
             />
@@ -470,7 +498,7 @@ export function PetFeedPostDetailScreen({
         )}
       </ScrollView>
 
-      {selectedPost && (showSiblingBar || showMessageCta || showStatusUpdate) ? (
+      {selectedPost && (showSiblingBar || showMessageCta) ? (
         <View
           className={showSiblingBar ? 'w-full bg-white' : 'w-full border-t bg-white'}
           style={{
@@ -484,20 +512,12 @@ export function PetFeedPostDetailScreen({
               onPressListing={onOpenListing!}
               paddingBottom={0}
               overlay={
-                showStatusUpdate ? (
-                  <ListingDetailFooterCta
-                    testID={`pet-feed-status-button-${selectedPost.id}`}
-                    accessibilityLabel={t('listing.statusModal.open')}
-                    icon="flag-outline"
-                    label={t('listing.statusModal.open')}
-                    onPress={openListingStatusModal}
-                  />
-                ) : showMessageCta ? (
+                showMessageCta ? (
                   <ListingDetailFooterCta
                     testID={`pet-feed-message-button-${selectedPost.id}`}
                     accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: selectedPost.title })}
                     icon="chatbubble-ellipses-outline"
-                    label={t('petFeed.messages.messageCta')}
+                    iconOnly
                     onPress={() => onMessageBreeder?.(selectedPost)}
                   />
                 ) : null
@@ -505,20 +525,12 @@ export function PetFeedPostDetailScreen({
             />
           ) : (
             <View className="items-end px-4 pt-3">
-              {showStatusUpdate ? (
-                <ListingDetailFooterCta
-                  testID={`pet-feed-status-button-${selectedPost.id}`}
-                  accessibilityLabel={t('listing.statusModal.open')}
-                  icon="flag-outline"
-                  label={t('listing.statusModal.open')}
-                  onPress={openListingStatusModal}
-                />
-              ) : showMessageCta ? (
+              {showMessageCta ? (
                 <ListingDetailFooterCta
                   testID={`pet-feed-message-button-${selectedPost.id}`}
                   accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: selectedPost.title })}
                   icon="chatbubble-ellipses-outline"
-                  label={t('petFeed.messages.messageCta')}
+                  iconOnly
                   onPress={() => onMessageBreeder?.(selectedPost)}
                 />
               ) : null}

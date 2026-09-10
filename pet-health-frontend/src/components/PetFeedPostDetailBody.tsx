@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { BRAND } from '../theme/brand';
@@ -20,7 +20,7 @@ import {
   mapWarrantyPolicy,
   warrantyUploadedFileHref,
 } from '../utils/warrantyPolicy';
-import { listingDetailMediaSlideCount } from '../utils/petFeedPostDetail';
+import { listingDetailMediaSlideCount, listingMediaPagerIndex } from '../utils/petFeedPostDetail';
 import { ListingMediaOverlayBadges } from './ListingMediaOverlayBadges';
 import { WarrantyPolicyViewer } from './WarrantyPolicyViewer';
 
@@ -37,17 +37,59 @@ function MediaSkeleton({ className = '' }: { className?: string }) {
   return <View className={`bg-slate-200 ${className}`} />;
 }
 
-function AutoPlayVideo({ uri }: { uri: string }) {
+function AutoPlayVideo({ uri, playing }: { uri: string; playing: boolean }) {
   const player = useVideoPlayer({ uri }, (instance) => {
     instance.loop = true;
     instance.muted = true;
+    if (playing) instance.play();
   });
+
+  useEffect(() => {
+    player.muted = true;
+    if (playing) player.play();
+    else player.pause();
+  }, [playing, player]);
+
   return (
     <VideoView
       player={player}
       nativeControls
       contentFit="contain"
       style={{ height: '100%', width: '100%' }}
+    />
+  );
+}
+
+function HeroMediaSlide({
+  item,
+  active,
+  mediaLoading,
+}: {
+  item: MediaItem | null;
+  active: boolean;
+  mediaLoading: boolean;
+}) {
+  if (!item) {
+    if (mediaLoading) return <MediaSkeleton className="h-full w-full" />;
+    return (
+      <View className="h-full w-full items-center justify-center">
+        <Ionicons name="paw-outline" size={48} color={BRAND.btnPrimary} />
+      </View>
+    );
+  }
+  if (item.type === 'video') {
+    return (
+      <View className="h-full w-full bg-black">
+        <AutoPlayVideo uri={item.uri} playing={active} />
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri: item.uri }}
+      style={{ width: '100%', height: '100%' }}
+      contentFit="cover"
+      cachePolicy="memory-disk"
     />
   );
 }
@@ -80,6 +122,8 @@ type PetFeedPostDetailBodyProps = {
   showFavorite?: boolean;
   favoriteDisabled?: boolean;
   showEditButton?: boolean;
+  showStatusButton?: boolean;
+  onPressStatusUpdate?: () => void;
   isOwner?: boolean;
   onPressWarrantyUpdate?: () => void;
 };
@@ -92,20 +136,38 @@ export function PetFeedPostDetailBody({
   showFavorite = true,
   favoriteDisabled = false,
   showEditButton = false,
+  showStatusButton = false,
+  onPressStatusUpdate,
   isOwner = false,
   onPressWarrantyUpdate,
 }: PetFeedPostDetailBodyProps) {
   const { t, i18n } = useTranslation();
+  const pagerRef = useRef<ScrollView>(null);
+  const selectedIndexRef = useRef(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [pagerWidth, setPagerWidth] = useState(0);
   const [policyOpen, setPolicyOpen] = useState(false);
   const mediaItems = useMemo(() => mediaItemsForPost(post), [post]);
-  const selected = mediaItems[Math.min(selectedIndex, Math.max(mediaItems.length - 1, 0))] ?? null;
   const expectedStripCount = listingDetailMediaSlideCount(post);
+  const slideCount = Math.max(expectedStripCount, mediaItems.length);
   const showMediaStrip = expectedStripCount > 1;
+  selectedIndexRef.current = selectedIndex;
+
+  const selectMediaIndex = useCallback((index: number, animated = true) => {
+    setSelectedIndex(index);
+    if (pagerWidth <= 0) return;
+    pagerRef.current?.scrollTo({ x: index * pagerWidth, animated });
+  }, [pagerWidth]);
 
   useEffect(() => {
     setSelectedIndex(0);
+    pagerRef.current?.scrollTo({ x: 0, animated: false });
   }, [post.id]);
+
+  useEffect(() => {
+    if (pagerWidth <= 0) return;
+    pagerRef.current?.scrollTo({ x: selectedIndexRef.current * pagerWidth, animated: false });
+  }, [pagerWidth]);
 
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
   const specs = useMemo(() => {
@@ -183,19 +245,80 @@ export function PetFeedPostDetailBody({
 
   const showActionRow =
     (showFavorite && onToggleFavorite)
-    || (showEditButton && onEditPost);
+    || (showEditButton && onEditPost)
+    || (showStatusButton && onPressStatusUpdate);
 
   return (
     <View className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
-      <View className="relative bg-slate-100" style={{ height: LISTING_CARD_IMAGE_HEIGHT }}>
-        {selected?.type === 'video' ? (
-          <AutoPlayVideo uri={selected.uri} />
-        ) : selected?.type === 'image' ? (
-          <Image
-            source={{ uri: selected.uri }}
-            style={{ width: '100%', height: '100%' }}
-            contentFit="cover"
-            cachePolicy="memory-disk"
+      <View
+        className="relative bg-slate-100"
+        style={{ height: LISTING_CARD_IMAGE_HEIGHT }}
+        onLayout={(event) => {
+          const width = Math.round(event.nativeEvent.layout.width);
+          if (width > 0 && width !== pagerWidth) setPagerWidth(width);
+        }}
+      >
+        {slideCount > 0 && pagerWidth > 0 ? (
+          <ScrollView
+            ref={pagerRef}
+            testID={`pet-feed-detail-media-pager-${post.id}`}
+            horizontal
+            pagingEnabled
+            nestedScrollEnabled
+            directionalLockEnabled
+            disableIntervalMomentum
+            showsHorizontalScrollIndicator={false}
+            scrollEnabled={slideCount > 1}
+            keyboardShouldPersistTaps="handled"
+            accessibilityRole="adjustable"
+            accessibilityLabel={t('petFeed.accessibility.listingMedia', { title: post.title })}
+            accessibilityHint={slideCount > 1 ? t('petFeed.accessibility.swipeListingMedia') : undefined}
+            accessibilityActions={
+              slideCount > 1
+                ? [{ name: 'increment' }, { name: 'decrement' }]
+                : undefined
+            }
+            onAccessibilityAction={(event) => {
+              const action = event.nativeEvent.actionName;
+              if (action === 'increment') {
+                selectMediaIndex(Math.min(slideCount - 1, selectedIndex + 1));
+              }
+              if (action === 'decrement') {
+                selectMediaIndex(Math.max(0, selectedIndex - 1));
+              }
+            }}
+            style={{ height: LISTING_CARD_IMAGE_HEIGHT }}
+            onScroll={(event) => {
+              const next = listingMediaPagerIndex(
+                event.nativeEvent.contentOffset.x,
+                pagerWidth,
+                slideCount,
+              );
+              if (next !== selectedIndex) setSelectedIndex(next);
+            }}
+            scrollEventThrottle={16}
+          >
+            {Array.from({ length: slideCount }, (_, index) => {
+              const item = mediaItems[index] ?? null;
+              return (
+                <View
+                  key={item ? `${item.type}-${item.uri}-${index}` : `media-slide-${index}`}
+                  style={{ width: pagerWidth, height: LISTING_CARD_IMAGE_HEIGHT }}
+                >
+                  <HeroMediaSlide
+                    item={item}
+                    active={index === selectedIndex}
+                    mediaLoading={mediaLoading}
+                  />
+                </View>
+              );
+            })}
+          </ScrollView>
+        ) : slideCount > 0 ? (
+          <HeroMediaSlide
+            item={mediaItems[Math.min(selectedIndex, Math.max(mediaItems.length - 1, 0))] ?? null}
+            active
+            mediaLoading={mediaLoading}
           />
         ) : mediaLoading ? (
           <MediaSkeleton className="h-full w-full" />
@@ -204,9 +327,11 @@ export function PetFeedPostDetailBody({
             <Ionicons name="paw-outline" size={48} color={BRAND.btnPrimary} />
           </View>
         )}
-        <ListingMediaOverlayBadges post={post} />
+        <View className="absolute inset-0" pointerEvents="none">
+          <ListingMediaOverlayBadges post={post} />
+        </View>
         {expectedStripCount > 0 ? (
-          <View className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1">
+          <View className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1" pointerEvents="none">
             <Text className="text-xs font-semibold text-white">
               {t('petFeed.detail.mediaCount', {
                 current: Math.min(selectedIndex + 1, Math.max(expectedStripCount, 1)),
@@ -254,7 +379,7 @@ export function PetFeedPostDetailBody({
                   borderWidth: 2,
                   borderColor: active ? BRAND.btnPrimary : '#E2E8F0',
                 }}
-                onPress={() => setSelectedIndex(index)}
+                onPress={() => selectMediaIndex(index)}
               >
                 {thumbUri ? (
                   <Image source={{ uri: thumbUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
@@ -289,50 +414,70 @@ export function PetFeedPostDetailBody({
 
           {showActionRow ? (
             <View className="flex-row items-center justify-between gap-3">
-              {showFavorite && onToggleFavorite ? (
+              {showStatusButton && onPressStatusUpdate ? (
                 <Pressable
-                  testID={`pet-feed-favorite-button-${post.id}`}
+                  testID={`pet-feed-status-button-${post.id}`}
                   accessibilityRole="button"
-                  accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
-                  accessibilityState={{ disabled: favoriteDisabled }}
-                  disabled={favoriteDisabled}
-                  className="shrink-0 flex-row items-center gap-1.5 py-1"
-                  style={{ opacity: favoriteDisabled ? 0.45 : 1 }}
-                  onPress={() => {
-                    if (favoriteDisabled) return;
-                    onToggleFavorite(post);
+                  accessibilityLabel={t('listing.statusModal.open')}
+                  className="shrink-0 flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+                  style={{
+                    backgroundColor: BRAND.btnSecondary,
+                    borderColor: BRAND.borderBrand,
                   }}
+                  onPress={onPressStatusUpdate}
                 >
-                  <Ionicons
-                    name={post.is_favorited ? 'heart' : 'heart-outline'}
-                    size={20}
-                    color={post.is_favorited ? '#E11D48' : '#6E5A51'}
-                  />
-                  <Text className="text-xs font-semibold" style={{ color: post.is_favorited ? '#E11D48' : '#6E5A51' }}>
-                    {post.favorite_count ?? 0}
+                  <Ionicons name="flag-outline" size={15} color={BRAND.textBrandLink} />
+                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                    {t('listing.statusModal.open')}
                   </Text>
                 </Pressable>
               ) : (
                 <View className="shrink-0" />
               )}
-              {showEditButton && onEditPost ? (
-                <Pressable
-                  testID={`pet-feed-edit-button-${post.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
-                  className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
-                  style={{
-                    backgroundColor: BRAND.btnSecondary,
-                    borderColor: BRAND.borderBrand,
-                  }}
-                  onPress={() => onEditPost(post)}
-                >
-                  <Ionicons name="create-outline" size={15} color={BRAND.textBrandLink} />
-                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-                    {t('petFeed.editListing')}
-                  </Text>
-                </Pressable>
-              ) : null}
+              <View className="shrink-0 flex-row items-center gap-3">
+                {showFavorite && onToggleFavorite ? (
+                  <Pressable
+                    testID={`pet-feed-favorite-button-${post.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={post.is_favorited ? t('petFeed.accessibility.unsaveListing') : t('petFeed.accessibility.saveListing')}
+                    accessibilityState={{ disabled: favoriteDisabled }}
+                    disabled={favoriteDisabled}
+                    className="shrink-0 flex-row items-center gap-1.5 py-1"
+                    style={{ opacity: favoriteDisabled ? 0.45 : 1 }}
+                    onPress={() => {
+                      if (favoriteDisabled) return;
+                      onToggleFavorite(post);
+                    }}
+                  >
+                    <Ionicons
+                      name={post.is_favorited ? 'heart' : 'heart-outline'}
+                      size={20}
+                      color={post.is_favorited ? '#E11D48' : '#6E5A51'}
+                    />
+                    <Text className="text-xs font-semibold" style={{ color: post.is_favorited ? '#E11D48' : '#6E5A51' }}>
+                      {post.favorite_count ?? 0}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {showEditButton && onEditPost ? (
+                  <Pressable
+                    testID={`pet-feed-edit-button-${post.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
+                    className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+                    style={{
+                      backgroundColor: BRAND.btnSecondary,
+                      borderColor: BRAND.borderBrand,
+                    }}
+                    onPress={() => onEditPost(post)}
+                  >
+                    <Ionicons name="create-outline" size={15} color={BRAND.textBrandLink} />
+                    <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                      {t('petFeed.editListing')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
           ) : null}
         </View>

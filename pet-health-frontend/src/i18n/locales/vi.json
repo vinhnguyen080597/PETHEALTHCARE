@@ -470,6 +470,7 @@
       "closeNewsDetail": "Quay lại danh sách tin tức",
       "openListing": "Mở bài đăng {{title}}",
       "listingMedia": "Media của bài đăng {{title}}",
+      "swipeListingMedia": "Vuốt sang trái hoặc phải để xem ảnh và video khác",
       "openListingPhoto": "Xem ảnh {{index}} của bài đăng",
       "openListingVideo": "Xem video của bài đăng",
       "saveListing": "Lưu bài đăng thú cưng",

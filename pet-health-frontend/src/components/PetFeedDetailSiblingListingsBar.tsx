@@ -7,6 +7,8 @@ import type { PetFeedPost } from '../types';
 import { listingPreviewImages } from '../utils/marketplaceListingCard';
 
 const THUMB_SIZE = 52;
+
+export const LISTING_SIMILAR_THUMB_SIZE = THUMB_SIZE;
 const OVERLAY_SCROLL_PAD = 176;
 
 type PetFeedDetailSiblingListingsBarProps = {
@@ -103,7 +105,7 @@ export function PetFeedDetailSiblingListingsBar({
                 backgroundColor: 'rgba(255,255,255,0.72)',
               }}
             />
-            <View className="bg-white py-0.5 pl-0.5">
+            <View className="bg-white">
               {overlay}
             </View>
           </View>
