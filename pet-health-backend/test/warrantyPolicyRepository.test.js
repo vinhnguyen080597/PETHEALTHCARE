@@ -5,15 +5,17 @@ delete process.env.SUPABASE_URL;
 delete process.env.SUPABASE_ANON_KEY;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const {
-  upsertMyBreederProfile,
-  adminUpdateBreederProfileStatus,
-  createPetFeedPost,
-  adminUpdatePetFeedPostStatus,
-  createMyWarrantyPolicy,
-  updateMyWarrantyPolicy,
-  updatePetFeedPost,
-} = await import('../src/repositories/petFeedRepository.js');
+  const {
+    upsertMyBreederProfile,
+    adminUpdateBreederProfileStatus,
+    createPetFeedPost,
+    adminUpdatePetFeedPostStatus,
+    createMyWarrantyPolicy,
+    updateMyWarrantyPolicy,
+    updatePetFeedPost,
+    getPublicPetFeedPost,
+    updateListingWarrantyPolicy,
+  } = await import('../src/repositories/petFeedRepository.js');
 
 const samplePolicy = {
   title: 'Care 14 days',
@@ -114,4 +116,31 @@ test('legacy deposit_hold status locks listing edits', async () => {
     () => updatePetFeedPost(breederId, post.id, { title: 'Changed title' }, null),
     (err) => err.code === 'LISTING_LOCKED',
   );
+});
+
+test('public listing exposes the bound warranty file after attach', async () => {
+  const breederId = `wp-file-public-${Date.now()}`;
+  await seedVerifiedBreeder(breederId);
+  const created = await createMyWarrantyPolicy(breederId, {
+    ...samplePolicy,
+    title: 'File policy',
+    file_url: 'https://cdn.example/farm-policy.pdf',
+    content_type: 'application/pdf',
+  }, null);
+  assert.equal(created.policy.file_url, 'https://cdn.example/farm-policy.pdf');
+
+  let post = await createPetFeedPost(breederId, {
+    title: 'British kitten',
+    species: 'cat',
+    status: 'draft',
+    mediaUrls: ['https://cdn.example.com/c.jpg'],
+    metadata: { warranty_policy_id: created.policy.id },
+  }, null);
+  post = await adminUpdatePetFeedPostStatus(post.id, 'published');
+  post = await updateListingWarrantyPolicy(breederId, post.id, created.policy.id, null);
+
+  const publicPost = await getPublicPetFeedPost(post.id);
+  assert.equal(publicPost.warranty_policy.file_url, 'https://cdn.example/farm-policy.pdf');
+  assert.equal(publicPost.warranty_policy.title, 'File policy');
+  assert.equal(publicPost.metadata.warranty_policy_bound.file_url, 'https://cdn.example/farm-policy.pdf');
 });

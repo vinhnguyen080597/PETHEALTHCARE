@@ -11,6 +11,7 @@ import type { PublicComment } from "@/lib/api/public";
 import { VerifiedBadge } from "./Badges";
 import { showBreederVerifiedBadge } from "@/lib/breederVerificationUi";
 import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
+import { fillListingWarrantyFileUrl, warrantyUploadedFileHref } from "@/lib/warrantyPolicyView";
 import { mapApiPost } from "@/lib/mappers";
 import type { ApiPetFeedPost } from "@/lib/types";
 import {
@@ -168,6 +169,11 @@ export function ListingDetail({
     status: listing.status,
   });
   const warrantyTone = listingWarrantyCardTone(Boolean(listing.warrantyPolicy));
+  const warrantyFileHref = warrantyUploadedFileHref(
+    fillListingWarrantyFileUrl(listing.warrantyPolicy, {
+      library: listing.breeder.warrantyPolicies,
+    }),
+  );
   const soldTone = listingDealStatusTone("sold");
   const cancelledTone = listingDealStatusTone("cancelled");
   const allowMediaDownload = canDownloadPostMedia(isAdmin);
@@ -1014,7 +1020,13 @@ export function ListingDetail({
                   <div className="flex items-start justify-between gap-3">
                     <button
                       type="button"
-                      onClick={() => setPolicyOpen(true)}
+                      onClick={() => {
+                        if (warrantyFileHref) {
+                          window.open(warrantyFileHref, "_blank", "noopener,noreferrer");
+                          return;
+                        }
+                        setPolicyOpen(true);
+                      }}
                       className="min-w-0 flex-1 text-left hover:opacity-90 transition-opacity"
                     >
                       <p className={warrantyTone.title}>
@@ -1023,7 +1035,9 @@ export function ListingDetail({
                       <p className={warrantyTone.hint}>
                         {listing.warrantyPolicy.frozen
                           ? t(lang, "warranty.frozenHint")
-                          : t(lang, "warranty.viewCta")}
+                          : warrantyFileHref
+                            ? t(lang, "farm.warranty.openFile")
+                            : t(lang, "warranty.viewCta")}
                       </p>
                     </button>
                     {showWarrantyUpdate ? (
@@ -1400,7 +1414,14 @@ export function ListingDetail({
 
       <WarrantyPolicyViewer
         lang={lang}
-        policy={listing.warrantyPolicy ?? null}
+        policy={
+          listing.warrantyPolicy
+            ? {
+                ...listing.warrantyPolicy,
+                fileUrl: warrantyFileHref || listing.warrantyPolicy.fileUrl,
+              }
+            : null
+        }
         open={policyOpen}
         onClose={() => setPolicyOpen(false)}
         listingSpecies={listing.species}

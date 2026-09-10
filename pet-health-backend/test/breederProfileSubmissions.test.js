@@ -122,6 +122,39 @@ test("applyApprovedWarrantyFileSubmissions hydrates a skipped admin merge", () =
   assert.equal(again.changed, false);
 });
 
+test("applyApprovedWarrantyFileSubmissions restores file_url onto a same-title form policy", () => {
+  const hydrated = applyApprovedWarrantyFileSubmissions(
+    {
+      contact: {},
+      metadata: {
+        warranty_policies: [
+          {
+            id: "wp-form",
+            title: "Trung Vinh",
+            vaccine_shots_count: 2,
+            care_parvo_coverage_days: 14,
+          },
+        ],
+      },
+    },
+    [
+      {
+        submission_type: "warranty_policy_file",
+        status: "approved",
+        payload: {
+          url: "https://cdn.example/farm.pdf",
+          title: "Trung Vinh",
+          content_type: "application/pdf",
+        },
+      },
+    ],
+  );
+  assert.equal(hydrated.changed, true);
+  assert.equal(hydrated.metadata.warranty_policies.length, 1);
+  assert.equal(hydrated.metadata.warranty_policies[0].id, "wp-form");
+  assert.equal(hydrated.metadata.warranty_policies[0].file_url, "https://cdn.example/farm.pdf");
+});
+
 test("applyApprovedBreederSubmission awards first warranty file once", () => {
   const profile = { contact: {}, metadata: {} };
   const first = applyApprovedBreederSubmission(profile, {

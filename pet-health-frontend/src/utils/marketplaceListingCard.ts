@@ -8,6 +8,7 @@ export type ListingWarrantyPolicy = {
   careParvoCoverageDays?: number;
   respiratorySkinCoverageDays?: number;
   congenitalCoverageDays?: number;
+  fileUrl?: string;
 };
 
 export type ListingHotBadge =
@@ -109,13 +110,14 @@ export function readListingWarrantyPolicy(post: PetFeedPost): ListingWarrantyPol
       row.respiratory_skin_coverage_days ?? row.respiratorySkinCoverageDays,
     ),
     congenitalCoverageDays: numOrUndef(row.congenital_coverage_days ?? row.congenitalCoverageDays),
+    fileUrl: String(row.file_url ?? row.fileUrl ?? '').trim() || undefined,
   };
   const days = [
     policy.careParvoCoverageDays,
     policy.respiratorySkinCoverageDays,
     policy.congenitalCoverageDays,
   ].filter((n): n is number => typeof n === 'number' && n > 0);
-  if (!policy.title && !days.length) return null;
+  if (!policy.title && !days.length && !policy.fileUrl) return null;
   return policy;
 }
 

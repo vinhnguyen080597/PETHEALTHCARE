@@ -54,19 +54,14 @@ export async function listPublicPosts(options?: {
 }
 
 export async function getPublicPostDetail(postId: string): Promise<Listing | null> {
-  return unstable_cache(
-    () =>
-      catchPublicNotFound(async () => {
-        const res = await fetchJson<{ data: ApiPetFeedPost }>(
-          `/public/pet-feed/posts/${encodeURIComponent(postId)}/detail`,
-          { next: { revalidate: PUBLIC_DETAIL_REVALIDATE } },
-        );
-        if (!res?.data) return null;
-        return mapApiPost(res.data);
-      }, null),
-    ["public-post-detail", postId],
-    { revalidate: PUBLIC_DETAIL_REVALIDATE, tags: ["public-posts", postId] },
-  )();
+  return catchPublicNotFound(async () => {
+    const res = await fetchJson<{ data: ApiPetFeedPost }>(
+      `/public/pet-feed/posts/${encodeURIComponent(postId)}/detail`,
+      { cache: "no-store" },
+    );
+    if (!res?.data) return null;
+    return mapApiPost(res.data);
+  }, null);
 }
 
 export type PublicComment = {

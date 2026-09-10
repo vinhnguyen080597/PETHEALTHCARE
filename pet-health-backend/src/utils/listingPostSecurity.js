@@ -10,6 +10,7 @@ export const SERVER_OWNED_POST_METADATA_KEYS = new Set([
   'completed',
   'listing_outcome',
   'warranty_policy_snapshot',
+  'warranty_policy_bound',
   'rejection_reason',
   'rejected_at',
   'owner_deleted_at',

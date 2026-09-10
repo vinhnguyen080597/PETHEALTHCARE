@@ -7,7 +7,7 @@ import {
   warrantyFormToApiBody,
   warrantyPolicyToFormValues,
 } from '../src/utils/warrantyPolicyForm.ts';
-import { mapWarrantyPolicies, mapWarrantyPolicy } from '../src/utils/warrantyPolicy.ts';
+import { mapWarrantyPolicies, mapWarrantyPolicy, warrantyUploadedFileHref } from '../src/utils/warrantyPolicy.ts';
 import {
   resolveWarrantyFarmSpecies,
   warrantyInfectiousFieldKey,
@@ -100,4 +100,13 @@ test('warranty species copy keys are nested-safe', () => {
   assert.equal(resolveWarrantyFarmSpecies({ primarySpecies: ['dog', 'cat'] }), 'mixed');
   assert.equal(warrantyInfectiousFieldKey('mixed'), 'warranty.field.careParvo.mixed');
   assert.equal(warrantyRapidTestEvidenceKey('dog'), 'warranty.evidence.rapid_test_photo.dog');
+});
+
+test('warrantyUploadedFileHref only allows http(s) links', () => {
+  assert.equal(
+    warrantyUploadedFileHref('https://cdn.example/policy.pdf'),
+    'https://cdn.example/policy.pdf',
+  );
+  assert.equal(warrantyUploadedFileHref('javascript:alert(1)'), null);
+  assert.equal(warrantyUploadedFileHref(''), null);
 });

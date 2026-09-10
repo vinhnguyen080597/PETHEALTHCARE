@@ -238,7 +238,16 @@ export function applyApprovedBreederSubmission(profile, submission, reviewedAt) 
         trimText(item?.file_url ?? item?.fileUrl, 2000) === url
         && trimText(item?.title, 160) === title,
     );
-    if (!exists) {
+    const sameTitleMissingFile = rawPolicies.find(
+      (item) =>
+        trimText(item?.title, 160) === title
+        && !trimText(item?.file_url ?? item?.fileUrl, 2000),
+    );
+    if (sameTitleMissingFile) {
+      sameTitleMissingFile.file_url = url;
+      if (contentType) sameTitleMissingFile.content_type = contentType;
+      metadata.warranty_policies = rawPolicies;
+    } else if (!exists) {
       rawPolicies.push({
         id: randomUUID(),
         title,

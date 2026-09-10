@@ -72,3 +72,9 @@ export function mapWarrantyPolicies(raw: unknown): WarrantyPolicy[] {
   if (!Array.isArray(raw)) return [];
   return raw.map(mapWarrantyPolicy).filter((p): p is WarrantyPolicy => Boolean(p));
 }
+
+/** http(s) file URL for uploaded warranty documents; otherwise null. */
+export function warrantyUploadedFileHref(url: unknown): string | null {
+  const trimmed = String(url ?? '').trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : null;
+}

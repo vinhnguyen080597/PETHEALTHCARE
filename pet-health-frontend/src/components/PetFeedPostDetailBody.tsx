@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { BRAND } from '../theme/brand';
 import type { PetFeedPost } from '../types';
@@ -16,7 +16,7 @@ import {
 import { buildPetFeedDetailSpecs } from '../utils/petFeedDetailSpecs';
 import { formatListingBirthDateLabel, listingBirthDateDisplayIso } from '../utils/petAge';
 import { canShowWarrantyUpdateCta } from '../utils/listingAvailabilityBadge';
-import { mapWarrantyPolicy } from '../utils/warrantyPolicy';
+import { mapWarrantyPolicy, warrantyUploadedFileHref } from '../utils/warrantyPolicy';
 import { listingDetailMediaSlideCount } from '../utils/petFeedPostDetail';
 import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
 import { ListingMediaOverlayBadges } from './ListingMediaOverlayBadges';
@@ -144,6 +144,11 @@ export function PetFeedPostDetailBody({
   const breeder = post.breeder_profile;
 
   const openWarrantyInfo = useCallback(() => {
+    const href = warrantyUploadedFileHref(attachedWarranty?.fileUrl ?? warranty?.fileUrl);
+    if (href) {
+      void Linking.openURL(href);
+      return;
+    }
     if (!warranty) {
       Alert.alert(t('petFeed.detail.warrantyNone'), t('petFeed.detail.warrantyNoneHint'));
       return;
@@ -153,7 +158,7 @@ export function PetFeedPostDetailBody({
       warrantyDays != null ? fillTemplate(t('petFeed.card.warranty'), warrantyDays) : null,
     ].filter(Boolean);
     Alert.alert(warranty.title || t('petFeed.detail.warrantyView'), lines.join('\n'));
-  }, [t, warranty, warrantyDays]);
+  }, [attachedWarranty?.fileUrl, t, warranty, warrantyDays]);
 
   const iconForSpec = (icon: string): keyof typeof Ionicons.glyphMap => {
     if (icon === 'calendar') return 'calendar-outline';
@@ -441,7 +446,13 @@ export function PetFeedPostDetailBody({
                 {`🛡️ ${warranty?.title || t('petFeed.detail.warrantyNone')}`}
               </Text>
               <Text className="mt-0.5 text-xs font-medium" style={{ color: warranty ? '#0369A1' : BRAND.textMuted }}>
-                {warranty ? t('petFeed.detail.warrantyView') : t('petFeed.detail.warrantyNoneHint')}
+                {warranty
+                  ? t(
+                      warrantyUploadedFileHref(attachedWarranty?.fileUrl ?? warranty.fileUrl)
+                        ? 'farm.warranty.openFile'
+                        : 'petFeed.detail.warrantyView',
+                    )
+                  : t('petFeed.detail.warrantyNoneHint')}
               </Text>
             </Pressable>
             {showWarrantyUpdate ? (

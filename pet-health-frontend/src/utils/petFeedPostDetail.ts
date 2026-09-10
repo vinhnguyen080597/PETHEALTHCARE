@@ -1,5 +1,22 @@
 import type { PetFeedPost } from '../types';
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function listingWarrantyMetadata(metadata: unknown): Record<string, unknown> {
+  const meta = asRecord(metadata);
+  const out: Record<string, unknown> = {};
+  if (meta.warranty_policy_id !== undefined) out.warranty_policy_id = meta.warranty_policy_id;
+  if (meta.warranty_policy_bound !== undefined) out.warranty_policy_bound = meta.warranty_policy_bound;
+  if (meta.warranty_policy_snapshot !== undefined) {
+    out.warranty_policy_snapshot = meta.warranty_policy_snapshot;
+  }
+  return out;
+}
+
 /**
  * Prefer full detail payload when available; overlay favorite state from the list row
  * so favorite toggles stay in sync while detail is open.
@@ -17,7 +34,11 @@ export function resolvePetFeedPostDetailView(
       is_favorited: listPost.is_favorited,
       favorite_count: listPost.favorite_count ?? detailPost.favorite_count,
       status: listPost.status ?? detailPost.status,
-      metadata: listPost.metadata ?? detailPost.metadata,
+      metadata: {
+        ...asRecord(detailPost.metadata),
+        ...asRecord(listPost.metadata),
+        ...listingWarrantyMetadata(detailPost.metadata),
+      },
     };
   }
   return listPost;

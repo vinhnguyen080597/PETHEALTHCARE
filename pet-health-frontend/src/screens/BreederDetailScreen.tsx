@@ -65,7 +65,7 @@ import {
   type FarmDetailTab,
 } from '../utils/farmProfileDisplay';
 import { parseTrustAwardedFromMeta } from '../utils/breederTransparencyScore';
-import { mapWarrantyPolicies, type WarrantyPolicy } from '../utils/warrantyPolicy';
+import { mapWarrantyPolicies, type WarrantyPolicy, warrantyUploadedFileHref } from '../utils/warrantyPolicy';
 
 const FARM_BG = '#FDFBF7';
 const FARM_BORDER = '#F3E2C8';
@@ -987,6 +987,11 @@ export function BreederDetailScreen({
                       <Pressable
                         style={{ flex: 1, minWidth: 0 }}
                         onPress={() => {
+                          const href = warrantyUploadedFileHref(policy.fileUrl);
+                          if (href) {
+                            void Linking.openURL(href);
+                            return;
+                          }
                           setViewingWarranty(policy);
                         }}
                       >

@@ -221,3 +221,29 @@ test("mapApiPost treats owner-deleted sold listings as archived", () => {
   assert.equal(listing.ownerDeleted, true);
   assert.equal(listing.metadataSold, false);
 });
+
+test("mapApiPost restores listing warranty file from farm library", () => {
+  const listing = mapApiPost({
+    id: "p-warranty-file",
+    title: "Kitten",
+    status: "published",
+    warranty_policy: {
+      id: "wp-form",
+      title: "Trung Vinh",
+      vaccine_shots_count: 2,
+      care_parvo_coverage_days: 14,
+    },
+    breeder_profile: {
+      id: "bp",
+      display_name: "Trung Vinh",
+      warranty_policies: [
+        {
+          id: "wp-upload",
+          title: "Trung Vinh",
+          file_url: "https://cdn.example/farm.pdf",
+        },
+      ],
+    },
+  });
+  assert.equal(listing.warrantyPolicy?.fileUrl, "https://cdn.example/farm.pdf");
+});

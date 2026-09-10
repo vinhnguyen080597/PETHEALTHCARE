@@ -363,6 +363,9 @@ function applyWarrantyPolicyBind(existingRow, nextRow, breederProfile) {
     if (existingMeta.warranty_policy_snapshot) {
       nextMeta.warranty_policy_snapshot = existingMeta.warranty_policy_snapshot;
     }
+    if (existingMeta.warranty_policy_bound) {
+      nextMeta.warranty_policy_bound = existingMeta.warranty_policy_bound;
+    }
     if (existingMeta.deal) nextMeta.deal = existingMeta.deal;
     return { ...nextRow, metadata: nextMeta };
   }
@@ -370,12 +373,14 @@ function applyWarrantyPolicyBind(existingRow, nextRow, breederProfile) {
   if (nextMeta.warranty_policy_id !== undefined) {
     if (!requestedId) {
       nextMeta.warranty_policy_id = null;
+      delete nextMeta.warranty_policy_bound;
     } else {
       const policy = findWarrantyPolicy(breederProfile?.metadata, requestedId);
       if (!policy) {
         throw httpError('Warranty policy not found in your library.', 400, 'WARRANTY_POLICY_NOT_FOUND');
       }
       nextMeta.warranty_policy_id = policy.id;
+      nextMeta.warranty_policy_bound = policy;
     }
   }
 
@@ -709,6 +714,28 @@ function attachWarrantyPolicyDto(post) {
     warranty_policy,
     deal: Object.keys(deal).length ? deal : null,
   };
+}
+
+function listingWarrantyNeedsLibraryHydrate(row) {
+  const meta = asObject(row?.metadata);
+  const policyId = String(meta.warranty_policy_id ?? '').trim();
+  if (!policyId) return false;
+  const boundFile = String(asObject(meta.warranty_policy_bound).file_url ?? '').trim();
+  if (boundFile) return false;
+  const fromLibrary = findWarrantyPolicy(row?.breeder_profile?.metadata, policyId);
+  return !String(fromLibrary?.file_url ?? '').trim();
+}
+
+async function hydrateListingWarrantyLibrary(row, accessToken) {
+  if (!row || !listingWarrantyNeedsLibraryHydrate(row)) return row;
+  const profile = row.breeder_profile;
+  if (!profile) return row;
+  try {
+    const hydrated = await syncApprovedWarrantyFilesToProfile(toProfile(profile), accessToken);
+    return { ...row, breeder_profile: hydrated };
+  } catch {
+    return row;
+  }
 }
 
 function resolvePostBreederProfile(row, profilesById = new Map()) {
@@ -1260,7 +1287,15 @@ export async function getPetFeedPost(userId, postId, accessToken) {
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     const row = memoryPosts.find((post) => post.id === postId);
     if (!canViewerAccessPetFeedPost(row, userId)) return null;
-    const post = toPost(row, favoriteIds, profilesById, userId);
+    const hydratedRow = await hydrateListingWarrantyLibrary(
+      { ...row, breeder_profile: profilesById.get(row.breeder_profile_id) ?? row.breeder_profile ?? null },
+      accessToken,
+    );
+    const hydratedProfiles = new Map(profilesById);
+    if (hydratedRow.breeder_profile?.id) {
+      hydratedProfiles.set(hydratedRow.breeder_profile.id, hydratedRow.breeder_profile);
+    }
+    const post = toPost(hydratedRow, favoriteIds, hydratedProfiles, userId);
     if (!post) return post;
     return withPostEngagementCounts(post, accessToken);
   }
@@ -1272,7 +1307,7 @@ export async function getPetFeedPost(userId, postId, accessToken) {
     .maybeSingle();
   if (error) throw error;
   if (!canViewerAccessPetFeedPost(data, userId)) return null;
-  const post = toPost(data, favoriteIds, new Map(), userId);
+  const post = toPost(await hydrateListingWarrantyLibrary(data, accessToken), favoriteIds, new Map(), userId);
   if (!post) return post;
   return withPostEngagementCounts(post, accessToken);
 }
@@ -1551,7 +1586,10 @@ export async function getPublicPetFeedPost(postId) {
     const profilesById = new Map(memoryProfiles.map((profile) => [profile.id, toProfile(profile)]));
     const row = memoryPosts.find((post) => post.id === safePostId && isPubliclyViewableListingRow(post));
     if (!row) return null;
-    const post = toPublicDetailPost({ ...row, breeder_profile: profilesById.get(row.breeder_profile_id) ?? null });
+    const post = toPublicDetailPost(await hydrateListingWarrantyLibrary({
+      ...row,
+      breeder_profile: profilesById.get(row.breeder_profile_id) ?? null,
+    }, null));
     return withPostEngagementCounts(post, null);
   }
 
@@ -1566,7 +1604,7 @@ export async function getPublicPetFeedPost(postId) {
     throw error;
   }
   if (!isPubliclyViewableListingRow(data)) return null;
-  return withPostEngagementCounts(toPublicDetailPost(data), null);
+  return withPostEngagementCounts(toPublicDetailPost(await hydrateListingWarrantyLibrary(data, null)), null);
 }
 
 /** Public verified breeders directory. */

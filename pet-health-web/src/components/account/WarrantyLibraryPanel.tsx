@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Lang, WarrantyPolicy } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { WarrantyPolicyViewer } from "@/components/marketplace/WarrantyPolicyViewer";
+import { warrantyUploadedFileHref } from "@/lib/warrantyPolicyView";
 import { mapWarrantyPolicy } from "@/lib/mappers";
 import { farmDetailHref, warrantyLibraryHref, warrantySaveNextHref } from "@/lib/farmTabs";
 import type { WarrantyLibraryNavFrom } from "@/lib/farmTabs";
@@ -678,7 +679,14 @@ export function WarrantyLibraryPanel({
               >
                 <button
                   type="button"
-                  onClick={() => setViewing(p)}
+                  onClick={() => {
+                    const href = warrantyUploadedFileHref(p.fileUrl);
+                    if (href) {
+                      window.open(href, "_blank", "noopener,noreferrer");
+                      return;
+                    }
+                    setViewing(p);
+                  }}
                   className="text-left min-w-0"
                 >
                   <p className="text-sm font-medium text-[#2B1E19] truncate">

@@ -168,6 +168,28 @@ export function findWarrantyPolicy(metadata, policyId) {
   return listWarrantyPoliciesFromMetadata(metadata).find((p) => p.id === safeId) ?? null;
 }
 
+/** Restore file_url onto a listing policy from the farm library when the DTO only has form defaults. */
+export function fillWarrantyPolicyFileFromLibrary(policy, breederMetadata) {
+  if (!policy) return policy;
+  if (String(policy.file_url ?? '').trim()) return policy;
+  const policies = listWarrantyPoliciesFromMetadata(breederMetadata);
+  const id = String(policy.id ?? '').trim();
+  const title = String(policy.title ?? '').trim().toLowerCase();
+  const withFile = (row) => row && String(row.file_url ?? '').trim();
+  const byId = policies.find((row) => row.id === id && withFile(row));
+  const byTitle = title
+    ? policies.find((row) => withFile(row) && String(row.title ?? '').trim().toLowerCase() === title)
+    : null;
+  const files = policies.filter(withFile);
+  const match = byId || byTitle || (files.length === 1 ? files[0] : null);
+  if (!match) return policy;
+  return {
+    ...policy,
+    file_url: match.file_url,
+    content_type: match.content_type || policy.content_type,
+  };
+}
+
 export function isWarrantyPolicyFrozen(post) {
   const status = String(post?.status ?? '').toLowerCase();
   if (status === 'deposit_hold' || status === 'sold') return true;
@@ -178,17 +200,38 @@ export function isWarrantyPolicyFrozen(post) {
 
 export function resolveListingWarrantyPolicy(post, breederMetadata) {
   const meta = asObject(post?.metadata);
+  const frozen = isWarrantyPolicyFrozen(post);
   const snapshot = normalizeWarrantyPolicy(meta.warranty_policy_snapshot);
-  if (snapshot) {
-    return { ...snapshot, frozen: true };
+  const withFile = (policy, extraFrozen) => {
+    if (!policy) return null;
+    return {
+      ...fillWarrantyPolicyFileFromLibrary(policy, breederMetadata),
+      frozen: extraFrozen,
+    };
+  };
+  if (frozen && snapshot) {
+    return withFile(snapshot, true);
   }
   const policyId = String(meta.warranty_policy_id ?? '').trim();
+  const bound = normalizeWarrantyPolicy(meta.warranty_policy_bound);
   const fromLibrary = findWarrantyPolicy(breederMetadata, policyId);
-  if (!fromLibrary) return null;
-  return {
-    ...fromLibrary,
-    frozen: isWarrantyPolicyFrozen(post),
-  };
+  if (bound && (!policyId || bound.id === policyId)) {
+    const boundFile = String(bound.file_url ?? '').trim();
+    const libraryFile = String(fromLibrary?.file_url ?? '').trim();
+    // Listing attach stores the file on the post. Prefer that copy so other
+    // viewers still open the bound document when farm metadata is missing or stale.
+    if (!boundFile && libraryFile) {
+      return withFile(fromLibrary, frozen);
+    }
+    return withFile(bound, frozen);
+  }
+  if (fromLibrary) {
+    return withFile(fromLibrary, frozen);
+  }
+  if (snapshot) {
+    return withFile(snapshot, true);
+  }
+  return null;
 }
 
 export function buildWarrantySnapshot(policy) {

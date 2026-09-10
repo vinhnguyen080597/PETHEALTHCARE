@@ -66,6 +66,31 @@ test('overlays listing status from list when detail is stale', () => {
   assert.deepEqual(view.metadata, { sale_channel: 'on_platform' });
 });
 
+test('keeps the listing warranty file when list metadata is slimmer', () => {
+  const bound = {
+    id: 'wp-file',
+    title: 'Chính sách trại',
+    file_url: 'https://cdn.example/listing.pdf',
+  };
+  const listPost = post({
+    status: 'published',
+    metadata: { warranty_policy_id: 'wp-file' },
+    warranty_policy: { id: 'wp-file', title: 'Chính sách trại' },
+  } as PetFeedPost);
+  const detailPost = post({
+    status: 'published',
+    metadata: { warranty_policy_id: 'wp-file', warranty_policy_bound: bound },
+    warranty_policy: bound,
+  } as PetFeedPost);
+  const view = resolvePetFeedPostDetailView('post-1', listPost, detailPost);
+  assert.ok(view);
+  assert.equal((view.warranty_policy as { file_url?: string } | undefined)?.file_url, bound.file_url);
+  assert.equal(
+    (view.metadata as { warranty_policy_bound?: { file_url?: string } }).warranty_policy_bound?.file_url,
+    bound.file_url,
+  );
+});
+
 test('uses detail post alone when list row is missing', () => {
   const detailPost = post({ media_urls: ['a', 'b'] });
   assert.equal(resolvePetFeedPostDetailView('post-1', null, detailPost), detailPost);

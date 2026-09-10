@@ -99,6 +99,14 @@ test('listingWarrantyCoverageDays reads policy coverage from post metadata', () 
   } as PetFeedPost;
   assert.equal(listingWarrantyCoverageDays(readListingWarrantyPolicy(postWithWarranty)), 30);
   assert.equal(listingWarrantyCoverageDays({ careParvoCoverageDays: 30 }), 30);
+  const filePolicy = readListingWarrantyPolicy({
+    ...post(),
+    warranty_policy: {
+      title: 'Chính sách trại',
+      file_url: 'https://cdn.example/policy.pdf',
+    },
+  } as PetFeedPost);
+  assert.equal(filePolicy?.fileUrl, 'https://cdn.example/policy.pdf');
 });
 
 test('listingCardShowsEditAction only for own posts with an edit handler', () => {

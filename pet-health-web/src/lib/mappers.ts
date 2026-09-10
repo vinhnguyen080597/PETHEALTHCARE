@@ -35,6 +35,7 @@ import {
 } from "./breederProfileImages";
 import { publicFacilityVideoUrl } from "./farmFacility";
 import { listingBirthDateFromMetadata } from "./petAge";
+import { fillListingWarrantyFileUrl } from "./warrantyPolicyView";
 
 const PLACEHOLDER_MEDIA =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Crect fill='%23E2E8F0' width='800' height='600'/%3E%3C/svg%3E";
@@ -433,7 +434,15 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
   }
   const rawPrice = post.price_note || "";
   const formatted = formatPriceVnd(rawPrice);
-  const warrantyPolicy = mapWarrantyPolicy(post.warranty_policy);
+  const bound = asRecord(meta.warranty_policy_bound);
+  const mappedWarranty = mapWarrantyPolicy(post.warranty_policy);
+  const warrantyFileUrl = fillListingWarrantyFileUrl(mappedWarranty, {
+    boundFileUrl: bound.file_url ?? bound.fileUrl,
+    library: breeder.warrantyPolicies,
+  });
+  const warrantyPolicy = mappedWarranty
+    ? { ...mappedWarranty, fileUrl: warrantyFileUrl || mappedWarranty.fileUrl }
+    : null;
   const dealRaw = asRecord(post.deal ?? meta.deal);
 
   return {

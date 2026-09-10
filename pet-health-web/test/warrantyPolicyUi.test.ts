@@ -18,6 +18,8 @@ import {
   warrantyCoverageRows,
   warrantyHandoverCards,
   warrantySummaryChips,
+  warrantyUploadedFileHref,
+  fillListingWarrantyFileUrl,
 } from "../src/lib/warrantyPolicyView";
 
 const KEYS = [
@@ -234,4 +236,38 @@ test("deworming note accepts calendar YYYY-MM-DD and formats for display", () =>
     dewormingNote: "2026-07-21",
   });
   assert.equal(body.deworming_note, "2026-07-21");
+});
+
+test("warrantyUploadedFileHref only allows http(s) links", () => {
+  assert.equal(
+    warrantyUploadedFileHref("https://cdn.example/policy.pdf"),
+    "https://cdn.example/policy.pdf",
+  );
+  assert.equal(warrantyUploadedFileHref("javascript:alert(1)"), null);
+  assert.equal(warrantyUploadedFileHref(""), null);
+});
+
+test("fillListingWarrantyFileUrl uses the farm file when listing DTO has form defaults", () => {
+  assert.equal(
+    fillListingWarrantyFileUrl(
+      { id: "wp-form", title: "Trung Vinh" },
+      {
+        library: [
+          {
+            id: "wp-upload",
+            title: "Trung Vinh",
+            fileUrl: "https://cdn.example/farm.pdf",
+          },
+        ],
+      },
+    ),
+    "https://cdn.example/farm.pdf",
+  );
+  assert.equal(
+    fillListingWarrantyFileUrl(
+      { id: "wp-form", title: "Form policy" },
+      { boundFileUrl: "https://cdn.example/bound.pdf" },
+    ),
+    "https://cdn.example/bound.pdf",
+  );
 });

@@ -27,12 +27,19 @@ test('mergeClientPostMetadata strips server-owned keys from client writes', () =
       deal: { status: 'deposit_hold', sen_email: 'evil@hack.com' },
       soft_deposit_hold: true,
       sold: true,
+      warranty_policy_bound: { id: 'hack', file_url: 'https://evil.example/x.pdf' },
     },
-    { deal: { status: 'pending_sen' }, warranty_policy_id: 'wp-1' },
+    {
+      deal: { status: 'pending_sen' },
+      warranty_policy_id: 'wp-1',
+      warranty_policy_bound: { id: 'wp-1', file_url: 'https://cdn.example/real.pdf' },
+    },
   );
   assert.deepEqual(merged.health_evidence_urls, ['https://cdn.example/v.jpg']);
   assert.equal(merged.deal.status, 'pending_sen');
   assert.equal(merged.warranty_policy_id, 'wp-1');
+  assert.equal(merged.warranty_policy_bound.id, 'wp-1');
+  assert.equal(merged.warranty_policy_bound.file_url, 'https://cdn.example/real.pdf');
   assert.equal(merged.soft_deposit_hold, undefined);
   assert.equal(merged.sold, undefined);
 });

@@ -51,6 +51,7 @@ import {
 import { ListingCard } from "./ListingCard";
 import { FarmHealth } from "./FarmHealth";
 import { WarrantyPolicyViewer } from "./WarrantyPolicyViewer";
+import { warrantyUploadedFileHref } from "@/lib/warrantyPolicyView";
 import { FarmReviewModal } from "./FarmReviewModal";
 import { FarmReviewStars } from "./FarmReviewStars";
 import { FarmReviewSectionSkeleton } from "@/components/ui/Skeleton";
@@ -194,15 +195,9 @@ function FarmWarrantyTab({
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {policies.map((p) => {
             const isFilePolicy = Boolean(p.fileUrl);
-            return (
-            <li key={p.id} className="relative">
-              <div className={`rounded-xl border border-[#F3E2C8] px-3.5 py-3 hover:bg-[#FFF8EF] transition-colors ${isOwner && isFilePolicy ? "pr-10" : ""}`}>
-                <div className="flex items-start gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setViewing(p)}
-                    className="min-w-0 flex-1 text-left"
-                  >
+            const fileHref = warrantyUploadedFileHref(p.fileUrl);
+            const cardInner = (
+                    <>
                     <p className="text-sm font-semibold text-[#2B1E19] truncate">
                       🛡️ {p.title}
                     </p>
@@ -219,7 +214,30 @@ function FarmWarrantyTab({
                         )}
                       </p>
                     </div>
+                    </>
+            );
+            return (
+            <li key={p.id} className="relative">
+              <div className={`rounded-xl border border-[#F3E2C8] px-3.5 py-3 hover:bg-[#FFF8EF] transition-colors ${isOwner && isFilePolicy ? "pr-10" : ""}`}>
+                <div className="flex items-start gap-2">
+                  {fileHref ? (
+                    <a
+                      href={fileHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      {cardInner}
+                    </a>
+                  ) : (
+                  <button
+                    type="button"
+                    onClick={() => setViewing(p)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    {cardInner}
                   </button>
+                  )}
                   {isOwner && !isFilePolicy ? (
                     <div
                       className="relative shrink-0"
