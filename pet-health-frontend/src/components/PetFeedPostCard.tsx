@@ -4,7 +4,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
+import { PET_FEED_REPORT_REASONS, type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
@@ -280,7 +280,7 @@ function PetFeedPostCardComponent({
   const showActions = canShowContact || canShowReport || canShowEdit || canShowDelete || canShowShare;
   const isCompact = variant === 'compact';
   const [reportVisible, setReportVisible] = useState(false);
-  const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
+  const [reportReason, setReportReason] = useState<PetFeedReportReason>(PET_FEED_REPORT_REASONS[0]);
   const [reportNote, setReportNote] = useState('');
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [loadedImageUris, setLoadedImageUris] = useState<Record<string, true>>({});

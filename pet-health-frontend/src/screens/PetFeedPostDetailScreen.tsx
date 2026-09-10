@@ -26,7 +26,7 @@ import { sharePetFeedPost } from '../utils/sharePetFeedPost';
 import { petFeedDetailShowsEditButton, petFeedDetailShowsMessageButton } from '../utils/petFeedDetailHeader';
 import { similarForSaleListings } from '../utils/petFeedDetailSiblingListings';
 import { modalBottomInset } from '../utils/modalSafeArea';
-import { type PetFeedReportReason } from '../constants/petFeedReportReasons';
+import { PET_FEED_REPORT_REASONS, type PetFeedReportReason } from '../constants/petFeedReportReasons';
 import { listingPostActionsLocked } from '../utils/marketplaceListingCard';
 import {
   canShowListingStatusUpdate,
@@ -185,7 +185,7 @@ export function PetFeedPostDetailScreen({
   const commentsSectionYRef = useRef(0);
   const scrolledFocusIdRef = useRef<string | null>(null);
   const [reportVisible, setReportVisible] = useState(false);
-  const [reportReason, setReportReason] = useState<PetFeedReportReason>('scam');
+  const [reportReason, setReportReason] = useState<PetFeedReportReason>(PET_FEED_REPORT_REASONS[0]);
   const [reportNote, setReportNote] = useState('');
   const [listingStatusModalOpen, setListingStatusModalOpen] = useState(false);
   const [listingStatusBusy, setListingStatusBusy] = useState(false);
