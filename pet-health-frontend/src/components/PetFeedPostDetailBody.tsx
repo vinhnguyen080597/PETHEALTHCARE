@@ -8,18 +8,21 @@ import { BRAND } from '../theme/brand';
 import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
-  fillTemplate,
   LISTING_CARD_IMAGE_HEIGHT,
-  listingWarrantyCoverageDays,
   readListingWarrantyPolicy,
 } from '../utils/marketplaceListingCard';
 import { buildPetFeedDetailSpecs } from '../utils/petFeedDetailSpecs';
 import { formatListingBirthDateLabel, listingBirthDateDisplayIso } from '../utils/petAge';
 import { canShowWarrantyUpdateCta } from '../utils/listingAvailabilityBadge';
-import { mapWarrantyPolicy, warrantyUploadedFileHref } from '../utils/warrantyPolicy';
+import {
+  fillListingWarrantyFileUrl,
+  mapWarrantyPolicies,
+  mapWarrantyPolicy,
+  warrantyUploadedFileHref,
+} from '../utils/warrantyPolicy';
 import { listingDetailMediaSlideCount } from '../utils/petFeedPostDetail';
-import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
 import { ListingMediaOverlayBadges } from './ListingMediaOverlayBadges';
+import { WarrantyPolicyViewer } from './WarrantyPolicyViewer';
 
 type MediaItem =
   | { type: 'image'; uri: string }
@@ -73,14 +76,10 @@ type PetFeedPostDetailBodyProps = {
   post: PetFeedPost;
   mediaLoading?: boolean;
   onToggleFavorite?: (post: PetFeedPost) => void;
-  onMessageBreeder?: (post: PetFeedPost) => void;
   onEditPost?: (post: PetFeedPost) => void;
   showFavorite?: boolean;
   favoriteDisabled?: boolean;
-  showMessageButton?: boolean;
   showEditButton?: boolean;
-  showStatusButton?: boolean;
-  onPressStatusUpdate?: () => void;
   isOwner?: boolean;
   onPressWarrantyUpdate?: () => void;
 };
@@ -89,19 +88,16 @@ export function PetFeedPostDetailBody({
   post,
   mediaLoading = false,
   onToggleFavorite,
-  onMessageBreeder,
   onEditPost,
   showFavorite = true,
   favoriteDisabled = false,
-  showMessageButton = false,
   showEditButton = false,
-  showStatusButton = false,
-  onPressStatusUpdate,
   isOwner = false,
   onPressWarrantyUpdate,
 }: PetFeedPostDetailBodyProps) {
   const { t, i18n } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [policyOpen, setPolicyOpen] = useState(false);
   const mediaItems = useMemo(() => mediaItemsForPost(post), [post]);
   const selected = mediaItems[Math.min(selectedIndex, Math.max(mediaItems.length - 1, 0))] ?? null;
   const expectedStripCount = listingDetailMediaSlideCount(post);
@@ -131,8 +127,31 @@ export function PetFeedPostDetailBody({
     );
   }, [i18n.language, post.age_months, post.breed, post.gender, post.location, post.metadata, t]);
   const warranty = readListingWarrantyPolicy(post);
-  const warrantyDays = listingWarrantyCoverageDays(warranty);
   const attachedWarranty = mapWarrantyPolicy(post.warranty_policy);
+  const warrantyFileHref = useMemo(() => {
+    const meta = post.metadata && typeof post.metadata === 'object' ? post.metadata : {};
+    const boundRaw = meta.warranty_policy_bound;
+    const bound = boundRaw && typeof boundRaw === 'object' && !Array.isArray(boundRaw)
+      ? (boundRaw as Record<string, unknown>)
+      : {};
+    const profileMeta = post.breeder_profile?.metadata ?? {};
+    const library = [
+      ...mapWarrantyPolicies(post.breeder_profile?.warranty_policies),
+      ...mapWarrantyPolicies(profileMeta.warranty_policies),
+    ];
+    return warrantyUploadedFileHref(
+      fillListingWarrantyFileUrl(
+        attachedWarranty ?? { title: warranty?.title, fileUrl: warranty?.fileUrl },
+        {
+          boundFileUrl: bound.file_url ?? bound.fileUrl,
+          library,
+        },
+      ),
+    );
+  }, [attachedWarranty, post.breeder_profile, post.metadata, warranty?.fileUrl, warranty?.title]);
+  const viewingPolicy = attachedWarranty
+    ? { ...attachedWarranty, fileUrl: warrantyFileHref || attachedWarranty.fileUrl }
+    : null;
   const showWarrantyUpdate = Boolean(
     onPressWarrantyUpdate
     && canShowWarrantyUpdateCta({
@@ -144,21 +163,16 @@ export function PetFeedPostDetailBody({
   const breeder = post.breeder_profile;
 
   const openWarrantyInfo = useCallback(() => {
-    const href = warrantyUploadedFileHref(attachedWarranty?.fileUrl ?? warranty?.fileUrl);
-    if (href) {
-      void Linking.openURL(href);
+    if (warrantyFileHref) {
+      void Linking.openURL(warrantyFileHref);
       return;
     }
-    if (!warranty) {
-      Alert.alert(t('petFeed.detail.warrantyNone'), t('petFeed.detail.warrantyNoneHint'));
+    if (viewingPolicy) {
+      setPolicyOpen(true);
       return;
     }
-    const lines = [
-      warranty.title,
-      warrantyDays != null ? fillTemplate(t('petFeed.card.warranty'), warrantyDays) : null,
-    ].filter(Boolean);
-    Alert.alert(warranty.title || t('petFeed.detail.warrantyView'), lines.join('\n'));
-  }, [attachedWarranty?.fileUrl, t, warranty, warrantyDays]);
+    Alert.alert(t('petFeed.detail.warrantyNone'), t('petFeed.detail.warrantyNoneHint'));
+  }, [t, viewingPolicy, warrantyFileHref]);
 
   const iconForSpec = (icon: string): keyof typeof Ionicons.glyphMap => {
     if (icon === 'calendar') return 'calendar-outline';
@@ -169,9 +183,7 @@ export function PetFeedPostDetailBody({
 
   const showActionRow =
     (showFavorite && onToggleFavorite)
-    || (showMessageButton && onMessageBreeder)
-    || (showEditButton && onEditPost)
-    || (showStatusButton && onPressStatusUpdate);
+    || (showEditButton && onEditPost);
 
   return (
     <View className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
@@ -303,62 +315,24 @@ export function PetFeedPostDetailBody({
               ) : (
                 <View className="shrink-0" />
               )}
-              <View className="shrink-0 flex-row flex-wrap items-center justify-end gap-2">
-                {showMessageButton && onMessageBreeder ? (
-                  <Pressable
-                    testID={`pet-feed-message-button-${post.id}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: post.title })}
-                    className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
-                    style={{
-                      backgroundColor: BRAND.btnSecondary,
-                      borderColor: BRAND.borderBrand,
-                    }}
-                    onPress={() => onMessageBreeder(post)}
-                  >
-                    <Ionicons name="chatbubble-ellipses-outline" size={15} color={BRAND.textBrandLink} />
-                    <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-                      {t('petFeed.messages.messageCta')}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                {showEditButton && onEditPost ? (
-                  <Pressable
-                    testID={`pet-feed-edit-button-${post.id}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
-                    className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
-                    style={{
-                      backgroundColor: BRAND.btnSecondary,
-                      borderColor: BRAND.borderBrand,
-                    }}
-                    onPress={() => onEditPost(post)}
-                  >
-                    <Ionicons name="create-outline" size={15} color={BRAND.textBrandLink} />
-                    <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-                      {t('petFeed.editListing')}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                {showStatusButton && onPressStatusUpdate ? (
-                  <Pressable
-                    testID={`pet-feed-status-button-${post.id}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('listing.statusModal.open')}
-                    className="z-10 flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
-                    style={{
-                      backgroundColor: BRAND.btnSecondary,
-                      borderColor: BRAND.borderBrand,
-                    }}
-                    onPress={onPressStatusUpdate}
-                  >
-                    <Ionicons name="flag-outline" size={15} color={BRAND.textBrandLink} />
-                    <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-                      {t('listing.statusModal.open')}
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
+              {showEditButton && onEditPost ? (
+                <Pressable
+                  testID={`pet-feed-edit-button-${post.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('petFeed.accessibility.editListing', { title: post.title })}
+                  className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+                  style={{
+                    backgroundColor: BRAND.btnSecondary,
+                    borderColor: BRAND.borderBrand,
+                  }}
+                  onPress={() => onEditPost(post)}
+                >
+                  <Ionicons name="create-outline" size={15} color={BRAND.textBrandLink} />
+                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
+                    {t('petFeed.editListing')}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -421,10 +395,12 @@ export function PetFeedPostDetailBody({
             <Text className="text-sm font-semibold text-slate-900" numberOfLines={1}>
               {breeder?.display_name ?? t('petFeed.breederFallback')}
             </Text>
-            <Text className="text-xs text-slate-400" numberOfLines={1}>
-              {breeder?.location || post.location || t('petFeed.locationUnknown')}
-            </Text>
-            <PetFeedPostTimeMeta post={post} className="mt-0.5 text-[11px] text-slate-400" />
+            <View className="mt-0.5 flex-row items-center gap-1">
+              <Ionicons name="location-outline" size={12} color="#94A3B8" />
+              <Text className="min-w-0 flex-1 text-xs text-slate-400" numberOfLines={1}>
+                {breeder?.location || post.location || t('petFeed.locationUnknown')}
+              </Text>
+            </View>
           </View>
         </Pressable>
 
@@ -447,11 +423,7 @@ export function PetFeedPostDetailBody({
               </Text>
               <Text className="mt-0.5 text-xs font-medium" style={{ color: warranty ? '#0369A1' : BRAND.textMuted }}>
                 {warranty
-                  ? t(
-                      warrantyUploadedFileHref(attachedWarranty?.fileUrl ?? warranty.fileUrl)
-                        ? 'farm.warranty.openFile'
-                        : 'petFeed.detail.warrantyView',
-                    )
+                  ? t(warrantyFileHref ? 'farm.warranty.openFile' : 'petFeed.detail.warrantyView')
                   : t('petFeed.detail.warrantyNoneHint')}
               </Text>
             </Pressable>
@@ -481,6 +453,12 @@ export function PetFeedPostDetailBody({
           </View>
         ) : null}
       </View>
+      <WarrantyPolicyViewer
+        visible={policyOpen}
+        policy={viewingPolicy}
+        primarySpecies={breeder?.primary_species}
+        onClose={() => setPolicyOpen(false)}
+      />
     </View>
   );
 }

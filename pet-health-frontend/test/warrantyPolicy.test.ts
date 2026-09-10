@@ -7,7 +7,7 @@ import {
   warrantyFormToApiBody,
   warrantyPolicyToFormValues,
 } from '../src/utils/warrantyPolicyForm.ts';
-import { mapWarrantyPolicies, mapWarrantyPolicy, warrantyUploadedFileHref } from '../src/utils/warrantyPolicy.ts';
+import { mapWarrantyPolicies, mapWarrantyPolicy, warrantyUploadedFileHref, fillListingWarrantyFileUrl } from '../src/utils/warrantyPolicy.ts';
 import {
   resolveWarrantyFarmSpecies,
   warrantyInfectiousFieldKey,
@@ -109,4 +109,22 @@ test('warrantyUploadedFileHref only allows http(s) links', () => {
   );
   assert.equal(warrantyUploadedFileHref('javascript:alert(1)'), null);
   assert.equal(warrantyUploadedFileHref(''), null);
+});
+
+test('fillListingWarrantyFileUrl uses the farm file when listing DTO has form defaults', () => {
+  assert.equal(
+    fillListingWarrantyFileUrl(
+      { id: 'wp-form', title: 'Chính sách bảo hành - Mèo nhà Hạnh' },
+      {
+        library: [
+          {
+            id: 'wp-upload',
+            title: 'Chính sách bảo hành - Mèo nhà Hạnh',
+            fileUrl: 'https://cdn.example/farm.pdf',
+          },
+        ],
+      },
+    ),
+    'https://cdn.example/farm.pdf',
+  );
 });

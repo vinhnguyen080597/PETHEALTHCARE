@@ -78,3 +78,43 @@ export function warrantyUploadedFileHref(url: unknown): string | null {
   const trimmed = String(url ?? '').trim();
   return /^https?:\/\//i.test(trimmed) ? trimmed : null;
 }
+
+type WarrantyFileSource = {
+  id?: string;
+  title?: string;
+  fileUrl?: string;
+  file_url?: string;
+} | null | undefined;
+
+/** Restore the uploaded file URL when the listing DTO only has form defaults. */
+export function fillListingWarrantyFileUrl(
+  policy: WarrantyFileSource,
+  sources: {
+    boundFileUrl?: unknown;
+    library?: WarrantyFileSource[];
+  } = {},
+): string {
+  const fromPolicy = warrantyUploadedFileHref(policy?.fileUrl ?? policy?.file_url);
+  if (fromPolicy) return fromPolicy;
+  const fromBound = warrantyUploadedFileHref(sources.boundFileUrl);
+  if (fromBound) return fromBound;
+  const library = Array.isArray(sources.library) ? sources.library.filter(Boolean) : [];
+  const fileOf = (row: WarrantyFileSource) =>
+    warrantyUploadedFileHref(row?.fileUrl ?? row?.file_url);
+  const id = String(policy?.id ?? '').trim();
+  const title = String(policy?.title ?? '')
+    .trim()
+    .toLowerCase();
+  const byId = library.find((row) => String(row?.id ?? '').trim() === id);
+  const fromId = fileOf(byId);
+  if (fromId) return fromId;
+  if (title) {
+    const byTitle = library.find(
+      (row) => fileOf(row) && String(row?.title ?? '').trim().toLowerCase() === title,
+    );
+    const fromTitle = fileOf(byTitle);
+    if (fromTitle) return fromTitle;
+  }
+  const files = library.map(fileOf).filter((href): href is string => Boolean(href));
+  return files.length === 1 ? files[0] : '';
+}
