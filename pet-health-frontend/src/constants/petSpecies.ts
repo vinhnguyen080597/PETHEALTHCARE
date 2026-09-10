@@ -25,6 +25,7 @@ export const ACTIVE_PET_FEED_SPECIES = [
   'cat',
   'hamster',
   'fish',
+  'reptile',
 ] as const;
 
 export type ActivePetFeedSpecies = (typeof ACTIVE_PET_FEED_SPECIES)[number];

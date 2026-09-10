@@ -455,12 +455,6 @@ export function PetFeedScreen({
     ? hasMore && !loadingMore && !loadMoreError && filteredPosts.length > 0 && !showListSkeleton
     : activeTab === 'news' && announcementHasMore && !announcementLoadingMore && !announcementLoadMoreError && filteredAnnouncements.length > 0 && !showListSkeleton;
 
-  const tabCounts = useMemo(() => ({
-    news: filteredAnnouncements.length,
-    feed: filteredPosts.length,
-    breeders: filteredTopBreeders.length,
-  }), [filteredAnnouncements.length, filteredPosts.length, filteredTopBreeders.length]);
-
   useEffect(() => {
     if (!focusPostId || !enabledTabs.feed) return;
 
@@ -811,9 +805,9 @@ export function PetFeedScreen({
               }}
             >
               {([
-                { key: 'news' as const, label: t('petFeed.tabs.news'), count: showListSkeleton ? undefined : tabCounts.news, icon: 'megaphone-outline' as const },
-                { key: 'feed' as const, label: t('petFeed.tabs.feed'), count: showListSkeleton ? undefined : tabCounts.feed, icon: 'newspaper-outline' as const },
-                { key: 'breeders' as const, label: t('petFeed.tabs.breeders'), count: showListSkeleton ? undefined : tabCounts.breeders, icon: 'ribbon-outline' as const },
+                { key: 'news' as const, label: t('petFeed.tabs.news'), icon: 'megaphone-outline' as const },
+                { key: 'feed' as const, label: t('petFeed.tabs.feed'), icon: 'newspaper-outline' as const },
+                { key: 'breeders' as const, label: t('petFeed.tabs.breeders'), icon: 'ribbon-outline' as const },
               ]).filter((item) => enabledTabs[item.key]).map((item) => {
                 const active = activeTab === item.key;
                 const compactTabs = windowWidth < 390;
@@ -840,14 +834,6 @@ export function PetFeedScreen({
                       >
                         {item.label}
                       </Text>
-                      {typeof item.count === 'number' ? (
-                        <Text
-                          className={`font-bold ${compactTabs ? 'text-[9px]' : 'text-[10px]'}`}
-                          style={{ color: active ? BRAND.btnSecondaryPressed : BRAND.textMuted }}
-                        >
-                          {item.count}
-                        </Text>
-                      ) : null}
                     </View>
                   </Pressable>
                 );
