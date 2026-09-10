@@ -109,6 +109,10 @@ test("canShowWarrantyUpdateCta respects owner, available, and freeze", () => {
     true,
   );
   assert.equal(
+    canShowWarrantyUpdateCta({ isOwner: true, status: "pending_review" }),
+    true,
+  );
+  assert.equal(
     canShowWarrantyUpdateCta({
       isOwner: true,
       status: "published",

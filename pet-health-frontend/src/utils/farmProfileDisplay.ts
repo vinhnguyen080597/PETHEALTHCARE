@@ -115,6 +115,24 @@ export function farmWarrantyPoliciesFromMetadata(
   return mapWarrantyPolicies(raw);
 }
 
+/** Prefer the API `warranty_policies` field, then fall back to metadata. */
+export function farmWarrantyPoliciesFromProfile(
+  profile:
+    | {
+        warranty_policies?: unknown;
+        metadata?: Record<string, unknown> | null;
+      }
+    | null
+    | undefined,
+): WarrantyPolicy[] {
+  const fromTop = mapWarrantyPolicies(profile?.warranty_policies);
+  const fromMeta = farmWarrantyPoliciesFromMetadata(profile?.metadata);
+  if (fromTop.length === 0) return fromMeta;
+  if (fromMeta.length === 0) return fromTop;
+  const seen = new Set(fromTop.map((policy) => policy.id));
+  return [...fromTop, ...fromMeta.filter((policy) => !seen.has(policy.id))];
+}
+
 /** +10 first-policy empty CTA is only shown until that task has been awarded. */
 export function farmWarrantyOwnerEmptyCtaKey(firstWarrantyAwarded: boolean) {
   return firstWarrantyAwarded ? null : ('farm.warranty.createCta' as const);

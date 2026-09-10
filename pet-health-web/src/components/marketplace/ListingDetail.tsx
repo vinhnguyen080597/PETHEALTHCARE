@@ -47,6 +47,10 @@ import {
   listingWarrantyCardTone,
 } from "@/lib/listingDetailCardTones";
 import { startChatAndOpenUi, startChatMessageKey } from "@/lib/startFarmChat";
+import {
+  formatListingBirthDateLabel,
+  listingBirthDateDisplayIso,
+} from "@/lib/petAge";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
 import {
   ListingMediaAvailabilityBadge,
@@ -205,6 +209,15 @@ export function ListingDetail({
   const title = lang === "VI" ? listing.titleVI : listing.title;
   const description =
     lang === "VI" ? listing.descriptionVI : listing.description;
+  const birthDateLabel = (() => {
+    const iso = listingBirthDateDisplayIso({
+      birthDate: listing.birthDate,
+      ageMonths: listing.ageMonths,
+    });
+    return iso
+      ? formatListingBirthDateLabel(iso, lang === "VI" ? "vi" : "en")
+      : "";
+  })();
   const personality =
     lang === "VI" ? listing.personalityVI : listing.personality;
   const gallery = buildListingGalleryItems({
@@ -921,15 +934,6 @@ export function ListingDetail({
                 value={listing.breed}
               />
               <SpecCard
-                icon="📅"
-                label={t(lang, "detail.age")}
-                value={
-                  listing.ageMonths > 0
-                    ? `${listing.ageMonths} ${t(lang, "detail.months")}`
-                    : ""
-                }
-              />
-              <SpecCard
                 icon="⚥"
                 label={t(lang, "detail.gender")}
                 value={genderLabel(lang, listing.gender)}
@@ -938,6 +942,11 @@ export function ListingDetail({
                 icon="📍"
                 label={t(lang, "detail.location")}
                 value={listing.location}
+              />
+              <SpecCard
+                icon="📅"
+                label={t(lang, "detail.birthDate")}
+                value={birthDateLabel}
               />
               <SpecCard
                 icon="💉"
@@ -961,6 +970,9 @@ export function ListingDetail({
             )}
             {!isBlankDisplayValue(description) ? (
               <p className="mb-5 text-sm text-slate-600 leading-relaxed break-words [overflow-wrap:anywhere]">
+                <span className="font-bold text-slate-900">
+                  {t(lang, "detail.description")}:{" "}
+                </span>
                 {description}
               </p>
             ) : null}

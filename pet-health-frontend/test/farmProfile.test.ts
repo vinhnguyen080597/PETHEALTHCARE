@@ -17,6 +17,7 @@ import {
   farmNameExtraMargin,
   farmTabLabelKey,
   farmWarrantyPoliciesFromMetadata,
+  farmWarrantyPoliciesFromProfile,
   isBlankImageUrl,
   parseFarmDetailTab,
   resolveFarmAvatarUrl,
@@ -124,6 +125,13 @@ test('farm profile display helpers', () => {
   assert.equal(warranties.length, 1);
   assert.equal(warranties[0].id, 'w1');
   assert.equal(warranties[0].title, '30 ngày');
+  const fromApprovedFile = farmWarrantyPoliciesFromProfile({
+    warranty_policies: [{ id: 'w2', title: 'Chính sách trại', file_url: 'https://cdn.example/p.pdf' }],
+    metadata: {},
+  });
+  assert.equal(fromApprovedFile.length, 1);
+  assert.equal(fromApprovedFile[0].id, 'w2');
+  assert.equal(fromApprovedFile[0].fileUrl, 'https://cdn.example/p.pdf');
   assert.equal(
     resolveFarmCoverUrl({
       id: 'b1',

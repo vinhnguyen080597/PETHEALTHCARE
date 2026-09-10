@@ -133,7 +133,7 @@ test("validateNewListingForm requires mobile parity fields", () => {
     species: "s",
     breed: "b",
     gender: "g",
-    ageMonths: "a",
+    birthDate: "a",
     location: "l",
     priceNote: "p",
     photos: "ph",
@@ -148,7 +148,7 @@ test("validateNewListingForm requires mobile parity fields", () => {
       breed: "",
       customBreed: "",
       gender: "",
-      ageMonths: "",
+      birthDate: "",
       location: "",
       priceNote: "",
       vaccineKey: "first_dose",
@@ -173,7 +173,7 @@ test("validateNewListingForm requires mobile parity fields", () => {
       breed: "meo_ta",
       customBreed: "",
       gender: "male",
-      ageMonths: "2",
+      birthDate: "2024-01-15",
       location: "TP. Hà Nội",
       priceNote: "3.500.000",
       vaccineKey: "not_yet",
@@ -187,6 +187,28 @@ test("validateNewListingForm requires mobile parity fields", () => {
     { requireTerms: false },
   );
   assert.equal(Object.keys(reviewErrors).length, 0);
+
+  const futureErrors = validateNewListingForm(
+    {
+      title: "Ready",
+      species: "cat",
+      breed: "meo_ta",
+      customBreed: "",
+      gender: "male",
+      birthDate: "2099-01-01",
+      location: "TP. Hà Nội",
+      priceNote: "3.500.000",
+      vaccineKey: "not_yet",
+      vaccineLabel: "Not vaccinated yet",
+      photoCount: 1,
+      hasVideo: true,
+      healthEvidenceCount: 0,
+      termsAccepted: false,
+    },
+    { ...messages, birthDateFuture: "future" },
+    { requireTerms: false },
+  );
+  assert.equal(futureErrors.birthDate, "future");
 });
 
 test("listing species options match mobile active set", () => {

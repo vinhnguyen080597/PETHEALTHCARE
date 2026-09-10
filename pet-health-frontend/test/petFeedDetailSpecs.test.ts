@@ -2,34 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPetFeedDetailSpecs } from '../src/utils/petFeedDetailSpecs.ts';
 
-test('buildPetFeedDetailSpecs returns breed age gender location in web order', () => {
+test('buildPetFeedDetailSpecs returns breed gender location birthDate', () => {
   const specs = buildPetFeedDetailSpecs(
     {
       breed: 'Mèo ta',
-      age_months: 2,
       gender: 'Đực',
       location: 'An Giang',
+      birthDateLabel: '15/01/2024',
     },
     {
-      ageMonths: (count) => `${count} tháng`,
       male: 'Đực',
       female: 'Cái',
     },
   );
   assert.deepEqual(
     specs.map((s) => s.key),
-    ['breed', 'age', 'gender', 'location'],
+    ['breed', 'gender', 'location', 'birthDate'],
   );
   assert.equal(specs[0]?.value, 'Mèo ta');
-  assert.equal(specs[1]?.value, '2 tháng');
-  assert.equal(specs[2]?.value, 'Đực');
+  assert.equal(specs[1]?.value, 'Đực');
+  assert.equal(specs[3]?.value, '15/01/2024');
 });
 
 test('buildPetFeedDetailSpecs skips blank values', () => {
   const specs = buildPetFeedDetailSpecs(
-    { breed: '', age_months: null, gender: '', location: 'Hà Nội' },
+    { breed: '', gender: '', location: 'Hà Nội' },
     {
-      ageMonths: (count) => `${count} mo`,
       male: 'Male',
       female: 'Female',
     },

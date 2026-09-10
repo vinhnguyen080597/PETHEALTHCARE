@@ -9,12 +9,13 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getMySaleReview } from '../api';
+import { getMySaleReview, listMyWarrantyPolicies, updateListingWarrantyPolicy } from '../api';
 import { PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
 import { PetFeedDetailSiblingListingsBar } from '../components/PetFeedDetailSiblingListingsBar';
 import { PetFeedPostDetailBody } from '../components/PetFeedPostDetailBody';
 import { FarmReviewModal } from '../components/FarmReviewModal';
 import { ListingStatusModal, type ListingStatusSubmitPayload } from '../components/ListingStatusModal';
+import { ListingWarrantyAttachModal } from '../components/ListingWarrantyAttachModal';
 import { ReportModal } from '../components/ReportModal';
 import { useIosKeyboardOverlap } from '../hooks/useIosKeyboardOverlap';
 import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
@@ -30,6 +31,7 @@ import { listingPostActionsLocked } from '../utils/marketplaceListingCard';
 import {
   canShowListingStatusUpdate,
 } from '../utils/listingAvailabilityBadge';
+import { mapWarrantyPolicies, mapWarrantyPolicy, type WarrantyPolicy } from '../utils/warrantyPolicy';
 
 type PetFeedPostDetailScreenProps = {
   postId: string;
@@ -58,6 +60,7 @@ type PetFeedPostDetailScreenProps = {
     postId: string,
     body: { rating: number; body?: string; photoUrls?: string[] },
   ) => Promise<boolean>;
+  onOpenWarrantyLibrary?: () => void;
 };
 
 function Bone({ className }: { className: string }) {
@@ -113,6 +116,7 @@ export function PetFeedPostDetailScreen({
   openSaleReviewInitially = false,
   onPatchListingStatus,
   onSubmitSaleReview,
+  onOpenWarrantyLibrary,
 }: PetFeedPostDetailScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -131,6 +135,12 @@ export function PetFeedPostDetailScreen({
   const [saleReviewBusy, setSaleReviewBusy] = useState(false);
   const [saleReviewError, setSaleReviewError] = useState('');
   const saleReviewPromptedRef = useRef(false);
+  const [warrantyAttachOpen, setWarrantyAttachOpen] = useState(false);
+  const [warrantyAttachId, setWarrantyAttachId] = useState('');
+  const [warrantyAttachOptions, setWarrantyAttachOptions] = useState<WarrantyPolicy[]>([]);
+  const [warrantyAttachLoading, setWarrantyAttachLoading] = useState(false);
+  const [warrantyAttachBusy, setWarrantyAttachBusy] = useState(false);
+  const [warrantyAttachError, setWarrantyAttachError] = useState('');
 
   const { selectedPost, detailLoading, replaceDetailPost } = usePetFeedPostDetail(
     postId,
@@ -264,6 +274,50 @@ export function PetFeedPostDetailScreen({
     }
   }
 
+  async function openWarrantyAttach() {
+    if (!selectedPost || !token) {
+      Alert.alert(t('common.error'), t('common.unknownError'));
+      return;
+    }
+    setWarrantyAttachOpen(true);
+    setWarrantyAttachError('');
+    setWarrantyAttachId(mapWarrantyPolicy(selectedPost.warranty_policy)?.id ?? '');
+    setWarrantyAttachLoading(true);
+    try {
+      const res = await listMyWarrantyPolicies(token);
+      setWarrantyAttachOptions(mapWarrantyPolicies(res.data));
+    } catch (error: unknown) {
+      setWarrantyAttachOptions([]);
+      setWarrantyAttachError(error instanceof Error ? error.message : t('warranty.attachFailed'));
+    } finally {
+      setWarrantyAttachLoading(false);
+    }
+  }
+
+  async function saveWarrantyAttach() {
+    if (!selectedPost || !token) return;
+    setWarrantyAttachBusy(true);
+    setWarrantyAttachError('');
+    try {
+      const res = await updateListingWarrantyPolicy(
+        token,
+        selectedPost.id,
+        warrantyAttachId.trim() || null,
+      );
+      if (res.data) {
+        const next = res.data.status === 'pending_review' && selectedPost.status === 'published'
+          ? { ...res.data, status: selectedPost.status, is_favorited: selectedPost.is_favorited }
+          : { ...res.data, is_favorited: selectedPost.is_favorited };
+        replaceDetailPost(next);
+      }
+      setWarrantyAttachOpen(false);
+    } catch (error: unknown) {
+      setWarrantyAttachError(error instanceof Error ? error.message : t('warranty.attachFailed'));
+    } finally {
+      setWarrantyAttachBusy(false);
+    }
+  }
+
   function submitReport() {
     if (!selectedPost) return;
     onReportPost(selectedPost, reportReason, reportNote);
@@ -349,6 +403,8 @@ export function PetFeedPostDetailScreen({
               showEditButton={false}
               showStatusButton={showStatusUpdate}
               onPressStatusUpdate={openListingStatusModal}
+              isOwner={isOwnPost}
+              onPressWarrantyUpdate={openWarrantyAttach}
             />
             <View
               collapsable={false}
@@ -436,6 +492,29 @@ export function PetFeedPostDetailScreen({
           if (!listingStatusBusy) setListingStatusModalOpen(false);
         }}
         onSubmit={handleListingStatusSubmit}
+      />
+
+      <ListingWarrantyAttachModal
+        visible={warrantyAttachOpen}
+        listingTitle={selectedPost?.title ?? ''}
+        selectedPolicyId={warrantyAttachId}
+        options={warrantyAttachOptions}
+        loading={warrantyAttachLoading}
+        busy={warrantyAttachBusy}
+        error={warrantyAttachError}
+        onClose={() => {
+          if (!warrantyAttachBusy) setWarrantyAttachOpen(false);
+        }}
+        onChangePolicyId={setWarrantyAttachId}
+        onSave={() => void saveWarrantyAttach()}
+        onOpenLibrary={
+          onOpenWarrantyLibrary
+            ? () => {
+                setWarrantyAttachOpen(false);
+                onOpenWarrantyLibrary();
+              }
+            : undefined
+        }
       />
     </View>
   );

@@ -11,7 +11,10 @@ import {
   listingEditFormDefaults,
 } from "@/lib/listingEdit";
 import {
-  LISTING_AGE_MONTHS,
+  formatBirthDateIso,
+  listingBirthDateValidationIssue,
+} from "@/lib/petAge";
+import {
   LISTING_DEWORMING_KEYS,
   LISTING_GENDERS,
   LISTING_LOCATIONS,
@@ -107,7 +110,7 @@ export function EditListingForm({
   const [breedKey, setBreedKey] = useState(defaults.breedKey);
   const [customBreed, setCustomBreed] = useState(defaults.customBreed);
   const [gender, setGender] = useState(defaults.gender);
-  const [ageMonths, setAgeMonths] = useState(defaults.ageMonths);
+  const [birthDate, setBirthDate] = useState(defaults.birthDate);
   const [location, setLocation] = useState(defaults.location);
   const [priceNote, setPriceNote] = useState(defaults.priceNote);
   const [description, setDescription] = useState(defaults.description);
@@ -172,8 +175,8 @@ export function EditListingForm({
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const age = Number(ageMonths);
-    if (!title.trim() || !breedLabel.trim() || !Number.isFinite(age) || age <= 0) {
+    const birthIssue = listingBirthDateValidationIssue(birthDate);
+    if (!title.trim() || !breedLabel.trim() || birthIssue) {
       setError(t(lang, "listing.edit.validation"));
       return;
     }
@@ -185,7 +188,7 @@ export function EditListingForm({
         species: defaults.species,
         breed: breedLabel,
         gender: genderLabel,
-        ageMonths: age,
+        birthDate,
         location,
         priceNote,
         description,
@@ -340,23 +343,16 @@ export function EditListingForm({
               </label>
               <label className="block">
                 <span className="text-xs font-semibold uppercase text-slate-500">
-                  {t(lang, "listing.new.field.ageMonths")}
+                  {t(lang, "listing.new.field.birthDate")}
                 </span>
-                <select
+                <input
+                  type="date"
                   className={`${inputCls} mt-1.5`}
-                  value={ageMonths}
-                  onChange={(e) => setAgeMonths(e.target.value)}
+                  value={birthDate}
+                  max={formatBirthDateIso(new Date())}
+                  onChange={(e) => setBirthDate(e.target.value)}
                   required
-                >
-                  <option value="" disabled>
-                    {t(lang, "listing.new.field.ageMonths")}
-                  </option>
-                  {LISTING_AGE_MONTHS.map((months) => (
-                    <option key={months} value={months}>
-                      {t(lang, `listing.new.age.${months}` as EnKey)}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               <label className="block sm:col-span-2">
                 <span className="text-xs font-semibold uppercase text-slate-500">

@@ -33,8 +33,8 @@ export async function getLocalUriByteSize(uri: string): Promise<number | null> {
       const parsed = Number(header);
       if (Number.isFinite(parsed) && parsed > 0) return parsed;
     }
-    const blob = await response.blob();
-    return typeof blob.size === 'number' && blob.size > 0 ? blob.size : null;
+    const buffer = await response.arrayBuffer();
+    return buffer.byteLength > 0 ? buffer.byteLength : null;
   } catch {
     return null;
   }

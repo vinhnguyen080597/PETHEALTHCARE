@@ -13,7 +13,6 @@ import { ListingCard } from "@/components/marketplace/ListingCard";
 import { buildListingPreview } from "@/lib/listingPreview";
 import {
   firstNewListingErrorField,
-  LISTING_AGE_MONTHS,
   LISTING_DEWORMING_KEYS,
   listingBreedKeysForSpecies,
   nextListingBreedForSpecies,
@@ -38,6 +37,11 @@ import {
 } from "@/lib/listingCreate";
 import { uploadListingDraftMedia, ListingMediaUploadError } from "@/lib/uploadListingMedia";
 import { warrantyLibraryHref } from "@/lib/farmTabs";
+import {
+  birthDateToAgeMonths,
+  formatBirthDateIso,
+  parseBirthDateIso,
+} from "@/lib/petAge";
 
 const inputCls =
   "w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D97706]/20 focus:border-[#D97706]";
@@ -365,7 +369,7 @@ export function NewListingForm({
   const [breed, setBreed] = useState<string>("meo_ta");
   const [customBreed, setCustomBreed] = useState("");
   const [gender, setGender] = useState<string>("male");
-  const [ageMonths, setAgeMonths] = useState<string>("2");
+  const [birthDate, setBirthDate] = useState("");
   const [location, setLocation] = useState<string>(LISTING_LOCATIONS[0]);
   const [priceNote, setPriceNote] = useState("");
   const [description, setDescription] = useState("");
@@ -431,7 +435,9 @@ export function NewListingForm({
     species: t(lang, "listing.new.field.speciesRequired"),
     breed: t(lang, "listing.new.field.breedRequired"),
     gender: t(lang, "listing.new.field.genderRequired"),
-    ageMonths: t(lang, "listing.new.field.ageRequired"),
+    birthDate: t(lang, "listing.new.field.birthDateRequired"),
+    birthDateInvalid: t(lang, "listing.new.field.birthDateInvalid"),
+    birthDateFuture: t(lang, "listing.new.field.birthDateFuture"),
     location: t(lang, "listing.new.field.locationRequired"),
     priceNote: t(lang, "listing.new.field.priceRequired"),
     photos: t(lang, "listing.new.field.photosRequired"),
@@ -451,7 +457,7 @@ export function NewListingForm({
     species,
     breed: breedLabel,
     gender,
-    ageMonths: Number(ageMonths) || 0,
+    ageMonths: parseBirthDateIso(birthDate) ? birthDateToAgeMonths(birthDate) : 0,
     location,
     priceNote,
     description,
@@ -477,7 +483,7 @@ export function NewListingForm({
         breed,
         customBreed,
         gender,
-        ageMonths,
+        birthDate,
         location,
         priceNote,
         vaccineKey,
@@ -539,7 +545,7 @@ export function NewListingForm({
         species,
         breed: breedLabel,
         gender: genderLabel,
-        ageMonths,
+        birthDate,
         location,
         priceNote,
         description,
@@ -705,27 +711,23 @@ export function NewListingForm({
               <FieldError message={fieldErrors.gender} />
             </div>
 
-            <div id="listing-field-ageMonths">
+            <div id="listing-field-birthDate">
               <label className="block text-xs font-medium text-slate-500 mb-1">
-                {t(lang, "listing.new.field.ageMonths")}
+                {t(lang, "listing.new.field.birthDate")}
                 <RequiredMark />
               </label>
-              <select
-                value={ageMonths}
+              <input
+                type="date"
+                value={birthDate}
+                max={formatBirthDateIso(new Date())}
                 onChange={(e) => {
-                  setAgeMonths(e.target.value);
-                  clearFieldError("ageMonths");
+                  setBirthDate(e.target.value);
+                  clearFieldError("birthDate");
                 }}
-                aria-invalid={Boolean(fieldErrors.ageMonths)}
-                className={`${inputCls} ${fieldErrors.ageMonths ? inputErrorCls : ""}`}
-              >
-                {LISTING_AGE_MONTHS.map((n) => (
-                  <option key={n} value={String(n)}>
-                    {t(lang, `listing.new.age.${n}` as EnKey)}
-                  </option>
-                ))}
-              </select>
-              <FieldError message={fieldErrors.ageMonths} />
+                aria-invalid={Boolean(fieldErrors.birthDate)}
+                className={`${inputCls} ${fieldErrors.birthDate ? inputErrorCls : ""}`}
+              />
+              <FieldError message={fieldErrors.birthDate} />
             </div>
           </div>
 

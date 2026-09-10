@@ -201,6 +201,8 @@ export type BreederProfile = {
   main_breeds: string[];
   verification_status: BreederVerificationStatus;
   metadata: Record<string, unknown>;
+  /** Normalized from metadata on /me and public farm DTOs. */
+  warranty_policies?: unknown[];
   created_at: string;
   updated_at?: string;
 };
@@ -235,6 +237,7 @@ export type PetFeedPost = {
   status: PetFeedPostStatus;
   post_kind?: PostKind;
   metadata: Record<string, unknown>;
+  warranty_policy?: unknown;
   breeder_profile: BreederProfile | null;
   is_favorited: boolean;
   created_at: string;

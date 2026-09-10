@@ -17,6 +17,8 @@ type FormDateFieldProps = {
   required?: boolean;
   readOnly?: boolean;
   helperText?: string;
+  /** `listing` matches Tạo bài đăng select-field labels. */
+  variant?: 'default' | 'listing';
   onChange: (value: string) => void;
 };
 
@@ -38,6 +40,7 @@ export function FormDateField({
   required,
   readOnly = false,
   helperText,
+  variant = 'default',
   onChange,
 }: FormDateFieldProps) {
   const { t, i18n } = useTranslation();
@@ -73,24 +76,50 @@ export function FormDateField({
         year: 'numeric',
       }).format(selectedDate)
     : null;
+  const listing = variant === 'listing';
 
   return (
-    <View className="mb-5">
-      {required ? <RequiredLabel>{label}</RequiredLabel> : <Text className="mb-2 text-sm font-semibold text-slate-900">{label}</Text>}
+    <View className={listing ? 'mb-3' : 'mb-5'}>
+      {listing ? (
+        <Text className="mb-2 text-xs font-bold uppercase text-slate-500">
+          {label}
+          {required ? <Text className="text-red-500"> *</Text> : null}
+        </Text>
+      ) : required ? (
+        <RequiredLabel>{label}</RequiredLabel>
+      ) : (
+        <Text className="mb-2 text-sm font-semibold text-slate-900">{label}</Text>
+      )}
       <Pressable
         testID={testID}
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityState={{ disabled: readOnly }}
         disabled={readOnly}
-        className={`flex-row items-center justify-between rounded-xl border px-4 py-3 ${
-          readOnly ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white active:bg-gray-50'
-        } ${error ? 'border-red-300' : ''}`}
+        className={`flex-row items-center justify-between rounded-xl border py-3 ${
+          listing ? 'px-3' : 'px-4'
+        } ${
+          readOnly
+            ? 'border-gray-200 bg-gray-100'
+            : listing
+              ? `bg-slate-50 active:bg-slate-100 ${error ? 'border-red-400' : 'border-gray-200'}`
+              : `bg-white active:bg-gray-50 ${error ? 'border-red-300' : 'border-gray-300'}`
+        }`}
         onPress={() => {
           if (!readOnly) setOpen(true);
         }}
       >
-        <Text className={`text-base ${displayValue ? 'text-slate-900' : 'text-gray-400'}`}>
+        <Text
+          className={`text-base ${
+            displayValue
+              ? listing
+                ? 'font-semibold text-slate-900'
+                : 'text-slate-900'
+              : listing
+                ? 'text-slate-400'
+                : 'text-gray-400'
+          }`}
+        >
           {displayValue ?? placeholder ?? t('addPet.birthDatePlaceholder')}
         </Text>
         <Ionicons name={readOnly ? 'lock-closed-outline' : 'calendar-outline'} size={20} color="#64748b" />

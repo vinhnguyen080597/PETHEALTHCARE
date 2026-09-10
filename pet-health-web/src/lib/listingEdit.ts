@@ -1,12 +1,16 @@
 import type { Lang, Listing } from "./types";
 import type { EnKey } from "@/i18n";
 import {
-  LISTING_AGE_MONTHS,
   LISTING_DEWORMING_KEYS,
   LISTING_GENDERS,
   LISTING_VACCINE_KEYS,
   listingBreedKeysForSpecies,
 } from "./listingFormOptions";
+import {
+  birthDateToAgeMonths,
+  listingBirthDateForForm,
+  parseBirthDateIso,
+} from "./petAge";
 import {
   canShowListingUpdateDetails,
   isListingOwner,
@@ -19,7 +23,7 @@ export function buildListingEditPayload(input: {
   species: string;
   breed: string;
   gender: string;
-  ageMonths: number;
+  birthDate: string;
   location: string;
   priceNote: string;
   description: string;
@@ -28,12 +32,15 @@ export function buildListingEditPayload(input: {
   personality: string[];
   paperwork: string[];
 }): Record<string, unknown> {
+  const birthDate = parseBirthDateIso(input.birthDate)
+    ? input.birthDate.trim()
+    : "";
   return {
     title: input.title.trim(),
     species: input.species.trim(),
     breed: input.breed.trim(),
     gender: input.gender.trim(),
-    ageMonths: input.ageMonths,
+    ageMonths: birthDate ? birthDateToAgeMonths(birthDate) : 0,
     location: input.location.trim(),
     priceNote: input.priceNote.trim(),
     description: input.description.trim(),
@@ -42,6 +49,7 @@ export function buildListingEditPayload(input: {
     personality: input.personality,
     paperwork: input.paperwork,
     status: "pending_review",
+    metadata: birthDate ? { birth_date: birthDate } : {},
   };
 }
 
@@ -114,12 +122,10 @@ export function listingEditFormDefaults(
     listing.breed || "",
     resolveBreed,
   );
-  const storedAge = Number(listing.ageMonths) || 0;
-  const ageMonths = (LISTING_AGE_MONTHS as readonly number[]).includes(storedAge)
-    ? String(storedAge)
-    : storedAge > 0
-      ? String(storedAge)
-      : "";
+  const birthDate = listingBirthDateForForm({
+    birthDate: listing.birthDate,
+    ageMonths: listing.ageMonths,
+  });
 
   return {
     title: lang === "VI" ? listing.titleVI || listing.title : listing.title,
@@ -132,7 +138,7 @@ export function listingEditFormDefaults(
       "male",
       resolveGender,
     ),
-    ageMonths,
+    birthDate,
     location: listing.location || "",
     priceNote: String(listing.price || "").replace(/[^\d]/g, ""),
     description:

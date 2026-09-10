@@ -34,6 +34,7 @@ import {
   resolveBreederCoverUrl,
 } from "./breederProfileImages";
 import { publicFacilityVideoUrl } from "./farmFacility";
+import { listingBirthDateFromMetadata } from "./petAge";
 
 const PLACEHOLDER_MEDIA =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Crect fill='%23E2E8F0' width='800' height='600'/%3E%3C/svg%3E";
@@ -443,6 +444,7 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     breed: post.breed || "",
     gender: normalizeGender(post.gender),
     ageMonths: Number(post.age_months) || 0,
+    birthDate: listingBirthDateFromMetadata(meta) || null,
     location: post.location || "",
     price: formatted || rawPrice,
     description,

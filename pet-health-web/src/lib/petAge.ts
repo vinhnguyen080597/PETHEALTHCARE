@@ -1,0 +1,137 @@
+export function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function formatBirthDateIso(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function parseBirthDateIso(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return startOfDay(date);
+}
+
+/** True when the ISO birth date is after today (local calendar day). */
+export function isBirthDateInFuture(value: string, today = new Date()): boolean {
+  const birth = parseBirthDateIso(value);
+  if (!birth) return false;
+  return birth.getTime() > startOfDay(today).getTime();
+}
+
+export function birthDateToAgeMonths(
+  birthDate: Date | string,
+  today = new Date(),
+): number {
+  const birth =
+    typeof birthDate === "string"
+      ? parseBirthDateIso(birthDate)
+      : startOfDay(birthDate);
+  if (!birth) return 0;
+  const now = startOfDay(today);
+  let months =
+    (now.getFullYear() - birth.getFullYear()) * 12 +
+    (now.getMonth() - birth.getMonth());
+  if (now.getDate() < birth.getDate()) months -= 1;
+  return Math.max(0, months);
+}
+
+export function approximateBirthDateFromAgeMonths(
+  ageMonths: number,
+  today = new Date(),
+): Date {
+  const date = startOfDay(today);
+  date.setMonth(date.getMonth() - Math.max(0, Math.round(ageMonths)));
+  return date;
+}
+
+export function listingBirthDateFromMetadata(
+  metadata?: Record<string, unknown> | null,
+): string {
+  if (!metadata) return "";
+  const raw = metadata.birth_date ?? metadata.birthDate;
+  if (typeof raw !== "string") return "";
+  const parsed = parseBirthDateIso(raw.slice(0, 10));
+  return parsed ? formatBirthDateIso(parsed) : "";
+}
+
+export function listingBirthDateForForm(input: {
+  birthDate?: string | null;
+  ageMonths?: number | null;
+  metadata?: Record<string, unknown> | null;
+}): string {
+  const fromMeta = listingBirthDateFromMetadata(input.metadata);
+  if (fromMeta) return fromMeta;
+  if (input.birthDate) {
+    const parsed = parseBirthDateIso(input.birthDate.slice(0, 10));
+    if (parsed) return formatBirthDateIso(parsed);
+  }
+  if (
+    input.ageMonths != null &&
+    Number.isFinite(input.ageMonths) &&
+    input.ageMonths >= 0
+  ) {
+    return formatBirthDateIso(approximateBirthDateFromAgeMonths(input.ageMonths));
+  }
+  return "";
+}
+
+/** ISO date for listing detail cards: stored birth date, else approximate from age > 0. */
+export function listingBirthDateDisplayIso(input: {
+  birthDate?: string | null;
+  ageMonths?: number | null;
+  metadata?: Record<string, unknown> | null;
+}): string {
+  const fromMeta = listingBirthDateFromMetadata(input.metadata);
+  if (fromMeta) return fromMeta;
+  if (input.birthDate) {
+    const parsed = parseBirthDateIso(input.birthDate.slice(0, 10));
+    if (parsed) return formatBirthDateIso(parsed);
+  }
+  if (
+    input.ageMonths != null &&
+    Number.isFinite(input.ageMonths) &&
+    input.ageMonths > 0
+  ) {
+    return formatBirthDateIso(approximateBirthDateFromAgeMonths(input.ageMonths));
+  }
+  return "";
+}
+
+export function formatListingBirthDateLabel(iso: string, language: string): string {
+  const parsed = parseBirthDateIso(iso.slice(0, 10));
+  if (!parsed) return "";
+  const locale = language.toLowerCase().startsWith("vi") ? "vi-VN" : "en-US";
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(parsed);
+}
+
+export type BirthDateValidationIssue = "required" | "invalid" | "future";
+
+export function listingBirthDateValidationIssue(
+  value: string,
+  today = new Date(),
+): BirthDateValidationIssue | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "required";
+  if (!parseBirthDateIso(trimmed)) return "invalid";
+  if (isBirthDateInFuture(trimmed, today)) return "future";
+  return null;
+}

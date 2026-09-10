@@ -553,6 +553,24 @@ export async function listMyPetFeedPosts(token: string, options?: { limit?: numb
   );
 }
 
+export async function updateListingWarrantyPolicy(
+  token: string,
+  postId: string,
+  warrantyPolicyId: string | null,
+) {
+  return requestJson<{ data: PetFeedPost }>(
+    `/pet-feed/posts/${encodeURIComponent(postId)}/warranty-policy`,
+    {
+      method: 'PUT',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ warranty_policy_id: warrantyPolicyId }),
+    },
+  );
+}
+
 export async function updateMyPetFeedPost(token: string, postId: string, payload: CreatePetFeedPostPayload) {
   return requestJson<{ data: PetFeedPost }>(`/pet-feed/posts/${encodeURIComponent(postId)}`, {
     method: 'PUT',

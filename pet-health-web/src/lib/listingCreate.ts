@@ -1,3 +1,5 @@
+import { birthDateToAgeMonths, parseBirthDateIso } from "./petAge";
+
 /** Create-listing payload — mirrors mobile CreatePetFeedPostPayload + sequential uploads. */
 
 export function buildListingCreatePayload(input: {
@@ -5,7 +7,7 @@ export function buildListingCreatePayload(input: {
   species: string;
   breed: string;
   gender: string;
-  ageMonths: string | number;
+  birthDate: string;
   location: string;
   priceNote: string;
   description: string;
@@ -20,6 +22,10 @@ export function buildListingCreatePayload(input: {
   status?: string;
 }): Record<string, unknown> {
   const metadata: Record<string, unknown> = {};
+  const birthDate = parseBirthDateIso(input.birthDate)
+    ? input.birthDate.trim()
+    : "";
+  if (birthDate) metadata.birth_date = birthDate;
   if (input.warrantyPolicyId?.trim()) {
     metadata.warranty_policy_id = input.warrantyPolicyId.trim();
   }
@@ -35,7 +41,7 @@ export function buildListingCreatePayload(input: {
     species: input.species.trim(),
     breed: input.breed.trim(),
     gender: input.gender.trim(),
-    ageMonths: Number(input.ageMonths),
+    ageMonths: birthDate ? birthDateToAgeMonths(birthDate) : 0,
     location: input.location.trim(),
     priceNote: input.priceNote.trim(),
     description: input.description.trim(),

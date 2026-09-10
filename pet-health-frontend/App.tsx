@@ -453,6 +453,7 @@ function AppContent() {
                 openSaleReviewInitially={app.petFeedOpenSaleReview}
                 onPatchListingStatus={app.patchOwnListingStatus}
                 onSubmitSaleReview={app.submitSaleFarmReviewForPost}
+                onOpenWarrantyLibrary={app.openWarrantyLibrary}
               />
               </View>
             ) : null}

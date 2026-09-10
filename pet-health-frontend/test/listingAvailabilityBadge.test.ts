@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   canShowListingStatusUpdate,
+  canShowWarrantyUpdateCta,
   listingAvailabilityBadgeKey,
   listingAvailabilityBadgeLabelKey,
   listingOverlayStatusLabelKey,
@@ -45,6 +46,17 @@ test('canShowListingStatusUpdate for owner on published/deposit_hold only', () =
   assert.equal(canShowListingStatusUpdate({ isOwner: true, status: 'deposit_hold' }), true);
   assert.equal(canShowListingStatusUpdate({ isOwner: true, status: 'sold' }), false);
   assert.equal(canShowListingStatusUpdate({ isOwner: false, status: 'sold' }), false);
+});
+
+test('canShowWarrantyUpdateCta for owner on published unfrozen listings', () => {
+  assert.equal(canShowWarrantyUpdateCta({ isOwner: true, status: 'published' }), true);
+  assert.equal(canShowWarrantyUpdateCta({ isOwner: true, status: 'pending_review' }), true);
+  assert.equal(
+    canShowWarrantyUpdateCta({ isOwner: true, status: 'published', frozen: true }),
+    false,
+  );
+  assert.equal(canShowWarrantyUpdateCta({ isOwner: true, status: 'deposit_hold' }), false);
+  assert.equal(canShowWarrantyUpdateCta({ isOwner: false, status: 'published' }), false);
 });
 
 test('listingPostActionsLocked when status sold or metadata marks sold', () => {

@@ -280,6 +280,41 @@ export function applyApprovedBreederSubmission(profile, submission, reviewedAt) 
   return { metadata, contact };
 }
 
+function warrantyFilePolicyKey(metadata) {
+  const raw = Array.isArray(metadata?.warranty_policies) ? metadata.warranty_policies : [];
+  return raw
+    .map((item) => `${trimText(item?.file_url ?? item?.fileUrl, 2000)}|${trimText(item?.title, 160)}`)
+    .sort()
+    .join('\n');
+}
+
+/**
+ * Re-apply approved warranty file submissions onto a profile.
+ * Used when admin approve marked the row approved but skipped the metadata merge.
+ */
+export function applyApprovedWarrantyFileSubmissions(profile, submissions) {
+  let contact = { ...(profile?.contact && typeof profile.contact === 'object' ? profile.contact : {}) };
+  let metadata = { ...(profile?.metadata && typeof profile.metadata === 'object' ? profile.metadata : {}) };
+  let changed = false;
+  for (const submission of Array.isArray(submissions) ? submissions : []) {
+    if (normalizeBreederSubmissionType(submission?.submission_type) !== 'warranty_policy_file') continue;
+    if (normalizeBreederSubmissionStatus(submission?.status) !== 'approved') continue;
+    const merged = applyApprovedBreederSubmission(
+      { ...profile, contact, metadata },
+      submission,
+      submission.reviewed_at,
+    );
+    const policyChanged = warrantyFilePolicyKey(merged.metadata) !== warrantyFilePolicyKey(metadata);
+    const trustChanged =
+      Boolean(merged.metadata.warranty_policy_trust_awarded) !== Boolean(metadata.warranty_policy_trust_awarded);
+    if (!policyChanged && !trustChanged) continue;
+    contact = merged.contact;
+    metadata = merged.metadata;
+    changed = true;
+  }
+  return { contact, metadata, changed };
+}
+
 export function adminBreederDetailPendingHref(submissionId) {
   const focus = encodeURIComponent(submissionId);
   return `/app/admin?section=requests&type=detail&focus=${focus}`;

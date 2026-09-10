@@ -31,11 +31,12 @@ test("listingCreateBodySchema rejects unknown keys and strips unsafe metadata", 
     title: "Kitten",
     species: "cat",
     mediaUrls: ["https://cdn.example/a.jpg"],
-    metadata: { warranty_policy_id: "wp-1" },
+    metadata: { warranty_policy_id: "wp-1", birth_date: "2024-01-15" },
   });
   assert.equal(ok.success, true);
   if (ok.success) {
     assert.equal(ok.data.metadata?.warranty_policy_id, "wp-1");
+    assert.equal(ok.data.metadata?.birth_date, "2024-01-15");
     assert.equal(ok.data.status, undefined);
   }
 });

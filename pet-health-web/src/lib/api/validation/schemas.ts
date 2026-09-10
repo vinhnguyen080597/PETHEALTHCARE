@@ -37,6 +37,11 @@ const listingMetadataSchema = z
     health_evidence_urls: httpUrlListSchema(10).optional(),
     video_poster_url: httpUrlSchema.optional(),
     list_thumb_url: httpUrlSchema.optional(),
+    birth_date: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
   })
   .strict();
 

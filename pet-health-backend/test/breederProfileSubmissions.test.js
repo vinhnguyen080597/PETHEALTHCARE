@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   applyApprovedBreederSubmission,
+  applyApprovedWarrantyFileSubmissions,
   approvedBreederDetailCtaHref,
   normalizeBreederSubmissionType,
   validateBreederSubmissionPayload,
@@ -87,6 +88,38 @@ test("re-approved submission does not reset one-time trust award", () => {
   assert.equal(merged.contact.facebook, "https://facebook.com/new");
   assert.equal(merged.metadata.social_facebook_approved, true);
   assert.equal(merged.metadata.social_facebook_trust_awarded, true);
+});
+
+test("applyApprovedWarrantyFileSubmissions hydrates a skipped admin merge", () => {
+  const profile = { contact: {}, metadata: {} };
+  const hydrated = applyApprovedWarrantyFileSubmissions(profile, [
+    {
+      submission_type: "warranty_policy_file",
+      status: "approved",
+      reviewed_at: "2026-09-10T10:00:00.000Z",
+      payload: {
+        url: "https://cdn.example/policy.pdf",
+        title: "Chính sách trại",
+        content_type: "application/pdf",
+      },
+    },
+  ]);
+  assert.equal(hydrated.changed, true);
+  assert.equal(hydrated.metadata.warranty_policies.length, 1);
+  assert.equal(hydrated.metadata.warranty_policies[0].file_url, "https://cdn.example/policy.pdf");
+  assert.equal(hydrated.metadata.warranty_policy_trust_awarded, true);
+
+  const again = applyApprovedWarrantyFileSubmissions(
+    { contact: {}, metadata: hydrated.metadata },
+    [
+      {
+        submission_type: "warranty_policy_file",
+        status: "approved",
+        payload: { url: "https://cdn.example/policy.pdf", title: "Chính sách trại" },
+      },
+    ],
+  );
+  assert.equal(again.changed, false);
 });
 
 test("applyApprovedBreederSubmission awards first warranty file once", () => {

@@ -14,6 +14,9 @@ import {
   readListingWarrantyPolicy,
 } from '../utils/marketplaceListingCard';
 import { buildPetFeedDetailSpecs } from '../utils/petFeedDetailSpecs';
+import { formatListingBirthDateLabel, listingBirthDateDisplayIso } from '../utils/petAge';
+import { canShowWarrantyUpdateCta } from '../utils/listingAvailabilityBadge';
+import { mapWarrantyPolicy } from '../utils/warrantyPolicy';
 import { listingDetailMediaSlideCount } from '../utils/petFeedPostDetail';
 import { PetFeedPostTimeMeta } from './PetFeedPostTimeMeta';
 import { ListingMediaOverlayBadges } from './ListingMediaOverlayBadges';
@@ -78,6 +81,8 @@ type PetFeedPostDetailBodyProps = {
   showEditButton?: boolean;
   showStatusButton?: boolean;
   onPressStatusUpdate?: () => void;
+  isOwner?: boolean;
+  onPressWarrantyUpdate?: () => void;
 };
 
 export function PetFeedPostDetailBody({
@@ -92,6 +97,8 @@ export function PetFeedPostDetailBody({
   showEditButton = false,
   showStatusButton = false,
   onPressStatusUpdate,
+  isOwner = false,
+  onPressWarrantyUpdate,
 }: PetFeedPostDetailBodyProps) {
   const { t, i18n } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -105,17 +112,35 @@ export function PetFeedPostDetailBody({
   }, [post.id]);
 
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
-  const specs = useMemo(
-    () =>
-      buildPetFeedDetailSpecs(post, {
-        ageMonths: (count) => t('petFeed.ageMonths', { count }),
+  const specs = useMemo(() => {
+    const birthIso = listingBirthDateDisplayIso({
+      ageMonths: post.age_months,
+      metadata: post.metadata,
+    });
+    return buildPetFeedDetailSpecs(
+      {
+        breed: post.breed,
+        gender: post.gender,
+        location: post.location,
+        birthDateLabel: birthIso ? formatListingBirthDateLabel(birthIso, i18n.language) : '',
+      },
+      {
         male: t('gender.male'),
         female: t('gender.female'),
-      }),
-    [post, t],
-  );
+      },
+    );
+  }, [i18n.language, post.age_months, post.breed, post.gender, post.location, post.metadata, t]);
   const warranty = readListingWarrantyPolicy(post);
   const warrantyDays = listingWarrantyCoverageDays(warranty);
+  const attachedWarranty = mapWarrantyPolicy(post.warranty_policy);
+  const showWarrantyUpdate = Boolean(
+    onPressWarrantyUpdate
+    && canShowWarrantyUpdateCta({
+      isOwner,
+      status: post.status,
+      frozen: Boolean(attachedWarranty?.frozen),
+    }),
+  );
   const breeder = post.breeder_profile;
 
   const openWarrantyInfo = useCallback(() => {
@@ -366,7 +391,10 @@ export function PetFeedPostDetailBody({
         ) : null}
 
         {post.description ? (
-          <Text className="text-sm leading-6 text-slate-600">{post.description}</Text>
+          <Text className="text-sm leading-6 text-slate-600">
+            <Text className="font-bold text-slate-900">{t('petFeed.detail.description')}: </Text>
+            {post.description}
+          </Text>
         ) : null}
 
         <Pressable
@@ -395,23 +423,42 @@ export function PetFeedPostDetailBody({
           </View>
         </Pressable>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('petFeed.detail.warrantyView')}
+        <View
           className="rounded-xl border px-3.5 py-3"
           style={{
             borderColor: warranty ? '#BAE6FD' : BRAND.borderCard,
             backgroundColor: warranty ? '#F0F9FF' : BRAND.appBackground,
           }}
-          onPress={openWarrantyInfo}
         >
-          <Text className="text-sm font-semibold text-slate-900">
-            {`🛡️ ${warranty?.title || t('petFeed.detail.warrantyNone')}`}
-          </Text>
-          <Text className="mt-0.5 text-xs font-medium" style={{ color: warranty ? '#0369A1' : BRAND.textMuted }}>
-            {warranty ? t('petFeed.detail.warrantyView') : t('petFeed.detail.warrantyNoneHint')}
-          </Text>
-        </Pressable>
+          <View className="flex-row items-start justify-between gap-3">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('petFeed.detail.warrantyView')}
+              className="min-w-0 flex-1 active:opacity-80"
+              onPress={openWarrantyInfo}
+            >
+              <Text className="text-sm font-semibold text-slate-900">
+                {`🛡️ ${warranty?.title || t('petFeed.detail.warrantyNone')}`}
+              </Text>
+              <Text className="mt-0.5 text-xs font-medium" style={{ color: warranty ? '#0369A1' : BRAND.textMuted }}>
+                {warranty ? t('petFeed.detail.warrantyView') : t('petFeed.detail.warrantyNoneHint')}
+              </Text>
+            </Pressable>
+            {showWarrantyUpdate ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('warranty.updateCta')}
+                className="shrink-0 rounded-full border bg-white px-3 py-1.5 active:bg-slate-50"
+                style={{ borderColor: warranty ? '#7DD3FC' : '#CBD5E1' }}
+                onPress={onPressWarrantyUpdate}
+              >
+                <Text className="text-xs font-semibold" style={{ color: warranty ? '#0C4A6E' : '#334155' }}>
+                  {t('warranty.updateCta')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
 
         {(post.vaccine_status || post.deworming_status) ? (
           <View className="rounded-xl bg-slate-50 p-3">

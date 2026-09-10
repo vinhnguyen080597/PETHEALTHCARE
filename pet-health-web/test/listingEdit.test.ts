@@ -8,6 +8,7 @@ import {
   resolveListingEditBreed,
 } from "../src/lib/listingEdit";
 import type { Listing } from "../src/lib/types";
+import { birthDateToAgeMonths } from "../src/lib/petAge";
 
 function t(_lang: "EN" | "VI", key: string): string {
   const map: Record<string, string> = {
@@ -34,6 +35,7 @@ function sampleListing(overrides: Partial<Listing> = {}): Listing {
     breed: "British Longhair",
     gender: "Male",
     ageMonths: 2,
+    birthDate: "2024-01-15",
     location: "TP. Hồ Chí Minh",
     price: "4.444.444 VNĐ",
     description: "Desc EN",
@@ -85,7 +87,7 @@ test("buildListingEditPayload trims fields and resubmits for review", () => {
     species: "cat",
     breed: "Ba Tư",
     gender: "Male",
-    ageMonths: 2,
+    birthDate: "2024-01-15",
     location: "HN",
     priceNote: "1000000",
     description: "  nice  ",
@@ -99,7 +101,8 @@ test("buildListingEditPayload trims fields and resubmits for review", () => {
   assert.equal(payload.status, "pending_review");
   assert.deepEqual(payload.paperwork, ["Vaccine book"]);
   assert.equal(payload.mediaUrls, undefined);
-  assert.equal(payload.metadata, undefined);
+  assert.equal((payload.metadata as Record<string, unknown>).birth_date, "2024-01-15");
+  assert.equal(payload.ageMonths, birthDateToAgeMonths("2024-01-15"));
 });
 
 test("listingEditFormDefaults prefer locale and strip price formatting", () => {
@@ -110,6 +113,7 @@ test("listingEditFormDefaults prefer locale and strip price formatting", () => {
   assert.equal(vi.priceNote, "4444444");
   assert.equal(vi.breedKey, "british_longhair");
   assert.equal(vi.gender, "male");
+  assert.equal(vi.birthDate, "2024-01-15");
 });
 
 test("resolveListingEditBreed maps custom breed labels", () => {

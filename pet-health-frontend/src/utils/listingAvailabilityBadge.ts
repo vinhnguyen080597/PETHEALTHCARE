@@ -44,3 +44,14 @@ export function canShowListingStatusUpdate(input: {
   const s = String(input.status || '').trim().toLowerCase();
   return s === 'published' || s === 'deposit_hold';
 }
+
+/** Owner may attach/update warranty only while the listing is available and unfrozen. */
+export function canShowWarrantyUpdateCta(input: {
+  isOwner: boolean;
+  status: string | null | undefined;
+  frozen?: boolean;
+}): boolean {
+  if (!input.isOwner || input.frozen) return false;
+  const status = String(input.status || '').trim().toLowerCase();
+  return status === 'published' || status === 'pending_review';
+}

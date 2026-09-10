@@ -6,6 +6,9 @@ import {
   calculateAgeBreakdown,
   formatBirthDateIso,
   formatPetAgeBreakdown,
+  listingBirthDateDisplayIso,
+  listingBirthDateForForm,
+  listingBirthDateValidationIssue,
   petBirthDateForForm,
   resolvePetAgeMonths,
 } from '../src/utils/petAge.ts';
@@ -24,6 +27,39 @@ test('birthDateToAgeMonths computes whole months', () => {
 
 test('petBirthDateForForm prefers stored birth_date', () => {
   assert.equal(petBirthDateForForm({ birth_date: '2023-05-10T00:00:00+00:00', age: 12 }), '2023-05-10');
+});
+
+test('listingBirthDateForForm prefers metadata.birth_date over age months', () => {
+  assert.equal(
+    listingBirthDateForForm({
+      ageMonths: 6,
+      metadata: { birth_date: '2023-05-10' },
+    }),
+    '2023-05-10',
+  );
+  assert.match(
+    listingBirthDateForForm({ ageMonths: 6, metadata: {} }),
+    /^\d{4}-\d{2}-\d{2}$/,
+  );
+});
+
+test('listingBirthDateDisplayIso prefers stored date and skips zero age fallback', () => {
+  assert.equal(
+    listingBirthDateDisplayIso({
+      ageMonths: 0,
+      metadata: { birth_date: '2026-09-01' },
+    }),
+    '2026-09-01',
+  );
+  assert.equal(listingBirthDateDisplayIso({ ageMonths: 0, metadata: {} }), '');
+});
+
+test('listingBirthDateValidationIssue rejects empty invalid and future dates', () => {
+  const today = new Date('2026-09-10T12:00:00');
+  assert.equal(listingBirthDateValidationIssue('', today), 'required');
+  assert.equal(listingBirthDateValidationIssue('2026-13-01', today), 'invalid');
+  assert.equal(listingBirthDateValidationIssue('2026-09-11', today), 'future');
+  assert.equal(listingBirthDateValidationIssue('2026-09-10', today), null);
 });
 
 test('resolvePetAgeMonths uses birth_date when available', () => {

@@ -150,6 +150,8 @@ export interface Listing {
   breed: string;
   gender: string;
   ageMonths: number;
+  /** ISO YYYY-MM-DD from listing metadata when stored. */
+  birthDate?: string | null;
   location: string;
   price: string;
   description: string;

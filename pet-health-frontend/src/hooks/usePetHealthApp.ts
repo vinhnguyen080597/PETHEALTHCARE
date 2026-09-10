@@ -2077,6 +2077,14 @@ export function usePetHealthApp() {
     setBreederDetailTab('overview');
     setSelectedBreederProfileId(profileId);
     setScreen('breeder-detail');
+    if (!token) return;
+    void getMyBreederProfile(token)
+      .then((profileRes) => {
+        if (profileRes.data) applyBreederProfileUpdate(profileRes.data);
+      })
+      .catch(() => {
+        /* keep cached profile; farm screen still opens */
+      });
   }
 
   function closeBreederDetail() {

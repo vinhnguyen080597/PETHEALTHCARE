@@ -24,8 +24,10 @@ import {
   createBreederFarmReview,
   deleteWarrantyPolicy,
   getBreederFarmReviews,
+  getMyBreederProfile,
   getMyDirectFarmReview,
   listMyBreederProfileSubmissions,
+  listMyWarrantyPolicies,
 } from '../api';
 import { pendingWarrantyUploadsFromSubmissions } from '../utils/breederProfileSubmissions';
 import type { BreederProfile, PetFeedPost } from '../types';
@@ -56,14 +58,14 @@ import {
   farmTabLabelKey,
   farmDetailTabBarLayout,
   farmWarrantyOwnerEmptyCtaKey,
-  farmWarrantyPoliciesFromMetadata,
+  farmWarrantyPoliciesFromProfile,
   parseFarmDetailTab,
   resolveFarmAvatarUrl,
   resolveFarmCoverUrl,
   type FarmDetailTab,
 } from '../utils/farmProfileDisplay';
 import { parseTrustAwardedFromMeta } from '../utils/breederTransparencyScore';
-import type { WarrantyPolicy } from '../utils/warrantyPolicy';
+import { mapWarrantyPolicies, type WarrantyPolicy } from '../utils/warrantyPolicy';
 
 const FARM_BG = '#FDFBF7';
 const FARM_BORDER = '#F3E2C8';
@@ -138,6 +140,9 @@ export function BreederDetailScreen({
   const [pendingWarrantyUploads, setPendingWarrantyUploads] = useState<
     Array<{ id: string; title: string; fileUrl: string }>
   >([]);
+  const [libraryPolicies, setLibraryPolicies] = useState<WarrantyPolicy[] | null>(null);
+  const onBreederProfileUpdatedRef = useRef(onBreederProfileUpdated);
+  onBreederProfileUpdatedRef.current = onBreederProfileUpdated;
   const [reviewThreads, setReviewThreads] = useState<FarmReviewThreadPreview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
@@ -165,7 +170,7 @@ export function BreederDetailScreen({
     socialCount: facilitySocials.length,
     videoUrl: facilityVideoUrl,
   });
-  const warranties = farmWarrantyPoliciesFromMetadata(profile.metadata);
+  const warranties = libraryPolicies ?? farmWarrantyPoliciesFromProfile(profile);
   const firstWarrantyAwarded = parseTrustAwardedFromMeta(
     (profile.metadata ?? {}) as Record<string, unknown>,
   ).firstWarranty;
@@ -261,21 +266,35 @@ export function BreederDetailScreen({
   useEffect(() => {
     if (!token || !isOwnProfile) {
       setPendingWarrantyUploads([]);
+      setLibraryPolicies(null);
       return;
     }
     let cancelled = false;
     void listMyBreederProfileSubmissions(token)
       .then((res) => {
-        if (cancelled) return;
-        setPendingWarrantyUploads(pendingWarrantyUploadsFromSubmissions(res.data));
+        if (!cancelled) setPendingWarrantyUploads(pendingWarrantyUploadsFromSubmissions(res.data));
       })
       .catch(() => {
         if (!cancelled) setPendingWarrantyUploads([]);
       });
+    void listMyWarrantyPolicies(token)
+      .then((res) => {
+        if (!cancelled) setLibraryPolicies(mapWarrantyPolicies(res.data));
+      })
+      .catch(() => {
+        if (!cancelled) setLibraryPolicies(null);
+      });
+    void getMyBreederProfile(token)
+      .then((res) => {
+        if (!cancelled && res.data) onBreederProfileUpdatedRef.current?.(res.data);
+      })
+      .catch(() => {
+        /* keep cached profile */
+      });
     return () => {
       cancelled = true;
     };
-  }, [isOwnProfile, token, profile.id]);
+  }, [activeTab, isOwnProfile, token, profile.id]);
 
   useEffect(() => {
     if (!token || isOwnProfile) {
@@ -356,6 +375,9 @@ export function BreederDetailScreen({
       if (warrantyDeleteTarget.kind === 'policy') {
         const result = await deleteWarrantyPolicy(token, warrantyDeleteTarget.policy.id);
         onBreederProfileUpdated?.(result.data);
+        setLibraryPolicies((current) =>
+          current ? current.filter((policy) => policy.id !== warrantyDeleteTarget.policy.id) : current,
+        );
       } else {
         await cancelMyBreederProfileSubmission(token, warrantyDeleteTarget.item.id);
         setPendingWarrantyUploads((current) =>

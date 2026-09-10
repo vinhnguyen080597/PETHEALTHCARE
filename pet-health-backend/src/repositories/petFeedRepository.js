@@ -47,6 +47,7 @@ import { resolvePrivateMediaUrls } from '../services/imageStorageService.js';
 import { normalizeRegistrationUnitPayload } from '../utils/breederRegistrationUnit.js';
 import {
   applyApprovedBreederSubmission,
+  applyApprovedWarrantyFileSubmissions,
   normalizeBreederSubmissionStatus,
   normalizeBreederSubmissionType,
   validateBreederSubmissionPayload,
@@ -401,6 +402,68 @@ async function persistBreederMetadata(userId, metadata, accessToken) {
     .single();
   if (error) throw error;
   return toProfile(data);
+}
+
+function unwrapEmbeddedBreederProfile(row) {
+  const raw = row?.breeder_profile ?? row?.breeder_profiles ?? null;
+  if (Array.isArray(raw)) return raw[0] ?? null;
+  if (raw && typeof raw === 'object') return raw;
+  return null;
+}
+
+async function loadProfileForSubmissionRow(row, supabase) {
+  const embedded = unwrapEmbeddedBreederProfile(row);
+  if (embedded?.id) return toProfile(embedded);
+  if (row?.breeder_profile_id) {
+    const { data, error } = await supabase
+      .from('breeder_profiles')
+      .select('*')
+      .eq('id', row.breeder_profile_id)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) return toProfile(data);
+  }
+  if (row?.user_id) {
+    const { data, error } = await supabase
+      .from('breeder_profiles')
+      .select('*')
+      .eq('user_id', row.user_id)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) return toProfile(data);
+  }
+  return null;
+}
+
+async function listApprovedWarrantyFileSubmissions(userId, accessToken) {
+  const supabase = getSupabaseServiceClient() ?? getFeedSupabase(accessToken);
+  if (!supabase) {
+    return memorySubmissions
+      .filter(
+        (row) =>
+          row.user_id === userId
+          && row.submission_type === 'warranty_policy_file'
+          && row.status === 'approved',
+      )
+      .map(toBreederSubmission);
+  }
+  const { data, error } = await supabase
+    .from('breeder_profile_submissions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('submission_type', 'warranty_policy_file')
+    .eq('status', 'approved');
+  if (error) throw error;
+  return (data ?? []).map(toBreederSubmission);
+}
+
+async function syncApprovedWarrantyFilesToProfile(profile, accessToken) {
+  if (!profile?.user_id) return profile;
+  const submissions = await listApprovedWarrantyFileSubmissions(profile.user_id, accessToken);
+  if (submissions.length === 0) return profile;
+  const hydrated = applyApprovedWarrantyFileSubmissions(profile, submissions);
+  if (!hydrated.changed) return profile;
+  return persistBreederMetadata(profile.user_id, hydrated.metadata, accessToken);
 }
 
 async function persistPostRow(postId, patch, accessToken, viewerUserId = null) {
@@ -1599,6 +1662,12 @@ export async function getPublicBreederProfile(profileId) {
   }
   if (!profile) return null;
 
+  try {
+    profile = await syncApprovedWarrantyFilesToProfile(toProfile(profile), null);
+  } catch {
+    profile = toProfile(profile);
+  }
+
   const publicProfile = toPublicBreeder(profile, { includeContact: true });
   let listings = [];
   if (!supabase) {
@@ -1657,10 +1726,20 @@ export async function getVerifiedBreederProfileForMessaging(profileId, accessTok
 
 export async function getMyBreederProfile(userId, accessToken) {
   const supabase = getFeedSupabase(accessToken);
-  if (!supabase) return toProfile(memoryProfiles.find((profile) => profile.user_id === userId) ?? null);
-  const { data, error } = await supabase.from('breeder_profiles').select('*').eq('user_id', userId).maybeSingle();
-  if (error) throw error;
-  return toProfile(data);
+  let mapped = null;
+  if (!supabase) {
+    mapped = toProfile(memoryProfiles.find((profile) => profile.user_id === userId) ?? null);
+  } else {
+    const { data, error } = await supabase.from('breeder_profiles').select('*').eq('user_id', userId).maybeSingle();
+    if (error) throw error;
+    mapped = toProfile(data);
+  }
+  if (!mapped) return mapped;
+  try {
+    return await syncApprovedWarrantyFilesToProfile(mapped, accessToken);
+  } catch {
+    return mapped;
+  }
 }
 
 export async function upsertMyBreederProfile(userId, payload, accessToken) {
@@ -3366,6 +3445,15 @@ export async function adminReviewBreederProfileSubmission(
     throw httpError('Submission is not pending review.', 400, 'SUBMISSION_NOT_PENDING');
   }
 
+  const profile = await loadProfileForSubmissionRow(existing, supabase);
+  if (safeStatus === 'approved' && !profile) {
+    throw httpError(
+      'Breeder profile not found for this submission.',
+      404,
+      'SUBMISSION_PROFILE_MISSING',
+    );
+  }
+
   const { data: updatedSubmission, error: updateError } = await supabase
     .from('breeder_profile_submissions')
     .update({
@@ -3379,8 +3467,7 @@ export async function adminReviewBreederProfileSubmission(
     .single();
   if (updateError) throw updateError;
 
-  if (safeStatus === 'approved' && existing.breeder_profile) {
-    const profile = toProfile(existing.breeder_profile);
+  if (safeStatus === 'approved' && profile) {
     const merged = applyApprovedBreederSubmission(profile, toBreederSubmission(existing), now);
     const { data: updatedProfile, error: profileError } = await supabase
       .from('breeder_profiles')
@@ -3399,7 +3486,7 @@ export async function adminReviewBreederProfileSubmission(
     });
   }
 
-  if (safeStatus === 'rejected' && existing.breeder_profile) {
+  if (safeStatus === 'rejected' && profile) {
     const profile = toProfile(existing.breeder_profile);
     const nextMetadata = sanitizeBreederProfileMetadata(
       applyOptionalScorePenalty(profile.metadata, options, now, rejectionReason),

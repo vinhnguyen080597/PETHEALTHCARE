@@ -6,6 +6,7 @@ import {
   buildListingCreatePayload,
   listingMediaUploadErrorKey,
 } from "../src/lib/listingCreate";
+import { birthDateToAgeMonths } from "../src/lib/petAge";
 
 test("buildListingCreatePayload matches mobile sequential-upload contract", () => {
   const payload = buildListingCreatePayload({
@@ -13,7 +14,7 @@ test("buildListingCreatePayload matches mobile sequential-upload contract", () =
     species: "cat",
     breed: "Anh lông ngắn",
     gender: "Đực",
-    ageMonths: "2",
+    birthDate: "2024-01-15",
     location: "An Giang",
     priceNote: "3.000.000",
     description: "Mô tả",
@@ -28,7 +29,7 @@ test("buildListingCreatePayload matches mobile sequential-upload contract", () =
   });
 
   assert.equal(payload.title, "Bé mèo");
-  assert.equal(payload.ageMonths, 2);
+  assert.equal(payload.ageMonths, birthDateToAgeMonths("2024-01-15"));
   assert.deepEqual(payload.mediaUrls, [
     "https://cdn.example/a.jpg",
     "https://cdn.example/b.jpg",
@@ -36,6 +37,7 @@ test("buildListingCreatePayload matches mobile sequential-upload contract", () =
   assert.equal(payload.videoUrl, "https://cdn.example/v.mp4");
   assert.equal(payload.status, "pending_review");
   const metadata = payload.metadata as Record<string, unknown>;
+  assert.equal(metadata.birth_date, "2024-01-15");
   assert.equal(metadata.warranty_policy_id, "wp-1");
   assert.deepEqual(metadata.health_evidence_urls, ["https://cdn.example/ev.jpg"]);
   assert.equal(metadata.video_poster_url, "https://cdn.example/a.jpg");

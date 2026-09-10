@@ -53,6 +53,39 @@ test("breeder profile submission flow approve merges metadata", async () => {
   assert.ok(mine.some((row) => row.id === created.id && row.status === "approved"));
 });
 
+test("approving a warranty policy file stores it on the breeder library", async () => {
+  const userId = `submission-warranty-${Date.now()}`;
+  await upsertMyBreederProfile(userId, {
+    displayName: "Farm Warranty",
+    location: "Hồ Chí Minh",
+    verificationStatus: "pending_review",
+  }, null);
+  await adminUpdateBreederProfileStatus(userId, "verified");
+
+  const created = await createBreederProfileSubmission(
+    userId,
+    {
+      submissionType: "warranty_policy_file",
+      url: "https://cdn.example/farm-policy.pdf",
+      title: "Chính sách trại",
+      content_type: "application/pdf",
+    },
+    null,
+  );
+  const reviewed = await adminReviewBreederProfileSubmission(created.id, "approved");
+  assert.equal(reviewed.status, "approved");
+  assert.equal(reviewed.breeder_profile?.metadata?.warranty_policies?.length, 1);
+  assert.equal(
+    reviewed.breeder_profile.metadata.warranty_policies[0].file_url,
+    "https://cdn.example/farm-policy.pdf",
+  );
+
+  const profile = await getMyBreederProfile(userId, null);
+  assert.equal(profile.metadata.warranty_policies.length, 1);
+  assert.equal(profile.metadata.warranty_policy_trust_awarded, true);
+  assert.equal(profile.warranty_policies.length, 1);
+});
+
 test("reject submission requires rejection reason at route layer", async () => {
   const userId = `submission-reject-${Date.now()}`;
   await upsertMyBreederProfile(userId, {

@@ -110,3 +110,70 @@ export function petBirthDateForForm(pet: { birth_date?: string | null; age?: num
   }
   return '';
 }
+
+export function listingBirthDateFromMetadata(metadata?: Record<string, unknown> | null): string {
+  if (!metadata) return '';
+  const raw = metadata.birth_date ?? metadata.birthDate;
+  if (typeof raw !== 'string') return '';
+  const parsed = parseBirthDateIso(raw.slice(0, 10));
+  return parsed ? formatBirthDateIso(parsed) : '';
+}
+
+export function listingBirthDateForForm(input: {
+  birthDate?: string | null;
+  ageMonths?: number | null;
+  metadata?: Record<string, unknown> | null;
+}): string {
+  const fromMeta = listingBirthDateFromMetadata(input.metadata);
+  if (fromMeta) return fromMeta;
+  if (input.birthDate) {
+    const parsed = parseBirthDateIso(input.birthDate.slice(0, 10));
+    if (parsed) return formatBirthDateIso(parsed);
+  }
+  if (input.ageMonths != null && Number.isFinite(input.ageMonths) && input.ageMonths >= 0) {
+    return formatBirthDateIso(approximateBirthDateFromAgeMonths(input.ageMonths));
+  }
+  return '';
+}
+
+/** ISO date for listing detail cards: stored birth date, else approximate from age > 0. */
+export function listingBirthDateDisplayIso(input: {
+  birthDate?: string | null;
+  ageMonths?: number | null;
+  metadata?: Record<string, unknown> | null;
+}): string {
+  const fromMeta = listingBirthDateFromMetadata(input.metadata);
+  if (fromMeta) return fromMeta;
+  if (input.birthDate) {
+    const parsed = parseBirthDateIso(input.birthDate.slice(0, 10));
+    if (parsed) return formatBirthDateIso(parsed);
+  }
+  if (input.ageMonths != null && Number.isFinite(input.ageMonths) && input.ageMonths > 0) {
+    return formatBirthDateIso(approximateBirthDateFromAgeMonths(input.ageMonths));
+  }
+  return '';
+}
+
+export function formatListingBirthDateLabel(iso: string, language: string): string {
+  const parsed = parseBirthDateIso(iso.slice(0, 10));
+  if (!parsed) return '';
+  const locale = language.toLowerCase().startsWith('vi') ? 'vi-VN' : 'en-US';
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(parsed);
+}
+
+export type BirthDateValidationIssue = 'required' | 'invalid' | 'future';
+
+export function listingBirthDateValidationIssue(
+  value: string,
+  today = new Date(),
+): BirthDateValidationIssue | null {
+  const trimmed = value.trim();
+  if (!trimmed) return 'required';
+  if (!parseBirthDateIso(trimmed)) return 'invalid';
+  if (isBirthDateInFuture(trimmed, today)) return 'future';
+  return null;
+}

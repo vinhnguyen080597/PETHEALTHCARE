@@ -58,11 +58,18 @@ import { BRAND } from '../theme/brand';
 import { evaluatePetFeedPostDelete } from '../utils/listingOwnerDelete';
 import { LISTING_CARD_IMAGE_HEIGHT, listThumbUrlFromMetadata } from '../utils/marketplaceListingCard';
 import { listingThumbCropViewportSize, type CoverCropSource } from '../utils/farmCoverCrop';
+import { FormDateField } from '../components/FormDateField';
+import {
+  birthDateToAgeMonths,
+  listingBirthDateForForm,
+  listingBirthDateValidationIssue,
+  parseBirthDateIso,
+} from '../utils/petAge';
 
 const PRIMARY = BRAND.btnPrimary;
 const MAX_PHOTOS = 6;
 
-type BasicFieldKey = 'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video';
+type BasicFieldKey = 'title' | 'breed' | 'gender' | 'birthDate' | 'location' | 'priceNote' | 'photos' | 'video';
 
 type Option = {
   value: string;
@@ -242,8 +249,11 @@ export function CreatePetFeedPostScreen({
   const [breed, setBreed] = useState('');
   const [customBreed, setCustomBreed] = useState('');
   const [gender, setGender] = useState('male');
-  const [ageMonths, setAgeMonths] = useState(
-    editingPost?.age_months != null ? String(editingPost.age_months) : '3',
+  const [birthDate, setBirthDate] = useState(() =>
+    listingBirthDateForForm({
+      ageMonths: editingPost?.age_months,
+      metadata: editingPost?.metadata,
+    }),
   );
   const [location, setLocation] = useState(editingPost?.location ?? '');
   const [priceNote, setPriceNote] = useState(() => petFeedPriceInputFromStored(editingPost?.price_note, i18n.language));
@@ -264,7 +274,7 @@ export function CreatePetFeedPostScreen({
   const [thumbCropSource, setThumbCropSource] = useState<CoverCropSource | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<'title' | 'breed' | 'gender' | 'ageMonths' | 'location' | 'priceNote' | 'photos' | 'video', string>>
+    Partial<Record<'title' | 'breed' | 'gender' | 'birthDate' | 'location' | 'priceNote' | 'photos' | 'video', string>>
   >({});
   const [submitting, setSubmitting] = useState(false);
   const [submitProgress, setSubmitProgress] = useState<PetFeedSubmitProgress | null>(null);
@@ -310,13 +320,6 @@ export function CreatePetFeedPostScreen({
     { value: 'male', label: t('createPetFeedPost.options.gender.male') },
     { value: 'female', label: t('createPetFeedPost.options.gender.female') },
   ], [t]);
-  const ageOptions = useMemo<Option[]>(() => [
-    { value: '2', label: t('createPetFeedPost.options.age.two') },
-    { value: '3', label: t('createPetFeedPost.options.age.three') },
-    { value: '6', label: t('createPetFeedPost.options.age.six') },
-    { value: '12', label: t('createPetFeedPost.options.age.twelve') },
-    { value: '24', label: t('createPetFeedPost.options.age.twentyFour') },
-  ], [t]);
   const locationOptions = useMemo<Option[]>(
     () => VIETNAM_PROVINCES.map((province) => ({ value: province, label: province })),
     [],
@@ -353,13 +356,16 @@ export function CreatePetFeedPostScreen({
     setVaccineStatus(matchOptionValue(vaccineOptions, editingPost.vaccine_status, 'unknown'));
     setDewormingStatus(matchOptionValue(dewormingOptions, editingPost.deworming_status, 'unknown'));
     setHealthEvidenceUris(healthEvidenceUrlsFromMetadata(editingPost.metadata));
-    if (editingPost.age_months != null && ageOptions.some((option) => option.value === String(editingPost.age_months))) {
-      setAgeMonths(String(editingPost.age_months));
-    }
+    setBirthDate(
+      listingBirthDateForForm({
+        ageMonths: editingPost.age_months,
+        metadata: editingPost.metadata,
+      }),
+    );
     if (editingPost.location) {
       setLocation(resolveProvinceSelection(editingPost.location));
     }
-  }, [ageOptions, dewormingOptions, editingPost, genderOptions, locationOptions, vaccineOptions]);
+  }, [dewormingOptions, editingPost, genderOptions, locationOptions, vaccineOptions]);
 
   useEffect(() => {
     if (!editingPost) return;
@@ -385,7 +391,7 @@ export function CreatePetFeedPostScreen({
       : breedOptions.find((option) => option.value === breed)?.label ?? '';
   const selectedVaccineLabel = vaccineStatus === 'unknown' ? '' : vaccineStatus;
   const selectedDewormingLabel = dewormingStatus === 'unknown' ? '' : dewormingStatus;
-  const ageValue = ageMonths ? Number(ageMonths) : null;
+  const ageValue = parseBirthDateIso(birthDate) ? birthDateToAgeMonths(birthDate) : null;
   const priceUnit = petFeedPriceInputUnit(i18n.language);
   const canonicalPriceNote = normalizePetFeedPriceInput(priceNote, i18n.language);
 
@@ -546,7 +552,10 @@ export function CreatePetFeedPostScreen({
       nextErrors.breed = t('createPetFeedPost.errors.breedRequired');
     }
     if (!gender) nextErrors.gender = t('createPetFeedPost.errors.genderRequired');
-    if (!ageMonths) nextErrors.ageMonths = t('createPetFeedPost.errors.ageRequired');
+    const birthIssue = listingBirthDateValidationIssue(birthDate);
+    if (birthIssue === 'required') nextErrors.birthDate = t('createPetFeedPost.errors.birthDateRequired');
+    else if (birthIssue === 'invalid') nextErrors.birthDate = t('createPetFeedPost.errors.birthDateInvalid');
+    else if (birthIssue === 'future') nextErrors.birthDate = t('createPetFeedPost.errors.birthDateFuture');
     if (!location.trim()) nextErrors.location = t('createPetFeedPost.errors.locationRequired');
     if (!priceNote.trim() && !canonicalPriceNote.trim()) {
       nextErrors.priceNote = t('createPetFeedPost.errors.priceRequired');
@@ -554,7 +563,7 @@ export function CreatePetFeedPostScreen({
     if (photoUris.length === 0) nextErrors.photos = t('createPetFeedPost.errors.photoRequired');
     if (!videoUri) nextErrors.video = t('createPetFeedPost.errors.videoRequired');
     setFieldErrors(nextErrors);
-    const fieldOrder: BasicFieldKey[] = ['title', 'breed', 'gender', 'ageMonths', 'location', 'priceNote', 'photos', 'video'];
+    const fieldOrder: BasicFieldKey[] = ['title', 'breed', 'gender', 'birthDate', 'location', 'priceNote', 'photos', 'video'];
     for (const key of fieldOrder) {
       if (nextErrors[key]) {
         return { message: nextErrors[key]!, focusKey: key };
@@ -677,6 +686,7 @@ export function CreatePetFeedPostScreen({
       metadata: {
         ...(editingPost?.metadata ?? {}),
         health_evidence_urls: healthEvidenceUris.filter((uri) => isRemoteMediaUri(uri)),
+        ...(parseBirthDateIso(birthDate) ? { birth_date: birthDate.trim() } : {}),
       },
     };
 
@@ -1102,16 +1112,19 @@ export function CreatePetFeedPostScreen({
               }}
             />
           </View>
-          <View onLayout={(event) => markFieldOffset('ageMonths', event.nativeEvent.layout.y)}>
-            <SelectField
+          <View onLayout={(event) => markFieldOffset('birthDate', event.nativeEvent.layout.y)}>
+            <FormDateField
+              variant="listing"
               required
-              label={t('createPetFeedPost.ageMonths')}
-              value={ageMonths}
-              options={ageOptions}
-              error={fieldErrors.ageMonths}
+              label={t('createPetFeedPost.birthDate')}
+              value={birthDate}
+              placeholder={t('createPetFeedPost.birthDatePlaceholder')}
+              maximumDate={new Date()}
+              error={fieldErrors.birthDate}
+              testID="create-listing-birth-date"
               onChange={(value) => {
-                clearFieldError('ageMonths');
-                setAgeMonths(value);
+                clearFieldError('birthDate');
+                setBirthDate(value);
               }}
             />
           </View>

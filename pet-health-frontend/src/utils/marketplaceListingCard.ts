@@ -1,5 +1,5 @@
 import type { PetFeedPost } from '../types';
-import { applyAdminReviewPenalty } from './breederTransparencyScore';
+import { applyAdminReviewPenalty } from './breederTransparencyScore.ts';
 
 const NEW_LISTING_MS = 24 * 60 * 60 * 1000;
 

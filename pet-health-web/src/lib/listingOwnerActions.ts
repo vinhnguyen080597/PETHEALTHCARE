@@ -55,14 +55,15 @@ export function canShowListingUpdateDetails(input: {
   return Boolean(input.isOwner) && isListingAvailableStatus(input.status);
 }
 
-/** Warranty attach/update CTA — same availability gate as detail edits. */
+/** Warranty attach/update CTA — owner on published or pending review, unless frozen. */
 export function canShowWarrantyUpdateCta(input: {
   isOwner: boolean;
   status: string | null | undefined;
   frozen?: boolean;
 }): boolean {
   if (!input.isOwner || input.frozen) return false;
-  return isListingAvailableStatus(input.status);
+  const status = String(input.status || "").trim().toLowerCase();
+  return status === "published" || status === "pending_review";
 }
 
 /** Sold/cancelled: owner cannot edit, update status, favorite, or comment (share only). */

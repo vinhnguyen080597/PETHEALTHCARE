@@ -1,3 +1,5 @@
+import { listingBirthDateValidationIssue } from "./petAge";
+
 /** Shared pet-feed listing create options (aligned with mobile CreatePetFeedPostScreen). */
 
 export const LISTING_SPECIES = [
@@ -110,7 +112,6 @@ const LISTING_BREEDS_BY_SPECIES: Record<ListingSpecies, readonly string[]> = {
 };
 
 export const LISTING_GENDERS = ["male", "female"] as const;
-export const LISTING_AGE_MONTHS = [2, 3, 6, 12, 24] as const;
 
 import { VIETNAM_PROVINCES } from "../constants/vietnamProvinces";
 
@@ -250,7 +251,7 @@ export type NewListingValidationInput = {
   breed: string;
   customBreed: string;
   gender: string;
-  ageMonths: string;
+  birthDate: string;
   location: string;
   priceNote: string;
   vaccineKey: string;
@@ -268,7 +269,7 @@ export type NewListingFieldErrors = Partial<
     | "species"
     | "breed"
     | "gender"
-    | "ageMonths"
+    | "birthDate"
     | "location"
     | "priceNote"
     | "photos"
@@ -285,7 +286,7 @@ export const NEW_LISTING_FIELD_ORDER = [
   "species",
   "breed",
   "gender",
-  "ageMonths",
+  "birthDate",
   "location",
   "priceNote",
   "healthEvidence",
@@ -305,7 +306,10 @@ export function firstNewListingErrorField(
 
 export function validateNewListingForm(
   input: NewListingValidationInput,
-  messages: Record<keyof NewListingFieldErrors, string>,
+  messages: Record<keyof NewListingFieldErrors, string> & {
+    birthDateInvalid?: string;
+    birthDateFuture?: string;
+  },
   options?: { requireTerms?: boolean },
 ): NewListingFieldErrors {
   const requireTerms = options?.requireTerms ?? true;
@@ -319,7 +323,13 @@ export function validateNewListingForm(
     errors.breed = messages.breed;
   }
   if (!input.gender.trim()) errors.gender = messages.gender;
-  if (!input.ageMonths.trim()) errors.ageMonths = messages.ageMonths;
+  const birthIssue = listingBirthDateValidationIssue(input.birthDate);
+  if (birthIssue === "required") errors.birthDate = messages.birthDate;
+  else if (birthIssue === "invalid") {
+    errors.birthDate = messages.birthDateInvalid ?? messages.birthDate;
+  } else if (birthIssue === "future") {
+    errors.birthDate = messages.birthDateFuture ?? messages.birthDate;
+  }
   if (!input.location.trim()) errors.location = messages.location;
   if (!input.priceNote.trim()) errors.priceNote = messages.priceNote;
   if (input.photoCount <= 0) errors.photos = messages.photos;
