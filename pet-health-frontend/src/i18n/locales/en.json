@@ -273,6 +273,13 @@
       "age": "Tuổi",
       "price": "Giá"
     },
+    "section": {
+      "top": {
+        "title": "Most loved today",
+        "subtitle": "Pets with the most saves and buzz right now."
+      },
+      "results": "results"
+    },
     "card": {
       "saves": "{{n}} saves",
       "new": "New on floor",

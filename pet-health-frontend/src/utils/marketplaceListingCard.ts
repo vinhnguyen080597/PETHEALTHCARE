@@ -172,6 +172,12 @@ export function listingAvailability(post: PetFeedPost): ListingAvailability | nu
 
 /** Feed listing + detail hero height (Tailwind `h-72`). */
 export const LISTING_CARD_IMAGE_HEIGHT = 288;
+/** Horizontal marketplace rails (web compact `h-40`). */
+export const LISTING_CARD_RAIL_IMAGE_HEIGHT = 160;
+
+export function listingHasVideo(post: Pick<PetFeedPost, 'video_url'>): boolean {
+  return Boolean(String(post.video_url || '').trim());
+}
 
 export function listingHotBadges(
   post: Pick<PetFeedPost, 'created_at' | 'favorite_count'>,

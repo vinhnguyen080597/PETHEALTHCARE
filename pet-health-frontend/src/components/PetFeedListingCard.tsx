@@ -12,6 +12,7 @@ import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
   isOwnListingPost,
   LISTING_CARD_IMAGE_HEIGHT,
+  LISTING_CARD_RAIL_IMAGE_HEIGHT,
   listingBreederFooterMetrics,
   listingCardShowsEditAction,
   listingPostActionsLocked,
@@ -29,6 +30,8 @@ type PetFeedListingCardProps = {
   showContact?: boolean;
   onPress?: (post: PetFeedPost) => void;
   testID?: string;
+  /** Narrower marketplace rail (web compact listing card). */
+  rail?: boolean;
 };
 
 function PetFeedListingCardComponent({
@@ -41,6 +44,7 @@ function PetFeedListingCardComponent({
   showContact = true,
   onPress,
   testID,
+  rail = false,
 }: PetFeedListingCardProps) {
   const { t, i18n } = useTranslation();
   const breeder = post.breeder_profile;
@@ -66,7 +70,7 @@ function PetFeedListingCardComponent({
     <>
       <View
         className="relative w-full overflow-hidden bg-slate-100"
-        style={{ height: LISTING_CARD_IMAGE_HEIGHT }}
+        style={{ height: rail ? LISTING_CARD_RAIL_IMAGE_HEIGHT : LISTING_CARD_IMAGE_HEIGHT }}
       >
         {previewImage ? (
           <Image source={{ uri: previewImage }} style={{ width: '100%', height: '100%' }} contentFit="cover" />

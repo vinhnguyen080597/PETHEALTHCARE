@@ -24,6 +24,7 @@ import { TopBreederCard } from '../components/breeder/TopBreederCard';
 import { BreederHallOfFame } from '../components/breeder/BreederHallOfFame';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
+import { PetFeedListingRail } from '../components/PetFeedListingRail';
 import { PetTypeFilterRow } from '../components/PetTypeFilterRow';
 import type { AnnouncementCategory, BreederProfile, PetFeedComment, PetFeedPost } from '../types';
 import { ALL_PROVINCES_FILTER, VIETNAM_PROVINCES, type ProvinceFilter } from '../constants/vietnamProvinces';
@@ -43,6 +44,7 @@ import { countFarmPetsRehomed } from '../utils/farmPets';
 import { resolveFarmAvatarUrl, resolveFarmCoverUrl } from '../utils/farmProfileDisplay';
 import { rankBreedersWithHomeQuota } from '../utils/breederQualityIndex';
 import { pickHallOfFameBreeders } from '../utils/breederHallOfFame';
+import { pickTopInterestedListings } from '../utils/marketplaceFeedSections';
 import {
   countPostsByGender,
   postMatchesGender,
@@ -466,6 +468,10 @@ export function PetFeedScreen({
     });
     return pickHallOfFameBreeders(candidates, 3);
   }, [topBreeders]);
+  const topInterestedPosts = useMemo(
+    () => (normalizedQuery ? [] : pickTopInterestedListings(filteredPosts, 8)),
+    [filteredPosts, normalizedQuery],
+  );
   const filterPanelWidth = Math.min(Math.round(windowWidth * 0.76), 330);
   const filterPanelMaxHeight = Math.min(Math.round(windowHeight * 0.58), 480);
   const filterPanelTopOffset = modalTopInset(insets.top) + 112;
@@ -975,11 +981,22 @@ export function PetFeedScreen({
       ItemSeparatorComponent={ListSeparator}
       ListEmptyComponent={renderEmptyState}
       ListHeaderComponent={
-        activeTab === 'breeders' && !showListSkeleton && hallOfFame.length > 0 ? (
+        showListSkeleton ? null : activeTab === 'breeders' && hallOfFame.length > 0 ? (
           <BreederHallOfFame
             entries={hallOfFame}
             currentUserId={currentUserId}
             onOpenFarm={onOpenBreederDetail}
+          />
+        ) : activeTab === 'feed' && topInterestedPosts.length > 0 ? (
+          <PetFeedListingRail
+            title={`🔥 ${t('petFeed.section.top.title')}`}
+            subtitle={t('petFeed.section.top.subtitle')}
+            posts={topInterestedPosts}
+            currentUserId={currentUserId}
+            onToggleFavorite={onToggleFavorite}
+            onMessageBreeder={onMessageBreeder}
+            onEditPost={onEditPost}
+            onOpenPost={onOpenPostDetail}
           />
         ) : null
       }

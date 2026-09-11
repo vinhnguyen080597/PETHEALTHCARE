@@ -33,6 +33,10 @@ export function farmPetAvailability(post: PetFeedPost): FarmPetAvailability | nu
   return listingAvailability(post);
 }
 
+export function isListingOpenForSale(post: PetFeedPost): boolean {
+  return farmPetAvailability(post) === 'for_sale';
+}
+
 export function isFarmRehomedListing(post: PetFeedPost): boolean {
   if (ownerDeleted(post)) return false;
   const meta = asRecord(post.metadata);

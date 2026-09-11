@@ -273,6 +273,13 @@
       "age": "Tuổi",
       "price": "Giá"
     },
+    "section": {
+      "top": {
+        "title": "Top bé được quan tâm",
+        "subtitle": "Các bé có lượt lưu và tương tác nổi bật hôm nay."
+      },
+      "results": "kết quả"
+    },
     "card": {
       "saves": "{{n}} lượt lưu",
       "new": "Mới lên sàn",
