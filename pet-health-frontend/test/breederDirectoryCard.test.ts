@@ -118,6 +118,14 @@ test('pet thumbs only include for-sale listings with media', () => {
   assert.equal(breederCardPetsPreviewTitleKey(2), 'petFeed.breedersCard.petsPreviewCount');
 });
 
+test('pet thumbs skip duplicate listing ids', () => {
+  const thumbs = buildBreederPetThumbs([
+    post({ id: 'p1', status: 'published' }),
+    post({ id: 'p1', status: 'published', media_urls: ['https://cdn.example/again.jpg'] }),
+  ]);
+  assert.equal(thumbs.length, 1);
+});
+
 test('breederCardFooterMetrics formats compact rating and trust score', () => {
   const withReviews = breederCardFooterMetrics(5, 2, 66.4);
   assert.equal(withReviews.ratingText, '5.0/5 (2)');

@@ -185,6 +185,16 @@ type FeedListItem =
   | { type: 'post'; id: string; post: PetFeedPost }
   | { type: 'breeder'; id: string; item: TopBreeder; rank: number };
 
+function uniqueFeedListItems(items: FeedListItem[]): FeedListItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item.type}:${item.id}`;
+    if (!item.id || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function ListSeparator() {
   return <View className="h-4" />;
 }
@@ -451,17 +461,21 @@ export function PetFeedScreen({
   const listItems = useMemo<FeedListItem[]>(() => {
     if (showListSkeleton) return [];
     if (activeTab === 'feed') {
-      return filteredPosts.map((post) => ({ type: 'post', id: post.id, post }));
+      return uniqueFeedListItems(filteredPosts.map((post) => ({ type: 'post', id: post.id, post })));
     }
     if (activeTab === 'news') {
-      return filteredAnnouncements.map((post) => ({ type: 'post', id: post.id, post }));
+      return uniqueFeedListItems(
+        filteredAnnouncements.map((post) => ({ type: 'post', id: post.id, post })),
+      );
     }
-    return filteredTopBreeders.map((item, index) => ({
-      type: 'breeder',
-      id: item.profile.id || item.profile.user_id,
-      item,
-      rank: index + 1,
-    }));
+    return uniqueFeedListItems(
+      filteredTopBreeders.map((item, index) => ({
+        type: 'breeder',
+        id: item.profile.id || item.profile.user_id,
+        item,
+        rank: index + 1,
+      })),
+    );
   }, [activeTab, filteredAnnouncements, filteredPosts, filteredTopBreeders, showListSkeleton]);
   const shouldLoadMore = activeTab === 'feed'
     ? hasMore && !loadingMore && !loadMoreError && filteredPosts.length > 0 && !showListSkeleton
@@ -935,7 +949,7 @@ export function PetFeedScreen({
       className="flex-1 bg-[#F2F4F8]"
       style={{ flex: 1, minHeight: 0 }}
       data={listItems}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => `${item.type}:${item.id}`}
       renderItem={renderListItem}
       ItemSeparatorComponent={ListSeparator}
       ListEmptyComponent={renderEmptyState}

@@ -91,6 +91,13 @@ test('similarForSaleListings prioritizes same species same farm, then breed, the
   assert.deepEqual(results.map((item) => item.id), ['p2', 'p4', 'p5', 'p3', 'p6']);
 });
 
+test('similarForSaleListings keeps one row when the same listing appears twice', () => {
+  const current = post({ id: 'p1', title: 'Current' });
+  const duplicate = post({ id: 'p2', title: 'Same farm species' });
+  const results = similarForSaleListings([current, duplicate, { ...duplicate }], current);
+  assert.deepEqual(results.map((item) => item.id), ['p2']);
+});
+
 test('rankSimilarListing returns null when no species, breed, or location overlap', () => {
   const current = post({ id: 'p1' });
   const unrelated = post({

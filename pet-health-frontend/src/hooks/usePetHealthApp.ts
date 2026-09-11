@@ -803,9 +803,9 @@ export function usePetHealthApp() {
         listVerifiedBreederProfiles(accessToken),
       ]);
       if (loadGen !== petFeedLoadGenRef.current) return false;
-      setPetFeedPosts(postsResponse.data);
+      setPetFeedPosts(mergePetFeedPosts([], postsResponse.data));
       setPetFeedNextCursor(postsResponse.nextCursor ?? null);
-      setAnnouncementPosts(announcementsResponse.data);
+      setAnnouncementPosts(mergePetFeedPosts([], announcementsResponse.data));
       setAnnouncementNextCursor(announcementsResponse.nextCursor ?? null);
       setTopBreederProfiles(breedersResponse.data);
       petFeedFetchedAtRef.current = Date.now();

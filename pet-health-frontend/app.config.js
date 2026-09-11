@@ -17,10 +17,10 @@ const baseConfig = {
   scheme: 'pethealthcare',
   version: '1.1.3',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  icon: './assets/brand/PetMarketAvatar.png',
   userInterfaceStyle: 'light',
   splash: {
-    image: './assets/splash-icon.png',
+    image: './assets/brand/PetMarketAvatar.png',
     resizeMode: 'contain',
     backgroundColor: '#ffffff',
   },
@@ -39,7 +39,7 @@ const baseConfig = {
   android: {
     package: 'com.pethealthcare.app',
     adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
+      foregroundImage: './assets/brand/PetMarketAvatar.png',
       backgroundColor: '#ffffff',
     },
     predictiveBackGestureEnabled: false,
@@ -72,14 +72,22 @@ const baseConfig = {
     'expo-asset',
     'expo-secure-store',
     'expo-font',
-    'expo-splash-screen',
+    [
+      'expo-splash-screen',
+      {
+        image: './assets/brand/PetMarketAvatar.png',
+        resizeMode: 'contain',
+        backgroundColor: '#ffffff',
+        imageWidth: 200,
+      },
+    ],
     'expo-video',
     'expo-image',
     'expo-status-bar',
     [
       'expo-notifications',
       {
-        icon: './assets/icon.png',
+        icon: './assets/brand/PetMarketAvatar.png',
         color: '#1E6FE8',
       },
     ],

@@ -103,7 +103,15 @@ export function similarForSaleListings(
     return Date.parse(String(b.post.created_at)) - Date.parse(String(a.post.created_at));
   });
 
-  return ranked.slice(0, limit).map((item) => item.post);
+  const seen = new Set<string>();
+  const unique: PetFeedPost[] = [];
+  for (const item of ranked) {
+    if (seen.has(item.post.id)) continue;
+    seen.add(item.post.id);
+    unique.push(item.post);
+    if (unique.length >= limit) break;
+  }
+  return unique;
 }
 
 /** @deprecated Use {@link similarForSaleListings}. */

@@ -271,10 +271,12 @@ export function buildBreederPetThumbs(posts: PetFeedPost[], limit = 4): BreederP
   const thumbs: BreederPetThumb[] = [];
   for (const post of posts) {
     if (farmPetAvailability(post) !== 'for_sale') continue;
+    const listingId = String(post.id || '').trim();
+    if (!listingId || thumbs.some((thumb) => thumb.listingId === listingId)) continue;
     const mediaUrl = (post.media_urls ?? []).map((u) => String(u ?? '').trim()).find(Boolean);
     if (!mediaUrl) continue;
     thumbs.push({
-      listingId: post.id,
+      listingId,
       mediaUrl,
       title: String(post.title || post.breed || '').trim(),
       price: String(post.price_note || '').trim(),
