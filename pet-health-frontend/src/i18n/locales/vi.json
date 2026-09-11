@@ -228,6 +228,15 @@
       "emptyTitle": "Chưa có breeder nổi bật",
       "emptyBody": "Khi có bài đăng đã duyệt, những breeder hoạt động tốt sẽ được tổng hợp ở đây."
     },
+    "hall": {
+      "title": "Trại tiêu biểu tháng {{month}}",
+      "subtitle": "Hall of Fame — trại có đánh giá nổi bật trong tháng.",
+      "medal": {
+        "gold": "Vàng",
+        "silver": "Bạc",
+        "bronze": "Đồng"
+      }
+    },
     "breedersCard": {
       "reviews": "đánh giá",
       "sold": "Bé đã có nhà",

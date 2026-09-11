@@ -1,6 +1,7 @@
 import type { BreederProfile, Lang } from "./types";
 import { getBreederPublicTrustMetrics } from "./breederTrust";
 import { breederDisplaySpecies } from "./breederSpeciesSelection";
+import { COMPLIANCE_SCORE_DEFAULT } from "./breederComplianceScore";
 
 export function breederCardSpecialtyLabel(
   breeder: BreederProfile,
@@ -49,12 +50,21 @@ export function breederCardShowsSoldCount(petsRehomed: number): boolean {
   return Number.isFinite(petsRehomed) && petsRehomed > 0;
 }
 
+export function clampHallOfFameScore(
+  value: number | null | undefined,
+  fallback = COMPLIANCE_SCORE_DEFAULT,
+): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
 export function getBreederCardMetrics(breeder: BreederProfile) {
   const metrics = getBreederPublicTrustMetrics(breeder, {
     listingCount: breeder.activeListings,
   });
   return {
     trustScore: metrics.qualityIndex,
+    complianceScore: clampHallOfFameScore(breeder.complianceScore),
     reviewCount: metrics.reviewCount,
     rating: metrics.rating,
     petsRehomed: metrics.petsRehomed,

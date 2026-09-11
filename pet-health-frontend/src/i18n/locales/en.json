@@ -228,6 +228,15 @@
       "emptyTitle": "No top breeders yet",
       "emptyBody": "After approved listings are available, active breeders will be summarized here."
     },
+    "hall": {
+      "title": "Featured farms · month {{month}}",
+      "subtitle": "Hall of Fame — highest-rated kennels this month.",
+      "medal": {
+        "gold": "Gold",
+        "silver": "Silver",
+        "bronze": "Bronze"
+      }
+    },
     "breedersCard": {
       "reviews": "reviews",
       "sold": "pets rehomed",

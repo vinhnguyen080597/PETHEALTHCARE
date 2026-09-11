@@ -76,6 +76,18 @@ test("getBreederCardMetrics uses trust score and listings honestly", () => {
   assert.equal(card.showDepositBadge, false);
   assert.equal(card.reviewCount, 0);
   assert.equal(card.rating, null);
+  assert.equal(card.complianceScore, 100);
+});
+
+test("getBreederCardMetrics surfaces compliance score for hall of fame cards", () => {
+  assert.equal(
+    getBreederCardMetrics(baseBreeder({ complianceScore: 72 })).complianceScore,
+    72,
+  );
+  assert.equal(
+    getBreederCardMetrics(baseBreeder({ complianceScore: 0 })).complianceScore,
+    0,
+  );
 });
 
 test("breeder card trust index i18n aligned", () => {

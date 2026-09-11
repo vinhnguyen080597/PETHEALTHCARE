@@ -70,6 +70,7 @@ function HallOfFameCardBody({
           </span>
         ) : null}
         <span>🛡️ {metrics.trustScore}/100</span>
+        <span>⚖️ {metrics.complianceScore}/100</span>
       </div>
     </>
   );

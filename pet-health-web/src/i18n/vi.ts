@@ -336,7 +336,7 @@ const vi: Record<EnKey, string> = {
   "breeders.card.sendReview": "Gửi đánh giá",
   "breeders.provinceLabel": "Tỉnh/Thành:",
   "breeders.species.all": "Mọi loài",
-  "breeders.hall.title": "Top Breeder tiêu biểu tháng {{month}}",
+  "breeders.hall.title": "Trại tiêu biểu tháng {{month}}",
   "breeders.hall.subtitle": "Hall of Fame — trại có đánh giá nổi bật trong tháng.",
   "breeders.hall.medal.gold": "Vàng",
   "breeders.hall.medal.silver": "Bạc",

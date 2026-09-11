@@ -332,7 +332,7 @@ const en = {
   "breeders.card.sendReview": "Send review",
   "breeders.provinceLabel": "Province:",
   "breeders.species.all": "All species",
-  "breeders.hall.title": "Top Breeders · month {{month}}",
+  "breeders.hall.title": "Featured farms · month {{month}}",
   "breeders.hall.subtitle": "Hall of Fame — highest-rated kennels this month.",
   "breeders.hall.medal.gold": "Gold",
   "breeders.hall.medal.silver": "Silver",

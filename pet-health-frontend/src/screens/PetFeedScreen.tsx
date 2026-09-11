@@ -21,6 +21,7 @@ import { createBreederFarmReview, getMyDirectFarmReview } from '../api';
 import { AdminPostCard } from '../components/AdminPostCard';
 import { FarmReviewModal } from '../components/FarmReviewModal';
 import { TopBreederCard } from '../components/breeder/TopBreederCard';
+import { BreederHallOfFame } from '../components/breeder/BreederHallOfFame';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { PetTypeFilterRow } from '../components/PetTypeFilterRow';
@@ -41,6 +42,7 @@ import {
 import { countFarmPetsRehomed } from '../utils/farmPets';
 import { resolveFarmAvatarUrl, resolveFarmCoverUrl } from '../utils/farmProfileDisplay';
 import { rankBreedersWithHomeQuota } from '../utils/breederQualityIndex';
+import { pickHallOfFameBreeders } from '../utils/breederHallOfFame';
 import {
   countPostsByGender,
   postMatchesGender,
@@ -445,6 +447,25 @@ export function PetFeedScreen({
       return searchable.includes(normalizedQuery);
     });
   }, [genderFilter, normalizedQuery, petTypeFilter, provinceFilter, topBreeders]);
+  const hallOfFame = useMemo(() => {
+    const candidates = topBreeders.map((item) => {
+      const metrics = getBreederDirectoryCardMetrics(
+        item.profile,
+        item.posts,
+        countFarmPetsRehomed(item.posts),
+      );
+      return {
+        id: item.profile.id || item.profile.user_id,
+        name: item.profile.display_name || '',
+        profile: item.profile,
+        rating: metrics.rating,
+        reviewCount: metrics.reviewCount,
+        trustScore: metrics.trustScore,
+        petsRehomed: metrics.petsRehomed,
+      };
+    });
+    return pickHallOfFameBreeders(candidates, 3);
+  }, [topBreeders]);
   const filterPanelWidth = Math.min(Math.round(windowWidth * 0.76), 330);
   const filterPanelMaxHeight = Math.min(Math.round(windowHeight * 0.58), 480);
   const filterPanelTopOffset = modalTopInset(insets.top) + 112;
@@ -953,6 +974,15 @@ export function PetFeedScreen({
       renderItem={renderListItem}
       ItemSeparatorComponent={ListSeparator}
       ListEmptyComponent={renderEmptyState}
+      ListHeaderComponent={
+        activeTab === 'breeders' && !showListSkeleton && hallOfFame.length > 0 ? (
+          <BreederHallOfFame
+            entries={hallOfFame}
+            currentUserId={currentUserId}
+            onOpenFarm={onOpenBreederDetail}
+          />
+        ) : null
+      }
       ListFooterComponent={renderFooter}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.btnPrimary} />}
       showsVerticalScrollIndicator={false}
