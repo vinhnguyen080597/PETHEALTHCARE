@@ -17,13 +17,23 @@ export function canShowBreederMessageAction(
   return !isListingOwner(currentUserId, breederUserId);
 }
 
-/** Only the kennel owner may open farm detail from the directory card. */
-export function canShowBreederVisitFarmAction(
+/** Kennel owner may edit farm profile from the directory card. */
+export function canShowBreederEditProfileAction(
   currentUserId: string | null | undefined,
   breederUserId: string | null | undefined,
 ): boolean {
   return isListingOwner(currentUserId, breederUserId);
 }
+
+/** Only the kennel owner may open farm detail from the directory card. */
+export function canShowBreederVisitFarmAction(
+  currentUserId: string | null | undefined,
+  breederUserId: string | null | undefined,
+): boolean {
+  return canShowBreederEditProfileAction(currentUserId, breederUserId);
+}
+
+export const BREEDER_CARD_EDIT_PROFILE_HREF = "/app/account/breeder";
 
 /** Other users (including guests) send a farm review instead of visiting. */
 export function canShowBreederReviewFarmAction(

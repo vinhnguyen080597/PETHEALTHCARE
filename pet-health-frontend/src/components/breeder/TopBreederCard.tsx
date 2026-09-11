@@ -79,48 +79,6 @@ function SocialGlyph({ id }: { id: BreederCardSocialId }) {
   );
 }
 
-function ActivityChip({ kind }: { kind: BreederActivityCue['kind'] }) {
-  const { t } = useTranslation();
-  if (kind === 'none') return null;
-
-  return (
-    <View
-      style={{
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderWidth: 1,
-        borderColor: BORDER,
-        borderRadius: 999,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-      }}
-    >
-      {kind === 'fast_response' ? (
-        <Text style={{ fontSize: 10 }}>⚡</Text>
-      ) : (
-        <View
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: '#10B981',
-          }}
-        />
-      )}
-      <Text style={{ fontSize: 10, fontWeight: '700', color: INK }}>
-        {kind === 'fast_response'
-          ? t('petFeed.breedersCard.fastResponse')
-          : t('petFeed.breedersCard.activeKennel')}
-      </Text>
-    </View>
-  );
-}
-
 export function TopBreederCard({
   data,
   showMessageButton,
@@ -192,7 +150,6 @@ export function TopBreederCard({
             {data.specialtyLabel}
           </Text>
         </View>
-        <ActivityChip kind={data.activityKind} />
       </View>
 
       <View style={{ paddingTop: 36, paddingHorizontal: 16, paddingBottom: 16 }}>
@@ -216,16 +173,11 @@ export function TopBreederCard({
               />
             ) : null}
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {footerMetrics.ratingText ? (
-              <Text style={{ fontSize: 11, fontWeight: '500', color: '#475569' }}>
-                {`⭐ ${footerMetrics.ratingText}`}
-              </Text>
-            ) : null}
-            <Text style={{ fontSize: 11, fontWeight: '500', color: '#475569' }}>
-              {`🛡️ ${footerMetrics.trustScore}/100`}
+          {footerMetrics.ratingText ? (
+            <Text style={{ fontSize: 11, fontWeight: '500', color: '#475569', flexShrink: 0 }}>
+              {`⭐ ${footerMetrics.ratingText}`}
             </Text>
-          </View>
+          ) : null}
         </View>
 
         <View

@@ -19,6 +19,8 @@ import {
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
 import { FarmReviewModal } from "@/components/marketplace/FarmReviewModal";
 import {
+  BREEDER_CARD_EDIT_PROFILE_HREF,
+  canShowBreederEditProfileAction,
   canShowBreederMessageAction,
   canShowBreederReviewFarmAction,
   canShowBreederVisitFarmAction,
@@ -29,6 +31,7 @@ import {
   BREEDER_CARD_PETS_PREVIEW_CLASS,
   breederCardHasPetPreview,
   breederCardPetsPreviewTitleKey,
+  breederCardRatingText,
   breederCardSocialLinks,
   breederCardVisitCtaClass,
   type BreederCardSocialId,
@@ -103,6 +106,10 @@ export function BreederDirectoryCard({
   const href = `/app/breeders/${breeder.id}`;
   const socialLinks = breederCardSocialLinks(breeder.contact);
   const showMessageButton = canShowBreederMessageAction(
+    dock?.currentUserId,
+    breeder.userId,
+  );
+  const showEditProfileButton = canShowBreederEditProfileAction(
     dock?.currentUserId,
     breeder.userId,
   );
@@ -199,6 +206,7 @@ export function BreederDirectoryCard({
     }
   };
 
+  const ratingText = breederCardRatingText(card.rating, card.reviewCount);
   const locationLabel = breeder.location
     ? `📍 ${breeder.location}`
     : lang === "VI"
@@ -225,36 +233,31 @@ export function BreederDirectoryCard({
           alt={breeder.name}
           className="absolute -bottom-7 left-4 w-14 h-14 rounded-full object-cover border-[3px] border-white shadow-md bg-white"
         />
-        {activity.kind !== "none" ? (
-          <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 border border-[#F3E2C8] px-2.5 py-1 text-[10px] font-semibold text-[#2B1E19] shadow-sm">
-            {activity.kind === "fast_response" ? (
-              <>
-                <span className="text-amber-500">⚡</span>
-                {t(lang, "breeders.card.fastResponse")}
-              </>
-            ) : (
-              <>
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                </span>
-                {t(lang, "breeders.card.activeKennel")}
-              </>
-            )}
-          </span>
-        ) : null}
+        <span className="absolute top-3 left-3 max-w-[52%] truncate rounded-full border border-[#F3E2C8] bg-[#F8EEDD]/95 px-2.5 py-1 text-[11px] font-medium text-[#6E5A51]">
+          {breederCardSpecialtyLabel(breeder, lang)}
+        </span>
       </div>
 
       <div className="pt-9 px-4 pb-4 flex flex-col flex-1">
-        <div className="flex items-center gap-2 min-w-0">
-          <h3 className="text-lg font-bold text-[#050505] leading-snug truncate tracking-tight [font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif]">
-            {breeder.name}
-          </h3>
-          {activity.kind === "active_kennel" || activity.kind === "fast_response" ? (
-            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" title={t(lang, "breeders.card.activeKennel")} />
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <h3 className="truncate text-lg font-bold leading-snug tracking-tight text-[#050505] [font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif]">
+              {breeder.name}
+            </h3>
+            {activity.kind === "active_kennel" || activity.kind === "fast_response" ? (
+              <span
+                className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
+                title={t(lang, "breeders.card.activeKennel")}
+              />
+            ) : null}
+          </div>
+          {ratingText ? (
+            <span className="shrink-0 text-[11px] font-medium text-slate-600">
+              ⭐ {ratingText}
+            </span>
           ) : null}
         </div>
-        <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
+        <div className="mt-2 flex min-w-0 items-center justify-between gap-2">
           <p className="min-w-0 flex-1 truncate text-sm text-gray-500">
             {locationLabel}
           </p>
@@ -286,51 +289,12 @@ export function BreederDirectoryCard({
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#F8EEDD] text-[#6E5A51] text-[11px] font-medium border border-[#F3E2C8] line-clamp-1 max-w-full">
-            {breederCardSpecialtyLabel(breeder, lang)}
-          </span>
-        </div>
-
-        <div className="mt-4 space-y-2.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#2B1E19]/75">
-            <span>
-              {card.rating != null && card.reviewCount > 0 ? (
-                <>
-                  ⭐ {card.rating.toFixed(1)}/5{" "}
-                  <span className="text-[#6E5A51]">
-                    ({card.reviewCount} {t(lang, "breeders.card.reviews")})
-                  </span>
-                </>
-              ) : (
-                <>⭐ {t(lang, "farm.trust.ratingEmpty")}</>
-              )}
-            </span>
-            {card.showSold ? (
-              <span>
-                🐾 {card.petsRehomed} {t(lang, "breeders.card.sold")}
-              </span>
-            ) : null}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between text-[11px] text-[#6E5A51] mb-1">
-              <span>🛡️ {t(lang, "breeders.card.trustIndex")}</span>
-              <span className="font-semibold text-[#B45309]">
-                {card.trustScore}/100
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full bg-[#F3E2C8] overflow-hidden">
-              <div
-                className="h-full rounded-full bg-[#D97706] transition-all"
-                style={{ width: `${card.trustScore}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
         <div className={BREEDER_CARD_PETS_PREVIEW_CLASS}>
-          <p className="text-[11px] font-medium text-[#6E5A51] mb-2">
+          <p
+            className={`text-[11px] font-medium text-[#6E5A51] ${
+              breederCardHasPetPreview(petThumbs.length) ? "mb-2" : "mb-0"
+            }`}
+          >
             {t(lang, breederCardPetsPreviewTitleKey(petThumbs.length)).replaceAll(
               "{{n}}",
               String(petThumbs.length),
@@ -345,7 +309,7 @@ export function BreederDirectoryCard({
                   className="group/pet"
                   title={pet.title}
                 >
-                  <span className="relative inline-block h-11 w-11 rounded-full border-2 border-white overflow-hidden shadow-sm ring-1 ring-[#F3E2C8] group-hover/pet:scale-105 transition-transform">
+                  <span className="relative inline-block h-11 w-11 overflow-hidden rounded-full border-2 border-white shadow-sm ring-1 ring-[#F3E2C8] transition-transform group-hover/pet:scale-105">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={pet.mediaUrl}
@@ -356,12 +320,7 @@ export function BreederDirectoryCard({
                 </Link>
               ))}
             </div>
-          ) : (
-            <div
-              className="h-11 rounded-xl border border-dashed border-[#F3E2C8] bg-[#FDFBF7]"
-              aria-hidden
-            />
-          )}
+          ) : null}
         </div>
 
         <div className={BREEDER_CARD_ACTIONS_CLASS}>
@@ -374,6 +333,13 @@ export function BreederDirectoryCard({
             >
               💬 {t(lang, "breeders.card.message")}
             </button>
+          ) : showEditProfileButton ? (
+            <Link
+              href={BREEDER_CARD_EDIT_PROFILE_HREF}
+              className={`${BREEDER_CARD_ACTION_BTN_CLASS} border border-[#F3E2C8] bg-white text-[#2B1E19] hover:bg-[#FDFBF7] transition-colors`}
+            >
+              ✏️ {t(lang, "farm.owner.editProfile")}
+            </Link>
           ) : (
             <span aria-hidden />
           )}

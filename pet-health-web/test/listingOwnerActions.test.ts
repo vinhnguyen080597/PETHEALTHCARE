@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  BREEDER_CARD_EDIT_PROFILE_HREF,
+  canShowBreederEditProfileAction,
   canShowBreederMessageAction,
   canShowBreederReviewFarmAction,
   canShowBreederVisitFarmAction,
@@ -53,6 +55,13 @@ test("directory cards only let the owner visit; others send a review", () => {
   assert.equal(canShowBreederReviewFarmAction(null, "u1"), true);
   assert.equal(canShowBreederReviewFarmAction("u1", "u1"), false);
   assert.equal(canShowBreederReviewFarmAction("sen", "u1"), true);
+});
+
+test("own breeder cards show edit profile beside visit", () => {
+  assert.equal(canShowBreederEditProfileAction(null, "u1"), false);
+  assert.equal(canShowBreederEditProfileAction("sen", "u1"), false);
+  assert.equal(canShowBreederEditProfileAction("u1", "u1"), true);
+  assert.equal(BREEDER_CARD_EDIT_PROFILE_HREF, "/app/account/breeder");
 });
 
 test("share actions sit beside delete or report", () => {

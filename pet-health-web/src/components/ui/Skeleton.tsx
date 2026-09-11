@@ -27,15 +27,21 @@ export function ListingCardSkeleton() {
 export function BreederCardSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl border border-[#F0E6D8] bg-white">
-      <Skeleton className="h-32 w-full rounded-none" />
-      <div className="relative px-4 pb-4 pt-8">
-        <div className="absolute -top-6 left-4 h-12 w-12 overflow-hidden rounded-full border-2 border-white bg-[#FDFBF7]">
+      <div className="relative">
+        <Skeleton className="h-32 w-full rounded-none" />
+        <Skeleton className="absolute left-3 top-3 h-6 w-28 rounded-full" />
+        <div className="absolute -bottom-6 left-4 h-14 w-14 overflow-hidden rounded-full border-[3px] border-white bg-[#FDFBF7]">
           <Skeleton className="h-full w-full rounded-full" />
         </div>
-        <Skeleton className="mb-2 h-4 w-2/3" />
-        <Skeleton className="mb-3 h-3 w-1/2" />
-        <Skeleton className="mb-4 h-2 w-full rounded-full" />
-        <Skeleton className="h-10 w-full rounded-xl" />
+      </div>
+      <div className="px-4 pb-4 pt-9">
+        <Skeleton className="mb-2 h-5 w-2/3" />
+        <Skeleton className="mb-4 h-3 w-1/2" />
+        <Skeleton className="mb-5 h-3 w-40" />
+        <div className="grid grid-cols-2 gap-2">
+          <Skeleton className="h-10 rounded-xl" />
+          <Skeleton className="h-10 rounded-xl" />
+        </div>
       </div>
     </div>
   );

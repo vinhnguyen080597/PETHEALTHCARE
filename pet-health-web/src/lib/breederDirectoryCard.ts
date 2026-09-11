@@ -1,6 +1,6 @@
-/** Directory cards keep a reserved pets strip + a 2-column action row. */
+/** Directory cards share a 2-column action row; pets strip only when there are thumbs. */
 
-export const BREEDER_CARD_PETS_PREVIEW_CLASS = "mt-4 min-h-[3.75rem]";
+export const BREEDER_CARD_PETS_PREVIEW_CLASS = "mt-4";
 export const BREEDER_CARD_ACTIONS_CLASS = "mt-auto pt-5 grid grid-cols-2 gap-2";
 export const BREEDER_CARD_ACTION_BTN_CLASS = "inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold";
 
@@ -50,6 +50,15 @@ export function breederCardSocialLinks(contact?: {
 
 export function breederCardHasPetPreview(thumbCount: number): boolean {
   return Number(thumbCount) > 0;
+}
+
+/** Compact rating for directory cards; null when the kennel has no reviews. */
+export function breederCardRatingText(
+  rating: number | null | undefined,
+  reviewCount: number,
+): string | null {
+  if (rating == null || !(reviewCount > 0)) return null;
+  return `${rating.toFixed(1)}/5 (${reviewCount})`;
 }
 
 export function breederCardPetsPreviewTitleKey(

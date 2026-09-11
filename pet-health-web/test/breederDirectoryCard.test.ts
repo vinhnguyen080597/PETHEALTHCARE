@@ -7,11 +7,12 @@ import {
   BREEDER_CARD_PETS_PREVIEW_CLASS,
   breederCardHasPetPreview,
   breederCardPetsPreviewTitleKey,
+  breederCardRatingText,
   breederCardSocialLinks,
   breederCardVisitCtaClass,
 } from "../src/lib/breederDirectoryCard";
 
-test("directory cards always reserve a pets preview strip", () => {
+test("directory cards show pets title without a reserved empty strip", () => {
   assert.equal(breederCardHasPetPreview(0), false);
   assert.equal(breederCardHasPetPreview(1), true);
   assert.equal(
@@ -22,7 +23,14 @@ test("directory cards always reserve a pets preview strip", () => {
     breederCardPetsPreviewTitleKey(2),
     "breeders.card.petsPreviewCount",
   );
-  assert.match(BREEDER_CARD_PETS_PREVIEW_CLASS, /min-h-/);
+  assert.equal(BREEDER_CARD_PETS_PREVIEW_CLASS, "mt-4");
+  assert.doesNotMatch(BREEDER_CARD_PETS_PREVIEW_CLASS, /min-h-/);
+});
+
+test("breederCardRatingText matches mobile compact rating", () => {
+  assert.equal(breederCardRatingText(5, 2), "5.0/5 (2)");
+  assert.equal(breederCardRatingText(null, 0), null);
+  assert.equal(breederCardRatingText(4.8, 0), null);
 });
 
 test("visit CTA stays half-width in a two-column footer", () => {
