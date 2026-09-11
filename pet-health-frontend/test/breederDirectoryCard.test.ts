@@ -136,7 +136,7 @@ test('breederCardFooterMetrics formats compact rating and trust score', () => {
   assert.equal(noReviews.trustScore, 30);
 });
 
-test('sold count and message gate helpers', () => {
+test('sold count and visit/review gates for directory and listing farm chips', () => {
   assert.equal(breederCardShowsSoldCount(0), false);
   assert.equal(breederCardShowsSoldCount(4), true);
   assert.equal(canShowBreederMessageAction(null, 'u1'), false);

@@ -455,6 +455,7 @@ function AppContent() {
                 onPatchListingStatus={app.patchOwnListingStatus}
                 onSubmitSaleReview={app.submitSaleFarmReviewForPost}
                 onOpenWarrantyLibrary={app.openWarrantyLibrary}
+                onOpenFarm={(profileId) => app.openBreederDetail(profileId, 'pet-feed-detail')}
               />
               </View>
             ) : null}

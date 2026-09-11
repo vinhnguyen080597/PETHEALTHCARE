@@ -2062,8 +2062,8 @@ export function usePetHealthApp() {
     });
   }
 
-  function openBreederDetail(profileId: string) {
-    setBreederDetailReturnScreen('pet-feed');
+  function openBreederDetail(profileId: string, returnScreen: AppScreen = 'pet-feed') {
+    setBreederDetailReturnScreen(returnScreen);
     setBreederDetailTab('overview');
     setSelectedBreederProfileId(profileId);
     setScreen('breeder-detail');

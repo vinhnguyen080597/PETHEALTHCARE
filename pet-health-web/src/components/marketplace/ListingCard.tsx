@@ -201,16 +201,11 @@ export function ListingCard({
             {listing.breeder.name}
           </span>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {breederFooter.ratingText ? (
-            <span className="whitespace-nowrap text-[11px] font-medium text-[#2B1E19]/55">
-              ⭐ {breederFooter.ratingText}
-            </span>
-          ) : null}
-          <span className="whitespace-nowrap text-[11px] font-medium text-[#2B1E19]/55">
-            🛡️ {breederFooter.trustScore}/100
+        {breederFooter.ratingText ? (
+          <span className="shrink-0 whitespace-nowrap text-[11px] font-medium text-[#2B1E19]/55">
+            ⭐ {breederFooter.ratingText}
           </span>
-        </div>
+        ) : null}
       </div>
     </>
   );

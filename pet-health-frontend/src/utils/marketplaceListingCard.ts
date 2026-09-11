@@ -184,12 +184,10 @@ export function listingHotBadges(
   return badges.slice(0, 3);
 }
 
+/** Compact rating for listing cards; empty when the kennel has no reviews. */
 export function listingBreederScoreLabel(post: PetFeedPost, trustScore: number): string {
   const metrics = listingBreederFooterMetrics(post, trustScore);
-  if (metrics.ratingText) {
-    return `⭐ ${metrics.ratingText}`;
-  }
-  return `${metrics.trustScore}/100`;
+  return metrics.ratingText ? `⭐ ${metrics.ratingText}` : '';
 }
 
 export type ListingBreederFooterMetrics = {
@@ -198,7 +196,7 @@ export type ListingBreederFooterMetrics = {
   trustScore: number;
 };
 
-/** Rating + transparency score shown on listing card breeder row (image 1 layout). */
+/** Rating on listing card breeder row (trust score stays off the card). */
 export function isOwnListingPost(
   currentUserId: string | null | undefined,
   post: Pick<PetFeedPost, 'user_id'>,

@@ -79,7 +79,7 @@ export function canShowBreederEditProfileAction(
   return currentUserId === breederUserId;
 }
 
-/** Only the kennel owner may open the farm detail from the directory card. */
+/** Only the kennel owner may open the farm detail from the directory card or listing farm chip. */
 export function canShowBreederVisitFarmAction(
   currentUserId: string | null | undefined,
   breederUserId: string,

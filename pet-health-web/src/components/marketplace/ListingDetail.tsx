@@ -15,6 +15,7 @@ import { fillListingWarrantyFileUrl, warrantyUploadedFileHref } from "@/lib/warr
 import { mapApiPost } from "@/lib/mappers";
 import type { ApiPetFeedPost } from "@/lib/types";
 import {
+  canShowBreederVisitFarmAction,
   canShowListingStatusUpdate,
   canShowListingUpdateDetails,
   canShowWarrantyUpdateCta,
@@ -47,6 +48,7 @@ import {
   listingPersonalityTagClass,
   listingWarrantyCardTone,
 } from "@/lib/listingDetailCardTones";
+import { listingBreederFooterMetrics } from "@/lib/marketplaceSocialProof";
 import { startChatAndOpenUi, startChatMessageKey } from "@/lib/startFarmChat";
 import {
   formatListingBirthDateLabel,
@@ -131,6 +133,57 @@ function mapApiComment(
   };
 }
 
+function ListingDetailFarmChip({
+  listing,
+  ratingText,
+  canOpenFarm,
+}: {
+  listing: Listing;
+  ratingText: string | null;
+  canOpenFarm: boolean;
+}) {
+  const chipClassName = canOpenFarm
+    ? "flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-5 hover:bg-slate-100 transition-colors"
+    : "flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-5";
+  const inner = (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={listing.breeder.avatar}
+        alt={listing.breeder.name}
+        className="w-10 h-10 rounded-full object-cover"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <p className="truncate text-sm font-semibold text-slate-900">
+              {listing.breeder.name}
+            </p>
+            {showBreederVerifiedBadge(listing.breeder.verified, {
+              complianceStripped: listing.breeder.complianceVerifiedStripped,
+              gated: false,
+            }) && <VerifiedBadge />}
+          </div>
+          {ratingText ? (
+            <span className="shrink-0 whitespace-nowrap text-[11px] font-medium text-slate-500">
+              ⭐ {ratingText}
+            </span>
+          ) : null}
+        </div>
+        <p className="text-xs text-slate-400">{listing.breeder.location}</p>
+      </div>
+    </>
+  );
+  if (!canOpenFarm) {
+    return <div className={chipClassName}>{inner}</div>;
+  }
+  return (
+    <Link href={`/app/breeders/${listing.breeder.id}`} className={chipClassName}>
+      {inner}
+    </Link>
+  );
+}
+
 export function ListingDetail({
   listing: initialListing,
   lang,
@@ -154,6 +207,7 @@ export function ListingDetail({
   const [listing, setListing] = useState(initialListing);
   const ownerUserId = listing.ownerUserId || listing.breeder.userId;
   const isOwner = isListingOwner(currentUserId, ownerUserId);
+  const canOpenFarm = canShowBreederVisitFarmAction(currentUserId, ownerUserId);
   const { showMessage, showReport } = listingVisitorActions(isOwner);
   const showUpdateDetails = canShowListingUpdateDetails({
     isOwner,
@@ -169,6 +223,7 @@ export function ListingDetail({
     status: listing.status,
   });
   const warrantyTone = listingWarrantyCardTone(Boolean(listing.warrantyPolicy));
+  const breederFooter = listingBreederFooterMetrics(listing);
   const warrantyFileHref = warrantyUploadedFileHref(
     fillListingWarrantyFileUrl(listing.warrantyPolicy, {
       library: listing.breeder.warrantyPolicies,
@@ -982,31 +1037,11 @@ export function ListingDetail({
                 {description}
               </p>
             ) : null}
-            <Link
-              href={`/app/breeders/${listing.breeder.id}`}
-              className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-5 hover:bg-slate-100 transition-colors"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={listing.breeder.avatar}
-                alt={listing.breeder.name}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-slate-900">
-                    {listing.breeder.name}
-                  </p>
-                  {showBreederVerifiedBadge(listing.breeder.verified, {
-                    complianceStripped: listing.breeder.complianceVerifiedStripped,
-                    gated: false,
-                  }) && <VerifiedBadge />}
-                </div>
-                <p className="text-xs text-slate-400">
-                  {listing.breeder.location}
-                </p>
-              </div>
-            </Link>
+            <ListingDetailFarmChip
+              listing={listing}
+              ratingText={breederFooter.ratingText}
+              canOpenFarm={canOpenFarm}
+            />
 
             {actionError ? (
               <p className="mb-3 text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">

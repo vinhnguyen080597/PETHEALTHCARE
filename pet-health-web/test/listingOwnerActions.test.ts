@@ -6,6 +6,7 @@ import {
   canShowBreederMessageAction,
   canShowBreederReviewFarmAction,
   canShowBreederVisitFarmAction,
+  hallOfFameFarmDetailHref,
   canShowListingUpdateDetails,
   canShowListingStatusUpdate,
   canShowWarrantyUpdateCta,
@@ -48,13 +49,17 @@ test("own breeder cards hide the message action", () => {
   assert.equal(canShowBreederMessageAction(" u1 ", "u1"), false);
 });
 
-test("directory cards only let the owner visit; others send a review", () => {
+test("directory cards, listing farm chips, and Hall of Fame only let the owner visit; others send a review", () => {
   assert.equal(canShowBreederVisitFarmAction(null, "u1"), false);
   assert.equal(canShowBreederVisitFarmAction("u1", "u1"), true);
   assert.equal(canShowBreederVisitFarmAction("sen", "u1"), false);
   assert.equal(canShowBreederReviewFarmAction(null, "u1"), true);
   assert.equal(canShowBreederReviewFarmAction("u1", "u1"), false);
   assert.equal(canShowBreederReviewFarmAction("sen", "u1"), true);
+  assert.equal(hallOfFameFarmDetailHref(null, "u1", "p1"), null);
+  assert.equal(hallOfFameFarmDetailHref("sen", "u1", "p1"), null);
+  assert.equal(hallOfFameFarmDetailHref("u1", "u1", "p1"), "/app/breeders/p1");
+  assert.equal(hallOfFameFarmDetailHref("u1", "u1", "  "), null);
 });
 
 test("own breeder cards show edit profile beside visit", () => {

@@ -92,7 +92,7 @@ export type ListingBreederFooterMetrics = {
   trustScore: number;
 };
 
-/** Rating + transparency score on listing card breeder row (mobile parity). */
+/** Rating on listing card breeder row (mobile parity; trust score stays off the card). */
 export function listingBreederFooterMetrics(
   listing: Pick<Listing, "breeder">,
 ): ListingBreederFooterMetrics {

@@ -9,6 +9,7 @@ import type { PetFeedPost } from '../types';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
 import {
   LISTING_CARD_IMAGE_HEIGHT,
+  listingBreederFooterMetrics,
   readListingWarrantyPolicy,
 } from '../utils/marketplaceListingCard';
 import { buildPetFeedDetailSpecs } from '../utils/petFeedDetailSpecs';
@@ -126,6 +127,7 @@ type PetFeedPostDetailBodyProps = {
   onPressStatusUpdate?: () => void;
   isOwner?: boolean;
   onPressWarrantyUpdate?: () => void;
+  onOpenFarm?: (profileId: string) => void;
 };
 
 export function PetFeedPostDetailBody({
@@ -140,6 +142,7 @@ export function PetFeedPostDetailBody({
   onPressStatusUpdate,
   isOwner = false,
   onPressWarrantyUpdate,
+  onOpenFarm,
 }: PetFeedPostDetailBodyProps) {
   const { t, i18n } = useTranslation();
   const pagerRef = useRef<ScrollView>(null);
@@ -223,6 +226,9 @@ export function PetFeedPostDetailBody({
     }),
   );
   const breeder = post.breeder_profile;
+  const breederFooterMetrics = listingBreederFooterMetrics(post, 0);
+  const farmProfileId = (breeder?.id || post.breeder_profile_id || '').trim();
+  const canOpenFarm = Boolean(isOwner && onOpenFarm && farmProfileId);
 
   const openWarrantyInfo = useCallback(() => {
     if (warrantyFileHref) {
@@ -247,6 +253,40 @@ export function PetFeedPostDetailBody({
     (showFavorite && onToggleFavorite)
     || (showEditButton && onEditPost)
     || (showStatusButton && onPressStatusUpdate);
+
+  const farmChipInner = (
+    <>
+      {breeder?.avatar_url ? (
+        <Image
+          source={{ uri: breeder.avatar_url }}
+          style={{ width: 40, height: 40, borderRadius: 20 }}
+          contentFit="cover"
+        />
+      ) : (
+        <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: BRAND.surfaceLight }}>
+          <Ionicons name="paw" size={18} color={BRAND.btnPrimary} />
+        </View>
+      )}
+      <View className="min-w-0 flex-1">
+        <View className="flex-row items-center gap-2">
+          <Text className="min-w-0 flex-1 text-sm font-semibold text-slate-900" numberOfLines={1}>
+            {breeder?.display_name ?? t('petFeed.breederFallback')}
+          </Text>
+          {breederFooterMetrics.ratingText ? (
+            <Text className="shrink-0 text-[11px] font-medium text-slate-500">
+              {`⭐ ${breederFooterMetrics.ratingText}`}
+            </Text>
+          ) : null}
+        </View>
+        <View className="mt-0.5 flex-row items-center gap-1">
+          <Ionicons name="location-outline" size={12} color="#94A3B8" />
+          <Text className="min-w-0 flex-1 text-xs text-slate-400" numberOfLines={1}>
+            {breeder?.location || post.location || t('petFeed.locationUnknown')}
+          </Text>
+        </View>
+      </View>
+    </>
+  );
 
   return (
     <View className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
@@ -521,33 +561,19 @@ export function PetFeedPostDetailBody({
           </Text>
         ) : null}
 
-        <Pressable
-          accessibilityRole="button"
-          className="flex-row items-center gap-3 rounded-xl bg-slate-50 p-3 active:bg-slate-100"
-        >
-          {breeder?.avatar_url ? (
-            <Image
-              source={{ uri: breeder.avatar_url }}
-              style={{ width: 40, height: 40, borderRadius: 20 }}
-              contentFit="cover"
-            />
-          ) : (
-            <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: BRAND.surfaceLight }}>
-              <Ionicons name="paw" size={18} color={BRAND.btnPrimary} />
-            </View>
-          )}
-          <View className="min-w-0 flex-1">
-            <Text className="text-sm font-semibold text-slate-900" numberOfLines={1}>
-              {breeder?.display_name ?? t('petFeed.breederFallback')}
-            </Text>
-            <View className="mt-0.5 flex-row items-center gap-1">
-              <Ionicons name="location-outline" size={12} color="#94A3B8" />
-              <Text className="min-w-0 flex-1 text-xs text-slate-400" numberOfLines={1}>
-                {breeder?.location || post.location || t('petFeed.locationUnknown')}
-              </Text>
-            </View>
+        {canOpenFarm ? (
+          <Pressable
+            accessibilityRole="button"
+            className="flex-row items-center gap-3 rounded-xl bg-slate-50 p-3 active:bg-slate-100"
+            onPress={() => onOpenFarm?.(farmProfileId)}
+          >
+            {farmChipInner}
+          </Pressable>
+        ) : (
+          <View className="flex-row items-center gap-3 rounded-xl bg-slate-50 p-3">
+            {farmChipInner}
           </View>
-        </Pressable>
+        )}
 
         <View
           className="rounded-xl border px-3.5 py-3"

@@ -120,6 +120,7 @@ type PetFeedPostDetailScreenProps = {
     body: { rating: number; body?: string; photoUrls?: string[] },
   ) => Promise<boolean>;
   onOpenWarrantyLibrary?: () => void;
+  onOpenFarm?: (profileId: string) => void;
 };
 
 function Bone({ className }: { className: string }) {
@@ -175,6 +176,7 @@ export function PetFeedPostDetailScreen({
   onPatchListingStatus,
   onSubmitSaleReview,
   onOpenWarrantyLibrary,
+  onOpenFarm,
 }: PetFeedPostDetailScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -461,6 +463,7 @@ export function PetFeedPostDetailScreen({
               onPressStatusUpdate={openListingStatusModal}
               isOwner={isOwnPost}
               onPressWarrantyUpdate={openWarrantyAttach}
+              onOpenFarm={onOpenFarm}
             />
             <View
               collapsable={false}

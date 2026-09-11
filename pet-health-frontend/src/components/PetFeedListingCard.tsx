@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { BRAND } from '../theme/brand';
 import { DEFAULT_FARM_AVATAR } from '../assets/farmProfileAssets';
 import type { PetFeedPost } from '../types';
-import { computeBreederTrust } from '../utils/breederTrust';
 import { isComplianceVerifiedStripped } from '../utils/breederComplianceScore';
 import { farmImageSource, resolveFarmAvatarUrl } from '../utils/farmProfileDisplay';
 import { formatPetFeedPrice } from '../utils/petFeedCurrency';
@@ -55,8 +54,7 @@ function PetFeedListingCardComponent({
 
   const priceLabel = formatPetFeedPrice(post.price_note, i18n.language);
   const previewImage = listingPreviewImages(post)[0] ?? null;
-  const trustScore = breeder ? computeBreederTrust(breeder, [post]).score : 0;
-  const breederFooterMetrics = listingBreederFooterMetrics(post, trustScore);
+  const breederFooterMetrics = listingBreederFooterMetrics(post, 0);
   const breederAvatarUrl = breeder ? resolveFarmAvatarUrl(breeder) : null;
   const locationLabel = post.location?.trim() ?? '';
 
@@ -118,16 +116,11 @@ function PetFeedListingCardComponent({
               {breeder?.display_name ?? t('petFeed.breederFallback')}
             </Text>
           </View>
-          <View className="shrink-0 flex-row items-center gap-2">
-            {breederFooterMetrics.ratingText ? (
-              <Text className="text-[11px] font-medium text-slate-600" testID={`pet-feed-listing-rating-${post.id}`}>
-                {`⭐ ${breederFooterMetrics.ratingText}`}
-              </Text>
-            ) : null}
-            <Text className="text-[11px] font-medium text-slate-600" testID={`pet-feed-listing-trust-${post.id}`}>
-              {`🛡️ ${breederFooterMetrics.trustScore}/100`}
+          {breederFooterMetrics.ratingText ? (
+            <Text className="shrink-0 text-[11px] font-medium text-slate-600" testID={`pet-feed-listing-rating-${post.id}`}>
+              {`⭐ ${breederFooterMetrics.ratingText}`}
             </Text>
-          </View>
+          ) : null}
         </View>
       </View>
     </>

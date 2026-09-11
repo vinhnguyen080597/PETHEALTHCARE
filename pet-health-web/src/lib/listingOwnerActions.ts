@@ -25,12 +25,23 @@ export function canShowBreederEditProfileAction(
   return isListingOwner(currentUserId, breederUserId);
 }
 
-/** Only the kennel owner may open farm detail from the directory card. */
+/** Only the kennel owner may open farm detail from the directory card, Hall of Fame card, or listing farm chip. */
 export function canShowBreederVisitFarmAction(
   currentUserId: string | null | undefined,
   breederUserId: string | null | undefined,
 ): boolean {
   return canShowBreederEditProfileAction(currentUserId, breederUserId);
+}
+
+/** Hall of Fame cards only link to farm detail for the kennel owner. */
+export function hallOfFameFarmDetailHref(
+  currentUserId: string | null | undefined,
+  breederUserId: string | null | undefined,
+  farmProfileId: string | null | undefined,
+): string | null {
+  if (!canShowBreederVisitFarmAction(currentUserId, breederUserId)) return null;
+  const id = String(farmProfileId || "").trim();
+  return id ? `/app/breeders/${id}` : null;
 }
 
 export const BREEDER_CARD_EDIT_PROFILE_HREF = "/app/account/breeder";

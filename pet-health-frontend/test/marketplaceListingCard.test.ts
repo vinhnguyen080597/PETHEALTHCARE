@@ -6,6 +6,7 @@ import {
   isListingNewOnFloor,
   isOwnListingPost,
   listingBreederFooterMetrics,
+  listingBreederScoreLabel,
   listingCardShowsEditAction,
   LISTING_CARD_IMAGE_HEIGHT,
   listingHotBadges,
@@ -132,6 +133,7 @@ test('listingBreederFooterMetrics formats rating and trust score for card footer
   const noReviews = listingBreederFooterMetrics({ breeder_profile: null }, 30);
   assert.equal(noReviews.ratingText, null);
   assert.equal(noReviews.trustScore, 30);
+  assert.equal(listingBreederScoreLabel({ breeder_profile: null } as PetFeedPost, 30), '');
 });
 
 test('pet feed card i18n has EN/VI parity', async () => {
