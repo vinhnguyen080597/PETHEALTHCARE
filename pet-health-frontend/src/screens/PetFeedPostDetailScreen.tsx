@@ -11,7 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getMySaleReview, listMyWarrantyPolicies, updateListingWarrantyPolicy } from '../api';
 import { PetFeedCommentsSection } from '../components/PetFeedCommentsSection';
-import { PetFeedDetailSiblingListingsBar, LISTING_SIMILAR_THUMB_SIZE } from '../components/PetFeedDetailSiblingListingsBar';
+import { PetFeedDetailSiblingListingsBar } from '../components/PetFeedDetailSiblingListingsBar';
+import { ListingDetailFooterCta } from '../components/ListingDetailFooterCta';
 import { PetFeedPostDetailBody } from '../components/PetFeedPostDetailBody';
 import { FarmReviewModal } from '../components/FarmReviewModal';
 import { ListingStatusModal, type ListingStatusSubmitPayload } from '../components/ListingStatusModal';
@@ -32,65 +33,6 @@ import {
   canShowListingStatusUpdate,
 } from '../utils/listingAvailabilityBadge';
 import { mapWarrantyPolicies, mapWarrantyPolicy, type WarrantyPolicy } from '../utils/warrantyPolicy';
-
-function ListingDetailFooterCta({
-  testID,
-  accessibilityLabel,
-  icon,
-  label,
-  onPress,
-  iconOnly = false,
-}: {
-  testID: string;
-  accessibilityLabel: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  label?: string;
-  onPress: () => void;
-  iconOnly?: boolean;
-}) {
-  if (iconOnly) {
-    const size = LISTING_SIMILAR_THUMB_SIZE + 10;
-    return (
-      <Pressable
-        testID={testID}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        className="items-center justify-center"
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: 1.5,
-          backgroundColor: BRAND.btnSecondary,
-          borderColor: BRAND.borderBrand,
-        }}
-        onPress={onPress}
-      >
-        <Ionicons name={icon} size={32} color={BRAND.textBrandLink} />
-      </Pressable>
-    );
-  }
-  return (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      className="flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
-      style={{
-        backgroundColor: BRAND.btnSecondary,
-        borderColor: BRAND.borderBrand,
-      }}
-      onPress={onPress}
-    >
-      <Ionicons name={icon} size={15} color={BRAND.textBrandLink} />
-      {label ? (
-        <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-          {label}
-        </Text>
-      ) : null}
-    </Pressable>
-  );
-}
 
 type PetFeedPostDetailScreenProps = {
   postId: string;
@@ -521,6 +463,7 @@ export function PetFeedPostDetailScreen({
                     accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: selectedPost.title })}
                     icon="chatbubble-ellipses-outline"
                     iconOnly
+                    rippleKey={selectedPost.id}
                     onPress={() => onMessageBreeder?.(selectedPost)}
                   />
                 ) : null
@@ -534,6 +477,7 @@ export function PetFeedPostDetailScreen({
                   accessibilityLabel={t('petFeed.accessibility.messageBreeder', { title: selectedPost.title })}
                   icon="chatbubble-ellipses-outline"
                   iconOnly
+                  rippleKey={selectedPost.id}
                   onPress={() => onMessageBreeder?.(selectedPost)}
                 />
               ) : null}

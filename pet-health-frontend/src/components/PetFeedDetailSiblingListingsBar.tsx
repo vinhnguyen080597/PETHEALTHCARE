@@ -44,7 +44,7 @@ export function PetFeedDetailSiblingListingsBar({
       >
         {t('petFeed.detail.similarListings')}
       </Text>
-      <View className="relative">
+      <View className="relative" style={{ overflow: 'visible' }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -92,6 +92,7 @@ export function PetFeedDetailSiblingListingsBar({
           <View
             pointerEvents="box-none"
             className="absolute inset-y-0 right-0 flex-row items-center"
+            style={{ overflow: 'visible' }}
             onLayout={(event) => {
               const next = Math.ceil(event.nativeEvent.layout.width);
               if (next > 0 && next !== overlayWidth) setOverlayWidth(next);
@@ -105,7 +106,7 @@ export function PetFeedDetailSiblingListingsBar({
                 backgroundColor: 'rgba(255,255,255,0.72)',
               }}
             />
-            <View className="bg-white">
+            <View pointerEvents="box-none" className="bg-white" style={{ overflow: 'visible' }}>
               {overlay}
             </View>
           </View>
