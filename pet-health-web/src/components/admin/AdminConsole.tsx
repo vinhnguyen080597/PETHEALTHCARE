@@ -8,6 +8,10 @@ import { t, type EnKey } from "@/i18n";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 import { DialogActions } from "@/components/ui/DialogActions";
 import {
+  farmReviewUpdateApproveBlocked,
+  isFarmReviewPrimaryNotApprovedError,
+} from "@/lib/breederFarmReviews";
+import {
   HISTORY_ACTION_FILTERS,
   breederGroup,
   isBreederVerificationQueueItem,
@@ -109,6 +113,8 @@ type FarmReviewRow = {
   breeder_profile_id: string;
   reviewer_user_id: string;
   kind: "primary" | "supplement" | "sale";
+  parent_review_id?: string | null;
+  parent_status?: string | null;
   rating: number;
   body?: string;
   photo_urls?: string[];
@@ -218,7 +224,11 @@ function farmReviewKindLabel(kind: string, lang: Lang) {
 async function adminFetch(path: string, init?: RequestInit) {
   const res = await fetch(`/api/admin${path}`, init);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Admin request failed");
+  if (!res.ok) {
+    const err = new Error(data.error || "Admin request failed") as Error & { code?: string };
+    if (typeof data.code === "string") err.code = data.code;
+    throw err;
+  }
   return data;
 }
 
@@ -323,6 +333,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [flags, setFlags] = useState<FeatureFlags>(DEFAULT_FLAGS);
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
+  const [farmReviewApproveBlocked, setFarmReviewApproveBlocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [focusRequestId, setFocusRequestId] = useState<string | null>(null);
@@ -729,6 +740,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       showToast(t(lang, successKey));
       await load();
     } catch (err) {
+      if (isFarmReviewPrimaryNotApprovedError(err)) {
+        setFarmReviewApproveBlocked(true);
+        return;
+      }
       setError(err instanceof Error ? err.message : t(lang, "common.error"));
     } finally {
       setBusyKey(null);
@@ -1179,7 +1194,13 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             label={t(lang, "admin.farmReviews.approve")}
             variant="success"
             disabled={busyKey !== null}
-            onClick={() => void updateFarmReview(item.farmReview!.id, "approved")}
+            onClick={() => {
+              if (farmReviewUpdateApproveBlocked(item.farmReview!)) {
+                setFarmReviewApproveBlocked(true);
+                return;
+              }
+              void updateFarmReview(item.farmReview!.id, "approved");
+            }}
           />
           <ActionButton
             label={t(lang, "admin.farmReviews.reject")}
@@ -2667,6 +2688,35 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     ? "admin.listings.reject"
                     : "admin.breeders.reject",
                 )}
+              </button>
+            </DialogActions>
+          </div>
+        </div>
+      ) : null}
+      {farmReviewApproveBlocked ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#2B1E19]/40 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="farm-review-approve-blocked-title"
+            className="w-full max-w-md rounded-2xl border border-[#E8DFD0] bg-white p-5 shadow-xl"
+          >
+            <h3
+              id="farm-review-approve-blocked-title"
+              className="text-base font-bold text-[#2B1E19]"
+            >
+              {t(lang, "admin.farmReviews.approveUpdateBlockedTitle")}
+            </h3>
+            <p className="mt-2 text-sm text-[#6E5A51]">
+              {t(lang, "admin.farmReviews.approveUpdateBlockedBody")}
+            </p>
+            <DialogActions className="mt-5">
+              <button
+                type="button"
+                onClick={() => setFarmReviewApproveBlocked(false)}
+                className="flex-1 rounded-full bg-[#D97706] py-2.5 text-sm font-semibold text-white hover:bg-[#B45309]"
+              >
+                {t(lang, "common.ok")}
               </button>
             </DialogActions>
           </div>

@@ -7,6 +7,23 @@ export const FARM_REVIEW_MAX_PHOTOS = 5;
 export const FARM_REVIEW_KINDS = new Set(['primary', 'supplement', 'sale']);
 export const FARM_REVIEW_STATUSES = new Set(['pending', 'approved', 'rejected']);
 export const FARM_REVIEW_ACTIVE_STATUSES = new Set(['pending', 'approved']);
+export const FARM_REVIEW_PRIMARY_NOT_APPROVED = 'PRIMARY_REVIEW_NOT_APPROVED';
+
+/** Block approving a supplement until its primary review is approved. */
+export function farmReviewUpdateApproveBlocked(review) {
+  const kind = String(review?.kind || '').trim().toLowerCase();
+  if (kind !== 'supplement') return false;
+  return normalizeFarmReviewStatus(review?.parent_status) !== 'approved';
+}
+
+export function isFarmReviewPrimaryNotApprovedCode(code) {
+  return String(code || '') === FARM_REVIEW_PRIMARY_NOT_APPROVED;
+}
+
+/** Rejecting a primary also rejects leftover pending updates; approving it does not. */
+export function farmReviewPrimaryCascadesToPendingSupplements(nextStatus) {
+  return normalizeFarmReviewStatus(nextStatus) === 'rejected';
+}
 
 function trimText(value, max = 500) {
   if (value === undefined || value === null) return '';

@@ -17,6 +17,8 @@ import {
   farmReviewValidationError,
   farmReviewAuthorLabel,
   farmReviewStarCount,
+  farmReviewUpdateApproveBlocked,
+  isFarmReviewPrimaryNotApprovedCode,
   validateFarmReviewInput,
 } from '../src/utils/farmReview.ts';
 
@@ -181,4 +183,20 @@ test('farmReviewedBreederProfileId resolves breeder profile', () => {
     'farm-2',
   );
   assert.equal(farmReviewedBreederProfileId({ type: 'post_comment' }), null);
+});
+
+test('farmReviewUpdateApproveBlocked requires an approved primary', () => {
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: 'primary', parent_status: 'pending' }),
+    false,
+  );
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: 'supplement', parent_status: 'pending' }),
+    true,
+  );
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: 'supplement', parent_status: 'approved' }),
+    false,
+  );
+  assert.equal(isFarmReviewPrimaryNotApprovedCode('PRIMARY_REVIEW_NOT_APPROVED'), true);
 });

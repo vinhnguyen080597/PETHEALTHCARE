@@ -399,6 +399,8 @@ export type AdminFarmReviewRow = {
   breeder_profile_id: string;
   reviewer_user_id: string;
   kind: "primary" | "supplement" | "sale";
+  parent_review_id?: string | null;
+  parent_status?: string | null;
   rating: number;
   body?: string;
   photo_urls?: string[];

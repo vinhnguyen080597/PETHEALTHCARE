@@ -6,8 +6,11 @@ import {
   computeFarmReviewPool,
   countFarmReviewDisplayThreads,
   countFiveStarDirectReviews,
+  farmReviewUpdateApproveBlocked,
   filterApprovedFarmReviews,
   filterFarmReviewsForViewer,
+  isFarmReviewPrimaryNotApprovedCode,
+  farmReviewPrimaryCascadesToPendingSupplements,
   transparencyPointsForFarmReview,
   validateFarmReviewInput,
 } from '../src/utils/breederFarmReviews.js';
@@ -88,6 +91,37 @@ test('countFiveStarDirectReviews ignores sale reviews', () => {
     { kind: 'supplement', rating: 4, status: 'approved' },
   ];
   assert.equal(countFiveStarDirectReviews(reviews), 1);
+});
+
+test('farmReviewUpdateApproveBlocked requires an approved primary', () => {
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: 'primary', parent_status: 'pending' }),
+    false,
+  );
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: 'sale', parent_status: 'pending' }),
+    false,
+  );
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: 'supplement', parent_status: 'pending' }),
+    true,
+  );
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: 'supplement', parent_status: 'rejected' }),
+    true,
+  );
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: 'supplement' }),
+    true,
+  );
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: 'supplement', parent_status: 'approved' }),
+    false,
+  );
+  assert.equal(isFarmReviewPrimaryNotApprovedCode('PRIMARY_REVIEW_NOT_APPROVED'), true);
+  assert.equal(isFarmReviewPrimaryNotApprovedCode('REVIEW_NOT_PENDING'), false);
+  assert.equal(farmReviewPrimaryCascadesToPendingSupplements('approved'), false);
+  assert.equal(farmReviewPrimaryCascadesToPendingSupplements('rejected'), true);
 });
 
 test('transparency points are not awarded for farm reviews', () => {

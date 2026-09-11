@@ -12,7 +12,11 @@ import {
   adminReportReasonLabel,
   adminReportTargetSubtitle,
 } from '../utils/adminModerationDisplay';
-import { normalizeFarmReviewPhotoUrls } from '../utils/farmReview';
+import {
+  farmReviewUpdateApproveBlocked,
+  isFarmReviewPrimaryNotApprovedError,
+  normalizeFarmReviewPhotoUrls,
+} from '../utils/farmReview';
 import { confirmAdminModeration } from '../utils/adminConfirmModeration';
 
 function farmReviewKindLabel(
@@ -213,6 +217,13 @@ export function AdminHubScreen({
       const detail = await action();
       notifyUser(t('adminReview.updateSuccess'), detail || successMessage);
     } catch (error: unknown) {
+      if (isFarmReviewPrimaryNotApprovedError(error)) {
+        notifyUser(
+          t('adminReview.farmReviews.approveUpdateBlockedTitle'),
+          t('adminReview.farmReviews.approveUpdateBlockedBody'),
+        );
+        return;
+      }
       const message = error instanceof Error ? error.message : t('common.unknownError');
       notifyUser(t('adminReview.updateFailed'), message);
     } finally {
@@ -360,13 +371,20 @@ export function AdminHubScreen({
                       <Pressable
                         className="flex-1 rounded-xl bg-emerald-600 py-3"
                         disabled={Boolean(busyKey)}
-                        onPress={() =>
+                        onPress={() => {
+                          if (farmReviewUpdateApproveBlocked(review)) {
+                            notifyUser(
+                              t('adminReview.farmReviews.approveUpdateBlockedTitle'),
+                              t('adminReview.farmReviews.approveUpdateBlockedBody'),
+                            );
+                            return;
+                          }
                           void runAction(
                             `farm-review-approve-${review.id}`,
                             () => onUpdateFarmReviewStatus(review.id, 'approved'),
                             t('adminReview.farmReviews.approveSuccess'),
-                          )
-                        }
+                          );
+                        }}
                       >
                         <Text className="text-center text-xs font-bold text-white">
                           {t('adminReview.farmReviews.approve')}

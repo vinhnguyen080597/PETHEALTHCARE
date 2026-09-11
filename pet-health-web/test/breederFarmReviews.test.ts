@@ -6,6 +6,8 @@ import {
   farmReviewThreadDisplayCount,
   FARM_REVIEW_MAX_PHOTOS,
   farmReviewedNotificationReviewId,
+  farmReviewUpdateApproveBlocked,
+  isFarmReviewPrimaryNotApprovedCode,
   mapFarmReviewThreads,
   parseFarmReviewFocusId,
   parseFarmReviewScrollQuery,
@@ -147,4 +149,20 @@ test("farmReviewThreadDisplayCount matches visible cards not pool weight", () =>
     },
   ]);
   assert.equal(farmReviewThreadDisplayCount(threads), 1);
+});
+
+test("farmReviewUpdateApproveBlocked requires an approved primary", () => {
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: "primary", parent_status: "pending" }),
+    false,
+  );
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: "supplement", parent_status: "pending" }),
+    true,
+  );
+  assert.equal(
+    farmReviewUpdateApproveBlocked({ kind: "supplement", parent_status: "approved" }),
+    false,
+  );
+  assert.equal(isFarmReviewPrimaryNotApprovedCode("PRIMARY_REVIEW_NOT_APPROVED"), true);
 });

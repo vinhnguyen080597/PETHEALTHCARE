@@ -1458,6 +1458,9 @@ const en = {
   "admin.farmReviews.kind.supplement": "Update",
   "admin.farmReviews.approve": "Approve review",
   "admin.farmReviews.reject": "Reject review",
+  "admin.farmReviews.approveUpdateBlockedTitle": "Approve the main review first",
+  "admin.farmReviews.approveUpdateBlockedBody":
+    "This update cannot be approved until the direct review is approved.",
   "admin.support.category": "Category",
   "admin.support.title": "Title",
   "admin.support.targetType": "Target type",

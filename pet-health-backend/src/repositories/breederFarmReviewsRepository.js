@@ -6,6 +6,9 @@ import {
   computeFarmReviewPool,
   countFarmReviewDisplayThreads,
   countFiveStarDirectReviews,
+  FARM_REVIEW_PRIMARY_NOT_APPROVED,
+  farmReviewPrimaryCascadesToPendingSupplements,
+  farmReviewUpdateApproveBlocked,
   filterApprovedFarmReviews,
   filterFarmReviewsForViewer,
   isFarmReviewActive,
@@ -56,6 +59,9 @@ function toReviewRow(row) {
     reviewer_user_id: row.reviewer_user_id,
     kind: row.kind,
     parent_review_id: row.parent_review_id ?? null,
+    parent_status: row.parent_status
+      ? normalizeFarmReviewStatus(row.parent_status)
+      : undefined,
     post_id: row.post_id ?? null,
     rating: row.rating,
     body: row.body ?? '',
@@ -540,38 +546,82 @@ async function getReviewById(reviewId, accessToken) {
   return toReviewRow(data);
 }
 
-async function listReviewsByStatus(status, accessToken) {
-  const safeStatus = normalizeFarmReviewStatus(status);
-  const supabase = getSupabaseServiceClient() ?? getSupabase(accessToken);
-  if (!supabase) {
-    return memoryReviews
-      .filter((row) => normalizeFarmReviewStatus(row.status) === safeStatus)
-      .map(toReviewRow)
-      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-  }
-  const { data, error } = await supabase
-    .from('breeder_farm_reviews')
-    .select('*, breeder_profiles(display_name)')
-    .eq('status', safeStatus)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map((row) => ({
-    ...toReviewRow(row),
-    breeder_profile: row.breeder_profiles ?? null,
-  }));
-}
-
-async function cascadeReviewStatusForPrimary(primaryId, nextStatus, adminUserId, accessToken, extras = {}) {
+async function parentStatusByIds(parentIds, accessToken) {
+  const unique = [...new Set(parentIds.map((id) => trimText(id, 64)).filter(Boolean))];
+  const map = new Map();
+  if (!unique.length) return map;
   const supabase = getSupabaseServiceClient() ?? getSupabase(accessToken);
   if (!supabase) {
     for (const row of memoryReviews) {
-      if (row.id === primaryId || row.parent_review_id === primaryId) {
-        row.status = nextStatus;
-        row.reviewed_at = new Date().toISOString();
-        row.reviewed_by = adminUserId;
-        if (nextStatus === 'rejected') row.rejection_reason = extras.rejectionReason ?? '';
-        if (extras.adminNote) row.admin_note = extras.adminNote;
+      if (unique.includes(row.id)) {
+        map.set(row.id, normalizeFarmReviewStatus(row.status));
       }
+    }
+    return map;
+  }
+  const { data, error } = await supabase
+    .from('breeder_farm_reviews')
+    .select('id, status')
+    .in('id', unique);
+  if (error) throw error;
+  for (const row of data ?? []) {
+    map.set(row.id, normalizeFarmReviewStatus(row.status));
+  }
+  return map;
+}
+
+function attachParentStatus(rows, statusById) {
+  return rows.map((row) => {
+    if (row.kind !== 'supplement' || !row.parent_review_id) return row;
+    return {
+      ...row,
+      parent_status: statusById.get(String(row.parent_review_id)) ?? 'pending',
+    };
+  });
+}
+
+async function listReviewsByStatus(status, accessToken) {
+  const safeStatus = normalizeFarmReviewStatus(status);
+  const supabase = getSupabaseServiceClient() ?? getSupabase(accessToken);
+  let rows = [];
+  if (!supabase) {
+    rows = memoryReviews
+      .filter((row) => normalizeFarmReviewStatus(row.status) === safeStatus)
+      .map(toReviewRow)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  } else {
+    const { data, error } = await supabase
+      .from('breeder_farm_reviews')
+      .select('*, breeder_profiles(display_name)')
+      .eq('status', safeStatus)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    rows = (data ?? []).map((row) => ({
+      ...toReviewRow(row),
+      breeder_profile: row.breeder_profiles ?? null,
+    }));
+  }
+  const parentIds = rows
+    .filter((row) => row.kind === 'supplement' && row.parent_review_id)
+    .map((row) => String(row.parent_review_id));
+  const statusById = await parentStatusByIds(parentIds, accessToken);
+  return attachParentStatus(rows, statusById);
+}
+
+async function cascadeReviewStatusForPrimary(primaryId, nextStatus, adminUserId, accessToken, extras = {}) {
+  const cascadeSupplements = farmReviewPrimaryCascadesToPendingSupplements(nextStatus);
+  const supabase = getSupabaseServiceClient() ?? getSupabase(accessToken);
+  if (!supabase) {
+    for (const row of memoryReviews) {
+      const isPrimary = row.id === primaryId;
+      const isPendingChild = row.parent_review_id === primaryId
+        && normalizeFarmReviewStatus(row.status) === 'pending';
+      if (!isPrimary && !(cascadeSupplements && isPendingChild)) continue;
+      row.status = nextStatus;
+      row.reviewed_at = new Date().toISOString();
+      row.reviewed_by = adminUserId;
+      if (nextStatus === 'rejected') row.rejection_reason = extras.rejectionReason ?? '';
+      if (extras.adminNote) row.admin_note = extras.adminNote;
     }
     return;
   }
@@ -589,6 +639,7 @@ async function cascadeReviewStatusForPrimary(primaryId, nextStatus, adminUserId,
     .update(patch)
     .eq('id', primaryId);
   if (primaryError) throw primaryError;
+  if (!cascadeSupplements) return;
   const { error: supplementError } = await supabase
     .from('breeder_farm_reviews')
     .update(patch)
@@ -624,8 +675,26 @@ export async function adminUpdateFarmReviewStatus(
     throw httpError('Review is not pending moderation.', 400, 'REVIEW_NOT_PENDING');
   }
 
+  if (safeStatus === 'approved' && existing.kind === 'supplement') {
+    const parent = existing.parent_review_id
+      ? await getReviewById(existing.parent_review_id, accessToken)
+      : null;
+    if (farmReviewUpdateApproveBlocked({
+      kind: existing.kind,
+      parent_status: parent?.status,
+    })) {
+      throw httpError(
+        'Approve the primary review before this update.',
+        400,
+        FARM_REVIEW_PRIMARY_NOT_APPROVED,
+      );
+    }
+  }
+
   const supabase = getSupabaseServiceClient() ?? getSupabase(accessToken);
-  if (!supabase) {
+  if (existing.kind === 'primary') {
+    await cascadeReviewStatusForPrimary(existing.id, safeStatus, adminUserId, accessToken, extras);
+  } else if (!supabase) {
     const idx = memoryReviews.findIndex((row) => row.id === existing.id);
     if (idx >= 0) {
       memoryReviews[idx] = {
@@ -637,8 +706,6 @@ export async function adminUpdateFarmReviewStatus(
         reviewed_by: adminUserId,
       };
     }
-  } else if (existing.kind === 'primary') {
-    await cascadeReviewStatusForPrimary(existing.id, safeStatus, adminUserId, accessToken, extras);
   } else {
     const { error } = await supabase
       .from('breeder_farm_reviews')

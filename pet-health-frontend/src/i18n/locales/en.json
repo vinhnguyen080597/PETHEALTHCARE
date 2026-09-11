@@ -1641,6 +1641,8 @@
       "reject": "Reject review",
       "approveSuccess": "Farm review approved.",
       "rejectSuccess": "Farm review rejected.",
+      "approveUpdateBlockedTitle": "Approve the main review first",
+      "approveUpdateBlockedBody": "This update cannot be approved until the direct review is approved.",
       "rejectTitle": "Reject farm review",
       "rejectHint": "The reviewer will see this reason in their notifications.",
       "rejectReasonPlaceholder": "e.g. Inappropriate content / spam / not about this farm"

@@ -16,6 +16,26 @@ export const FARM_REVIEW_MAX_PHOTOS = 5;
 
 export type FarmReviewKind = "primary" | "supplement" | "sale";
 export type FarmReviewStatus = "pending" | "approved" | "rejected";
+export const FARM_REVIEW_PRIMARY_NOT_APPROVED = "PRIMARY_REVIEW_NOT_APPROVED";
+
+/** Block approving a supplement until its primary review is approved. */
+export function farmReviewUpdateApproveBlocked(review: {
+  kind?: string | null;
+  parent_status?: string | null;
+}): boolean {
+  const kind = String(review?.kind || "").trim().toLowerCase();
+  if (kind !== "supplement") return false;
+  return normalizeFarmReviewStatus(review?.parent_status) !== "approved";
+}
+
+export function isFarmReviewPrimaryNotApprovedCode(code: unknown): boolean {
+  return String(code || "") === FARM_REVIEW_PRIMARY_NOT_APPROVED;
+}
+
+export function isFarmReviewPrimaryNotApprovedError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  return isFarmReviewPrimaryNotApprovedCode((err as { code?: unknown }).code);
+}
 
 export type BreederFarmReview = {
   id: string;

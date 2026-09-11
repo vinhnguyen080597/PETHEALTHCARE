@@ -1460,6 +1460,9 @@ const vi: Record<EnKey, string> = {
   "admin.farmReviews.kind.supplement": "Cập nhật",
   "admin.farmReviews.approve": "Duyệt đánh giá",
   "admin.farmReviews.reject": "Từ chối đánh giá",
+  "admin.farmReviews.approveUpdateBlockedTitle": "Cần duyệt đánh giá chính trước",
+  "admin.farmReviews.approveUpdateBlockedBody":
+    "Không thể duyệt bản cập nhật khi đánh giá trực tiếp vẫn đang chờ. Hãy duyệt đánh giá chính trước.",
   "admin.support.category": "Phân loại",
   "admin.support.title": "Tiêu đề",
   "admin.support.targetType": "Loại đối tượng",

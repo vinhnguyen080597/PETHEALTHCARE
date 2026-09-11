@@ -1641,6 +1641,8 @@
       "reject": "Từ chối đánh giá",
       "approveSuccess": "Đã duyệt đánh giá trại.",
       "rejectSuccess": "Đã từ chối đánh giá trại.",
+      "approveUpdateBlockedTitle": "Cần duyệt đánh giá chính trước",
+      "approveUpdateBlockedBody": "Không thể duyệt bản cập nhật khi đánh giá trực tiếp vẫn đang chờ. Hãy duyệt đánh giá chính trước.",
       "rejectTitle": "Từ chối đánh giá trại",
       "rejectHint": "Người đánh giá sẽ thấy lý do trong thông báo.",
       "rejectReasonPlaceholder": "VD: Nội dung không phù hợp / spam / không liên quan trại"
