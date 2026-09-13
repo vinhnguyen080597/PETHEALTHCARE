@@ -1,13 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useState, type ReactNode } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { PetFeedCommentsSection } from './PetFeedCommentsSection';
 import { usePetFeedPostComments } from '../hooks/usePetFeedPostComments';
 import type { AnnouncementCategory, PetFeedComment, PetFeedPost } from '../types';
 import { sharePetFeedPost } from '../utils/sharePetFeedPost';
+
+function OpenableRegion({
+  enabled,
+  label,
+  onOpen,
+  children,
+}: {
+  enabled: boolean;
+  label: string;
+  onOpen?: () => void;
+  children: ReactNode;
+}) {
+  if (!enabled || !onOpen) return children;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      className="active:opacity-95"
+      onPress={onOpen}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 type AdminPostCardProps = {
   post: PetFeedPost;
@@ -130,42 +154,47 @@ function AdminPostCardComponent({
     }
   };
 
-  const body = (
-    <>
-      {cover ? (
-        <View className="relative overflow-hidden rounded-t-2xl bg-[#FDFBF7]">
-          <Image source={{ uri: cover }} style={{ width: '100%', height: featured ? 300 : 240 }} contentFit="cover" />
-          {featured ? (
-            <View className="absolute left-3 top-3 self-start rounded-full bg-[#2B1E19]/90 px-2.5 py-1">
-              <Text className="text-[11px] font-bold text-amber-100">🔥 {t('petFeed.newsCard.featured')}</Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+  const openPost = onPress ? () => onPress(post) : undefined;
+
+  return (
+    <View testID={testID} className="overflow-hidden rounded-2xl border border-[#F3E2C8] bg-white shadow-sm">
+      <OpenableRegion enabled={Boolean(openPost)} label={post.title} onOpen={openPost}>
+        {cover ? (
+          <View className="relative overflow-hidden rounded-t-2xl bg-[#FDFBF7]">
+            <Image source={{ uri: cover }} style={{ width: '100%', height: featured ? 300 : 240 }} contentFit="cover" />
+            {featured ? (
+              <View className="absolute left-3 top-3 self-start rounded-full bg-[#2B1E19]/90 px-2.5 py-1">
+                <Text className="text-[11px] font-bold text-amber-100">🔥 {t('petFeed.newsCard.featured')}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+      </OpenableRegion>
       <View className={`gap-3 ${featured ? 'p-5' : 'p-4'}`}>
-        <View className="flex-row flex-wrap items-center gap-2">
-          <Text className="self-start rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
-            {t(`adminPost.category.${category}`)}
-          </Text>
-          <Text className="text-xs font-medium text-[#6E5A51]">Pet Health Care</Text>
-          {dateLabel ? <Text className="text-xs text-[#6E5A51]">· {dateLabel}</Text> : null}
-          <Text className="text-xs text-[#6E5A51]">· {t('petFeed.newsCard.readMinutes', { count: readMinutes })}</Text>
-        </View>
-        <Text className={`${featured ? 'text-[18px]' : 'text-[16px]'} font-bold leading-7 text-[#2B1E19]`}>
-          {post.title}
-        </Text>
-        <Text className="text-sm leading-7 text-[#5C4A3A]" numberOfLines={expanded ? undefined : featured ? 3 : 2}>
-          {post.description}
-        </Text>
+        <OpenableRegion enabled={Boolean(openPost)} label={post.title} onOpen={openPost}>
+          <View className="gap-3">
+            <View className="flex-row flex-wrap items-center gap-2">
+              <Text className="self-start rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                {t(`adminPost.category.${category}`)}
+              </Text>
+              <Text className="text-xs font-medium text-[#6E5A51]">Pet Health Care</Text>
+              {dateLabel ? <Text className="text-xs text-[#6E5A51]">· {dateLabel}</Text> : null}
+              <Text className="text-xs text-[#6E5A51]">· {t('petFeed.newsCard.readMinutes', { count: readMinutes })}</Text>
+            </View>
+            <Text className={`${featured ? 'text-[18px]' : 'text-[16px]'} font-bold leading-7 text-[#2B1E19]`}>
+              {post.title}
+            </Text>
+            <Text className="text-sm leading-7 text-[#5C4A3A]" numberOfLines={expanded ? undefined : featured ? 3 : 2}>
+              {post.description}
+            </Text>
+          </View>
+        </OpenableRegion>
         {canExpand || expanded ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={expanded ? t('petFeed.newsCard.readLess') : t('petFeed.newsCard.readMore')}
             className="self-start"
-            onPress={(event) => {
-              event.stopPropagation?.();
-              toggleExpand();
-            }}
+            onPress={toggleExpand}
           >
             <Text className="text-sm font-semibold text-[#D97706]">
               {expanded ? t('petFeed.newsCard.readLess') : `${t('petFeed.newsCard.readMore')} →`}
@@ -175,8 +204,7 @@ function AdminPostCardComponent({
         {ctaLabel && ctaUrl ? (
           <Pressable
             className="self-start rounded-full bg-[#D97706] px-3.5 py-2 active:opacity-90"
-            onPress={(event) => {
-              event.stopPropagation?.();
+            onPress={() => {
               void Linking.openURL(ctaUrl);
             }}
           >
@@ -190,10 +218,7 @@ function AdminPostCardComponent({
               accessibilityRole="button"
               accessibilityLabel={saved ? t('petFeed.newsCard.saved') : t('petFeed.newsCard.favorite')}
               className="mr-6 flex-row items-center gap-1.5 py-1.5"
-              onPress={(event) => {
-                event.stopPropagation?.();
-                onToggleFavorite?.(post);
-              }}
+              onPress={() => onToggleFavorite?.(post)}
             >
               <Ionicons name={saved ? 'heart' : 'heart-outline'} size={15} color={saved ? '#E11D48' : '#6E5A51'} />
               <Text className="text-xs font-semibold" style={{ color: saved ? '#E11D48' : '#6E5A51' }}>
@@ -205,10 +230,7 @@ function AdminPostCardComponent({
               accessibilityLabel={t('petFeed.comments.title')}
               accessibilityState={{ expanded: commentsOpen }}
               className="flex-row items-center gap-1.5 py-1.5"
-              onPress={(event) => {
-                event.stopPropagation?.();
-                toggleComments();
-              }}
+              onPress={toggleComments}
             >
               <Ionicons name="chatbubble-outline" size={14} color="#6E5A51" />
               <Text className="text-xs font-semibold text-[#6E5A51]">{post.comment_count ?? 0}</Text>
@@ -219,8 +241,7 @@ function AdminPostCardComponent({
               accessibilityRole="button"
               accessibilityLabel={t('petFeed.newsCard.share')}
               className="flex-row items-center gap-1.5 py-1.5"
-              onPress={(event) => {
-                event.stopPropagation?.();
+              onPress={() => {
                 void sharePetFeedPost(post);
               }}
             >
@@ -231,8 +252,7 @@ function AdminPostCardComponent({
               accessibilityRole="button"
               accessibilityLabel={bookmarked ? t('petFeed.newsCard.bookmarked') : t('petFeed.newsCard.bookmark')}
               className="flex-row items-center gap-1.5 py-1.5"
-              onPress={(event) => {
-                event.stopPropagation?.();
+              onPress={() => {
                 void toggleBookmark();
               }}
             >
@@ -257,25 +277,6 @@ function AdminPostCardComponent({
           />
         ) : null}
       </View>
-    </>
-  );
-
-  if (onPress) {
-    return (
-      <Pressable
-        testID={testID}
-        accessibilityRole="button"
-        className="overflow-hidden rounded-2xl border border-[#F3E2C8] bg-white shadow-sm active:opacity-95"
-        onPress={() => onPress(post)}
-      >
-        {body}
-      </Pressable>
-    );
-  }
-
-  return (
-    <View testID={testID} className="overflow-hidden rounded-2xl border border-[#F3E2C8] bg-white shadow-sm">
-      {body}
     </View>
   );
 }
