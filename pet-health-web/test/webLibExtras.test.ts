@@ -57,6 +57,9 @@ test("i18n getLang prefers query then cookie", () => {
   assert.equal(getLang({ searchParams: { lang: "en" } }), "EN");
   assert.equal(getLang({ cookie: "EN" }), "EN");
   assert.equal(getLang({}), "VI");
+  assert.equal(getLang({ acceptLanguage: "en-US,en;q=0.9" }), "EN");
+  assert.equal(getLang({ acceptLanguage: "vi-VN,vi;q=0.9" }), "VI");
+  assert.equal(getLang({ cookie: "VI", acceptLanguage: "en-US" }), "VI");
   assert.equal(t("EN", "nav.login"), "Log in");
   assert.equal(genderLabel("EN", "male"), t("EN", "common.male"));
   assert.equal(genderLabel("VI", "female"), t("VI", "common.female"));

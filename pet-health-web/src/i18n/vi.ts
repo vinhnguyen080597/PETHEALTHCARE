@@ -172,6 +172,8 @@ const vi: Record<EnKey, string> = {
     "Gợi ý: tìm hướng dẫn hoặc chủ đề góp ý. Tra cứu gồm mẫu demo và định danh từ báo cáo scam admin đã duyệt.",
   "supportHub.contactHours":
     "Giờ hỗ trợ: 08:30 – 17:30 (T2–T6). Thường phản hồi trong 24–48 giờ làm việc.",
+  "supportHub.contactEmailLabel": "Hỗ trợ khách hàng",
+  "supportHub.legalEmailLabel": "Pháp lý / báo cáo",
   "supportHub.loginRequired": "Đăng nhập để gửi góp ý hoặc báo cáo lừa đảo tới admin PetCare.",
   "supportHub.loginCta": "Đăng nhập để tiếp tục",
   "supportHub.submitting": "Đang gửi…",

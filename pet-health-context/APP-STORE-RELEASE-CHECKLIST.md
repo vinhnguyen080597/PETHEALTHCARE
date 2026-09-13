@@ -1,3 +1,15 @@
+﻿# App Store Release Checklist — PetCare: Pet Marketplace
+
+**Current submission packet: [APP-STORE-RELEASE-1.1.3.md](./APP-STORE-RELEASE-1.1.3.md)**
+
+The sections below still describe the June 2026 Pet Health Care 1.0.0 pass. Use them for QA structure, but replace GitHub Pages URLs with:
+
+- Privacy: https://pet-marketplace.org/privacy-policy
+- Terms: https://pet-marketplace.org/terms-of-service
+- Guidelines: https://pet-marketplace.org/marketplace-guidelines
+- Support: https://pet-marketplace.org/support
+
+Version to submit now: **1.1.3** (not 1.0.0).
 # App Store Release Checklist — Pet Health Care
 
 Checklist cho team tick trực tiếp trên GitHub. Dùng cho **iOS App Store** release v1.
@@ -296,3 +308,4 @@ eas submit --platform ios --profile production
 ---
 
 Last updated: 2026-06-17
+

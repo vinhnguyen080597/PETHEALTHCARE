@@ -120,4 +120,8 @@ test("footer legal labels stay in EN/VI parity", () => {
   }
   assert.match(vi["landing.footer.disclaimer"], /không giữ tiền/i);
   assert.match(en["landing.footer.disclaimer"], /does not hold/i);
+  assert.equal(en["supportHub.contactEmailLabel"], "Customer support");
+  assert.ok(vi["supportHub.contactEmailLabel"]);
+  assert.ok(en["supportHub.legalEmailLabel"]);
+  assert.ok(vi["supportHub.legalEmailLabel"]);
 });

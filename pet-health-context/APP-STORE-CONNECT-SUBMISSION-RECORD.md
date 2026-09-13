@@ -1,3 +1,20 @@
+﻿# App Store Connect — Submission Record
+
+## 1.1.3 prep (2026-09-13)
+
+Next submission is a **version update** of ASC app `6778684107`. Do not reuse v1.0.0 metadata blindly.
+
+Must change in Connect before submit:
+- App name / subtitle / description → PetCare: Pet Marketplace
+- Privacy Policy + Support URLs → pet-marketplace.org
+- Privacy labels: add Name, Phone Number, Location (if used), Messages
+- Age rating: Messaging and Chat = **Yes**
+- Screenshots from 1.1.3 UI
+- Review notes: marketplace + chat + wellness (not diagnosis)
+
+See [APP-STORE-RELEASE-1.1.3.md](./APP-STORE-RELEASE-1.1.3.md).
+
+---
 # App Store Connect — Submission Record (v1.0.0 build 18)
 
 Ghi lại các lựa chọn đã điền trên App Store Connect khi submit App Review lần đầu.
@@ -222,3 +239,4 @@ https://vinhnguyen080597.github.io/PETHEALTHCARE/privacy-policy/
 ---
 
 Last updated: 2026-06-17
+

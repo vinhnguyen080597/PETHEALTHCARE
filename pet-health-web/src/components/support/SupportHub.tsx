@@ -9,6 +9,7 @@ import { DialogActions } from "@/components/ui/DialogActions";
 import { DealPhotoPicker } from "@/components/marketplace/DealPhotoPicker";
 import { dealSubmitErrorMessage, photosDropHint } from "@/lib/dealPhotoUpload";
 import { uploadDealEvidencePhotos } from "@/lib/uploadDealEvidence";
+import { LEGAL_CONTACT_EMAIL, LEGAL_SUPPORT_EMAIL } from "@/lib/legalContent";
 import {
   FEEDBACK_CATEGORIES,
   GUIDE_TOPICS,
@@ -291,6 +292,17 @@ export function SupportHub({
         </div>
         <p className="mt-2 text-xs text-stone-500">{t(lang, "supportHub.searchHint")}</p>
         <p className="mt-1 text-xs text-stone-500">{t(lang, "supportHub.contactHours")}</p>
+        <p className="mt-1 text-xs text-stone-500">
+          {t(lang, "supportHub.contactEmailLabel")}:{" "}
+          <a className="underline underline-offset-2" href={`mailto:${LEGAL_SUPPORT_EMAIL}`}>
+            {LEGAL_SUPPORT_EMAIL}
+          </a>
+          {" · "}
+          {t(lang, "supportHub.legalEmailLabel")}:{" "}
+          <a className="underline underline-offset-2" href={`mailto:${LEGAL_CONTACT_EMAIL}`}>
+            {LEGAL_CONTACT_EMAIL}
+          </a>
+        </p>
       </div>
 
       {visibleSections.length === 0 ? (

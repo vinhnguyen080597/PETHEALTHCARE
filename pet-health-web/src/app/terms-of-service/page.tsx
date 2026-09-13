@@ -1,14 +1,15 @@
-import { cookies } from "next/headers";
-import { getLang } from "@/i18n";
-import { COOKIE_LANG } from "@/lib/session";
 import { LegalPage } from "@/components/legal/LegalPage";
 import { termsOfServiceContent } from "@/lib/legalContent";
+import { getLegalPageLang } from "@/lib/legalPageLang";
 
 export const metadata = { title: "Terms of Service · PetCare: Pet Marketplace" };
 
-export default async function TermsPage() {
-  const jar = await cookies();
-  const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
+export default async function TermsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ lang?: string }>;
+}) {
+  const lang = await getLegalPageLang(await searchParams);
   return (
     <LegalPage
       lang={lang}

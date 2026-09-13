@@ -1,4 +1,6 @@
-# App Store QA Runsheet
+﻿# App Store QA Runsheet
+
+Updated 2026-09-13 for **PetCare: Pet Marketplace 1.1.3**. Also test Messages / farm chat and Account legal links against pet-marketplace.org.
 
 Use this runsheet for the v1 internal testing build installed from TestFlight or an EAS iOS build using production env.
 This pass is for the owner/team to test the app, not for public App Store release.
@@ -7,9 +9,9 @@ This pass is for the owner/team to test the app, not for public App Store releas
 
 - Backend: `https://pet-health-backend-serb.onrender.com`
 - Readiness check: `https://pet-health-backend-serb.onrender.com/health/ready?deep=1`
-- Privacy Policy: `https://vinhnguyen080597.github.io/PETHEALTHCARE/privacy-policy/`
-- Terms: `https://vinhnguyen080597.github.io/PETHEALTHCARE/terms-of-service/`
-- Support: `https://vinhnguyen080597.github.io/PETHEALTHCARE/support/`
+- Privacy Policy: `https://pet-marketplace.org/privacy-policy`
+- Terms: `https://pet-marketplace.org/terms-of-service`
+- Support: `https://pet-marketplace.org/support`
 
 ## Test Accounts
 
@@ -116,3 +118,4 @@ Record the accounts used for App Review:
 - [ ] No ngrok/local URLs in release build.
 - [ ] Owner/tester accounts are verified.
 - [ ] Blocking issues are logged before any later public App Review submission.
+

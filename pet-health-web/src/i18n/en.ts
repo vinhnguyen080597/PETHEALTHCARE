@@ -169,6 +169,8 @@ const en = {
   "supportHub.searchHint":
     "Tip: search guides or feedback topics. Blacklist checks demo samples plus admin-reviewed scam identifiers.",
   "supportHub.contactHours": "Support hours: 08:30 – 17:30 (Mon–Fri). Typical reply within 24–48 business hours.",
+  "supportHub.contactEmailLabel": "Customer support",
+  "supportHub.legalEmailLabel": "Legal / reports",
   "supportHub.loginRequired": "Sign in to send feedback or scam reports to PetCare admins.",
   "supportHub.loginCta": "Sign in to continue",
   "supportHub.submitting": "Sending…",
