@@ -15,7 +15,7 @@ const baseConfig = {
   name: 'PetCare: Pet Marketplace',
   slug: 'pet-health-care',
   scheme: 'pethealthcare',
-  version: '1.1.3',
+  version: '1.1.4',
   orientation: 'portrait',
   icon: './assets/brand/PetMarketAvatar.png',
   userInterfaceStyle: 'light',

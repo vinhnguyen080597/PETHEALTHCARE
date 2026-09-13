@@ -9,28 +9,36 @@ const SITE_ORIGIN = (process.env.EXPO_PUBLIC_SITE_ORIGIN || 'https://pet-marketp
 
 const PAGES = [
   {
-    name: 'Legal Center',
+    name: 'Homepage legal footer',
     url: `${SITE_ORIGIN}/`,
-    mustContain: ['Privacy Policy', 'Terms of Service'],
+    mustContain: ['href="/privacy-policy"', 'href="/terms-of-service"'],
   },
   {
     name: 'Privacy Policy',
-    url: `${SITE_ORIGIN}/privacy-policy/`,
-    mustContain: [CONTACT_EMAIL, 'Privacy Policy', 'Decree 13'],
+    url: `${SITE_ORIGIN}/privacy-policy`,
+    mustContain: [CONTACT_EMAIL],
+    mustContainAny: [['Decree 13', 'Nghị định 13'], ['Privacy Policy', 'Chính sách bảo mật']],
   },
   {
     name: 'Terms of Service',
-    url: `${SITE_ORIGIN}/terms-of-service/`,
-    mustContain: [CONTACT_EMAIL, 'Terms of Service', 'NOT the seller'],
+    url: `${SITE_ORIGIN}/terms-of-service`,
+    mustContain: [CONTACT_EMAIL],
+    mustContainAny: [
+      ['NOT the seller', 'KHÔNG phải là người bán'],
+      ['Terms of Service', 'Điều khoản dịch vụ'],
+    ],
   },
   {
     name: 'Marketplace Guidelines',
-    url: `${SITE_ORIGIN}/marketplace-guidelines/`,
-    mustContain: ['Marketplace Guidelines', 'does NOT itself provide pet shipping'],
+    url: `${SITE_ORIGIN}/marketplace-guidelines`,
+    mustContainAny: [
+      ['does NOT itself provide pet shipping', 'KHÔNG trực tiếp cung cấp dịch vụ vận chuyển'],
+      ['Marketplace Guidelines', 'Nội quy Marketplace'],
+    ],
   },
   {
     name: 'Support',
-    url: `${SITE_ORIGIN}/support/`,
+    url: `${SITE_ORIGIN}/support`,
     mustContain: [SUPPORT_EMAIL, CONTACT_EMAIL, 'mailto:'],
   },
 ];
@@ -43,10 +51,14 @@ async function fetchText(url) {
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: { Accept: 'text/html,application/xhtml+xml' },
+      redirect: 'follow',
+      headers: {
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
     });
     const text = await response.text();
-    return { ok: response.ok, status: response.status, text };
+    return { ok: response.ok, status: response.status, url: response.url, text };
   } finally {
     clearTimeout(timer);
   }
@@ -71,14 +83,20 @@ async function verifyPage(page) {
     return;
   }
 
-  for (const needle of page.mustContain) {
+  for (const needle of page.mustContain || []) {
     if (!result.text.includes(needle)) {
-      fail(`${page.name} (${page.url}) missing expected content: "${needle}"`);
+      fail(`${page.name} (${result.url}) missing expected content: "${needle}"`);
+    }
+  }
+
+  for (const group of page.mustContainAny || []) {
+    if (!group.some((needle) => result.text.includes(needle))) {
+      fail(`${page.name} (${result.url}) missing one of: ${group.map((item) => `"${item}"`).join(', ')}`);
     }
   }
 
   if (process.exitCode !== 1) {
-    console.log(`OK  ${page.name} -> ${page.url}`);
+    console.log(`OK  ${page.name} -> ${result.url}`);
   }
 }
 
@@ -89,7 +107,7 @@ async function main() {
   }
 
   if (process.exitCode === 1) {
-    console.error('\nPublic link verification failed. Deploy /docs to GitHub Pages, then rerun yarn release:verify:public-links.');
+    console.error('\nPublic link verification failed. Deploy pet-health-web to pet-marketplace.org, then rerun yarn release:verify:public-links.');
     process.exit(1);
   }
 
