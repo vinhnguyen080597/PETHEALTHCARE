@@ -5,20 +5,32 @@ import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { AdminConsole } from "@/components/admin/AdminConsole";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
+import { adminGuestLoginHref } from "@/lib/admin/consoleNav";
 
 export const metadata = { title: "Admin" };
 
-export default async function AdminPage() {
+type Search = {
+  section?: string | string[];
+  type?: string | string[];
+  focus?: string | string[];
+};
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<Search>;
+}) {
   const jar = await cookies();
   const lang = getLang({ cookie: jar.get(COOKIE_LANG)?.value });
   const session = await getSessionUser();
+  const sp = await searchParams;
 
   if (!session.isLoggedIn) {
     return (
       <div className="max-w-md mx-auto px-5 py-16 text-center">
         <p className="text-[#5C4A3A] mb-4">{t(lang, "account.notLoggedIn")}</p>
         <Link
-          href="/login?next=/app/admin"
+          href={adminGuestLoginHref(sp)}
           className="inline-block px-6 py-2.5 bg-[#D97706] text-white text-sm font-semibold rounded-full"
         >
           {t(lang, "auth.login")}

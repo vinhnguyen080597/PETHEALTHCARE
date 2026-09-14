@@ -56,9 +56,12 @@ export function requestStatusGroup(
     if (item.status === "pending_review") return "waiting";
     return "resolved";
   }
+  // Listings: only pending_review is an approval-queue item. deposit_hold / sold / etc.
+  // must not appear as "waiting" (those belong in Listings / Reports).
   if (item.status === "published") return "approved";
   if (item.status === "archived") return "rejected";
-  return "waiting";
+  if (item.status === "pending_review") return "waiting";
+  return "resolved";
 }
 
 export function breederGroup(
@@ -79,6 +82,32 @@ export function isBreederVerificationQueueItem(
   status: string | null | undefined,
 ): boolean {
   return status === "pending_review";
+}
+
+/** Only pending_review listings belong in Admin → Requests queue. */
+export function isListingModerationQueueItem(
+  status: string | null | undefined,
+): boolean {
+  return status === "pending_review";
+}
+
+/** i18n key for a request-queue type chip (`farm_review` uses camelCase copy). */
+export function requestTypeLabelKey(type: string): string {
+  if (type === "farm_review") return "admin.requests.type.farmReview";
+  return `admin.requests.type.${type}`;
+}
+
+/**
+ * Deep-link focus should not hide the item behind the default "waiting" filter.
+ * If the focused row lives in another bucket, switch the status dropdown to it.
+ */
+export function statusFilterForFocusedItem(
+  item: RequestStatusInput | null | undefined,
+  current: RequestStatus,
+): RequestStatus {
+  if (!item || current === "all") return current;
+  const group = requestStatusGroup(item);
+  return current === group ? current : group;
 }
 
 export function passesDateFilter(

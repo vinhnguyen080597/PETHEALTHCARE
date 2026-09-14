@@ -5,9 +5,12 @@ import {
   breederGroup,
   historyActionI18nKey,
   isBreederVerificationQueueItem,
+  isListingModerationQueueItem,
   passesDateFilter,
   requestStatusGroup,
+  requestTypeLabelKey,
   sortByDate,
+  statusFilterForFocusedItem,
 } from "../src/lib/admin/filters";
 
 test("requestStatusGroup maps request statuses for filters", () => {
@@ -24,6 +27,8 @@ test("requestStatusGroup maps request statuses for filters", () => {
   assert.equal(requestStatusGroup({ type: "post", status: "published" }), "approved");
   assert.equal(requestStatusGroup({ type: "post", status: "archived" }), "rejected");
   assert.equal(requestStatusGroup({ type: "post", status: "pending_review" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "post", status: "deposit_hold" }), "resolved");
+  assert.equal(requestStatusGroup({ type: "post", status: "sold" }), "resolved");
   assert.equal(requestStatusGroup({ type: "detail", status: "pending" }), "waiting");
   assert.equal(requestStatusGroup({ type: "detail", status: "approved" }), "approved");
   assert.equal(requestStatusGroup({ type: "detail", status: "rejected" }), "rejected");
@@ -38,6 +43,33 @@ test("isBreederVerificationQueueItem only includes pending_review", () => {
   assert.equal(isBreederVerificationQueueItem("verified"), false);
   assert.equal(isBreederVerificationQueueItem("rejected"), false);
   assert.equal(isBreederVerificationQueueItem(null), false);
+});
+
+test("isListingModerationQueueItem only includes pending_review listings", () => {
+  assert.equal(isListingModerationQueueItem("pending_review"), true);
+  assert.equal(isListingModerationQueueItem("published"), false);
+  assert.equal(isListingModerationQueueItem("deposit_hold"), false);
+  assert.equal(isListingModerationQueueItem("archived"), false);
+});
+
+test("requestTypeLabelKey maps farm_review to camelCase i18n key", () => {
+  assert.equal(requestTypeLabelKey("farm_review"), "admin.requests.type.farmReview");
+  assert.equal(requestTypeLabelKey("post"), "admin.requests.type.post");
+});
+
+test("statusFilterForFocusedItem widens waiting when the focused row is elsewhere", () => {
+  assert.equal(
+    statusFilterForFocusedItem({ type: "report", status: "reviewed" }, "waiting"),
+    "resolved",
+  );
+  assert.equal(
+    statusFilterForFocusedItem({ type: "post", status: "pending_review" }, "waiting"),
+    "waiting",
+  );
+  assert.equal(
+    statusFilterForFocusedItem({ type: "report", status: "open" }, "all"),
+    "all",
+  );
 });
 
 test("breederGroup maps verification status buckets", () => {

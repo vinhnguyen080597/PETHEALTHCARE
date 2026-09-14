@@ -2,9 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import type { AdminSection, Lang } from "@/lib/types";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
+import {
+  ADMIN_NAV_ITEMS,
+  adminConsoleHref,
+  parseAdminConsoleSearch,
+  summarizeAdminLoadErrors,
+} from "@/lib/admin/consoleNav";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 import { DialogActions } from "@/components/ui/DialogActions";
 import {
@@ -15,13 +21,21 @@ import {
   HISTORY_ACTION_FILTERS,
   breederGroup,
   isBreederVerificationQueueItem,
+  isListingModerationQueueItem,
   passesDateFilter,
   requestStatusGroup,
+  requestTypeLabelKey,
   sortByDate,
+  statusFilterForFocusedItem,
   type DateFilter,
   type BreederGroup,
   type RequestStatus,
 } from "@/lib/admin/filters";
+import {
+  findRequestByFocusId,
+  isSafeHttpUrl,
+  requestQueueFocusId,
+} from "@/lib/admin/requestQueue";
 import {
   toggleExpandedReviewId,
   type AdminReviewBreeder,
@@ -167,18 +181,6 @@ const DEFAULT_FLAGS: FeatureFlags = {
 
 const ROLES = ["sen", "breeder", "admin"] as const;
 
-const navItems: { key: AdminSection; labelKey: EnKey; icon: string }[] = [
-  { key: "home", labelKey: "admin.nav.home", icon: "⌂" },
-  { key: "requests", labelKey: "admin.nav.requests", icon: "↓" },
-  { key: "listings", labelKey: "admin.nav.listings", icon: "◆" },
-  { key: "breeders", labelKey: "admin.nav.breeders", icon: "◎" },
-  { key: "reports", labelKey: "admin.nav.reports", icon: "!" },
-  { key: "history", labelKey: "admin.nav.history", icon: "☰" },
-  { key: "users", labelKey: "admin.nav.users", icon: "◉" },
-  { key: "features", labelKey: "admin.nav.features", icon: "⚑" },
-  { key: "news", labelKey: "admin.nav.news", icon: "✎" },
-];
-
 function StatusChip({ status, label }: { status: string; label?: string }) {
   const map: Record<string, string> = {
     waiting: "bg-amber-50 text-amber-800 border-amber-200",
@@ -219,6 +221,29 @@ function formatDate(value?: string) {
 function farmReviewKindLabel(kind: string, lang: Lang) {
   const safe = kind === "sale" || kind === "supplement" ? kind : "primary";
   return t(lang, `admin.farmReviews.kind.${safe}` as EnKey);
+}
+
+type RejectKind = "breeder" | "listing" | "detail" | "farm_review";
+
+function rejectModalTitleKey(kind: RejectKind): EnKey {
+  if (kind === "listing") return "admin.listings.rejectTitle";
+  if (kind === "farm_review") return "admin.farmReviews.rejectTitle";
+  if (kind === "detail") return "admin.details.rejectTitle";
+  return "admin.breeders.rejectTitle";
+}
+
+function rejectModalHintKey(kind: RejectKind): EnKey {
+  if (kind === "listing") return "admin.listings.rejectHint";
+  if (kind === "farm_review") return "admin.farmReviews.rejectHint";
+  if (kind === "detail") return "admin.details.rejectHint";
+  return "admin.breeders.rejectHint";
+}
+
+function rejectModalSubmitKey(kind: RejectKind): EnKey {
+  if (kind === "listing") return "admin.listings.reject";
+  if (kind === "farm_review") return "admin.farmReviews.reject";
+  if (kind === "detail") return "admin.details.reject";
+  return "admin.breeders.reject";
 }
 
 async function adminFetch(path: string, init?: RequestInit) {
@@ -319,8 +344,11 @@ function HealthEvidence({ lang, post }: { lang: Lang; post: PostRow }) {
 }
 
 export function AdminConsole({ lang }: { lang: Lang }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [section, setSection] = useState<AdminSection>("home");
+  const parsedSearch = parseAdminConsoleSearch(searchParams);
+  const section = parsedSearch.section;
+  const requestType: RequestType = parsedSearch.requestType ?? "all";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [breeders, setBreeders] = useState<BreederRow[]>([]);
@@ -336,9 +364,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [farmReviewApproveBlocked, setFarmReviewApproveBlocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const [focusRequestId, setFocusRequestId] = useState<string | null>(null);
+  const [focusRequestId, setFocusRequestId] = useState<string | null>(
+    parsedSearch.focus,
+  );
 
-  const [requestType, setRequestType] = useState<RequestType>("all");
   const [requestStatus, setRequestStatus] = useState<RequestStatus>("waiting");
   const [requestDate, setRequestDate] = useState<DateFilter>("newest");
   const [breederStatusFilter, setBreederStatusFilter] = useState<BreederGroup>("all");
@@ -389,17 +418,26 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const load = async () => {
     setLoading(true);
     setError("");
+    const loadErrors: string[] = [];
+    const loadPart = async (path: string, fallback: { data: unknown }) => {
+      try {
+        return await adminFetch(path);
+      } catch (err) {
+        loadErrors.push(err instanceof Error ? err.message : "error");
+        return fallback;
+      }
+    };
     try {
       const [p, b, r, a, f, d, w, st, fr] = await Promise.all([
-        adminFetch("/posts?status=").catch(() => ({ data: [] })),
-        adminFetch("/breeders").catch(() => ({ data: [] })),
-        adminFetch("/reports?status=").catch(() => ({ data: [] })),
-        adminFetch("/accounts").catch(() => ({ data: [] })),
-        adminFetch("/feature-flags").catch(() => ({ data: DEFAULT_FLAGS })),
-        adminFetch("/breeder-submissions?status=").catch(() => ({ data: [] })),
-        adminFetch("/transparency-warnings?status=").catch(() => ({ data: [] })),
-        adminFetch("/support-tickets?status=").catch(() => ({ data: [] })),
-        adminFetch("/farm-reviews?status=").catch(() => ({ data: [] })),
+        loadPart("/posts?status=", { data: [] }),
+        loadPart("/breeders", { data: [] }),
+        loadPart("/reports?status=", { data: [] }),
+        loadPart("/accounts", { data: [] }),
+        loadPart("/feature-flags", { data: DEFAULT_FLAGS }),
+        loadPart("/breeder-submissions?status=", { data: [] }),
+        loadPart("/transparency-warnings?status=", { data: [] }),
+        loadPart("/support-tickets?status=", { data: [] }),
+        loadPart("/farm-reviews?status=", { data: [] }),
       ]);
       setPosts(Array.isArray(p.data) ? p.data : []);
       setBreeders(Array.isArray(b.data) ? b.data : []);
@@ -413,6 +451,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         ? { ...DEFAULT_FLAGS, ...f.data }
         : DEFAULT_FLAGS;
       setFlags(flagData as FeatureFlags);
+      const loadKind = summarizeAdminLoadErrors(loadErrors);
+      if (loadKind === "forbidden") setError(t(lang, "admin.forbidden"));
+      else if (loadKind === "partial") setError(t(lang, "admin.loadPartialError"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t(lang, "common.error"));
     } finally {
@@ -426,43 +467,16 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   }, []);
 
   useEffect(() => {
-    const sectionParam = searchParams.get("section");
-    const typeParam = searchParams.get("type");
-    const focusParam = searchParams.get("focus");
-
-    const validSections = new Set(navItems.map((item) => item.key));
-    if (sectionParam && validSections.has(sectionParam as AdminSection)) {
-      setSection(sectionParam as AdminSection);
-    } else if (
-      typeParam === "breeder" ||
-      typeParam === "post" ||
-      typeParam === "report" ||
-      typeParam === "detail" ||
-      typeParam === "appeal" ||
-      typeParam === "feedback" ||
-      typeParam === "scam" ||
-      typeParam === "farm_review"
-    ) {
-      setSection("requests");
-    }
-
-    if (
-      typeParam === "breeder" ||
-      typeParam === "post" ||
-      typeParam === "report" ||
-      typeParam === "detail" ||
-      typeParam === "appeal" ||
-      typeParam === "feedback" ||
-      typeParam === "scam" ||
-      typeParam === "farm_review"
-    ) {
-      setRequestType(typeParam);
+    if (parsedSearch.section === "requests" && !parsedSearch.focus) {
       setRequestStatus("waiting");
     }
-    if (focusParam) {
-      setFocusRequestId(focusParam);
-    }
-  }, [searchParams]);
+    setFocusRequestId(parsedSearch.focus);
+  }, [parsedSearch.section, parsedSearch.requestType, parsedSearch.focus]);
+
+  useEffect(() => {
+    const el = document.getElementById("admin-console-main");
+    el?.scrollTo({ top: 0 });
+  }, [section]);
 
   const loadHistory = async (opts?: { append?: boolean; cursor?: string | null }) => {
     setHistoryLoading(true);
@@ -535,7 +549,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         "",
       profile,
     }));
-    const postItems: RequestItem[] = posts.map((post) => ({
+    const postItems: RequestItem[] = posts
+      .filter((post) => isListingModerationQueueItem(post.status))
+      .map((post) => ({
       id: `post-${post.id}`,
       type: "post",
       status: post.status || "pending_review",
@@ -643,24 +659,14 @@ export function AdminConsole({ lang }: { lang: Lang }) {
 
   useEffect(() => {
     if (!focusRequestId || loading || section !== "requests") return;
-    const matched = requestItems.find((item) => {
-      const rawId =
-        item.type === "breeder"
-          ? item.profile?.id
-          : item.type === "post"
-            ? item.post?.id
-            : item.type === "detail"
-              ? item.detail?.id
-              : item.type === "farm_review"
-                ? item.farmReview?.id
-                : item.type === "appeal"
-                ? item.appeal?.id
-                : item.type === "feedback" || item.type === "scam"
-                  ? item.ticket?.id
-                  : item.report?.id;
-      return rawId === focusRequestId;
-    });
-    if (matched) setExpandedReviewId(matched.id);
+    const matched = findRequestByFocusId(requestItems, focusRequestId);
+    if (!matched) return;
+    const nextStatus = statusFilterForFocusedItem(matched, requestStatus);
+    if (nextStatus !== requestStatus) {
+      setRequestStatus(nextStatus);
+      return;
+    }
+    setExpandedReviewId(matched.id);
     const timer = window.setTimeout(() => {
       const el = document.getElementById(`admin-request-${focusRequestId}`);
       if (!el) return;
@@ -1306,45 +1312,63 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 {
+                  key: "requests",
                   label: t(lang, "admin.home.metric.requests"),
                   value: pendingRequestCount,
-                  action: () => setSection("requests"),
+                  href: adminConsoleHref({ section: "requests" }),
+                  onNavigate: () => setRequestStatus("waiting"),
                 },
                 {
+                  key: "listings",
                   label: t(lang, "admin.home.metric.listings"),
                   value: pendingPosts.length,
-                  action: () => setSection("listings"),
+                  href: adminConsoleHref({ section: "listings" }),
+                  onNavigate: () => setListingStatusFilter("pending_review"),
                 },
                 {
+                  key: "breeders",
                   label: t(lang, "admin.home.metric.breeders"),
                   value: pendingBreeders.length,
-                  action: () => setSection("breeders"),
+                  href: adminConsoleHref({ section: "breeders" }),
+                  onNavigate: () => setBreederStatusFilter("waiting"),
                 },
                 {
+                  key: "reports",
                   label: t(lang, "admin.home.metric.reports"),
                   value: openReports.length,
-                  action: () => setSection("reports"),
+                  href: adminConsoleHref({ section: "reports" }),
+                  onNavigate: () => setReportStatusFilter("open"),
                 },
                 {
+                  key: "users",
                   label: t(lang, "admin.home.metric.users"),
                   value: accounts.length,
-                  action: () => setSection("users"),
+                  href: adminConsoleHref({ section: "users" }),
+                  onNavigate: undefined,
                 },
                 {
+                  key: "verified",
                   label: t(lang, "admin.home.metric.verified"),
                   value: verifiedBreeders.length,
-                  action: () => setSection("breeders"),
+                  href: adminConsoleHref({ section: "breeders" }),
+                  onNavigate: () => setBreederStatusFilter("active"),
                 },
               ].map((m) => (
-                <button
-                  key={m.label}
-                  type="button"
-                  onClick={m.action}
+                <Link
+                  key={m.key}
+                  href={m.href}
+                  onClick={m.onNavigate}
                   className="bg-white rounded-2xl border border-[#E8DFD0] p-5 text-left hover:border-[#D97706]/40 hover:shadow-sm transition-all"
                 >
-                  <p className="text-3xl font-bold mb-1 text-[#D97706]">{m.value}</p>
+                  <p
+                    className={`text-3xl font-bold mb-1 ${
+                      m.value > 0 ? "text-[#D97706]" : "text-[#C4B5A5]"
+                    }`}
+                  >
+                    {m.value}
+                  </p>
                   <p className="text-xs text-[#8B7355] font-medium">{m.label}</p>
-                </button>
+                </Link>
               ))}
             </div>
           </div>
@@ -1353,9 +1377,19 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       case "requests":
         return (
           <div>
-            <h1 className="text-xl font-bold text-[#2B1E19] mb-4">
-              {t(lang, "admin.requests.title")}
-            </h1>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h1 className="text-xl font-bold text-[#2B1E19]">
+                {t(lang, "admin.requests.title")}
+                <span className="ml-2 text-sm font-medium text-[#8B7355]">
+                  {filteredRequests.length}
+                </span>
+              </h1>
+              <ActionButton
+                label={t(lang, "admin.refresh")}
+                variant="ghost"
+                onClick={() => void load()}
+              />
+            </div>
             <div className="mb-4 rounded-2xl border border-[#E8DFD0] bg-white p-4">
               <p className="text-sm font-bold text-[#2B1E19] mb-3">
                 {t(lang, "admin.filters")}
@@ -1364,7 +1398,15 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 <FilterSelect
                   label={t(lang, "admin.filter.type")}
                   value={requestType}
-                  onChange={(v) => setRequestType(v as RequestType)}
+                  onChange={(v) => {
+                    const next = v as RequestType;
+                    router.replace(
+                      adminConsoleHref({
+                        section: "requests",
+                        type: next === "all" ? null : next,
+                      }),
+                    );
+                  }}
                   options={[
                     { value: "all", label: t(lang, "admin.filter.all") },
                     { value: "breeder", label: t(lang, "admin.requests.type.breeder") },
@@ -1404,20 +1446,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             </div>
             <div className="space-y-3">
               {filteredRequests.map((item) => {
-                const rawId =
-                  item.type === "breeder"
-                    ? item.profile?.id
-                    : item.type === "post"
-                      ? item.post?.id
-                      : item.type === "detail"
-                        ? item.detail?.id
-                        : item.type === "farm_review"
-                          ? item.farmReview?.id
-                          : item.type === "appeal"
-                            ? item.appeal?.id
-                            : item.type === "feedback" || item.type === "scam"
-                              ? item.ticket?.id
-                              : item.report?.id;
+                const rawId = requestQueueFocusId(item);
                 const focused = Boolean(focusRequestId && rawId === focusRequestId);
                 const detailsOpen = expandedReviewId === item.id;
                 const linkedPost =
@@ -1445,7 +1474,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <StatusChip
                       status={requestStatusGroup(item)}
-                      label={t(lang, `admin.requests.type.${item.type}` as EnKey)}
+                      label={t(lang, requestTypeLabelKey(item.type) as EnKey)}
                     />
                     <StatusChip
                       status={item.status}
@@ -1456,9 +1485,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                               item.type === "feedback" ||
                               item.type === "scam"
                             ? reportStatusLabel(item.status)
-                            : item.type === "detail" || item.type === "farm_review"
-                              ? item.status
-                            : item.status
+                            : t(
+                                lang,
+                                `admin.requests.status.${requestStatusGroup(item)}` as EnKey,
+                              )
                       }
                     />
                     <span className="text-xs text-[#B8A990]">
@@ -1536,6 +1566,31 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                       ) : null}
                     </div>
                   ) : null}
+                  {detailsOpen && item.appeal ? (
+                    <div className="mt-3 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FDFBF7] p-3 text-sm text-[#5C4A3A]">
+                      <p>
+                        <span className="font-semibold text-[#2B1E19]">
+                          {t(lang, "admin.appeals.score")}:{" "}
+                        </span>
+                        {item.appeal.score_at_trigger}/100
+                      </p>
+                      <p>
+                        <span className="font-semibold text-[#2B1E19]">
+                          {t(lang, "admin.appeals.penalty")}:{" "}
+                        </span>
+                        {item.appeal.penalty_points_at_trigger}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-[#2B1E19]">
+                          {t(lang, "admin.filter.status")}:{" "}
+                        </span>
+                        {item.appeal.status}
+                      </p>
+                      {item.appeal.admin_note ? (
+                        <p className="whitespace-pre-wrap">{item.appeal.admin_note}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {detailsOpen && item.ticket ? (
                     <div className="mt-3 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FDFBF7] p-3 text-sm text-[#5C4A3A]">
                       {item.ticket.kind === "feedback" ? (
@@ -1572,7 +1627,18 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                               <span className="font-semibold text-[#2B1E19]">
                                 {t(lang, "admin.support.relatedUrl")}:{" "}
                               </span>
-                              {item.ticket.related_url}
+                              {isSafeHttpUrl(item.ticket.related_url) ? (
+                                <a
+                                  href={item.ticket.related_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[#D97706] underline"
+                                >
+                                  {item.ticket.related_url}
+                                </a>
+                              ) : (
+                                item.ticket.related_url
+                              )}
                             </p>
                           ) : null}
                           <p>
@@ -1593,22 +1659,24 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                             {t(lang, "admin.support.evidence")}
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {item.ticket.evidence_urls.map((url) => (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <a
-                                key={url}
-                                href={url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block"
-                              >
-                                <img
-                                  src={url}
-                                  alt=""
-                                  className="h-16 w-16 rounded-lg object-cover border border-[#E8DFD0] bg-white"
-                                />
-                              </a>
-                            ))}
+                            {item.ticket.evidence_urls.map((url) =>
+                              isSafeHttpUrl(url) ? (
+                                <a
+                                  key={url}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={url}
+                                    alt=""
+                                    className="h-16 w-16 rounded-lg object-cover border border-[#E8DFD0] bg-white"
+                                  />
+                                </a>
+                              ) : null,
+                            )}
                           </div>
                         </div>
                       ) : null}
@@ -1629,7 +1697,11 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 );
               })}
               {filteredRequests.length === 0 && (
-                <p className="text-sm text-[#8B7355]">{t(lang, "admin.requests.empty")}</p>
+                <p className="text-sm text-[#8B7355]">
+                  {focusRequestId && !findRequestByFocusId(requestItems, focusRequestId)
+                    ? t(lang, "admin.requests.focusMissing")
+                    : t(lang, "admin.requests.empty")}
+                </p>
               )}
             </div>
           </div>
@@ -2465,12 +2537,17 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               {t(lang, "admin.console")}
             </p>
           </div>
-          <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-            {navItems.map((item) => (
-              <button
+          <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto" aria-label={t(lang, "admin.console")}>
+            {ADMIN_NAV_ITEMS.map((item) => (
+              <Link
                 key={item.key}
-                type="button"
-                onClick={() => setSection(item.key)}
+                href={adminConsoleHref({ section: item.key })}
+                aria-current={section === item.key ? "page" : undefined}
+                onClick={() => {
+                  if (item.key === "listings") setListingStatusFilter("all");
+                  if (item.key === "breeders") setBreederStatusFilter("all");
+                  if (item.key === "reports") setReportStatusFilter("open");
+                }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
                   section === item.key
                     ? "bg-[#FFF1DE] text-[#B45309]"
@@ -2479,7 +2556,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               >
                 <span className="w-5 text-center text-[#D97706]">{item.icon}</span>
                 {t(lang, item.labelKey)}
-              </button>
+              </Link>
             ))}
           </nav>
           <div className="p-3 border-t border-[#E8DFD0]">
@@ -2495,24 +2572,30 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         <div className="lg:hidden bg-white border-b border-[#E8DFD0] px-4 py-2">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-[#2B1E19]">
-              {t(lang, navItems.find((n) => n.key === section)?.labelKey || "admin.console")}
+              {t(lang, ADMIN_NAV_ITEMS.find((n) => n.key === section)?.labelKey || "admin.console")}
             </p>
             <button
               type="button"
               onClick={() => setMobileNavOpen(!mobileNavOpen)}
-              className="text-[#8B7355]"
+              className="text-[#8B7355] w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#FDF8F0]"
+              aria-expanded={mobileNavOpen}
+              aria-controls="admin-mobile-nav"
+              aria-label={t(lang, "admin.nav.menu")}
             >
               ☰
             </button>
           </div>
           {mobileNavOpen && (
-            <div className="grid grid-cols-4 gap-1 pt-2 pb-1">
-              {navItems.map((item) => (
-                <button
+            <div id="admin-mobile-nav" className="grid grid-cols-3 sm:grid-cols-4 gap-1 pt-2 pb-1">
+              {ADMIN_NAV_ITEMS.map((item) => (
+                <Link
                   key={item.key}
-                  type="button"
+                  href={adminConsoleHref({ section: item.key })}
+                  aria-current={section === item.key ? "page" : undefined}
                   onClick={() => {
-                    setSection(item.key);
+                    if (item.key === "listings") setListingStatusFilter("all");
+                    if (item.key === "breeders") setBreederStatusFilter("all");
+                    if (item.key === "reports") setReportStatusFilter("open");
                     setMobileNavOpen(false);
                   }}
                   className={`flex flex-col items-center gap-1 p-2 rounded-lg text-[10px] font-medium ${
@@ -2523,15 +2606,21 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 >
                   <span>{item.icon}</span>
                   {t(lang, item.labelKey)}
-                </button>
+                </Link>
               ))}
             </div>
           )}
         </div>
 
-        <main className="flex-1 p-5 lg:p-8 overflow-y-auto">
+        <main
+          id="admin-console-main"
+          className="flex-1 p-5 lg:p-8 overflow-y-auto"
+        >
           {error ? (
-            <div className="mb-4 bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-700">
+            <div
+              role="alert"
+              className="mb-4 bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-700"
+            >
               {error}
             </div>
           ) : null}
@@ -2542,20 +2631,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#2B1E19]/40 p-4">
           <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[#E8DFD0] bg-white p-5 shadow-xl">
             <h3 className="text-base font-bold text-[#2B1E19]">
-              {t(
-                lang,
-                rejectTarget.kind === "listing"
-                  ? "admin.listings.rejectTitle"
-                  : "admin.breeders.rejectTitle",
-              )}
+              {t(lang, rejectModalTitleKey(rejectTarget.kind))}
             </h3>
             <p className="mt-1 text-xs text-[#8B7355]">
-              {t(
-                lang,
-                rejectTarget.kind === "listing"
-                  ? "admin.listings.rejectHint"
-                  : "admin.breeders.rejectHint",
-              )}
+              {t(lang, rejectModalHintKey(rejectTarget.kind))}
             </p>
             <label className="mt-4 block text-xs font-semibold text-[#6E5A51]">
               {t(
@@ -2682,12 +2761,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 onClick={() => void submitReject()}
                 className="flex-1 rounded-full bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {t(
-                  lang,
-                  rejectTarget.kind === "listing"
-                    ? "admin.listings.reject"
-                    : "admin.breeders.reject",
-                )}
+                {t(lang, rejectModalSubmitKey(rejectTarget.kind))}
               </button>
             </DialogActions>
           </div>

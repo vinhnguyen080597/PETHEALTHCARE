@@ -83,7 +83,7 @@ export function SiteHeader({
             <BrandWordmark text={t(lang, "nav.brand")} />
             {isAdmin && (
               <span className="ml-1.5 text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded">
-                Admin
+                {t(lang, "nav.admin")}
               </span>
             )}
           </div>
@@ -147,7 +147,12 @@ export function SiteHeader({
           {isAdmin && (
             <Link
               href="/app/admin"
-              className="hidden md:flex items-center gap-2 ml-1 px-3.5 py-1.5 bg-stone-900 text-white text-sm font-medium rounded-full hover:bg-stone-800 transition-colors"
+              aria-current={pathname === "/app/admin" ? "page" : undefined}
+              className={`hidden md:flex items-center gap-2 ml-1 px-3.5 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                pathname === "/app/admin"
+                  ? "bg-stone-900 text-white ring-2 ring-amber-400/80"
+                  : "bg-stone-900 text-white hover:bg-stone-800"
+              }`}
             >
               {t(lang, "nav.admin")}
             </Link>
@@ -253,7 +258,12 @@ export function SiteHeader({
             <Link
               href="/app/admin"
               onClick={() => setMenuOpen(false)}
-              className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
+              aria-current={pathname === "/app/admin" ? "page" : undefined}
+              className={`text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-amber-50 ${
+                pathname === "/app/admin"
+                  ? "bg-amber-50 text-amber-800"
+                  : "text-stone-700"
+              }`}
             >
               {t(lang, "nav.admin")}
             </Link>

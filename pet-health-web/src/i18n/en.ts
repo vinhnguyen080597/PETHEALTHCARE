@@ -1434,6 +1434,9 @@ const en = {
   "admin.home.metric.reports": "Open reports",
   "admin.home.metric.users": "Users",
   "admin.home.metric.verified": "Verified breeders",
+  "admin.nav.menu": "Admin sections",
+  "admin.loadPartialError":
+    "Could not load some admin data. Numbers may be incomplete.",
   "admin.refresh": "Refresh",
   "admin.empty": "Nothing here yet.",
   "admin.toast.updated": "Updated.",
@@ -1455,11 +1458,16 @@ const en = {
   "admin.requests.type.feedback": "Feedback",
   "admin.requests.type.scam": "Scam report",
   "admin.requests.type.farmReview": "Farm review",
+  "admin.requests.focusMissing":
+    "This request is not in the current queue. It may already be resolved.",
   "admin.farmReviews.kind.primary": "Direct review",
   "admin.farmReviews.kind.sale": "Sale review",
   "admin.farmReviews.kind.supplement": "Update",
   "admin.farmReviews.approve": "Approve review",
   "admin.farmReviews.reject": "Reject review",
+  "admin.farmReviews.rejectTitle": "Reject farm review",
+  "admin.farmReviews.rejectHint":
+    "The review will stay hidden from the farm profile. Give a short reason for the log.",
   "admin.farmReviews.approveUpdateBlockedTitle": "Approve the main review first",
   "admin.farmReviews.approveUpdateBlockedBody":
     "This update cannot be approved until the direct review is approved.",
@@ -1535,6 +1543,9 @@ const en = {
   "admin.review.detailBreeder": "Breeder",
   "admin.details.approve": "Approve detail",
   "admin.details.reject": "Reject detail",
+  "admin.details.rejectTitle": "Reject transparency detail",
+  "admin.details.rejectHint":
+    "The submitted document or link will not be published. A reason is required.",
   "admin.appeals.uphold": "Uphold suspend",
   "admin.appeals.restore": "Restore account",
   "admin.appeals.score": "Score at trigger",

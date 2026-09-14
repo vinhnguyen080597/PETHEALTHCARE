@@ -1436,6 +1436,9 @@ const vi: Record<EnKey, string> = {
   "admin.home.metric.reports": "Báo cáo mở",
   "admin.home.metric.users": "Users",
   "admin.home.metric.verified": "Breeder đã xác minh",
+  "admin.nav.menu": "Mục Admin",
+  "admin.loadPartialError":
+    "Không tải được một phần dữ liệu admin. Số liệu có thể chưa đủ.",
   "admin.refresh": "Làm mới",
   "admin.empty": "Chưa có dữ liệu.",
   "admin.toast.updated": "Đã cập nhật.",
@@ -1457,11 +1460,16 @@ const vi: Record<EnKey, string> = {
   "admin.requests.type.feedback": "Góp ý",
   "admin.requests.type.scam": "Báo cáo scam",
   "admin.requests.type.farmReview": "Đánh giá trại",
+  "admin.requests.focusMissing":
+    "Không tìm thấy yêu cầu này trong hàng chờ. Có thể đã được xử lý.",
   "admin.farmReviews.kind.primary": "Đánh giá trực tiếp",
   "admin.farmReviews.kind.sale": "Đánh giá giao dịch",
   "admin.farmReviews.kind.supplement": "Cập nhật",
   "admin.farmReviews.approve": "Duyệt đánh giá",
   "admin.farmReviews.reject": "Từ chối đánh giá",
+  "admin.farmReviews.rejectTitle": "Từ chối đánh giá trại",
+  "admin.farmReviews.rejectHint":
+    "Đánh giá sẽ không hiện trên hồ sơ trại. Ghi rõ lý do để lưu log.",
   "admin.farmReviews.approveUpdateBlockedTitle": "Cần duyệt đánh giá chính trước",
   "admin.farmReviews.approveUpdateBlockedBody":
     "Không thể duyệt bản cập nhật khi đánh giá trực tiếp vẫn đang chờ. Hãy duyệt đánh giá chính trước.",
@@ -1537,6 +1545,9 @@ const vi: Record<EnKey, string> = {
   "admin.review.detailBreeder": "Breeder",
   "admin.details.approve": "Duyệt chi tiết",
   "admin.details.reject": "Từ chối chi tiết",
+  "admin.details.rejectTitle": "Từ chối chi tiết minh bạch",
+  "admin.details.rejectHint":
+    "Tài liệu hoặc liên kết này sẽ không được công khai. Bắt buộc nhập lý do.",
   "admin.appeals.uphold": "Giữ tạm khóa",
   "admin.appeals.restore": "Khôi phục tài khoản",
   "admin.appeals.score": "Điểm lúc cảnh báo",
