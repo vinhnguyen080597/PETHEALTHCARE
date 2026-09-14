@@ -8,6 +8,7 @@ import {
   adminListingContactEntries,
   adminListingMediaUrls,
   adminListingSpecRows,
+  breederPublicHref,
   dealDisputeFromPost,
   healthEvidenceUrlsFromMetadata,
   isDealDisputeReport,
@@ -221,14 +222,15 @@ export function AdminBreederReviewDetail({
   const contact = adminListingContactEntries(profile.contact);
   const policies = (profile.warranty_policies || []).filter((p) => p?.title);
   const avatar = String(profile.avatar_url || "").trim();
+  const avatarSafe = isSafeHttpUrl(avatar) ? avatar : "";
 
   return (
     <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
       <div className="flex items-start gap-3">
-        {avatar ? (
+        {avatarSafe ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={avatar}
+            src={avatarSafe}
             alt=""
             className="h-14 w-14 rounded-full object-cover border border-[#E8DFD0]"
           />
@@ -241,7 +243,7 @@ export function AdminBreederReviewDetail({
           </p>
           {profile.id ? (
             <Link
-              href={`/app/breeders/${encodeURIComponent(profile.id)}`}
+              href={breederPublicHref(profile.id)}
               className="text-xs font-semibold text-[#B45309] hover:underline"
             >
               {t(lang, "admin.review.breeder")}

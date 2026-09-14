@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   HISTORY_ACTION_FILTERS,
   breederGroup,
+  breederVerifyConfirmKey,
   historyActionI18nKey,
   isBreederVerificationQueueItem,
   isListingModerationQueueItem,
@@ -77,6 +78,15 @@ test("breederGroup maps verification status buckets", () => {
   assert.equal(breederGroup({ verification_status: "rejected" }), "inactive");
   assert.equal(breederGroup({ verification_status: "suspended" }), "inactive");
   assert.equal(breederGroup({ verification_status: "pending_review" }), "waiting");
+  assert.equal(breederGroup({ verification_status: "unverified" }), "draft");
+  assert.equal(breederGroup({}), "draft");
+});
+
+test("breederVerifyConfirmKey skips pending_review and confirms restore/bypass", () => {
+  assert.equal(breederVerifyConfirmKey("pending_review"), null);
+  assert.equal(breederVerifyConfirmKey("rejected"), "admin.breeders.confirmRestore");
+  assert.equal(breederVerifyConfirmKey("suspended"), "admin.breeders.confirmRestore");
+  assert.equal(breederVerifyConfirmKey("unverified"), "admin.breeders.confirmVerify");
 });
 
 test("passesDateFilter today/week use injectable now", () => {

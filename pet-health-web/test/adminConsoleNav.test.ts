@@ -26,12 +26,14 @@ test("parseAdminConsoleSearch defaults to home and ignores invalid values", () =
     requestType: null,
     focus: null,
     listingStatus: null,
+    breederStatus: null,
   });
   assert.deepEqual(parseAdminConsoleSearch({ section: "hack", type: "nope" }), {
     section: "home",
     requestType: null,
     focus: null,
     listingStatus: null,
+    breederStatus: null,
   });
 });
 
@@ -41,6 +43,7 @@ test("parseAdminConsoleSearch treats a request type as the requests section", ()
     requestType: "breeder",
     focus: "bp-1",
     listingStatus: null,
+    breederStatus: null,
   });
 });
 
@@ -56,6 +59,7 @@ test("parseAdminConsoleSearch keeps a valid section over a stray type", () => {
       requestType: null,
       focus: null,
       listingStatus: "all",
+      breederStatus: null,
     },
   );
 });
@@ -69,6 +73,7 @@ test("parseAdminConsoleSearch reads URLSearchParams", () => {
     requestType: "farm_review",
     focus: "rev-1",
     listingStatus: null,
+    breederStatus: null,
   });
 });
 
@@ -126,6 +131,15 @@ test("nav labels and new home/auth copy exist in EN and VI", () => {
   assert.ok(vi["admin.nav.menu"]);
   assert.ok(en["admin.loadPartialError"]);
   assert.ok(vi["admin.loadPartialError"]);
+  for (const key of [
+    "admin.breeders.status.draft",
+    "admin.breeders.viewPublic",
+    "admin.breeders.confirmVerify",
+    "admin.breeders.confirmRestore",
+  ] as const) {
+    assert.ok(en[key], `missing EN ${key}`);
+    assert.ok(vi[key], `missing VI ${key}`);
+  }
 });
 
 test("notification admin deep links parse back into the requests section", () => {
@@ -139,6 +153,7 @@ test("notification admin deep links parse back into the requests section", () =>
     requestType: "post",
     focus: "post-9",
     listingStatus: null,
+    breederStatus: null,
   });
 });
 
@@ -153,6 +168,7 @@ test("listings status query is shareable and ignored on other sections", () => {
       requestType: null,
       focus: null,
       listingStatus: "pending_review",
+      breederStatus: null,
     },
   );
   assert.equal(
@@ -170,6 +186,56 @@ test("listings status query is shareable and ignored on other sections", () => {
     parseAdminConsoleSearch({ section: "requests", status: "published" })
       .listingStatus,
     null,
+  );
+});
+
+test("breeders status query is shareable and ignored on listings", () => {
+  assert.deepEqual(
+    parseAdminConsoleSearch({
+      section: "breeders",
+      status: "waiting",
+    }),
+    {
+      section: "breeders",
+      requestType: null,
+      focus: null,
+      listingStatus: null,
+      breederStatus: "waiting",
+    },
+  );
+  assert.equal(
+    adminConsoleHref({
+      section: "breeders",
+      breederStatus: "waiting",
+    }),
+    `${ADMIN_CONSOLE_PATH}?section=breeders&status=waiting`,
+  );
+  assert.equal(
+    adminConsoleHref({ section: "breeders", breederStatus: "all" }),
+    `${ADMIN_CONSOLE_PATH}?section=breeders`,
+  );
+  assert.equal(
+    parseAdminConsoleSearch({ section: "listings", status: "waiting" })
+      .listingStatus,
+    "all",
+  );
+  assert.equal(
+    parseAdminConsoleSearch({ section: "listings", status: "waiting" })
+      .breederStatus,
+    null,
+  );
+  assert.equal(
+    parseAdminConsoleSearch({
+      section: "breeders",
+      status: "pending_review",
+    }).breederStatus,
+    "all",
+  );
+  assert.equal(
+    adminConsoleHref(
+      parseAdminConsoleSearch({ section: "breeders", status: "active" }),
+    ),
+    `${ADMIN_CONSOLE_PATH}?section=breeders&status=active`,
   );
 });
 

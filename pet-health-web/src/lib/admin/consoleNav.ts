@@ -1,6 +1,10 @@
 import type { EnKey } from "../../i18n";
 import { loginHref } from "../loginHref";
 import type { AdminSection } from "../types";
+import {
+  BREEDER_STATUS_FILTERS,
+  type BreederGroup,
+} from "./filters";
 
 export const ADMIN_CONSOLE_PATH = "/app/admin";
 
@@ -40,11 +44,15 @@ export const ADMIN_LISTING_STATUS_FILTERS = [
 
 export type AdminListingStatusFilter = (typeof ADMIN_LISTING_STATUS_FILTERS)[number];
 
+export const ADMIN_BREEDER_STATUS_FILTERS = BREEDER_STATUS_FILTERS;
+export type AdminBreederStatusFilter = BreederGroup;
+
 export type AdminConsoleSearch = {
   section: AdminSection;
   requestType: AdminRequestType | null;
   focus: string | null;
   listingStatus: AdminListingStatusFilter | null;
+  breederStatus: AdminBreederStatusFilter | null;
 };
 
 export type AdminConsoleSearchInput =
@@ -118,6 +126,12 @@ export function isAdminListingStatus(
   return (ADMIN_LISTING_STATUS_FILTERS as readonly string[]).includes(String(value || ""));
 }
 
+export function isAdminBreederStatus(
+  value: string | null | undefined,
+): value is AdminBreederStatusFilter {
+  return (ADMIN_BREEDER_STATUS_FILTERS as readonly string[]).includes(String(value || ""));
+}
+
 /** Parse /app/admin?section=&type=&focus=&status= — invalid values are ignored. */
 export function parseAdminConsoleSearch(
   input: AdminConsoleSearchInput,
@@ -141,11 +155,19 @@ export function parseAdminConsoleSearch(
         ? "all"
         : null;
 
+  const breederStatus =
+    section === "breeders" && isAdminBreederStatus(statusParam) && statusParam !== "all"
+      ? statusParam
+      : section === "breeders"
+        ? "all"
+        : null;
+
   return {
     section,
     requestType: section === "requests" ? requestType : null,
     focus: section === "requests" ? focusParam : null,
     listingStatus,
+    breederStatus,
   };
 }
 
@@ -155,7 +177,8 @@ export function adminConsoleHref(opts?: {
   requestType?: AdminRequestType | null;
   focus?: string | null;
   listingStatus?: AdminListingStatusFilter | null;
-  status?: AdminListingStatusFilter | null;
+  breederStatus?: AdminBreederStatusFilter | null;
+  status?: AdminListingStatusFilter | AdminBreederStatusFilter | null;
 }): string {
   const section = opts?.section ?? "home";
   const typeCandidate = opts?.type ?? opts?.requestType ?? null;
@@ -163,21 +186,33 @@ export function adminConsoleHref(opts?: {
     section === "requests" && isAdminRequestType(typeCandidate) ? typeCandidate : null;
   const focus =
     section === "requests" && opts?.focus?.trim() ? opts.focus.trim() : null;
-  const listingStatusCandidate = opts?.listingStatus ?? opts?.status ?? null;
+  const listingStatusCandidate =
+    opts?.listingStatus ?? (section === "listings" ? opts?.status : null) ?? null;
   const listingStatus =
     section === "listings" &&
     isAdminListingStatus(listingStatusCandidate) &&
     listingStatusCandidate !== "all"
       ? listingStatusCandidate
       : null;
+  const breederStatusCandidate =
+    opts?.breederStatus ?? (section === "breeders" ? opts?.status : null) ?? null;
+  const breederStatus =
+    section === "breeders" &&
+    isAdminBreederStatus(breederStatusCandidate) &&
+    breederStatusCandidate !== "all"
+      ? breederStatusCandidate
+      : null;
 
-  if (section === "home" && !type && !focus && !listingStatus) return ADMIN_CONSOLE_PATH;
+  if (section === "home" && !type && !focus && !listingStatus && !breederStatus) {
+    return ADMIN_CONSOLE_PATH;
+  }
 
   const qs = new URLSearchParams();
   qs.set("section", section);
   if (type) qs.set("type", type);
   if (focus) qs.set("focus", focus);
   if (listingStatus) qs.set("status", listingStatus);
+  if (breederStatus) qs.set("status", breederStatus);
   return `${ADMIN_CONSOLE_PATH}?${qs.toString()}`;
 }
 

@@ -6,11 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import {
+  ADMIN_BREEDER_STATUS_FILTERS,
   ADMIN_LISTING_STATUS_FILTERS,
   ADMIN_NAV_ITEMS,
   adminConsoleHref,
   parseAdminConsoleSearch,
   summarizeAdminLoadErrors,
+  type AdminBreederStatusFilter,
   type AdminListingStatusFilter,
 } from "@/lib/admin/consoleNav";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
@@ -22,6 +24,7 @@ import {
 import {
   HISTORY_ACTION_FILTERS,
   breederGroup,
+  breederVerifyConfirmKey,
   isBreederVerificationQueueItem,
   isListingModerationQueueItem,
   passesDateFilter,
@@ -30,7 +33,6 @@ import {
   sortByDate,
   statusFilterForFocusedItem,
   type DateFilter,
-  type BreederGroup,
   type RequestStatus,
 } from "@/lib/admin/filters";
 import {
@@ -39,6 +41,7 @@ import {
   requestQueueFocusId,
 } from "@/lib/admin/requestQueue";
 import {
+  breederPublicHref,
   toggleExpandedReviewId,
   type AdminReviewBreeder,
   type AdminReviewPost,
@@ -358,6 +361,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const requestType: RequestType = parsedSearch.requestType ?? "all";
   const listingStatusFilter: AdminListingStatusFilter =
     parsedSearch.listingStatus ?? "all";
+  const breederStatusFilter: AdminBreederStatusFilter =
+    parsedSearch.breederStatus ?? "all";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [breeders, setBreeders] = useState<BreederRow[]>([]);
@@ -379,7 +384,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
 
   const [requestStatus, setRequestStatus] = useState<RequestStatus>("waiting");
   const [requestDate, setRequestDate] = useState<DateFilter>("newest");
-  const [breederStatusFilter, setBreederStatusFilter] = useState<BreederGroup>("all");
   const [breederSpeciesFilter, setBreederSpeciesFilter] = useState("all");
   const [breederDateFilter, setBreederDateFilter] = useState<DateFilter>("newest");
   const [reportStatusFilter, setReportStatusFilter] = useState("open");
@@ -1340,8 +1344,11 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   key: "breeders",
                   label: t(lang, "admin.home.metric.breeders"),
                   value: pendingBreeders.length,
-                  href: adminConsoleHref({ section: "breeders" }),
-                  onNavigate: () => setBreederStatusFilter("waiting"),
+                  href: adminConsoleHref({
+                    section: "breeders",
+                    breederStatus: "waiting",
+                  }),
+                  onNavigate: undefined,
                 },
                 {
                   key: "reports",
@@ -1361,8 +1368,11 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   key: "verified",
                   label: t(lang, "admin.home.metric.verified"),
                   value: verifiedBreeders.length,
-                  href: adminConsoleHref({ section: "breeders" }),
-                  onNavigate: () => setBreederStatusFilter("active"),
+                  href: adminConsoleHref({
+                    section: "breeders",
+                    breederStatus: "active",
+                  }),
+                  onNavigate: undefined,
                 },
               ].map((m) => (
                 <Link
@@ -1872,21 +1882,40 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       case "breeders":
         return (
           <div>
-            <h1 className="text-xl font-bold text-[#2B1E19] mb-4">
-              {t(lang, "admin.breeders.title")}
-            </h1>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h1 className="text-xl font-bold text-[#2B1E19]">
+                {t(lang, "admin.breeders.title")}
+                <span className="ml-2 text-sm font-medium text-[#8B7355]">
+                  {filteredBreeders.length}
+                </span>
+              </h1>
+              <ActionButton
+                label={t(lang, "admin.refresh")}
+                variant="ghost"
+                onClick={() => void load()}
+              />
+            </div>
             <div className="mb-4 rounded-2xl border border-[#E8DFD0] bg-white p-4">
               <div className="flex flex-wrap gap-3">
                 <FilterSelect
                   label={t(lang, "admin.filter.status")}
                   value={breederStatusFilter}
-                  onChange={(v) => setBreederStatusFilter(v as BreederGroup)}
-                  options={[
-                    { value: "all", label: t(lang, "admin.filter.all") },
-                    { value: "waiting", label: t(lang, "admin.breeders.status.waiting") },
-                    { value: "active", label: t(lang, "admin.breeders.status.active") },
-                    { value: "inactive", label: t(lang, "admin.breeders.status.inactive") },
-                  ]}
+                  onChange={(v) => {
+                    const next = v as AdminBreederStatusFilter;
+                    router.replace(
+                      adminConsoleHref({
+                        section: "breeders",
+                        breederStatus: next === "all" ? null : next,
+                      }),
+                    );
+                  }}
+                  options={ADMIN_BREEDER_STATUS_FILTERS.map((value) => ({
+                    value,
+                    label:
+                      value === "all"
+                        ? t(lang, "admin.filter.all")
+                        : t(lang, `admin.breeders.status.${value}` as EnKey),
+                  }))}
                 />
                 <FilterSelect
                   label={t(lang, "admin.filter.species")}
@@ -1914,13 +1943,24 @@ export function AdminConsole({ lang }: { lang: Lang }) {
               {filteredBreeders.map((b) => {
                 const reviewKey = `breeder-row-${b.id}`;
                 const detailsOpen = expandedReviewId === reviewKey;
+                const rejectionReason = listingRejectionReason(b.metadata);
+                const avatar = String(b.avatar_url || "").trim();
+                const avatarSafe = isSafeHttpUrl(avatar) ? avatar : "";
                 return (
                 <div
                   key={b.id}
                   className="bg-white rounded-2xl border border-[#E8DFD0] p-5"
                 >
-                  <div className="flex flex-wrap items-start gap-3">
-                    <div className="flex-1 min-w-0">
+                  <div className="flex gap-4">
+                    {avatarSafe && !detailsOpen ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarSafe}
+                        alt=""
+                        className="h-24 w-24 rounded-xl object-cover bg-[#F3EDE3] flex-shrink-0"
+                      />
+                    ) : null}
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <StatusChip
                           status={b.verification_status || "unverified"}
@@ -1930,14 +1970,27 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                           {formatDate(b.created_at)}
                         </span>
                       </div>
-                      <p className="font-semibold text-sm text-[#2B1E19]">
-                        {b.display_name || "—"}
-                      </p>
+                      <Link
+                        href={breederPublicHref(b.id)}
+                        className="font-semibold text-sm text-[#2B1E19] hover:text-[#B45309] hover:underline"
+                      >
+                        {b.display_name || t(lang, "admin.breeders.viewPublic")}
+                      </Link>
                       <p className="text-xs text-[#8B7355]">
                         {[b.location, (b.primary_species || []).join(", ")]
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
+                      {(b.verification_status === "rejected" ||
+                        b.verification_status === "suspended") &&
+                      rejectionReason ? (
+                        <p className="mt-2 text-xs text-red-700">
+                          <span className="font-semibold">
+                            {t(lang, "admin.breeders.rejectReason")}:{" "}
+                          </span>
+                          {rejectionReason}
+                        </p>
+                      ) : null}
                       {!detailsOpen && b.bio ? (
                         <p className="text-sm text-[#5C4A3A] mt-2 line-clamp-3">
                           {b.bio}
@@ -1953,41 +2006,63 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                       {detailsOpen ? (
                         <AdminBreederReviewDetail lang={lang} profile={b} />
                       ) : null}
+                      {b.user_id ? (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {b.verification_status === "pending_review" ||
+                          b.verification_status === "unverified" ||
+                          b.verification_status === "rejected" ||
+                          b.verification_status === "suspended" ? (
+                            <ActionButton
+                              label={t(lang, "admin.breeders.verify")}
+                              variant="success"
+                              disabled={busyKey !== null}
+                              onClick={() => {
+                                const confirmKey = breederVerifyConfirmKey(
+                                  b.verification_status,
+                                );
+                                if (
+                                  confirmKey &&
+                                  !window.confirm(t(lang, confirmKey))
+                                ) {
+                                  return;
+                                }
+                                void updateBreeder(b.user_id!, "verified");
+                              }}
+                            />
+                          ) : null}
+                          {b.verification_status === "pending_review" ? (
+                            <ActionButton
+                              label={t(lang, "admin.breeders.reject")}
+                              variant="ghost"
+                              disabled={busyKey !== null}
+                              onClick={() =>
+                                openRejectModal({
+                                  kind: "breeder",
+                                  userId: b.user_id!,
+                                })
+                              }
+                            />
+                          ) : null}
+                          {b.verification_status === "verified" ? (
+                            <ActionButton
+                              label={t(lang, "admin.breeders.suspend")}
+                              variant="danger"
+                              disabled={busyKey !== null}
+                              onClick={() => {
+                                if (
+                                  !window.confirm(
+                                    t(lang, "admin.breeders.confirmSuspend"),
+                                  )
+                                ) {
+                                  return;
+                                }
+                                void updateBreeder(b.user_id!, "suspended");
+                              }}
+                            />
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
-                    {b.user_id ? (
-                      <div className="flex flex-wrap gap-2">
-                        {b.verification_status === "pending_review" ||
-                        b.verification_status === "unverified" ||
-                        b.verification_status === "rejected" ||
-                        b.verification_status === "suspended" ? (
-                          <ActionButton
-                            label={t(lang, "admin.breeders.verify")}
-                            variant="success"
-                            disabled={busyKey !== null}
-                            onClick={() => void updateBreeder(b.user_id!, "verified")}
-                          />
-                        ) : null}
-                        {b.verification_status === "pending_review" ? (
-                          <ActionButton
-                            label={t(lang, "admin.breeders.reject")}
-                            variant="ghost"
-                            disabled={busyKey !== null}
-                            onClick={() => openRejectModal({ kind: "breeder", userId: b.user_id! })}
-                          />
-                        ) : null}
-                        {b.verification_status === "verified" ? (
-                          <ActionButton
-                            label={t(lang, "admin.breeders.suspend")}
-                            variant="danger"
-                            disabled={busyKey !== null}
-                            onClick={() => {
-                              if (!window.confirm(t(lang, "admin.breeders.confirmSuspend"))) return;
-                              void updateBreeder(b.user_id!, "suspended");
-                            }}
-                          />
-                        ) : null}
-                      </div>
-                    ) : null}
                   </div>
                 </div>
                 );
@@ -2604,7 +2679,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 href={adminConsoleHref({ section: item.key })}
                 aria-current={section === item.key ? "page" : undefined}
                 onClick={() => {
-                  if (item.key === "breeders") setBreederStatusFilter("all");
                   if (item.key === "reports") setReportStatusFilter("open");
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
@@ -2652,7 +2726,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   href={adminConsoleHref({ section: item.key })}
                   aria-current={section === item.key ? "page" : undefined}
                   onClick={() => {
-                    if (item.key === "breeders") setBreederStatusFilter("all");
                     if (item.key === "reports") setReportStatusFilter("open");
                     setMobileNavOpen(false);
                   }}

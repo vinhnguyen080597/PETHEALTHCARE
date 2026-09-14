@@ -1591,7 +1591,13 @@ const vi: Record<EnKey, string> = {
   "admin.breeders.status.active": "Đang hoạt động",
   "admin.breeders.status.inactive": "Không hoạt động",
   "admin.breeders.status.waiting": "Đang chờ",
+  "admin.breeders.status.draft": "Nháp",
+  "admin.breeders.viewPublic": "Xem hồ sơ trại",
   "admin.breeders.confirmSuspend": "Tạm khóa breeder này? Họ sẽ mất quyền đăng tin đến khi admin khôi phục xác minh.",
+  "admin.breeders.confirmVerify":
+    "Xác minh hồ sơ breeder này? Họ sẽ được quyền đăng tin.",
+  "admin.breeders.confirmRestore":
+    "Khôi phục xác minh cho breeder này? Họ sẽ lấy lại quyền đăng tin.",
   "admin.reports.title": "Báo cáo",
   "admin.reports.markReviewed": "Xác nhận vi phạm",
   "admin.reports.dismiss": "Bỏ qua",

@@ -1589,7 +1589,13 @@ const en = {
   "admin.breeders.status.active": "Active",
   "admin.breeders.status.inactive": "Inactive",
   "admin.breeders.status.waiting": "Waiting",
+  "admin.breeders.status.draft": "Draft",
+  "admin.breeders.viewPublic": "View farm profile",
   "admin.breeders.confirmSuspend": "Suspend this breeder? They will lose posting access until an admin restores verification.",
+  "admin.breeders.confirmVerify":
+    "Verify this breeder profile? They will get posting access.",
+  "admin.breeders.confirmRestore":
+    "Restore verification for this breeder? They will regain posting access.",
   "admin.reports.title": "Reports",
   "admin.reports.markReviewed": "Confirm violation",
   "admin.reports.dismiss": "Dismiss",

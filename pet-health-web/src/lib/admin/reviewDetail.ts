@@ -42,7 +42,8 @@ export type AdminReviewBreeder = {
   verification_status?: string;
   location?: string;
   bio?: string;
-  care_environment?: string;  avatar_url?: string | null;
+  care_environment?: string;
+  avatar_url?: string | null;
   primary_species?: string[];
   registration_unit?: string;
   registration_unit_other?: string;
@@ -156,6 +157,13 @@ export function adminBreederSpecRows(profile: AdminReviewBreeder): AdminReviewSp
       value: profile.location.trim(),
     });
   }
+  if (profile.care_environment?.trim()) {
+    rows.push({
+      id: "careEnvironment",
+      labelKey: "admin.review.careEnvironment",
+      value: profile.care_environment.trim(),
+    });
+  }
   if ((profile.primary_species || []).length) {
     rows.push({
       id: "primarySpecies",
@@ -196,6 +204,10 @@ export function toggleExpandedReviewId(
   nextId: string,
 ): string | null {
   return current === nextId ? null : nextId;
+}
+
+export function breederPublicHref(profileId: string): string {
+  return `/app/breeders/${encodeURIComponent(profileId)}`;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {

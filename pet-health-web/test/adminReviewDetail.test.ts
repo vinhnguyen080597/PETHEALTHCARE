@@ -7,6 +7,7 @@ import {
   adminListingContactEntries,
   adminListingMediaUrls,
   adminListingSpecRows,
+  breederPublicHref,
   canAdminForceResolveDeal,
   dealDisputeFromPost,
   healthEvidenceUrlsFromMetadata,
@@ -102,12 +103,17 @@ test("adminBreederSpecRows and expand toggle", () => {
     id: "b1",
     user_id: "u1",
     location: "HCM",
+    care_environment: "Indoor",
     primary_species: ["cat"],
     main_breeds: ["Mèo ta"],
   });
-  assert.equal(rows.length, 4);
+  assert.deepEqual(
+    rows.map((row) => row.id),
+    ["location", "careEnvironment", "primarySpecies", "breeds", "user"],
+  );
   assert.equal(toggleExpandedReviewId(null, "post-1"), "post-1");
   assert.equal(toggleExpandedReviewId("post-1", "post-1"), null);
+  assert.equal(breederPublicHref("farm/1"), "/app/breeders/farm%2F1");
 });
 
 test("deal dispute helpers for admin force resolve", () => {

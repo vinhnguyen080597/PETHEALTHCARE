@@ -22,7 +22,14 @@ export const HISTORY_ACTION_FILTERS = [
 export type HistoryActionFilter = (typeof HISTORY_ACTION_FILTERS)[number];
 export type RequestStatus = "all" | "waiting" | "approved" | "rejected" | "resolved";
 export type DateFilter = "newest" | "oldest" | "today" | "week";
-export type BreederGroup = "all" | "active" | "inactive" | "waiting";
+export const BREEDER_STATUS_FILTERS = [
+  "all",
+  "waiting",
+  "draft",
+  "active",
+  "inactive",
+] as const;
+export type BreederGroup = (typeof BREEDER_STATUS_FILTERS)[number];
 
 export type RequestStatusInput = {
   type: "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam" | "farm_review";
@@ -74,7 +81,19 @@ export function breederGroup(
   ) {
     return "inactive";
   }
-  return "waiting";
+  if (profile.verification_status === "pending_review") return "waiting";
+  return "draft";
+}
+
+/** pending_review verify is one-click; restoring or bypassing a draft needs confirm. */
+export function breederVerifyConfirmKey(
+  status: string | null | undefined,
+): "admin.breeders.confirmRestore" | "admin.breeders.confirmVerify" | null {
+  if (status === "pending_review") return null;
+  if (status === "rejected" || status === "suspended") {
+    return "admin.breeders.confirmRestore";
+  }
+  return "admin.breeders.confirmVerify";
 }
 
 /** Only pending_review breeders belong in Admin → Requests queue (with approve/reject). */
