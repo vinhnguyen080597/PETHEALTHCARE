@@ -36,7 +36,13 @@ const HERO_IMAGES = [
   },
 ] as const;
 
-async function HomeLatestListings({ lang }: { lang: Lang }) {
+async function HomeLatestListings({
+  lang,
+  isLoggedIn,
+}: {
+  lang: Lang;
+  isLoggedIn: boolean;
+}) {
   let listings: Awaited<ReturnType<typeof listPublicPosts>>["listings"] = [];
   try {
     const postsPage = await listPublicPosts({ limit: 6 });
@@ -56,7 +62,12 @@ async function HomeLatestListings({ lang }: { lang: Lang }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {listings.slice(0, 3).map((l) => (
-        <ListingCard key={l.id} listing={l} lang={lang} />
+        <ListingCard
+          key={l.id}
+          listing={l}
+          lang={lang}
+          isLoggedIn={isLoggedIn}
+        />
       ))}
     </div>
   );
@@ -190,7 +201,7 @@ export default async function HomePage() {
             </Link>
           </div>
           <Suspense fallback={<ListingGridSkeleton count={3} />}>
-            <HomeLatestListings lang={lang} />
+            <HomeLatestListings lang={lang} isLoggedIn={session.isLoggedIn} />
           </Suspense>
         </section>
 

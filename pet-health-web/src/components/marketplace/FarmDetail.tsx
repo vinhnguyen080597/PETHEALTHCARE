@@ -775,6 +775,7 @@ export function FarmDetail({
         replaceChat: dock?.replaceChat,
         abortChat: dock?.abortChat,
         navigate: (next) => router.push(next),
+        isLoggedIn,
       });
       if (!result.ok) {
         if (result.status === 401) {
@@ -1317,7 +1318,12 @@ export function FarmDetail({
                 {visibleFarmPets.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {visibleFarmPets.map((l) => (
-                      <ListingCard key={l.id} listing={l} lang={lang} />
+                      <ListingCard
+                        key={l.id}
+                        listing={l}
+                        lang={lang}
+                        isLoggedIn={isLoggedIn}
+                      />
                     ))}
                   </div>
                 ) : (

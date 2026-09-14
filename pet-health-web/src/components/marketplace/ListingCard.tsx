@@ -17,6 +17,7 @@ import {
 import { startChatAndOpenUi } from "@/lib/startFarmChat";
 import { showBreederVerifiedBadge } from "@/lib/breederVerificationUi";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
+import { loginHref } from "@/lib/loginHref";
 
 export function ListingCard({
   listing,
@@ -25,6 +26,7 @@ export function ListingCard({
   interactive = true,
   compact = false,
   showEscrowUi = false,
+  isLoggedIn = true,
   onFavoriteChange,
 }: {
   listing: Listing;
@@ -36,6 +38,7 @@ export function ListingCard({
   compact?: boolean;
   /** Escrow/deposit marketing — only when marketplace_escrow is on. */
   showEscrowUi?: boolean;
+  isLoggedIn?: boolean;
   /** Lift favorite state so rails + grid stay in sync for the same post. */
   onFavoriteChange?: (next: {
     listingId: string;
@@ -130,6 +133,10 @@ export function ListingCard({
     e.preventDefault();
     e.stopPropagation();
     if (chatBusy || !interactive) return;
+    if (!isLoggedIn) {
+      router.push(loginHref(detailHref));
+      return;
+    }
     setChatBusy(true);
     try {
       const result = await startChatAndOpenUi({
@@ -140,10 +147,11 @@ export function ListingCard({
         replaceChat: dock?.replaceChat,
         abortChat: dock?.abortChat,
         navigate: (next) => router.push(next),
+        isLoggedIn,
       });
       if (!result.ok) {
         if (result.status === 401) {
-          window.location.href = `/login?next=${encodeURIComponent(detailHref)}`;
+          router.push(loginHref(detailHref));
           return;
         }
         router.push(detailHref);

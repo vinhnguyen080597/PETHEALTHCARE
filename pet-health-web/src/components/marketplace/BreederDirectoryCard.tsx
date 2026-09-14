@@ -17,6 +17,7 @@ import {
   startChatMessageKey,
 } from "@/lib/startFarmChat";
 import { useOptionalChatDock } from "@/components/messages/ChatDockProvider";
+import { loginHref } from "@/lib/loginHref";
 import { FarmReviewModal } from "@/components/marketplace/FarmReviewModal";
 import {
   BREEDER_CARD_EDIT_PROFILE_HREF,
@@ -126,6 +127,10 @@ export function BreederDirectoryCard({
     e.preventDefault();
     e.stopPropagation();
     if (messageBusy) return;
+    if (!dock?.currentUserId) {
+      router.push(loginHref(href));
+      return;
+    }
     setMessageBusy(true);
     setMessageError("");
     try {
@@ -136,10 +141,11 @@ export function BreederDirectoryCard({
         replaceChat: dock?.replaceChat,
         abortChat: dock?.abortChat,
         navigate: (next) => router.push(next),
+        isLoggedIn: true,
       });
       if (!result.ok) {
         if (result.status === 401) {
-          window.location.href = `/login?next=${encodeURIComponent(href)}`;
+          router.push(loginHref(href));
           return;
         }
         setMessageError(t(lang, startChatMessageKey(result.status, result.code)));

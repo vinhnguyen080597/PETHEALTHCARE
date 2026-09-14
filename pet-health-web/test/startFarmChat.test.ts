@@ -7,6 +7,7 @@ import {
   openFarmChatUi,
   preferredListingIdForFarmChat,
   shouldRetryFarmChatFallback,
+  startChatAndOpenUi,
   startChatMessageKey,
 } from "../src/lib/startFarmChat";
 import {
@@ -165,4 +166,19 @@ test("farm chat i18n keys exist EN/VI", () => {
   }
   assert.equal(viDict["messages.startChatFailed"], "Không mở được chat với trại này.");
   assert.equal(viDict["messages.chatWithFarm"], "Nhắn tin với trại");
+});
+
+test("startChatAndOpenUi skips the dock when the user is logged out", async () => {
+  const opened: string[] = [];
+  const result = await startChatAndOpenUi({
+    listingId: "p1",
+    farmName: "CattiesHouse",
+    openChat: (id) => opened.push(id),
+    navigate: () => {
+      throw new Error("should not navigate");
+    },
+    isLoggedIn: false,
+  });
+  assert.deepEqual(result, { ok: false, status: 401 });
+  assert.deepEqual(opened, []);
 });

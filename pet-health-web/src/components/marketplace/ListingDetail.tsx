@@ -643,6 +643,7 @@ export function ListingDetail({
         replaceChat: dock?.replaceChat,
         abortChat: dock?.abortChat,
         navigate: (href) => router.push(href),
+        isLoggedIn,
       });
       if (!result.ok) {
         if (result.status === 401) {

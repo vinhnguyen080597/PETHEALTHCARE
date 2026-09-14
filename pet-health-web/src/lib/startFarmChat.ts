@@ -171,10 +171,15 @@ export async function startChatAndOpenUi(options: {
     | null;
   abortChat?: ((pendingId: string) => void) | null;
   navigate: (href: string) => void;
+  /** When false, skip the optimistic dock so guests go to login first. */
+  isLoggedIn?: boolean;
 }): Promise<
   | { ok: true }
   | { ok: false; status: number; code?: string }
 > {
+  if (options.isLoggedIn === false) {
+    return { ok: false, status: 401 };
+  }
   const kind = String(options.breederId || "").trim() ? "breeder" : "listing";
   const sourceId = String(options.breederId || options.listingId || "").trim();
   const pending = optimisticChatConversation({
