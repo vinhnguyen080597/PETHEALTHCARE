@@ -9,11 +9,13 @@ import {
   ADMIN_BREEDER_STATUS_FILTERS,
   ADMIN_LISTING_STATUS_FILTERS,
   ADMIN_NAV_ITEMS,
+  ADMIN_REPORT_STATUS_FILTERS,
   adminConsoleHref,
   parseAdminConsoleSearch,
   summarizeAdminLoadErrors,
   type AdminBreederStatusFilter,
   type AdminListingStatusFilter,
+  type AdminReportStatusFilter,
 } from "@/lib/admin/consoleNav";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 import { DialogActions } from "@/components/ui/DialogActions";
@@ -42,6 +44,7 @@ import {
 } from "@/lib/admin/requestQueue";
 import {
   breederPublicHref,
+  isDealDisputeReport,
   toggleExpandedReviewId,
   type AdminReviewBreeder,
   type AdminReviewPost,
@@ -56,6 +59,12 @@ import {
   listingRejectionReason,
   listingStatusLabelKey,
 } from "@/lib/admin/listingReject";
+import {
+  listingHideFromReportAllowed,
+  reportReasonLabelKey,
+  reportStatusLabelKey,
+  reportTargetHref,
+} from "@/lib/admin/reportDisplay";
 import {
   AdminBreederDetailSubmissionReview,
   AdminBreederReviewDetail,
@@ -363,6 +372,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     parsedSearch.listingStatus ?? "all";
   const breederStatusFilter: AdminBreederStatusFilter =
     parsedSearch.breederStatus ?? "all";
+  const reportStatusFilter: AdminReportStatusFilter =
+    parsedSearch.reportStatus ?? "open";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [breeders, setBreeders] = useState<BreederRow[]>([]);
@@ -386,7 +397,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [requestDate, setRequestDate] = useState<DateFilter>("newest");
   const [breederSpeciesFilter, setBreederSpeciesFilter] = useState("all");
   const [breederDateFilter, setBreederDateFilter] = useState<DateFilter>("newest");
-  const [reportStatusFilter, setReportStatusFilter] = useState("open");
   const [userSearch, setUserSearch] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
@@ -582,13 +592,20 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       } else if (report.post_id) {
         const post = posts.find((item) => item.id === report.post_id);
         subtitle = `${t(lang, "admin.requests.type.post")}: ${post?.title || report.post_id}`;
+      } else if (report.comment_id) {
+        subtitle = t(lang, "admin.reports.commentTarget");
       }
       return {
         id: `report-${report.id}`,
         type: "report",
         status: report.status || "open",
         createdAt: report.created_at || "",
-        title: report.reason || t(lang, "admin.requests.type.report"),
+        title: (() => {
+          const reasonKey = reportReasonLabelKey(report.reason);
+          return reasonKey
+            ? t(lang, reasonKey as EnKey)
+            : report.reason || t(lang, "admin.requests.type.report");
+        })(),
         subtitle,
         body: report.note || "",
         report,
@@ -1140,11 +1157,15 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     return t(lang, key);
   };
 
-  const reportStatusLabel = (status?: string) => {
-    if (status === "reviewed") return t(lang, "admin.reports.reviewed");
-    if (status === "dismissed") return t(lang, "admin.reports.dismissed");
-    return t(lang, "admin.reports.open");
+  const reportReasonLabel = (reason?: string) => {
+    const key = reportReasonLabelKey(reason);
+    if (key) return t(lang, key as EnKey);
+    const raw = String(reason || "").trim();
+    return raw || t(lang, "admin.requests.type.report");
   };
+
+  const reportStatusLabel = (status?: string) =>
+    t(lang, reportStatusLabelKey(status) as EnKey);
 
   const renderRequestActions = (item: RequestItem) => {
     if (item.type === "post" && item.post?.status === "pending_review") {
@@ -1273,7 +1294,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             label={t(lang, "admin.reports.dismiss")}
             variant="ghost"
             disabled={busyKey !== null}
-            onClick={() => void updateReport(item.report!.id, "dismissed")}
+            onClick={() => {
+              if (!window.confirm(t(lang, "admin.reports.confirmDismiss"))) return;
+              void updateReport(item.report!.id, "dismissed");
+            }}
           />
         </div>
       );
@@ -1354,8 +1378,11 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   key: "reports",
                   label: t(lang, "admin.home.metric.reports"),
                   value: openReports.length,
-                  href: adminConsoleHref({ section: "reports" }),
-                  onNavigate: () => setReportStatusFilter("open"),
+                  href: adminConsoleHref({
+                    section: "reports",
+                    reportStatus: "open",
+                  }),
+                  onNavigate: undefined,
                 },
                 {
                   key: "users",
@@ -2080,18 +2107,37 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <h1 className="text-xl font-bold text-[#2B1E19]">
                 {t(lang, "admin.reports.title")}
+                <span className="ml-2 text-sm font-medium text-[#8B7355]">
+                  {filteredReports.length}
+                </span>
               </h1>
-              <FilterSelect
-                label={t(lang, "admin.filter.status")}
-                value={reportStatusFilter}
-                onChange={setReportStatusFilter}
-                options={[
-                  { value: "all", label: t(lang, "admin.filter.all") },
-                  { value: "open", label: t(lang, "admin.reports.open") },
-                  { value: "reviewed", label: t(lang, "admin.reports.reviewed") },
-                  { value: "dismissed", label: t(lang, "admin.reports.dismissed") },
-                ]}
-              />
+              <div className="flex flex-wrap items-end gap-3">
+                <FilterSelect
+                  label={t(lang, "admin.filter.status")}
+                  value={reportStatusFilter}
+                  onChange={(v) => {
+                    const next = v as AdminReportStatusFilter;
+                    router.replace(
+                      adminConsoleHref({
+                        section: "reports",
+                        reportStatus: next,
+                      }),
+                    );
+                  }}
+                  options={ADMIN_REPORT_STATUS_FILTERS.map((value) => ({
+                    value,
+                    label:
+                      value === "all"
+                        ? t(lang, "admin.filter.all")
+                        : t(lang, reportStatusLabelKey(value) as EnKey),
+                  }))}
+                />
+                <ActionButton
+                  label={t(lang, "admin.refresh")}
+                  variant="ghost"
+                  onClick={() => void load()}
+                />
+              </div>
             </div>
             <div className="space-y-3">
               {filteredReports.map((r) => {
@@ -2105,6 +2151,27 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   r.breeder_profile?.user_id || linkedProfile?.user_id;
                 const reviewKey = `report-row-${r.id}`;
                 const detailsOpen = expandedReviewId === reviewKey;
+                const targetHref = reportTargetHref(r);
+                const targetKind =
+                  r.target_type === "breeder_profile" || r.breeder_profile_id
+                    ? t(lang, "admin.requests.type.breeder")
+                    : r.post_id
+                      ? t(lang, "admin.requests.type.post")
+                      : r.comment_id
+                        ? t(lang, "admin.reports.commentTarget")
+                        : t(lang, "admin.reports.unknownTarget");
+                const targetName =
+                  r.target_type === "breeder_profile" || r.breeder_profile_id
+                    ? r.breeder_profile?.display_name ||
+                      linkedProfile?.display_name ||
+                      r.breeder_profile_id ||
+                      "—"
+                    : r.post_id
+                      ? linkedPost?.title || r.post_id
+                      : r.comment_id || "—";
+                const canHideListing = listingHideFromReportAllowed(linkedPost?.status);
+                const dealHold =
+                  String(linkedPost?.status || "").toLowerCase() === "deposit_hold";
                 return (
                   <div
                     key={r.id}
@@ -2115,24 +2182,43 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                         status={r.status || "open"}
                         label={reportStatusLabel(r.status)}
                       />
+                      {isDealDisputeReport(r.reason) ? (
+                        <StatusChip
+                          status="deposit_hold"
+                          label={t(lang, "admin.review.dealDispute")}
+                        />
+                      ) : null}
                       <span className="text-xs text-[#B8A990]">
                         {formatDate(r.created_at)}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-[#2B1E19]">{r.reason}</p>
+                    <p className="text-sm font-medium text-[#2B1E19]">
+                      {reportReasonLabel(r.reason)}
+                    </p>
                     <p className="text-xs text-[#8B7355] mt-1">
-                      {r.target_type === "breeder_profile" || r.breeder_profile_id
-                        ? `${t(lang, "admin.requests.type.breeder")}: ${
-                            r.breeder_profile?.display_name || r.breeder_profile_id
-                          }`
-                        : r.post_id
-                          ? `${t(lang, "admin.requests.type.post")}: ${
-                              linkedPost?.title || r.post_id
-                            }`
-                          : null}
+                      {targetHref ? (
+                        <>
+                          {targetKind}:{" "}
+                          <Link
+                            href={targetHref}
+                            className="font-semibold text-[#B45309] hover:underline"
+                          >
+                            {targetName}
+                          </Link>
+                        </>
+                      ) : r.post_id || r.breeder_profile_id || r.comment_id ? (
+                        `${targetKind}: ${targetName}`
+                      ) : (
+                        t(lang, "admin.reports.unknownTarget")
+                      )}
                     </p>
                     {r.note && !detailsOpen ? (
                       <p className="text-xs text-[#5C4A3A] mt-2">{r.note}</p>
+                    ) : null}
+                    {dealHold ? (
+                      <p className="mt-2 text-xs text-amber-800">
+                        {t(lang, "admin.listings.dealHoldHint")}
+                      </p>
                     ) : null}
                     <AdminReviewDetailsToggle
                       lang={lang}
@@ -2156,7 +2242,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                           variant="danger"
                           disabled={busyKey !== null}
                           onClick={() => {
-                            if (!window.confirm(t(lang, "admin.reports.confirmViolation"))) return;
+                            if (!window.confirm(t(lang, "admin.reports.confirmViolation"))) {
+                              return;
+                            }
                             void updateReport(r.id, "reviewed");
                           }}
                         />
@@ -2164,14 +2252,26 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                           label={t(lang, "admin.reports.dismiss")}
                           variant="ghost"
                           disabled={busyKey !== null}
-                          onClick={() => void updateReport(r.id, "dismissed")}
+                          onClick={() => {
+                            if (!window.confirm(t(lang, "admin.reports.confirmDismiss"))) {
+                              return;
+                            }
+                            void updateReport(r.id, "dismissed");
+                          }}
                         />
-                        {linkedPost && linkedPost.status !== "archived" ? (
+                        {canHideListing && linkedPost ? (
                           <ActionButton
                             label={t(lang, "admin.reports.archivePost")}
                             variant="ghost"
                             disabled={busyKey !== null}
-                            onClick={() => void updatePost(linkedPost.id, "archived")}
+                            onClick={() => {
+                              if (
+                                !window.confirm(t(lang, "admin.listings.confirmArchive"))
+                              ) {
+                                return;
+                              }
+                              void updatePost(linkedPost.id, "archived");
+                            }}
                           />
                         ) : null}
                         {linkedBreederUserId ? (
@@ -2180,7 +2280,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                             variant="danger"
                             disabled={busyKey !== null}
                             onClick={() => {
-                              if (!window.confirm(t(lang, "admin.breeders.confirmSuspend"))) return;
+                              if (!window.confirm(t(lang, "admin.breeders.confirmSuspend"))) {
+                                return;
+                              }
                               void updateBreeder(linkedBreederUserId, "suspended");
                             }}
                           />
@@ -2678,9 +2780,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 key={item.key}
                 href={adminConsoleHref({ section: item.key })}
                 aria-current={section === item.key ? "page" : undefined}
-                onClick={() => {
-                  if (item.key === "reports") setReportStatusFilter("open");
-                }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
                   section === item.key
                     ? "bg-[#FFF1DE] text-[#B45309]"
@@ -2726,7 +2825,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   href={adminConsoleHref({ section: item.key })}
                   aria-current={section === item.key ? "page" : undefined}
                   onClick={() => {
-                    if (item.key === "reports") setReportStatusFilter("open");
                     setMobileNavOpen(false);
                   }}
                   className={`flex flex-col items-center gap-1 p-2 rounded-lg text-[10px] font-medium ${

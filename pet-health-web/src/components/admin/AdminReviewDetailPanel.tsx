@@ -17,6 +17,7 @@ import {
   type AdminReviewReport,
 } from "@/lib/admin/reviewDetail";
 import { isSafeHttpUrl } from "@/lib/admin/requestQueue";
+import { reportReasonLabelKey, reportTargetHref } from "@/lib/admin/reportDisplay";
 import type { BreederProfileSubmission } from "@/lib/breederProfileSubmissions";
 
 function Chip({ children }: { children: React.ReactNode }) {
@@ -309,15 +310,36 @@ export function AdminReportReviewDetail({
   const dealDispute = isDealDisputeReport(report.reason)
     ? dealDisputeFromPost(linkedPost)
     : null;
+  const reasonKey = reportReasonLabelKey(report.reason);
+  const reasonLabel = reasonKey
+    ? t(lang, reasonKey as EnKey)
+    : String(report.reason || "").trim() || t(lang, "admin.requests.type.report");
+  const targetHref = reportTargetHref({
+    post_id: report.post_id || linkedPost?.id,
+    breeder_profile_id: report.breeder_profile_id || linkedProfile?.id,
+    breeder_profile: report.breeder_profile,
+  });
+  const evidenceUrls = (dealDispute?.evidenceUrls || []).filter(isSafeHttpUrl);
+  const handoffPhotos = (dealDispute?.handoffPhotos || []).filter(isSafeHttpUrl);
 
   return (
     <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
       <Section title={t(lang, "admin.review.reportTarget")}>
         <p className="text-sm text-[#5C4A3A]">
           <span className="font-semibold text-[#2B1E19]">
-            {report.target_type || "report"}:{" "}
+            {reasonLabel}
+            {": "}
           </span>
-          {targetLabel}
+          {targetHref ? (
+            <Link
+              href={targetHref}
+              className="font-semibold text-[#B45309] hover:underline"
+            >
+              {targetLabel}
+            </Link>
+          ) : (
+            targetLabel
+          )}
         </p>
         {isDealDisputeReport(report.reason) ? (
           <p className="mt-2 text-xs font-semibold text-[#B45309]">
@@ -343,10 +365,10 @@ export function AdminReportReviewDetail({
         </Section>
       ) : null}
 
-      {dealDispute && dealDispute.evidenceUrls.length > 0 ? (
+      {evidenceUrls.length > 0 ? (
         <Section title={t(lang, "admin.review.dealDisputeEvidence")}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {dealDispute.evidenceUrls.map((url) => (
+            {evidenceUrls.map((url) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={url}
@@ -359,10 +381,10 @@ export function AdminReportReviewDetail({
         </Section>
       ) : null}
 
-      {dealDispute && dealDispute.handoffPhotos.length > 0 ? (
+      {handoffPhotos.length > 0 ? (
         <Section title={t(lang, "admin.review.dealHandoffPhotos")}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {dealDispute.handoffPhotos.map((url) => (
+            {handoffPhotos.map((url) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={url}

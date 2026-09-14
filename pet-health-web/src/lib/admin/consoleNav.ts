@@ -5,6 +5,10 @@ import {
   BREEDER_STATUS_FILTERS,
   type BreederGroup,
 } from "./filters";
+import {
+  ADMIN_REPORT_STATUS_FILTERS,
+  type AdminReportStatusFilter,
+} from "./reportDisplay";
 
 export const ADMIN_CONSOLE_PATH = "/app/admin";
 
@@ -47,12 +51,16 @@ export type AdminListingStatusFilter = (typeof ADMIN_LISTING_STATUS_FILTERS)[num
 export const ADMIN_BREEDER_STATUS_FILTERS = BREEDER_STATUS_FILTERS;
 export type AdminBreederStatusFilter = BreederGroup;
 
+export { ADMIN_REPORT_STATUS_FILTERS };
+export type { AdminReportStatusFilter };
+
 export type AdminConsoleSearch = {
   section: AdminSection;
   requestType: AdminRequestType | null;
   focus: string | null;
   listingStatus: AdminListingStatusFilter | null;
   breederStatus: AdminBreederStatusFilter | null;
+  reportStatus: AdminReportStatusFilter | null;
 };
 
 export type AdminConsoleSearchInput =
@@ -132,6 +140,12 @@ export function isAdminBreederStatus(
   return (ADMIN_BREEDER_STATUS_FILTERS as readonly string[]).includes(String(value || ""));
 }
 
+export function isAdminReportStatus(
+  value: string | null | undefined,
+): value is AdminReportStatusFilter {
+  return (ADMIN_REPORT_STATUS_FILTERS as readonly string[]).includes(String(value || ""));
+}
+
 /** Parse /app/admin?section=&type=&focus=&status= — invalid values are ignored. */
 export function parseAdminConsoleSearch(
   input: AdminConsoleSearchInput,
@@ -162,12 +176,20 @@ export function parseAdminConsoleSearch(
         ? "all"
         : null;
 
+  const reportStatus =
+    section === "reports" && isAdminReportStatus(statusParam)
+      ? statusParam
+      : section === "reports"
+        ? "open"
+        : null;
+
   return {
     section,
     requestType: section === "requests" ? requestType : null,
     focus: section === "requests" ? focusParam : null,
     listingStatus,
     breederStatus,
+    reportStatus,
   };
 }
 
@@ -178,7 +200,12 @@ export function adminConsoleHref(opts?: {
   focus?: string | null;
   listingStatus?: AdminListingStatusFilter | null;
   breederStatus?: AdminBreederStatusFilter | null;
-  status?: AdminListingStatusFilter | AdminBreederStatusFilter | null;
+  reportStatus?: AdminReportStatusFilter | null;
+  status?:
+    | AdminListingStatusFilter
+    | AdminBreederStatusFilter
+    | AdminReportStatusFilter
+    | null;
 }): string {
   const section = opts?.section ?? "home";
   const typeCandidate = opts?.type ?? opts?.requestType ?? null;
@@ -202,8 +229,23 @@ export function adminConsoleHref(opts?: {
     breederStatusCandidate !== "all"
       ? breederStatusCandidate
       : null;
+  const reportStatusCandidate =
+    opts?.reportStatus ?? (section === "reports" ? opts?.status : null) ?? null;
+  const reportStatus =
+    section === "reports" &&
+    isAdminReportStatus(reportStatusCandidate) &&
+    reportStatusCandidate !== "open"
+      ? reportStatusCandidate
+      : null;
 
-  if (section === "home" && !type && !focus && !listingStatus && !breederStatus) {
+  if (
+    section === "home" &&
+    !type &&
+    !focus &&
+    !listingStatus &&
+    !breederStatus &&
+    !reportStatus
+  ) {
     return ADMIN_CONSOLE_PATH;
   }
 
@@ -213,6 +255,7 @@ export function adminConsoleHref(opts?: {
   if (focus) qs.set("focus", focus);
   if (listingStatus) qs.set("status", listingStatus);
   if (breederStatus) qs.set("status", breederStatus);
+  if (reportStatus) qs.set("status", reportStatus);
   return `${ADMIN_CONSOLE_PATH}?${qs.toString()}`;
 }
 

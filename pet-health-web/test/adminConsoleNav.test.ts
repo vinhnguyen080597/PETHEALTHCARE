@@ -27,6 +27,7 @@ test("parseAdminConsoleSearch defaults to home and ignores invalid values", () =
     focus: null,
     listingStatus: null,
     breederStatus: null,
+    reportStatus: null,
   });
   assert.deepEqual(parseAdminConsoleSearch({ section: "hack", type: "nope" }), {
     section: "home",
@@ -34,6 +35,7 @@ test("parseAdminConsoleSearch defaults to home and ignores invalid values", () =
     focus: null,
     listingStatus: null,
     breederStatus: null,
+    reportStatus: null,
   });
 });
 
@@ -44,6 +46,7 @@ test("parseAdminConsoleSearch treats a request type as the requests section", ()
     focus: "bp-1",
     listingStatus: null,
     breederStatus: null,
+    reportStatus: null,
   });
 });
 
@@ -60,6 +63,7 @@ test("parseAdminConsoleSearch keeps a valid section over a stray type", () => {
       focus: null,
       listingStatus: "all",
       breederStatus: null,
+      reportStatus: null,
     },
   );
 });
@@ -74,6 +78,7 @@ test("parseAdminConsoleSearch reads URLSearchParams", () => {
     focus: "rev-1",
     listingStatus: null,
     breederStatus: null,
+    reportStatus: null,
   });
 });
 
@@ -136,6 +141,8 @@ test("nav labels and new home/auth copy exist in EN and VI", () => {
     "admin.breeders.viewPublic",
     "admin.breeders.confirmVerify",
     "admin.breeders.confirmRestore",
+    "admin.reports.confirmDismiss",
+    "admin.reports.reason.deal_dispute",
   ] as const) {
     assert.ok(en[key], `missing EN ${key}`);
     assert.ok(vi[key], `missing VI ${key}`);
@@ -154,6 +161,7 @@ test("notification admin deep links parse back into the requests section", () =>
     focus: "post-9",
     listingStatus: null,
     breederStatus: null,
+    reportStatus: null,
   });
 });
 
@@ -169,6 +177,7 @@ test("listings status query is shareable and ignored on other sections", () => {
       focus: null,
       listingStatus: "pending_review",
       breederStatus: null,
+      reportStatus: null,
     },
   );
   assert.equal(
@@ -201,6 +210,7 @@ test("breeders status query is shareable and ignored on listings", () => {
       focus: null,
       listingStatus: null,
       breederStatus: "waiting",
+      reportStatus: null,
     },
   );
   assert.equal(
@@ -236,6 +246,64 @@ test("breeders status query is shareable and ignored on listings", () => {
       parseAdminConsoleSearch({ section: "breeders", status: "active" }),
     ),
     `${ADMIN_CONSOLE_PATH}?section=breeders&status=active`,
+  );
+});
+
+test("reports status query defaults to open and encodes all", () => {
+  assert.deepEqual(
+    parseAdminConsoleSearch({ section: "reports" }),
+    {
+      section: "reports",
+      requestType: null,
+      focus: null,
+      listingStatus: null,
+      breederStatus: null,
+      reportStatus: "open",
+    },
+  );
+  assert.deepEqual(
+    parseAdminConsoleSearch({
+      section: "reports",
+      status: "reviewed",
+    }),
+    {
+      section: "reports",
+      requestType: null,
+      focus: null,
+      listingStatus: null,
+      breederStatus: null,
+      reportStatus: "reviewed",
+    },
+  );
+  assert.equal(
+    adminConsoleHref({
+      section: "reports",
+      reportStatus: "open",
+    }),
+    `${ADMIN_CONSOLE_PATH}?section=reports`,
+  );
+  assert.equal(
+    adminConsoleHref({
+      section: "reports",
+      reportStatus: "all",
+    }),
+    `${ADMIN_CONSOLE_PATH}?section=reports&status=all`,
+  );
+  assert.equal(
+    parseAdminConsoleSearch({ section: "reports", status: "waiting" })
+      .reportStatus,
+    "open",
+  );
+  assert.equal(
+    parseAdminConsoleSearch({ section: "listings", status: "open" })
+      .reportStatus,
+    null,
+  );
+  assert.equal(
+    adminConsoleHref(
+      parseAdminConsoleSearch({ section: "reports", status: "dismissed" }),
+    ),
+    `${ADMIN_CONSOLE_PATH}?section=reports&status=dismissed`,
   );
 });
 
