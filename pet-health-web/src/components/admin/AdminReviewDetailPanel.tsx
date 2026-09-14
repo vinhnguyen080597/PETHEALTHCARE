@@ -22,6 +22,8 @@ import {
   farmReviewKindI18nKey,
   isSafeHttpUrl,
   submissionPayloadHref,
+  supportFeedbackCategoryLabelKey,
+  supportScamTargetLabelKey,
 } from "@/lib/admin/requestQueue";
 import { farmReviewStarLabel, farmReviewUpdateApproveBlocked } from "@/lib/breederFarmReviews";
 import { breederSubmissionTypeLabel } from "@/lib/breederProfileSubmissions";
@@ -646,6 +648,152 @@ export function AdminAppealReviewDetail({
           {appeal.admin_note.trim()}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+export type AdminReviewSupportTicket = {
+  id: string;
+  user_id?: string;
+  kind: string;
+  category?: string | null;
+  title?: string | null;
+  body?: string;
+  scam_target_type?: string | null;
+  identifier?: string | null;
+  related_url?: string | null;
+  anonymous?: boolean;
+  evidence_confirmed?: boolean;
+  evidence_urls?: string[];
+};
+
+function SupportField({
+  lang,
+  labelKey,
+  children,
+}: {
+  lang: Lang;
+  labelKey: EnKey;
+  children: React.ReactNode;
+}) {
+  return (
+    <p className="text-sm text-[#5C4A3A]">
+      <span className="font-semibold text-[#2B1E19]">{t(lang, labelKey)}: </span>
+      {children}
+    </p>
+  );
+}
+
+export function AdminSupportTicketReview({
+  lang,
+  ticket,
+  reporterLabel,
+}: {
+  lang: Lang;
+  ticket: AdminReviewSupportTicket;
+  reporterLabel?: string | null;
+}) {
+  const isFeedback = ticket.kind === "feedback";
+  const evidence = (ticket.evidence_urls || []).filter(isSafeHttpUrl);
+  const relatedUrl = String(ticket.related_url || "").trim();
+  const relatedHref = isSafeHttpUrl(relatedUrl) ? relatedUrl : null;
+  const identifier = String(ticket.identifier || "").trim();
+  const identifierHref = isSafeHttpUrl(identifier) ? identifier : null;
+  const categoryKey = supportFeedbackCategoryLabelKey(ticket.category);
+  const targetKey = supportScamTargetLabelKey(ticket.scam_target_type);
+
+  return (
+    <div className="mt-4 space-y-3 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
+      {isFeedback ? (
+        <>
+          <SupportField lang={lang} labelKey="admin.support.category">
+            {categoryKey
+              ? t(lang, categoryKey as EnKey)
+              : ticket.category?.trim() || "—"}
+          </SupportField>
+          <SupportField lang={lang} labelKey="admin.support.title">
+            {ticket.title?.trim() || "—"}
+          </SupportField>
+        </>
+      ) : (
+        <>
+          <SupportField lang={lang} labelKey="admin.support.targetType">
+            {targetKey
+              ? t(lang, targetKey as EnKey)
+              : ticket.scam_target_type?.trim() || "—"}
+          </SupportField>
+          <SupportField lang={lang} labelKey="admin.support.identifier">
+            {identifierHref ? (
+              <a
+                href={identifierHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="break-all text-[#D97706] underline"
+              >
+                {identifier}
+              </a>
+            ) : (
+              identifier || "—"
+            )}
+          </SupportField>
+          {relatedUrl ? (
+            <SupportField lang={lang} labelKey="admin.support.relatedUrl">
+              {relatedHref ? (
+                <a
+                  href={relatedHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="break-all text-[#D97706] underline"
+                >
+                  {relatedUrl}
+                </a>
+              ) : (
+                <span className="break-all">{relatedUrl}</span>
+              )}
+            </SupportField>
+          ) : null}
+          <SupportField lang={lang} labelKey="admin.support.anonymous">
+            {ticket.anonymous
+              ? t(lang, "admin.support.yes")
+              : t(lang, "admin.support.no")}
+          </SupportField>
+          <SupportField lang={lang} labelKey="admin.support.evidenceConfirmed">
+            {ticket.evidence_confirmed
+              ? t(lang, "admin.support.yes")
+              : t(lang, "admin.support.no")}
+          </SupportField>
+        </>
+      )}
+      <p className="text-sm text-[#5C4A3A] whitespace-pre-wrap">
+        {ticket.body?.trim() || "—"}
+      </p>
+      {evidence.length > 0 ? (
+        <Section title={t(lang, "admin.support.evidence")}>
+          <div className="flex flex-wrap gap-2">
+            {evidence.map((url) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={url}
+                  alt=""
+                  className="h-20 w-20 rounded-lg object-cover border border-[#E8DFD0] bg-white"
+                />
+              </a>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+      <p className="text-xs text-[#8B7355]">
+        {ticket.anonymous
+          ? t(lang, "admin.support.reporterHidden")
+          : `${t(lang, "admin.support.reporter")}: ${reporterLabel?.trim() || ticket.user_id || "—"}`}
+      </p>
     </div>
   );
 }

@@ -131,6 +131,23 @@ export function isAppealQueueItem(
   return status === "appealed";
 }
 
+/** Only open feedback/scam tickets belong in the request queue. */
+export function isSupportTicketQueueItem(
+  status: string | null | undefined,
+): boolean {
+  return status === "open";
+}
+
+/** Queue type from ticket kind; unknown kinds are omitted. */
+export function supportTicketRequestType(
+  kind: string | null | undefined,
+): "feedback" | "scam" | null {
+  const value = String(kind || "").trim().toLowerCase();
+  if (value === "feedback") return "feedback";
+  if (value === "scam") return "scam";
+  return null;
+}
+
 /** i18n key for a request-queue type chip (`farm_review` uses camelCase copy). */
 export function requestTypeLabelKey(type: string): string {
   if (type === "farm_review") return "admin.requests.type.farmReview";

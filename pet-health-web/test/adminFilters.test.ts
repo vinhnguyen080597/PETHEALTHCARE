@@ -10,6 +10,8 @@ import {
   isFarmReviewQueueItem,
   isAppealQueueItem,
   isListingModerationQueueItem,
+  isSupportTicketQueueItem,
+  supportTicketRequestType,
   passesDateFilter,
   requestStatusGroup,
   requestTypeLabelKey,
@@ -59,7 +61,7 @@ test("isListingModerationQueueItem only includes pending_review listings", () =>
   assert.equal(isListingModerationQueueItem("archived"), false);
 });
 
-test("detail, farm review, and appeal queue membership", () => {
+test("detail, farm review, appeal, and support ticket queue membership", () => {
   assert.equal(isDetailSubmissionQueueItem("pending"), true);
   assert.equal(isDetailSubmissionQueueItem("approved"), false);
   assert.equal(isDetailSubmissionQueueItem("rejected"), false);
@@ -68,6 +70,14 @@ test("detail, farm review, and appeal queue membership", () => {
   assert.equal(isAppealQueueItem("appealed"), true);
   assert.equal(isAppealQueueItem("pending_breeder_action"), false);
   assert.equal(isAppealQueueItem("upheld"), false);
+  assert.equal(isSupportTicketQueueItem("open"), true);
+  assert.equal(isSupportTicketQueueItem("reviewed"), false);
+  assert.equal(isSupportTicketQueueItem("dismissed"), false);
+  assert.equal(isSupportTicketQueueItem(null), false);
+  assert.equal(supportTicketRequestType("feedback"), "feedback");
+  assert.equal(supportTicketRequestType("scam"), "scam");
+  assert.equal(supportTicketRequestType("other"), null);
+  assert.equal(supportTicketRequestType(""), null);
 });
 
 test("requestTypeLabelKey maps farm_review to camelCase i18n key", () => {

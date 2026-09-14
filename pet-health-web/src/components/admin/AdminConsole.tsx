@@ -33,6 +33,8 @@ import {
   isDetailSubmissionQueueItem,
   isFarmReviewQueueItem,
   isListingModerationQueueItem,
+  isSupportTicketQueueItem,
+  supportTicketRequestType,
   passesDateFilter,
   requestStatusGroup,
   requestTypeLabelKey,
@@ -47,6 +49,8 @@ import {
   findRequestByFocusId,
   isSafeHttpUrl,
   requestQueueFocusId,
+  supportFeedbackCategoryLabelKey,
+  supportScamTargetLabelKey,
 } from "@/lib/admin/requestQueue";
 import {
   breederPublicHref,
@@ -79,6 +83,7 @@ import {
   AdminListingReviewDetail,
   AdminReportReviewDetail,
   AdminReviewDetailsToggle,
+  AdminSupportTicketReview,
 } from "@/components/admin/AdminReviewDetailPanel";
 
 type FeatureFlags = {
@@ -644,25 +649,35 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       body: `${t(lang, "admin.appeals.score")}: ${warning.score_at_trigger}/100 · ${t(lang, "admin.appeals.penalty")}: ${warning.penalty_points_at_trigger}`,
       appeal: warning,
     }));
-    const ticketItems: RequestItem[] = supportTickets.map((ticket) => {
-      const isFeedback = ticket.kind === "feedback";
-      const type = isFeedback ? ("feedback" as const) : ("scam" as const);
+    const ticketItems: RequestItem[] = supportTickets.flatMap((ticket) => {
+      if (!isSupportTicketQueueItem(ticket.status)) return [];
+      const type = supportTicketRequestType(ticket.kind);
+      if (!type) return [];
+      const isFeedback = type === "feedback";
+      const categoryKey = supportFeedbackCategoryLabelKey(ticket.category);
+      const targetKey = supportScamTargetLabelKey(ticket.scam_target_type);
       const title = isFeedback
         ? ticket.title || t(lang, "admin.requests.type.feedback")
         : ticket.identifier || t(lang, "admin.requests.type.scam");
       const subtitle = isFeedback
-        ? `${t(lang, "admin.requests.type.feedback")}: ${ticket.category || "—"}`
-        : `${t(lang, "admin.requests.type.scam")}: ${ticket.scam_target_type || "—"}`;
-      return {
-        id: `ticket-${ticket.id}`,
-        type,
-        status: ticket.status || "open",
-        createdAt: ticket.created_at || "",
-        title,
-        subtitle,
-        body: ticket.body || "",
-        ticket,
-      };
+        ? `${t(lang, "admin.requests.type.feedback")}: ${
+            categoryKey ? t(lang, categoryKey as EnKey) : ticket.category || "—"
+          }`
+        : `${t(lang, "admin.requests.type.scam")}: ${
+            targetKey ? t(lang, targetKey as EnKey) : ticket.scam_target_type || "—"
+          }`;
+      return [
+        {
+          id: `ticket-${ticket.id}`,
+          type,
+          status: ticket.status || "open",
+          createdAt: ticket.created_at || "",
+          title,
+          subtitle,
+          body: ticket.body || "",
+          ticket,
+        },
+      ];
     });
     const farmReviewItems: RequestItem[] = farmReviews
       .filter((review) => isFarmReviewQueueItem(review.status))
@@ -1327,13 +1342,19 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             label={t(lang, "admin.support.dismiss")}
             variant="ghost"
             disabled={busyKey !== null}
-            onClick={() => void updateSupportTicket(item.ticket!.id, "dismissed")}
+            onClick={() => {
+              if (!window.confirm(t(lang, "admin.support.confirmDismiss"))) return;
+              void updateSupportTicket(item.ticket!.id, "dismissed");
+            }}
           />
           <ActionButton
             label={t(lang, "admin.support.markReviewed")}
             variant="success"
             disabled={busyKey !== null}
-            onClick={() => void updateSupportTicket(item.ticket!.id, "reviewed")}
+            onClick={() => {
+              if (!window.confirm(t(lang, "admin.support.confirmReviewed"))) return;
+              void updateSupportTicket(item.ticket!.id, "reviewed");
+            }}
           />
         </div>
       );
@@ -1603,10 +1624,12 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   ) : null}
                   {(() => {
                     const farmPhoto = (item.farmReview?.photo_urls || []).find(isSafeHttpUrl);
-                    return farmPhoto && !detailsOpen ? (
+                    const ticketPhoto = (item.ticket?.evidence_urls || []).find(isSafeHttpUrl);
+                    const compactPhoto = farmPhoto || ticketPhoto;
+                    return compactPhoto && !detailsOpen ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={farmPhoto}
+                        src={compactPhoto}
                         alt=""
                         className="mt-3 h-28 w-full max-w-xs rounded-xl object-cover bg-[#F3EDE3]"
                       />
@@ -1643,105 +1666,13 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     <AdminAppealReviewDetail lang={lang} appeal={item.appeal} />
                   ) : null}
                   {detailsOpen && item.ticket ? (
-                    <div className="mt-3 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FDFBF7] p-3 text-sm text-[#5C4A3A]">
-                      {item.ticket.kind === "feedback" ? (
-                        <>
-                          <p>
-                            <span className="font-semibold text-[#2B1E19]">
-                              {t(lang, "admin.support.category")}:{" "}
-                            </span>
-                            {item.ticket.category || "—"}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-[#2B1E19]">
-                              {t(lang, "admin.support.title")}:{" "}
-                            </span>
-                            {item.ticket.title || "—"}
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p>
-                            <span className="font-semibold text-[#2B1E19]">
-                              {t(lang, "admin.support.targetType")}:{" "}
-                            </span>
-                            {item.ticket.scam_target_type || "—"}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-[#2B1E19]">
-                              {t(lang, "admin.support.identifier")}:{" "}
-                            </span>
-                            {item.ticket.identifier || "—"}
-                          </p>
-                          {item.ticket.related_url ? (
-                            <p className="break-all">
-                              <span className="font-semibold text-[#2B1E19]">
-                                {t(lang, "admin.support.relatedUrl")}:{" "}
-                              </span>
-                              {isSafeHttpUrl(item.ticket.related_url) ? (
-                                <a
-                                  href={item.ticket.related_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-[#D97706] underline"
-                                >
-                                  {item.ticket.related_url}
-                                </a>
-                              ) : (
-                                item.ticket.related_url
-                              )}
-                            </p>
-                          ) : null}
-                          <p>
-                            <span className="font-semibold text-[#2B1E19]">
-                              {t(lang, "admin.support.anonymous")}:{" "}
-                            </span>
-                            {item.ticket.anonymous
-                              ? t(lang, "admin.support.yes")
-                              : t(lang, "admin.support.no")}
-                          </p>
-                        </>
-                      )}
-                      <p className="whitespace-pre-wrap">{item.ticket.body || "—"}</p>
-                      {Array.isArray(item.ticket.evidence_urls) &&
-                      item.ticket.evidence_urls.length > 0 ? (
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8B7355]">
-                            {t(lang, "admin.support.evidence")}
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {item.ticket.evidence_urls.map((url) =>
-                              isSafeHttpUrl(url) ? (
-                                <a
-                                  key={url}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="block"
-                                >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={url}
-                                    alt=""
-                                    className="h-16 w-16 rounded-lg object-cover border border-[#E8DFD0] bg-white"
-                                  />
-                                </a>
-                              ) : null,
-                            )}
-                          </div>
-                        </div>
-                      ) : null}
-                      <p className="text-xs text-[#8B7355]">
-                        {item.ticket.anonymous
-                          ? t(lang, "admin.support.reporterHidden")
-                          : `${t(lang, "admin.support.reporter")}: ${
-                              reporterAccount?.display_name ||
-                              reporterAccount?.email ||
-                              item.ticket.user_id ||
-                              "—"
-                            }`}
-                      </p>
-                    </div>
+                    <AdminSupportTicketReview
+                      lang={lang}
+                      ticket={item.ticket}
+                      reporterLabel={
+                        reporterAccount?.display_name || reporterAccount?.email || null
+                      }
+                    />
                   ) : null}
                   {renderRequestActions(item)}
                 </div>

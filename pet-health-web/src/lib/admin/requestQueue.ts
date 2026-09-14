@@ -83,3 +83,24 @@ export function appealStatusLabelKey(status: string | null | undefined): string 
   }
   return "admin.appeals.status.appealed";
 }
+
+const FEEDBACK_CATEGORIES = new Set(["ui", "feature", "bug", "other"]);
+const SCAM_TARGET_TYPES = new Set(["account", "phone", "facebook", "bank"]);
+
+/** i18n key for a feedback category, or null to show the raw code. */
+export function supportFeedbackCategoryLabelKey(
+  category: string | null | undefined,
+): string | null {
+  const value = String(category || "").trim().toLowerCase();
+  if (!FEEDBACK_CATEGORIES.has(value)) return null;
+  return `supportHub.feedback.cat.${value}`;
+}
+
+/** i18n key for a scam target type, or null to show the raw code. */
+export function supportScamTargetLabelKey(
+  targetType: string | null | undefined,
+): string | null {
+  const value = String(targetType || "").trim().toLowerCase();
+  if (!SCAM_TARGET_TYPES.has(value)) return null;
+  return `supportHub.scam.type.${value}`;
+}

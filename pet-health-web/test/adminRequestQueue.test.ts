@@ -9,6 +9,8 @@ import {
   isSafeHttpUrl,
   requestQueueFocusId,
   submissionPayloadHref,
+  supportFeedbackCategoryLabelKey,
+  supportScamTargetLabelKey,
 } from "../src/lib/admin/requestQueue";
 
 test("requestQueueFocusId uses the entity id for each request type", () => {
@@ -78,4 +80,27 @@ test("request queue i18n keys exist in EN and VI", () => {
   assert.ok(vi["admin.details.rejectTitle"]);
   assert.ok(en["admin.farmReviews.rejectTitle"]);
   assert.ok(vi["admin.farmReviews.rejectTitle"]);
+  assert.ok(en["admin.support.confirmDismiss"]);
+  assert.ok(vi["admin.support.confirmDismiss"]);
+  assert.ok(en["admin.support.confirmReviewed"]);
+  assert.ok(vi["admin.support.confirmReviewed"]);
+  assert.ok(en["admin.support.evidenceConfirmed"]);
+  assert.ok(vi["admin.support.evidenceConfirmed"]);
+});
+
+test("support ticket category and scam target i18n keys", () => {
+  assert.equal(
+    supportFeedbackCategoryLabelKey("ui"),
+    "supportHub.feedback.cat.ui",
+  );
+  assert.equal(supportFeedbackCategoryLabelKey("unknown"), null);
+  assert.equal(
+    supportScamTargetLabelKey("phone"),
+    "supportHub.scam.type.phone",
+  );
+  assert.equal(supportScamTargetLabelKey("wallet"), null);
+  assert.ok(en["supportHub.feedback.cat.ui"]);
+  assert.ok(vi["supportHub.feedback.cat.ui"]);
+  assert.ok(en["supportHub.scam.type.phone"]);
+  assert.ok(vi["supportHub.scam.type.phone"]);
 });

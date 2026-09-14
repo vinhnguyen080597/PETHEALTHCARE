@@ -139,8 +139,8 @@ test("support hub i18n parity for core keys", () => {
   assert.ok(vi["admin.support.evidence"]);
   assert.equal(en["admin.support.markReviewed"], "Mark reviewed");
   assert.equal(vi["admin.support.markReviewed"], "Đã review");
-  assert.equal(en["admin.support.dismiss"], "Cancel");
-  assert.equal(vi["admin.support.dismiss"], "Hủy");
+  assert.equal(en["admin.support.dismiss"], "Dismiss");
+  assert.equal(vi["admin.support.dismiss"], "Bỏ qua");
   for (const section of SUPPORT_SECTIONS) {
     assert.ok(en[section.titleKey as keyof typeof en]);
     assert.ok(vi[section.titleKey as keyof typeof vi]);
