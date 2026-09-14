@@ -1471,6 +1471,13 @@ const en = {
   "admin.farmReviews.approveUpdateBlockedTitle": "Approve the main review first",
   "admin.farmReviews.approveUpdateBlockedBody":
     "This update cannot be approved until the direct review is approved.",
+  "admin.farmReviews.reviewer": "Reviewer",
+  "admin.farmReviews.saleListing": "Related listing",
+  "admin.appeals.status.appealed": "Appealed",
+  "admin.appeals.status.upheld": "Suspend upheld",
+  "admin.appeals.status.restored": "Restored",
+  "admin.appeals.status.confirmed": "Breeder confirmed",
+  "admin.appeals.status.pending_breeder_action": "Waiting for breeder",
   "admin.support.category": "Category",
   "admin.support.title": "Title",
   "admin.support.targetType": "Target type",

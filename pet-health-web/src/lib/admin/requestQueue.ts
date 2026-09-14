@@ -48,3 +48,38 @@ export function isSafeHttpUrl(value: string | null | undefined): boolean {
   const url = String(value || "").trim();
   return /^https?:\/\//i.test(url);
 }
+
+/** Zalo submissions may be a phone number; only http(s) becomes a link. */
+export function submissionPayloadHref(
+  url: string | null | undefined,
+  submissionType?: string | null,
+): string | null {
+  const value = String(url || "").trim();
+  if (!value) return null;
+  if (String(submissionType || "") === "social_zalo" && !isSafeHttpUrl(value)) {
+    return null;
+  }
+  return isSafeHttpUrl(value) ? value : null;
+}
+
+export function farmReviewKindI18nKey(kind: string | null | undefined): string {
+  const value = String(kind || "").trim().toLowerCase();
+  if (value === "sale" || value === "supplement") {
+    return `admin.farmReviews.kind.${value}`;
+  }
+  return "admin.farmReviews.kind.primary";
+}
+
+export function appealStatusLabelKey(status: string | null | undefined): string {
+  const value = String(status || "").trim().toLowerCase();
+  if (
+    value === "appealed" ||
+    value === "upheld" ||
+    value === "restored" ||
+    value === "confirmed" ||
+    value === "pending_breeder_action"
+  ) {
+    return `admin.appeals.status.${value}`;
+  }
+  return "admin.appeals.status.appealed";
+}

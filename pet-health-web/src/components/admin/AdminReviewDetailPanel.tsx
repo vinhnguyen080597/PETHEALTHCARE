@@ -16,9 +16,18 @@ import {
   type AdminReviewPost,
   type AdminReviewReport,
 } from "@/lib/admin/reviewDetail";
-import { isSafeHttpUrl } from "@/lib/admin/requestQueue";
+import { listingPublicHref } from "@/lib/admin/listingReject";
+import {
+  appealStatusLabelKey,
+  farmReviewKindI18nKey,
+  isSafeHttpUrl,
+  submissionPayloadHref,
+} from "@/lib/admin/requestQueue";
+import { farmReviewStarLabel, farmReviewUpdateApproveBlocked } from "@/lib/breederFarmReviews";
+import { breederSubmissionTypeLabel } from "@/lib/breederProfileSubmissions";
 import { reportReasonLabelKey, reportTargetHref } from "@/lib/admin/reportDisplay";
 import type { BreederProfileSubmission } from "@/lib/breederProfileSubmissions";
+import type { TransparencyWarning } from "@/lib/transparencyWarnings";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -435,39 +444,53 @@ export function AdminBreederDetailSubmissionReview({
   submission: AdminReviewBreederDetailSubmission;
 }) {
   const url = submission.payload?.url?.trim() || "";
+  const href = submissionPayloadHref(url, submission.submission_type);
   const isVideo = submission.submission_type === "facility_video";
+  const farmId = submission.breeder_profile?.id || submission.breeder_profile_id;
   const breederName =
-    submission.breeder_profile?.display_name ||
-    submission.breeder_profile?.id ||
-    "—";
+    submission.breeder_profile?.display_name || farmId || "—";
 
   return (
     <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
       <Section title={t(lang, "admin.review.detailBreeder")}>
-        <p className="text-sm text-[#5C4A3A]">{breederName}</p>
+        {farmId ? (
+          <Link
+            href={breederPublicHref(farmId)}
+            className="text-sm font-semibold text-[#B45309] hover:underline"
+          >
+            {breederName}
+          </Link>
+        ) : (
+          <p className="text-sm text-[#5C4A3A]">{breederName}</p>
+        )}
       </Section>
       <Section title={t(lang, "admin.review.detailType")}>
-        <Chip>{submission.submission_type}</Chip>
+        <Chip>{breederSubmissionTypeLabel(submission.submission_type, lang)}</Chip>
       </Section>
       {url ? (
         <Section title={t(lang, "admin.review.detailUrl")}>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-[#B45309] break-all hover:underline"
-          >
-            {url}
-          </a>
-          {isVideo ? (
+          {href ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[#B45309] break-all hover:underline"
+            >
+              {url}
+            </a>
+          ) : (
+            <p className="text-sm text-[#5C4A3A] break-all">{url}</p>
+          )}
+          {href && isVideo ? (
             <video
-              src={url}
+              src={href}
               controls
               className="mt-3 w-full max-h-64 rounded-xl bg-black/5"
             />
-          ) : /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url) ? (
+          ) : null}
+          {href && !isVideo && /\.(jpe?g|png|webp|gif)(\?|$)/i.test(href) ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={url} alt="" className="mt-3 max-h-64 rounded-xl object-contain bg-white" />
+            <img src={href} alt="" className="mt-3 max-h-64 rounded-xl object-contain bg-white" />
           ) : null}
         </Section>
       ) : null}
@@ -477,6 +500,151 @@ export function AdminBreederDetailSubmissionReview({
             {submission.payload.note.trim()}
           </p>
         </Section>
+      ) : null}
+      {submission.rejection_reason?.trim() ? (
+        <Section title={t(lang, "admin.details.rejectTitle")}>
+          <p className="text-sm text-red-700 whitespace-pre-wrap">
+            {submission.rejection_reason.trim()}
+          </p>
+        </Section>
+      ) : null}
+    </div>
+  );
+}
+
+export type AdminReviewFarmReview = {
+  id: string;
+  breeder_profile_id: string;
+  kind: string;
+  parent_status?: string | null;
+  post_id?: string | null;
+  rating: number;
+  body?: string;
+  photo_urls?: string[];
+  reviewer_display_name?: string | null;
+  breeder_profile?: { id?: string; display_name?: string | null } | null;
+};
+
+export function AdminFarmReviewDetail({
+  lang,
+  review,
+}: {
+  lang: Lang;
+  review: AdminReviewFarmReview;
+}) {
+  const farmId = review.breeder_profile?.id || review.breeder_profile_id;
+  const farmName = review.breeder_profile?.display_name || farmId || "—";
+  const photos = (review.photo_urls || []).filter(isSafeHttpUrl);
+  const stars = farmReviewStarLabel(review.rating);
+  const listingId = String(review.post_id || "").trim();
+
+  return (
+    <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
+      <Section title={t(lang, "admin.review.detailBreeder")}>
+        {farmId ? (
+          <Link
+            href={breederPublicHref(farmId)}
+            className="text-sm font-semibold text-[#B45309] hover:underline"
+          >
+            {farmName}
+          </Link>
+        ) : (
+          <p className="text-sm text-[#5C4A3A]">{farmName}</p>
+        )}
+      </Section>
+      <p className="text-sm text-[#5C4A3A]">
+        <span className="font-semibold text-[#2B1E19]">
+          {t(lang, farmReviewKindI18nKey(review.kind) as EnKey)}
+        </span>
+        {stars ? ` · ${stars} (${review.rating}/5)` : null}
+      </p>
+      {review.reviewer_display_name?.trim() ? (
+        <p className="text-xs text-[#8B7355]">
+          {t(lang, "admin.farmReviews.reviewer")}: {review.reviewer_display_name.trim()}
+        </p>
+      ) : null}
+      {listingId ? (
+        <p className="text-xs">
+          {t(lang, "admin.farmReviews.saleListing")}:{" "}
+          <Link
+            href={listingPublicHref(listingId)}
+            className="font-semibold text-[#B45309] hover:underline"
+          >
+            {listingId}
+          </Link>
+        </p>
+      ) : null}
+      {farmReviewUpdateApproveBlocked(review) ? (
+        <p className="text-xs font-semibold text-amber-800">
+          {t(lang, "admin.farmReviews.approveUpdateBlockedBody")}
+        </p>
+      ) : null}
+      {review.body?.trim() ? (
+        <p className="text-sm text-[#5C4A3A] whitespace-pre-wrap">{review.body.trim()}</p>
+      ) : null}
+      {photos.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {photos.map((url) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={url}
+              src={url}
+              alt=""
+              className="h-20 w-20 rounded-lg object-cover bg-[#F3EDE3]"
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function AdminAppealReviewDetail({
+  lang,
+  appeal,
+}: {
+  lang: Lang;
+  appeal: TransparencyWarning;
+}) {
+  const farmId = appeal.breeder_profile?.id || appeal.breeder_profile_id;
+  const farmName = appeal.breeder_profile?.display_name || farmId || "—";
+
+  return (
+    <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
+      <Section title={t(lang, "admin.review.detailBreeder")}>
+        {farmId ? (
+          <Link
+            href={breederPublicHref(farmId)}
+            className="text-sm font-semibold text-[#B45309] hover:underline"
+          >
+            {farmName}
+          </Link>
+        ) : (
+          <p className="text-sm text-[#5C4A3A]">{farmName}</p>
+        )}
+      </Section>
+      <p className="text-sm text-[#5C4A3A]">
+        <span className="font-semibold text-[#2B1E19]">
+          {t(lang, "admin.filter.status")}:{" "}
+        </span>
+        {t(lang, appealStatusLabelKey(appeal.status) as EnKey)}
+      </p>
+      <p className="text-sm text-[#5C4A3A]">
+        <span className="font-semibold text-[#2B1E19]">
+          {t(lang, "admin.appeals.score")}:{" "}
+        </span>
+        {appeal.score_at_trigger}/100
+      </p>
+      <p className="text-sm text-[#5C4A3A]">
+        <span className="font-semibold text-[#2B1E19]">
+          {t(lang, "admin.appeals.penalty")}:{" "}
+        </span>
+        {appeal.penalty_points_at_trigger}
+      </p>
+      {appeal.admin_note?.trim() ? (
+        <p className="text-sm text-[#5C4A3A] whitespace-pre-wrap">
+          {appeal.admin_note.trim()}
+        </p>
       ) : null}
     </div>
   );

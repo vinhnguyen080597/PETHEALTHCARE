@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
 import {
+  appealStatusLabelKey,
+  farmReviewKindI18nKey,
   findRequestByFocusId,
   isSafeHttpUrl,
   requestQueueFocusId,
+  submissionPayloadHref,
 } from "../src/lib/admin/requestQueue";
 
 test("requestQueueFocusId uses the entity id for each request type", () => {
@@ -43,6 +46,29 @@ test("isSafeHttpUrl only allows http(s)", () => {
   assert.equal(isSafeHttpUrl("javascript:alert(1)"), false);
   assert.equal(isSafeHttpUrl("/relative"), false);
   assert.equal(isSafeHttpUrl(""), false);
+});
+
+test("submissionPayloadHref skips javascript and Zalo phones", () => {
+  assert.equal(
+    submissionPayloadHref("https://facebook.com/farm", "social_facebook"),
+    "https://facebook.com/farm",
+  );
+  assert.equal(submissionPayloadHref("0901234567", "social_zalo"), null);
+  assert.equal(submissionPayloadHref("javascript:alert(1)", "facility_video"), null);
+});
+
+test("farm review kind and appeal status i18n keys", () => {
+  assert.equal(farmReviewKindI18nKey("sale"), "admin.farmReviews.kind.sale");
+  assert.equal(farmReviewKindI18nKey("nope"), "admin.farmReviews.kind.primary");
+  assert.equal(
+    appealStatusLabelKey("pending_breeder_action"),
+    "admin.appeals.status.pending_breeder_action",
+  );
+  assert.equal(appealStatusLabelKey("appealed"), "admin.appeals.status.appealed");
+  assert.ok(en["admin.appeals.status.appealed"]);
+  assert.ok(vi["admin.appeals.status.appealed"]);
+  assert.ok(en["admin.farmReviews.reviewer"]);
+  assert.ok(vi["admin.farmReviews.reviewer"]);
 });
 
 test("request queue i18n keys exist in EN and VI", () => {

@@ -7,6 +7,7 @@ import {
   FARM_REVIEW_MAX_PHOTOS,
   farmReviewedNotificationReviewId,
   farmReviewUpdateApproveBlocked,
+  farmReviewStarLabel,
   isFarmReviewPrimaryNotApprovedCode,
   mapFarmReviewThreads,
   parseFarmReviewFocusId,
@@ -165,4 +166,10 @@ test("farmReviewUpdateApproveBlocked requires an approved primary", () => {
     false,
   );
   assert.equal(isFarmReviewPrimaryNotApprovedCode("PRIMARY_REVIEW_NOT_APPROVED"), true);
+});
+
+test("farmReviewStarLabel clamps rating to 1–5 stars", () => {
+  assert.equal(farmReviewStarLabel(3), "★★★");
+  assert.equal(farmReviewStarLabel(9), "★★★★★");
+  assert.equal(farmReviewStarLabel(0), "");
 });

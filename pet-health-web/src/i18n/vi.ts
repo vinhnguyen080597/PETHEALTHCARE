@@ -1473,6 +1473,13 @@ const vi: Record<EnKey, string> = {
   "admin.farmReviews.approveUpdateBlockedTitle": "Cần duyệt đánh giá chính trước",
   "admin.farmReviews.approveUpdateBlockedBody":
     "Không thể duyệt bản cập nhật khi đánh giá trực tiếp vẫn đang chờ. Hãy duyệt đánh giá chính trước.",
+  "admin.farmReviews.reviewer": "Người đánh giá",
+  "admin.farmReviews.saleListing": "Tin đăng liên quan",
+  "admin.appeals.status.appealed": "Đã kháng cáo",
+  "admin.appeals.status.upheld": "Giữ tạm khóa",
+  "admin.appeals.status.restored": "Đã khôi phục",
+  "admin.appeals.status.confirmed": "Breeder đã xác nhận",
+  "admin.appeals.status.pending_breeder_action": "Chờ breeder",
   "admin.support.category": "Phân loại",
   "admin.support.title": "Tiêu đề",
   "admin.support.targetType": "Loại đối tượng",

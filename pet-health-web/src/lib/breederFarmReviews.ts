@@ -18,6 +18,14 @@ export type FarmReviewKind = "primary" | "supplement" | "sale";
 export type FarmReviewStatus = "pending" | "approved" | "rejected";
 export const FARM_REVIEW_PRIMARY_NOT_APPROVED = "PRIMARY_REVIEW_NOT_APPROVED";
 
+export function farmReviewStarLabel(rating: unknown): string {
+  const n = typeof rating === "number" ? rating : Number(rating);
+  if (!Number.isFinite(n)) return "";
+  const rounded = Math.round(n);
+  if (rounded < 1) return "";
+  return "★".repeat(Math.min(5, rounded));
+}
+
 /** Block approving a supplement until its primary review is approved. */
 export function farmReviewUpdateApproveBlocked(review: {
   kind?: string | null;

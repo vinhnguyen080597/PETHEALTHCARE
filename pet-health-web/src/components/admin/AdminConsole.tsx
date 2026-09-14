@@ -20,6 +20,7 @@ import {
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 import { DialogActions } from "@/components/ui/DialogActions";
 import {
+  farmReviewStarLabel,
   farmReviewUpdateApproveBlocked,
   isFarmReviewPrimaryNotApprovedError,
 } from "@/lib/breederFarmReviews";
@@ -27,7 +28,10 @@ import {
   HISTORY_ACTION_FILTERS,
   breederGroup,
   breederVerifyConfirmKey,
+  isAppealQueueItem,
   isBreederVerificationQueueItem,
+  isDetailSubmissionQueueItem,
+  isFarmReviewQueueItem,
   isListingModerationQueueItem,
   passesDateFilter,
   requestStatusGroup,
@@ -38,6 +42,8 @@ import {
   type RequestStatus,
 } from "@/lib/admin/filters";
 import {
+  appealStatusLabelKey,
+  farmReviewKindI18nKey,
   findRequestByFocusId,
   isSafeHttpUrl,
   requestQueueFocusId,
@@ -66,8 +72,10 @@ import {
   reportTargetHref,
 } from "@/lib/admin/reportDisplay";
 import {
+  AdminAppealReviewDetail,
   AdminBreederDetailSubmissionReview,
   AdminBreederReviewDetail,
+  AdminFarmReviewDetail,
   AdminListingReviewDetail,
   AdminReportReviewDetail,
   AdminReviewDetailsToggle,
@@ -148,12 +156,14 @@ type FarmReviewRow = {
   kind: "primary" | "supplement" | "sale";
   parent_review_id?: string | null;
   parent_status?: string | null;
+  post_id?: string | null;
   rating: number;
   body?: string;
   photo_urls?: string[];
   status?: string;
   created_at?: string;
-  breeder_profile?: { display_name?: string | null } | null;
+  reviewer_display_name?: string | null;
+  breeder_profile?: { id?: string; display_name?: string | null } | null;
 };
 
 type RequestItem = {
@@ -238,8 +248,7 @@ function formatDate(value?: string) {
 }
 
 function farmReviewKindLabel(kind: string, lang: Lang) {
-  const safe = kind === "sale" || kind === "supplement" ? kind : "primary";
-  return t(lang, `admin.farmReviews.kind.${safe}` as EnKey);
+  return t(lang, farmReviewKindI18nKey(kind) as EnKey);
 }
 
 type RejectKind = "breeder" | "listing" | "detail" | "farm_review";
@@ -543,7 +552,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const pendingFarmReviews = farmReviews.filter(
     (review) => review.status === "pending",
   );
-  const pendingAppeals = appeals.filter((s) => s.status === "appealed" || s.status === "pending_breeder_action");
+  const pendingAppeals = appeals.filter((s) => isAppealQueueItem(s.status));
   const pendingRequestCount =
     pendingPosts.length +
     pendingBreeders.length +
@@ -611,7 +620,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         report,
       };
     });
-    const detailItems: RequestItem[] = detailSubmissions.map((submission) => ({
+    const detailItems: RequestItem[] = detailSubmissions
+      .filter((submission) => isDetailSubmissionQueueItem(submission.status))
+      .map((submission) => ({
       id: `detail-${submission.id}`,
       type: "detail",
       status: submission.status || "pending",
@@ -621,7 +632,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       body: submission.payload?.url || submission.payload?.note || "",
       detail: submission,
     }));
-    const appealItems: RequestItem[] = appeals.map((warning) => ({
+    const appealItems: RequestItem[] = appeals
+      .filter((warning) => isAppealQueueItem(warning.status))
+      .map((warning) => ({
       id: `appeal-${warning.id}`,
       type: "appeal",
       status: warning.status || "appealed",
@@ -651,12 +664,14 @@ export function AdminConsole({ lang }: { lang: Lang }) {
         ticket,
       };
     });
-    const farmReviewItems: RequestItem[] = farmReviews.map((review) => ({
+    const farmReviewItems: RequestItem[] = farmReviews
+      .filter((review) => isFarmReviewQueueItem(review.status))
+      .map((review) => ({
         id: `farm_review-${review.id}`,
         type: "farm_review",
         status: review.status || "pending",
         createdAt: review.created_at || "",
-        title: `${farmReviewKindLabel(review.kind, lang)} · ${"★".repeat(review.rating)}`,
+        title: `${farmReviewKindLabel(review.kind, lang)} · ${farmReviewStarLabel(review.rating)}`,
         subtitle:
           review.breeder_profile?.display_name || review.breeder_profile_id || "—",
         body: review.body || "",
@@ -1253,7 +1268,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     if (
       item.type === "appeal"
       && item.appeal?.id
-      && (item.appeal.status === "appealed" || item.appeal.status === "pending_breeder_action")
+      && isAppealQueueItem(item.appeal.status)
     ) {
       return (
         <div className="flex flex-wrap gap-2 mt-3">
@@ -1533,6 +1548,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                               item.type === "feedback" ||
                               item.type === "scam"
                             ? reportStatusLabel(item.status)
+                            : item.type === "appeal"
+                              ? t(lang, appealStatusLabelKey(item.status) as EnKey)
                             : t(
                                 lang,
                                 `admin.requests.status.${requestStatusGroup(item)}` as EnKey,
@@ -1544,7 +1561,29 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     </span>
                   </div>
                   <p className="font-semibold text-sm text-[#2B1E19]">{item.title}</p>
-                  <p className="text-xs text-[#8B7355] mt-0.5">{item.subtitle}</p>
+                  {(() => {
+                    const farmId =
+                      item.type === "detail"
+                        ? item.detail?.breeder_profile?.id ||
+                          item.detail?.breeder_profile_id
+                        : item.type === "farm_review"
+                          ? item.farmReview?.breeder_profile?.id ||
+                            item.farmReview?.breeder_profile_id
+                          : item.type === "appeal"
+                            ? item.appeal?.breeder_profile?.id ||
+                              item.appeal?.breeder_profile_id
+                            : null;
+                    return farmId ? (
+                      <Link
+                        href={breederPublicHref(farmId)}
+                        className="block text-xs font-semibold text-[#B45309] mt-0.5 hover:underline"
+                      >
+                        {item.subtitle}
+                      </Link>
+                    ) : (
+                      <p className="text-xs text-[#8B7355] mt-0.5">{item.subtitle}</p>
+                    );
+                  })()}
                   {item.body && !detailsOpen ? (
                     <p className="text-sm text-[#5C4A3A] mt-2 line-clamp-3">{item.body}</p>
                   ) : null}
@@ -1557,14 +1596,22 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                       className="mt-3 h-28 w-full max-w-xs rounded-xl object-cover bg-[#F3EDE3]"
                     />
                   ) : null}
-                  {item.farmReview?.photo_urls?.[0] && !detailsOpen ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.farmReview.photo_urls[0]}
-                      alt=""
-                      className="mt-3 h-28 w-full max-w-xs rounded-xl object-cover bg-[#F3EDE3]"
-                    />
+                  {item.farmReview && !detailsOpen && farmReviewUpdateApproveBlocked(item.farmReview) ? (
+                    <p className="mt-2 text-xs font-semibold text-amber-800">
+                      {t(lang, "admin.farmReviews.approveUpdateBlockedBody")}
+                    </p>
                   ) : null}
+                  {(() => {
+                    const farmPhoto = (item.farmReview?.photo_urls || []).find(isSafeHttpUrl);
+                    return farmPhoto && !detailsOpen ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={farmPhoto}
+                        alt=""
+                        className="mt-3 h-28 w-full max-w-xs rounded-xl object-cover bg-[#F3EDE3]"
+                      />
+                    ) : null;
+                  })()}
                   <AdminReviewDetailsToggle
                     lang={lang}
                     open={detailsOpen}
@@ -1590,54 +1637,10 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     <AdminBreederDetailSubmissionReview lang={lang} submission={item.detail} />
                   ) : null}
                   {detailsOpen && item.farmReview ? (
-                    <div className="mt-3 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FDFBF7] p-3 text-sm text-[#5C4A3A]">
-                      <p>
-                        <span className="font-semibold text-[#2B1E19]">
-                          {farmReviewKindLabel(item.farmReview.kind, lang)}
-                        </span>
-                        {" · "}
-                        {"★".repeat(item.farmReview.rating)} ({item.farmReview.rating}/5)
-                      </p>
-                      {item.farmReview.body ? <p>{item.farmReview.body}</p> : null}
-                      {item.farmReview.photo_urls?.length ? (
-                        <div className="flex flex-wrap gap-2">
-                          {item.farmReview.photo_urls.map((url) => (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              key={url}
-                              src={url}
-                              alt=""
-                              className="h-20 w-20 rounded-lg object-cover bg-[#F3EDE3]"
-                            />
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
+                    <AdminFarmReviewDetail lang={lang} review={item.farmReview} />
                   ) : null}
                   {detailsOpen && item.appeal ? (
-                    <div className="mt-3 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FDFBF7] p-3 text-sm text-[#5C4A3A]">
-                      <p>
-                        <span className="font-semibold text-[#2B1E19]">
-                          {t(lang, "admin.appeals.score")}:{" "}
-                        </span>
-                        {item.appeal.score_at_trigger}/100
-                      </p>
-                      <p>
-                        <span className="font-semibold text-[#2B1E19]">
-                          {t(lang, "admin.appeals.penalty")}:{" "}
-                        </span>
-                        {item.appeal.penalty_points_at_trigger}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-[#2B1E19]">
-                          {t(lang, "admin.filter.status")}:{" "}
-                        </span>
-                        {item.appeal.status}
-                      </p>
-                      {item.appeal.admin_note ? (
-                        <p className="whitespace-pre-wrap">{item.appeal.admin_note}</p>
-                      ) : null}
-                    </div>
+                    <AdminAppealReviewDetail lang={lang} appeal={item.appeal} />
                   ) : null}
                   {detailsOpen && item.ticket ? (
                     <div className="mt-3 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FDFBF7] p-3 text-sm text-[#5C4A3A]">

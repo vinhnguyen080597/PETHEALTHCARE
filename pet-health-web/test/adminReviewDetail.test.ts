@@ -48,6 +48,10 @@ const KEYS = [
   "admin.reports.forceCancel",
   "admin.reports.confirmForceComplete",
   "admin.reports.confirmForceCancel",
+  "admin.farmReviews.reviewer",
+  "admin.farmReviews.saleListing",
+  "admin.appeals.status.appealed",
+  "admin.appeals.status.pending_breeder_action",
 ] as const;
 
 test("admin review detail i18n keys exist in EN and VI", () => {

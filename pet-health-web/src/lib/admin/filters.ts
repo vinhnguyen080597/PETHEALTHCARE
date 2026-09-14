@@ -110,6 +110,27 @@ export function isListingModerationQueueItem(
   return status === "pending_review";
 }
 
+/** Only pending transparency-detail submissions belong in the request queue. */
+export function isDetailSubmissionQueueItem(
+  status: string | null | undefined,
+): boolean {
+  return status === "pending";
+}
+
+/** Only pending farm reviews belong in the request queue. */
+export function isFarmReviewQueueItem(
+  status: string | null | undefined,
+): boolean {
+  return status === "pending";
+}
+
+/** Only appealed warnings belong in the request queue (not pending_breeder_action). */
+export function isAppealQueueItem(
+  status: string | null | undefined,
+): boolean {
+  return status === "appealed";
+}
+
 /** i18n key for a request-queue type chip (`farm_review` uses camelCase copy). */
 export function requestTypeLabelKey(type: string): string {
   if (type === "farm_review") return "admin.requests.type.farmReview";

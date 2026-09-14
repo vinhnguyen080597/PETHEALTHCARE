@@ -6,6 +6,9 @@ import {
   breederVerifyConfirmKey,
   historyActionI18nKey,
   isBreederVerificationQueueItem,
+  isDetailSubmissionQueueItem,
+  isFarmReviewQueueItem,
+  isAppealQueueItem,
   isListingModerationQueueItem,
   passesDateFilter,
   requestStatusGroup,
@@ -34,6 +37,9 @@ test("requestStatusGroup maps request statuses for filters", () => {
   assert.equal(requestStatusGroup({ type: "detail", status: "approved" }), "approved");
   assert.equal(requestStatusGroup({ type: "detail", status: "rejected" }), "rejected");
   assert.equal(requestStatusGroup({ type: "appeal", status: "appealed" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "appeal", status: "pending_breeder_action" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "farm_review", status: "pending" }), "waiting");
+  assert.equal(requestStatusGroup({ type: "farm_review", status: "approved" }), "approved");
   assert.equal(requestStatusGroup({ type: "appeal", status: "restored" }), "approved");
   assert.equal(requestStatusGroup({ type: "appeal", status: "upheld" }), "rejected");
 });
@@ -51,6 +57,17 @@ test("isListingModerationQueueItem only includes pending_review listings", () =>
   assert.equal(isListingModerationQueueItem("published"), false);
   assert.equal(isListingModerationQueueItem("deposit_hold"), false);
   assert.equal(isListingModerationQueueItem("archived"), false);
+});
+
+test("detail, farm review, and appeal queue membership", () => {
+  assert.equal(isDetailSubmissionQueueItem("pending"), true);
+  assert.equal(isDetailSubmissionQueueItem("approved"), false);
+  assert.equal(isDetailSubmissionQueueItem("rejected"), false);
+  assert.equal(isFarmReviewQueueItem("pending"), true);
+  assert.equal(isFarmReviewQueueItem("approved"), false);
+  assert.equal(isAppealQueueItem("appealed"), true);
+  assert.equal(isAppealQueueItem("pending_breeder_action"), false);
+  assert.equal(isAppealQueueItem("upheld"), false);
 });
 
 test("requestTypeLabelKey maps farm_review to camelCase i18n key", () => {
