@@ -5,8 +5,6 @@ import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { listPublicBreeders, listPublicPosts } from "@/lib/api/public";
 import { ListingCard } from "@/components/marketplace/ListingCard";
-import { AppDownloadBanner } from "@/components/marketplace/AppDownloadBanner";
-import { SiteFooter } from "@/components/marketplace/SiteFooter";
 import { VerifiedBadge } from "@/components/marketplace/Badges";
 import { showBreederVerifiedBadge } from "@/lib/breederVerificationUi";
 import { HomeValueProps } from "@/components/marketplace/HomeValueProps";
@@ -212,32 +210,6 @@ export default async function HomePage() {
             <HomeFeaturedBreeders lang={lang} />
           </Suspense>
         </section>
-
-        <section className="max-w-[1200px] mx-auto px-5 lg:px-8 pb-16">
-          <AppDownloadBanner lang={lang} />
-        </section>
-
-        <section className="bg-[#1C1917] text-white">
-          <div className="max-w-[1200px] mx-auto px-5 lg:px-8 py-12 grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-            {(
-              [
-                ["2,400+", "landing.stat.listings"],
-                ["156+", "landing.stat.breeders"],
-                ["34", "landing.stat.provinces"],
-                ["12K+", "landing.stat.owners"],
-              ] as const
-            ).map(([num, key]) => (
-              <div key={num}>
-                <p className="font-display text-3xl font-semibold text-amber-300 mb-1">
-                  {num}
-                </p>
-                <p className="text-sm text-stone-400">{t(lang, key)}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <SiteFooter lang={lang} />
       </div>
     </HomeGuestGate>
   );

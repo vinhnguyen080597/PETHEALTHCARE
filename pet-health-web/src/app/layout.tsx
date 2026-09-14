@@ -6,6 +6,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { HeaderWithSession } from "@/components/HeaderWithSession";
 import { SiteBreadcrumbs } from "@/components/SiteBreadcrumbs";
+import { SiteFooter } from "@/components/marketplace/SiteFooter";
 import { ChatDockProvider } from "@/components/messages/ChatDockProvider";
 import { FloatingChatWindow } from "@/components/messages/FloatingChatWindow";
 import { getLang } from "@/i18n";
@@ -62,22 +63,25 @@ export default async function RootLayout({
         className={`${inter.variable} ${fraunces.variable} font-sans antialiased bg-[#FDFBF7] text-stone-900`}
       >
         <ChatDockProvider lang={lang}>
-          <Suspense
-            fallback={
-              <SiteHeader
-                lang={lang}
-                isAdmin={false}
-                isLoggedIn={false}
-                unreadNotificationCount={0}
-              />
-            }
-          >
-            <HeaderWithSession lang={lang} />
-          </Suspense>
-          <Suspense fallback={null}>
-            <SiteBreadcrumbs lang={lang} />
-          </Suspense>
-          {children}
+          <div className="flex min-h-screen flex-col">
+            <Suspense
+              fallback={
+                <SiteHeader
+                  lang={lang}
+                  isAdmin={false}
+                  isLoggedIn={false}
+                  unreadNotificationCount={0}
+                />
+              }
+            >
+              <HeaderWithSession lang={lang} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <SiteBreadcrumbs lang={lang} />
+            </Suspense>
+            <div className="flex-1">{children}</div>
+            <SiteFooter lang={lang} />
+          </div>
           <FloatingChatWindow />
         </ChatDockProvider>
       </body>
