@@ -885,8 +885,8 @@ const vi: Record<EnKey, string> = {
   "auth.otpErrors.generic": "Xác minh thất bại. Vui lòng thử lại.",
   "auth.heroTitle": "An tâm đón thành viên mới về nhà",
   "auth.heroSub":
-    "Đồng hành kết nối với breeder uy tín, hồ sơ rõ ràng và giao dịch minh bạch hơn.",
-  "auth.escrowBadge": "Kết nối rao vặt · Không giữ tiền",
+    "Đồng hành kết nối với trại giống uy tín, hồ sơ rõ ràng và giao dịch minh bạch hơn.",
+  "auth.escrowBadge": "Nơi khởi đầu cho những hành trình yêu thương",
   "auth.continueGoogle": "Tiếp tục với Google",
   "auth.continueFacebook": "Tiếp tục với Facebook",
   "auth.continueApple": "Tiếp tục với Apple",

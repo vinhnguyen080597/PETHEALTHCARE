@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { API_V1, COOKIE_ACCESS, COOKIE_REFRESH } from "@/lib/config";
+import { guestAppLoginPath, isAppRoute } from "@/lib/loginHref";
 import { mergeCookieHeader } from "@/lib/sessionCookies";
 import { sessionCookieOptions } from "@/lib/sessionOptions";
 import { accessTokenNeedsRefresh, extractAuthTokens } from "@/lib/sessionTokens";
@@ -34,6 +35,15 @@ function applyTokens(
   return response;
 }
 
+function redirectGuestToLogin(request: NextRequest): NextResponse {
+  const dest = guestAppLoginPath(
+    request.nextUrl.pathname,
+    request.nextUrl.search,
+  );
+  if (!dest) return NextResponse.next();
+  return NextResponse.redirect(new URL(dest, request.url));
+}
+
 export async function middleware(request: NextRequest) {
   // API routes refresh via getAccessToken so parallel polls share one server lock
   // per isolate instead of racing here on a rotating refresh token.
@@ -41,10 +51,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const pathname = request.nextUrl.pathname;
   const accessToken = request.cookies.get(COOKIE_ACCESS)?.value || null;
   const refreshToken = request.cookies.get(COOKIE_REFRESH)?.value || null;
-  if (!refreshToken || (accessToken && !accessTokenNeedsRefresh(accessToken))) {
+  const accessOk = Boolean(accessToken && !accessTokenNeedsRefresh(accessToken));
+
+  if (accessOk) {
     return NextResponse.next();
+  }
+
+  if (!refreshToken) {
+    return isAppRoute(pathname)
+      ? redirectGuestToLogin(request)
+      : NextResponse.next();
   }
 
   try {
@@ -55,17 +74,30 @@ export async function middleware(request: NextRequest) {
       cache: "no-store",
     });
     if (result.status === 401) {
-      return clearSession(NextResponse.next());
+      const response = isAppRoute(pathname)
+        ? redirectGuestToLogin(request)
+        : NextResponse.next();
+      return clearSession(response);
     }
-    if (!result.ok) return NextResponse.next();
+    if (!result.ok) {
+      return isAppRoute(pathname)
+        ? redirectGuestToLogin(request)
+        : NextResponse.next();
+    }
     const tokens = extractAuthTokens(await result.json());
-    if (!tokens.access_token) return NextResponse.next();
+    if (!tokens.access_token) {
+      return isAppRoute(pathname)
+        ? redirectGuestToLogin(request)
+        : NextResponse.next();
+    }
     return applyTokens(request, {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
     });
   } catch {
-    return NextResponse.next();
+    return isAppRoute(pathname)
+      ? redirectGuestToLogin(request)
+      : NextResponse.next();
   }
 }
 

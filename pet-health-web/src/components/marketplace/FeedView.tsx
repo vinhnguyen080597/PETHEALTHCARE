@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Lang, Listing } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import { parsePriceVnd } from "@/lib/formatPrice";
@@ -41,11 +42,12 @@ export function FeedView({
   initialProvince?: string;
   showEscrowUi?: boolean;
 }) {
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? initialQ;
   const [activeSpecies, setActiveSpecies] = useState(
     initialSpecies && initialSpecies !== "" ? initialSpecies : "all",
   );
   const [sortBy, setSortBy] = useState("date");
-  const [q] = useState(initialQ);
   const [province, setProvince] = useState(resolveProvinceSelection(initialProvince));
   const [quickCategory, setQuickCategory] = useState<QuickCategoryId>("all");
   const [favById, setFavById] = useState<Record<string, FavState>>(() => {

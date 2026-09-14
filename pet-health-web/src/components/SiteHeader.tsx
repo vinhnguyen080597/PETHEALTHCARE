@@ -12,6 +12,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { MessagesUnreadBadge } from "@/components/MessagesUnreadBadge";
 import { SITE_MAIN_NAV } from "@/lib/siteNav";
 import { requestToggleInbox } from "@/lib/messages";
+import { maybeLoginHref } from "@/lib/loginHref";
 
 export function SiteHeader({
   lang,
@@ -51,14 +52,20 @@ export function SiteHeader({
         : "text-stone-600 hover:bg-amber-50/60 hover:text-stone-900"
     }`;
 
-  const submitHeaderSearch = (e: FormEvent) => {
-    e.preventDefault();
+  const headerSearchDest = () => {
     const q = headerQ.trim();
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     const qs = params.toString();
-    router.push(qs ? `/app/pet-feed?${qs}` : "/app/pet-feed");
+    return qs ? `/app/pet-feed?${qs}` : "/app/pet-feed";
   };
+
+  const submitHeaderSearch = (e: FormEvent) => {
+    e.preventDefault();
+    router.push(maybeLoginHref(isLoggedIn, headerSearchDest()));
+  };
+
+  const navHref = (href: string) => maybeLoginHref(isLoggedIn, href);
 
   return (
     <header className="sticky top-0 z-50 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-[#F0E6D8]">
@@ -87,7 +94,7 @@ export function SiteHeader({
             {SITE_MAIN_NAV.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={navHref(item.href)}
                 className={navCls(item.matchHref)}
               >
                 {t(lang, item.labelKey)}
@@ -205,7 +212,7 @@ export function SiteHeader({
               {SITE_MAIN_NAV.map((item) => (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={navHref(item.href)}
                   onClick={() => setMenuOpen(false)}
                   className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
                 >

@@ -4,10 +4,29 @@ export function loginHref(nextPath: string): string {
   return `/login?next=${encodeURIComponent(next)}`;
 }
 
+/** Guests hit login first; signed-in users keep the destination. */
+export function maybeLoginHref(isLoggedIn: boolean, nextPath: string): string {
+  return isLoggedIn ? nextPath : loginHref(nextPath);
+}
+
 export function signupHref(nextPath?: string | null): string {
   if (!nextPath) return "/signup";
   const next = nextPath.startsWith("/") ? nextPath : `/${nextPath}`;
   return `/signup?next=${encodeURIComponent(next)}`;
+}
+
+export function isAppRoute(pathname: string): boolean {
+  return pathname === "/app" || pathname.startsWith("/app/");
+}
+
+/** Login URL that returns guests to the /app path they tried to open. */
+export function guestAppLoginPath(
+  pathname: string,
+  search = "",
+): string | null {
+  if (!isAppRoute(pathname)) return null;
+  const qs = !search || search.startsWith("?") ? search : `?${search}`;
+  return loginHref(`${pathname}${qs}`);
 }
 
 /** True when href is an in-app marketplace route that guests should auth for. */
