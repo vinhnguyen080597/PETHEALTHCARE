@@ -6,10 +6,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang } from "@/lib/types";
 import { t, type EnKey } from "@/i18n";
 import {
+  ADMIN_LISTING_STATUS_FILTERS,
   ADMIN_NAV_ITEMS,
   adminConsoleHref,
   parseAdminConsoleSearch,
   summarizeAdminLoadErrors,
+  type AdminListingStatusFilter,
 } from "@/lib/admin/consoleNav";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 import { DialogActions } from "@/components/ui/DialogActions";
@@ -45,7 +47,12 @@ import {
 import { breederSubmissionTypeLabel } from "@/lib/breederProfileSubmissions";
 import type { BreederProfileSubmission } from "@/lib/breederProfileSubmissions";
 import type { TransparencyWarning } from "@/lib/transparencyWarnings";
-import { buildListingStatusBody } from "@/lib/admin/listingReject";
+import {
+  buildListingStatusBody,
+  listingPublicHref,
+  listingRejectionReason,
+  listingStatusLabelKey,
+} from "@/lib/admin/listingReject";
 import {
   AdminBreederDetailSubmissionReview,
   AdminBreederReviewDetail,
@@ -349,6 +356,8 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const parsedSearch = parseAdminConsoleSearch(searchParams);
   const section = parsedSearch.section;
   const requestType: RequestType = parsedSearch.requestType ?? "all";
+  const listingStatusFilter: AdminListingStatusFilter =
+    parsedSearch.listingStatus ?? "all";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [breeders, setBreeders] = useState<BreederRow[]>([]);
@@ -373,7 +382,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const [breederStatusFilter, setBreederStatusFilter] = useState<BreederGroup>("all");
   const [breederSpeciesFilter, setBreederSpeciesFilter] = useState("all");
   const [breederDateFilter, setBreederDateFilter] = useState<DateFilter>("newest");
-  const [listingStatusFilter, setListingStatusFilter] = useState("all");
   const [reportStatusFilter, setReportStatusFilter] = useState("open");
   const [userSearch, setUserSearch] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -1322,8 +1330,11 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   key: "listings",
                   label: t(lang, "admin.home.metric.listings"),
                   value: pendingPosts.length,
-                  href: adminConsoleHref({ section: "listings" }),
-                  onNavigate: () => setListingStatusFilter("pending_review"),
+                  href: adminConsoleHref({
+                    section: "listings",
+                    listingStatus: "pending_review",
+                  }),
+                  onNavigate: undefined,
                 },
                 {
                   key: "breeders",
@@ -1713,23 +1724,43 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <h1 className="text-xl font-bold text-[#2B1E19]">
                 {t(lang, "admin.listings.title")}
+                <span className="ml-2 text-sm font-medium text-[#8B7355]">
+                  {filteredListings.length}
+                </span>
               </h1>
-              <FilterSelect
-                label={t(lang, "admin.filter.status")}
-                value={listingStatusFilter}
-                onChange={setListingStatusFilter}
-                options={[
-                  { value: "all", label: t(lang, "admin.filter.all") },
-                  { value: "pending_review", label: t(lang, "admin.requests.status.waiting") },
-                  { value: "published", label: t(lang, "admin.requests.status.approved") },
-                  { value: "archived", label: t(lang, "admin.listings.archive") },
-                ]}
-              />
+              <div className="flex flex-wrap items-end gap-3">
+                <FilterSelect
+                  label={t(lang, "admin.filter.status")}
+                  value={listingStatusFilter}
+                  onChange={(v) => {
+                    const next = v as AdminListingStatusFilter;
+                    router.replace(
+                      adminConsoleHref({
+                        section: "listings",
+                        listingStatus: next === "all" ? null : next,
+                      }),
+                    );
+                  }}
+                  options={ADMIN_LISTING_STATUS_FILTERS.map((value) => ({
+                    value,
+                    label:
+                      value === "all"
+                        ? t(lang, "admin.filter.all")
+                        : t(lang, listingStatusLabelKey(value) as EnKey),
+                  }))}
+                />
+                <ActionButton
+                  label={t(lang, "admin.refresh")}
+                  variant="ghost"
+                  onClick={() => void load()}
+                />
+              </div>
             </div>
             <div className="space-y-3">
               {filteredListings.map((p) => {
                 const reviewKey = `listing-${p.id}`;
                 const detailsOpen = expandedReviewId === reviewKey;
+                const rejectionReason = listingRejectionReason(p.metadata);
                 return (
                 <div
                   key={p.id}
@@ -1746,17 +1777,41 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                     ) : null}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <StatusChip status={p.status || "pending_review"} />
+                        <StatusChip
+                          status={p.status || "pending_review"}
+                          label={t(
+                            lang,
+                            listingStatusLabelKey(p.status) as EnKey,
+                          )}
+                        />
                         <span className="text-xs text-[#B8A990]">
                           {formatDate(p.created_at)}
                         </span>
                       </div>
-                      <p className="font-semibold text-sm text-[#2B1E19]">{p.title}</p>
+                      <Link
+                        href={listingPublicHref(p.id)}
+                        className="font-semibold text-sm text-[#2B1E19] hover:text-[#B45309] hover:underline"
+                      >
+                        {p.title || t(lang, "admin.listings.viewPublic")}
+                      </Link>
                       <p className="text-xs text-[#8B7355]">
                         {[p.breeder_profile?.display_name, p.species, p.breed, p.price_note]
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
+                      {p.status === "archived" && rejectionReason ? (
+                        <p className="mt-2 text-xs text-red-700">
+                          <span className="font-semibold">
+                            {t(lang, "admin.listings.rejectionReason")}:{" "}
+                          </span>
+                          {rejectionReason}
+                        </p>
+                      ) : null}
+                      {p.status === "deposit_hold" ? (
+                        <p className="mt-2 text-xs text-amber-800">
+                          {t(lang, "admin.listings.dealHoldHint")}
+                        </p>
+                      ) : null}
                       {!detailsOpen ? <HealthEvidence lang={lang} post={p} /> : null}
                       <AdminReviewDetailsToggle
                         lang={lang}
@@ -1792,7 +1847,12 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                               label={t(lang, "admin.listings.archive")}
                               variant="ghost"
                               disabled={busyKey !== null}
-                              onClick={() => void updatePost(p.id, "archived")}
+                              onClick={() => {
+                                if (!window.confirm(t(lang, "admin.listings.confirmArchive"))) {
+                                  return;
+                                }
+                                void updatePost(p.id, "archived");
+                              }}
                             />
                           )}
                         </div>
@@ -2544,7 +2604,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 href={adminConsoleHref({ section: item.key })}
                 aria-current={section === item.key ? "page" : undefined}
                 onClick={() => {
-                  if (item.key === "listings") setListingStatusFilter("all");
                   if (item.key === "breeders") setBreederStatusFilter("all");
                   if (item.key === "reports") setReportStatusFilter("open");
                 }}
@@ -2593,7 +2652,6 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   href={adminConsoleHref({ section: item.key })}
                   aria-current={section === item.key ? "page" : undefined}
                   onClick={() => {
-                    if (item.key === "listings") setListingStatusFilter("all");
                     if (item.key === "breeders") setBreederStatusFilter("all");
                     if (item.key === "reports") setReportStatusFilter("open");
                     setMobileNavOpen(false);

@@ -15,6 +15,7 @@ import {
   type AdminReviewPost,
   type AdminReviewReport,
 } from "@/lib/admin/reviewDetail";
+import { isSafeHttpUrl } from "@/lib/admin/requestQueue";
 import type { BreederProfileSubmission } from "@/lib/breederProfileSubmissions";
 
 function Chip({ children }: { children: React.ReactNode }) {
@@ -77,9 +78,10 @@ export function AdminListingReviewDetail({
   post: AdminReviewPost;
 }) {
   const specs = adminListingSpecRows(post);
-  const media = adminListingMediaUrls(post);
+  const media = adminListingMediaUrls(post).filter(isSafeHttpUrl);
   const video = String(post.video_url || "").trim();
-  const evidence = healthEvidenceUrlsFromMetadata(post.metadata);
+  const videoSafe = isSafeHttpUrl(video) ? video : "";
+  const evidence = healthEvidenceUrlsFromMetadata(post.metadata).filter(isSafeHttpUrl);
   const personality = (post.personality || []).filter(Boolean);
   const paperwork = (post.paperwork || []).filter(Boolean);
   const contact = adminListingContactEntries(post.contact);
@@ -119,7 +121,7 @@ export function AdminListingReviewDetail({
         </Section>
       ) : null}
 
-      {(media.length > 0 || video) && (
+      {(media.length > 0 || videoSafe) && (
         <Section title={t(lang, "admin.review.media")}>
           <div className="flex flex-wrap gap-2">
             {media.map((url) => (
@@ -134,10 +136,10 @@ export function AdminListingReviewDetail({
                 <img src={url} alt="" className="h-full w-full object-cover" />
               </a>
             ))}
-            {video ? (
+            {videoSafe ? (
               <div className="relative h-28 w-44 overflow-hidden rounded-xl border border-[#E8DFD0] bg-black">
                 <video
-                  src={video}
+                  src={videoSafe}
                   className="h-full w-full object-contain"
                   controls
                   playsInline

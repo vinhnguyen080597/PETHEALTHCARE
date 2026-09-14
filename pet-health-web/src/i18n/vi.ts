@@ -1512,6 +1512,12 @@ const vi: Record<EnKey, string> = {
   "admin.listings.rejectNotePlaceholder": "Gợi ý thêm cho người đăng",
   "admin.listings.healthEvidence": "Minh chứng tiêm phòng",
   "admin.listings.healthEvidenceHint": "Tin khai đã tiêm — xem ảnh sổ/tem trước khi duyệt.",
+  "admin.listings.confirmArchive":
+    "Ẩn tin đăng đang công khai khỏi marketplace?",
+  "admin.listings.viewPublic": "Xem tin đăng",
+  "admin.listings.rejectionReason": "Lý do từ chối",
+  "admin.listings.dealHoldHint":
+    "Tin đang có giao dịch cọc. Không thể ẩn cho đến khi cọc được xử lý.",
   "admin.review.details": "Xem chi tiết đầy đủ",
   "admin.review.hideDetails": "Ẩn chi tiết",
   "admin.review.species": "Loài",

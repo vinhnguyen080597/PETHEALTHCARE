@@ -6,6 +6,36 @@ export type ListingRejectExtras = {
   adminNote?: string;
 };
 
+const LISTING_STATUS_I18N = [
+  "draft",
+  "pending_review",
+  "published",
+  "archived",
+  "sold",
+  "cancelled",
+  "deposit_hold",
+  "reserved",
+] as const;
+
+export function listingStatusLabelKey(status: string | null | undefined): string {
+  const value = String(status || "pending_review").trim().toLowerCase();
+  if ((LISTING_STATUS_I18N as readonly string[]).includes(value)) {
+    return `listing.status.${value}`;
+  }
+  return "listing.status.pending_review";
+}
+
+export function listingPublicHref(postId: string): string {
+  return `/app/pet-feed/posts/${encodeURIComponent(postId)}`;
+}
+
+export function listingRejectionReason(
+  metadata: Record<string, unknown> | null | undefined,
+): string {
+  const raw = metadata?.rejection_reason ?? metadata?.rejectionReason;
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
 export function listingRejectRequiresReason(
   beforeStatus: string | null | undefined,
   nextStatus: string | null | undefined,

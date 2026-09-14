@@ -29,10 +29,22 @@ export const ADMIN_REQUEST_TYPES = [
 
 export type AdminRequestType = (typeof ADMIN_REQUEST_TYPES)[number];
 
+export const ADMIN_LISTING_STATUS_FILTERS = [
+  "all",
+  "pending_review",
+  "published",
+  "deposit_hold",
+  "sold",
+  "archived",
+] as const;
+
+export type AdminListingStatusFilter = (typeof ADMIN_LISTING_STATUS_FILTERS)[number];
+
 export type AdminConsoleSearch = {
   section: AdminSection;
   requestType: AdminRequestType | null;
   focus: string | null;
+  listingStatus: AdminListingStatusFilter | null;
 };
 
 export type AdminConsoleSearchInput =
@@ -41,6 +53,7 @@ export type AdminConsoleSearchInput =
       section?: string | string[];
       type?: string | string[];
       focus?: string | string[];
+      status?: string | string[];
     };
 
 const NAV_META: Record<AdminSection, { labelKey: EnKey; icon: string }> = {
@@ -73,7 +86,10 @@ function firstString(value: string | string[] | null | undefined): string | null
   return null;
 }
 
-function readParam(input: AdminConsoleSearchInput, key: "section" | "type" | "focus"): string | null {
+function readParam(
+  input: AdminConsoleSearchInput,
+  key: "section" | "type" | "focus" | "status",
+): string | null {
   if (typeof (input as URLSearchParams).get === "function") {
     return firstString((input as URLSearchParams).get(key));
   }
@@ -81,6 +97,7 @@ function readParam(input: AdminConsoleSearchInput, key: "section" | "type" | "fo
     section?: string | string[];
     type?: string | string[];
     focus?: string | string[];
+    status?: string | string[];
   };
   return firstString(rec[key]);
 }
@@ -95,13 +112,20 @@ export function isAdminRequestType(
   return (ADMIN_REQUEST_TYPES as readonly string[]).includes(String(value || ""));
 }
 
-/** Parse /app/admin?section=&type=&focus= — invalid values are ignored. */
+export function isAdminListingStatus(
+  value: string | null | undefined,
+): value is AdminListingStatusFilter {
+  return (ADMIN_LISTING_STATUS_FILTERS as readonly string[]).includes(String(value || ""));
+}
+
+/** Parse /app/admin?section=&type=&focus=&status= — invalid values are ignored. */
 export function parseAdminConsoleSearch(
   input: AdminConsoleSearchInput,
 ): AdminConsoleSearch {
   const sectionParam = readParam(input, "section");
   const typeParam = readParam(input, "type");
   const focusParam = readParam(input, "focus");
+  const statusParam = readParam(input, "status");
   const requestType = isAdminRequestType(typeParam) ? typeParam : null;
 
   const section: AdminSection = isAdminSection(sectionParam)
@@ -110,10 +134,18 @@ export function parseAdminConsoleSearch(
       ? "requests"
       : "home";
 
+  const listingStatus =
+    section === "listings" && isAdminListingStatus(statusParam) && statusParam !== "all"
+      ? statusParam
+      : section === "listings"
+        ? "all"
+        : null;
+
   return {
     section,
     requestType: section === "requests" ? requestType : null,
     focus: section === "requests" ? focusParam : null,
+    listingStatus,
   };
 }
 
@@ -122,6 +154,8 @@ export function adminConsoleHref(opts?: {
   type?: AdminRequestType | null;
   requestType?: AdminRequestType | null;
   focus?: string | null;
+  listingStatus?: AdminListingStatusFilter | null;
+  status?: AdminListingStatusFilter | null;
 }): string {
   const section = opts?.section ?? "home";
   const typeCandidate = opts?.type ?? opts?.requestType ?? null;
@@ -129,13 +163,21 @@ export function adminConsoleHref(opts?: {
     section === "requests" && isAdminRequestType(typeCandidate) ? typeCandidate : null;
   const focus =
     section === "requests" && opts?.focus?.trim() ? opts.focus.trim() : null;
+  const listingStatusCandidate = opts?.listingStatus ?? opts?.status ?? null;
+  const listingStatus =
+    section === "listings" &&
+    isAdminListingStatus(listingStatusCandidate) &&
+    listingStatusCandidate !== "all"
+      ? listingStatusCandidate
+      : null;
 
-  if (section === "home" && !type && !focus) return ADMIN_CONSOLE_PATH;
+  if (section === "home" && !type && !focus && !listingStatus) return ADMIN_CONSOLE_PATH;
 
   const qs = new URLSearchParams();
   qs.set("section", section);
   if (type) qs.set("type", type);
   if (focus) qs.set("focus", focus);
+  if (listingStatus) qs.set("status", listingStatus);
   return `${ADMIN_CONSOLE_PATH}?${qs.toString()}`;
 }
 

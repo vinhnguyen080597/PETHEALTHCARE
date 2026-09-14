@@ -1510,6 +1510,12 @@ const en = {
   "admin.listings.rejectNotePlaceholder": "Extra guidance for the seller",
   "admin.listings.healthEvidence": "Vaccine evidence",
   "admin.listings.healthEvidenceHint": "Listing claims vaccination — review book/stamp photos before approving.",
+  "admin.listings.confirmArchive":
+    "Hide this published listing from the marketplace?",
+  "admin.listings.viewPublic": "View listing",
+  "admin.listings.rejectionReason": "Rejection reason",
+  "admin.listings.dealHoldHint":
+    "A deal is in progress. Hide is disabled until the deposit is resolved.",
   "admin.review.details": "View full details",
   "admin.review.hideDetails": "Hide details",
   "admin.review.species": "Species",

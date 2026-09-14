@@ -25,11 +25,13 @@ test("parseAdminConsoleSearch defaults to home and ignores invalid values", () =
     section: "home",
     requestType: null,
     focus: null,
+    listingStatus: null,
   });
   assert.deepEqual(parseAdminConsoleSearch({ section: "hack", type: "nope" }), {
     section: "home",
     requestType: null,
     focus: null,
+    listingStatus: null,
   });
 });
 
@@ -38,6 +40,7 @@ test("parseAdminConsoleSearch treats a request type as the requests section", ()
     section: "requests",
     requestType: "breeder",
     focus: "bp-1",
+    listingStatus: null,
   });
 });
 
@@ -52,6 +55,7 @@ test("parseAdminConsoleSearch keeps a valid section over a stray type", () => {
       section: "listings",
       requestType: null,
       focus: null,
+      listingStatus: "all",
     },
   );
 });
@@ -64,6 +68,7 @@ test("parseAdminConsoleSearch reads URLSearchParams", () => {
     section: "requests",
     requestType: "farm_review",
     focus: "rev-1",
+    listingStatus: null,
   });
 });
 
@@ -133,7 +138,39 @@ test("notification admin deep links parse back into the requests section", () =>
     section: "requests",
     requestType: "post",
     focus: "post-9",
+    listingStatus: null,
   });
+});
+
+test("listings status query is shareable and ignored on other sections", () => {
+  assert.deepEqual(
+    parseAdminConsoleSearch({
+      section: "listings",
+      status: "pending_review",
+    }),
+    {
+      section: "listings",
+      requestType: null,
+      focus: null,
+      listingStatus: "pending_review",
+    },
+  );
+  assert.equal(
+    adminConsoleHref({
+      section: "listings",
+      listingStatus: "pending_review",
+    }),
+    `${ADMIN_CONSOLE_PATH}?section=listings&status=pending_review`,
+  );
+  assert.equal(
+    adminConsoleHref({ section: "listings", listingStatus: "all" }),
+    `${ADMIN_CONSOLE_PATH}?section=listings`,
+  );
+  assert.equal(
+    parseAdminConsoleSearch({ section: "requests", status: "published" })
+      .listingStatus,
+    null,
+  );
 });
 
 test("summarizeAdminLoadErrors prefers forbidden over partial zeros", () => {
