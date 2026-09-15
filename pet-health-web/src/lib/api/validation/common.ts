@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const NOTIFICATIONS_LIMIT_MIN = 1;
 export const NOTIFICATIONS_LIMIT_MAX = 100;
-export const NOTIFICATIONS_LIMIT_DEFAULT = 50;
+export const NOTIFICATIONS_LIMIT_DEFAULT = 20;
 export const BLACKLIST_QUERY_MAX = 120;
 export const COMMENT_BODY_MAX = 2000;
 export const MESSAGE_BODY_MAX = 4000;

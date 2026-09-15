@@ -4,7 +4,7 @@ import { listAdminUserIds } from './accountRepository.js';
 import { getPetFeedPost } from './petFeedRepository.js';
 
 const memoryNotifications = [];
-const DEFAULT_NOTIFICATION_LIMIT = 50;
+const DEFAULT_NOTIFICATION_LIMIT = 20;
 const MAX_NOTIFICATION_LIMIT = 100;
 
 const BREEDER_NOTIFICATION_TYPES = new Set([

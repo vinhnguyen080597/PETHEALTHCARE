@@ -7,30 +7,22 @@ import type { Lang } from "@/lib/types";
 import { t } from "@/i18n";
 import type { PetFeedNotification } from "@/lib/api/petFeed";
 import {
-  adminRequestHref,
-  breederTransparencyNotificationHref,
-  isAdminQueueNotification,
-  farmSaleReviewNotificationHref,
-  farmReviewedNotificationHref,
-  listingNotificationHref,
-  notificationInboxCta,
-  notificationType,
   isNotificationUnread,
+  notificationType,
 } from "@/lib/notifications/deepLinks";
+import {
+  dispatchNotificationsRead,
+  formatNotificationListTime,
+  notificationBody,
+  notificationCtaLabel,
+  notificationThumbEmoji,
+  notificationTitle,
+  NOTIFICATIONS_PAGE_LIMIT,
+  NOTIFICATIONS_PAGE_LOAD_STEP,
+} from "@/lib/notifications/inbox";
+import { openPetFeedNotification } from "@/lib/notifications/open";
 import { resolveRejectionNotice } from "@/lib/notifications/rejectionNotice";
 import { DialogActions } from "@/components/ui/DialogActions";
-
-function formatTime(value: string | undefined, lang: Lang) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "";
-  return date.toLocaleString(lang === "VI" ? "vi-VN" : "en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export function NotificationsClient({
   lang,
@@ -45,28 +37,47 @@ export function NotificationsClient({
   const [items, setItems] = useState(initialNotifications);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [reasonItem, setReasonItem] = useState<PetFeedNotification | null>(null);
+  const [fetchLimit, setFetchLimit] = useState(
+    Math.max(NOTIFICATIONS_PAGE_LIMIT, initialNotifications.length || 0),
+  );
+
+  const fetchList = useCallback(
+    async (limit: number, mode: "replace" | "more") => {
+      if (mode === "more") setLoadingMore(true);
+      else setLoading(true);
+      setError("");
+      try {
+        const res = await fetch(`/api/notifications?limit=${limit}`, {
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Failed");
+        setItems(Array.isArray(data.data) ? data.data : []);
+        setUnreadCount(Number(data.unread_count) || 0);
+        setFetchLimit(limit);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t(lang, "common.error"));
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [lang],
+  );
 
   const refresh = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/notifications?limit=50", { cache: "no-store" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed");
-      setItems(Array.isArray(data.data) ? data.data : []);
-      setUnreadCount(Number(data.unread_count) || 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t(lang, "common.error"));
-    } finally {
-      setLoading(false);
-    }
-  }, [lang]);
+    await fetchList(fetchLimit || NOTIFICATIONS_PAGE_LIMIT, "replace");
+  }, [fetchList, fetchLimit]);
 
   useEffect(() => {
     setItems(initialNotifications);
     setUnreadCount(initialUnreadCount);
+    setFetchLimit(
+      Math.max(NOTIFICATIONS_PAGE_LIMIT, initialNotifications.length || 0),
+    );
   }, [initialNotifications, initialUnreadCount]);
 
   const markIdsRead = async (ids: string[]) => {
@@ -86,11 +97,7 @@ export function NotificationsClient({
     );
     if (marked > 0) {
       setUnreadCount((c) => Math.max(0, c - marked));
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("phc:notifications-read", { detail: { count: marked } }),
-        );
-      }
+      dispatchNotificationsRead(marked);
     }
     try {
       const res = await fetch("/api/notifications/read", {
@@ -107,50 +114,13 @@ export function NotificationsClient({
   };
 
   const openNotification = async (item: PetFeedNotification) => {
-    const type = notificationType(item);
-    if (isNotificationUnread(item)) {
-      await markIdsRead([item.id]);
-    }
-
-    if (isAdminQueueNotification(item)) {
-      router.push(adminRequestHref(item));
-      return;
-    }
-    if (
-      type === "breeder_rejected" ||
-      type === "listing_rejected" ||
-      type === "breeder_detail_rejected" ||
-      type === "farm_review_rejected"
-    ) {
-      setReasonItem(item);
-      return;
-    }
-    const farmHref = breederTransparencyNotificationHref(item);
-    if (farmHref) {
-      router.push(farmHref);
-      return;
-    }
-    const farmReviewedHref = farmReviewedNotificationHref(item);
-    if (farmReviewedHref) {
-      router.push(farmReviewedHref);
-      return;
-    }
-    if (item.post_id) {
-      const unreadIds = items
-        .filter(
-          (n) =>
-            isNotificationUnread(n) &&
-            n.post_id === item.post_id &&
-            n.id !== item.id,
-        )
-        .map((n) => n.id);
-      if (unreadIds.length) await markIdsRead(unreadIds);
-      router.push(
-        farmSaleReviewNotificationHref(item) ||
-          listingNotificationHref(item) ||
-          `/app/pet-feed/posts/${encodeURIComponent(item.post_id)}`,
-      );
-    }
+    await openPetFeedNotification({
+      item,
+      allItems: items,
+      markIdsRead,
+      navigate: (href) => router.push(href),
+      onRejection: setReasonItem,
+    });
   };
 
   const markAllRead = async () => {
@@ -165,13 +135,7 @@ export function NotificationsClient({
       ),
     );
     setUnreadCount(0);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("phc:notifications-read", {
-          detail: { count: unreadIds.length || unreadCount },
-        }),
-      );
-    }
+    dispatchNotificationsRead(unreadIds.length || unreadCount);
     try {
       await fetch("/api/notifications/read", {
         method: "POST",
@@ -183,131 +147,8 @@ export function NotificationsClient({
     }
   };
 
-  const titleFor = (item: PetFeedNotification) => {
-    const type = notificationType(item);
-    if (type === "breeder_verified") return t(lang, "notifications.verifiedTitle");
-    if (type === "breeder_rejected") return t(lang, "notifications.rejectedTitle");
-    if (type === "listing_approved") return t(lang, "notifications.listingApprovedTitle");
-    if (type === "listing_rejected") return t(lang, "notifications.listingRejectedTitle");
-    if (type === "breeder_detail_approved") {
-      return t(lang, "notifications.detailApprovedTitle");
-    }
-    if (type === "breeder_detail_rejected") {
-      return t(lang, "notifications.detailRejectedTitle");
-    }
-    if (type === "transparency_warning") {
-      return t(lang, "notifications.transparencyWarningTitle");
-    }
-    if (type === "transparency_warning_resolved") {
-      return t(lang, "notifications.transparencyResolvedTitle");
-    }
-    if (type === "admin_breeder_pending") return t(lang, "notifications.adminBreederTitle");
-    if (type === "admin_breeder_detail_pending") {
-      return t(lang, "notifications.adminDetailTitle");
-    }
-    if (type === "admin_transparency_appeal") {
-      return t(lang, "notifications.adminAppealTitle");
-    }
-    if (type === "admin_listing_pending") return t(lang, "notifications.adminListingTitle");
-    if (type === "admin_farm_review_pending") {
-      return t(lang, "notifications.adminFarmReviewTitle");
-    }
-    if (type === "farm_review_rejected") {
-      return t(lang, "notifications.farmReviewRejectedTitle");
-    }
-    if (type === "admin_report_open") return t(lang, "notifications.adminReportTitle");
-    if (type === "deposit_cancel_request") {
-      return t(lang, "notifications.depositCancelTitle");
-    }
-    return item.actor_display_name || t(lang, "notifications.someone");
-  };
-
-  const bodyFor = (item: PetFeedNotification) => {
-    const type = notificationType(item);
-    if (type === "breeder_verified") {
-      return item.body_preview || t(lang, "notifications.verifiedBody");
-    }
-    if (type === "breeder_rejected") {
-      return (
-        item.rejection_reason ||
-        item.body_preview ||
-        t(lang, "notifications.rejectedBody")
-      );
-    }
-    if (type === "listing_approved") {
-      return item.body_preview || t(lang, "notifications.listingApprovedBody");
-    }
-    if (type === "listing_rejected") {
-      return (
-        resolveRejectionNotice(item).reason ||
-        t(lang, "notifications.listingRejectedBody")
-      );
-    }
-    if (type === "breeder_detail_approved") {
-      return item.body_preview || t(lang, "notifications.detailApprovedBody");
-    }
-    if (type === "breeder_detail_rejected") {
-      return (
-        resolveRejectionNotice(item).reason ||
-        item.body_preview ||
-        t(lang, "notifications.detailRejectedBody")
-      );
-    }
-    if (type === "transparency_warning") {
-      return item.body_preview || t(lang, "notifications.transparencyWarningBody");
-    }
-    if (type === "transparency_warning_resolved") {
-      return item.body_preview || t(lang, "notifications.transparencyResolvedBody");
-    }
-    if (type === "admin_breeder_pending") {
-      return item.body_preview || t(lang, "notifications.adminBreederBody");
-    }
-    if (type === "admin_breeder_detail_pending") {
-      return item.body_preview || t(lang, "notifications.adminDetailBody");
-    }
-    if (type === "admin_transparency_appeal") {
-      return item.body_preview || t(lang, "notifications.adminAppealBody");
-    }
-    if (type === "admin_listing_pending") {
-      return item.body_preview || t(lang, "notifications.adminListingBody");
-    }
-    if (type === "admin_farm_review_pending") {
-      return item.body_preview || t(lang, "notifications.adminFarmReviewBody");
-    }
-    if (type === "farm_review_rejected") {
-      return (
-        resolveRejectionNotice(item).reason ||
-        item.body_preview ||
-        t(lang, "notifications.farmReviewRejectedBody")
-      );
-    }
-    if (type === "admin_report_open") {
-      return item.body_preview || t(lang, "notifications.adminReportBody");
-    }
-    if (type === "deposit_cancel_request") {
-      return item.body_preview || t(lang, "notifications.depositCancelBody");
-    }
-    return item.body_preview || t(lang, "notifications.commentFallback");
-  };
-
-  const ctaFor = (item: PetFeedNotification) =>
-    notificationInboxCta(item, {
-      verified: t(lang, "notifications.verifiedCta"),
-      rejected: t(lang, "notifications.rejectedCta"),
-      listingApproved: t(lang, "notifications.listingApprovedCta"),
-      listingRejected: t(lang, "notifications.listingRejectedCta"),
-      adminRequest: t(lang, "notifications.adminRequestCta"),
-      detailApproved: t(lang, "notifications.detailApprovedCta"),
-      detailRejected: t(lang, "notifications.detailRejectedCta"),
-      transparencyWarning: t(lang, "notifications.transparencyWarningCta"),
-      transparencyResolved: t(lang, "notifications.transparencyResolvedCta"),
-      depositCancelConfirm: t(lang, "notifications.depositCancelCta"),
-      depositConfirm: t(lang, "notifications.depositRequestCta"),
-      dealCompleteConfirm: t(lang, "notifications.dealCompleteCta"),
-      viewListing: t(lang, "notifications.viewListing"),
-      farmSaleReview: t(lang, "notifications.farmSaleReview"),
-      farmReviewed: t(lang, "notifications.farmReviewed"),
-    });
+  const canLoadMore =
+    items.length >= fetchLimit && fetchLimit < 100 && items.length > 0;
 
   const rejectionNotice = resolveRejectionNotice(reasonItem);
   const reason = rejectionNotice.reason;
@@ -358,75 +199,86 @@ export function NotificationsClient({
           </Link>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {items.map((item) => {
-            const type = notificationType(item);
-            const cta = ctaFor(item);
-            return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => void openNotification(item)}
-                  className={`w-full text-left flex gap-3 rounded-2xl border p-3.5 transition-colors ${
-                    isNotificationUnread(item)
-                      ? "border-amber-200 bg-amber-50/60 hover:bg-amber-50"
-                      : "border-[#F0E6D8] bg-white hover:bg-[#FDFBF7]"
-                  }`}
-                >
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#F0E6D8] flex items-center justify-center text-lg">
-                    {item.post_thumb_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.post_thumb_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : type === "breeder_verified" ||
-                      type === "listing_approved" ||
-                      type === "breeder_detail_approved" ||
-                      type === "transparency_warning_resolved" ? (
-                      "✅"
-                    ) : type === "breeder_rejected" ||
-                      type === "listing_rejected" ||
-                      type === "breeder_detail_rejected" ||
-                      type === "farm_review_rejected" ||
-                      type === "transparency_warning" ? (
-                      "⚠️"
-                    ) : isAdminQueueNotification(type) ? (
-                      "📋"
-                    ) : (
-                      "🔔"
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-[#2B1E19] truncate">
-                        {titleFor(item)}
-                      </p>
-                      <span className="shrink-0 text-[11px] text-stone-400">
-                        {formatTime(item.created_at, lang)}
-                      </span>
+        <>
+          <ul className="space-y-2">
+            {items.map((item) => {
+              const type = notificationType(item);
+              const cta = notificationCtaLabel(lang, item);
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => void openNotification(item)}
+                    className={`w-full text-left flex gap-3 rounded-2xl border p-3.5 transition-colors ${
+                      isNotificationUnread(item)
+                        ? "border-amber-200 bg-amber-50/60 hover:bg-amber-50"
+                        : "border-[#F0E6D8] bg-white hover:bg-[#FDFBF7]"
+                    }`}
+                  >
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#F0E6D8] flex items-center justify-center text-lg">
+                      {item.post_thumb_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.post_thumb_url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span aria-hidden>{notificationThumbEmoji(item)}</span>
+                      )}
                     </div>
-                    {type === "post_comment" ? (
-                      <p className="mt-0.5 text-xs text-[#6E5A51] truncate">
-                        {item.post_title || t(lang, "notifications.postFallback")}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold text-[#2B1E19] truncate">
+                          {notificationTitle(lang, item)}
+                        </p>
+                        <span className="shrink-0 text-[11px] text-stone-400">
+                          {formatNotificationListTime(item.created_at, lang)}
+                        </span>
+                      </div>
+                      {type === "post_comment" ? (
+                        <p className="mt-0.5 text-xs text-[#6E5A51] truncate">
+                          {item.post_title ||
+                            t(lang, "notifications.postFallback")}
+                        </p>
+                      ) : null}
+                      <p className="mt-1.5 text-sm text-[#2B1E19] line-clamp-2">
+                        {notificationBody(lang, item)}
                       </p>
+                      {cta ? (
+                        <p className="mt-2 text-xs font-semibold text-[#D97706]">
+                          {cta} →
+                        </p>
+                      ) : null}
+                    </div>
+                    {isNotificationUnread(item) ? (
+                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#D97706]" />
                     ) : null}
-                    <p className="mt-1.5 text-sm text-[#2B1E19] line-clamp-2">
-                      {bodyFor(item)}
-                    </p>
-                    {cta ? (
-                      <p className="mt-2 text-xs font-semibold text-[#D97706]">{cta} →</p>
-                    ) : null}
-                  </div>
-                  {isNotificationUnread(item) ? (
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#D97706]" />
-                  ) : null}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {canLoadMore ? (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                disabled={loadingMore}
+                onClick={() =>
+                  void fetchList(
+                    Math.min(100, fetchLimit + NOTIFICATIONS_PAGE_LOAD_STEP),
+                    "more",
+                  )
+                }
+                className="text-sm font-semibold text-[#D97706] hover:text-[#B45309] disabled:opacity-50"
+              >
+                {loadingMore
+                  ? t(lang, "common.loading")
+                  : t(lang, "notifications.loadMore")}
+              </button>
+            </div>
+          ) : null}
+        </>
       )}
 
       {reasonItem ? (
@@ -439,7 +291,7 @@ export function NotificationsClient({
                   ? t(lang, "notifications.detailRejectedTitle")
                   : notificationType(reasonItem) === "farm_review_rejected"
                     ? t(lang, "notifications.farmReviewRejectedTitle")
-                  : t(lang, "notifications.rejectedTitle")}
+                    : t(lang, "notifications.rejectedTitle")}
             </h3>
             <div className="mt-4 space-y-3">
               <div>
@@ -454,7 +306,7 @@ export function NotificationsClient({
                         ? t(lang, "notifications.detailRejectedBody")
                         : notificationType(reasonItem) === "farm_review_rejected"
                           ? t(lang, "notifications.farmReviewRejectedBody")
-                        : t(lang, "notifications.rejectedBody"))}
+                          : t(lang, "notifications.rejectedBody"))}
                 </p>
               </div>
               {adminAction ? (

@@ -12,6 +12,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { MessagesUnreadBadge } from "@/components/MessagesUnreadBadge";
 import { SITE_MAIN_NAV } from "@/lib/siteNav";
 import { requestToggleInbox } from "@/lib/messages";
+import { requestToggleNotifications } from "@/lib/notifications/inbox";
 import { maybeLoginHref } from "@/lib/loginHref";
 
 export function SiteHeader({
@@ -134,6 +135,7 @@ export function SiteHeader({
             <>
               <MessagesUnreadBadge label={t(lang, "nav.messages")} />
               <NotificationBell
+                lang={lang}
                 initialCount={unreadNotificationCount}
                 label={t(lang, "nav.notifications")}
               />
@@ -238,13 +240,16 @@ export function SiteHeader({
               >
                 {t(lang, "nav.messages")}
               </button>
-              <Link
-                href="/app/notifications"
-                onClick={() => setMenuOpen(false)}
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  requestToggleNotifications();
+                }}
                 className="text-left px-3 py-2 rounded-lg text-sm font-medium text-stone-700 hover:bg-amber-50"
               >
                 {t(lang, "nav.notifications")}
-              </Link>
+              </button>
             </>
           )}
           <Link

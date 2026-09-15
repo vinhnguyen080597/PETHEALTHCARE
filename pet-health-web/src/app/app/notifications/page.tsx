@@ -4,6 +4,7 @@ import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { listNotifications } from "@/lib/api/petFeed";
 import { NotificationsClient } from "@/components/notifications/NotificationsClient";
+import { NOTIFICATIONS_PAGE_LIMIT } from "@/lib/notifications/inbox";
 
 export const metadata = { title: "Notifications" };
 
@@ -29,7 +30,7 @@ export default async function NotificationsPage() {
   let notifications: Awaited<ReturnType<typeof listNotifications>>["data"] = [];
   let unreadCount = 0;
   try {
-    const res = await listNotifications(session.token, 50);
+    const res = await listNotifications(session.token, NOTIFICATIONS_PAGE_LIMIT);
     notifications = Array.isArray(res.data) ? res.data : [];
     unreadCount = Number(res.unread_count) || 0;
   } catch {

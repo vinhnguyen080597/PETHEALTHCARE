@@ -212,7 +212,7 @@ export type PetFeedNotification = {
   };
 };
 
-export async function listNotifications(token: string, limit = 50) {
+export async function listNotifications(token: string, limit = 20) {
   const qs = limit ? `?limit=${encodeURIComponent(String(limit))}` : "";
   return fetchJson<{ data: PetFeedNotification[]; unread_count: number }>(
     `/pet-feed/notifications${qs}`,
