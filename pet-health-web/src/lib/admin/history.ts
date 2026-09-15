@@ -1,3 +1,4 @@
+import { newsPostDetailHref } from "../newsDetail";
 import { adminConsoleHref } from "./consoleNav";
 import { listingPublicHref } from "./listingReject";
 import { breederPublicHref } from "./reviewDetail";
@@ -96,6 +97,7 @@ export function historyTargetHref(log: HistoryLogLike): string | null {
       focus: id,
     });
   }
+  if (type === "announcement") return newsPostDetailHref(id);
   return null;
 }
 

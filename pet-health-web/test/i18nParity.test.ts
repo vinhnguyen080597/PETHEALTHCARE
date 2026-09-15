@@ -9,6 +9,8 @@ import {
 
 const REQUIRED_PREFIXES = [
   "admin.history.",
+  "admin.features.",
+  "admin.news.",
   "notifications.",
   "admin.nav.history",
 ] as const;

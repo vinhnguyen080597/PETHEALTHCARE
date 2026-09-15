@@ -234,6 +234,9 @@ router.put('/feature-flags', requireAdminOrSecret, async (req, res, next) => {
     if ('farm_template_change' in body || 'farmTemplateChange' in body) {
       patch.farm_template_change = body.farm_template_change ?? body.farmTemplateChange;
     }
+    if ('marketplace_escrow' in body || 'marketplaceEscrow' in body) {
+      patch.marketplace_escrow = body.marketplace_escrow ?? body.marketplaceEscrow;
+    }
     const before = await getFeatureFlags();
     const updatedBy = req.user?.id ?? null;
     const data = await updateFeatureFlags(patch, updatedBy);

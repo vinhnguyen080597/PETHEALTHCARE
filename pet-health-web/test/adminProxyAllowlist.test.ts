@@ -64,6 +64,16 @@ test("adminProxyBodySchema exists for mutating console actions", () => {
   assert.ok(adminProxyBodySchema("PUT posts/:postId/status"));
   assert.ok(adminProxyBodySchema("POST accounts"));
   assert.ok(adminProxyBodySchema("PUT feature-flags"));
+  assert.ok(adminProxyBodySchema("PUT announcements/:postId"));
+  assert.equal(
+    adminProxyBodySchema("PUT announcements/:postId")?.safeParse({ status: "archived" })
+      .success,
+    true,
+  );
+  assert.equal(
+    adminProxyBodySchema("PUT announcements/:postId")?.safeParse({}).success,
+    false,
+  );
   assert.equal(adminProxyBodySchema("GET posts"), null);
   const createAccount = adminProxyBodySchema("POST accounts");
   assert.ok(

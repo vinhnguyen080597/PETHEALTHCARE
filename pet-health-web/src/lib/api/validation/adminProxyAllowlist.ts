@@ -208,6 +208,26 @@ export const ADMIN_PROXY_BODY_SCHEMAS: Record<string, z.ZodType> = {
     })
     .strict(),
   "PUT feature-flags": featureFlagPatchSchema,
+  "PUT announcements/:postId": z
+    .object({
+      title: z.string().trim().min(1).max(120).optional(),
+      description: z.string().trim().min(1).max(2000).optional(),
+      category: z.enum(["app_update", "health_tip", "community", "general"]).optional(),
+      ctaLabel: z.string().trim().max(80).optional(),
+      ctaUrl: z.string().trim().max(500).optional(),
+      status: z.enum(["published", "archived", "draft"]).optional(),
+    })
+    .strict()
+    .refine(
+      (value) =>
+        value.title !== undefined
+        || value.description !== undefined
+        || value.category !== undefined
+        || value.ctaLabel !== undefined
+        || value.ctaUrl !== undefined
+        || value.status !== undefined,
+      "At least one announcement field is required",
+    ),
   "POST posts/:postId/deal/force-complete": z.object({}).strict(),
   "POST posts/:postId/deal/force-cancel": z.object({}).strict(),
 };

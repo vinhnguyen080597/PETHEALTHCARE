@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang } from "@/lib/types";
@@ -112,21 +112,39 @@ import {
   historyTargetHref,
 } from "@/lib/admin/history";
 
-type FeatureFlags = {
-  breed_recognition: boolean;
-  health_analysis: boolean;
-  rewarded_ads: boolean;
-  subscription: boolean;
-  pet_feed_news: boolean;
-  pet_feed_listings: boolean;
-  pet_feed_breeders: boolean;
-  farm_template_change: boolean;
-  marketplace_escrow: boolean;
-};
-
-type FeatureKey = keyof FeatureFlags;
-
-type PostRow = AdminReviewPost;
+import {
+  DEFAULT_APP_FEATURE_FLAGS,
+  mergeAppFeatureFlags,
+  type AppFeatureFlags,
+} from "@/lib/featureFlags";
+import {
+  ADMIN_FEATURE_CORE_KEYS,
+  ADMIN_PET_FEED_TAB_KEYS,
+  featureFlagDescKey,
+  featureFlagTitleKey,
+  isLastEnabledPetFeedTab,
+} from "@/lib/admin/features";
+import {
+  NEWS_MAX_PHOTOS,
+  NEWS_PHOTO_ACCEPT,
+  NEWS_TITLE_MAX,
+  NEWS_BODY_MAX,
+  announcementCategoryOf,
+  announcementPublicHref,
+  announcementRowId,
+  announcementStatusLabelKey,
+  isPublishedAnnouncement,
+  newsPublishError,
+  buildAdminNewsLivePreview,
+  normalizeNewsCtaUrl,
+  type AdminAnnouncementRow,
+} from "@/lib/admin/news";
+import { AdminNewsLivePreview } from "@/components/admin/AdminNewsLivePreview";
+import {
+  ANNOUNCEMENT_CATEGORIES,
+  NEWS_HREF,
+  type AnnouncementCategory,
+} from "@/lib/siteNav";
 
 type BreederRow = AdminReviewBreeder & {
   verification_status?: string;
@@ -160,8 +178,7 @@ type ActionLogRow = {
   metadata?: Record<string, unknown>;
 };
 
-type RequestType = "all" | "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam" | "farm_review";
-type AnnouncementCategory = "app_update" | "health_tip" | "community" | "general";
+type PostRow = AdminReviewPost;
 
 type SupportTicketRow = {
   id: string;
@@ -197,6 +214,8 @@ type FarmReviewRow = {
   breeder_profile?: { id?: string; display_name?: string | null } | null;
 };
 
+type RequestType = "all" | "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam" | "farm_review";
+
 type RequestItem = {
   id: string;
   type: "breeder" | "post" | "report" | "detail" | "appeal" | "feedback" | "scam" | "farm_review";
@@ -212,31 +231,6 @@ type RequestItem = {
   appeal?: TransparencyWarning;
   ticket?: SupportTicketRow;
   farmReview?: FarmReviewRow;
-};
-
-const PET_FEED_TAB_KEYS: FeatureKey[] = [
-  "pet_feed_news",
-  "pet_feed_listings",
-  "pet_feed_breeders",
-];
-
-const FEATURE_CORE: FeatureKey[] = [
-  "breed_recognition",
-  "health_analysis",
-  "farm_template_change",
-  "marketplace_escrow",
-];
-
-const DEFAULT_FLAGS: FeatureFlags = {
-  breed_recognition: true,
-  health_analysis: true,
-  rewarded_ads: true,
-  subscription: true,
-  pet_feed_news: true,
-  pet_feed_listings: true,
-  pet_feed_breeders: true,
-  farm_template_change: true,
-  marketplace_escrow: false,
 };
 
 const ROLES = ADMIN_USER_ROLES;
@@ -438,7 +432,7 @@ export function AdminConsole({
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicketRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
-  const [flags, setFlags] = useState<FeatureFlags>(DEFAULT_FLAGS);
+  const [flags, setFlags] = useState<AppFeatureFlags>(DEFAULT_APP_FEATURE_FLAGS);
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
   const [farmReviewApproveBlocked, setFarmReviewApproveBlocked] = useState(false);
@@ -479,6 +473,11 @@ export function AdminConsole({
   const [newsCtaLabel, setNewsCtaLabel] = useState("");
   const [newsCtaUrl, setNewsCtaUrl] = useState("");
   const [newsPhotos, setNewsPhotos] = useState<File[]>([]);
+  const [newsPhotoInputKey, setNewsPhotoInputKey] = useState(0);
+  const [myNews, setMyNews] = useState<AdminAnnouncementRow[]>([]);
+  const [myNewsLoading, setMyNewsLoading] = useState(false);
+  const [newsPhotoUrls, setNewsPhotoUrls] = useState<string[]>([]);
+  const newsPhotoInputRef = useRef<HTMLInputElement>(null);
   const [actionLogs, setActionLogs] = useState<ActionLogRow[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyCursor, setHistoryCursor] = useState<string | null>(null);
@@ -508,7 +507,7 @@ export function AdminConsole({
         loadPart("/breeders", { data: [] }),
         loadPart("/reports?status=", { data: [] }),
         loadPart("/accounts", { data: [] }),
-        loadPart("/feature-flags", { data: DEFAULT_FLAGS }),
+        loadPart("/feature-flags", { data: DEFAULT_APP_FEATURE_FLAGS }),
         loadPart("/breeder-submissions?status=", { data: [] }),
         loadPart("/transparency-warnings?status=", { data: [] }),
         loadPart("/support-tickets?status=", { data: [] }),
@@ -522,10 +521,7 @@ export function AdminConsole({
       setFarmReviews(Array.isArray(fr.data) ? fr.data : []);
       setAppeals(Array.isArray(w.data) ? w.data : []);
       setAccounts(Array.isArray(a.data) ? a.data : []);
-      const flagData = f.data && typeof f.data === "object" && !Array.isArray(f.data)
-        ? { ...DEFAULT_FLAGS, ...f.data }
-        : DEFAULT_FLAGS;
-      setFlags(flagData as FeatureFlags);
+      setFlags(mergeAppFeatureFlags(f.data));
       const loadKind = summarizeAdminLoadErrors(loadErrors);
       if (loadKind === "forbidden") setError(t(lang, "admin.forbidden"));
       else if (loadKind === "partial") setError(t(lang, "admin.loadPartialError"));
@@ -587,6 +583,20 @@ export function AdminConsole({
     void loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section, historyActionFilter]);
+
+  useEffect(() => {
+    if (section !== "news") return;
+    void loadMyNews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section]);
+
+  useEffect(() => {
+    const urls = newsPhotos.map((file) => URL.createObjectURL(file));
+    setNewsPhotoUrls(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [newsPhotos]);
 
   const pendingPosts = posts.filter((p) => p.status === "pending_review");
   const pendingBreeders = breeders.filter((b) => b.verification_status === "pending_review");
@@ -1195,14 +1205,16 @@ export function AdminConsole({
     );
   };
 
-  const toggleFlag = (key: FeatureKey, enabled: boolean) => {
-    if (
-      !enabled &&
-      PET_FEED_TAB_KEYS.includes(key) &&
-      flags[key] !== false &&
-      PET_FEED_TAB_KEYS.filter((k) => flags[k] !== false).length <= 1
-    ) {
+  const toggleFlag = (key: keyof AppFeatureFlags, enabled: boolean) => {
+    if (!enabled && isLastEnabledPetFeedTab(flags, key)) {
       window.alert(t(lang, "admin.features.lastTab"));
+      return;
+    }
+    if (
+      flags[key] &&
+      !enabled &&
+      !window.confirm(t(lang, "admin.features.confirmDisable"))
+    ) {
       return;
     }
     void runAction(
@@ -1213,23 +1225,38 @@ export function AdminConsole({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ [key]: enabled }),
         });
-        if (res.data && typeof res.data === "object") {
-          setFlags({ ...DEFAULT_FLAGS, ...res.data });
-        }
+        setFlags(mergeAppFeatureFlags(res.data, { [key]: enabled }));
       },
       "admin.toast.updated",
     );
   };
 
+  const loadMyNews = async () => {
+    setMyNewsLoading(true);
+    try {
+      const res = await adminFetch("/my-announcements");
+      setMyNews(Array.isArray(res.data) ? (res.data as AdminAnnouncementRow[]) : []);
+    } catch {
+      setMyNews([]);
+    } finally {
+      setMyNewsLoading(false);
+    }
+  };
+
   const publishNews = () => {
-    if (!newsTitle.trim()) {
-      setError(t(lang, "admin.news.errorTitle"));
+    const ctaUrl = normalizeNewsCtaUrl(newsCtaUrl);
+    const publishError = newsPublishError({
+      title: newsTitle,
+      body: newsBody,
+      ctaLabel: newsCtaLabel,
+      ctaUrl,
+      photos: newsPhotos,
+    });
+    if (publishError) {
+      setError(t(lang, publishError));
       return;
     }
-    if (!newsBody.trim()) {
-      setError(t(lang, "admin.news.errorBody"));
-      return;
-    }
+    if (!window.confirm(t(lang, "admin.news.confirmPublish"))) return;
     void runAction(
       "publish-news",
       async () => {
@@ -1241,10 +1268,10 @@ export function AdminConsole({
             description: newsBody.trim(),
             category: newsCategory,
             ctaLabel: newsCtaLabel.trim() || undefined,
-            ctaUrl: newsCtaUrl.trim() || undefined,
+            ctaUrl: ctaUrl || undefined,
           }),
         );
-        newsPhotos.slice(0, 6).forEach((file, i) => {
+        newsPhotos.slice(0, NEWS_MAX_PHOTOS).forEach((file, i) => {
           formData.append("photos", file, file.name || `photo-${i}.jpg`);
         });
         await adminFetch("/announcements", { method: "POST", body: formData });
@@ -1254,8 +1281,31 @@ export function AdminConsole({
         setNewsCtaLabel("");
         setNewsCtaUrl("");
         setNewsPhotos([]);
+        setNewsPhotoInputKey((key) => key + 1);
+        await loadMyNews();
       },
       "admin.toast.published",
+    );
+  };
+
+  const setAnnouncementStatus = (postId: string, status: "archived" | "published") => {
+    if (
+      status === "archived" &&
+      !window.confirm(t(lang, "admin.news.confirmArchive"))
+    ) {
+      return;
+    }
+    void runAction(
+      `news-${postId}-${status}`,
+      async () => {
+        await adminFetch(`/announcements/${encodeURIComponent(postId)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        await loadMyNews();
+      },
+      "admin.toast.updated",
     );
   };
 
@@ -2718,12 +2768,65 @@ export function AdminConsole({
         );
       }
 
-      case "features":
+      case "features": {
+        const renderFlagRow = (key: keyof AppFeatureFlags) => {
+          const enabled = flags[key];
+          const lastTab = isLastEnabledPetFeedTab(flags, key);
+          return (
+            <div
+              key={key}
+              className="bg-white rounded-2xl border border-[#E8DFD0] px-5 py-4 flex items-center justify-between gap-3"
+            >
+              <div>
+                <p className="text-sm font-medium text-[#2B1E19]">
+                  {t(lang, featureFlagTitleKey(key))}
+                </p>
+                <p className="text-xs text-[#8B7355]">
+                  {t(lang, featureFlagDescKey(key))}
+                </p>
+                <p
+                  className={`mt-1 text-[10px] font-bold uppercase ${
+                    enabled ? "text-emerald-600" : "text-amber-600"
+                  }`}
+                >
+                  {enabled
+                    ? t(lang, "admin.features.on")
+                    : t(lang, "admin.features.off")}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={busyKey !== null || lastTab}
+                onClick={() => toggleFlag(key, !enabled)}
+                className={`relative h-7 w-12 rounded-full transition-colors disabled:opacity-50 ${
+                  enabled ? "bg-[#D97706]" : "bg-slate-300"
+                }`}
+                aria-pressed={enabled}
+                aria-label={t(lang, featureFlagTitleKey(key))}
+                title={lastTab ? t(lang, "admin.features.lastTab") : undefined}
+              >
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                    enabled ? "left-5" : "left-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          );
+        };
         return (
           <div>
-            <h1 className="text-xl font-bold text-[#2B1E19] mb-2">
-              {t(lang, "admin.features.title")}
-            </h1>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <h1 className="text-xl font-bold text-[#2B1E19]">
+                {t(lang, "admin.features.title")}
+              </h1>
+              <ActionButton
+                label={t(lang, "admin.refresh")}
+                variant="ghost"
+                disabled={busyKey !== null}
+                onClick={() => void load()}
+              />
+            </div>
             <p className="text-sm text-[#8B7355] mb-4">
               {t(lang, "admin.features.subtitle")}
             </p>
@@ -2731,48 +2834,7 @@ export function AdminConsole({
               {t(lang, "admin.features.note")}
             </div>
             <div className="space-y-2 mb-6">
-              {FEATURE_CORE.map((key) => {
-                const enabled = flags[key] !== false;
-                return (
-                  <div
-                    key={key}
-                    className="bg-white rounded-2xl border border-[#E8DFD0] px-5 py-4 flex items-center justify-between gap-3"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-[#2B1E19]">
-                        {t(lang, `admin.features.${key}.title` as EnKey)}
-                      </p>
-                      <p className="text-xs text-[#8B7355]">
-                        {t(lang, `admin.features.${key}.desc` as EnKey)}
-                      </p>
-                      <p
-                        className={`mt-1 text-[10px] font-bold uppercase ${
-                          enabled ? "text-emerald-600" : "text-amber-600"
-                        }`}
-                      >
-                        {enabled
-                          ? t(lang, "admin.features.on")
-                          : t(lang, "admin.features.off")}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={busyKey !== null}
-                      onClick={() => toggleFlag(key, !enabled)}
-                      className={`relative h-7 w-12 rounded-full transition-colors ${
-                        enabled ? "bg-[#D97706]" : "bg-slate-300"
-                      }`}
-                      aria-pressed={enabled}
-                    >
-                      <span
-                        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                          enabled ? "left-5" : "left-0.5"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                );
-              })}
+              {ADMIN_FEATURE_CORE_KEYS.map(renderFlagRow)}
             </div>
             <h2 className="text-base font-bold text-[#2B1E19] mb-1">
               {t(lang, "admin.features.petFeedTitle")}
@@ -2781,133 +2843,276 @@ export function AdminConsole({
               {t(lang, "admin.features.petFeedSubtitle")}
             </p>
             <div className="space-y-2">
-              {PET_FEED_TAB_KEYS.map((key) => {
-                const enabled = flags[key] !== false;
-                return (
-                  <div
-                    key={key}
-                    className="bg-white rounded-2xl border border-[#E8DFD0] px-5 py-4 flex items-center justify-between gap-3"
+              {ADMIN_PET_FEED_TAB_KEYS.map(renderFlagRow)}
+            </div>
+          </div>
+        );
+      }
+
+      case "news": {
+        const newsBlockKey = newsPublishError({
+          title: newsTitle,
+          body: newsBody,
+          ctaLabel: newsCtaLabel,
+          ctaUrl: newsCtaUrl,
+          photos: newsPhotos,
+        });
+        const newsReady = newsBlockKey === null;
+        const newsPreview = buildAdminNewsLivePreview({
+          title: newsTitle,
+          body: newsBody,
+          category: newsCategory,
+          ctaLabel: newsCtaLabel,
+          ctaUrl: newsCtaUrl,
+          photoUrls: newsPhotoUrls,
+          authorLabel: t(lang, "news.author"),
+        });
+        const pickNewsPhotos = (list: FileList | File[] | null) => {
+          const incoming = Array.from(list || []);
+          if (!incoming.length) return;
+          const merged = [...newsPhotos, ...incoming].slice(0, NEWS_MAX_PHOTOS);
+          const photoError = newsPublishError({
+            title: "ok",
+            body: "ok",
+            photos: merged,
+          });
+          if (photoError) {
+            setError(t(lang, photoError));
+            return;
+          }
+          setError("");
+          setNewsPhotos(merged);
+          if (newsPhotoInputRef.current) newsPhotoInputRef.current.value = "";
+        };
+        return (
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <h1 className="text-xl font-bold text-[#2B1E19]">
+                {t(lang, "admin.news.title")}
+              </h1>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={NEWS_HREF}
+                  className="inline-flex items-center justify-center rounded-full border border-[#E8DFD0] px-4 py-2 text-sm font-semibold text-[#5C4A3A] hover:bg-[#FDF8F0]"
+                >
+                  {t(lang, "admin.news.openFeed")}
+                </Link>
+                <ActionButton
+                  label={t(lang, "admin.refresh")}
+                  variant="ghost"
+                  disabled={myNewsLoading || busyKey !== null}
+                  onClick={() => void loadMyNews()}
+                />
+              </div>
+            </div>
+            <p className="text-sm text-[#8B7355] mb-4">{t(lang, "admin.news.note")}</p>
+            <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+              <div className="bg-white rounded-2xl border border-[#E8DFD0] p-5 space-y-4">
+                <label className="block">
+                  <span className="text-xs font-semibold text-[#8B7355]">
+                    {t(lang, "admin.news.category")}
+                  </span>
+                  <select
+                    value={newsCategory}
+                    onChange={(e) =>
+                      setNewsCategory(e.target.value as AnnouncementCategory)
+                    }
+                    className="appearance-none mt-1 w-full rounded-xl border border-[#E8DFD0] pl-3 pr-10 py-2 text-sm outline-none focus:border-[#D97706]"
                   >
-                    <div>
-                      <p className="text-sm font-medium text-[#2B1E19]">
-                        {t(lang, `admin.features.${key}.title` as EnKey)}
-                      </p>
-                      <p className="text-xs text-[#8B7355]">
-                        {t(lang, `admin.features.${key}.desc` as EnKey)}
-                      </p>
-                    </div>
+                    {ANNOUNCEMENT_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {t(lang, `admin.news.cat.${cat}` as EnKey)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-[#8B7355]">
+                    {t(lang, "admin.news.titleLabel")}
+                  </span>
+                  <input
+                    value={newsTitle}
+                    maxLength={NEWS_TITLE_MAX}
+                    onChange={(e) => setNewsTitle(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-[#8B7355]">
+                    {t(lang, "admin.news.body")}
+                  </span>
+                  <textarea
+                    value={newsBody}
+                    maxLength={NEWS_BODY_MAX}
+                    onChange={(e) => setNewsBody(e.target.value)}
+                    rows={5}
+                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+                  />
+                </label>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <input
+                    value={newsCtaLabel}
+                    onChange={(e) => setNewsCtaLabel(e.target.value)}
+                    placeholder={t(lang, "admin.news.ctaLabel")}
+                    className="rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+                  />
+                  <input
+                    value={newsCtaUrl}
+                    onChange={(e) => setNewsCtaUrl(e.target.value)}
+                    placeholder={t(lang, "admin.news.ctaUrl")}
+                    className="rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+                  />
+                </div>
+                {(newsBlockKey === "admin.news.errorCta" ||
+                  newsBlockKey === "admin.news.errorCtaUrl") && (
+                  <p className="text-xs text-amber-700" role="alert">
+                    {t(lang, newsBlockKey)}
+                  </p>
+                )}
+                <div className="block">
+                  <span className="text-xs font-semibold text-[#8B7355]">
+                    {t(lang, "admin.news.photos")}
+                  </span>
+                  <p className="mt-0.5 text-[11px] text-[#8B7355]">
+                    {t(lang, "admin.news.photosHint")}
+                  </p>
+                  <div
+                    className="mt-2 rounded-2xl border-2 border-dashed border-[#E8DFD0] bg-[#FDFBF7] px-4 py-5 text-center hover:border-[#D97706]/50 transition-colors"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      pickNewsPhotos(e.dataTransfer.files);
+                    }}
+                  >
                     <button
                       type="button"
-                      disabled={busyKey !== null}
-                      onClick={() => toggleFlag(key, !enabled)}
-                      className={`relative h-7 w-12 rounded-full transition-colors ${
-                        enabled ? "bg-[#D97706]" : "bg-slate-300"
-                      }`}
-                      aria-pressed={enabled}
+                      disabled={busyKey !== null || newsPhotos.length >= NEWS_MAX_PHOTOS}
+                      onClick={() => newsPhotoInputRef.current?.click()}
+                      className="inline-flex items-center justify-center rounded-full border border-[#E8DFD0] bg-white px-4 py-2 text-xs font-semibold text-[#5C4A3A] hover:border-[#D97706] disabled:opacity-50"
                     >
-                      <span
-                        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                          enabled ? "left-5" : "left-0.5"
-                        }`}
-                      />
+                      {t(lang, "admin.news.photosBrowse")}
                     </button>
+                    <input
+                      key={newsPhotoInputKey}
+                      ref={newsPhotoInputRef}
+                      type="file"
+                      accept={NEWS_PHOTO_ACCEPT}
+                      multiple
+                      className="sr-only"
+                      onChange={(e) => pickNewsPhotos(e.target.files)}
+                    />
+                    {newsPhotos.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                        <p className="text-xs text-[#5C4A3A]">
+                          {t(lang, "admin.news.photosSelected").replace(
+                            "{{n}}",
+                            String(newsPhotos.length),
+                          )}
+                        </p>
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-[#B45309] hover:underline"
+                          onClick={() => {
+                            setNewsPhotos([]);
+                            setNewsPhotoInputKey((key) => key + 1);
+                          }}
+                        >
+                          {t(lang, "admin.news.photosClear")}
+                        </button>
+                      </div>
+                    ) : null}
+                    {newsPhotoUrls.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap justify-center gap-2">
+                        {newsPhotoUrls.map((url, index) => (
+                          <div
+                            key={`${url}-${index}`}
+                            className="h-16 w-16 overflow-hidden rounded-lg border border-[#E8DFD0] bg-white"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={url}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={busyKey !== null || !newsReady}
+                    onClick={publishNews}
+                    className="w-full rounded-full bg-[#D97706] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#B45309] disabled:opacity-50 disabled:hover:bg-[#D97706]"
+                  >
+                    {t(lang, "admin.news.publish")}
+                  </button>
+                  {!newsReady && newsBlockKey ? (
+                    <p className="text-xs text-amber-700" role="status">
+                      {t(lang, newsBlockKey)}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              <div className="lg:sticky lg:top-4">
+                <AdminNewsLivePreview lang={lang} model={newsPreview} />
+              </div>
+            </div>
+            <h2 className="text-base font-bold text-[#2B1E19] mt-8 mb-3">
+              {t(lang, "admin.news.listTitle")}
+            </h2>
+            <div className="rounded-2xl border border-[#E8DFD0] bg-white overflow-hidden divide-y divide-[#F0E6D8] max-w-xl">
+              {myNews.map((row) => {
+                const id = announcementRowId(row);
+                if (!id) return null;
+                const published = isPublishedAnnouncement(row);
+                const category = announcementCategoryOf(row);
+                return (
+                  <div key={id} className="p-4 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[#2B1E19]">
+                        {row.title || id}
+                      </p>
+                      <p className="mt-0.5 text-xs text-[#8B7355]">
+                        {t(lang, `admin.news.cat.${category}` as EnKey)}
+                        {" · "}
+                        {t(lang, announcementStatusLabelKey(row.status))}
+                      </p>
+                      <Link
+                        href={announcementPublicHref(id)}
+                        className="mt-1 inline-block text-xs font-semibold text-[#B45309] hover:underline"
+                      >
+                        {t(lang, "admin.news.viewPublic")}
+                      </Link>
+                    </div>
+                    <ActionButton
+                      label={t(
+                        lang,
+                        published ? "admin.news.archive" : "admin.news.restore",
+                      )}
+                      variant="ghost"
+                      disabled={busyKey !== null}
+                      onClick={() =>
+                        setAnnouncementStatus(id, published ? "archived" : "published")
+                      }
+                    />
                   </div>
                 );
               })}
+              {!myNewsLoading && myNews.length === 0 ? (
+                <p className="p-5 text-sm text-[#8B7355]">{t(lang, "admin.empty")}</p>
+              ) : null}
+              {myNewsLoading ? (
+                <p className="p-5 text-sm text-[#8B7355]">{t(lang, "common.loading")}</p>
+              ) : null}
             </div>
           </div>
         );
-
-      case "news":
-        return (
-          <div>
-            <h1 className="text-xl font-bold text-[#2B1E19] mb-2">
-              {t(lang, "admin.news.title")}
-            </h1>
-            <p className="text-sm text-[#8B7355] mb-4">{t(lang, "admin.news.note")}</p>
-            <div className="bg-white rounded-2xl border border-[#E8DFD0] p-5 space-y-4 max-w-xl">
-              <label className="block">
-                <span className="text-xs font-semibold text-[#8B7355]">
-                  {t(lang, "admin.news.category")}
-                </span>
-                <select
-                  value={newsCategory}
-                  onChange={(e) =>
-                    setNewsCategory(e.target.value as AnnouncementCategory)
-                  }
-                  className="appearance-none mt-1 w-full rounded-xl border border-[#E8DFD0] pl-3 pr-10 py-2 text-sm outline-none focus:border-[#D97706]"
-                >
-                  {(
-                    [
-                      "app_update",
-                      "health_tip",
-                      "community",
-                      "general",
-                    ] as AnnouncementCategory[]
-                  ).map((cat) => (
-                    <option key={cat} value={cat}>
-                      {t(lang, `admin.news.cat.${cat}` as EnKey)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold text-[#8B7355]">
-                  {t(lang, "admin.news.titleLabel")}
-                </span>
-                <input
-                  value={newsTitle}
-                  onChange={(e) => setNewsTitle(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold text-[#8B7355]">
-                  {t(lang, "admin.news.body")}
-                </span>
-                <textarea
-                  value={newsBody}
-                  onChange={(e) => setNewsBody(e.target.value)}
-                  rows={5}
-                  className="mt-1 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
-                />
-              </label>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <input
-                  value={newsCtaLabel}
-                  onChange={(e) => setNewsCtaLabel(e.target.value)}
-                  placeholder={t(lang, "admin.news.ctaLabel")}
-                  className="rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
-                />
-                <input
-                  value={newsCtaUrl}
-                  onChange={(e) => setNewsCtaUrl(e.target.value)}
-                  placeholder={t(lang, "admin.news.ctaUrl")}
-                  className="rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
-                />
-              </div>
-              <label className="block">
-                <span className="text-xs font-semibold text-[#8B7355]">
-                  {t(lang, "admin.news.photos")}
-                </span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  onChange={(e) =>
-                    setNewsPhotos(Array.from(e.target.files || []).slice(0, 6))
-                  }
-                  className="mt-1 block w-full text-sm text-[#5C4A3A]"
-                />
-              </label>
-              <ActionButton
-                label={t(lang, "admin.news.publish")}
-                disabled={busyKey !== null}
-                onClick={publishNews}
-              />
-            </div>
-          </div>
-        );
+      }
 
       default:
         return null;

@@ -25,6 +25,35 @@ export const DEFAULT_APP_FEATURE_FLAGS: AppFeatureFlags = {
   marketplace_escrow: false,
 };
 
+export const APP_FEATURE_FLAG_KEYS = [
+  "breed_recognition",
+  "health_analysis",
+  "rewarded_ads",
+  "subscription",
+  "pet_feed_news",
+  "pet_feed_listings",
+  "pet_feed_breeders",
+  "farm_template_change",
+  "marketplace_escrow",
+] as const satisfies readonly (keyof AppFeatureFlags)[];
+
+/** Merge API/partial payloads onto defaults. Unknown keys are ignored. */
+export function mergeAppFeatureFlags(
+  raw: unknown,
+  extras?: Partial<AppFeatureFlags> | null,
+): AppFeatureFlags {
+  const source =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  const next: AppFeatureFlags = { ...DEFAULT_APP_FEATURE_FLAGS };
+  for (const key of APP_FEATURE_FLAG_KEYS) {
+    if (typeof source[key] === "boolean") next[key] = source[key];
+    if (extras && typeof extras[key] === "boolean") next[key] = extras[key];
+  }
+  return next;
+}
+
 /** Admins always see flags for testing; others respect stored values (default on). */
 export function isFarmTemplateChangeEnabled(
   flags: Partial<AppFeatureFlags> | null | undefined,

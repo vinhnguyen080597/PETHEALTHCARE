@@ -116,6 +116,10 @@ test("historyTargetHref deep-links listings, farms, and request queue rows", () 
     `${ADMIN_CONSOLE_PATH}?section=requests&type=feedback&focus=t-fb`,
   );
   assert.equal(
+    historyTargetHref({ target_type: "announcement", target_id: "news-1" }),
+    "/app/news?post=news-1",
+  );
+  assert.equal(
     historyTargetHref({ target_type: "account", target_id: "u-1" }),
     null,
   );
