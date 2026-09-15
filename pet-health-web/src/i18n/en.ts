@@ -651,7 +651,7 @@ const en = {
   "deal.senOpenDispute": "I did not receive the pet",
   "deal.disputeTitle": "Open handoff dispute",
   "deal.disputeHint":
-    "Explain what happened and upload evidence. Admin will review and may force-complete or cancel the deposit.",
+    "Explain what happened and upload evidence. Admin will review the report and the deposit hold.",
   "deal.disputeMessageLabel": "What happened",
   "deal.disputeMessageRequired": "Please describe the issue.",
   "deal.disputePhotosLabel": "Evidence photos",
@@ -1627,12 +1627,8 @@ const en = {
   "admin.reports.reason.confirmed_scam": "Scam / bait-and-switch",
   "admin.reports.reason.prohibited_wildlife": "Prohibited wildlife",
   "admin.reports.reason.deal_dispute": "Deal handoff dispute",
-  "admin.reports.forceComplete": "Force complete deal",
-  "admin.reports.forceCancel": "Force cancel deposit",
-  "admin.reports.confirmForceComplete":
-    "Force-complete this deal? The listing will be marked sold and the dispute closed.",
-  "admin.reports.confirmForceCancel":
-    "Force-cancel this deposit? The listing returns to published and the warranty unfreezes.",
+  "admin.reports.forceResolveUnavailable":
+    "Force complete / cancel is not available yet. Review or dismiss this report, or resolve the deposit outside Admin Console.",
   "admin.history.title": "Admin history",
   "admin.history.subtitle": "Trace moderation actions with before/after state and reasons.",
   "admin.history.filterAction": "Action",

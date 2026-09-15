@@ -61,6 +61,7 @@ import {
 import {
   breederPublicHref,
   isDealDisputeReport,
+  isOpenDealDisputeOnHold,
   toggleExpandedReviewId,
   type AdminReviewBreeder,
   type AdminReviewPost,
@@ -2233,6 +2234,11 @@ export function AdminConsole({
                 const canHideListing = listingHideFromReportAllowed(linkedPost?.status);
                 const dealHold =
                   String(linkedPost?.status || "").toLowerCase() === "deposit_hold";
+                const forceResolveBlocked = isOpenDealDisputeOnHold({
+                  reportReason: r.reason,
+                  reportStatus: r.status,
+                  linkedPostStatus: linkedPost?.status,
+                });
                 return (
                   <div
                     key={r.id}
@@ -2276,7 +2282,11 @@ export function AdminConsole({
                     {r.note && !detailsOpen ? (
                       <p className="text-xs text-[#5C4A3A] mt-2">{r.note}</p>
                     ) : null}
-                    {dealHold ? (
+                    {forceResolveBlocked ? (
+                      <p className="mt-2 text-xs text-amber-800">
+                        {t(lang, "admin.reports.forceResolveUnavailable")}
+                      </p>
+                    ) : dealHold ? (
                       <p className="mt-2 text-xs text-amber-800">
                         {t(lang, "admin.listings.dealHoldHint")}
                       </p>

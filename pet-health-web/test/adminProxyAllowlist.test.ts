@@ -16,7 +16,6 @@ test("resolveAdminProxyRoute allows Admin Console routes", () => {
   const cases: Array<[string, string[], string]> = [
     ["GET", ["posts"], "/admin/pet-feed/posts"],
     ["PUT", ["posts", "p1", "status"], "/admin/pet-feed/posts/p1/status"],
-    ["POST", ["posts", "p1", "deal", "force-complete"], "/admin/pet-feed/posts/p1/deal/force-complete"],
     ["GET", ["breeders"], "/admin/breeder-profiles"],
     ["PUT", ["breeders", "u1", "status"], "/admin/breeder-profiles/u1/status"],
     ["GET", ["support-tickets"], "/admin/support-tickets"],
@@ -35,10 +34,13 @@ test("resolveAdminProxyRoute allows Admin Console routes", () => {
 test("resolveAdminProxyRoute denies sensitive backend-only paths", () => {
   const blocked = [
     ["GET", ["ai-ops-summary"]],
+    ["GET", ["product-analytics-summary"]],
     ["POST", ["test-alert-email"]],
     ["POST", ["jobs", "auto-complete-handoffs"]],
     ["GET", ["users", "u1", "pets"]],
     ["DELETE", ["accounts", "u1"]],
+    ["POST", ["posts", "p1", "deal", "force-complete"]],
+    ["POST", ["posts", "p1", "deal", "force-cancel"]],
     ["GET", ["../secret"]],
   ] as const;
 

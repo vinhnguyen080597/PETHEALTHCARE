@@ -654,7 +654,7 @@ const vi: Record<EnKey, string> = {
   "deal.senOpenDispute": "Tôi chưa nhận được bé",
   "deal.disputeTitle": "Khiếu nại giao nhận",
   "deal.disputeHint":
-    "Mô tả sự việc và tải minh chứng. Admin sẽ xem xét và có thể buộc hoàn thành hoặc hủy cọc.",
+    "Mô tả sự việc và tải minh chứng. Admin sẽ xem xét báo cáo và khoản cọc đang giữ.",
   "deal.disputeMessageLabel": "Mô tả sự việc",
   "deal.disputeMessageRequired": "Vui lòng mô tả vấn đề.",
   "deal.disputePhotosLabel": "Ảnh minh chứng",
@@ -1629,12 +1629,8 @@ const vi: Record<EnKey, string> = {
   "admin.reports.reason.confirmed_scam": "Lừa đảo cọc / tráo bé",
   "admin.reports.reason.prohibited_wildlife": "Động vật hoang dã / cấm",
   "admin.reports.reason.deal_dispute": "Khiếu nại giao nhận",
-  "admin.reports.forceComplete": "Buộc hoàn thành giao dịch",
-  "admin.reports.forceCancel": "Buộc hủy cọc",
-  "admin.reports.confirmForceComplete":
-    "Buộc hoàn thành giao dịch? Tin sẽ chuyển sang đã bán và đóng khiếu nại.",
-  "admin.reports.confirmForceCancel":
-    "Buộc hủy cọc? Tin mở lại published và gỡ đóng băng bảo hành.",
+  "admin.reports.forceResolveUnavailable":
+    "Chưa có buộc hoàn thành / hủy cọc. Hãy đánh dấu đã xem hoặc bỏ qua báo cáo, hoặc xử lý cọc ngoài Admin Console.",
   "admin.history.title": "Lịch sử Admin",
   "admin.history.subtitle": "Truy vết action moderation kèm trạng thái trước/sau và lý do.",
   "admin.history.filterAction": "Hành động",

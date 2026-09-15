@@ -16,23 +16,16 @@ function enc(value: string): string {
   return encodeURIComponent(value);
 }
 
-/** Explicit BFF → backend routes used by Admin Console (deny-by-default). */
+/** Explicit BFF → backend routes used by Admin Console (deny-by-default).
+ * Intentionally not proxied: deal force-complete/cancel (backend missing),
+ * ai-ops-summary / product-analytics-summary / pets CRUD (ops or mobile-only).
+ */
 export const ADMIN_PROXY_RULES: readonly AdminProxyRule[] = [
   { methods: ["GET"], template: "posts", backend: () => "/admin/pet-feed/posts" },
   {
     methods: ["PUT"],
     template: "posts/:postId/status",
     backend: ({ postId }) => `/admin/pet-feed/posts/${enc(postId)}/status`,
-  },
-  {
-    methods: ["POST"],
-    template: "posts/:postId/deal/force-complete",
-    backend: ({ postId }) => `/admin/pet-feed/posts/${enc(postId)}/deal/force-complete`,
-  },
-  {
-    methods: ["POST"],
-    template: "posts/:postId/deal/force-cancel",
-    backend: ({ postId }) => `/admin/pet-feed/posts/${enc(postId)}/deal/force-cancel`,
   },
   { methods: ["GET"], template: "reports", backend: () => "/admin/pet-feed/reports" },
   {
@@ -228,8 +221,6 @@ export const ADMIN_PROXY_BODY_SCHEMAS: Record<string, z.ZodType> = {
         || value.status !== undefined,
       "At least one announcement field is required",
     ),
-  "POST posts/:postId/deal/force-complete": z.object({}).strict(),
-  "POST posts/:postId/deal/force-cancel": z.object({}).strict(),
 };
 
 export function normalizeAdminProxySegments(path: string[] | undefined): string[] {

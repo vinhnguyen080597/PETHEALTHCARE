@@ -12,6 +12,7 @@ import {
   dealDisputeFromPost,
   healthEvidenceUrlsFromMetadata,
   isDealDisputeReport,
+  isOpenDealDisputeOnHold,
   type AdminReviewBreeder,
   type AdminReviewPost,
   type AdminReviewReport,
@@ -356,6 +357,15 @@ export function AdminReportReviewDetail({
           <p className="mt-2 text-xs font-semibold text-[#B45309]">
             {t(lang, "admin.review.dealDispute")}
             {dealDispute?.dealStatus ? ` · ${dealDispute.dealStatus}` : ""}
+          </p>
+        ) : null}
+        {isOpenDealDisputeOnHold({
+          reportReason: report.reason,
+          reportStatus: report.status,
+          linkedPostStatus: linkedPost?.status,
+        }) ? (
+          <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {t(lang, "admin.reports.forceResolveUnavailable")}
           </p>
         ) : null}
       </Section>

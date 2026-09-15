@@ -8,10 +8,10 @@ import {
   adminListingMediaUrls,
   adminListingSpecRows,
   breederPublicHref,
-  canAdminForceResolveDeal,
   dealDisputeFromPost,
   healthEvidenceUrlsFromMetadata,
   isDealDisputeReport,
+  isOpenDealDisputeOnHold,
   toggleExpandedReviewId,
 } from "../src/lib/admin/reviewDetail";
 
@@ -44,10 +44,7 @@ const KEYS = [
   "admin.review.dealDisputeMessage",
   "admin.review.dealDisputeEvidence",
   "admin.review.dealHandoffPhotos",
-  "admin.reports.forceComplete",
-  "admin.reports.forceCancel",
-  "admin.reports.confirmForceComplete",
-  "admin.reports.confirmForceCancel",
+  "admin.reports.forceResolveUnavailable",
   "admin.farmReviews.reviewer",
   "admin.farmReviews.saleListing",
   "admin.appeals.status.appealed",
@@ -120,11 +117,11 @@ test("adminBreederSpecRows and expand toggle", () => {
   assert.equal(breederPublicHref("farm/1"), "/app/breeders/farm%2F1");
 });
 
-test("deal dispute helpers for admin force resolve", () => {
+test("open deal dispute on deposit hold is flagged (force-resolve not shipped)", () => {
   assert.equal(isDealDisputeReport("deal_dispute"), true);
   assert.equal(isDealDisputeReport("scam"), false);
   assert.equal(
-    canAdminForceResolveDeal({
+    isOpenDealDisputeOnHold({
       reportReason: "deal_dispute",
       reportStatus: "open",
       linkedPostStatus: "deposit_hold",
@@ -132,10 +129,18 @@ test("deal dispute helpers for admin force resolve", () => {
     true,
   );
   assert.equal(
-    canAdminForceResolveDeal({
+    isOpenDealDisputeOnHold({
       reportReason: "deal_dispute",
       reportStatus: "open",
       linkedPostStatus: "sold",
+    }),
+    false,
+  );
+  assert.equal(
+    isOpenDealDisputeOnHold({
+      reportReason: "deal_dispute",
+      reportStatus: "dismissed",
+      linkedPostStatus: "deposit_hold",
     }),
     false,
   );

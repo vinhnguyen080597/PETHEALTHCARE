@@ -254,7 +254,8 @@ export function dealDisputeFromPost(
   return { dealStatus, message, evidenceUrls, handoffPhotos };
 }
 
-export function canAdminForceResolveDeal(input: {
+/** True when an open deal_dispute sits on a deposit_hold listing (force-resolve not shipped). */
+export function isOpenDealDisputeOnHold(input: {
   reportReason?: string | null;
   reportStatus?: string | null;
   linkedPostStatus?: string | null;
