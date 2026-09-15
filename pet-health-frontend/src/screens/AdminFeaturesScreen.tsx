@@ -42,6 +42,8 @@ type AdminFeaturesScreenProps = {
   savingKey: FeatureToggleKey | null;
   onToggle: (key: FeatureToggleKey, enabled: boolean) => Promise<void>;
   onLogout: () => void;
+  /** When true, render as a section inside Admin dashboard (no outer scroll / logout). */
+  embedded?: boolean;
 };
 
 export function AdminFeaturesScreen({
@@ -50,6 +52,7 @@ export function AdminFeaturesScreen({
   savingKey,
   onToggle,
   onLogout,
+  embedded = false,
 }: AdminFeaturesScreenProps) {
   const { t } = useTranslation();
 
@@ -117,13 +120,8 @@ export function AdminFeaturesScreen({
     );
   }
 
-  return (
-    <ScrollView
-      testID="admin-features-screen"
-      className="flex-1 bg-[#F2F4F8]"
-      contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, paddingTop: 20 }}
-      showsVerticalScrollIndicator={false}
-    >
+  const body = (
+    <>
       <Text className="text-xl font-bold text-slate-900">{t('adminFeatures.title')}</Text>
       <Text className="mt-2 text-sm leading-5 text-slate-600">{t('adminFeatures.subtitle')}</Text>
 
@@ -152,15 +150,36 @@ export function AdminFeaturesScreen({
         <Text className="mt-2 text-sm leading-5 text-slate-600">{t('adminFeatures.noteBody')}</Text>
       </View>
 
-      <Pressable
-        testID="admin-features-logout-button"
-        accessibilityRole="button"
-        className="mt-6 flex-row items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 py-3 active:bg-red-100"
-        onPress={onLogout}
-      >
-        <Ionicons name="log-out-outline" size={18} color="#dc2626" />
-        <Text className="text-sm font-bold text-red-600">{t('account.menu.logout')}</Text>
-      </Pressable>
+      {!embedded ? (
+        <Pressable
+          testID="admin-features-logout-button"
+          accessibilityRole="button"
+          className="mt-6 flex-row items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 py-3 active:bg-red-100"
+          onPress={onLogout}
+        >
+          <Ionicons name="log-out-outline" size={18} color="#dc2626" />
+          <Text className="text-sm font-bold text-red-600">{t('account.menu.logout')}</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <View testID="admin-features-screen" className="mt-2">
+        {body}
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      testID="admin-features-screen"
+      className="flex-1 bg-[#F2F4F8]"
+      contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, paddingTop: 20 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {body}
     </ScrollView>
   );
 }

@@ -134,6 +134,7 @@
     "history": "History",
     "account": "Account",
     "features": "Features",
+    "admin": "Admin",
     "logout": "Logout"
   },
   "header": {

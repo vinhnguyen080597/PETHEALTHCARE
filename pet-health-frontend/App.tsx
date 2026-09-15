@@ -227,7 +227,7 @@ function AppContent() {
   const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;
   const breedCreditCost = app.aiEconomicsConfig?.features.breed_recognition?.creditCost ?? 1;
   const rewardedAdCredits = app.aiEconomicsConfig?.rewardedAd?.creditsPerAd ?? 1;
-  const accountDashboard = (
+  const renderAccountDashboard = (options?: { footerContent?: React.ReactNode }) => (
     <AccountScreen
       account={app.accountProfile}
       dashboardLoading={app.accountDashboardLoading || !app.accountProfile}
@@ -275,6 +275,7 @@ function AppContent() {
       onLogout={app.logout}
       onConfirmDeleteAccount={app.confirmDeleteAccount}
       showHeaderMenu={!isAdmin}
+      footerContent={options?.footerContent}
     />
   );
 
@@ -366,7 +367,9 @@ function AppContent() {
 
             {app.managedUser ? <ManagedUserBanner managedUser={app.managedUser} onExit={app.exitManagedUser} /> : null}
 
-            {app.screen === 'home' && isAdmin && !app.managedUser ? accountDashboard : null}
+            {app.screen === 'home' && isAdmin && !app.managedUser ? (
+              <View testID="admin-home-placeholder" style={{ flex: 1 }} />
+            ) : null}
 
             {app.screen === 'home' && (!isAdmin || app.managedUser) && (
               <HomeScreen
@@ -571,17 +574,22 @@ function AppContent() {
               }}
             />
 
-            {app.screen === 'account' && !isAdmin ? accountDashboard : null}
+            {app.screen === 'account' && !isAdmin ? renderAccountDashboard() : null}
 
-            {app.screen === 'admin-features' && isAdmin ? (
-              <AdminFeaturesScreen
-                flags={app.appFeatureFlags}
-                loading={app.featureFlagsLoading}
-                savingKey={app.featureFlagSavingKey}
-                onToggle={app.updateAdminFeatureFlag}
-                onLogout={app.logout}
-              />
-            ) : null}
+            {app.screen === 'admin-features' && isAdmin
+              ? renderAccountDashboard({
+                  footerContent: (
+                    <AdminFeaturesScreen
+                      embedded
+                      flags={app.appFeatureFlags}
+                      loading={app.featureFlagsLoading}
+                      savingKey={app.featureFlagSavingKey}
+                      onToggle={app.updateAdminFeatureFlag}
+                      onLogout={app.logout}
+                    />
+                  ),
+                })
+              : null}
 
             {app.screen === 'update-account' && !isAdmin ? (
               <UpdateAccountScreen

@@ -1062,11 +1062,18 @@ export function usePetHealthApp() {
     void refreshVaccinationDueCounts(pets, token);
   }, [screen, token, pets, petVaccinationDueCounts, refreshVaccinationDueCounts]);
 
-  // Admin Home needs review catalogs, but never block cold start / first paint on them.
+  // Admin dashboard needs review catalogs, but never block cold start / first paint on them.
   useEffect(() => {
     if (!token || managedUser) return;
     if (accountProfile?.primary_role !== 'admin') return;
-    if (screen !== 'home' && screen !== 'admin-review' && screen !== 'admin-hub') return;
+    if (
+      screen !== 'home'
+      && screen !== 'admin-features'
+      && screen !== 'admin-review'
+      && screen !== 'admin-hub'
+    ) {
+      return;
+    }
     void ensureAdminReviewLoaded(token);
   }, [screen, token, accountProfile?.primary_role, managedUser]);
 
@@ -1148,6 +1155,7 @@ export function usePetHealthApp() {
   async function navigateAfterAuthenticatedSession(options?: {
     startInitialOnboarding?: boolean;
     completeProfileFirst?: boolean;
+    role?: UserRole;
   }) {
     if (options?.completeProfileFirst) {
       setCompleteProfileError('');
@@ -1181,7 +1189,8 @@ export function usePetHealthApp() {
     }
 
     setInitialOnboarding(false);
-    setScreen('home');
+    const role = options?.role ?? accountProfile?.primary_role;
+    setScreen(role === 'admin' ? 'admin-features' : 'home');
   }
 
   function probeBackendHealth() {
@@ -1229,7 +1238,7 @@ export function usePetHealthApp() {
           role: profile.primary_role,
         });
         await loadAuthenticatedUserData(accessToken, profile);
-        await navigateAfterAuthenticatedSession();
+        await navigateAfterAuthenticatedSession({ role: profile.primary_role });
         debugLog('STARTUP', 'usePetHealthApp.initializeApp.exit', { screen: 'authenticated' });
       } catch (error) {
         debugCheck('STARTUP', 'usePetHealthApp.restore_session', false, {
@@ -1264,7 +1273,10 @@ export function usePetHealthApp() {
       setToken(session.access_token);
       const profile = await fetchAccountProfile(session.access_token);
       await loadAuthenticatedUserData(session.access_token, profile);
-      await navigateAfterAuthenticatedSession(options);
+      await navigateAfterAuthenticatedSession({
+        ...options,
+        role: profile.primary_role,
+      });
     },
     [fetchAccountProfile, fetchPets, refreshAiCredits, resetPetFeedState],
   );
@@ -2453,7 +2465,8 @@ export function usePetHealthApp() {
       try {
         const freshAccount = await fetchAccountProfile(token);
         if (freshAccount.primary_role === 'admin') {
-          setScreen('home');
+          setScreen('admin-features');
+          void loadFeatureFlags(token);
         }
         await loadAccountDashboard(token, freshAccount.primary_role);
         void checkTransparencyWarning();
@@ -2498,7 +2511,7 @@ export function usePetHealthApp() {
   }
 
   function closeBreederProfile() {
-    const fallback: AppScreen = accountProfile?.primary_role === 'admin' ? 'home' : 'account';
+    const fallback: AppScreen = accountProfile?.primary_role === 'admin' ? 'admin-features' : 'account';
     const target = breederProfileReturnScreen || fallback;
     setScreen(target);
   }
@@ -2675,7 +2688,7 @@ export function usePetHealthApp() {
   }
 
   function closeCreateAdminPost() {
-    setScreen('home');
+    setScreen('admin-features');
   }
 
   async function submitAnnouncementPost(payload: CreateAnnouncementPostPayload, media: CreateAnnouncementPostMedia) {
@@ -2686,7 +2699,7 @@ export function usePetHealthApp() {
       const postsRes = await listMyAnnouncementPosts(token);
       setMyPetFeedPosts(postsRes.data);
       await loadPetFeedFirstPage(token);
-      setScreen('home');
+      setScreen('admin-features');
     } finally {
       setLoading(false);
     }
@@ -3597,7 +3610,7 @@ export function usePetHealthApp() {
   }
 
   function closeAdminHub() {
-    setScreen('home');
+    setScreen('admin-features');
   }
 
   function openAdminFeatures() {
@@ -3686,7 +3699,7 @@ export function usePetHealthApp() {
   }
 
   function closeAdminReview() {
-    setScreen(accountProfile?.primary_role === 'admin' ? 'home' : 'account');
+    setScreen(accountProfile?.primary_role === 'admin' ? 'admin-features' : 'account');
   }
 
   async function loadAdminReview(accessToken: string | null = token) {

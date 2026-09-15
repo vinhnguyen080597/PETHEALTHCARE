@@ -53,10 +53,10 @@ function TabItem({
 export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount, accountTabMode = 'account' }: BottomTabBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const isFeaturesTab = accountTabMode === 'features';
+  const isAdminTab = accountTabMode === 'features';
   const petFeedTabActive = activeScreen === 'pet-feed';
   const homeTabActive = activeScreen === 'home';
-  const accountTabActive = isFeaturesTab ? activeScreen === 'admin-features' : activeScreen === 'account';
+  const accountTabActive = isAdminTab ? activeScreen === 'admin-features' : activeScreen === 'account';
 
   return (
     <View
@@ -88,11 +88,11 @@ export function BottomTabBar({ activeScreen, onPetFeed, onHome, onAccount, accou
       />
       <TabItem
         testID="bottom-tab-account-button"
-        accessibilityLabel={isFeaturesTab ? 'Open app features management' : 'Open account tab'}
+        accessibilityLabel={isAdminTab ? 'Open admin tab' : 'Open account tab'}
         active={accountTabActive}
         disabled={accountTabActive}
-        icon={isFeaturesTab ? 'options-outline' : 'person-circle-outline'}
-        label={t(isFeaturesTab ? 'tabs.features' : 'tabs.account')}
+        icon={isAdminTab ? 'shield-checkmark-outline' : 'person-circle-outline'}
+        label={t(isAdminTab ? 'tabs.admin' : 'tabs.account')}
         onPress={accountTabActive ? undefined : onAccount}
       />
     </View>

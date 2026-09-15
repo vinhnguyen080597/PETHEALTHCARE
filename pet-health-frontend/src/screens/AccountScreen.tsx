@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Alert, InteractionManager, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -178,6 +178,7 @@ type AccountScreenProps = {
   onLogout: () => void;
   onConfirmDeleteAccount: () => Promise<void>;
   showHeaderMenu?: boolean;
+  footerContent?: ReactNode;
 };
 
 function roleIcon(role: UserRole | undefined) {
@@ -250,6 +251,7 @@ export function AccountScreen({
   onLogout,
   onConfirmDeleteAccount,
   showHeaderMenu = true,
+  footerContent,
 }: AccountScreenProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -1398,6 +1400,7 @@ export function AccountScreen({
             </View>
           </View>
         ) : null}
+        {footerContent}
         <View className="rounded-2xl border border-gray-200 bg-white p-4">
           <Text className="text-base font-bold text-slate-900">{t('legal.title')}</Text>
           <Text className="mt-1 text-sm leading-5 text-slate-500">{t('legal.body')}</Text>
