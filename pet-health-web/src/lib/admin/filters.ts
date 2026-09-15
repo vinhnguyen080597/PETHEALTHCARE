@@ -3,10 +3,18 @@ export const HISTORY_ACTION_FILTERS = [
   "breeder.verify",
   "breeder.reject",
   "breeder.suspend",
+  "breeder_submission.approve",
+  "breeder_submission.reject",
+  "farm_review.approve",
+  "farm_review.reject",
   "post.approve",
   "post.archive",
   "report.review",
   "report.dismiss",
+  "support_ticket.review",
+  "support_ticket.dismiss",
+  "transparency_warning.uphold",
+  "transparency_warning.restore",
   "account.create",
   "account.update",
   "feature_flags.update",
@@ -194,4 +202,12 @@ export function sortByDate<T extends { createdAt?: string; created_at?: string }
 
 export function historyActionI18nKey(action: string) {
   return `admin.history.action.${action}`;
+}
+
+export function isHistoryActionFilter(
+  value: string | null | undefined,
+): value is HistoryActionFilter {
+  return (HISTORY_ACTION_FILTERS as readonly string[]).includes(
+    String(value || "").trim(),
+  );
 }

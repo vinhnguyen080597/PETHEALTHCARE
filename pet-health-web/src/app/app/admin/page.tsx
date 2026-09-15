@@ -15,6 +15,7 @@ type Search = {
   focus?: string | string[];
   status?: string | string[];
   role?: string | string[];
+  action?: string | string[];
 };
 
 export default async function AdminPage({

@@ -20,6 +20,7 @@ import {
   type AdminReportStatusFilter,
   type AdminUserRoleFilter,
   type AdminUserStatusFilter,
+  type HistoryActionFilter,
 } from "@/lib/admin/consoleNav";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 import { DialogActions } from "@/components/ui/DialogActions";
@@ -32,6 +33,7 @@ import {
   HISTORY_ACTION_FILTERS,
   breederGroup,
   breederVerifyConfirmKey,
+  historyActionI18nKey,
   isAppealQueueItem,
   isBreederVerificationQueueItem,
   isDetailSubmissionQueueItem,
@@ -104,6 +106,11 @@ import {
   normalizeAccountRole,
   normalizeAccountStatus,
 } from "@/lib/admin/users";
+import {
+  historyChangeSummary,
+  historyRejectionReason,
+  historyTargetHref,
+} from "@/lib/admin/history";
 
 type FeatureFlags = {
   breed_recognition: boolean;
@@ -420,6 +427,8 @@ export function AdminConsole({
   const userRoleFilter: AdminUserRoleFilter = parsedSearch.userRole ?? "all";
   const userStatusFilter: AdminUserStatusFilter =
     parsedSearch.userStatus ?? "all";
+  const historyActionFilter: HistoryActionFilter =
+    parsedSearch.historyAction ?? "all";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [breeders, setBreeders] = useState<BreederRow[]>([]);
@@ -471,8 +480,6 @@ export function AdminConsole({
   const [newsCtaUrl, setNewsCtaUrl] = useState("");
   const [newsPhotos, setNewsPhotos] = useState<File[]>([]);
   const [actionLogs, setActionLogs] = useState<ActionLogRow[]>([]);
-  const [historyActionFilter, setHistoryActionFilter] =
-    useState<(typeof HISTORY_ACTION_FILTERS)[number]>("all");
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyCursor, setHistoryCursor] = useState<string | null>(null);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
@@ -576,6 +583,7 @@ export function AdminConsole({
 
   useEffect(() => {
     if (section !== "history") return;
+    setExpandedLogId(null);
     void loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section, historyActionFilter]);
@@ -2553,7 +2561,7 @@ export function AdminConsole({
 
       case "history": {
         const actionLabel = (action: string) => {
-          const key = `admin.history.action.${action}` as EnKey;
+          const key = historyActionI18nKey(action) as EnKey;
           const label = t(lang, key);
           return label === key ? action : label;
         };
@@ -2568,36 +2576,6 @@ export function AdminConsole({
             hour: "2-digit",
             minute: "2-digit",
           });
-        };
-        const summarizeChange = (log: ActionLogRow) => {
-          const before = log.before_state || {};
-          const after = log.after_state || {};
-          const action = log.action || "";
-          if (action.startsWith("account.")) {
-            const beforeRole = String(before.primary_role || "");
-            const afterRole = String(after.primary_role || "");
-            const name = String(after.display_name || before.display_name || "");
-            if (beforeRole || afterRole) {
-              return `${name ? `${name} · ` : ""}${beforeRole || "—"} → ${afterRole || "—"}`;
-            }
-            return name || log.target_id || "—";
-          }
-          if (action === "feature_flags.update") {
-            const keys = Array.isArray(log.metadata?.changed_keys)
-              ? (log.metadata?.changed_keys as string[])
-              : [];
-            return keys.length ? keys.join(", ") : "feature_flags";
-          }
-          if (action.startsWith("announcement.")) {
-            return String(after.title || before.title || log.target_id || "—");
-          }
-          const beforeStatus = String(before.verification_status || before.status || "");
-          const afterStatus = String(after.verification_status || after.status || "");
-          if (beforeStatus || afterStatus) {
-            return `${beforeStatus || "—"} → ${afterStatus || "—"}`;
-          }
-          const title = String(after.title || before.title || "");
-          return title || log.target_id || "—";
         };
         return (
           <div>
@@ -2619,9 +2597,15 @@ export function AdminConsole({
               <FilterSelect
                 label={t(lang, "admin.history.filterAction")}
                 value={historyActionFilter}
-                onChange={(value) =>
-                  setHistoryActionFilter(value as (typeof HISTORY_ACTION_FILTERS)[number])
-                }
+                onChange={(value) => {
+                  const next = value as HistoryActionFilter;
+                  router.replace(
+                    adminConsoleHref({
+                      section: "history",
+                      historyAction: next === "all" ? null : next,
+                    }),
+                  );
+                }}
                 options={HISTORY_ACTION_FILTERS.map((value) => ({
                   value,
                   label:
@@ -2634,10 +2618,12 @@ export function AdminConsole({
             <div className="rounded-2xl border border-[#E8DFD0] bg-white overflow-hidden divide-y divide-[#F0E6D8]">
               {actionLogs.map((log) => {
                 const open = expandedLogId === log.id;
-                const reason =
-                  typeof log.metadata?.rejection_reason === "string"
-                    ? log.metadata.rejection_reason
-                    : "";
+                const reason = historyRejectionReason(log.metadata);
+                const targetHref = historyTargetHref(log);
+                const summary = historyChangeSummary(log);
+                const targetLabel = [log.target_type, log.target_id]
+                  .filter(Boolean)
+                  .join(" / ");
                 return (
                   <div key={log.id} className="p-4">
                     <button
@@ -2659,7 +2645,7 @@ export function AdminConsole({
                             {formatLogTime(log.created_at)}
                           </p>
                           <p className="mt-1 text-xs text-[#5C4A3A]">
-                            {summarizeChange(log)}
+                            {summary}
                             {reason ? ` · ${reason}` : ""}
                           </p>
                         </div>
@@ -2673,13 +2659,25 @@ export function AdminConsole({
                     {open ? (
                       <div className="mt-3 grid gap-2 rounded-xl bg-[#FDFBF7] border border-[#F0E6D8] p-3 text-xs text-[#5C4A3A]">
                         <p>
-                          <span className="font-semibold">{t(lang, "admin.history.target")}: </span>
-                          {log.target_type}
-                          {log.target_id ? ` / ${log.target_id}` : ""}
+                          <span className="font-semibold">
+                            {t(lang, "admin.history.target")}:{" "}
+                          </span>
+                          {targetHref ? (
+                            <Link
+                              href={targetHref}
+                              className="font-semibold text-[#B45309] hover:underline break-all"
+                            >
+                              {targetLabel || "—"}
+                            </Link>
+                          ) : (
+                            targetLabel || "—"
+                          )}
                         </p>
                         {log.target_user_id ? (
                           <p>
-                            <span className="font-semibold">{t(lang, "admin.history.targetUser")}: </span>
+                            <span className="font-semibold">
+                              {t(lang, "admin.history.targetUser")}:{" "}
+                            </span>
                             {log.target_user_id}
                           </p>
                         ) : null}

@@ -148,8 +148,12 @@ test("sortByDate newest and oldest", () => {
   );
 });
 
-test("HISTORY_ACTION_FILTERS includes pet and care actions", () => {
+test("HISTORY_ACTION_FILTERS includes pet, care, and newer review actions", () => {
   assert.ok(HISTORY_ACTION_FILTERS.includes("pet.create"));
   assert.ok(HISTORY_ACTION_FILTERS.includes("care_record.delete"));
+  assert.ok(HISTORY_ACTION_FILTERS.includes("breeder_submission.approve"));
+  assert.ok(HISTORY_ACTION_FILTERS.includes("farm_review.reject"));
+  assert.ok(HISTORY_ACTION_FILTERS.includes("support_ticket.review"));
+  assert.ok(HISTORY_ACTION_FILTERS.includes("transparency_warning.restore"));
   assert.equal(historyActionI18nKey("pet.create"), "admin.history.action.pet.create");
 });

@@ -30,6 +30,7 @@ test("parseAdminConsoleSearch defaults to home and ignores invalid values", () =
     reportStatus: null,
     userRole: null,
     userStatus: null,
+    historyAction: null,
   });
   assert.deepEqual(parseAdminConsoleSearch({ section: "hack", type: "nope" }), {
     section: "home",
@@ -40,6 +41,7 @@ test("parseAdminConsoleSearch defaults to home and ignores invalid values", () =
     reportStatus: null,
     userRole: null,
     userStatus: null,
+    historyAction: null,
   });
 });
 
@@ -53,6 +55,7 @@ test("parseAdminConsoleSearch treats a request type as the requests section", ()
     reportStatus: null,
     userRole: null,
     userStatus: null,
+    historyAction: null,
   });
 });
 
@@ -72,6 +75,7 @@ test("parseAdminConsoleSearch keeps a valid section over a stray type", () => {
       reportStatus: null,
       userRole: null,
       userStatus: null,
+      historyAction: null,
     },
   );
 });
@@ -89,6 +93,7 @@ test("parseAdminConsoleSearch reads URLSearchParams", () => {
     reportStatus: null,
     userRole: null,
     userStatus: null,
+    historyAction: null,
   });
 });
 
@@ -174,6 +179,7 @@ test("notification admin deep links parse back into the requests section", () =>
     reportStatus: null,
     userRole: null,
     userStatus: null,
+    historyAction: null,
   });
 });
 
@@ -192,6 +198,7 @@ test("listings status query is shareable and ignored on other sections", () => {
       reportStatus: null,
       userRole: null,
       userStatus: null,
+      historyAction: null,
     },
   );
   assert.equal(
@@ -227,6 +234,7 @@ test("breeders status query is shareable and ignored on listings", () => {
       reportStatus: null,
       userRole: null,
       userStatus: null,
+      historyAction: null,
     },
   );
   assert.equal(
@@ -277,6 +285,7 @@ test("reports status query defaults to open and encodes all", () => {
       reportStatus: "open",
       userRole: null,
       userStatus: null,
+      historyAction: null,
     },
   );
   assert.deepEqual(
@@ -293,6 +302,7 @@ test("reports status query defaults to open and encodes all", () => {
       reportStatus: "reviewed",
       userRole: null,
       userStatus: null,
+      historyAction: null,
     },
   );
   assert.equal(
@@ -349,6 +359,7 @@ test("users role and status query is shareable and ignored elsewhere", () => {
       reportStatus: null,
       userRole: "all",
       userStatus: "all",
+      historyAction: null,
     },
   );
   assert.deepEqual(
@@ -366,6 +377,7 @@ test("users role and status query is shareable and ignored elsewhere", () => {
       reportStatus: null,
       userRole: "admin",
       userStatus: "suspended",
+      historyAction: null,
     },
   );
   assert.equal(
@@ -404,5 +416,67 @@ test("users role and status query is shareable and ignored elsewhere", () => {
       }),
     ),
     `${ADMIN_CONSOLE_PATH}?section=users&role=sen&status=active`,
+  );
+});
+
+test("history action query is shareable and ignored elsewhere", () => {
+  assert.deepEqual(parseAdminConsoleSearch({ section: "history" }), {
+    section: "history",
+    requestType: null,
+    focus: null,
+    listingStatus: null,
+    breederStatus: null,
+    reportStatus: null,
+    userRole: null,
+    userStatus: null,
+    historyAction: "all",
+  });
+  assert.deepEqual(
+    parseAdminConsoleSearch({
+      section: "history",
+      action: "account.update",
+    }),
+    {
+      section: "history",
+      requestType: null,
+      focus: null,
+      listingStatus: null,
+      breederStatus: null,
+      reportStatus: null,
+      userRole: null,
+      userStatus: null,
+      historyAction: "account.update",
+    },
+  );
+  assert.equal(
+    adminConsoleHref({ section: "history", historyAction: "all" }),
+    `${ADMIN_CONSOLE_PATH}?section=history`,
+  );
+  assert.equal(
+    adminConsoleHref({
+      section: "history",
+      historyAction: "account.update",
+    }),
+    `${ADMIN_CONSOLE_PATH}?section=history&action=account.update`,
+  );
+  assert.equal(
+    parseAdminConsoleSearch({
+      section: "users",
+      action: "account.update",
+    }).historyAction,
+    null,
+  );
+  assert.equal(
+    parseAdminConsoleSearch({ section: "history", action: "hack" }).historyAction,
+    "all",
+  );
+  assert.equal(
+    adminConsoleHref(
+      parseAdminConsoleSearch({
+        section: "history",
+        action: "breeder_submission.approve",
+      }),
+    ),
+    `${ADMIN_CONSOLE_PATH}?section=history&action=breeder_submission.approve`,
   );
 });

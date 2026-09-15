@@ -3,7 +3,10 @@ import { loginHref } from "../loginHref";
 import type { AdminSection } from "../types";
 import {
   BREEDER_STATUS_FILTERS,
+  HISTORY_ACTION_FILTERS,
+  isHistoryActionFilter,
   type BreederGroup,
+  type HistoryActionFilter,
 } from "./filters";
 import {
   ADMIN_REPORT_STATUS_FILTERS,
@@ -65,6 +68,9 @@ export type { AdminReportStatusFilter };
 export { ADMIN_USER_ROLE_FILTERS, ADMIN_USER_STATUS_FILTERS };
 export type { AdminUserRoleFilter, AdminUserStatusFilter };
 
+export { HISTORY_ACTION_FILTERS };
+export type { HistoryActionFilter };
+
 export type AdminConsoleSearch = {
   section: AdminSection;
   requestType: AdminRequestType | null;
@@ -74,6 +80,7 @@ export type AdminConsoleSearch = {
   reportStatus: AdminReportStatusFilter | null;
   userRole: AdminUserRoleFilter | null;
   userStatus: AdminUserStatusFilter | null;
+  historyAction: HistoryActionFilter | null;
 };
 
 export type AdminConsoleSearchInput =
@@ -84,6 +91,7 @@ export type AdminConsoleSearchInput =
       focus?: string | string[];
       status?: string | string[];
       role?: string | string[];
+      action?: string | string[];
     };
 
 const NAV_META: Record<AdminSection, { labelKey: EnKey; icon: string }> = {
@@ -118,7 +126,7 @@ function firstString(value: string | string[] | null | undefined): string | null
 
 function readParam(
   input: AdminConsoleSearchInput,
-  key: "section" | "type" | "focus" | "status" | "role",
+  key: "section" | "type" | "focus" | "status" | "role" | "action",
 ): string | null {
   if (typeof (input as URLSearchParams).get === "function") {
     return firstString((input as URLSearchParams).get(key));
@@ -129,6 +137,7 @@ function readParam(
     focus?: string | string[];
     status?: string | string[];
     role?: string | string[];
+    action?: string | string[];
   };
   return firstString(rec[key]);
 }
@@ -170,6 +179,7 @@ export function parseAdminConsoleSearch(
   const focusParam = readParam(input, "focus");
   const statusParam = readParam(input, "status");
   const roleParam = readParam(input, "role");
+  const actionParam = readParam(input, "action");
   const requestType = isAdminRequestType(typeParam) ? typeParam : null;
 
   const section: AdminSection = isAdminSection(sectionParam)
@@ -213,6 +223,13 @@ export function parseAdminConsoleSearch(
         ? "all"
         : null;
 
+  const historyAction =
+    section === "history" && isHistoryActionFilter(actionParam) && actionParam !== "all"
+      ? actionParam
+      : section === "history"
+        ? "all"
+        : null;
+
   return {
     section,
     requestType: section === "requests" ? requestType : null,
@@ -222,6 +239,7 @@ export function parseAdminConsoleSearch(
     reportStatus,
     userRole,
     userStatus,
+    historyAction,
   };
 }
 
@@ -235,7 +253,9 @@ export function adminConsoleHref(opts?: {
   reportStatus?: AdminReportStatusFilter | null;
   userRole?: AdminUserRoleFilter | null;
   userStatus?: AdminUserStatusFilter | null;
+  historyAction?: HistoryActionFilter | null;
   role?: AdminUserRoleFilter | null;
+  action?: HistoryActionFilter | null;
   status?:
     | AdminListingStatusFilter
     | AdminBreederStatusFilter
@@ -289,6 +309,14 @@ export function adminConsoleHref(opts?: {
     userStatusCandidate !== "all"
       ? userStatusCandidate
       : null;
+  const historyActionCandidate =
+    opts?.historyAction ?? (section === "history" ? opts?.action : null) ?? null;
+  const historyAction =
+    section === "history" &&
+    isHistoryActionFilter(historyActionCandidate) &&
+    historyActionCandidate !== "all"
+      ? historyActionCandidate
+      : null;
 
   if (
     section === "home" &&
@@ -298,7 +326,8 @@ export function adminConsoleHref(opts?: {
     !breederStatus &&
     !reportStatus &&
     !userRole &&
-    !userStatus
+    !userStatus &&
+    !historyAction
   ) {
     return ADMIN_CONSOLE_PATH;
   }
@@ -312,6 +341,7 @@ export function adminConsoleHref(opts?: {
   if (reportStatus) qs.set("status", reportStatus);
   if (userRole) qs.set("role", userRole);
   if (userStatus) qs.set("status", userStatus);
+  if (historyAction) qs.set("action", historyAction);
   return `${ADMIN_CONSOLE_PATH}?${qs.toString()}`;
 }
 
