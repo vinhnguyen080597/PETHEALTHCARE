@@ -28,6 +28,8 @@ test("parseAdminConsoleSearch defaults to home and ignores invalid values", () =
     listingStatus: null,
     breederStatus: null,
     reportStatus: null,
+    userRole: null,
+    userStatus: null,
   });
   assert.deepEqual(parseAdminConsoleSearch({ section: "hack", type: "nope" }), {
     section: "home",
@@ -36,6 +38,8 @@ test("parseAdminConsoleSearch defaults to home and ignores invalid values", () =
     listingStatus: null,
     breederStatus: null,
     reportStatus: null,
+    userRole: null,
+    userStatus: null,
   });
 });
 
@@ -47,6 +51,8 @@ test("parseAdminConsoleSearch treats a request type as the requests section", ()
     listingStatus: null,
     breederStatus: null,
     reportStatus: null,
+    userRole: null,
+    userStatus: null,
   });
 });
 
@@ -64,6 +70,8 @@ test("parseAdminConsoleSearch keeps a valid section over a stray type", () => {
       listingStatus: "all",
       breederStatus: null,
       reportStatus: null,
+      userRole: null,
+      userStatus: null,
     },
   );
 });
@@ -79,6 +87,8 @@ test("parseAdminConsoleSearch reads URLSearchParams", () => {
     listingStatus: null,
     breederStatus: null,
     reportStatus: null,
+    userRole: null,
+    userStatus: null,
   });
 });
 
@@ -162,6 +172,8 @@ test("notification admin deep links parse back into the requests section", () =>
     listingStatus: null,
     breederStatus: null,
     reportStatus: null,
+    userRole: null,
+    userStatus: null,
   });
 });
 
@@ -178,6 +190,8 @@ test("listings status query is shareable and ignored on other sections", () => {
       listingStatus: "pending_review",
       breederStatus: null,
       reportStatus: null,
+      userRole: null,
+      userStatus: null,
     },
   );
   assert.equal(
@@ -211,6 +225,8 @@ test("breeders status query is shareable and ignored on listings", () => {
       listingStatus: null,
       breederStatus: "waiting",
       reportStatus: null,
+      userRole: null,
+      userStatus: null,
     },
   );
   assert.equal(
@@ -259,6 +275,8 @@ test("reports status query defaults to open and encodes all", () => {
       listingStatus: null,
       breederStatus: null,
       reportStatus: "open",
+      userRole: null,
+      userStatus: null,
     },
   );
   assert.deepEqual(
@@ -273,6 +291,8 @@ test("reports status query defaults to open and encodes all", () => {
       listingStatus: null,
       breederStatus: null,
       reportStatus: "reviewed",
+      userRole: null,
+      userStatus: null,
     },
   );
   assert.equal(
@@ -315,4 +335,74 @@ test("summarizeAdminLoadErrors prefers forbidden over partial zeros", () => {
     "forbidden",
   );
   assert.equal(summarizeAdminLoadErrors(["Admin request failed"]), "partial");
+});
+
+test("users role and status query is shareable and ignored elsewhere", () => {
+  assert.deepEqual(
+    parseAdminConsoleSearch({ section: "users" }),
+    {
+      section: "users",
+      requestType: null,
+      focus: null,
+      listingStatus: null,
+      breederStatus: null,
+      reportStatus: null,
+      userRole: "all",
+      userStatus: "all",
+    },
+  );
+  assert.deepEqual(
+    parseAdminConsoleSearch({
+      section: "users",
+      role: "admin",
+      status: "suspended",
+    }),
+    {
+      section: "users",
+      requestType: null,
+      focus: null,
+      listingStatus: null,
+      breederStatus: null,
+      reportStatus: null,
+      userRole: "admin",
+      userStatus: "suspended",
+    },
+  );
+  assert.equal(
+    adminConsoleHref({ section: "users", userRole: "all", userStatus: "all" }),
+    `${ADMIN_CONSOLE_PATH}?section=users`,
+  );
+  assert.equal(
+    adminConsoleHref({
+      section: "users",
+      userRole: "breeder",
+      userStatus: "suspended",
+    }),
+    `${ADMIN_CONSOLE_PATH}?section=users&role=breeder&status=suspended`,
+  );
+  assert.equal(
+    parseAdminConsoleSearch({ section: "listings", role: "admin", status: "suspended" })
+      .userRole,
+    null,
+  );
+  assert.equal(
+    parseAdminConsoleSearch({ section: "users", role: "hack", status: "open" })
+      .userRole,
+    "all",
+  );
+  assert.equal(
+    parseAdminConsoleSearch({ section: "users", role: "hack", status: "open" })
+      .userStatus,
+    "all",
+  );
+  assert.equal(
+    adminConsoleHref(
+      parseAdminConsoleSearch({
+        section: "users",
+        role: "sen",
+        status: "active",
+      }),
+    ),
+    `${ADMIN_CONSOLE_PATH}?section=users&role=sen&status=active`,
+  );
 });

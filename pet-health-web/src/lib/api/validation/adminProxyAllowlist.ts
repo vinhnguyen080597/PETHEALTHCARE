@@ -201,7 +201,7 @@ export const ADMIN_PROXY_BODY_SCHEMAS: Record<string, z.ZodType> = {
     ),
   "POST accounts": z
     .object({
-      email: z.string().trim().email().max(320),
+      email: z.string().trim().min(2).max(120),
       password: z.string().min(8).max(128),
       displayName: z.string().trim().min(1).max(120),
       primaryRole: z.enum(["sen", "breeder", "admin"]),

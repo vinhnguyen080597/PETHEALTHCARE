@@ -9,6 +9,14 @@ import {
   ADMIN_REPORT_STATUS_FILTERS,
   type AdminReportStatusFilter,
 } from "./reportDisplay";
+import {
+  ADMIN_USER_ROLE_FILTERS,
+  ADMIN_USER_STATUS_FILTERS,
+  isAdminUserRoleFilter,
+  isAdminUserStatusFilter,
+  type AdminUserRoleFilter,
+  type AdminUserStatusFilter,
+} from "./users";
 
 export const ADMIN_CONSOLE_PATH = "/app/admin";
 
@@ -54,6 +62,9 @@ export type AdminBreederStatusFilter = BreederGroup;
 export { ADMIN_REPORT_STATUS_FILTERS };
 export type { AdminReportStatusFilter };
 
+export { ADMIN_USER_ROLE_FILTERS, ADMIN_USER_STATUS_FILTERS };
+export type { AdminUserRoleFilter, AdminUserStatusFilter };
+
 export type AdminConsoleSearch = {
   section: AdminSection;
   requestType: AdminRequestType | null;
@@ -61,6 +72,8 @@ export type AdminConsoleSearch = {
   listingStatus: AdminListingStatusFilter | null;
   breederStatus: AdminBreederStatusFilter | null;
   reportStatus: AdminReportStatusFilter | null;
+  userRole: AdminUserRoleFilter | null;
+  userStatus: AdminUserStatusFilter | null;
 };
 
 export type AdminConsoleSearchInput =
@@ -70,6 +83,7 @@ export type AdminConsoleSearchInput =
       type?: string | string[];
       focus?: string | string[];
       status?: string | string[];
+      role?: string | string[];
     };
 
 const NAV_META: Record<AdminSection, { labelKey: EnKey; icon: string }> = {
@@ -104,7 +118,7 @@ function firstString(value: string | string[] | null | undefined): string | null
 
 function readParam(
   input: AdminConsoleSearchInput,
-  key: "section" | "type" | "focus" | "status",
+  key: "section" | "type" | "focus" | "status" | "role",
 ): string | null {
   if (typeof (input as URLSearchParams).get === "function") {
     return firstString((input as URLSearchParams).get(key));
@@ -114,6 +128,7 @@ function readParam(
     type?: string | string[];
     focus?: string | string[];
     status?: string | string[];
+    role?: string | string[];
   };
   return firstString(rec[key]);
 }
@@ -154,6 +169,7 @@ export function parseAdminConsoleSearch(
   const typeParam = readParam(input, "type");
   const focusParam = readParam(input, "focus");
   const statusParam = readParam(input, "status");
+  const roleParam = readParam(input, "role");
   const requestType = isAdminRequestType(typeParam) ? typeParam : null;
 
   const section: AdminSection = isAdminSection(sectionParam)
@@ -183,6 +199,20 @@ export function parseAdminConsoleSearch(
         ? "open"
         : null;
 
+  const userRole =
+    section === "users" && isAdminUserRoleFilter(roleParam) && roleParam !== "all"
+      ? roleParam
+      : section === "users"
+        ? "all"
+        : null;
+
+  const userStatus =
+    section === "users" && isAdminUserStatusFilter(statusParam) && statusParam !== "all"
+      ? statusParam
+      : section === "users"
+        ? "all"
+        : null;
+
   return {
     section,
     requestType: section === "requests" ? requestType : null,
@@ -190,6 +220,8 @@ export function parseAdminConsoleSearch(
     listingStatus,
     breederStatus,
     reportStatus,
+    userRole,
+    userStatus,
   };
 }
 
@@ -201,10 +233,14 @@ export function adminConsoleHref(opts?: {
   listingStatus?: AdminListingStatusFilter | null;
   breederStatus?: AdminBreederStatusFilter | null;
   reportStatus?: AdminReportStatusFilter | null;
+  userRole?: AdminUserRoleFilter | null;
+  userStatus?: AdminUserStatusFilter | null;
+  role?: AdminUserRoleFilter | null;
   status?:
     | AdminListingStatusFilter
     | AdminBreederStatusFilter
     | AdminReportStatusFilter
+    | AdminUserStatusFilter
     | null;
 }): string {
   const section = opts?.section ?? "home";
@@ -237,6 +273,22 @@ export function adminConsoleHref(opts?: {
     reportStatusCandidate !== "open"
       ? reportStatusCandidate
       : null;
+  const userRoleCandidate =
+    opts?.userRole ?? (section === "users" ? opts?.role : null) ?? null;
+  const userRole =
+    section === "users" &&
+    isAdminUserRoleFilter(userRoleCandidate) &&
+    userRoleCandidate !== "all"
+      ? userRoleCandidate
+      : null;
+  const userStatusCandidate =
+    opts?.userStatus ?? (section === "users" ? opts?.status : null) ?? null;
+  const userStatus =
+    section === "users" &&
+    isAdminUserStatusFilter(userStatusCandidate) &&
+    userStatusCandidate !== "all"
+      ? userStatusCandidate
+      : null;
 
   if (
     section === "home" &&
@@ -244,7 +296,9 @@ export function adminConsoleHref(opts?: {
     !focus &&
     !listingStatus &&
     !breederStatus &&
-    !reportStatus
+    !reportStatus &&
+    !userRole &&
+    !userStatus
   ) {
     return ADMIN_CONSOLE_PATH;
   }
@@ -256,6 +310,8 @@ export function adminConsoleHref(opts?: {
   if (listingStatus) qs.set("status", listingStatus);
   if (breederStatus) qs.set("status", breederStatus);
   if (reportStatus) qs.set("status", reportStatus);
+  if (userRole) qs.set("role", userRole);
+  if (userStatus) qs.set("status", userStatus);
   return `${ADMIN_CONSOLE_PATH}?${qs.toString()}`;
 }
 

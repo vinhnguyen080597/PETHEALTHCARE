@@ -65,4 +65,22 @@ test("adminProxyBodySchema exists for mutating console actions", () => {
   assert.ok(adminProxyBodySchema("POST accounts"));
   assert.ok(adminProxyBodySchema("PUT feature-flags"));
   assert.equal(adminProxyBodySchema("GET posts"), null);
+  const createAccount = adminProxyBodySchema("POST accounts");
+  assert.ok(
+    createAccount?.safeParse({
+      email: "farm01",
+      password: "12345678",
+      displayName: "Farm One",
+      primaryRole: "sen",
+    }).success,
+  );
+  assert.equal(
+    createAccount?.safeParse({
+      email: "farm01",
+      password: "1234567",
+      displayName: "Farm One",
+      primaryRole: "sen",
+    }).success,
+    false,
+  );
 });

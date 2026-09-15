@@ -13,6 +13,8 @@ type Search = {
   section?: string | string[];
   type?: string | string[];
   focus?: string | string[];
+  status?: string | string[];
+  role?: string | string[];
 };
 
 export default async function AdminPage({
@@ -52,7 +54,10 @@ export default async function AdminPage({
 
   return (
     <Suspense fallback={<AdminSectionSkeleton />}>
-      <AdminConsole lang={lang} />
+      <AdminConsole
+        lang={lang}
+        sessionUserId={session.account?.user_id || session.account?.id || ""}
+      />
     </Suspense>
   );
 }

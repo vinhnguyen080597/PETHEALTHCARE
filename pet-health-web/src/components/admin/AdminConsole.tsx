@@ -10,12 +10,16 @@ import {
   ADMIN_LISTING_STATUS_FILTERS,
   ADMIN_NAV_ITEMS,
   ADMIN_REPORT_STATUS_FILTERS,
+  ADMIN_USER_ROLE_FILTERS,
+  ADMIN_USER_STATUS_FILTERS,
   adminConsoleHref,
   parseAdminConsoleSearch,
   summarizeAdminLoadErrors,
   type AdminBreederStatusFilter,
   type AdminListingStatusFilter,
   type AdminReportStatusFilter,
+  type AdminUserRoleFilter,
+  type AdminUserStatusFilter,
 } from "@/lib/admin/consoleNav";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
 import { DialogActions } from "@/components/ui/DialogActions";
@@ -85,6 +89,21 @@ import {
   AdminReviewDetailsToggle,
   AdminSupportTicketReview,
 } from "@/components/admin/AdminReviewDetailPanel";
+import {
+  ADMIN_USER_ROLES,
+  accountMatchesUserFilters,
+  accountRoleChangeBlockKey,
+  accountRoleChangeConfirmKey,
+  accountRoleLabelKey,
+  accountRowId,
+  accountStatusChangeConfirmKey,
+  accountStatusLabelKey,
+  canSubmitCreateAccount,
+  isLastActiveAdmin,
+  isSelfAdminAccount,
+  normalizeAccountRole,
+  normalizeAccountStatus,
+} from "@/lib/admin/users";
 
 type FeatureFlags = {
   breed_recognition: boolean;
@@ -213,7 +232,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   marketplace_escrow: false,
 };
 
-const ROLES = ["sen", "breeder", "admin"] as const;
+const ROLES = ADMIN_USER_ROLES;
 
 function StatusChip({ status, label }: { status: string; label?: string }) {
   const map: Record<string, string> = {
@@ -223,12 +242,16 @@ function StatusChip({ status, label }: { status: string; label?: string }) {
     approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
     published: "bg-emerald-50 text-emerald-700 border-emerald-200",
     verified: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
     rejected: "bg-red-50 text-red-600 border-red-200",
     reviewed: "bg-slate-100 text-slate-600 border-slate-200",
     dismissed: "bg-slate-100 text-slate-500 border-slate-200",
     archived: "bg-slate-100 text-slate-500 border-slate-200",
     suspended: "bg-red-50 text-red-700 border-red-200",
     unverified: "bg-slate-100 text-slate-500 border-slate-200",
+    sen: "bg-slate-100 text-slate-600 border-slate-200",
+    breeder: "bg-amber-50 text-amber-800 border-amber-200",
+    admin: "bg-blue-50 text-blue-700 border-blue-200",
   };
   return (
     <span
@@ -376,7 +399,13 @@ function HealthEvidence({ lang, post }: { lang: Lang; post: PostRow }) {
   );
 }
 
-export function AdminConsole({ lang }: { lang: Lang }) {
+export function AdminConsole({
+  lang,
+  sessionUserId = "",
+}: {
+  lang: Lang;
+  sessionUserId?: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const parsedSearch = parseAdminConsoleSearch(searchParams);
@@ -388,6 +417,9 @@ export function AdminConsole({ lang }: { lang: Lang }) {
     parsedSearch.breederStatus ?? "all";
   const reportStatusFilter: AdminReportStatusFilter =
     parsedSearch.reportStatus ?? "open";
+  const userRoleFilter: AdminUserRoleFilter = parsedSearch.userRole ?? "all";
+  const userStatusFilter: AdminUserStatusFilter =
+    parsedSearch.userStatus ?? "all";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [breeders, setBreeders] = useState<BreederRow[]>([]);
@@ -788,13 +820,14 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   }, [reports, reportStatusFilter]);
 
   const filteredAccounts = useMemo(() => {
-    const q = userSearch.trim().toLowerCase();
-    if (!q) return accounts;
     return accounts.filter((account) =>
-      [account.display_name, account.email, account.login_identifier, account.primary_role]
-        .some((v) => String(v ?? "").toLowerCase().includes(q)),
+      accountMatchesUserFilters(account, {
+        search: userSearch,
+        role: userRoleFilter,
+        status: userStatusFilter,
+      }),
     );
-  }, [accounts, userSearch]);
+  }, [accounts, userSearch, userRoleFilter, userStatusFilter]);
 
   async function runAction(key: string, action: () => Promise<void>, successKey: EnKey) {
     if (busyKey) return;
@@ -1087,17 +1120,52 @@ export function AdminConsole({ lang }: { lang: Lang }) {
   const updateAccountRole = (userId: string, primaryRole: string) =>
     runAction(
       `account-${userId}-${primaryRole}`,
+      async () => {
+        await adminFetch(`/accounts/${userId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ primaryRole }),
+        });
+        if (userRoleFilter !== "all" && userRoleFilter !== primaryRole) {
+          router.replace(
+            adminConsoleHref({
+              section: "users",
+              userRole: null,
+              userStatus: userStatusFilter === "all" ? null : userStatusFilter,
+            }),
+          );
+        }
+      },
+      "admin.toast.updated",
+    );
+
+  const updateAccountStatus = (userId: string, accountStatus: "active" | "suspended") =>
+    runAction(
+      `account-${userId}-${accountStatus}`,
       () =>
         adminFetch(`/accounts/${userId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ primaryRole }),
+          body: JSON.stringify({ accountStatus }),
         }),
       "admin.toast.updated",
     );
 
-  const createAccount = () =>
-    runAction(
+  const createAccount = () => {
+    if (!canSubmitCreateAccount({
+      email: newEmail,
+      password: newPassword,
+      displayName: newDisplayName,
+    })) {
+      return;
+    }
+    if (
+      newRole === "admin" &&
+      !window.confirm(t(lang, "admin.users.confirmCreateAdmin"))
+    ) {
+      return;
+    }
+    void runAction(
       "create-account",
       async () => {
         await adminFetch("/accounts", {
@@ -1117,6 +1185,7 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       },
       "admin.toast.created",
     );
+  };
 
   const toggleFlag = (key: FeatureKey, enabled: boolean) => {
     if (
@@ -2236,9 +2305,64 @@ export function AdminConsole({ lang }: { lang: Lang }) {
       case "users":
         return (
           <div>
-            <h1 className="text-xl font-bold text-[#2B1E19] mb-4">
-              {t(lang, "admin.users.title")}
-            </h1>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h1 className="text-xl font-bold text-[#2B1E19]">
+                {t(lang, "admin.users.title")}
+                <span className="ml-2 text-sm font-medium text-[#8B7355]">
+                  {filteredAccounts.length}
+                </span>
+              </h1>
+              <div className="flex flex-wrap items-end gap-3">
+                <FilterSelect
+                  label={t(lang, "admin.users.role")}
+                  value={userRoleFilter}
+                  onChange={(v) => {
+                    const next = v as AdminUserRoleFilter;
+                    router.replace(
+                      adminConsoleHref({
+                        section: "users",
+                        userRole: next === "all" ? null : next,
+                        userStatus:
+                          userStatusFilter === "all" ? null : userStatusFilter,
+                      }),
+                    );
+                  }}
+                  options={ADMIN_USER_ROLE_FILTERS.map((value) => ({
+                    value,
+                    label:
+                      value === "all"
+                        ? t(lang, "admin.filter.all")
+                        : t(lang, accountRoleLabelKey(value)),
+                  }))}
+                />
+                <FilterSelect
+                  label={t(lang, "admin.filter.status")}
+                  value={userStatusFilter}
+                  onChange={(v) => {
+                    const next = v as AdminUserStatusFilter;
+                    router.replace(
+                      adminConsoleHref({
+                        section: "users",
+                        userRole: userRoleFilter === "all" ? null : userRoleFilter,
+                        userStatus: next === "all" ? null : next,
+                      }),
+                    );
+                  }}
+                  options={ADMIN_USER_STATUS_FILTERS.map((value) => ({
+                    value,
+                    label:
+                      value === "all"
+                        ? t(lang, "admin.filter.all")
+                        : t(lang, accountStatusLabelKey(value)),
+                  }))}
+                />
+                <ActionButton
+                  label={t(lang, "admin.refresh")}
+                  variant="ghost"
+                  onClick={() => void load()}
+                />
+              </div>
+            </div>
             <div className="mb-4 rounded-2xl border border-[#E8DFD0] bg-white p-4 space-y-3">
               <p className="text-sm font-bold text-[#2B1E19]">
                 {t(lang, "admin.users.create")}
@@ -2256,13 +2380,18 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                   placeholder={t(lang, "admin.users.displayName")}
                   className="rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
                 />
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder={t(lang, "admin.users.password")}
-                  className="rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
-                />
+                <div>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={t(lang, "admin.users.password")}
+                    className="w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm outline-none focus:border-[#D97706]"
+                  />
+                  <p className="mt-1 text-[11px] text-[#8B7355]">
+                    {t(lang, "admin.users.passwordHint")}
+                  </p>
+                </div>
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value as (typeof ROLES)[number])}
@@ -2270,15 +2399,22 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                 >
                   {ROLES.map((role) => (
                     <option key={role} value={role}>
-                      {role}
+                      {t(lang, accountRoleLabelKey(role))}
                     </option>
                   ))}
                 </select>
               </div>
               <ActionButton
                 label={t(lang, "admin.users.create")}
-                disabled={busyKey !== null || !newEmail.trim() || !newPassword}
-                onClick={() => void createAccount()}
+                disabled={
+                  busyKey !== null ||
+                  !canSubmitCreateAccount({
+                    email: newEmail,
+                    password: newPassword,
+                    displayName: newDisplayName,
+                  })
+                }
+                onClick={() => createAccount()}
               />
             </div>
             <input
@@ -2289,7 +2425,12 @@ export function AdminConsole({ lang }: { lang: Lang }) {
             />
             <div className="bg-white rounded-2xl border border-[#E8DFD0] overflow-hidden">
               {filteredAccounts.map((u, i) => {
-                const userId = u.user_id || u.id;
+                const userId = accountRowId(u);
+                const role = normalizeAccountRole(u.primary_role);
+                const status = normalizeAccountStatus(u.account_status);
+                const isSelf = isSelfAdminAccount(sessionUserId, u);
+                const lastAdmin = isLastActiveAdmin(accounts, userId);
+                const statusLocked = !userId || isSelf || (lastAdmin && status === "active");
                 return (
                   <div
                     key={userId || i}
@@ -2302,26 +2443,102 @@ export function AdminConsole({ lang }: { lang: Lang }) {
                       <p className="text-xs text-[#8B7355]">
                         {u.email || u.login_identifier}
                       </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <StatusChip
+                          status={role}
+                          label={t(lang, accountRoleLabelKey(role))}
+                        />
+                        <StatusChip
+                          status={status}
+                          label={t(lang, accountStatusLabelKey(status))}
+                        />
+                        {u.isForTesting ? (
+                          <StatusChip
+                            status="reviewed"
+                            label={t(lang, "admin.users.testAccount")}
+                          />
+                        ) : null}
+                        {isSelf ? (
+                          <StatusChip
+                            status="verified"
+                            label={t(lang, "admin.users.self")}
+                          />
+                        ) : null}
+                      </div>
                     </div>
                     {userId ? (
-                      <label className="flex items-center gap-2 text-xs text-[#8B7355]">
-                        {t(lang, "admin.users.changeRole")}
-                        <select
-                          value={u.primary_role || "sen"}
-                          disabled={busyKey !== null}
-                          onChange={(e) => void updateAccountRole(userId, e.target.value)}
-                          className="appearance-none rounded-lg border border-[#E8DFD0] pl-2 pr-8 py-1 text-xs text-[#2B1E19]"
-                        >
-                          {ROLES.map((role) => (
-                            <option key={role} value={role}>
-                              {role}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="flex items-center gap-2 text-xs text-[#8B7355]">
+                          {t(lang, "admin.users.changeRole")}
+                          <select
+                            value={role}
+                            disabled={busyKey !== null}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              e.target.value = role;
+                              if (next === role) return;
+                              const blockKey = accountRoleChangeBlockKey({
+                                sessionUserId,
+                                account: u,
+                                accounts,
+                                nextRole: next,
+                              });
+                              if (blockKey) {
+                                window.alert(t(lang, blockKey));
+                                return;
+                              }
+                              const confirmKey = accountRoleChangeConfirmKey(
+                                role,
+                                next,
+                              );
+                              if (
+                                confirmKey &&
+                                !window.confirm(t(lang, confirmKey))
+                              ) {
+                                return;
+                              }
+                              void updateAccountRole(userId, next);
+                            }}
+                            className="appearance-none rounded-lg border border-[#E8DFD0] pl-2 pr-8 py-1 text-xs text-[#2B1E19]"
+                          >
+                            {ROLES.map((option) => (
+                              <option key={option} value={option}>
+                                {t(lang, accountRoleLabelKey(option))}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <ActionButton
+                          label={t(
+                            lang,
+                            status === "suspended"
+                              ? "admin.users.restore"
+                              : "admin.users.suspend",
+                          )}
+                          variant={status === "suspended" ? "success" : "ghost"}
+                          disabled={busyKey !== null || statusLocked}
+                          onClick={() => {
+                            const nextStatus =
+                              status === "suspended" ? "active" : "suspended";
+                            if (lastAdmin && nextStatus === "suspended") {
+                              window.alert(t(lang, "admin.users.lastAdmin"));
+                              return;
+                            }
+                            const confirmKey =
+                              accountStatusChangeConfirmKey(nextStatus);
+                            if (
+                              confirmKey &&
+                              !window.confirm(t(lang, confirmKey))
+                            ) {
+                              return;
+                            }
+                            void updateAccountStatus(userId, nextStatus);
+                          }}
+                        />
+                      </div>
                     ) : (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                        {u.primary_role || "sen"}
+                        {t(lang, accountRoleLabelKey(role))}
                       </span>
                     )}
                   </div>
