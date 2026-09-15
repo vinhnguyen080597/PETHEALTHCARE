@@ -158,6 +158,7 @@ import type {
   UserRole,
 } from '../types';
 import type { AppScreen } from '../screens/types';
+import type { AdminConsoleSection } from '../constants/adminConsoleNav';
 import { farmDetailTabFromNotificationMetadata, type FarmDetailTab } from '../utils/farmProfileDisplay';
 import type { WarrantyPolicy } from '../utils/warrantyPolicy';
 import { resolveBreederProfileReturnScreen } from '../utils/breederProfileNavigation';
@@ -507,6 +508,7 @@ export function usePetHealthApp() {
   const [adminFeedPosts, setAdminFeedPosts] = useState<PetFeedPost[]>([]);
   const [adminFeedReports, setAdminFeedReports] = useState<PetFeedReport[]>([]);
   const [adminFarmReviews, setAdminFarmReviews] = useState<AdminFarmReview[]>([]);
+  const [adminConsoleSection, setAdminConsoleSection] = useState<AdminConsoleSection>('home');
   /** After saving pet form opened from profile, return to pet profile instead of home. */
   const [petFormReturnToProfile, setPetFormReturnToProfile] = useState(false);
   /** Return target after leaving create-pet-feed-post (Account vs registration form). */
@@ -2688,6 +2690,7 @@ export function usePetHealthApp() {
   }
 
   function closeCreateAdminPost() {
+    setAdminConsoleSection('news');
     setScreen('admin-features');
   }
 
@@ -2699,6 +2702,7 @@ export function usePetHealthApp() {
       const postsRes = await listMyAnnouncementPosts(token);
       setMyPetFeedPosts(postsRes.data);
       await loadPetFeedFirstPage(token);
+      setAdminConsoleSection('news');
       setScreen('admin-features');
     } finally {
       setLoading(false);
@@ -3603,20 +3607,42 @@ export function usePetHealthApp() {
     setLoading(true);
     try {
       await ensureAdminReviewLoaded(token);
-      setScreen('admin-hub');
+      setAdminConsoleSection('users');
+      setScreen('admin-features');
     } finally {
       setLoading(false);
     }
   }
 
   function closeAdminHub() {
+    setAdminConsoleSection('users');
     setScreen('admin-features');
   }
 
   function openAdminFeatures() {
     if (!hasAccountRole('admin')) return;
-    if (token) void loadFeatureFlags(token);
+    setAdminConsoleSection('home');
     setScreen('admin-features');
+    if (token) {
+      void loadFeatureFlags(token);
+      void ensureAdminReviewLoaded(token);
+      void reloadMyAnnouncements().catch(() => undefined);
+    }
+  }
+
+  async function reloadMyAnnouncements() {
+    if (!token || !hasAccountRole('admin')) return;
+    const postsRes = await listMyAnnouncementPosts(token);
+    setMyPetFeedPosts(postsRes.data);
+  }
+
+  async function refreshAdminConsole() {
+    if (!token) return;
+    await Promise.all([
+      ensureAdminReviewLoaded(token, { force: true }),
+      loadFeatureFlags(token),
+      reloadMyAnnouncements().catch(() => undefined),
+    ]);
   }
 
   async function updateAdminFeatureFlag(key: keyof AppFeatureFlags, enabled: boolean) {
@@ -3690,7 +3716,8 @@ export function usePetHealthApp() {
       return;
     }
     if (!token) return;
-    setScreen('admin-review');
+    setAdminConsoleSection('requests');
+    setScreen('admin-features');
     try {
       await ensureAdminReviewLoaded(token);
     } catch {
@@ -3699,6 +3726,7 @@ export function usePetHealthApp() {
   }
 
   function closeAdminReview() {
+    setAdminConsoleSection('requests');
     setScreen(accountProfile?.primary_role === 'admin' ? 'admin-features' : 'account');
   }
 
@@ -5261,6 +5289,8 @@ export function usePetHealthApp() {
     adminFeedReports,
     adminFarmReviews,
     adminAccounts,
+    adminConsoleSection,
+    setAdminConsoleSection,
     adminBreederProfiles,
     openAdminHub,
     closeAdminHub,
@@ -5289,6 +5319,8 @@ export function usePetHealthApp() {
     closeAdminReview,
     loadAdminReview,
     refreshAdminReview: () => ensureAdminReviewLoaded(token, { force: true }),
+    refreshAdminConsole,
+    reloadMyAnnouncements,
     createAdminManagedAccount,
     updateAdminManagedAccount,
     updateAdminBreederStatus,

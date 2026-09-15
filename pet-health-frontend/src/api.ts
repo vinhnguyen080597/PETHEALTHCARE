@@ -15,6 +15,9 @@ import type {
   AdminActionLog,
   AdminCreateAccountPayload,
   AdminFarmReview,
+  AdminBreederSubmission,
+  AdminTransparencyWarning,
+  AdminSupportTicket,
   AdminUpdateAccountPayload,
   AnalyzeResponse,
   AuthPayload,
@@ -1520,6 +1523,86 @@ export async function updateAdminFarmReviewStatus(
         ...(options?.rejectionReason ? { rejectionReason: options.rejectionReason } : {}),
         ...(options?.adminNote ? { adminNote: options.adminNote } : {}),
       }),
+    },
+  );
+}
+
+export async function listAdminBreederSubmissions(token: string, status: string = '') {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return requestJson<{ data: AdminBreederSubmission[] }>(`/admin/breeder-submissions${qs}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export async function updateAdminBreederSubmissionStatus(
+  token: string,
+  submissionId: string,
+  status: 'approved' | 'rejected',
+  options?: { rejectionReason?: string; adminNote?: string },
+) {
+  return requestJson<{ data: AdminBreederSubmission }>(
+    `/admin/breeder-submissions/${encodeURIComponent(submissionId)}/status`,
+    {
+      method: 'PUT',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status,
+        ...(options?.rejectionReason ? { rejectionReason: options.rejectionReason } : {}),
+        ...(options?.adminNote ? { adminNote: options.adminNote } : {}),
+      }),
+    },
+  );
+}
+
+export async function listAdminTransparencyWarnings(token: string, status: string = '') {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return requestJson<{ data: AdminTransparencyWarning[] }>(`/admin/transparency-warnings${qs}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export async function resolveAdminTransparencyWarning(
+  token: string,
+  warningId: string,
+  resolution: 'restore' | 'uphold',
+) {
+  return requestJson<{ data: AdminTransparencyWarning }>(
+    `/admin/transparency-warnings/${encodeURIComponent(warningId)}/resolve`,
+    {
+      method: 'PUT',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ resolution }),
+    },
+  );
+}
+
+export async function listAdminSupportTickets(token: string, status: string = '') {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return requestJson<{ data: AdminSupportTicket[] }>(`/admin/support-tickets${qs}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export async function updateAdminSupportTicketStatus(
+  token: string,
+  ticketId: string,
+  status: 'reviewed' | 'dismissed',
+) {
+  return requestJson<{ data: AdminSupportTicket }>(
+    `/admin/support-tickets/${encodeURIComponent(ticketId)}/status`,
+    {
+      method: 'PUT',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
     },
   );
 }

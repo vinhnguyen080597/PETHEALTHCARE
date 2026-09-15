@@ -30,15 +30,13 @@ import { AccountScreen } from './src/screens/AccountScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { BRAND } from './src/theme/brand';
+import { AdminConsoleScreen } from './src/components/AdminConsoleScreen';
 import { MessagesInboxScreen } from './src/screens/MessagesInboxScreen';
 import { NotificationsInboxScreen } from './src/screens/NotificationsInboxScreen';
 import { PetFeedPostDetailScreen } from './src/screens/PetFeedPostDetailScreen';
 import { PetFeedScreen } from './src/screens/PetFeedScreen';
 import {
   AddPetScreen,
-  AdminFeaturesScreen,
-  AdminHubScreen,
-  AdminReviewScreen,
   AdminUserDetailScreen,
   AnalysisProgressScreen,
   BreedRecognitionProgressScreen,
@@ -227,7 +225,7 @@ function AppContent() {
   const healthCreditCost = app.aiEconomicsConfig?.features.health_analysis?.creditCost ?? 1;
   const breedCreditCost = app.aiEconomicsConfig?.features.breed_recognition?.creditCost ?? 1;
   const rewardedAdCredits = app.aiEconomicsConfig?.rewardedAd?.creditsPerAd ?? 1;
-  const renderAccountDashboard = (options?: { footerContent?: React.ReactNode }) => (
+  const renderAccountDashboard = () => (
     <AccountScreen
       account={app.accountProfile}
       dashboardLoading={app.accountDashboardLoading || !app.accountProfile}
@@ -275,7 +273,6 @@ function AppContent() {
       onLogout={app.logout}
       onConfirmDeleteAccount={app.confirmDeleteAccount}
       showHeaderMenu={!isAdmin}
-      footerContent={options?.footerContent}
     />
   );
 
@@ -576,20 +573,35 @@ function AppContent() {
 
             {app.screen === 'account' && !isAdmin ? renderAccountDashboard() : null}
 
-            {app.screen === 'admin-features' && isAdmin
-              ? renderAccountDashboard({
-                  footerContent: (
-                    <AdminFeaturesScreen
-                      embedded
-                      flags={app.appFeatureFlags}
-                      loading={app.featureFlagsLoading}
-                      savingKey={app.featureFlagSavingKey}
-                      onToggle={app.updateAdminFeatureFlag}
-                      onLogout={app.logout}
-                    />
-                  ),
-                })
-              : null}
+            {app.screen === 'admin-features' && isAdmin ? (
+              <AdminConsoleScreen
+                section={app.adminConsoleSection}
+                onSectionChange={app.setAdminConsoleSection}
+                account={app.accountProfile}
+                accounts={app.adminAccounts}
+                breederProfiles={app.adminBreederProfiles}
+                posts={app.adminFeedPosts}
+                reports={app.adminFeedReports}
+                farmReviews={app.adminFarmReviews}
+                myAnnouncements={app.myPetFeedPosts}
+                featureFlags={app.appFeatureFlags}
+                featureFlagsLoading={app.featureFlagsLoading}
+                featureFlagSavingKey={app.featureFlagSavingKey}
+                token={app.token}
+                refreshing={app.loading}
+                onRefresh={app.refreshAdminConsole}
+                onOpenCreateNews={app.openCreateAdminPost}
+                onOpenUser={app.openAdminUserDetail}
+                onCreateAccount={app.createAdminManagedAccount}
+                onUpdateBreederStatus={app.updateAdminBreederStatus}
+                onUpdatePostStatus={app.updateAdminPostStatus}
+                onUpdateReportStatus={app.updateAdminReportStatus}
+                onUpdateFarmReviewStatus={app.updateAdminFarmReviewModeration}
+                onToggleFeature={app.updateAdminFeatureFlag}
+                onLogout={app.logout}
+                onReloadAnnouncements={app.reloadMyAnnouncements}
+              />
+            ) : null}
 
             {app.screen === 'update-account' && !isAdmin ? (
               <UpdateAccountScreen
@@ -697,26 +709,6 @@ function AppContent() {
               />
             )}
 
-            {app.screen === 'admin-hub' && (
-              <AdminHubScreen
-                token={app.token}
-                accounts={app.adminAccounts}
-                breederProfiles={app.adminBreederProfiles}
-                posts={app.adminFeedPosts}
-                reports={app.adminFeedReports}
-                farmReviews={app.adminFarmReviews}
-                loading={app.loading}
-                onBack={app.closeAdminHub}
-                onRefresh={app.loadAdminReview}
-                onCreateAccount={app.createAdminManagedAccount}
-                onOpenUser={app.openAdminUserDetail}
-                onUpdateBreederStatus={app.updateAdminBreederStatus}
-                onUpdatePostStatus={app.updateAdminPostStatus}
-                onUpdateReportStatus={app.updateAdminReportStatus}
-                onUpdateFarmReviewStatus={app.updateAdminFarmReviewModeration}
-              />
-            )}
-
             {app.screen === 'admin-user-detail' && app.adminSelectedAccount ? (
               <AdminUserDetailScreen
                 account={app.adminSelectedAccount}
@@ -729,22 +721,6 @@ function AppContent() {
                 onActAsUser={() => app.enterManagedUser(app.adminSelectedAccount!)}
               />
             ) : null}
-
-            {app.screen === 'admin-review' && (
-              <AdminReviewScreen
-                accounts={app.adminAccounts}
-                breederProfiles={app.adminBreederProfiles}
-                posts={app.adminFeedPosts}
-                reports={app.adminFeedReports}
-                onBack={app.closeAdminReview}
-                onLoad={app.loadAdminReview}
-                onCreateAccount={app.createAdminManagedAccount}
-                onUpdateAccount={app.updateAdminManagedAccount}
-                onUpdateBreederStatus={app.updateAdminBreederStatus}
-                onUpdateStatus={app.updateAdminPostStatus}
-                onUpdateReportStatus={app.updateAdminReportStatus}
-              />
-            )}
 
             {app.screen === 'pet-profile' && app.selectedPet ? (
               <PetProfileScreen

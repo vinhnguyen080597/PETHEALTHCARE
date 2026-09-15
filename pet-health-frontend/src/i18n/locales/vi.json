@@ -1530,6 +1530,58 @@
   "adminConsole": {
     "title": "Bảng điều khiển Admin",
     "menu": "Menu Admin",
+    "empty": "Chưa có mục nào.",
+    "loadMore": "Xem thêm",
+    "home": {
+      "title": "Tổng quan",
+      "metric": {
+        "requests": "Hàng chờ",
+        "listings": "Tin chờ duyệt",
+        "breeders": "Breeder chờ duyệt",
+        "reports": "Báo cáo mở",
+        "users": "Users",
+        "verified": "Breeder đã duyệt"
+      }
+    },
+    "requests": {
+      "types": {
+        "all": "Tất cả",
+        "breeder": "Breeder",
+        "post": "Tin đăng",
+        "report": "Báo cáo",
+        "farm_review": "Đánh giá trại",
+        "detail": "Chi tiết hồ sơ",
+        "appeal": "Kháng cáo",
+        "feedback": "Góp ý",
+        "scam": "Scam"
+      }
+    },
+    "listings": {
+      "status": {
+        "all": "Tất cả",
+        "pending_review": "Chờ duyệt",
+        "published": "Đã đăng",
+        "deposit_hold": "Giữ cọc",
+        "sold": "Đã bán",
+        "archived": "Đã ẩn"
+      }
+    },
+    "reports": {
+      "status": {
+        "open": "Đang mở",
+        "reviewed": "Đã xử lý",
+        "dismissed": "Đã bỏ qua",
+        "all": "Tất cả"
+      }
+    },
+    "appeals": {
+      "restore": "Khôi phục",
+      "uphold": "Giữ cảnh báo"
+    },
+    "news": {
+      "archive": "Lưu trữ",
+      "publish": "Đăng lại"
+    },
     "nav": {
       "home": "Trang chủ",
       "requests": "Hàng chờ",

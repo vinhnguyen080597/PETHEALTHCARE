@@ -1530,6 +1530,58 @@
   "adminConsole": {
     "title": "Admin Console",
     "menu": "Admin menu",
+    "empty": "Nothing here yet.",
+    "loadMore": "Load more",
+    "home": {
+      "title": "Overview",
+      "metric": {
+        "requests": "Requests",
+        "listings": "Pending listings",
+        "breeders": "Pending breeders",
+        "reports": "Open reports",
+        "users": "Users",
+        "verified": "Verified breeders"
+      }
+    },
+    "requests": {
+      "types": {
+        "all": "All",
+        "breeder": "Breeder",
+        "post": "Listing",
+        "report": "Report",
+        "farm_review": "Farm review",
+        "detail": "Profile detail",
+        "appeal": "Appeal",
+        "feedback": "Feedback",
+        "scam": "Scam"
+      }
+    },
+    "listings": {
+      "status": {
+        "all": "All",
+        "pending_review": "Pending",
+        "published": "Published",
+        "deposit_hold": "Deposit hold",
+        "sold": "Sold",
+        "archived": "Archived"
+      }
+    },
+    "reports": {
+      "status": {
+        "open": "Open",
+        "reviewed": "Reviewed",
+        "dismissed": "Dismissed",
+        "all": "All"
+      }
+    },
+    "appeals": {
+      "restore": "Restore",
+      "uphold": "Uphold"
+    },
+    "news": {
+      "archive": "Archive",
+      "publish": "Publish"
+    },
     "nav": {
       "home": "Home",
       "requests": "Requests",

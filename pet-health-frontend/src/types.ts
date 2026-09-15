@@ -305,6 +305,41 @@ export type AdminFarmReview = {
   breeder_profile?: { display_name?: string | null } | null;
 };
 
+export type AdminBreederSubmission = {
+  id: string;
+  breeder_profile_id?: string;
+  user_id?: string;
+  submission_type?: string;
+  status?: string;
+  created_at?: string;
+  payload?: Record<string, unknown>;
+  rejection_reason?: string | null;
+  admin_note?: string | null;
+  breeder_display_name?: string;
+};
+
+export type AdminTransparencyWarning = {
+  id: string;
+  breeder_profile_id?: string;
+  user_id?: string;
+  status?: string;
+  created_at?: string;
+  score?: number;
+  appeal_note?: string | null;
+  breeder_display_name?: string;
+};
+
+export type AdminSupportTicket = {
+  id: string;
+  kind?: 'feedback' | 'scam' | string;
+  status?: string;
+  created_at?: string;
+  subject?: string;
+  body?: string;
+  reporter_email?: string;
+  reporter_user_id?: string | null;
+};
+
 export type PetFeedNotification = {
   id: string;
   recipient_user_id: string;
