@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang } from "@/lib/types";
@@ -23,7 +23,9 @@ import {
   type HistoryActionFilter,
 } from "@/lib/admin/consoleNav";
 import { AdminSectionSkeleton } from "@/components/ui/Skeleton";
+import { AdminHomeDashboard } from "@/components/admin/AdminHomeDashboard";
 import { DialogActions } from "@/components/ui/DialogActions";
+import type { ProductAnalyticsDashboard } from "@/lib/admin/homeAnalytics";
 import {
   farmReviewStarLabel,
   farmReviewUpdateApproveBlocked,
@@ -162,6 +164,7 @@ type AccountRow = {
   primary_role?: string;
   account_status?: string;
   isForTesting?: boolean;
+  created_at?: string;
 };
 
 type ActionLogRow = {
@@ -603,7 +606,6 @@ export function AdminConsole({
   const pendingBreeders = breeders.filter((b) => b.verification_status === "pending_review");
   const openReports = reports.filter((r) => r.status === "open");
   const openSupportTickets = supportTickets.filter((r) => r.status === "open");
-  const verifiedBreeders = breeders.filter((b) => b.verification_status === "verified");
   const pendingDetailSubmissions = detailSubmissions.filter((s) => s.status === "pending");
   const pendingFarmReviews = farmReviews.filter(
     (review) => review.status === "pending",
@@ -617,6 +619,11 @@ export function AdminConsole({
     pendingDetailSubmissions.length +
     pendingFarmReviews.length +
     pendingAppeals.length;
+
+  const fetchProductAnalyticsDashboard = useCallback(async (days: number) => {
+    const res = await adminFetch(`/product-analytics-dashboard?days=${encodeURIComponent(String(days))}`);
+    return (res?.data ?? null) as ProductAnalyticsDashboard | null;
+  }, []);
 
   const requestItems = useMemo<RequestItem[]>(() => {
     const breederItems: RequestItem[] = breeders
@@ -1498,92 +1505,20 @@ export function AdminConsole({
     switch (section) {
       case "home":
         return (
-          <div>
-            <div className="flex items-center justify-between gap-3 mb-6">
-              <h1 className="text-xl font-bold text-[#2B1E19]">
-                {t(lang, "admin.home.title")}
-              </h1>
-              <ActionButton
-                label={t(lang, "admin.refresh")}
-                variant="ghost"
-                onClick={() => void load()}
-              />
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                {
-                  key: "requests",
-                  label: t(lang, "admin.home.metric.requests"),
-                  value: pendingRequestCount,
-                  href: adminConsoleHref({ section: "requests" }),
-                  onNavigate: () => setRequestStatus("waiting"),
-                },
-                {
-                  key: "listings",
-                  label: t(lang, "admin.home.metric.listings"),
-                  value: pendingPosts.length,
-                  href: adminConsoleHref({
-                    section: "listings",
-                    listingStatus: "pending_review",
-                  }),
-                  onNavigate: undefined,
-                },
-                {
-                  key: "breeders",
-                  label: t(lang, "admin.home.metric.breeders"),
-                  value: pendingBreeders.length,
-                  href: adminConsoleHref({
-                    section: "breeders",
-                    breederStatus: "waiting",
-                  }),
-                  onNavigate: undefined,
-                },
-                {
-                  key: "reports",
-                  label: t(lang, "admin.home.metric.reports"),
-                  value: openReports.length,
-                  href: adminConsoleHref({
-                    section: "reports",
-                    reportStatus: "open",
-                  }),
-                  onNavigate: undefined,
-                },
-                {
-                  key: "users",
-                  label: t(lang, "admin.home.metric.users"),
-                  value: accounts.length,
-                  href: adminConsoleHref({ section: "users" }),
-                  onNavigate: undefined,
-                },
-                {
-                  key: "verified",
-                  label: t(lang, "admin.home.metric.verified"),
-                  value: verifiedBreeders.length,
-                  href: adminConsoleHref({
-                    section: "breeders",
-                    breederStatus: "active",
-                  }),
-                  onNavigate: undefined,
-                },
-              ].map((m) => (
-                <Link
-                  key={m.key}
-                  href={m.href}
-                  onClick={m.onNavigate}
-                  className="bg-white rounded-2xl border border-[#E8DFD0] p-5 text-left hover:border-[#D97706]/40 hover:shadow-sm transition-all"
-                >
-                  <p
-                    className={`text-3xl font-bold mb-1 ${
-                      m.value > 0 ? "text-[#D97706]" : "text-[#C4B5A5]"
-                    }`}
-                  >
-                    {m.value}
-                  </p>
-                  <p className="text-xs text-[#8B7355] font-medium">{m.label}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <AdminHomeDashboard
+            lang={lang}
+            accounts={accounts}
+            posts={posts}
+            breeders={breeders}
+            ops={{
+              pendingListings: pendingPosts.length,
+              openReports: openReports.length,
+              pendingBreeders: pendingBreeders.length,
+              pendingRequests: pendingRequestCount,
+            }}
+            onRefresh={() => void load()}
+            fetchDashboard={fetchProductAnalyticsDashboard}
+          />
         );
 
       case "requests":

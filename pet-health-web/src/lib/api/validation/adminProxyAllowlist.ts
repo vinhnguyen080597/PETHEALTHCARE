@@ -19,6 +19,7 @@ function enc(value: string): string {
 /** Explicit BFF → backend routes used by Admin Console (deny-by-default).
  * Intentionally not proxied: deal force-complete/cancel (backend missing),
  * ai-ops-summary / product-analytics-summary / pets CRUD (ops or mobile-only).
+ * product-analytics-dashboard is JWT-admin safe and used by Admin Home.
  */
 export const ADMIN_PROXY_RULES: readonly AdminProxyRule[] = [
   { methods: ["GET"], template: "posts", backend: () => "/admin/pet-feed/posts" },
@@ -91,6 +92,11 @@ export const ADMIN_PROXY_RULES: readonly AdminProxyRule[] = [
     backend: ({ ticketId }) => `/admin/support-tickets/${enc(ticketId)}/status`,
   },
   { methods: ["GET"], template: "action-logs", backend: () => "/admin/action-logs" },
+  {
+    methods: ["GET"],
+    template: "product-analytics-dashboard",
+    backend: () => "/admin/product-analytics-dashboard",
+  },
   {
     methods: ["POST"],
     template: "announcements",

@@ -20,6 +20,7 @@ test("resolveAdminProxyRoute allows Admin Console routes", () => {
     ["PUT", ["breeders", "u1", "status"], "/admin/breeder-profiles/u1/status"],
     ["GET", ["support-tickets"], "/admin/support-tickets"],
     ["GET", ["action-logs"], "/admin/action-logs"],
+    ["GET", ["product-analytics-dashboard"], "/admin/product-analytics-dashboard"],
     ["POST", ["announcements"], "/pet-feed/announcements"],
     ["GET", ["my-announcements"], "/pet-feed/my-announcements"],
   ];

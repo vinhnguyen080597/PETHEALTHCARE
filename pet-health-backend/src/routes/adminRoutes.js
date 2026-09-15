@@ -46,7 +46,7 @@ import { listAdminActionLogs, recordAdminAction } from '../repositories/adminAct
 import { createPetForUser, getPetByIdForUser, listPetsByUser, updatePetForUser } from '../repositories/petRepository.js';
 import { sendTestAlertEmail } from '../services/errorNotifierService.js';
 import { getAiOpsSummary } from '../services/aiEconomicsService.js';
-import { getProductAnalyticsSummary } from '../services/productAnalyticsService.js';
+import { getProductAnalyticsDashboard, getProductAnalyticsSummary } from '../services/productAnalyticsService.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail } from '../services/authIdentifierService.js';
 import { parseAdminScorePenaltyInput } from '../utils/adminScorePenalty.js';
 import { resolveAdminCreatedAuthUser, validateAdminAccountPassword } from '../services/adminAuthUserService.js';
@@ -191,6 +191,16 @@ router.get('/product-analytics-summary', async (req, res, next) => {
       });
     }
     const data = await getProductAnalyticsSummary();
+    return res.json({ data });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/product-analytics-dashboard', requireAdminOrSecret, async (req, res, next) => {
+  try {
+    const days = req.query?.days ?? 7;
+    const data = await getProductAnalyticsDashboard({ days });
     return res.json({ data });
   } catch (err) {
     return next(err);
