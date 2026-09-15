@@ -160,7 +160,7 @@ export function notificationBody(lang: Lang, item: PetFeedNotification): string 
 export function notificationCtaLabel(
   lang: Lang,
   item: PetFeedNotification,
-): string {
+): string | null {
   return notificationInboxCta(item, {
     verified: t(lang, "notifications.verifiedCta"),
     rejected: t(lang, "notifications.rejectedCta"),
