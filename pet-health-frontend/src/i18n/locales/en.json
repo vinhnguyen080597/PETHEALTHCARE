@@ -1532,8 +1532,10 @@
     "menu": "Admin menu",
     "empty": "Nothing here yet.",
     "loadMore": "Load more",
+    "filters": "Filters",
     "home": {
       "title": "Overview",
+      "signedIn": "Signed in as",
       "metric": {
         "requests": "Requests",
         "listings": "Pending listings",
@@ -1564,6 +1566,15 @@
         "deposit_hold": "Deposit hold",
         "sold": "Sold",
         "archived": "Archived"
+      }
+    },
+    "breeders": {
+      "status": {
+        "all": "All",
+        "pending_review": "Pending",
+        "verified": "Verified",
+        "rejected": "Rejected",
+        "suspended": "Suspended"
       }
     },
     "reports": {

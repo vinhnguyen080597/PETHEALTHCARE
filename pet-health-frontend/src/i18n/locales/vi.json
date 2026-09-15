@@ -1532,8 +1532,10 @@
     "menu": "Menu Admin",
     "empty": "Chưa có mục nào.",
     "loadMore": "Xem thêm",
+    "filters": "Bộ lọc",
     "home": {
       "title": "Tổng quan",
+      "signedIn": "Đang đăng nhập",
       "metric": {
         "requests": "Hàng chờ",
         "listings": "Tin chờ duyệt",
@@ -1564,6 +1566,15 @@
         "deposit_hold": "Giữ cọc",
         "sold": "Đã bán",
         "archived": "Đã ẩn"
+      }
+    },
+    "breeders": {
+      "status": {
+        "all": "Tất cả",
+        "pending_review": "Chờ duyệt",
+        "verified": "Đã duyệt",
+        "rejected": "Từ chối",
+        "suspended": "Tạm khóa"
       }
     },
     "reports": {

@@ -6,8 +6,6 @@ import { RELEASE_MONETIZATION_ENABLED } from '../constants/releaseMonetization';
 import { countEnabledPetFeedTabs, PET_FEED_TAB_FLAG_KEYS, type PetFeedTabFlagKey } from '../constants/petFeedTabFlags';
 import { BRAND } from '../theme/brand';
 
-const PRIMARY = '#2563eb';
-
 type FeatureToggleKey = keyof AppFeatureFlags;
 
 const FEATURE_ITEMS: Array<{
@@ -88,15 +86,15 @@ export function AdminFeaturesScreen({
       <View
         key={item.key}
         testID={`admin-feature-toggle-${item.key}`}
-        className="rounded-2xl border border-gray-200 bg-white p-4"
+        className="rounded-2xl border border-[#E8DFD0] bg-white p-4"
       >
         <View className="flex-row items-start gap-3">
-          <View className="mt-0.5 h-11 w-11 items-center justify-center rounded-2xl bg-blue-50">
-            <Ionicons name={item.icon} size={22} color={PRIMARY} />
+          <View className="mt-0.5 h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF1DE]">
+            <Ionicons name={item.icon} size={22} color="#D97706" />
           </View>
           <View className="min-w-0 flex-1">
-            <Text className="text-base font-bold text-slate-900">{t(`adminFeatures.items.${item.key}.title`)}</Text>
-            <Text className="mt-1 text-sm leading-5 text-slate-600">{t(`adminFeatures.items.${item.key}.description`)}</Text>
+            <Text className="text-base font-bold text-[#2B1E19]">{t(`adminFeatures.items.${item.key}.title`)}</Text>
+            <Text className="mt-1 text-sm leading-5 text-[#5C4A3A]">{t(`adminFeatures.items.${item.key}.description`)}</Text>
             <Text className={`mt-2 text-xs font-bold uppercase ${enabled ? 'text-emerald-600' : 'text-amber-600'}`}>
               {enabled ? t('adminFeatures.statusOn') : t('adminFeatures.statusOff')}
             </Text>
@@ -106,14 +104,14 @@ export function AdminFeaturesScreen({
             value={enabled}
             disabled={saving || loading || isLastPetFeedTab}
             onValueChange={(value) => void handleToggle(item.key, value)}
-            trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
-            thumbColor={enabled ? PRIMARY : '#f8fafc'}
+            trackColor={{ false: '#E8DFD0', true: '#FCD34D' }}
+            thumbColor={enabled ? '#D97706' : '#f8fafc'}
           />
         </View>
         {saving ? (
           <View className="mt-3 flex-row items-center gap-2">
-            <ActivityIndicator size="small" color={PRIMARY} />
-            <Text className="text-xs text-slate-500">{t('adminFeatures.saving')}</Text>
+            <ActivityIndicator size="small" color={BRAND.loadingSpinner} />
+            <Text className="text-xs text-[#8B7355]">{t('adminFeatures.saving')}</Text>
           </View>
         ) : null}
       </View>
@@ -122,8 +120,14 @@ export function AdminFeaturesScreen({
 
   const body = (
     <>
-      <Text className="text-xl font-bold text-slate-900">{t('adminFeatures.title')}</Text>
-      <Text className="mt-2 text-sm leading-5 text-slate-600">{t('adminFeatures.subtitle')}</Text>
+      {!embedded ? (
+        <>
+          <Text className="text-xl font-bold text-[#2B1E19]">{t('adminFeatures.title')}</Text>
+          <Text className="mt-2 text-sm leading-5 text-[#5C4A3A]">{t('adminFeatures.subtitle')}</Text>
+        </>
+      ) : (
+        <Text className="mb-4 text-sm leading-5 text-[#8B7355]">{t('adminFeatures.subtitle')}</Text>
+      )}
 
       {loading && !flags ? (
         <View className="mt-10 items-center">
@@ -131,13 +135,13 @@ export function AdminFeaturesScreen({
         </View>
       ) : (
         <>
-        <View className="mt-6 gap-3">
+        <View className={`${embedded ? 'mt-0' : 'mt-6'} gap-3`}>
           {FEATURE_ITEMS.map((item) => renderToggleCard(item))}
         </View>
 
         <View className="mt-8">
-          <Text className="text-base font-bold text-slate-900">{t('adminFeatures.petFeedTabs.sectionTitle')}</Text>
-          <Text className="mt-1 text-sm leading-5 text-slate-600">{t('adminFeatures.petFeedTabs.sectionSubtitle')}</Text>
+          <Text className="text-base font-bold text-[#2B1E19]">{t('adminFeatures.petFeedTabs.sectionTitle')}</Text>
+          <Text className="mt-1 text-sm leading-5 text-[#8B7355]">{t('adminFeatures.petFeedTabs.sectionSubtitle')}</Text>
           <View className="mt-3 gap-3">
             {PET_FEED_TAB_ITEMS.map((item) => renderToggleCard(item))}
           </View>
@@ -145,9 +149,9 @@ export function AdminFeaturesScreen({
         </>
       )}
 
-      <View className="mt-8 rounded-2xl border border-gray-200 bg-white p-4">
-        <Text className="text-sm font-bold text-slate-900">{t('adminFeatures.noteTitle')}</Text>
-        <Text className="mt-2 text-sm leading-5 text-slate-600">{t('adminFeatures.noteBody')}</Text>
+      <View className="mt-8 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+        <Text className="text-sm font-bold text-[#2B1E19]">{t('adminFeatures.noteTitle')}</Text>
+        <Text className="mt-2 text-sm leading-5 text-[#5C4A3A]">{t('adminFeatures.noteBody')}</Text>
       </View>
 
       {!embedded ? (
