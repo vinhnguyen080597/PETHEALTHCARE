@@ -1527,6 +1527,21 @@
       }
     }
   },
+  "adminConsole": {
+    "title": "Admin Console",
+    "menu": "Admin menu",
+    "nav": {
+      "home": "Home",
+      "requests": "Requests",
+      "listings": "Listings",
+      "breeders": "Breeders",
+      "reports": "Reports",
+      "history": "History",
+      "users": "Users",
+      "features": "Feature flags",
+      "news": "News"
+    }
+  },
   "adminFeatures": {
     "title": "Feature controls",
     "subtitle": "Show or hide features in the app for users. Admins still see them for testing.",

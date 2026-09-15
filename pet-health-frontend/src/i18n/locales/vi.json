@@ -1527,6 +1527,21 @@
       }
     }
   },
+  "adminConsole": {
+    "title": "Bảng điều khiển Admin",
+    "menu": "Menu Admin",
+    "nav": {
+      "home": "Trang chủ",
+      "requests": "Hàng chờ",
+      "listings": "Tin đăng",
+      "breeders": "Breeders",
+      "reports": "Báo cáo",
+      "history": "Lịch sử",
+      "users": "Users",
+      "features": "Feature flags",
+      "news": "Tin tức"
+    }
+  },
   "adminFeatures": {
     "title": "Quản lý tính năng",
     "subtitle": "Bật hoặc tắt hiển thị tính năng trên app cho người dùng. Admin vẫn thấy để kiểm tra.",

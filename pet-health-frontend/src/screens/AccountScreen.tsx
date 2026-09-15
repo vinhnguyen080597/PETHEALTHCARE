@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useMemo, useState, type ReactNode } from 'react';
-import { Alert, InteractionManager, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { Alert, Dimensions, InteractionManager, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PET_MARKET_AVATAR } from '../assets/brandAssets';
@@ -30,6 +30,8 @@ import {
 } from '../utils/accountListingStatus';
 import { canOpenOwnFarmProfile } from '../utils/ownFarmProfileNav';
 import { AccountScreenSkeleton } from '../components/AccountScreenSkeleton';
+import { AdminConsoleNavDrawer } from '../components/AdminConsoleNavDrawer';
+import type { AdminConsoleSection } from '../constants/adminConsoleNav';
 
 const PRIMARY = BRAND.primary;
 
@@ -256,6 +258,10 @@ export function AccountScreen({
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [adminConsoleNavOpen, setAdminConsoleNavOpen] = useState(false);
+  const [adminConsoleSection, setAdminConsoleSection] = useState<AdminConsoleSection>('home');
+  const [adminConsoleMenuAnchor, setAdminConsoleMenuAnchor] = useState<{ top: number; right: number } | null>(null);
+  const adminConsoleMenuButtonRef = useRef<View>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [adminRefreshing, setAdminRefreshing] = useState(false);
@@ -486,7 +492,28 @@ export function AccountScreen({
             </Text>
           ) : null}
         </View>
-        {showHeaderMenu ? (
+        {isAdmin ? (
+          <View ref={adminConsoleMenuButtonRef} collapsable={false}>
+            <Pressable
+              testID="admin-console-menu-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('adminConsole.menu')}
+              className="h-10 w-10 items-center justify-center rounded-full border border-[#E2E8F0] bg-white active:bg-orange-50"
+              onPress={() => {
+                const windowWidth = Dimensions.get('window').width;
+                adminConsoleMenuButtonRef.current?.measureInWindow((x, y, width, height) => {
+                  setAdminConsoleMenuAnchor({
+                    top: y + height + 8,
+                    right: Math.max(12, windowWidth - (x + width)),
+                  });
+                  setAdminConsoleNavOpen(true);
+                });
+              }}
+            >
+              <Ionicons name="menu-outline" size={22} color="#334155" />
+            </Pressable>
+          </View>
+        ) : showHeaderMenu ? (
           <Pressable
             testID="account-menu-button"
             accessibilityRole="button"
@@ -1437,6 +1464,17 @@ export function AccountScreen({
         </View>
       </View>
     </ScrollView>
+
+    {isAdmin ? (
+      <AdminConsoleNavDrawer
+        visible={adminConsoleNavOpen}
+        activeSection={adminConsoleSection}
+        anchorTop={adminConsoleMenuAnchor?.top}
+        anchorRight={adminConsoleMenuAnchor?.right}
+        onClose={() => setAdminConsoleNavOpen(false)}
+        onSelect={setAdminConsoleSection}
+      />
+    ) : null}
 
     {menuOpen ? (
     <Modal visible transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
