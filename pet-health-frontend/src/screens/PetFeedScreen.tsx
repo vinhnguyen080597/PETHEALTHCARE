@@ -25,6 +25,8 @@ import { BreederHallOfFame } from '../components/breeder/BreederHallOfFame';
 import { ModalScreenShell } from '../components/ModalScreenShell';
 import { PetFeedPostCard } from '../components/PetFeedPostCard';
 import { PetFeedListingRail } from '../components/PetFeedListingRail';
+import { PetFeedAllListingsHeader } from '../components/PetFeedAllListingsHeader';
+import { PetFeedAllBreedersHeader } from '../components/PetFeedAllBreedersHeader';
 import { PetTypeFilterRow } from '../components/PetTypeFilterRow';
 import type { AnnouncementCategory, BreederProfile, PetFeedComment, PetFeedPost } from '../types';
 import { ALL_PROVINCES_FILTER, VIETNAM_PROVINCES, type ProvinceFilter } from '../constants/vietnamProvinces';
@@ -58,9 +60,13 @@ import {
   type PetFeedScreenTab,
 } from '../constants/petFeedTabFlags';
 import {
+  DEFAULT_PET_FEED_BREEDER_SORT_PRESET,
+  DEFAULT_PET_FEED_LIST_SORT_PRESET,
   DEFAULT_PET_FEED_SORT_DIRECTION,
   DEFAULT_PET_FEED_SORT_FIELD,
   PET_FEED_SORT_CHIP_FIELDS,
+  type PetFeedBreederSortPreset,
+  type PetFeedListSortPreset,
   type PetFeedSortChipField,
   type PetFeedSortField,
 } from '../constants/petFeedSort';
@@ -280,6 +286,10 @@ export function PetFeedScreen({
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [sortField, setSortField] = useState<SortField>(DEFAULT_PET_FEED_SORT_FIELD);
   const [sortDirection, setSortDirection] = useState<SortDirection>(DEFAULT_PET_FEED_SORT_DIRECTION);
+  const [listSortPreset, setListSortPreset] = useState<PetFeedListSortPreset>(DEFAULT_PET_FEED_LIST_SORT_PRESET);
+  const [breederSortPreset, setBreederSortPreset] = useState<PetFeedBreederSortPreset>(
+    DEFAULT_PET_FEED_BREEDER_SORT_PRESET,
+  );
   const [filterVisible, setFilterVisible] = useState(false);
   const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
@@ -324,10 +334,23 @@ export function PetFeedScreen({
   function toggleSort(field: PetFeedSortChipField) {
     if (sortField === field) {
       setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+      setListSortPreset(field === 'price' ? 'best_price' : 'newest');
       return;
     }
     setSortField(field);
     setSortDirection('asc');
+    setListSortPreset(field === 'price' ? 'best_price' : 'newest');
+  }
+
+  function applyListSortPreset(preset: PetFeedListSortPreset) {
+    setListSortPreset(preset);
+    if (preset === 'best_price') {
+      setSortField('price');
+      setSortDirection('asc');
+      return;
+    }
+    setSortField('date');
+    setSortDirection('desc');
   }
 
   const sortItems = useMemo<ChipItem<PetFeedSortChipField>[]>(() => (
@@ -343,15 +366,28 @@ export function PetFeedScreen({
       ? provinceMatchedPosts
       : provinceMatchedPosts.filter((post) => postMatchesGender(post, genderFilter));
     return [...byGender].sort((a, b) => {
+      if (listSortPreset === 'nearest') {
+        const aNear = provinceFilter !== ALL_PROVINCES_FILTER && postMatchesProvince(a, provinceFilter) ? 1 : 0;
+        const bNear = provinceFilter !== ALL_PROVINCES_FILTER && postMatchesProvince(b, provinceFilter) ? 1 : 0;
+        if (aNear !== bNear) return bNear - aNear;
+        const aHasLoc = (a.location || a.breeder_profile?.location || '').trim() ? 1 : 0;
+        const bHasLoc = (b.location || b.breeder_profile?.location || '').trim() ? 1 : 0;
+        if (aHasLoc !== bHasLoc) return bHasLoc - aHasLoc;
+        return createdTime(b) - createdTime(a);
+      }
+      if (listSortPreset === 'best_price' || sortField === 'price') {
+        return compareMaybeNumber(
+          parsePetFeedPriceToVnd(a.price_note),
+          parsePetFeedPriceToVnd(b.price_note),
+          listSortPreset === 'best_price' ? 'asc' : sortDirection,
+        );
+      }
       if (sortField === 'age') {
         return compareMaybeNumber(a.age_months, b.age_months, sortDirection);
       }
-      if (sortField === 'price') {
-        return compareMaybeNumber(parsePetFeedPriceToVnd(a.price_note), parsePetFeedPriceToVnd(b.price_note), sortDirection);
-      }
       return sortDirection === 'asc' ? createdTime(a) - createdTime(b) : createdTime(b) - createdTime(a);
     });
-  }, [genderFilter, provinceMatchedPosts, sortDirection, sortField]);
+  }, [genderFilter, listSortPreset, provinceFilter, provinceMatchedPosts, sortDirection, sortField]);
 
   const categoryFilteredAnnouncements = useMemo(() => {
     if (announcementFilter === 'all') return searchMatchedAnnouncements;
@@ -433,22 +469,52 @@ export function PetFeedScreen({
     const byGender = genderFilter === 'all'
       ? byProvince
       : byProvince.filter((item) => item.posts.some((post) => postMatchesGender(post, genderFilter)));
-    if (!normalizedQuery) return byGender;
-    return byGender.filter((item) => {
-      const profile = item.profile;
-      const searchable = normalizeSearchText([
-        profile.display_name,
-        profile.location,
-        profile.bio,
-        profile.care_environment,
-        ...profile.primary_species,
-        ...profile.main_breeds,
-        metadataString(profile.metadata, 'breederType'),
-        metadataString(profile.metadata, 'scaleRange'),
-      ].filter(Boolean).join(' '));
-      return searchable.includes(normalizedQuery);
+    const matched = !normalizedQuery
+      ? byGender
+      : byGender.filter((item) => {
+        const profile = item.profile;
+        const searchable = normalizeSearchText([
+          profile.display_name,
+          profile.location,
+          profile.bio,
+          profile.care_environment,
+          ...profile.primary_species,
+          ...profile.main_breeds,
+          metadataString(profile.metadata, 'breederType'),
+          metadataString(profile.metadata, 'scaleRange'),
+        ].filter(Boolean).join(' '));
+        return searchable.includes(normalizedQuery);
+      });
+
+    return [...matched].sort((a, b) => {
+      if (breederSortPreset === 'nearest') {
+        const aNear = provinceFilter !== ALL_PROVINCES_FILTER
+          && breederMatchesProvince(a.profile, a.posts.map((post) => post.location), provinceFilter)
+          ? 1
+          : 0;
+        const bNear = provinceFilter !== ALL_PROVINCES_FILTER
+          && breederMatchesProvince(b.profile, b.posts.map((post) => post.location), provinceFilter)
+          ? 1
+          : 0;
+        if (aNear !== bNear) return bNear - aNear;
+        const aHasLoc = (a.profile.location || '').trim() ? 1 : 0;
+        const bHasLoc = (b.profile.location || '').trim() ? 1 : 0;
+        if (aHasLoc !== bHasLoc) return bHasLoc - aHasLoc;
+        return b.latestPostAt - a.latestPostAt;
+      }
+      if (breederSortPreset === 'newest') {
+        return b.latestPostAt - a.latestPostAt;
+      }
+      const aMetrics = getBreederDirectoryCardMetrics(a.profile, a.posts, countFarmPetsRehomed(a.posts));
+      const bMetrics = getBreederDirectoryCardMetrics(b.profile, b.posts, countFarmPetsRehomed(b.posts));
+      const aRating = aMetrics.rating ?? 0;
+      const bRating = bMetrics.rating ?? 0;
+      if (bRating !== aRating) return bRating - aRating;
+      if (bMetrics.reviewCount !== aMetrics.reviewCount) return bMetrics.reviewCount - aMetrics.reviewCount;
+      if (bMetrics.trustScore !== aMetrics.trustScore) return bMetrics.trustScore - aMetrics.trustScore;
+      return b.latestPostAt - a.latestPostAt;
     });
-  }, [genderFilter, normalizedQuery, petTypeFilter, provinceFilter, topBreeders]);
+  }, [breederSortPreset, genderFilter, normalizedQuery, petTypeFilter, provinceFilter, topBreeders]);
   const hallOfFame = useMemo(() => {
     const candidates = topBreeders.map((item) => {
       const metrics = getBreederDirectoryCardMetrics(
@@ -530,6 +596,7 @@ export function PetFeedScreen({
       setGenderFilter('all');
       setSortField(DEFAULT_PET_FEED_SORT_FIELD);
       setSortDirection(DEFAULT_PET_FEED_SORT_DIRECTION);
+      setListSortPreset(DEFAULT_PET_FEED_LIST_SORT_PRESET);
       return;
     }
 
@@ -565,6 +632,8 @@ export function PetFeedScreen({
     setGenderFilter('all');
     setSortField(DEFAULT_PET_FEED_SORT_FIELD);
     setSortDirection(DEFAULT_PET_FEED_SORT_DIRECTION);
+    setListSortPreset(DEFAULT_PET_FEED_LIST_SORT_PRESET);
+    setBreederSortPreset(DEFAULT_PET_FEED_BREEDER_SORT_PRESET);
   }, []);
 
   const promptFarmReview = useCallback(async (profile: BreederProfile) => {
@@ -981,23 +1050,41 @@ export function PetFeedScreen({
       ItemSeparatorComponent={ListSeparator}
       ListEmptyComponent={renderEmptyState}
       ListHeaderComponent={
-        showListSkeleton ? null : activeTab === 'breeders' && hallOfFame.length > 0 ? (
-          <BreederHallOfFame
-            entries={hallOfFame}
-            currentUserId={currentUserId}
-            onOpenFarm={onOpenBreederDetail}
-          />
-        ) : activeTab === 'feed' && topInterestedPosts.length > 0 ? (
-          <PetFeedListingRail
-            title={`🔥 ${t('petFeed.section.top.title')}`}
-            subtitle={t('petFeed.section.top.subtitle')}
-            posts={topInterestedPosts}
-            currentUserId={currentUserId}
-            onToggleFavorite={onToggleFavorite}
-            onMessageBreeder={onMessageBreeder}
-            onEditPost={onEditPost}
-            onOpenPost={onOpenPostDetail}
-          />
+        showListSkeleton ? null : activeTab === 'breeders' ? (
+          <View>
+            {hallOfFame.length > 0 ? (
+              <BreederHallOfFame
+                entries={hallOfFame}
+                currentUserId={currentUserId}
+                onOpenFarm={onOpenBreederDetail}
+              />
+            ) : null}
+            <PetFeedAllBreedersHeader
+              sortPreset={breederSortPreset}
+              onSortPresetChange={setBreederSortPreset}
+              divided={hallOfFame.length > 0}
+            />
+          </View>
+        ) : activeTab === 'feed' ? (
+          <View>
+            {topInterestedPosts.length > 0 ? (
+              <PetFeedListingRail
+                title={`🔥 ${t('petFeed.section.top.title')}`}
+                subtitle={t('petFeed.section.top.subtitle')}
+                posts={topInterestedPosts}
+                currentUserId={currentUserId}
+                onToggleFavorite={onToggleFavorite}
+                onMessageBreeder={onMessageBreeder}
+                onEditPost={onEditPost}
+                onOpenPost={onOpenPostDetail}
+              />
+            ) : null}
+            <PetFeedAllListingsHeader
+              sortPreset={listSortPreset}
+              onSortPresetChange={applyListSortPreset}
+              divided={topInterestedPosts.length > 0}
+            />
+          </View>
         ) : null
       }
       ListFooterComponent={renderFooter}

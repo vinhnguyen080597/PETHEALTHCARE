@@ -279,6 +279,24 @@
         "title": "Top bé được quan tâm",
         "subtitle": "Các bé có lượt lưu và tương tác nổi bật hôm nay."
       },
+      "all": {
+        "title": "Tất cả thú cưng",
+        "sortLabel": "Sắp xếp danh sách",
+        "sort": {
+          "newest": "Mới nhất",
+          "best_price": "Giá tốt nhất",
+          "nearest": "Gần bạn nhất"
+        }
+      },
+      "allBreeders": {
+        "title": "Tất cả trại giống",
+        "sortLabel": "Sắp xếp danh sách trại",
+        "sort": {
+          "newest": "Mới nhất",
+          "top_rated": "Đánh giá cao",
+          "nearest": "Gần bạn nhất"
+        }
+      },
       "results": "kết quả"
     },
     "card": {

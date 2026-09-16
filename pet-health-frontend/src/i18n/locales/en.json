@@ -279,6 +279,24 @@
         "title": "Most loved today",
         "subtitle": "Pets with the most saves and buzz right now."
       },
+      "all": {
+        "title": "All pets",
+        "sortLabel": "Sort listings",
+        "sort": {
+          "newest": "Newest",
+          "best_price": "Best price",
+          "nearest": "Nearest to you"
+        }
+      },
+      "allBreeders": {
+        "title": "All breeders",
+        "sortLabel": "Sort breeders",
+        "sort": {
+          "newest": "Newest",
+          "top_rated": "Top rated",
+          "nearest": "Nearest to you"
+        }
+      },
       "results": "results"
     },
     "card": {
