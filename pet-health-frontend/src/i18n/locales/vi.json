@@ -1535,6 +1535,7 @@
     "filters": "Bộ lọc",
     "home": {
       "title": "Tổng quan",
+      "subtitle": "Phân tích sản phẩm và việc cần xử lý ngay",
       "signedIn": "Đang đăng nhập",
       "metric": {
         "requests": "Hàng chờ",
@@ -1543,6 +1544,47 @@
         "reports": "Báo cáo mở",
         "users": "Users",
         "verified": "Breeder đã duyệt"
+      },
+      "range": {
+        "label": "Khung thời gian",
+        "today": "Hôm nay",
+        "7d": "7 ngày qua",
+        "30d": "30 ngày qua",
+        "custom": "Tùy chỉnh",
+        "from": "Từ (YYYY-MM-DD)",
+        "to": "Đến (YYYY-MM-DD)"
+      },
+      "kpi": {
+        "activeUsers": "User hoạt động",
+        "activeUsersNote": "User hoạt động = số user có sự kiện trong kỳ. Traffic = tổng sự kiện sản phẩm.",
+        "newUsers": "User mới (theo kỳ)",
+        "newUsersToday": "User mới hôm nay",
+        "newBreeders": "Trại giống mới",
+        "newPosts": "Tin đăng mới",
+        "conversion": "Tỷ lệ liên hệ",
+        "traffic": "Traffic (theo kỳ)",
+        "trafficToday": "Traffic hôm nay",
+        "trafficTodayHint": "{{users}} user hoạt động hôm nay",
+        "vsPrev": "so với kỳ trước",
+        "vsYesterday": "so với hôm qua"
+      },
+      "analyticsUnavailable": "Analytics sự kiện tạm thời không khả dụng. KPI đăng ký vẫn cập nhật.",
+      "chart": {
+        "growth": "Tăng trưởng user & breeder",
+        "peakHours": "Giờ cao điểm (UTC)",
+        "farmSpecies": "Tỉ lệ loài các trại đăng ký",
+        "breeds": "Phân bố giống trên tin đăng",
+        "users": "Users",
+        "breeders": "Breeders"
+      },
+      "emptyChart": "Chưa có dữ liệu trong kỳ này",
+      "ops": {
+        "title": "Việc cần duyệt ngay",
+        "openQueue": "Mở hàng chờ",
+        "listings": "Tin chờ duyệt",
+        "reports": "Báo cáo mở",
+        "breeders": "Breeder chờ KYC",
+        "requestsTotal": "Tổng mục đang mở"
       }
     },
     "requests": {

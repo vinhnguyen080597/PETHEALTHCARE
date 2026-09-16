@@ -24,6 +24,7 @@ import {
   updateAdminSupportTicketStatus,
 } from '../api';
 import { AdminConsoleNavDrawer } from './AdminConsoleNavDrawer';
+import { AdminHomeAnalytics } from './AdminHomeAnalytics';
 import { AdminFeaturesScreen } from '../screens/AdminFeaturesScreen';
 import { AdminHealthEvidencePreview } from './AdminHealthEvidencePreview';
 import { AdminRejectBreederModal } from './AdminRejectBreederModal';
@@ -130,28 +131,6 @@ function SectionHeader({ title, count }: { title: string; count?: number }) {
         <Text className="text-sm font-medium text-[#8B7355]">{count}</Text>
       ) : null}
     </View>
-  );
-}
-
-function MetricTile({
-  label,
-  value,
-  onPress,
-}: {
-  label: string;
-  value: number;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="min-w-[46%] flex-1 rounded-2xl border border-[#E8DFD0] bg-white p-4 active:border-[#D97706]/60"
-    >
-      <Text className={`text-3xl font-bold ${value > 0 ? 'text-[#D97706]' : 'text-[#C4B5A5]'}`}>
-        {value}
-      </Text>
-      <Text className="mt-1 text-xs font-medium text-[#8B7355]">{label}</Text>
-    </Pressable>
   );
 }
 
@@ -338,10 +317,6 @@ export function AdminConsoleScreen({
     [posts],
   );
   const openReports = useMemo(() => reports.filter((r) => r.status === 'open'), [reports]);
-  const verifiedBreeders = useMemo(
-    () => breederProfiles.filter((p) => p.verification_status === 'verified'),
-    [breederProfiles],
-  );
   const pendingFarmReviews = useMemo(
     () => farmReviews.filter((r) => !r.status || r.status === 'pending'),
     [farmReviews],
@@ -547,72 +522,23 @@ export function AdminConsoleScreen({
         </View>
 
         {section === 'home' ? (
-          <View className="mt-5">
-            <View className="flex-row flex-wrap gap-3">
-              <MetricTile
-                label={t('adminConsole.home.metric.requests')}
-                value={pendingRequestCount}
-                onPress={() => onSectionChange('requests')}
-              />
-              <MetricTile
-                label={t('adminConsole.home.metric.listings')}
-                value={pendingPosts.length}
-                onPress={() => {
-                  setListingStatus('pending_review');
-                  onSectionChange('listings');
-                }}
-              />
-              <MetricTile
-                label={t('adminConsole.home.metric.breeders')}
-                value={pendingBreeders.length}
-                onPress={() => {
-                  setBreederStatus('pending_review');
-                  onSectionChange('breeders');
-                }}
-              />
-              <MetricTile
-                label={t('adminConsole.home.metric.reports')}
-                value={openReports.length}
-                onPress={() => {
-                  setReportStatus('open');
-                  onSectionChange('reports');
-                }}
-              />
-              <MetricTile
-                label={t('adminConsole.home.metric.users')}
-                value={accounts.length}
-                onPress={() => onSectionChange('users')}
-              />
-              <MetricTile
-                label={t('adminConsole.home.metric.verified')}
-                value={verifiedBreeders.length}
-                onPress={() => {
-                  setBreederStatus('verified');
-                  onSectionChange('breeders');
-                }}
-              />
-            </View>
-            {account ? (
-              <View className={`${CARD} mt-5`}>
-                <Text className="text-[10px] font-bold uppercase tracking-wide text-[#8B7355]">
-                  {t('adminConsole.home.signedIn')}
-                </Text>
-                <Text className="mt-1 font-bold text-[#2B1E19]" numberOfLines={1}>
-                  {account.display_name || account.login_identifier}
-                </Text>
-                <Text className="mt-1 text-sm text-[#8B7355]" numberOfLines={1}>
-                  {account.email ?? account.login_identifier}
-                </Text>
-              </View>
-            ) : null}
-            <Pressable
-              className="mt-4 min-h-[48px] flex-row items-center justify-center gap-2 rounded-2xl bg-[#D97706] py-3.5 active:opacity-90"
-              onPress={onOpenCreateNews}
-            >
-              <Ionicons name="add" size={18} color="#fff" />
-              <Text className="text-sm font-bold text-white">{t('adminPost.createTitle')}</Text>
-            </Pressable>
-          </View>
+          <AdminHomeAnalytics
+            token={token}
+            accounts={accounts}
+            posts={posts}
+            breeders={breederProfiles}
+            ops={{
+              pendingListings: pendingPosts.length,
+              openReports: openReports.length,
+              pendingBreeders: pendingBreeders.length,
+              pendingRequests: pendingRequestCount,
+            }}
+            onSectionChange={onSectionChange}
+            onOpenCreateNews={onOpenCreateNews}
+            onSetListingPending={() => setListingStatus('pending_review')}
+            onSetReportOpen={() => setReportStatus('open')}
+            onSetBreederPending={() => setBreederStatus('pending_review')}
+          />
         ) : null}
 
         {section === 'requests' ? (

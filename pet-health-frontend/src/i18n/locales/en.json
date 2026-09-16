@@ -1535,6 +1535,7 @@
     "filters": "Filters",
     "home": {
       "title": "Overview",
+      "subtitle": "Product analytics and actions that need attention",
       "signedIn": "Signed in as",
       "metric": {
         "requests": "Requests",
@@ -1543,6 +1544,47 @@
         "reports": "Open reports",
         "users": "Users",
         "verified": "Verified breeders"
+      },
+      "range": {
+        "label": "Time range",
+        "today": "Today",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "custom": "Custom",
+        "from": "From (YYYY-MM-DD)",
+        "to": "To (YYYY-MM-DD)"
+      },
+      "kpi": {
+        "activeUsers": "Active users",
+        "activeUsersNote": "Active users = distinct users with product events in range. Traffic = total product events.",
+        "newUsers": "New users (range)",
+        "newUsersToday": "New users today",
+        "newBreeders": "New breeders",
+        "newPosts": "New listings",
+        "conversion": "Contact conversion",
+        "traffic": "Traffic (range)",
+        "trafficToday": "Traffic today",
+        "trafficTodayHint": "{{users}} active users today",
+        "vsPrev": "vs previous period",
+        "vsYesterday": "vs yesterday"
+      },
+      "analyticsUnavailable": "Event analytics temporarily unavailable. Registration KPIs still update.",
+      "chart": {
+        "growth": "New users & breeders over time",
+        "peakHours": "Peak activity by hour (UTC)",
+        "farmSpecies": "Farm species mix (registered)",
+        "breeds": "Listing breed mix",
+        "users": "Users",
+        "breeders": "Breeders"
+      },
+      "emptyChart": "No data in this range",
+      "ops": {
+        "title": "Needs attention now",
+        "openQueue": "Open queue",
+        "listings": "Listings pending review",
+        "reports": "Open reports",
+        "breeders": "Breeders pending KYC",
+        "requestsTotal": "Total open queue items"
       }
     },
     "requests": {

@@ -1607,6 +1607,40 @@ export async function updateAdminSupportTicketStatus(
   );
 }
 
+export type AdminProductAnalyticsDashboard = {
+  windowDays: number;
+  generatedAt?: string;
+  kpis: {
+    activeUsers: number;
+    activeUsersDeltaPct: number;
+    totalEvents: number;
+    totalEventsDeltaPct: number;
+    contactActions: number;
+    contactActionsDeltaPct: number;
+    conversionRate: number;
+    conversionRateDeltaPct: number;
+  };
+  byEvent?: Record<string, number>;
+  dailySeries: Array<{
+    date: string;
+    events: number;
+    uniqueUsers: number;
+    senSignals: number;
+    breederSignals: number;
+  }>;
+  peakHours: Array<{ hour: number; count: number }>;
+  funnel?: Array<{ key: string; label: string; value: number }>;
+  notes?: Record<string, string>;
+};
+
+export async function getAdminProductAnalyticsDashboard(token: string, days: number = 7) {
+  const qs = `?days=${encodeURIComponent(String(Math.min(90, Math.max(1, Math.floor(days)))))}`;
+  return requestJson<{ data: AdminProductAnalyticsDashboard }>(
+    `/admin/product-analytics-dashboard${qs}`,
+    { headers: authHeaders(token) },
+  );
+}
+
 export async function listAdminUserPets(token: string, userId: string) {
   return requestJson<{ data: Pet[] }>(`/admin/users/${encodeURIComponent(userId)}/pets`, {
     headers: authHeaders(token),

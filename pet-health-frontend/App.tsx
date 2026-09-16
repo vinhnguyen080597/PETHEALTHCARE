@@ -364,11 +364,7 @@ function AppContent() {
 
             {app.managedUser ? <ManagedUserBanner managedUser={app.managedUser} onExit={app.exitManagedUser} /> : null}
 
-            {app.screen === 'home' && isAdmin && !app.managedUser ? (
-              <View testID="admin-home-placeholder" style={{ flex: 1 }} />
-            ) : null}
-
-            {app.screen === 'home' && (!isAdmin || app.managedUser) && (
+            {app.screen === 'home' && (
               <HomeScreen
                 pets={app.pets}
                 vaccinationDueCounts={app.petVaccinationDueCounts}
