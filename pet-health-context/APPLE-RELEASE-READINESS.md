@@ -11,7 +11,7 @@ Previous public submission: Pet Health Care `1.0.0` (build 18), Waiting for Revi
 Do **not** tap Submit for Review yet. Code/config gates are mostly ready. Remaining blockers are operational and App Store Connect metadata:
 
 1. Deploy the legal/support web fixes to `https://pet-marketplace.org` (public `/support` page + EN Accept-Language).
-2. Replace placeholder operator fields in the Privacy Policy (address, tax ID, legal representative).
+2. Operator fields filled from GCN ĐKKD (name, MST, address, legal representative). Deploy web so live Privacy/ToS show them.
 3. Fill Apple Team ID in AASA before relying on Universal Links.
 4. Update App Store Connect: name, screenshots, description, privacy labels, age rating (Messaging = Yes).
 5. Create/verify reviewer accounts and run TestFlight QA on a real iPhone.
@@ -40,10 +40,12 @@ Working packet: [APP-STORE-RELEASE-1.1.3.md](./APP-STORE-RELEASE-1.1.3.md).
 
 - [ ] Deploy `pet-health-web` so `/support` is a public contact page (not only a hub redirect)
 - [ ] `yarn release:verify:public-links` pass against production
-- [ ] Replace `[Company / office address]`, `[Tax identification number]`, `[Your name]` in legal operator copy
+- [ ] Operator copy complete from GCN ĐKKD — deploy web
 - [ ] Apple Team ID in `apple-app-site-association` (replace `TEAMID`)
 - [ ] EAS production env: `EXPO_PUBLIC_API_ORIGIN`, legal URLs, `EXPO_PUBLIC_SITE_ORIGIN`, Supabase anon
 - [ ] App Store Connect name/subtitle/screenshots/privacy/age rating for marketplace + chat
 - [ ] Reviewer Sen (+ admin) accounts
 - [ ] TestFlight install + [APP-STORE-QA-RUNSHEET.md](./APP-STORE-QA-RUNSHEET.md)
 - [ ] Keep backend warm during review
+
+

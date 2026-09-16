@@ -96,10 +96,18 @@ test("Vietnamese legal markdown export includes BCT operator and classified mode
     renderLegalMarkdown("3. Nội quy Marketplace", marketplaceGuidelinesContent.VI),
     renderLegalMarkdown("4. Hỗ trợ", supportContent.VI),
   ].join("\n\n");
-  assert.match(md, /CÔNG TY TNHH PETCARE VIỆT NAM/);
+  assert.match(md, /CÔNG TY TNHH PETHUB VIỆT NAM/);
+  assert.match(md, /2100720164/);
+  assert.match(md, /Xã Tam Ngãi, Tỉnh Vĩnh Long/);
+  assert.match(md, /VŨ THỊ HỒNG HẠNH/);
+  assert.doesNotMatch(md, /022199010918/);
+  assert.doesNotMatch(md, /\[Nhập_/);
   assert.match(md, /Nghị định 13\/2023/);
+
   assert.match(md, /Quy trình kết nối & giao dịch ngoài ứng dụng/);
-  assert.match(md, /support@pet-marketplace\.org/);
+  assert.match(md, /pethubvietnam@gmail\.com/);
+  assert.doesNotMatch(md, /support@pet-marketplace\.org/);
+  assert.doesNotMatch(md, /contact@pet-marketplace\.org/);
   assert.match(md, /CITES/);
   assert.match(md, /Cơ chế miễn trừ trách nhiệm nội dung/);
   assert.match(md, /KHÔNG tiếp nhận, giữ tiền cọc/);

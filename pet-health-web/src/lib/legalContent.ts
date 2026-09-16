@@ -1,15 +1,31 @@
 import type { Lang } from "@/lib/types";
 
-/** Customer support inbox (deal / account help). */
-export const LEGAL_SUPPORT_EMAIL = "support@pet-marketplace.org";
+/** Temporary shared inbox until domain mailboxes are ready. */
+export const LEGAL_SUPPORT_EMAIL = "pethubvietnam@gmail.com";
 
-/** Legal / report inbox (privacy, ToS, BCT correspondence). */
-export const LEGAL_CONTACT_EMAIL = "contact@pet-marketplace.org";
+/** Same temporary inbox for legal / report / BCT correspondence. */
+export const LEGAL_CONTACT_EMAIL = "pethubvietnam@gmail.com";
 
-export const LEGAL_EMAILS = [LEGAL_SUPPORT_EMAIL, LEGAL_CONTACT_EMAIL] as const;
+export const LEGAL_EMAILS = [LEGAL_SUPPORT_EMAIL] as const;
 
-export const LEGAL_OPERATOR_NAME_VI = "CÔNG TY TNHH PETCARE VIỆT NAM";
-export const LEGAL_OPERATOR_NAME_EN = "PETCARE VIET NAM CO., LTD";
+export const LEGAL_OPERATOR_NAME_VI = "CÔNG TY TNHH PETHUB VIỆT NAM";
+export const LEGAL_OPERATOR_NAME_EN = "PETHUB VIET NAM COMPANY LIMITED";
+export const LEGAL_OPERATOR_NAME_ABBR = "PETHUB VN CO., LTD";
+/** Enterprise registration / tax code (MST) from GCN ĐKKD. */
+export const LEGAL_ENTERPRISE_CODE = "2100720164";
+/** First registration date on GCN ĐKKD: 15/09/2026. */
+export const LEGAL_ENTERPRISE_REGISTERED_ON = "2026-09-15";
+/** Registered head-office address from GCN ĐKKD. */
+export const LEGAL_REGISTERED_ADDRESS_VI =
+  "Thửa đất số 516, Tờ bản đồ số 4, Ấp 1, Xã Tam Ngãi, Tỉnh Vĩnh Long, Việt Nam";
+export const LEGAL_REGISTERED_ADDRESS_EN =
+  "Land plot No. 516, Map sheet No. 4, Hamlet 1, Tam Ngai Commune, Vinh Long Province, Vietnam";
+/** Legal representative (Giám đốc) — public disclosure only; no CCCD/DOB on pages. */
+export const LEGAL_REPRESENTATIVE_NAME = "VŨ THỊ HỒNG HẠNH";
+export const LEGAL_REPRESENTATIVE_TITLE_VI = "Giám đốc";
+export const LEGAL_REPRESENTATIVE_TITLE_EN = "Director";
+/** Company phone listed on GCN ĐKKD. */
+export const LEGAL_COMPANY_PHONE = "0354311254";
 
 export type LegalSection = {
   heading?: string;
@@ -23,23 +39,25 @@ export type LegalDoc = {
   sections: LegalSection[];
 };
 
-const UPDATED_EN = "Last updated: August 2026";
-const UPDATED_VI = "Cập nhật lần cuối: tháng 8/2026";
+const UPDATED_EN = "Last updated: September 2026";
+const UPDATED_VI = "Cập nhật lần cuối: tháng 9/2026";
 
 const operatorBulletsVI = [
-  `Đơn vị vận hành: ${LEGAL_OPERATOR_NAME_VI} (đang trong quá trình hoàn tất thủ tục ĐKKD).`,
-  "Địa chỉ trụ sở: [Nhập_Địa_Chỉ_Công_Ty / Địa chỉ Văn phòng].",
-  "Mã số doanh nghiệp: [Nhập_Mã_Số_Thuế].",
-  "Đại diện pháp luật: [Tên_Của_Bạn] — Giám đốc.",
+  `Đơn vị vận hành: ${LEGAL_OPERATOR_NAME_VI} (${LEGAL_OPERATOR_NAME_ABBR}).`,
+  `Địa chỉ trụ sở: ${LEGAL_REGISTERED_ADDRESS_VI}.`,
+  `Mã số doanh nghiệp: ${LEGAL_ENTERPRISE_CODE} (đăng ký lần đầu: 15/09/2026).`,
+  `Đại diện pháp luật: ${LEGAL_REPRESENTATIVE_NAME} — ${LEGAL_REPRESENTATIVE_TITLE_VI}.`,
+  `Điện thoại: ${LEGAL_COMPANY_PHONE}.`,
   `Email liên hệ / pháp lý: ${LEGAL_CONTACT_EMAIL}.`,
   `Email hỗ trợ khách hàng: ${LEGAL_SUPPORT_EMAIL}.`,
 ];
 
 const operatorBulletsEN = [
-  `Operator: ${LEGAL_OPERATOR_NAME_EN} (business registration in progress).`,
-  "Registered address: [Company / office address].",
-  "Enterprise code / tax ID: [Tax identification number].",
-  "Legal representative: [Your name] — Director.",
+  `Operator: ${LEGAL_OPERATOR_NAME_EN} (${LEGAL_OPERATOR_NAME_ABBR}).`,
+  `Registered address: ${LEGAL_REGISTERED_ADDRESS_EN}.`,
+  `Enterprise code / tax ID: ${LEGAL_ENTERPRISE_CODE} (first registered: 15 September 2026).`,
+  `Legal representative: ${LEGAL_REPRESENTATIVE_NAME} — ${LEGAL_REPRESENTATIVE_TITLE_EN}.`,
+  `Phone: ${LEGAL_COMPANY_PHONE}.`,
   `Legal / report email: ${LEGAL_CONTACT_EMAIL}.`,
   `Customer support email: ${LEGAL_SUPPORT_EMAIL}.`,
 ];
