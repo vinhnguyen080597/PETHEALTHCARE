@@ -1,4 +1,4 @@
-import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -946,19 +946,15 @@ export function PetFeedScreen({
                 accessibilityRole="button"
                 accessibilityLabel={actionLabel}
                 className="h-10 w-10 items-center justify-center rounded-xl"
-                style={
-                  canCreatePost
-                    ? { backgroundColor: BRAND.btnPrimary }
-                    : {
-                        borderWidth: 1,
-                        borderColor: '#E5E7EB',
-                        backgroundColor: BRAND.card,
-                      }
-                }
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  backgroundColor: BRAND.card,
+                }}
                 onPress={onPress}
               >
                 {canCreatePost ? (
-                  <FontAwesome5 name="pen-square" size={17} color={BRAND.textInverse} />
+                  <Ionicons name="create-outline" size={22} color={BRAND.btnPrimary} />
                 ) : (
                   <Ionicons name="rocket-outline" size={22} color={BRAND.btnPrimary} />
                 )}
