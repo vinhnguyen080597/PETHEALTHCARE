@@ -14,6 +14,8 @@ type ProvinceSelectFieldProps = {
   error?: string;
   placeholder?: string;
   onOpen?: () => void;
+  /** Override default uppercase form label styling. */
+  labelClassName?: string;
 };
 
 export function ProvinceSelectField({
@@ -24,6 +26,7 @@ export function ProvinceSelectField({
   error,
   placeholder,
   onOpen,
+  labelClassName,
 }: ProvinceSelectFieldProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -32,7 +35,7 @@ export function ProvinceSelectField({
 
   return (
     <View className="mt-3">
-      <Text className="text-xs font-bold uppercase text-slate-500">
+      <Text className={labelClassName ?? 'text-xs font-bold uppercase text-slate-500'}>
         {label}
         {required ? <Text className="text-red-500"> *</Text> : null}
       </Text>

@@ -109,11 +109,18 @@
   },
   "completeProfile": {
     "title": "Complete your profile",
-    "subtitle": "Choose a display name for chat and comments on Pet Feed.",
+    "subtitle": "Choose a display name, pets you care about, and your area for Pet Feed.",
     "displayNameLabel": "Display name",
     "displayNamePlaceholder": "Name for chat and comments",
     "displayNameHelper": "This name appears when you message and comment on Pet Feed.",
     "displayNameRequired": "Please enter a display name.",
+    "interestedSpeciesLabel": "Pets you are interested in",
+    "interestedSpeciesHelper": "Pick one or more species to personalize listing suggestions.",
+    "interestedSpeciesRequired": "Please select at least one pet species.",
+    "livingAreaLabel": "Where you live",
+    "livingAreaPlaceholder": "Select province/city",
+    "livingAreaHelper": "Used to filter nearby farms and pets on Pet Feed.",
+    "livingAreaRequired": "Please select your living area.",
     "submit": "Continue"
   },
   "legal": {

@@ -360,13 +360,28 @@ export async function getMe(token: string) {
 }
 
 export async function updateMyDisplayName(token: string, displayName: string) {
+  return updateMyProfile(token, { displayName });
+}
+
+export async function updateMyProfile(
+  token: string,
+  payload: {
+    displayName: string;
+    interestedSpecies?: string[];
+    livingArea?: string;
+  },
+) {
   return requestJson<{ data: AccountProfile }>('/auth/me', {
     method: 'PATCH',
     headers: {
       ...authHeaders(token),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ displayName }),
+    body: JSON.stringify({
+      displayName: payload.displayName,
+      interestedSpecies: payload.interestedSpecies,
+      livingArea: payload.livingArea,
+    }),
   });
 }
 

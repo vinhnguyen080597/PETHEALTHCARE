@@ -89,7 +89,7 @@ import {
   applyForgotPassword,
   requestPasswordRecovery,
   verifySignUpOtp,
-  updateMyDisplayName,
+  updateMyProfile,
   updateAdminUserCoreCareRecord,
   updateAdminUserPet,
   updateCoreCareRecord,
@@ -354,6 +354,10 @@ export function usePetHealthApp() {
   const [signUpOtpResendLoading, setSignUpOtpResendLoading] = useState(false);
   const [completeProfileError, setCompleteProfileError] = useState('');
   const [completeProfileFieldError, setCompleteProfileFieldError] = useState('');
+  const [completeProfileInterestedSpecies, setCompleteProfileInterestedSpecies] = useState<string[]>([]);
+  const [completeProfileLivingArea, setCompleteProfileLivingArea] = useState('');
+  const [completeProfileSpeciesError, setCompleteProfileSpeciesError] = useState('');
+  const [completeProfileLivingAreaError, setCompleteProfileLivingAreaError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [pendingSignUpEmail, setPendingSignUpEmail] = useState('');
   const [pendingSignUpPassword, setPendingSignUpPassword] = useState('');
@@ -677,8 +681,15 @@ export function usePetHealthApp() {
 
   const fetchAccountProfile = useCallback(async (accessToken: string) => {
     const response = await getMe(accessToken);
-    setAccountProfile(response.data);
-    return response.data;
+    const profile = {
+      ...response.data,
+      interested_species: Array.isArray(response.data.interested_species)
+        ? response.data.interested_species
+        : [],
+      living_area: typeof response.data.living_area === 'string' ? response.data.living_area : '',
+    };
+    setAccountProfile(profile);
+    return profile;
   }, []);
 
   const offerVaccinationDuePopupIfNeeded = useCallback(
@@ -1347,6 +1358,22 @@ export function usePetHealthApp() {
     if (completeProfileFieldError) setCompleteProfileFieldError('');
   }
 
+  function toggleCompleteProfileSpecies(species: string) {
+    const key = String(species ?? '').trim().toLowerCase();
+    if (!key) return;
+    setCompleteProfileInterestedSpecies((prev) => (
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    ));
+    if (completeProfileSpeciesError) setCompleteProfileSpeciesError('');
+    if (completeProfileError) setCompleteProfileError('');
+  }
+
+  function changeCompleteProfileLivingArea(value: string) {
+    setCompleteProfileLivingArea(value);
+    if (completeProfileLivingAreaError) setCompleteProfileLivingAreaError('');
+    if (completeProfileError) setCompleteProfileError('');
+  }
+
   function armSignUpOtpResendCooldown() {
     setSignUpOtpResendAvailableAtMs(Date.now() + SIGNUP_OTP_RESEND_COOLDOWN_MS);
   }
@@ -1489,8 +1516,28 @@ export function usePetHealthApp() {
 
   async function submitCompleteProfile() {
     const name = signUpDisplayName.trim();
+    const species = completeProfileInterestedSpecies;
+    const area = completeProfileLivingArea.trim();
+    let hasFieldError = false;
     if (!name) {
       setCompleteProfileFieldError(i18n.t('completeProfile.displayNameRequired'));
+      hasFieldError = true;
+    } else {
+      setCompleteProfileFieldError('');
+    }
+    if (species.length === 0) {
+      setCompleteProfileSpeciesError(i18n.t('completeProfile.interestedSpeciesRequired'));
+      hasFieldError = true;
+    } else {
+      setCompleteProfileSpeciesError('');
+    }
+    if (!area) {
+      setCompleteProfileLivingAreaError(i18n.t('completeProfile.livingAreaRequired'));
+      hasFieldError = true;
+    } else {
+      setCompleteProfileLivingAreaError('');
+    }
+    if (hasFieldError) {
       setCompleteProfileError('');
       return;
     }
@@ -1500,11 +1547,16 @@ export function usePetHealthApp() {
     }
     setLoading(true);
     setCompleteProfileError('');
-    setCompleteProfileFieldError('');
     try {
-      const response = await updateMyDisplayName(token, name);
+      const response = await updateMyProfile(token, {
+        displayName: name,
+        interestedSpecies: species,
+        livingArea: area,
+      });
       setAccountProfile(response.data);
       setSignUpDisplayName('');
+      setCompleteProfileInterestedSpecies([]);
+      setCompleteProfileLivingArea('');
       await navigateAfterAuthenticatedSession({ startInitialOnboarding: true });
     } catch (error: unknown) {
       if (error instanceof ApiRequestError && error.code === 'DISPLAY_NAME_REQUIRED') {
@@ -4992,12 +5044,18 @@ export function usePetHealthApp() {
     changeSignUpOtp,
     signUpDisplayName,
     changeSignUpDisplayName,
+    completeProfileInterestedSpecies,
+    toggleCompleteProfileSpecies,
+    completeProfileLivingArea,
+    changeCompleteProfileLivingArea,
     signUpOtpError,
     signUpOtpFieldErrors,
     signUpOtpResendAvailableAtMs,
     signUpOtpResendLoading,
     completeProfileError,
     completeProfileFieldError,
+    completeProfileSpeciesError,
+    completeProfileLivingAreaError,
     isSignUp,
     pendingSignUpEmail,
     toggleLoginSignUpMode,

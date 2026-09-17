@@ -34,6 +34,10 @@ export type AccountProfile = {
   primary_role: UserRole;
   account_status: AccountStatus;
   isForTesting: boolean;
+  /** Pet species the user cares about (stored on app_user_profiles.interested_species). */
+  interested_species: string[];
+  /** Living province/area for nearby farm & listing filters. */
+  living_area: string;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at?: string;

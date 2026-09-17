@@ -19,6 +19,8 @@ export const ACTIVE_BREEDER_SPECIES_OPTIONS = [
   'reptile',
 ] as const;
 
+export type ActiveBreederSpecies = (typeof ACTIVE_BREEDER_SPECIES_OPTIONS)[number];
+
 /** Pet Feed filter chips + listing create form species picker. */
 export const ACTIVE_PET_FEED_SPECIES = [
   'dog',

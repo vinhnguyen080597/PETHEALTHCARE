@@ -304,13 +304,29 @@ create table if not exists public.app_user_profiles (
   display_name text not null default '',
   primary_role text not null default 'sen' check (primary_role in ('sen', 'breeder', 'admin', 'vet')),
   account_status text not null default 'active' check (account_status in ('active', 'suspended')),
+  interested_species text[] not null default '{}'::text[],
+  living_area text not null default '',
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+-- Existing projects: preference columns for complete-profile onboarding.
+alter table public.app_user_profiles
+  add column if not exists interested_species text[] not null default '{}'::text[];
+alter table public.app_user_profiles
+  add column if not exists living_area text not null default '';
+
+comment on column public.app_user_profiles.interested_species is
+  'Pet species the user cares about (e.g. dog, cat); used for feed personalization.';
+comment on column public.app_user_profiles.living_area is
+  'User living area / province; used to filter nearby farms and listings.';
+
 create index if not exists idx_app_user_profiles_role on public.app_user_profiles(primary_role);
 create index if not exists idx_app_user_profiles_status on public.app_user_profiles(account_status);
+create index if not exists idx_app_user_profiles_living_area
+  on public.app_user_profiles (living_area)
+  where living_area <> '';
 
 alter table public.app_user_profiles enable row level security;
 

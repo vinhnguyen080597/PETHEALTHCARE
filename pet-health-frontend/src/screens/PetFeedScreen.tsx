@@ -54,6 +54,7 @@ import {
 } from '../utils/petFeedGender';
 import { breederMatchesProvince, postMatchesProvince } from '../utils/petFeedLocation';
 import { normalizeSearchText } from '../utils/petFeedText';
+import { resolveProvinceSelection } from '../utils/vietnamProvinceSelection';
 import { LISTING_CARD_IMAGE_HEIGHT } from '../utils/marketplaceListingCard';
 import {
   PET_FEED_TAB_ORDER,
@@ -72,6 +73,7 @@ import {
 } from '../constants/petFeedSort';
 import {
   breederMatchesPetType,
+  isPetType,
   postMatchesPetType,
   type PetTypeFilter,
 } from '../utils/petType';
@@ -126,6 +128,10 @@ type PetFeedScreenProps = {
   onOpenBreederProfile?: () => void;
   onEditPost?: (post: PetFeedPost) => void;
   currentUserId?: string | null;
+  /** Prefer nearby listings using the user's saved living area. */
+  preferredProvince?: string | null;
+  /** Prefer species chip from the user's saved interests (first match, seeded once). */
+  preferredPetTypes?: string[] | null;
   token?: string | null;
   /** When set, switch to feed tab and scroll to this post, then call onFocusPostHandled. */
   focusPostId?: string | null;
@@ -258,6 +264,8 @@ export function PetFeedScreen({
   onOpenBreederProfile,
   onEditPost,
   currentUserId = null,
+  preferredProvince = null,
+  preferredPetTypes = null,
   token = null,
   focusPostId = null,
   onFocusPostHandled,
@@ -267,6 +275,9 @@ export function PetFeedScreen({
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const listRef = useRef<FlatList<FeedListItem>>(null);
+  const preferredProvinceSeededRef = useRef(false);
+  const preferredSpeciesSeededRef = useRef(false);
+  const userChangedSpeciesFilterRef = useRef(false);
   const visibleTabs = useMemo(
     () => PET_FEED_TAB_ORDER.filter((tab) => enabledTabs[tab]),
     [enabledTabs],
@@ -281,8 +292,24 @@ export function PetFeedScreen({
     }
   }, [activeTab, visibleTabs]);
   const [query, setQuery] = useState('');
-  const [petTypeFilter, setPetTypeFilter] = useState<SpeciesFilter>(DEFAULT_PET_TYPE_FILTER);
-  const [provinceFilter, setProvinceFilter] = useState<ProvinceFilter>(ALL_PROVINCES_FILTER);
+  const [petTypeFilter, setPetTypeFilter] = useState<SpeciesFilter>(() => {
+    const preferredType = (preferredPetTypes ?? [])
+      .map((item) => String(item ?? '').trim().toLowerCase())
+      .find(isPetType);
+    if (preferredType) {
+      preferredSpeciesSeededRef.current = true;
+      return preferredType;
+    }
+    return DEFAULT_PET_TYPE_FILTER;
+  });
+  const [provinceFilter, setProvinceFilter] = useState<ProvinceFilter>(() => {
+    const resolved = resolveProvinceSelection(preferredProvince);
+    if (resolved) {
+      preferredProvinceSeededRef.current = true;
+      return resolved;
+    }
+    return ALL_PROVINCES_FILTER;
+  });
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [sortField, setSortField] = useState<SortField>(DEFAULT_PET_FEED_SORT_FIELD);
   const [sortDirection, setSortDirection] = useState<SortDirection>(DEFAULT_PET_FEED_SORT_DIRECTION);
@@ -298,6 +325,41 @@ export function PetFeedScreen({
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [hasReviewedFarm, setHasReviewedFarm] = useState(false);
+
+  // Seed living area once when profile arrives later — never override a province the user already picked.
+  useEffect(() => {
+    if (preferredProvinceSeededRef.current) return;
+    const resolvedProvince = resolveProvinceSelection(preferredProvince);
+    if (!resolvedProvince) return;
+    preferredProvinceSeededRef.current = true;
+    setProvinceFilter((current) => (
+      current === ALL_PROVINCES_FILTER ? resolvedProvince : current
+    ));
+  }, [preferredProvince]);
+
+  // Seed species chip once from interested_species — skip entirely after any manual chip tap.
+  useEffect(() => {
+    if (preferredSpeciesSeededRef.current || userChangedSpeciesFilterRef.current) return;
+    const preferredType = (preferredPetTypes ?? [])
+      .map((item) => String(item ?? '').trim().toLowerCase())
+      .find(isPetType);
+    if (!preferredType) return;
+    preferredSpeciesSeededRef.current = true;
+    setPetTypeFilter(preferredType);
+  }, [preferredPetTypes]);
+
+  const changePetTypeFilter = useCallback((next: PetTypeFilter) => {
+    userChangedSpeciesFilterRef.current = true;
+    preferredSpeciesSeededRef.current = true;
+    setPetTypeFilter(next);
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, []);
+
+  const changeProvinceFilter = useCallback((next: ProvinceFilter) => {
+    preferredProvinceSeededRef.current = true;
+    setProvinceFilter(next);
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, []);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query]);
   const searchMatchedPosts = useMemo(() => {
@@ -627,13 +689,17 @@ export function PetFeedScreen({
   ]);
 
   const resetFilters = useCallback(() => {
+    userChangedSpeciesFilterRef.current = true;
+    preferredSpeciesSeededRef.current = true;
     setPetTypeFilter(DEFAULT_PET_TYPE_FILTER);
+    preferredProvinceSeededRef.current = true;
     setProvinceFilter(ALL_PROVINCES_FILTER);
     setGenderFilter('all');
     setSortField(DEFAULT_PET_FEED_SORT_FIELD);
     setSortDirection(DEFAULT_PET_FEED_SORT_DIRECTION);
     setListSortPreset(DEFAULT_PET_FEED_LIST_SORT_PRESET);
     setBreederSortPreset(DEFAULT_PET_FEED_BREEDER_SORT_PRESET);
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, []);
 
   const promptFarmReview = useCallback(async (profile: BreederProfile) => {
@@ -953,7 +1019,7 @@ export function PetFeedScreen({
           )}
         </View>
 
-        <PetTypeFilterRow value={petTypeFilter} onChange={setPetTypeFilter} />
+        <PetTypeFilterRow value={petTypeFilter} onChange={changePetTypeFilter} />
 
         {visibleTabs.length > 1 ? (
           <View className="px-2 pb-2">
@@ -1045,6 +1111,15 @@ export function PetFeedScreen({
       className="flex-1 bg-[#F2F4F8]"
       style={{ flex: 1, minHeight: 0 }}
       data={listItems}
+      extraData={{
+        activeTab,
+        petTypeFilter,
+        provinceFilter,
+        genderFilter,
+        listSortPreset,
+        breederSortPreset,
+        query,
+      }}
       keyExtractor={(item) => `${item.type}:${item.id}`}
       renderItem={renderListItem}
       ItemSeparatorComponent={ListSeparator}
@@ -1248,7 +1323,7 @@ export function PetFeedScreen({
               accessibilityRole="button"
               className="border-b border-gray-100 py-3.5 active:bg-gray-50"
               onPress={() => {
-                setProvinceFilter(ALL_PROVINCES_FILTER);
+                changeProvinceFilter(ALL_PROVINCES_FILTER);
                 setProvincePickerOpen(false);
               }}
             >
@@ -1269,7 +1344,7 @@ export function PetFeedScreen({
                   accessibilityRole="button"
                   className="border-b border-gray-100 py-3.5 active:bg-gray-50"
                   onPress={() => {
-                    setProvinceFilter(province);
+                    changeProvinceFilter(province);
                     setProvincePickerOpen(false);
                   }}
                 >

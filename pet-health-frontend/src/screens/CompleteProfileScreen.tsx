@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -12,28 +12,70 @@ import {
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthWarmBackdrop } from '../components/AuthWarmBackdrop';
+import { ProvinceSelectField } from '../components/form/ProvinceSelectField';
+import {
+  ACTIVE_BREEDER_SPECIES_OPTIONS,
+  type ActiveBreederSpecies,
+} from '../constants/petSpecies';
 import { BRAND } from '../theme/brand';
+
+type PetTypeIconSpec =
+  | { library: 'fa5'; name: keyof typeof FontAwesome5.glyphMap }
+  | { library: 'mci'; name: keyof typeof MaterialCommunityIcons.glyphMap };
+
+const INTEREST_SPECIES_ICONS: Record<ActiveBreederSpecies, PetTypeIconSpec> = {
+  dog: { library: 'fa5', name: 'dog' },
+  cat: { library: 'fa5', name: 'cat' },
+  bird: { library: 'fa5', name: 'dove' },
+  fish: { library: 'fa5', name: 'fish' },
+  rabbit: { library: 'mci', name: 'rabbit' },
+  hamster: { library: 'mci', name: 'rodent' },
+  reptile: { library: 'mci', name: 'snake' },
+};
+
+function SpeciesIcon({ spec, color }: { spec: PetTypeIconSpec; color: string }) {
+  if (spec.library === 'mci') {
+    return <MaterialCommunityIcons name={spec.name} size={18} color={color} />;
+  }
+  return <FontAwesome5 name={spec.name} size={16} color={color} />;
+}
 
 type CompleteProfileScreenProps = {
   displayName: string;
+  interestedSpecies: string[];
+  livingArea: string;
   error?: string;
   fieldError?: string;
+  interestedSpeciesError?: string;
+  livingAreaError?: string;
   loading?: boolean;
   onChangeDisplayName: (value: string) => void;
+  onToggleInterestedSpecies: (species: string) => void;
+  onChangeLivingArea: (value: string) => void;
   onSubmit: () => void;
 };
 
 export function CompleteProfileScreen({
   displayName,
+  interestedSpecies,
+  livingArea,
   error,
   fieldError,
+  interestedSpeciesError,
+  livingAreaError,
   loading = false,
   onChangeDisplayName,
+  onToggleInterestedSpecies,
+  onChangeLivingArea,
   onSubmit,
 }: CompleteProfileScreenProps) {
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
-  const canSubmit = Boolean(displayName.trim()) && !loading;
+  const canSubmit =
+    Boolean(displayName.trim())
+    && interestedSpecies.length > 0
+    && Boolean(livingArea.trim())
+    && !loading;
 
   return (
     <View className="flex-1 bg-[#FCFBFA]">
@@ -95,6 +137,66 @@ export function CompleteProfileScreen({
               ) : (
                 <Text className="mt-2 text-xs text-slate-500">{t('completeProfile.displayNameHelper')}</Text>
               )}
+
+              <Text className="mb-2 mt-5 text-sm text-slate-700">
+                {t('completeProfile.interestedSpeciesLabel')} <Text className="text-red-500">*</Text>
+              </Text>
+              <View className="flex-row flex-wrap gap-2.5">
+                {ACTIVE_BREEDER_SPECIES_OPTIONS.map((species) => {
+                  const active = interestedSpecies.includes(species);
+                  const iconColor = active ? BRAND.btnPrimary : BRAND.textMuted;
+                  return (
+                    <Pressable
+                      key={species}
+                      testID={`complete-profile-species-${species}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={t(`petFeed.filters.${species}`)}
+                      accessibilityState={{ selected: active }}
+                      className="w-[22%] min-w-[64px] items-center gap-1"
+                      onPress={() => onToggleInterestedSpecies(species)}
+                    >
+                      <View
+                        className="h-11 w-11 items-center justify-center rounded-full"
+                        style={{
+                          borderWidth: 1.5,
+                          borderColor: active ? BRAND.btnPrimary : '#E5E7EB',
+                          backgroundColor: active ? BRAND.surfaceLight : '#F8FAFC',
+                        }}
+                      >
+                        <SpeciesIcon spec={INTEREST_SPECIES_ICONS[species]} color={iconColor} />
+                      </View>
+                      <Text
+                        className="text-center text-[11px] font-semibold"
+                        style={{ color: active ? BRAND.textBrandLink : BRAND.textMuted }}
+                      >
+                        {t(`petFeed.filters.${species}`)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {interestedSpeciesError ? (
+                <Text testID="complete-profile-species-error" className="mt-1.5 text-xs font-medium text-red-600">
+                  {interestedSpeciesError}
+                </Text>
+              ) : (
+                <Text className="mt-2 text-xs text-slate-500">{t('completeProfile.interestedSpeciesHelper')}</Text>
+              )}
+
+              <View className="mt-2">
+                <ProvinceSelectField
+                  label={t('completeProfile.livingAreaLabel')}
+                  value={livingArea}
+                  onChange={onChangeLivingArea}
+                  required
+                  error={livingAreaError}
+                  placeholder={t('completeProfile.livingAreaPlaceholder')}
+                  labelClassName="mb-0 text-sm text-slate-700"
+                />
+              </View>
+              {!livingAreaError ? (
+                <Text className="mt-1.5 text-xs text-slate-500">{t('completeProfile.livingAreaHelper')}</Text>
+              ) : null}
 
               <Pressable
                 testID="complete-profile-submit-button"

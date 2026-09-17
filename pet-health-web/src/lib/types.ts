@@ -291,6 +291,8 @@ export interface ApiAccount {
   display_name?: string;
   primary_role?: string;
   isForTesting?: boolean;
+  interested_species?: string[];
+  living_area?: string;
   roles?: string[];
 }
 

@@ -342,10 +342,16 @@ function AppContent() {
       ) : app.screen === 'complete-profile' ? (
         <CompleteProfileScreen
           displayName={app.signUpDisplayName}
+          interestedSpecies={app.completeProfileInterestedSpecies}
+          livingArea={app.completeProfileLivingArea}
           error={app.completeProfileError}
           fieldError={app.completeProfileFieldError}
+          interestedSpeciesError={app.completeProfileSpeciesError}
+          livingAreaError={app.completeProfileLivingAreaError}
           loading={app.loading}
           onChangeDisplayName={app.changeSignUpDisplayName}
+          onToggleInterestedSpecies={app.toggleCompleteProfileSpecies}
+          onChangeLivingArea={app.changeCompleteProfileLivingArea}
           onSubmit={() => void app.submitCompleteProfile()}
         />
       ) : (
@@ -419,6 +425,8 @@ function AppContent() {
                 onOpenBreederProfile={() => void app.openBreederProfile()}
                 onEditPost={app.openEditPetFeedDraft}
                 currentUserId={app.accountProfile?.user_id ?? null}
+                preferredProvince={app.accountProfile?.living_area ?? null}
+                preferredPetTypes={app.accountProfile?.interested_species ?? null}
                 token={app.token}
                 focusPostId={app.screen === 'pet-feed' ? app.petFeedFocusPostId : null}
                 onFocusPostHandled={app.clearPetFeedFocusPostId}

@@ -36,6 +36,7 @@ export function PetTypeFilterRow({ value, onChange }: PetTypeFilterRowProps) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       className="bg-white"
       contentContainerClassName="flex-row gap-4 px-5 pb-2.5 pt-0"
     >
@@ -50,7 +51,11 @@ export function PetTypeFilterRow({ value, onChange }: PetTypeFilterRowProps) {
             accessibilityLabel={t(`petFeed.filters.${petType}`)}
             accessibilityState={{ selected: active }}
             className="items-center gap-0.5"
-            onPress={() => onChange(active ? 'all' : petType)}
+            hitSlop={8}
+            onPress={() => {
+              // Always switch to the tapped species (or clear if tapping the active one).
+              onChange(active ? 'all' : petType);
+            }}
           >
             <View
               className="h-8 w-8 items-center justify-center rounded-full"

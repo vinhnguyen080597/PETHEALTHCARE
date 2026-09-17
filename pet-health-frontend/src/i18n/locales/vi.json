@@ -109,11 +109,18 @@
   },
   "completeProfile": {
     "title": "Hoàn thiện thông tin",
-    "subtitle": "Chọn tên hiển thị để dùng khi chat và bình luận trên Pet Feed.",
+    "subtitle": "Chọn tên hiển thị, thú cưng quan tâm và khu vực để dùng trên Pet Feed.",
     "displayNameLabel": "Tên hiển thị",
     "displayNamePlaceholder": "Tên dùng khi chat và bình luận",
     "displayNameHelper": "Tên này sẽ hiện khi bạn nhắn tin và bình luận trên Pet Feed.",
     "displayNameRequired": "Vui lòng nhập tên hiển thị.",
+    "interestedSpeciesLabel": "Thú cưng bạn quan tâm",
+    "interestedSpeciesHelper": "Chọn một hoặc nhiều loài để gợi ý tin đăng phù hợp hơn.",
+    "interestedSpeciesRequired": "Vui lòng chọn ít nhất một loài thú cưng.",
+    "livingAreaLabel": "Khu vực bạn đang sống",
+    "livingAreaPlaceholder": "Chọn tỉnh/thành",
+    "livingAreaHelper": "Dùng để lọc trại và thú cưng gần bạn trên Pet Feed.",
+    "livingAreaRequired": "Vui lòng chọn khu vực bạn đang sống.",
     "submit": "Tiếp tục"
   },
   "legal": {

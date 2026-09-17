@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import { getSupabaseAnonClient, getSupabaseServiceClient } from '../config/supabase.js';
-import { deleteAccountData, deleteAccountRowsByColumns, ensureAccountProfile, updateSelfDisplayName } from '../repositories/accountRepository.js';
+import {
+  deleteAccountData,
+  deleteAccountRowsByColumns,
+  ensureAccountProfile,
+  updateSelfProfile,
+} from '../repositories/accountRepository.js';
+import { invalidateAuthRequestCache, requireUser } from '../middleware/auth.js';
 import { authEmailFromIdentifier, compactText, looksLikeEmail, requireSignupEmail } from '../services/authIdentifierService.js';
 import { getPendingSignUpLoginBlockCode, requestEmailSignUpOtp } from '../services/signupAuthService.js';
 import {
@@ -13,7 +19,6 @@ import {
   verifyUpdateEmailRequest,
   verifyUpdatePasswordRequest,
 } from '../services/accountUpdateService.js';
-import { requireUser } from '../middleware/auth.js';
 import { deleteUserImageStorage } from '../services/imageStorageService.js';
 
 const router = Router();
@@ -390,10 +395,33 @@ router.patch('/me', requireUser, async (req, res, next) => {
     if (typeof displayNameInput !== 'string' || !displayNameInput.trim()) {
       return res.status(400).json({ error: 'displayName is required', code: 'DISPLAY_NAME_REQUIRED' });
     }
-    const account = await updateSelfDisplayName(req.user.id, displayNameInput);
+
+    const interestedSpeciesInput = req.body?.interestedSpecies ?? req.body?.interested_species;
+    if (interestedSpeciesInput !== undefined && !Array.isArray(interestedSpeciesInput)) {
+      return res.status(400).json({
+        error: 'interestedSpecies must be an array',
+        code: 'INTERESTED_SPECIES_INVALID',
+      });
+    }
+
+    const livingAreaInput = req.body?.livingArea ?? req.body?.living_area;
+    if (livingAreaInput !== undefined && typeof livingAreaInput !== 'string') {
+      return res.status(400).json({
+        error: 'livingArea must be a string',
+        code: 'LIVING_AREA_INVALID',
+      });
+    }
+
+    const account = await updateSelfProfile(req.user.id, {
+      displayName: displayNameInput,
+      interestedSpecies: interestedSpeciesInput,
+      livingArea: livingAreaInput,
+    });
     if (!account) {
       return res.status(404).json({ error: 'Account profile not found' });
     }
+
+    invalidateAuthRequestCache(req.accessToken);
 
     const admin = getSupabaseServiceClient();
     if (admin && req.user?.id) {

@@ -1,13 +1,34 @@
 import { getSupabaseServiceClient } from '../config/supabase.js';
+import { normalizePetType } from '../utils/petType.js';
 
 export const USER_ROLES = new Set(['sen', 'breeder', 'admin', 'vet']);
 export const SIGNUP_ROLES = new Set(['sen', 'breeder']);
 const ACCOUNT_STATUSES = new Set(['active', 'suspended']);
+const INTERESTED_SPECIES_LIMIT = 12;
 const memoryAccounts = [];
 
 function trimText(value, max = 500) {
   if (value === undefined || value === null) return '';
   return String(value).replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+/** Normalize and dedupe pet species interest list for app_user_profiles.interested_species. */
+export function normalizeInterestedSpecies(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const next = [];
+  for (const item of value) {
+    const species = normalizePetType(item);
+    if (!species || seen.has(species)) continue;
+    seen.add(species);
+    next.push(species);
+    if (next.length >= INTERESTED_SPECIES_LIMIT) break;
+  }
+  return next;
+}
+
+export function normalizeLivingArea(value) {
+  return trimText(value, 80);
 }
 
 export function normalizeUserRole(value, fallback = 'sen') {
@@ -40,6 +61,8 @@ function toAccount(row) {
     primary_role: normalizeUserRole(row.primary_role, 'sen'),
     account_status: normalizeAccountStatus(row.account_status),
     isForTesting: normalizeBooleanFlag(row.is_for_testing ?? row.isForTesting, false),
+    interested_species: normalizeInterestedSpecies(row.interested_species ?? row.interestedSpecies),
+    living_area: normalizeLivingArea(row.living_area ?? row.livingArea),
     metadata: row.metadata ?? {},
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -215,17 +238,51 @@ export async function adminUpdateAccountProfile(userId, payload) {
 }
 
 export async function updateSelfDisplayName(userId, displayName) {
+  return updateSelfProfile(userId, { displayName });
+}
+
+/** Update display name and optional complete-profile preferences for the authenticated user. */
+export async function updateSelfProfile(userId, payload = {}) {
   const existing = await getAccountProfile(userId);
   if (!existing) return null;
-  const nextName = trimText(displayName, 160);
-  if (!nextName) return existing;
+
+  const displayNameInput = payload.displayName ?? payload.display_name;
+  const nextName = displayNameInput !== undefined
+    ? trimText(displayNameInput, 160)
+    : existing.display_name;
+  if (!nextName) return null;
+
   const patch = {
     display_name: nextName,
     updated_at: new Date().toISOString(),
   };
+
+  if (payload.interestedSpecies !== undefined || payload.interested_species !== undefined) {
+    patch.interested_species = normalizeInterestedSpecies(
+      payload.interestedSpecies ?? payload.interested_species,
+    );
+  }
+
+  if (payload.livingArea !== undefined || payload.living_area !== undefined) {
+    patch.living_area = normalizeLivingArea(payload.livingArea ?? payload.living_area);
+  }
+
   const supabase = getSupabaseServiceClient();
-  if (!supabase) return memoryUpsert({ ...existing, ...patch });
-  const { data, error } = await supabase.from('app_user_profiles').update(patch).eq('user_id', userId).select('*').maybeSingle();
+  if (!supabase) {
+    return memoryUpsert({
+      ...existing,
+      display_name: patch.display_name,
+      interested_species: patch.interested_species ?? existing.interested_species,
+      living_area: patch.living_area ?? existing.living_area,
+      updated_at: patch.updated_at,
+    });
+  }
+  const { data, error } = await supabase
+    .from('app_user_profiles')
+    .update(patch)
+    .eq('user_id', userId)
+    .select('*')
+    .maybeSingle();
   if (error) throw error;
   return toAccount(data);
 }
