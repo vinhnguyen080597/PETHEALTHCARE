@@ -132,7 +132,7 @@ test("buildAdminNewsLivePreview mirrors form fields for live card", () => {
     ctaLabel: "Read",
     ctaUrl: "https://example.com",
     photoUrls: ["blob:cover", "blob:extra"],
-    authorLabel: "PetCare Admin",
+    authorLabel: "Pethub Admin",
   });
   assert.equal(full.hasTitle, true);
   assert.equal(full.title, "Spring tip");

@@ -2,7 +2,7 @@ import { LegalPage } from "@/components/legal/LegalPage";
 import { marketplaceGuidelinesContent } from "@/lib/legalContent";
 import { getLegalPageLang } from "@/lib/legalPageLang";
 
-export const metadata = { title: "Marketplace Guidelines · PetCare: Pet Marketplace" };
+export const metadata = { title: "Marketplace Guidelines · Pethub: Pet Marketplace" };
 
 export default async function GuidelinesPage({
   searchParams,

@@ -1,10 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -16,7 +15,6 @@ import {
   type TextStyle,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBreederFarmReview, getMyDirectFarmReview } from '../api';
 import { AdminPostCard } from '../components/AdminPostCard';
 import { FarmReviewModal } from '../components/FarmReviewModal';
@@ -28,8 +26,8 @@ import { PetFeedListingRail } from '../components/PetFeedListingRail';
 import { PetFeedAllListingsHeader } from '../components/PetFeedAllListingsHeader';
 import { PetFeedAllBreedersHeader } from '../components/PetFeedAllBreedersHeader';
 import { PetTypeFilterRow } from '../components/PetTypeFilterRow';
-import type { AnnouncementCategory, BreederProfile, PetFeedComment, PetFeedPost } from '../types';
-import { ALL_PROVINCES_FILTER, VIETNAM_PROVINCES, type ProvinceFilter } from '../constants/vietnamProvinces';
+import type { AnnouncementCategory, BreederProfile, PetFeedComment, PetFeedPost, UserRole } from '../types';
+import { ALL_PROVINCES_FILTER, type ProvinceFilter } from '../constants/vietnamProvinces';
 import { metadataString } from '../utils/breederTrust';
 import {
   breederCardSpecialtyLabel,
@@ -48,7 +46,6 @@ import { rankBreedersWithHomeQuota } from '../utils/breederQualityIndex';
 import { pickHallOfFameBreeders } from '../utils/breederHallOfFame';
 import { pickTopInterestedListings } from '../utils/marketplaceFeedSections';
 import {
-  countPostsByGender,
   postMatchesGender,
   type GenderFilter,
 } from '../utils/petFeedGender';
@@ -65,10 +62,8 @@ import {
   DEFAULT_PET_FEED_LIST_SORT_PRESET,
   DEFAULT_PET_FEED_SORT_DIRECTION,
   DEFAULT_PET_FEED_SORT_FIELD,
-  PET_FEED_SORT_CHIP_FIELDS,
   type PetFeedBreederSortPreset,
   type PetFeedListSortPreset,
-  type PetFeedSortChipField,
   type PetFeedSortField,
 } from '../constants/petFeedSort';
 import {
@@ -78,8 +73,6 @@ import {
   type PetTypeFilter,
 } from '../utils/petType';
 import { parsePetFeedPriceToVnd } from '../utils/petFeedCurrency';
-import { isPetFeedQuickFilterActive } from '../utils/petFeedQuickFilters';
-import { modalTopInset } from '../utils/modalSafeArea';
 import { BRAND } from '../theme/brand';
 
 const DEFAULT_PET_TYPE_FILTER: SpeciesFilter = 'cat';
@@ -90,12 +83,6 @@ type SpeciesFilter = PetTypeFilter;
 type SortField = PetFeedSortField;
 type SortDirection = 'asc' | 'desc';
 type FeedTab = PetFeedScreenTab;
-type ChipItem<T extends string> = {
-  key: T;
-  label: string;
-  count?: number;
-  icon: keyof typeof Ionicons.glyphMap;
-};
 
 type AnnouncementFilter = 'all' | AnnouncementCategory;
 
@@ -127,6 +114,11 @@ type PetFeedScreenProps = {
   onMessageFarm?: (profile: BreederProfile) => void;
   onOpenBreederProfile?: () => void;
   onEditPost?: (post: PetFeedPost) => void;
+  /** Create listing (breeder) or news (admin). */
+  onCreatePost?: () => void;
+  /** Sen CTA: open farm / breeder registration profile. */
+  onCreateFarmProfile?: () => void;
+  userRole?: UserRole | null;
   currentUserId?: string | null;
   /** Prefer nearby listings using the user's saved living area. */
   preferredProvince?: string | null;
@@ -263,6 +255,9 @@ export function PetFeedScreen({
   onMessageFarm,
   onOpenBreederProfile,
   onEditPost,
+  onCreatePost,
+  onCreateFarmProfile,
+  userRole = null,
   currentUserId = null,
   preferredProvince = null,
   preferredPetTypes = null,
@@ -272,8 +267,7 @@ export function PetFeedScreen({
   enabledTabs = { news: true, feed: true, breeders: true },
 }: PetFeedScreenProps) {
   const { t, i18n } = useTranslation();
-  const insets = useSafeAreaInsets();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
   const listRef = useRef<FlatList<FeedListItem>>(null);
   const preferredProvinceSeededRef = useRef(false);
   const preferredSpeciesSeededRef = useRef(false);
@@ -317,8 +311,6 @@ export function PetFeedScreen({
   const [breederSortPreset, setBreederSortPreset] = useState<PetFeedBreederSortPreset>(
     DEFAULT_PET_FEED_BREEDER_SORT_PRESET,
   );
-  const [filterVisible, setFilterVisible] = useState(false);
-  const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
   const [announcementFilter, setAnnouncementFilter] = useState<AnnouncementFilter>('all');
   const [reviewProfile, setReviewProfile] = useState<BreederProfile | null>(null);
@@ -355,12 +347,6 @@ export function PetFeedScreen({
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, []);
 
-  const changeProvinceFilter = useCallback((next: ProvinceFilter) => {
-    preferredProvinceSeededRef.current = true;
-    setProvinceFilter(next);
-    listRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, []);
-
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query]);
   const searchMatchedPosts = useMemo(() => {
     if (!normalizedQuery) return posts;
@@ -384,26 +370,6 @@ export function PetFeedScreen({
       : speciesMatchedPosts.filter((post) => postMatchesProvince(post, provinceFilter));
   }, [provinceFilter, speciesMatchedPosts]);
 
-  const genderFilterItems = useMemo<ChipItem<Exclude<GenderFilter, 'all'>>[]>(() => {
-    const maleCount = countPostsByGender(provinceMatchedPosts, 'male');
-    const femaleCount = countPostsByGender(provinceMatchedPosts, 'female');
-    return [
-      { key: 'male', label: t('gender.male'), count: maleCount, icon: 'male-outline' },
-      { key: 'female', label: t('gender.female'), count: femaleCount, icon: 'female-outline' },
-    ];
-  }, [provinceMatchedPosts, t]);
-
-  function toggleSort(field: PetFeedSortChipField) {
-    if (sortField === field) {
-      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
-      setListSortPreset(field === 'price' ? 'best_price' : 'newest');
-      return;
-    }
-    setSortField(field);
-    setSortDirection('asc');
-    setListSortPreset(field === 'price' ? 'best_price' : 'newest');
-  }
-
   function applyListSortPreset(preset: PetFeedListSortPreset) {
     setListSortPreset(preset);
     if (preset === 'best_price') {
@@ -414,14 +380,6 @@ export function PetFeedScreen({
     setSortField('date');
     setSortDirection('desc');
   }
-
-  const sortItems = useMemo<ChipItem<PetFeedSortChipField>[]>(() => (
-    PET_FEED_SORT_CHIP_FIELDS.map((key) => ({
-      key,
-      label: t(`petFeed.sort.${key}`),
-      icon: key === 'age' ? 'calendar-outline' : 'cash-outline',
-    }))
-  ), [t]);
 
   const filteredPosts = useMemo(() => {
     const byGender = genderFilter === 'all'
@@ -600,15 +558,6 @@ export function PetFeedScreen({
     () => (normalizedQuery ? [] : pickTopInterestedListings(filteredPosts, 8)),
     [filteredPosts, normalizedQuery],
   );
-  const filterPanelWidth = Math.min(Math.round(windowWidth * 0.76), 330);
-  const filterPanelMaxHeight = Math.min(Math.round(windowHeight * 0.58), 480);
-  const filterPanelTopOffset = modalTopInset(insets.top) + 112;
-  const hasActiveFilters = isPetFeedQuickFilterActive({
-    provinceFilter,
-    genderFilter,
-    sortField,
-    sortDirection,
-  });
   const showListSkeleton =
     (activeTab === 'feed' && initialLoading)
     || (activeTab === 'news' && announcementInitialLoading)
@@ -687,20 +636,6 @@ export function PetFeedScreen({
     onFocusPostHandled,
     posts,
   ]);
-
-  const resetFilters = useCallback(() => {
-    userChangedSpeciesFilterRef.current = true;
-    preferredSpeciesSeededRef.current = true;
-    setPetTypeFilter(DEFAULT_PET_TYPE_FILTER);
-    preferredProvinceSeededRef.current = true;
-    setProvinceFilter(ALL_PROVINCES_FILTER);
-    setGenderFilter('all');
-    setSortField(DEFAULT_PET_FEED_SORT_FIELD);
-    setSortDirection(DEFAULT_PET_FEED_SORT_DIRECTION);
-    setListSortPreset(DEFAULT_PET_FEED_LIST_SORT_PRESET);
-    setBreederSortPreset(DEFAULT_PET_FEED_BREEDER_SORT_PRESET);
-    listRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, []);
 
   const promptFarmReview = useCallback(async (profile: BreederProfile) => {
     if (canShowBreederVisitFarmAction(currentUserId, profile.user_id)) return;
@@ -998,25 +933,38 @@ export function PetFeedScreen({
               </Pressable>
             ) : null}
           </View>
-          {enabledTabs.feed ? (
-            <Pressable
-              testID="pet-feed-filter-sidebar-button"
-              accessibilityRole="button"
-              accessibilityLabel={t('petFeed.accessibility.openFilters')}
-              accessibilityState={{ selected: hasActiveFilters }}
-              className="h-9 w-9 items-center justify-center rounded-xl"
-              style={{
-                borderWidth: 1,
-                borderColor: hasActiveFilters ? BRAND.btnPrimary : '#E5E7EB',
-                backgroundColor: hasActiveFilters ? BRAND.surfaceLight : '#F8FAFC',
-              }}
-              onPress={() => setFilterVisible(true)}
-            >
-              <Ionicons name="menu-outline" size={22} color={hasActiveFilters ? BRAND.btnPrimary : BRAND.textMuted} />
-            </Pressable>
-          ) : (
-            <View className="h-9 w-9" />
-          )}
+          {(() => {
+            const canCreatePost = userRole === 'breeder' || userRole === 'admin';
+            const actionLabel = canCreatePost
+              ? t('petFeed.accessibility.createPost')
+              : t('petFeed.accessibility.createFarmProfile');
+            const onPress = canCreatePost ? onCreatePost : onCreateFarmProfile;
+            if (!onPress) return <View className="h-10 w-10" />;
+            return (
+              <Pressable
+                testID={canCreatePost ? 'pet-feed-create-post-button' : 'pet-feed-create-farm-button'}
+                accessibilityRole="button"
+                accessibilityLabel={actionLabel}
+                className="h-10 w-10 items-center justify-center rounded-xl"
+                style={
+                  canCreatePost
+                    ? { backgroundColor: BRAND.btnPrimary }
+                    : {
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB',
+                        backgroundColor: BRAND.card,
+                      }
+                }
+                onPress={onPress}
+              >
+                {canCreatePost ? (
+                  <FontAwesome5 name="pen-square" size={17} color={BRAND.textInverse} />
+                ) : (
+                  <Ionicons name="rocket-outline" size={22} color={BRAND.btnPrimary} />
+                )}
+              </Pressable>
+            );
+          })()}
         </View>
 
         <PetTypeFilterRow value={petTypeFilter} onChange={changePetTypeFilter} />
@@ -1187,187 +1135,6 @@ export function PetFeedScreen({
       contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}
     />
     </View>
-    <Modal visible={filterVisible} transparent animationType="fade" onRequestClose={() => { setProvincePickerOpen(false); setFilterVisible(false); }}>
-      <View className="flex-1">
-        <Pressable className="absolute inset-0" accessibilityRole="button" accessibilityLabel={t('petFeed.accessibility.closeFilters')} onPress={() => { setProvincePickerOpen(false); setFilterVisible(false); }} />
-        <View
-          className="self-end rounded-3xl border border-gray-200 bg-white p-4 shadow-2xl"
-          style={{ marginRight: 20, marginTop: filterPanelTopOffset, maxHeight: filterPanelMaxHeight, width: filterPanelWidth }}
-        >
-          <View className="mb-4 flex-row items-center justify-between">
-            <View className="min-w-0 flex-1">
-              <Text className="text-base font-bold text-slate-900">{t('petFeed.filtersTitle')}</Text>
-              <Text className="mt-0.5 text-xs font-semibold text-slate-400">
-                {filteredPosts.length}/{posts.length}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              {hasActiveFilters ? (
-                <Pressable
-                  accessibilityRole="button"
-                  className="rounded-full px-3 py-2"
-                  style={{ backgroundColor: BRAND.surfaceLight }}
-                  onPress={resetFilters}
-                >
-                  <Text className="text-xs font-semibold" style={{ color: BRAND.textBrandLink }}>
-                    {t('petFeed.resetFilters')}
-                  </Text>
-                </Pressable>
-              ) : null}
-              <Pressable accessibilityRole="button" accessibilityLabel={t('petFeed.accessibility.closeFilters')} className="rounded-full bg-slate-100 p-2" onPress={() => { setProvincePickerOpen(false); setFilterVisible(false); }}>
-              <Ionicons name="close" size={18} color="#64748b" />
-              </Pressable>
-            </View>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View className="rounded-2xl bg-slate-50 p-3">
-              <Text className="mb-2 text-xs font-bold uppercase text-slate-500">{t('petFeed.filterProvinceTitle')}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('petFeed.filterProvinceTitle')}
-                className="flex-row items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2.5"
-                onPress={() => setProvincePickerOpen(true)}
-              >
-                <Text className="min-w-0 flex-1 pr-2 text-sm font-semibold text-slate-900" numberOfLines={1}>
-                  {provinceFilter === ALL_PROVINCES_FILTER ? t('petFeed.filters.allProvinces') : provinceFilter}
-                </Text>
-                <Ionicons name="chevron-down" size={18} color="#64748b" />
-              </Pressable>
-            </View>
-
-            <View className="mt-3 rounded-2xl bg-slate-50 p-3">
-              <Text className="mb-2 text-xs font-bold uppercase text-slate-500">{t('profile.gender')}</Text>
-              <View className="flex-row flex-wrap gap-2">
-                {genderFilterItems.map((item) => {
-                  const active = genderFilter === item.key;
-                  return (
-                    <Pressable
-                      key={item.key}
-                      accessibilityRole="button"
-                      accessibilityLabel={item.label}
-                      accessibilityState={{ selected: active }}
-                      className="flex-row items-center gap-1.5 rounded-full px-3 py-2"
-                      style={{
-                        borderWidth: 1,
-                        borderColor: active ? BRAND.btnPrimary : '#E5E7EB',
-                        backgroundColor: active ? BRAND.btnPrimary : BRAND.card,
-                      }}
-                      onPress={() => setGenderFilter((current) => (current === item.key ? 'all' : item.key))}
-                    >
-                      <Ionicons name={item.icon} size={14} color={active ? BRAND.textInverse : BRAND.textMuted} />
-                      <Text
-                        className="text-xs font-semibold"
-                        style={{ color: active ? BRAND.textInverse : BRAND.textSecondary }}
-                      >
-                        {item.label}
-                      </Text>
-                      <Text
-                        className="text-xs font-semibold"
-                        style={{ color: active ? BRAND.btnSecondaryPressed : BRAND.textMuted }}
-                      >
-                        {item.count}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-
-            <View className="mt-3 rounded-2xl bg-slate-50 p-3">
-              <Text className="mb-2 text-xs font-bold uppercase text-slate-500">{t('petFeed.sortTitle')}</Text>
-              <View className="flex-row gap-1.5">
-                {sortItems.map((item) => {
-                  const active = sortField === item.key;
-                  const directionIcon = sortDirection === 'asc' ? 'arrow-up-outline' : 'arrow-down-outline';
-                  return (
-                    <Pressable
-                      key={item.key}
-                      accessibilityRole="button"
-                      accessibilityLabel={item.label}
-                      accessibilityState={{ selected: active }}
-                      className="flex-1 flex-row items-center justify-center gap-1 rounded-full px-2 py-2"
-                      style={{
-                        borderWidth: 1,
-                        borderColor: active ? BRAND.btnPrimary : '#E5E7EB',
-                        backgroundColor: active ? BRAND.btnPrimary : BRAND.card,
-                      }}
-                      onPress={() => toggleSort(item.key)}
-                    >
-                      <Ionicons name={item.icon} size={13} color={active ? BRAND.textInverse : BRAND.textMuted} />
-                      <Text
-                        className="min-w-0 text-[11px] font-semibold"
-                        style={{ color: active ? BRAND.textInverse : BRAND.textSecondary }}
-                        numberOfLines={1}
-                      >
-                        {item.label}
-                      </Text>
-                      {active ? <Ionicons name={directionIcon} size={13} color={BRAND.textInverse} /> : null}
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-    <Modal visible={provincePickerOpen} transparent animationType="fade" onRequestClose={() => setProvincePickerOpen(false)}>
-      <View className="flex-1 justify-end">
-        <Pressable className="absolute inset-0 bg-black/40" accessibilityRole="button" accessibilityLabel={t('common.cancel')} onPress={() => setProvincePickerOpen(false)} />
-        <View className="max-h-[70%] rounded-t-2xl bg-white px-4 pt-2">
-          <View className="mb-2 self-center rounded-full bg-gray-200 px-10 py-1" />
-          <Text className="mb-3 text-center text-sm font-semibold text-slate-500">{t('petFeed.filterProvinceTitle')}</Text>
-          <ScrollView bounces={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 360 }}>
-            <Pressable
-              accessibilityRole="button"
-              className="border-b border-gray-100 py-3.5 active:bg-gray-50"
-              onPress={() => {
-                changeProvinceFilter(ALL_PROVINCES_FILTER);
-                setProvincePickerOpen(false);
-              }}
-            >
-              <Text
-                className={`text-center text-base ${provinceFilter === ALL_PROVINCES_FILTER ? 'font-bold' : 'font-normal'}`}
-                style={{
-                  color: provinceFilter === ALL_PROVINCES_FILTER ? BRAND.textBrandLink : BRAND.textPrimary,
-                }}
-              >
-                {t('petFeed.filters.allProvinces')}
-              </Text>
-            </Pressable>
-            {VIETNAM_PROVINCES.map((province) => {
-              const active = provinceFilter === province;
-              return (
-                <Pressable
-                  key={province}
-                  accessibilityRole="button"
-                  className="border-b border-gray-100 py-3.5 active:bg-gray-50"
-                  onPress={() => {
-                    changeProvinceFilter(province);
-                    setProvincePickerOpen(false);
-                  }}
-                >
-                  <Text
-                    className={`text-center text-base ${active ? 'font-bold' : 'font-normal'}`}
-                    style={{
-                      color: active ? BRAND.textBrandLink : BRAND.textPrimary,
-                    }}
-                  >
-                    {province}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-          <Pressable className="py-3" onPress={() => setProvincePickerOpen(false)}>
-            <Text className="text-center text-base" style={{ color: BRAND.textBrandLink }}>
-              {t('common.cancel')}
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
     <ModalScreenShell
       visible={selectedAnnouncementId != null}
       title={t('petFeed.newsDetailTitle')}

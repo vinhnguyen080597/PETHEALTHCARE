@@ -1,6 +1,6 @@
 import { brandUi, splitBrandName } from "@/lib/brand";
 
-/** Logo wordmark: orange “PetCare” + neutral “: Pet Marketplace”. */
+/** Logo wordmark: orange “Pethub” + neutral “: Pet Marketplace”. */
 export function BrandWordmark({
   text,
   className = "font-bold text-sm tracking-tight",

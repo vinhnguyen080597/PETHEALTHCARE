@@ -721,7 +721,7 @@ export function ListingDetail({
 
   const shareListing = async () => {
     const url = listingShareUrl(listing.id);
-    const shareTitle = title || "PetCare: Pet Marketplace";
+    const shareTitle = title || "Pethub: Pet Marketplace";
     const shareData: ShareData = {
       title: shareTitle,
       text: shareTitle,

@@ -192,7 +192,7 @@ export interface Listing {
   ctaUrl?: string;
   favoriteCount?: number;
   commentCount?: number;
-  /** Listing accepts PetCare escrow deposit (Phase B UI). */
+  /** Listing accepts Pethub escrow deposit (Phase B UI). */
   escrowEnabled: boolean;
   /** True when archive/sold metadata marks a completed rehome. */
   metadataSold?: boolean;

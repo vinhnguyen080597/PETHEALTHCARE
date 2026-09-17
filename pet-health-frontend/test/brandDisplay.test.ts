@@ -3,9 +3,9 @@ import { describe, it } from 'node:test';
 import { BRAND_NAME_SHORT, splitBrandName } from '../src/utils/brandDisplay.ts';
 
 describe('splitBrandName', () => {
-  it('splits PetCare marketplace title for header wordmark', () => {
-    assert.deepEqual(splitBrandName('PetCare: Pet Marketplace'), {
-      lead: 'PetCare',
+  it('splits Pethub marketplace title for header wordmark', () => {
+    assert.deepEqual(splitBrandName('Pethub: Pet Marketplace'), {
+      lead: 'Pethub',
       rest: ': Pet Marketplace',
     });
   });
@@ -18,6 +18,6 @@ describe('splitBrandName', () => {
   });
 
   it('exports short brand constant', () => {
-    assert.equal(BRAND_NAME_SHORT, 'PetCare');
+    assert.equal(BRAND_NAME_SHORT, 'Pethub');
   });
 });

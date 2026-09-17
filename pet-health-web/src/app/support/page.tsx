@@ -5,7 +5,7 @@ import { supportContent } from "@/lib/legalContent";
 import { getLegalPageLang } from "@/lib/legalPageLang";
 import { SUPPORT_HUB_HREF } from "@/lib/supportHub";
 
-export const metadata = { title: "Support · PetCare: Pet Marketplace" };
+export const metadata = { title: "Support · Pethub: Pet Marketplace" };
 
 export default async function SupportPage({
   searchParams,

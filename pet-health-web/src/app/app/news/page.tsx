@@ -42,7 +42,7 @@ export async function generateMetadata({
                 url: photo,
                 width: 1200,
                 height: 630,
-                alt: listing.title || "PetCare news",
+                alt: listing.title || "Pethub news",
               },
             ]
           : undefined;
@@ -52,7 +52,7 @@ export async function generateMetadata({
           alternates: { canonical },
           openGraph: {
             type: "article",
-            siteName: "PetCare: Pet Marketplace",
+            siteName: "Pethub: Pet Marketplace",
             title,
             description,
             url: canonical,

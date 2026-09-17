@@ -2,7 +2,7 @@ import { LegalPage } from "@/components/legal/LegalPage";
 import { termsOfServiceContent } from "@/lib/legalContent";
 import { getLegalPageLang } from "@/lib/legalPageLang";
 
-export const metadata = { title: "Terms of Service · PetCare: Pet Marketplace" };
+export const metadata = { title: "Terms of Service · Pethub: Pet Marketplace" };
 
 export default async function TermsPage({
   searchParams,

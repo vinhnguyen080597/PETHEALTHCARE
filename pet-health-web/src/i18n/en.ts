@@ -8,7 +8,7 @@ const en = {
   "nav.account": "Account",
   "nav.admin": "Admin",
   "nav.login": "Log in",
-  "nav.brand": "PetCare: Pet Marketplace",
+  "nav.brand": "Pethub: Pet Marketplace",
   "nav.language": "Language",
   "breadcrumb.home": "Home",
   "breadcrumb.listing": "Listings",
@@ -43,13 +43,13 @@ const en = {
   "landing.whySub": "Listings & contact. Verified profiles. You check in person before paying.",
   "landing.value1.title": "Connect Sen and breeders",
   "landing.value1.desc":
-    "Browse listings, message farms, and negotiate directly — like a classified marketplace. PetCare does not hold pet-sale payments.",
+    "Browse listings, message farms, and negotiate directly — like a classified marketplace. Pethub does not hold pet-sale payments.",
   "landing.value2.title": "Verified kennels & health profiles",
   "landing.value2.desc":
     "Admin-reviewed breeders with vaccine records and clear farm profiles before you message. Badges are technical labels, not a legal license check.",
   "landing.value3.title": "Check before you pay",
   "landing.value3.desc":
-    "Meet the pet, review documents, and agree shipping off-platform. PetCare is not a party to the sale.",
+    "Meet the pet, review documents, and agree shipping off-platform. Pethub is not a party to the sale.",
   "landing.value.comingSoon": "Coming soon",
   "landing.latest": "New Pets",
   "landing.viewAll": "View all →",
@@ -66,10 +66,10 @@ const en = {
   "landing.footer.browse": "Pets",
   "landing.footer.create": "Create listing",
   "landing.footer.disclaimer":
-    "Listings posted by users. PetCare: Pet Marketplace is not the seller and does not hold pet-sale payments. Verify in person before transferring money.",
+    "Listings posted by users. Pethub: Pet Marketplace is not the seller and does not hold pet-sale payments. Verify in person before transferring money.",
 
   "feed.disclaimer":
-    "Listings are posted by users. PetCare: Pet Marketplace is not the seller and does not guarantee pets, health claims, or deal outcomes. PetCare does not hold transaction money. Verify the pet and documents in person before transferring money. Read our ",
+    "Listings are posted by users. Pethub: Pet Marketplace is not the seller and does not guarantee pets, health claims, or deal outcomes. Pethub does not hold transaction money. Verify the pet and documents in person before transferring money. Read our ",
   "feed.guidelines": "Marketplace Guidelines",
   "feed.disclaimerEnd": " before deciding.",
   "feed.search": "Search breed, breeder, location…",
@@ -110,13 +110,13 @@ const en = {
   "feed.empty": "No listings found",
   "news.title": "News",
   "news.subtitle":
-    "App updates, community notes, and PetCare: Pet Marketplace announcements.",
+    "App updates, community notes, and Pethub: Pet Marketplace announcements.",
   "news.empty": "No news yet. Check back soon.",
   "news.emptyFiltered": "No posts in this topic yet.",
   "news.loadError": "Could not load news",
   "news.readMore": "Read more",
   "news.readLess": "Show less",
-  "news.author": "PetCare Admin",
+  "news.author": "Pethub Admin",
   "news.featured": "Featured",
   "news.readMinutes": "{{n}} min read",
   "news.filter.all": "All",
@@ -125,7 +125,7 @@ const en = {
   "news.filter.community": "Breeder corner",
   "news.filter.general": "General",
   "news.topic.hot": "Hot topics",
-  "news.topic.care": "#PetCareTips",
+  "news.topic.care": "#PethubTips",
   "news.topic.nutrition": "#PetNutrition",
   "news.topic.warranty": "#HealthWarranty",
   "news.topic.breeder": "#BreederCorner",
@@ -165,13 +165,13 @@ const en = {
   "supportHub.subtitle":
     "Guides, product feedback, and scam reports — usually one or two clicks away.",
   "supportHub.searchPlaceholder":
-    "What can PetCare help with today? (guides, phone, bank account…)",
+    "What can Pethub help with today? (guides, phone, bank account…)",
   "supportHub.searchHint":
     "Tip: search guides or feedback topics. Blacklist checks demo samples plus admin-reviewed scam identifiers.",
   "supportHub.contactHours": "Support hours: 08:30 – 17:30 (Mon–Fri). Typical reply within 24–48 business hours.",
   "supportHub.contactEmailLabel": "Customer support",
   "supportHub.legalEmailLabel": "Legal / reports",
-  "supportHub.loginRequired": "Sign in to send feedback or scam reports to PetCare admins.",
+  "supportHub.loginRequired": "Sign in to send feedback or scam reports to Pethub admins.",
   "supportHub.loginCta": "Sign in to continue",
   "supportHub.submitting": "Sending…",
   "supportHub.section.empty": "No support sections match this search.",
@@ -190,27 +190,27 @@ const en = {
   "supportHub.audience.buyer": "For Sen",
   "supportHub.audience.breeder": "For Breeders",
   "supportHub.guide.empty": "No guides match this search.",
-  "supportHub.guide.openInApp": "Open related screen in PetCare",
+  "supportHub.guide.openInApp": "Open related screen in Pethub",
   "supportHub.guide.buyerDeposit.title": "How to connect safely (no platform payment hold)",
   "supportHub.guide.buyerDeposit.body":
-    "PetCare does not hold pet-sale payments. Use chat to contact the Breeder, then verify the pet and documents in person before you transfer any money off-platform.",
+    "Pethub does not hold pet-sale payments. Use chat to contact the Breeder, then verify the pet and documents in person before you transfer any money off-platform.",
   "supportHub.guide.buyerDeposit.steps":
-    "1. Review the listing, warranty text (if any), and Breeder profile.\n2. Message or call the Breeder via PetCare contact tools.\n3. Agree price, any off-platform payment, and shipping between yourselves.\n4. Meet the pet and check documents before transferring money.",
+    "1. Review the listing, warranty text (if any), and Breeder profile.\n2. Message or call the Breeder via Pethub contact tools.\n3. Agree price, any off-platform payment, and shipping between yourselves.\n4. Meet the pet and check documents before transferring money.",
   "supportHub.guide.buyerHandoff.title": "How to check the pet at handoff",
   "supportHub.guide.buyerHandoff.body":
     "Meet in a safe place, verify chip/vaccine book if listed, record a short handoff video, and compare the pet to listing photos before you pay or take the pet home.",
   "supportHub.guide.buyerWarranty.title": "Understand listing warranties",
   "supportHub.guide.buyerWarranty.body":
-    "Any warranty on a listing is a commitment from the Breeder, not from PetCare. Keep chat records and vet certificates if you need to follow up with the Seller off-platform.",
+    "Any warranty on a listing is a commitment from the Breeder, not from Pethub. Keep chat records and vet certificates if you need to follow up with the Seller off-platform.",
   "supportHub.guide.breederVerify.title": "Get a Verified Breeder profile",
   "supportHub.guide.breederVerify.body":
-    "Complete farm profile details, upload verification documents from Account → Breeder, and keep listings accurate. Verification is a technical review by PetCare moderators — not a legal license certification.",
+    "Complete farm profile details, upload verification documents from Account → Breeder, and keep listings accurate. Verification is a technical review by Pethub moderators — not a legal license certification.",
   "supportHub.guide.breederWarranty.title": "Attach warranty policy to a listing",
   "supportHub.guide.breederWarranty.body":
     "Create or pick a policy in the Warranty library, then attach it when you publish or edit a listing so Sen sees your coverage before contacting you. You alone are responsible for honoring it.",
   "supportHub.guide.breederPayout.title": "Payments stay between you and Sen",
   "supportHub.guide.breederPayout.body":
-    "PetCare does not collect or release pet-sale payments. Agree payment terms directly with Sen, stay clear in chat, and never claim PetCare is holding their money.",
+    "Pethub does not collect or release pet-sale payments. Agree payment terms directly with Sen, stay clear in chat, and never claim Pethub is holding their money.",
   "supportHub.feedback.formTitle": "Send feedback",
   "supportHub.feedback.category": "Category",
   "supportHub.feedback.cat.ui": "UI/UX improvement",
@@ -228,9 +228,9 @@ const en = {
   "supportHub.feedback.required": "Please add a title and details.",
   "supportHub.thanks.title": "Thank you",
   "supportHub.thanks.feedbackBody":
-    "We received your feedback. PetCare admins will review it and follow up when needed.",
+    "We received your feedback. Pethub admins will review it and follow up when needed.",
   "supportHub.thanks.scamBody":
-    "We received your report. PetCare admins will review the evidence and take action if appropriate.",
+    "We received your report. Pethub admins will review the evidence and take action if appropriate.",
   "supportHub.thanks.close": "Got it",
   "supportHub.blacklist.title": "Public lookup",
   "supportHub.blacklist.liveBadge": "Live + demo",
@@ -274,7 +274,7 @@ const en = {
   "supportHub.scam.photosTooMany": "You can attach up to 5 evidence photos.",
   "supportHub.scam.evidenceConfirm": "I confirm these photos are accurate evidence.",
   "supportHub.scam.privacy":
-    "Reports go to PetCare admins. We use evidence only for moderation and lawful requests.",
+    "Reports go to Pethub admins. We use evidence only for moderation and lawful requests.",
   "feed.loadError": "Could not load listings",
   "feed.loadMore": "Load more",
   "feed.activeListings": "active listings",
@@ -806,7 +806,7 @@ const en = {
 
   "app.banner.need": "Need to track your pet's health?",
   "app.banner.desc":
-    "Download PetCare: Pet Marketplace — AI health screening, vaccine reminders, and complete health diary.",
+    "Download Pethub: Pet Marketplace — AI health screening, vaccine reminders, and complete health diary.",
 
   "auth.login": "Log in",
   "auth.signup": "Sign up",
@@ -927,12 +927,12 @@ const en = {
   "account.breederProfile": "Breeder profile",
   "account.template": "Farm page template",
   "account.notLoggedIn": "Please log in to manage your account.",
-  "account.myRole": "Your role on PetCare: Pet Marketplace",
+  "account.myRole": "Your role on Pethub: Pet Marketplace",
   "account.shortcuts": "Shortcuts",
   "account.requestBreeder": "Register as Breeder",
   "account.openAdminReview": "Open Admin Console",
   "account.communitySafety":
-    "Listings should stay transparent and respectful. PetCare: Pet Marketplace does not handle payments or replace direct breeder verification.",
+    "Listings should stay transparent and respectful. Pethub: Pet Marketplace does not handle payments or replace direct breeder verification.",
   "account.breederSafety":
     "Listings should include clear photos, a short video, vaccine/deworming details, and transparent adoption conditions. Avoid absolute health claims without veterinary confirmation.",
   "account.vetSummary":
@@ -967,7 +967,7 @@ const en = {
   "account.senStatus.helper.pending_review":
     "Admin is reviewing your request. You can cancel and resubmit if something looks wrong.",
   "account.senStatus.helper.verified":
-    "This account can use Breeder features on PetCare: Pet Marketplace.",
+    "This account can use Breeder features on Pethub: Pet Marketplace.",
   "account.senStatus.helper.rejected":
     "Add clearer details and submit again for admin review.",
   "account.senStatus.helper.suspended":
@@ -1033,7 +1033,7 @@ const en = {
   "transparencyWarning.appealed": "Appeal sent. Your account stays active while admin reviews.",
   "account.roles.sen.title": "Pet parent",
   "account.roles.sen.body":
-    "Browse structured listings, save pets, and message breeders on PetCare: Pet Marketplace.",
+    "Browse structured listings, save pets, and message breeders on Pethub: Pet Marketplace.",
   "account.roles.breeder.title": "Breeder",
   "account.roles.breeder.body":
     "Create a trustworthy farm profile and structured listings for admin review.",
@@ -1135,9 +1135,9 @@ const en = {
   "breederForm.commitment.accurate_information":
     "I confirm the information I submit is accurate and can be verified.",
   "breederForm.commitment.app_only_verification":
-    "I understand verification is for PetCare: Pet Marketplace listing access and does not replace in-person checks.",
+    "I understand verification is for Pethub: Pet Marketplace listing access and does not replace in-person checks.",
   "breederForm.commitment.combinedBefore":
-    "I confirm the information I submit is accurate and can be verified; I understand verification is for PetCare: Pet Marketplace listing access and does not replace in-person checks. I have read and understand the ",
+    "I confirm the information I submit is accurate and can be verified; I understand verification is for Pethub: Pet Marketplace listing access and does not replace in-person checks. I have read and understand the ",
   "breederForm.commitment.termsLink": "Terms of Service",
   "breederForm.commitment.and": " and ",
   "breederForm.commitment.guidelinesLink": "Marketplace Guidelines",
@@ -1161,7 +1161,7 @@ const en = {
   "listing.statusModal.subtitle": "Choose a new status for your listing",
   "listing.statusModal.saleChannelHint": "Choose where the sale happened to finish updating",
   "listing.statusModal.saleChannel": "Where was the pet sold?",
-  "listing.statusModal.onPlatform": "On PetCare marketplace",
+  "listing.statusModal.onPlatform": "On Pethub marketplace",
   "listing.statusModal.offPlatform": "Off platform",
   "listing.statusModal.buyerEmailOptional": "Buyer email (optional, for review invite)",
   "listing.statusModal.buyerEmailPlaceholder": "buyer@email.com",
@@ -1181,7 +1181,7 @@ const en = {
   "listing.new.termsBefore": "I have read and agree to the ",
   "listing.new.termsAnd": " and ",
   "listing.new.termsAfter":
-    ", and confirm that listing information is accurate and truthful. I alone am responsible for business registration, veterinary/breeding permits (where required), lawful origin of the pet, and any off-platform payments I receive. PetCare does not hold pet-sale payments.",
+    ", and confirm that listing information is accurate and truthful. I alone am responsible for business registration, veterinary/breeding permits (where required), lawful origin of the pet, and any off-platform payments I receive. Pethub does not hold pet-sale payments.",
   "listing.new.photos": "Photos (up to 6)",
   "listing.new.photosHint": "Clear face + body photos help approval.",
   "listing.new.video": "Short video (required)",
@@ -1764,7 +1764,7 @@ const en = {
   "admin.features.marketplace_escrow.title": "Marketplace escrow (pilot)",
   "admin.features.marketplace_escrow.desc":
     "Deposit-hold / deal panel on listings. Off = classified connect-only (chat/call). Keep off until payment partner is ready.",
-  "admin.news.title": "Post PetCare: Pet Marketplace news",
+  "admin.news.title": "Post Pethub: Pet Marketplace news",
   "admin.news.note":
     "This post appears under Tin tức / News (header tab), not in sale listings.",
   "admin.news.category": "Content type",
@@ -1811,7 +1811,7 @@ const en = {
 
   "legal.title": "Support and policies",
   "legal.body":
-    "See how PetCare: Pet Marketplace handles privacy, terms, marketplace rules, and support requests.",
+    "See how Pethub: Pet Marketplace handles privacy, terms, marketplace rules, and support requests.",
   "legal.privacy": "Privacy Policy",
   "legal.terms": "Terms of Service",
   "legal.guidelines": "Marketplace Guidelines",

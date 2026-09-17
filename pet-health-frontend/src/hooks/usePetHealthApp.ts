@@ -2618,17 +2618,37 @@ export function usePetHealthApp() {
     }
   }
 
-  function openCreatePetFeedPost() {
+  async function openCreatePetFeedPost() {
     if (hasAccountRole('admin')) {
       openCreateAdminPost();
       return;
     }
-    if (!hasAccountRole('breeder') || breederProfile?.verification_status !== 'verified') {
+    if (!hasAccountRole('breeder')) {
+      Alert.alert(i18n.t('account.roleRequiredTitle'), i18n.t('account.breederOnly'));
+      return;
+    }
+    let profile = breederProfile;
+    if ((!profile || profile.verification_status !== 'verified') && token) {
+      try {
+        const profileRes = await getMyBreederProfile(token);
+        profile = profileRes.data;
+        setBreederProfile(profile);
+      } catch {
+        /* keep cached profile */
+      }
+    }
+    if (profile?.verification_status !== 'verified') {
       Alert.alert(i18n.t('account.roleRequiredTitle'), i18n.t('account.breederOnly'));
       return;
     }
     setEditingPetFeedPost(null);
-    setCreatePetFeedReturnScreen(screen === 'breeder-profile' ? 'breeder-profile' : 'account');
+    setCreatePetFeedReturnScreen(
+      screen === 'breeder-profile'
+        ? 'breeder-profile'
+        : screen === 'pet-feed'
+          ? 'pet-feed'
+          : 'account',
+    );
     setScreen('create-pet-feed-post');
   }
 

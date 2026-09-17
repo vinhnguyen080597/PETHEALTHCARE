@@ -188,7 +188,7 @@ export function buildAdminNewsLivePreview(
     ...safeCta,
     photoUrls,
     coverUrl: photoUrls[0] || null,
-    authorLabel: String(input.authorLabel || "").trim() || "PetCare: Pet Marketplace",
+    authorLabel: String(input.authorLabel || "").trim() || "Pethub: Pet Marketplace",
     createdAt: input.createdAt || new Date().toISOString(),
     hasTitle: Boolean(title),
     hasBody: Boolean(body),

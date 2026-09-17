@@ -66,7 +66,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
   EN: {
     updated: UPDATED_EN,
     intro:
-      "PetCare: Pet Marketplace (“we”) is committed to protecting personal data of Users (including Sen — pet seekers — and Breeders / farms) in line with Decree 13/2023/ND-CP on personal data protection.",
+      "Pethub: Pet Marketplace (“we”) is committed to protecting personal data of Users (including Sen — pet seekers — and Breeders / farms) in line with Decree 13/2023/ND-CP on personal data protection.",
     sections: [
       {
         heading: "Operator",
@@ -79,7 +79,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
           "Breeder verification / listing data: identity or farm materials you upload, photos/videos, vaccine or health notes, and listing warranty text you publish.",
           "Communication content: in-app chat history, reports, and support tickets.",
           "Technical data: IP address, device type, OS version, and activity logs on web/app.",
-          "Paid service data (if used): records related to listing promotion, advertising, or other technical fees you purchase from PetCare — not payment between Sen and Breeder.",
+          "Paid service data (if used): records related to listing promotion, advertising, or other technical fees you purchase from Pethub — not payment between Sen and Breeder.",
         ],
       },
       {
@@ -95,7 +95,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
         heading: "Sharing and visibility",
         paragraphs: [
           "We do not sell personal data. Information you put in public listings or farm profiles is visible to other users. Contact details and chat content are shared with the people you message as part of normal marketplace use. Admins may access relevant records to investigate reports or safety issues. Pet photos and videos you upload may also be used to operate the product and for marketing as described in the Terms of Service and Marketplace Guidelines.",
-          "PetCare does not receive, hold, or process purchase deposits or pet-sale payments between Sen and Breeder. Any money transfer for a pet happens outside the platform between the parties.",
+          "Pethub does not receive, hold, or process purchase deposits or pet-sale payments between Sen and Breeder. Any money transfer for a pet happens outside the platform between the parties.",
         ],
       },
       {
@@ -115,7 +115,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
   VI: {
     updated: UPDATED_VI,
     intro:
-      "PetCare: Pet Marketplace (“Chúng tôi”) cam kết bảo vệ thông tin cá nhân của Người dùng (bao gồm Sen — Người tìm thú cưng và Breeder — Nhà phối giống/Trại giống) theo đúng quy định tại Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân.",
+      "Pethub: Pet Marketplace (“Chúng tôi”) cam kết bảo vệ thông tin cá nhân của Người dùng (bao gồm Sen — Người tìm thú cưng và Breeder — Nhà phối giống/Trại giống) theo đúng quy định tại Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân.",
     sections: [
       {
         heading: "Đơn vị vận hành",
@@ -128,7 +128,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
           "Dữ liệu xác minh Breeder / tin đăng: giấy tờ hoặc hồ sơ trại bạn tải lên, ảnh/video, ghi chú vaccine/sức khỏe và nội dung chính sách bảo hành bạn công bố trên tin.",
           "Nội dung giao tiếp: lịch sử chat trong app, báo cáo và phiếu hỗ trợ.",
           "Dữ liệu kỹ thuật: địa chỉ IP, loại thiết bị, phiên bản hệ điều hành và nhật ký hoạt động trên web/app.",
-          "Dữ liệu dịch vụ trả phí (nếu dùng): hồ sơ liên quan phí đăng tin, quảng cáo/hiển thị hoặc dịch vụ kỹ thuật bạn mua từ PetCare — không phải thanh toán mua bán thú giữa Sen và Breeder.",
+          "Dữ liệu dịch vụ trả phí (nếu dùng): hồ sơ liên quan phí đăng tin, quảng cáo/hiển thị hoặc dịch vụ kỹ thuật bạn mua từ Pethub — không phải thanh toán mua bán thú giữa Sen và Breeder.",
         ],
       },
       {
@@ -144,7 +144,7 @@ export const privacyPolicyContent: Record<"EN" | "VI", LegalDoc> = {
         heading: "Chia sẻ và hiển thị",
         paragraphs: [
           "Chúng tôi không bán dữ liệu cá nhân. Thông tin bạn đưa lên tin công khai hoặc hồ sơ trại có thể được người dùng khác xem. Thông tin liên hệ và nội dung chat được chia sẻ với người bạn nhắn tin trong quá trình dùng marketplace. Admin có thể truy cập hồ sơ liên quan để xử lý báo cáo hoặc vấn đề an toàn. Ảnh và video thú bạn tải lên cũng có thể được dùng để vận hành sản phẩm và truyền thông theo Điều khoản dịch vụ và Nội quy Marketplace.",
-          "PetCare không tiếp nhận, không giữ và không xử lý tiền cọc hay thanh toán mua bán thú giữa Sen và Breeder. Mọi chuyển tiền liên quan thú cưng do hai bên tự thực hiện ngoài nền tảng.",
+          "Pethub không tiếp nhận, không giữ và không xử lý tiền cọc hay thanh toán mua bán thú giữa Sen và Breeder. Mọi chuyển tiền liên quan thú cưng do hai bên tự thực hiện ngoài nền tảng.",
         ],
       },
       {
@@ -167,25 +167,25 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
   EN: {
     updated: UPDATED_EN,
     intro:
-      "These Terms govern use of PetCare: Pet Marketplace (web and app). By creating an account, posting, or browsing listings you agree to these Terms and the Marketplace Guidelines.",
+      "These Terms govern use of Pethub: Pet Marketplace (web and app). By creating an account, posting, or browsing listings you agree to these Terms and the Marketplace Guidelines.",
     sections: [
       {
         heading: "Operator",
         bullets: operatorBulletsEN,
       },
       {
-        heading: "Role of PetCare: Pet Marketplace",
+        heading: "Role of Pethub: Pet Marketplace",
         paragraphs: [
-          "PetCare: Pet Marketplace is an intermediary technology platform that provides listing infrastructure, advertising/display services, and tools to connect Sellers (Breeders / pet shops) with Buyers (Sen).",
+          "Pethub: Pet Marketplace is an intermediary technology platform that provides listing infrastructure, advertising/display services, and tools to connect Sellers (Breeders / pet shops) with Buyers (Sen).",
           "Important statement: we are NOT the seller, do not own the pets, and do not ourselves trade pets on the platform. Breed, health, vaccine, warranty, and legal-status information is declared by the Seller, who is solely legally responsible for that information.",
           "No money-holding / escrow: we do NOT receive, hold, or participate in any deposit or pet-sale payment between Buyer and Seller. Any agreement on deposit, payment, shipping, and handoff is made and performed entirely off-platform by the parties, at their own risk and responsibility.",
-          "No legal licensing audit of Sellers: the platform does not own or operate breeding facilities and has no duty or practical ability to inspect, verify, or certify each Breeder’s business registration, veterinary hygiene certificates, breeding permits, tax compliance, or similar licenses. Listing display and any Verified or similar badges are technical information classifications only and do not constitute a legal guarantee or certification of the Breeder by PetCare.",
+          "No legal licensing audit of Sellers: the platform does not own or operate breeding facilities and has no duty or practical ability to inspect, verify, or certify each Breeder’s business registration, veterinary hygiene certificates, breeding permits, tax compliance, or similar licenses. Listing display and any Verified or similar badges are technical information classifications only and do not constitute a legal guarantee or certification of the Breeder by Pethub.",
         ],
       },
       {
         heading: "Paid technical services",
         paragraphs: [
-          "PetCare may charge Breeders (or other posters) for technical services such as listing publication, promotion, advertising, or featured placement. Those fees are for platform services only. They are not deposits, escrow, or payment for pets, and do not make PetCare a party to any pet-sale contract between Sen and Breeder.",
+          "Pethub may charge Breeders (or other posters) for technical services such as listing publication, promotion, advertising, or featured placement. Those fees are for platform services only. They are not deposits, escrow, or payment for pets, and do not make Pethub a party to any pet-sale contract between Sen and Breeder.",
         ],
       },
       {
@@ -193,7 +193,7 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
         bullets: [
           "Sellers (Breeders): provide accurate information and real photos/videos of the pet. Honor any warranty policy you publish on the listing. You alone bear all risk and disputes arising from deposits or payments you receive directly from Buyers.",
           "Sellers (Breeders) — legal compliance: you warrant and accept full legal responsibility for business registration (where required), tax obligations, breeding/veterinary hygiene conditions, lawful ownership and origin of each animal, vaccination/health documentation, and compliance with Vietnamese and international wildlife law.",
-          "Buyers (Sen): contact Sellers directly, inspect in person (meet the pet, check the vaccine book / health / documents) before transferring any money or completing handoff, and decide for yourselves. PetCare does not mediate or guarantee off-platform payments.",
+          "Buyers (Sen): contact Sellers directly, inspect in person (meet the pet, check the vaccine book / health / documents) before transferring any money or completing handoff, and decide for yourselves. Pethub does not mediate or guarantee off-platform payments.",
         ],
       },
       {
@@ -206,15 +206,15 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Content liability disclaimer",
         paragraphs: [
-          "PetCare: Pet Marketplace administration operates listing review in good faith with the technical tools available. Because of the diversity of companion animals and the limits of remote review, the administration has no duty and does not have specialist expertise to make an in-depth legal assessment of the biological origin of each animal a user uploads, nor of each Breeder’s licenses and permits.",
+          "Pethub: Pet Marketplace administration operates listing review in good faith with the technical tools available. Because of the diversity of companion animals and the limits of remote review, the administration has no duty and does not have specialist expertise to make an in-depth legal assessment of the biological origin of each animal a user uploads, nor of each Breeder’s licenses and permits.",
           "If we detect or receive a report of a listing that appears to involve wildlife or otherwise illegal animals, the administration will remove the listing within 24 hours and may terminate the violating account without prior notice. The violating user remains solely liable for any administrative or criminal sanctions imposed by competent state authorities.",
-          "PetCare is not liable for financial loss, illness of a pet, or other damage arising from off-platform agreements, deposits, payments, shipping, or handoffs between Users.",
+          "Pethub is not liable for financial loss, illness of a pet, or other damage arising from off-platform agreements, deposits, payments, shipping, or handoffs between Users.",
         ],
       },
       {
         heading: "Photos, videos, and promotion",
         paragraphs: [
-          "By uploading pet photos or videos to PetCare: Pet Marketplace (including listings, farm profiles, and related media), you grant PetCare: Pet Marketplace a non-exclusive, royalty-free license to use, reproduce, lightly edit (crop, compose, watermark), and publish that media to operate the product and for marketing or communications. You confirm you have the right to grant this license and that the content does not infringe third-party rights.",
+          "By uploading pet photos or videos to Pethub: Pet Marketplace (including listings, farm profiles, and related media), you grant Pethub: Pet Marketplace a non-exclusive, royalty-free license to use, reproduce, lightly edit (crop, compose, watermark), and publish that media to operate the product and for marketing or communications. You confirm you have the right to grant this license and that the content does not infringe third-party rights.",
         ],
       },
       {
@@ -226,7 +226,7 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Future payment and escrow services",
         paragraphs: [
-          "PetCare may add or upgrade optional payment-support services in the future (for example deposit hold / escrow through a licensed payment partner). We will publish an update on the website/app and notify Users at least 15–30 days before such services take effect. When activated, Users may need to accept the updated Terms before continuing to use payment-related features.",
+          "Pethub may add or upgrade optional payment-support services in the future (for example deposit hold / escrow through a licensed payment partner). We will publish an update on the website/app and notify Users at least 15–30 days before such services take effect. When activated, Users may need to accept the updated Terms before continuing to use payment-related features.",
         ],
       },
       {
@@ -238,16 +238,16 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
   VI: {
     updated: UPDATED_VI,
     intro:
-      "Điều khoản này áp dụng khi bạn dùng marketplace PetCare: Pet Marketplace (web và app). Khi tạo tài khoản, đăng tin hoặc xem tin, bạn đồng ý với Điều khoản và Nội quy Marketplace.",
+      "Điều khoản này áp dụng khi bạn dùng marketplace Pethub: Pet Marketplace (web và app). Khi tạo tài khoản, đăng tin hoặc xem tin, bạn đồng ý với Điều khoản và Nội quy Marketplace.",
     sections: [
       {
         heading: "Đơn vị vận hành",
         bullets: operatorBulletsVI,
       },
       {
-        heading: "Vai trò của PetCare: Pet Marketplace",
+        heading: "Vai trò của Pethub: Pet Marketplace",
         paragraphs: [
-          "PetCare: Pet Marketplace là nền tảng công nghệ trung gian cung cấp hạ tầng đăng tin, dịch vụ quảng cáo/hiển thị và công cụ kết nối thông tin giữa Người bán (Breeder/Pet Shop) và Người mua (Sen).",
+          "Pethub: Pet Marketplace là nền tảng công nghệ trung gian cung cấp hạ tầng đăng tin, dịch vụ quảng cáo/hiển thị và công cụ kết nối thông tin giữa Người bán (Breeder/Pet Shop) và Người mua (Sen).",
           "Tuyên bố quan trọng: Chúng tôi KHÔNG phải là người bán, không sở hữu thú cưng và không trực tiếp kinh doanh thú cưng trên Sàn. Các thông tin về giống, tình trạng sức khỏe, vắc-xin, bảo hành và tư cách pháp lý do Người bán tự kê khai và chịu trách nhiệm trước pháp luật.",
           "Tuyên bố miễn trừ giữ tiền: Chúng tôi KHÔNG tiếp nhận, giữ tiền cọc, hay tham gia vào bất kỳ công đoạn thanh toán/giao dịch tài chính nào giữa Người mua và Người bán liên quan mua bán thú cưng. Mọi thỏa thuận về cọc, thanh toán, vận chuyển và bàn giao hoàn toàn do hai bên tự thực hiện và chịu trách nhiệm ngoài ứng dụng.",
           "Tuyên bố miễn trừ tư cách pháp lý & giấy phép của Người bán: Ban quản trị Sàn không sở hữu, không quản lý cơ sở chăn nuôi và không có nghĩa vụ/khả năng kiểm tra, thẩm định giấy phép đăng ký kinh doanh, giấy chứng nhận điều kiện vệ sinh thú y hay giấy phép chăn nuôi của từng Breeder/Trại giống. Việc hiển thị bài đăng hoặc các nhãn nhận diện (Verified…) trên ứng dụng chỉ mang tính chất phân loại thông tin kỹ thuật, không cấu thành lời đảm bảo hay chứng nhận pháp lý từ phía Sàn đối với Breeder.",
@@ -256,7 +256,7 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Dịch vụ kỹ thuật có thu phí",
         paragraphs: [
-          "PetCare có thể thu phí từ Breeder (hoặc người đăng tin) cho các dịch vụ kỹ thuật như đăng tin, đẩy tin, quảng cáo hoặc hiển thị ưu tiên. Các khoản phí này chỉ là phí dịch vụ nền tảng, không phải tiền cọc, không phải escrow và không phải thanh toán mua thú; không làm PetCare trở thành bên trong hợp đồng mua bán thú giữa Sen và Breeder.",
+          "Pethub có thể thu phí từ Breeder (hoặc người đăng tin) cho các dịch vụ kỹ thuật như đăng tin, đẩy tin, quảng cáo hoặc hiển thị ưu tiên. Các khoản phí này chỉ là phí dịch vụ nền tảng, không phải tiền cọc, không phải escrow và không phải thanh toán mua thú; không làm Pethub trở thành bên trong hợp đồng mua bán thú giữa Sen và Breeder.",
         ],
       },
       {
@@ -264,7 +264,7 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
         bullets: [
           "Đối với Người bán (Breeder): cam kết cung cấp thông tin chính xác, ảnh/video thực tế của bé cưng; thực hiện đúng chính sách bảo hành đã niêm yết trên tin đăng (nếu có). Tự chịu mọi rủi ro và tranh chấp phát sinh từ việc nhận tiền cọc hoặc thanh toán trực tiếp từ Người mua.",
           "Đối với Người bán (Breeder) — tuân thủ pháp lý: tự chịu hoàn toàn trách nhiệm trước pháp luật về đăng ký kinh doanh (nếu thuộc diện phải đăng ký), nghĩa vụ thuế, điều kiện chăn nuôi/vệ sinh thú y, quyền sở hữu và nguồn gốc hợp pháp của từng thú, sổ tiêm/hồ sơ sức khỏe, và tuân thủ pháp luật Việt Nam cũng như quy định quốc tế về động vật hoang dã.",
-          "Đối với Người mua (Sen): chủ động liên hệ Người bán, kiểm tra thực tế (gặp bé, kiểm tra sổ tiêm/sức khỏe/giấy tờ) trước khi chuyển bất kỳ khoản tiền nào hoặc hoàn tất bàn giao, và tự quyết định. PetCare không môi giới hay bảo lãnh thanh toán ngoài nền tảng.",
+          "Đối với Người mua (Sen): chủ động liên hệ Người bán, kiểm tra thực tế (gặp bé, kiểm tra sổ tiêm/sức khỏe/giấy tờ) trước khi chuyển bất kỳ khoản tiền nào hoặc hoàn tất bàn giao, và tự quyết định. Pethub không môi giới hay bảo lãnh thanh toán ngoài nền tảng.",
         ],
       },
       {
@@ -277,15 +277,15 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Cơ chế miễn trừ trách nhiệm nội dung",
         paragraphs: [
-          "Ban quản trị PetCare: Pet Marketplace vận hành hệ thống kiểm duyệt tin đăng dựa trên thiện chí và các công cụ kỹ thuật hiện có. Do sự đa dạng của các loài vật nuôi và giới hạn kiểm duyệt từ xa, Ban quản trị không có nghĩa vụ và không đủ chuyên môn để thẩm định tính pháp lý chuyên sâu về nguồn gốc sinh học của từng cá thể động vật do người dùng tải lên, cũng như không thẩm định đầy đủ giấy phép/đăng ký của từng Breeder.",
+          "Ban quản trị Pethub: Pet Marketplace vận hành hệ thống kiểm duyệt tin đăng dựa trên thiện chí và các công cụ kỹ thuật hiện có. Do sự đa dạng của các loài vật nuôi và giới hạn kiểm duyệt từ xa, Ban quản trị không có nghĩa vụ và không đủ chuyên môn để thẩm định tính pháp lý chuyên sâu về nguồn gốc sinh học của từng cá thể động vật do người dùng tải lên, cũng như không thẩm định đầy đủ giấy phép/đăng ký của từng Breeder.",
           "Khi phát hiện hoặc nhận được báo cáo về tin đăng có dấu hiệu vi phạm quy định về động vật hoang dã/trái phép, Ban quản trị sẽ tiến hành gỡ bỏ tin đăng trong vòng 24 giờ và có thể hủy bỏ tài khoản vi phạm mà không cần báo trước. Người dùng vi phạm sẽ phải tự chịu mọi hình phạt hành chính hoặc hình sự trước cơ quan nhà nước có thẩm quyền.",
-          "PetCare không chịu trách nhiệm về tổn thất tài chính, bệnh tật thú cưng hoặc thiệt hại khác phát sinh từ thỏa thuận, đặt cọc, thanh toán, vận chuyển hay bàn giao ngoài nền tảng giữa Người dùng.",
+          "Pethub không chịu trách nhiệm về tổn thất tài chính, bệnh tật thú cưng hoặc thiệt hại khác phát sinh từ thỏa thuận, đặt cọc, thanh toán, vận chuyển hay bàn giao ngoài nền tảng giữa Người dùng.",
         ],
       },
       {
         heading: "Ảnh, video và truyền thông",
         paragraphs: [
-          "Khi bạn tải ảnh hoặc video thú cưng lên PetCare: Pet Marketplace (gồm tin đăng, hồ sơ trại và media liên quan), bạn cấp cho PetCare: Pet Marketplace quyền không độc quyền, miễn phí bản quyền để sử dụng, sao chép, chỉnh sửa nhẹ (cắt, ghép, gắn watermark) và công bố nội dung đó nhằm vận hành sản phẩm cũng như quảng bá, truyền thông. Bạn xác nhận mình có quyền cấp phép này và nội dung không xâm phạm quyền của bên thứ ba.",
+          "Khi bạn tải ảnh hoặc video thú cưng lên Pethub: Pet Marketplace (gồm tin đăng, hồ sơ trại và media liên quan), bạn cấp cho Pethub: Pet Marketplace quyền không độc quyền, miễn phí bản quyền để sử dụng, sao chép, chỉnh sửa nhẹ (cắt, ghép, gắn watermark) và công bố nội dung đó nhằm vận hành sản phẩm cũng như quảng bá, truyền thông. Bạn xác nhận mình có quyền cấp phép này và nội dung không xâm phạm quyền của bên thứ ba.",
         ],
       },
       {
@@ -297,7 +297,7 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Dịch vụ thanh toán / giữ cọc trong tương lai",
         paragraphs: [
-          "PetCare có quyền bổ sung hoặc nâng cấp các dịch vụ hỗ trợ thanh toán tùy chọn trong tương lai (ví dụ giữ cọc/escrow thông qua đối tác thanh toán được cấp phép). Chúng tôi sẽ công bố trên website/ứng dụng và thông báo cho Người dùng ít nhất 15–30 ngày trước khi dịch vụ có hiệu lực. Khi kích hoạt, Người dùng có thể cần chấp nhận lại Điều khoản cập nhật trước khi tiếp tục dùng các tính năng liên quan thanh toán.",
+          "Pethub có quyền bổ sung hoặc nâng cấp các dịch vụ hỗ trợ thanh toán tùy chọn trong tương lai (ví dụ giữ cọc/escrow thông qua đối tác thanh toán được cấp phép). Chúng tôi sẽ công bố trên website/ứng dụng và thông báo cho Người dùng ít nhất 15–30 ngày trước khi dịch vụ có hiệu lực. Khi kích hoạt, Người dùng có thể cần chấp nhận lại Điều khoản cập nhật trước khi tiếp tục dùng các tính năng liên quan thanh toán.",
         ],
       },
       {
@@ -312,7 +312,7 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
   EN: {
     updated: UPDATED_EN,
     intro:
-      "These Marketplace Guidelines apply to Sen, Breeders, and anyone using PetCare: Pet Marketplace listings, chat, or advertising. Violations may lead to removed listings or suspended accounts.",
+      "These Marketplace Guidelines apply to Sen, Breeders, and anyone using Pethub: Pet Marketplace listings, chat, or advertising. Violations may lead to removed listings or suspended accounts.",
     sections: [
       {
         heading: "Listings and farms",
@@ -329,7 +329,7 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
           "By posting, the Breeder / Seller warrants that they alone are responsible for all licenses and compliance required to offer the animal, including (where applicable) business registration, tax obligations, veterinary hygiene conditions, breeding permits, lawful origin/ownership documents, and vaccination records.",
         ],
         bullets: [
-          "PetCare does not verify or certify that any Breeder holds complete or valid business, veterinary, or breeding permits.",
+          "Pethub does not verify or certify that any Breeder holds complete or valid business, veterinary, or breeding permits.",
           "Display of a listing or a Verified-style badge is not proof of legal compliance.",
           "The poster remains solely liable for false statements, missing permits, or illegal animals.",
         ],
@@ -342,14 +342,14 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
         bullets: [
           "The listing poster (Breeder / Seller) is solely legally responsible for the origin, lawfulness, and ownership of the pet or animal they list.",
           "The poster warrants that the animal is not a prohibited species, was not illegally captured, and (where documents are required) is accompanied by lawful proof of origin.",
-          "In all cases, PetCare: Pet Marketplace is fully released from liability for wildlife-conservation offences caused by a poster’s intentional misrepresentation, fraud, or false information.",
+          "In all cases, Pethub: Pet Marketplace is fully released from liability for wildlife-conservation offences caused by a poster’s intentional misrepresentation, fraud, or false information.",
         ],
       },
       {
         heading: "No platform shipping or payment holding",
         paragraphs: [
-          "PetCare: Pet Marketplace does NOT itself provide pet shipping or delivery. Method, cost, and transport risk are agreed between Seller and Buyer.",
-          "PetCare does NOT receive, hold, or manage deposits or pet-sale payments. Any deposit or payment happens directly between Users outside the app.",
+          "Pethub: Pet Marketplace does NOT itself provide pet shipping or delivery. Method, cost, and transport risk are agreed between Seller and Buyer.",
+          "Pethub does NOT receive, hold, or manage deposits or pet-sale payments. Any deposit or payment happens directly between Users outside the app.",
         ],
       },
       {
@@ -371,17 +371,17 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Disputes, scams, and financial claims",
         bullets: [
-          `Because PetCare does not hold or manage deposits or pet-sale funds, the platform has no obligation to refund, compensate, or financially settle any deposit scam or payment dispute between Users.`,
+          `Because Pethub does not hold or manage deposits or pet-sale funds, the platform has no obligation to refund, compensate, or financially settle any deposit scam or payment dispute between Users.`,
           `If you suspect fraud or a Marketplace Guideline violation: tap Report in the app or email ${LEGAL_SUPPORT_EMAIL} with evidence (chat screenshots, listing URL, payment proof if any).`,
           "Within 3 business days, administration will review on-platform history where available and may permanently ban the violating account.",
           "We may provide chat/listing extracts to the police upon a valid request when there are signs of fraud or appropriation of property.",
-          "PetCare does not replace civil or criminal remedies Users may pursue against each other off-platform.",
+          "Pethub does not replace civil or criminal remedies Users may pursue against each other off-platform.",
         ],
       },
       {
         heading: "Media for promotion",
         bullets: [
-          "Photos and videos you publish on listings or farm profiles may be used by PetCare: Pet Marketplace to operate the product and for marketing or communications (including crop, compose, and watermark), under a non-exclusive, royalty-free license.",
+          "Photos and videos you publish on listings or farm profiles may be used by Pethub: Pet Marketplace to operate the product and for marketing or communications (including crop, compose, and watermark), under a non-exclusive, royalty-free license.",
           "Only upload media you have the right to share. Do not upload content that infringes others’ rights.",
         ],
       },
@@ -396,7 +396,7 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
   VI: {
     updated: UPDATED_VI,
     intro:
-      "Nội quy Marketplace áp dụng cho Sen, Breeder và mọi người dùng tin đăng, chat hoặc quảng cáo trên PetCare: Pet Marketplace. Vi phạm có thể dẫn tới gỡ tin hoặc khóa tài khoản.",
+      "Nội quy Marketplace áp dụng cho Sen, Breeder và mọi người dùng tin đăng, chat hoặc quảng cáo trên Pethub: Pet Marketplace. Vi phạm có thể dẫn tới gỡ tin hoặc khóa tài khoản.",
     sections: [
       {
         heading: "Tin đăng và hồ sơ trại",
@@ -413,7 +413,7 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
           "Khi đăng tin, Breeder / Người bán cam kết tự chịu hoàn toàn trách nhiệm về mọi giấy phép và nghĩa vụ pháp lý cần thiết để chào bán thú, bao gồm (nếu thuộc diện áp dụng): đăng ký kinh doanh, nghĩa vụ thuế, điều kiện vệ sinh thú y, giấy phép chăn nuôi, giấy tờ nguồn gốc/quyền sở hữu hợp pháp và sổ tiêm.",
         ],
         bullets: [
-          "PetCare không thẩm định hay chứng nhận rằng Breeder đã có đầy đủ hoặc còn hiệu lực các giấy phép kinh doanh, thú y hay chăn nuôi.",
+          "Pethub không thẩm định hay chứng nhận rằng Breeder đã có đầy đủ hoặc còn hiệu lực các giấy phép kinh doanh, thú y hay chăn nuôi.",
           "Việc hiển thị tin đăng hoặc nhãn dạng Verified không phải bằng chứng tuân thủ pháp luật.",
           "Người đăng tin tự chịu trách nhiệm về kê khai sai, thiếu giấy phép hoặc động vật trái phép.",
         ],
@@ -426,14 +426,14 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
         bullets: [
           "Người đăng tin (Breeder/Người bán) phải tự chịu hoàn toàn trách nhiệm trước pháp luật về nguồn gốc, tính hợp pháp và quyền sở hữu đối với thú cưng/vật nuôi do mình đăng bán.",
           "Người đăng tin cam kết vật nuôi không thuộc danh mục cấm, không phải là động vật săn bắt trái phép, và có đầy đủ giấy tờ chứng minh nguồn gốc hợp pháp (đối với các dòng yêu cầu giấy tờ).",
-          "Trong mọi trường hợp, PetCare: Pet Marketplace được miễn trừ toàn bộ trách nhiệm liên quan đến các vi phạm pháp luật về bảo tồn động vật do Người đăng tin cố tình giả mạo thông tin, gian lận hoặc cung cấp sai sự thật.",
+          "Trong mọi trường hợp, Pethub: Pet Marketplace được miễn trừ toàn bộ trách nhiệm liên quan đến các vi phạm pháp luật về bảo tồn động vật do Người đăng tin cố tình giả mạo thông tin, gian lận hoặc cung cấp sai sự thật.",
         ],
       },
       {
         heading: "Miễn trừ vận chuyển và giữ tiền",
         paragraphs: [
-          "PetCare: Pet Marketplace KHÔNG trực tiếp cung cấp dịch vụ vận chuyển hay giao nhận thú cưng. Phương thức, chi phí và rủi ro vận chuyển do Người bán và Người mua tự thỏa thuận.",
-          "PetCare KHÔNG tiếp nhận, giữ hay quản lý tiền cọc hoặc thanh toán mua bán thú. Mọi khoản cọc hoặc thanh toán do Người dùng tự thực hiện trực tiếp ngoài ứng dụng.",
+          "Pethub: Pet Marketplace KHÔNG trực tiếp cung cấp dịch vụ vận chuyển hay giao nhận thú cưng. Phương thức, chi phí và rủi ro vận chuyển do Người bán và Người mua tự thỏa thuận.",
+          "Pethub KHÔNG tiếp nhận, giữ hay quản lý tiền cọc hoặc thanh toán mua bán thú. Mọi khoản cọc hoặc thanh toán do Người dùng tự thực hiện trực tiếp ngoài ứng dụng.",
         ],
       },
       {
@@ -455,17 +455,17 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Tranh chấp, lừa đảo và khiếu nại tài chính",
         bullets: [
-          "Do PetCare không thu giữ hay quản lý tiền cọc/thanh toán mua thú, Sàn không có nghĩa vụ hoàn tiền, bồi thường hay giải quyết đền bù tài chính cho bất kỳ tranh chấp cọc/lừa đảo nào giữa hai bên.",
+          "Do Pethub không thu giữ hay quản lý tiền cọc/thanh toán mua thú, Sàn không có nghĩa vụ hoàn tiền, bồi thường hay giải quyết đền bù tài chính cho bất kỳ tranh chấp cọc/lừa đảo nào giữa hai bên.",
           `Khi nghi ngờ lừa đảo hoặc vi phạm Nội quy: bấm “Báo cáo” trên app hoặc gửi email tới ${LEGAL_SUPPORT_EMAIL} kèm bằng chứng (ảnh chat, URL tin đăng, chứng từ thanh toán nếu có).`,
           "Trong vòng 03 ngày làm việc, Ban quản trị sẽ rà soát lịch sử trên Sàn (nếu có) và có thể khóa tài khoản vi phạm vĩnh viễn.",
           "Hỗ trợ cung cấp trích xuất dữ liệu lịch sử chat/tin đăng cho Cơ quan Công an khi có yêu cầu hợp lệ nếu có dấu hiệu lừa đảo chiếm đoạt tài sản.",
-          "PetCare không thay thế các biện pháp dân sự hoặc hình sự mà Người dùng có thể tự theo đuổi ngoài nền tảng.",
+          "Pethub không thay thế các biện pháp dân sự hoặc hình sự mà Người dùng có thể tự theo đuổi ngoài nền tảng.",
         ],
       },
       {
         heading: "Media phục vụ truyền thông",
         bullets: [
-          "Ảnh và video bạn đăng trên tin hoặc hồ sơ trại có thể được PetCare: Pet Marketplace dùng để vận hành sản phẩm và cho mục đích quảng bá, truyền thông (kể cả cắt, ghép, gắn watermark), theo giấy phép không độc quyền và miễn phí bản quyền.",
+          "Ảnh và video bạn đăng trên tin hoặc hồ sơ trại có thể được Pethub: Pet Marketplace dùng để vận hành sản phẩm và cho mục đích quảng bá, truyền thông (kể cả cắt, ghép, gắn watermark), theo giấy phép không độc quyền và miễn phí bản quyền.",
           "Chỉ tải lên media mà bạn có quyền chia sẻ. Không đăng nội dung xâm phạm quyền của người khác.",
         ],
       },
@@ -483,7 +483,7 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
   EN: {
     updated: UPDATED_EN,
     intro:
-      "We help with PetCare: Pet Marketplace accounts, Breeder verification, listings, chat, advertising/listing fees, and reports.",
+      "We help with Pethub: Pet Marketplace accounts, Breeder verification, listings, chat, advertising/listing fees, and reports.",
     sections: [
       {
         heading: "Contact",
@@ -506,7 +506,7 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Before you write",
         paragraphs: [
-          "PetCare connects Sen and Breeders and may sell listing/advertising services. We do not hold deposits or pet-sale payments, do not replace in-person verification, and do not ship pets. For money disputes between Users, use Report for moderation help and consider civil/police channels for financial recovery.",
+          "Pethub connects Sen and Breeders and may sell listing/advertising services. We do not hold deposits or pet-sale payments, do not replace in-person verification, and do not ship pets. For money disputes between Users, use Report for moderation help and consider civil/police channels for financial recovery.",
         ],
       },
     ],
@@ -514,7 +514,7 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
   VI: {
     updated: UPDATED_VI,
     intro:
-      "Chúng tôi hỗ trợ tài khoản PetCare: Pet Marketplace, xác minh Breeder, tin đăng, chat, phí đăng tin/quảng cáo và tiếp nhận báo cáo.",
+      "Chúng tôi hỗ trợ tài khoản Pethub: Pet Marketplace, xác minh Breeder, tin đăng, chat, phí đăng tin/quảng cáo và tiếp nhận báo cáo.",
     sections: [
       {
         heading: "Thông tin hỗ trợ & tiếp nhận phản ánh",
@@ -537,7 +537,7 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Trước khi gửi",
         paragraphs: [
-          "PetCare kết nối Sen và Breeder và có thể bán dịch vụ đăng tin/quảng cáo. Chúng tôi không giữ cọc hay thanh toán mua thú, không thay thế kiểm tra trực tiếp, và không vận chuyển thú. Với tranh chấp tiền giữa Người dùng, hãy dùng Báo cáo để hỗ trợ kiểm duyệt và cân nhắc kênh dân sự/Công an để đòi bồi thường tài chính.",
+          "Pethub kết nối Sen và Breeder và có thể bán dịch vụ đăng tin/quảng cáo. Chúng tôi không giữ cọc hay thanh toán mua thú, không thay thế kiểm tra trực tiếp, và không vận chuyển thú. Với tranh chấp tiền giữa Người dùng, hãy dùng Báo cáo để hỗ trợ kiểm duyệt và cân nhắc kênh dân sự/Công an để đòi bồi thường tài chính.",
         ],
       },
     ],

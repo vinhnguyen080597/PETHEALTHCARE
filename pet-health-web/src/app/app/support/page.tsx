@@ -4,7 +4,7 @@ import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { SupportHub } from "@/components/support/SupportHub";
 
 export const metadata = {
-  title: "Support · PetCare: Pet Marketplace",
+  title: "Support · Pethub: Pet Marketplace",
 };
 
 export default async function SupportHubPage({

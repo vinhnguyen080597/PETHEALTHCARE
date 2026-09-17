@@ -1,5 +1,5 @@
 /**
- * PetCare mobile design tokens — text, border, button, and surface scales.
+ * Pethub mobile design tokens — text, border, button, and surface scales.
  *
  * Text:     textPrimary · textSecondary · textMuted · textBrandLink · textInverse
  * Border:   borderLight · borderCard · borderBrand

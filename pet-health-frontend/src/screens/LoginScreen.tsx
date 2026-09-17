@@ -19,6 +19,7 @@ import { AuthWarmBackdrop } from '../components/AuthWarmBackdrop';
 import { LanguageHeaderChip } from '../components/LanguageToggle';
 import { APP_LINKS } from '../config';
 import { BRAND } from '../theme/brand';
+import { splitBrandName } from '../utils/brandDisplay';
 
 type BackendHealthStatus = 'checking' | 'online' | 'offline';
 
@@ -63,6 +64,7 @@ function inputBorderClass(hasError: boolean, focused: boolean) {
 
 function AuthBrandHeader() {
   const { t } = useTranslation();
+  const { lead, rest } = splitBrandName(t('login.appName'));
   return (
     <View testID="auth-brand-header" className="items-center px-6 pb-3 pt-10">
       <View
@@ -76,8 +78,13 @@ function AuthBrandHeader() {
           cachePolicy="memory-disk"
         />
       </View>
-      <Text className="mb-1.5 text-center text-3xl font-semibold" style={{ color: BRAND.text }}>
-        {t('login.appName')}
+      <Text
+        className="mb-1.5 text-center text-2xl font-bold tracking-tight"
+        accessibilityRole="header"
+        accessibilityLabel={t('login.appName')}
+      >
+        <Text style={{ color: BRAND.btnPrimary }}>{lead}</Text>
+        {rest ? <Text style={{ color: BRAND.textPrimary }}>{rest}</Text> : null}
       </Text>
       <Text className="max-w-sm text-center text-base" style={{ color: BRAND.textMuted }}>
         {t('login.tagline')}

@@ -1341,11 +1341,11 @@ export async function getPublishedPetFeedShareCard(postId) {
   const listThumb =
     row.metadata && typeof row.metadata.list_thumb_url === 'string' ? row.metadata.list_thumb_url.trim() : '';
   const imageUrl = listThumb || media[0] || '';
-  const title = trimText(row.title, 120) || 'PetCare: Pet Marketplace listing';
+  const title = trimText(row.title, 120) || 'Pethub: Pet Marketplace listing';
   const description = trimText(
     [row.breed, row.location, row.price_note].filter(Boolean).join(' · ')
       || row.description
-      || 'Xem tin đăng thú cưng trên PetCare: Pet Marketplace.',
+      || 'Xem tin đăng thú cưng trên Pethub: Pet Marketplace.',
     200,
   );
 
@@ -2046,7 +2046,7 @@ export async function createAnnouncementPost(userId, payload, accessToken) {
       category,
       ctaLabel: trimText(payload.ctaLabel ?? payload.cta_label, 80),
       ctaUrl: trimText(payload.ctaUrl ?? payload.cta_url, 500),
-      authorLabel: 'PetCare: Pet Marketplace',
+      authorLabel: 'Pethub: Pet Marketplace',
       ...normalizeJsonObject(payload.metadata),
     },
     created_at: new Date().toISOString(),

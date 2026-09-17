@@ -124,7 +124,7 @@ class StartupErrorBoundary extends Component<StartupErrorBoundaryProps, StartupE
       message: error.message,
       stack: error.stack,
     });
-    console.error('PetCare: Pet Marketplace startup error', error);
+    console.error('Pethub: Pet Marketplace startup error', error);
   }
 
   render() {
@@ -424,6 +424,9 @@ function AppContent() {
                 onMessageFarm={(profile) => void app.openOrCreateConversationFromFarm(profile)}
                 onOpenBreederProfile={() => void app.openBreederProfile()}
                 onEditPost={app.openEditPetFeedDraft}
+                onCreatePost={() => void app.openCreatePetFeedPost()}
+                onCreateFarmProfile={() => void app.openBreederProfile()}
+                userRole={app.accountProfile?.primary_role ?? null}
                 currentUserId={app.accountProfile?.user_id ?? null}
                 preferredProvince={app.accountProfile?.living_area ?? null}
                 preferredPetTypes={app.accountProfile?.interested_species ?? null}

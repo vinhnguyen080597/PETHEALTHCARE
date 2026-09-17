@@ -2,7 +2,7 @@ import { LegalPage } from "@/components/legal/LegalPage";
 import { privacyPolicyContent } from "@/lib/legalContent";
 import { getLegalPageLang } from "@/lib/legalPageLang";
 
-export const metadata = { title: "Privacy Policy · PetCare: Pet Marketplace" };
+export const metadata = { title: "Privacy Policy · Pethub: Pet Marketplace" };
 
 export default async function PrivacyPage({
   searchParams,

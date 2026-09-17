@@ -70,7 +70,7 @@ test("supportThanksCopyKeys maps feedback and scam dialogs", () => {
   assert.equal(en["supportHub.thanks.title"], "Thank you");
   assert.equal(vi["supportHub.thanks.title"], "Cảm ơn bạn");
   assert.match(en["supportHub.thanks.scamBody"], /admins will review/i);
-  assert.match(vi["supportHub.thanks.scamBody"], /Admin PetCare sẽ xem xét/i);
+  assert.match(vi["supportHub.thanks.scamBody"], /Admin Pethub sẽ xem xét/i);
 });
 
 test("support evidence limits", () => {

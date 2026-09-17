@@ -35,11 +35,11 @@ test("brand primary matches marketplace amber", () => {
   assert.equal(brandUi.primarySoftBg, "bg-amber-50");
 });
 
-test("brand display name is PetCare: Pet Marketplace", () => {
-  assert.equal(BRAND_NAME, "PetCare: Pet Marketplace");
-  assert.equal(BRAND_NAME_SHORT, "PetCare");
+test("brand display name is Pethub: Pet Marketplace", () => {
+  assert.equal(BRAND_NAME, "Pethub: Pet Marketplace");
+  assert.equal(BRAND_NAME_SHORT, "Pethub");
   assert.deepEqual(splitBrandName(BRAND_NAME), {
-    lead: "PetCare",
+    lead: "Pethub",
     rest: ": Pet Marketplace",
   });
   assert.match(brandUi.primaryText, /D97706/);

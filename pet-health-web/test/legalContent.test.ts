@@ -20,8 +20,8 @@ test("legal docs are bilingual and mention marketplace product context", () => {
     const enDoc = legalDocFor(kind, "EN");
     const viText = flattenLegalDoc(viDoc);
     const enText = flattenLegalDoc(enDoc);
-    assert.match(viText, /PetCare: Pet Marketplace/);
-    assert.match(enText, /PetCare: Pet Marketplace/);
+    assert.match(viText, /Pethub: Pet Marketplace/);
+    assert.match(enText, /Pethub: Pet Marketplace/);
     assert.match(viText, /Sen/);
     assert.match(enText, /Sen/);
     assert.match(viText, /Breeder/);

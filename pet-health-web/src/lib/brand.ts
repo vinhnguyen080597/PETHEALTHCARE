@@ -2,10 +2,10 @@
 export const BRAND_AVATAR_PATH = "/images/PetMarketAvatar.png";
 
 /** User-facing product name. */
-export const BRAND_NAME = "PetCare: Pet Marketplace";
+export const BRAND_NAME = "Pethub: Pet Marketplace";
 
 /** Short mark for tight UI (watermarks, compact labels). */
-export const BRAND_NAME_SHORT = "PetCare";
+export const BRAND_NAME_SHORT = "Pethub";
 
 /** Split full brand for logo wordmark: orange lead + neutral rest. */
 export function splitBrandName(name: string = BRAND_NAME): {

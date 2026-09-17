@@ -65,7 +65,7 @@ export function buildNewsOgCopy(listing: Listing): {
     title: title || "News",
     description:
       description ||
-      "PetCare: Pet Marketplace news and announcements",
+      "Pethub: Pet Marketplace news and announcements",
   };
 }
 

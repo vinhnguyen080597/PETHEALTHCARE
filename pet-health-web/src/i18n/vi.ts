@@ -10,7 +10,7 @@ const vi: Record<EnKey, string> = {
   "nav.account": "Tài khoản",
   "nav.admin": "Admin",
   "nav.login": "Đăng nhập",
-  "nav.brand": "PetCare: Pet Marketplace",
+  "nav.brand": "Pethub: Pet Marketplace",
   "nav.language": "Ngôn ngữ",
   "breadcrumb.home": "Trang chủ",
   "breadcrumb.listing": "Tin đăng",
@@ -45,13 +45,13 @@ const vi: Record<EnKey, string> = {
   "landing.whySub": "Đăng tin & liên hệ. Hồ sơ xác minh. Kiểm tra trực tiếp trước khi chuyển tiền.",
   "landing.value1.title": "Kết nối Sen và trại giống",
   "landing.value1.desc":
-    "Xem tin, nhắn trại và tự thỏa thuận — mô hình rao vặt/kết nối. PetCare không giữ tiền mua bán thú.",
+    "Xem tin, nhắn trại và tự thỏa thuận — mô hình rao vặt/kết nối. Pethub không giữ tiền mua bán thú.",
   "landing.value2.title": "Trại Giống & Hồ Sơ Xác Minh",
   "landing.value2.desc":
     "Breeder được admin duyệt, có sổ tiêm và hồ sơ trại rõ ràng trước khi bạn nhắn tin. Nhãn chỉ mang tính phân loại kỹ thuật, không phải chứng nhận giấy phép pháp lý.",
   "landing.value3.title": "Kiểm tra trước khi trả tiền",
   "landing.value3.desc":
-    "Gặp bé, xem giấy tờ và tự thỏa thuận vận chuyển ngoài nền tảng. PetCare không phải bên trong giao dịch mua bán.",
+    "Gặp bé, xem giấy tờ và tự thỏa thuận vận chuyển ngoài nền tảng. Pethub không phải bên trong giao dịch mua bán.",
   "landing.value.comingSoon": "Sắp ra mắt",
   "landing.latest": "Thú Cưng Mới",
   "landing.viewAll": "Xem tất cả →",
@@ -68,10 +68,10 @@ const vi: Record<EnKey, string> = {
   "landing.footer.browse": "Thú cưng",
   "landing.footer.create": "Đăng tin",
   "landing.footer.disclaimer":
-    "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không giữ tiền giao dịch. Hãy kiểm tra trực tiếp trước khi chuyển tiền.",
+    "Tin đăng do người dùng đăng. Pethub: Pet Marketplace không phải bên bán và không giữ tiền giao dịch. Hãy kiểm tra trực tiếp trước khi chuyển tiền.",
 
   "feed.disclaimer":
-    "Tin đăng do người dùng đăng. PetCare: Pet Marketplace không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. PetCare không giữ tiền giao dịch. Hãy kiểm tra bé và giấy tờ trực tiếp trước khi chuyển tiền. Đọc ",
+    "Tin đăng do người dùng đăng. Pethub: Pet Marketplace không phải bên bán và không bảo lãnh sức khỏe thú, thông tin hay kết quả giao dịch. Pethub không giữ tiền giao dịch. Hãy kiểm tra bé và giấy tờ trực tiếp trước khi chuyển tiền. Đọc ",
   "feed.guidelines": "Nội quy Marketplace",
   "feed.disclaimerEnd": " trước khi quyết định.",
   "feed.search": "Bạn đang tìm bé thú cưng nào?",
@@ -112,13 +112,13 @@ const vi: Record<EnKey, string> = {
   "feed.empty": "Không có kết quả",
   "news.title": "Tin tức",
   "news.subtitle":
-    "Cập nhật app, thông tin cộng đồng và thông báo từ PetCare: Pet Marketplace.",
+    "Cập nhật app, thông tin cộng đồng và thông báo từ Pethub: Pet Marketplace.",
   "news.empty": "Chưa có tin nào. Quay lại sau nhé.",
   "news.emptyFiltered": "Chưa có bài trong chủ đề này.",
   "news.loadError": "Không tải được tin tức",
   "news.readMore": "Xem thêm",
   "news.readLess": "Thu gọn",
-  "news.author": "Admin PetCare",
+  "news.author": "Admin Pethub",
   "news.featured": "Nổi bật",
   "news.readMinutes": "{{n}} phút đọc",
   "news.filter.all": "Tất cả",
@@ -167,14 +167,14 @@ const vi: Record<EnKey, string> = {
   "supportHub.subtitle":
     "Hướng dẫn, góp ý sản phẩm và báo cáo lừa đảo — thường chỉ 1–2 cú click.",
   "supportHub.searchPlaceholder":
-    "Bạn cần PetCare giúp gì hôm nay? (hướng dẫn, SĐT, STK…)",
+    "Bạn cần Pethub giúp gì hôm nay? (hướng dẫn, SĐT, STK…)",
   "supportHub.searchHint":
     "Gợi ý: tìm hướng dẫn hoặc chủ đề góp ý. Tra cứu gồm mẫu demo và định danh từ báo cáo scam admin đã duyệt.",
   "supportHub.contactHours":
     "Giờ hỗ trợ: 08:30 – 17:30 (T2–T6). Thường phản hồi trong 24–48 giờ làm việc.",
   "supportHub.contactEmailLabel": "Hỗ trợ khách hàng",
   "supportHub.legalEmailLabel": "Pháp lý / báo cáo",
-  "supportHub.loginRequired": "Đăng nhập để gửi góp ý hoặc báo cáo lừa đảo tới admin PetCare.",
+  "supportHub.loginRequired": "Đăng nhập để gửi góp ý hoặc báo cáo lừa đảo tới admin Pethub.",
   "supportHub.loginCta": "Đăng nhập để tiếp tục",
   "supportHub.submitting": "Đang gửi…",
   "supportHub.section.empty": "Không có mục hỗ trợ khớp tìm kiếm.",
@@ -193,27 +193,27 @@ const vi: Record<EnKey, string> = {
   "supportHub.audience.buyer": "Dành cho Sen",
   "supportHub.audience.breeder": "Dành cho Breeder",
   "supportHub.guide.empty": "Không có hướng dẫn khớp tìm kiếm.",
-  "supportHub.guide.openInApp": "Mở màn hình liên quan trong PetCare",
+  "supportHub.guide.openInApp": "Mở màn hình liên quan trong Pethub",
   "supportHub.guide.buyerDeposit.title": "Kết nối an toàn (không giữ tiền trên sàn)",
   "supportHub.guide.buyerDeposit.body":
-    "PetCare không giữ tiền mua bán thú. Dùng chat để liên hệ Breeder, rồi kiểm tra bé và giấy tờ trực tiếp trước khi chuyển bất kỳ khoản tiền nào ngoài nền tảng.",
+    "Pethub không giữ tiền mua bán thú. Dùng chat để liên hệ Breeder, rồi kiểm tra bé và giấy tờ trực tiếp trước khi chuyển bất kỳ khoản tiền nào ngoài nền tảng.",
   "supportHub.guide.buyerDeposit.steps":
-    "1. Xem tin đăng, bảo hành (nếu có) và hồ sơ Breeder.\n2. Nhắn hoặc gọi Breeder qua công cụ liên hệ trên PetCare.\n3. Tự thỏa thuận giá, thanh toán (nếu có) và vận chuyển ngoài ứng dụng.\n4. Gặp bé, kiểm tra giấy tờ trước khi chuyển tiền.",
+    "1. Xem tin đăng, bảo hành (nếu có) và hồ sơ Breeder.\n2. Nhắn hoặc gọi Breeder qua công cụ liên hệ trên Pethub.\n3. Tự thỏa thuận giá, thanh toán (nếu có) và vận chuyển ngoài ứng dụng.\n4. Gặp bé, kiểm tra giấy tờ trước khi chuyển tiền.",
   "supportHub.guide.buyerHandoff.title": "Cách kiểm tra bé cưng khi nhận",
   "supportHub.guide.buyerHandoff.body":
     "Gặp ở nơi an toàn, đối chiếu chip/sổ tiêm nếu tin có nêu, quay video bàn giao ngắn, và so với ảnh tin đăng trước khi trả tiền hoặc mang bé về.",
   "supportHub.guide.buyerWarranty.title": "Hiểu bảo hành trên tin đăng",
   "supportHub.guide.buyerWarranty.body":
-    "Bảo hành trên tin là cam kết của Breeder, không phải của PetCare. Giữ lịch sử chat và giấy khám nếu cần theo dõi với Người bán ngoài nền tảng.",
+    "Bảo hành trên tin là cam kết của Breeder, không phải của Pethub. Giữ lịch sử chat và giấy khám nếu cần theo dõi với Người bán ngoài nền tảng.",
   "supportHub.guide.breederVerify.title": "Cách xác minh hồ sơ Breeder",
   "supportHub.guide.breederVerify.body":
-    "Điền hồ sơ trại, tải giấy tờ xác minh từ Tài khoản → Breeder, và giữ tin đăng chính xác. Xác minh là duyệt kỹ thuật của PetCare — không phải chứng nhận giấy phép pháp lý.",
+    "Điền hồ sơ trại, tải giấy tờ xác minh từ Tài khoản → Breeder, và giữ tin đăng chính xác. Xác minh là duyệt kỹ thuật của Pethub — không phải chứng nhận giấy phép pháp lý.",
   "supportHub.guide.breederWarranty.title": "Gắn chính sách bảo hành vào tin đăng",
   "supportHub.guide.breederWarranty.body":
     "Tạo hoặc chọn chính sách trong thư viện Bảo hành, rồi gắn khi đăng/sửa tin để Sen thấy phạm vi trước khi liên hệ. Bạn tự chịu trách nhiệm thực hiện cam kết đó.",
   "supportHub.guide.breederPayout.title": "Thanh toán diễn ra giữa bạn và Sen",
   "supportHub.guide.breederPayout.body":
-    "PetCare không thu hay giải ngân tiền mua bán thú. Thỏa thuận thanh toán trực tiếp với Sen, ghi rõ trong chat, và không tuyên bố PetCare đang giữ tiền của Sen.",
+    "Pethub không thu hay giải ngân tiền mua bán thú. Thỏa thuận thanh toán trực tiếp với Sen, ghi rõ trong chat, và không tuyên bố Pethub đang giữ tiền của Sen.",
   "supportHub.feedback.formTitle": "Gửi góp ý",
   "supportHub.feedback.category": "Phân loại",
   "supportHub.feedback.cat.ui": "Cải tiến UI/UX",
@@ -231,9 +231,9 @@ const vi: Record<EnKey, string> = {
   "supportHub.feedback.required": "Vui lòng nhập tiêu đề và nội dung.",
   "supportHub.thanks.title": "Cảm ơn bạn",
   "supportHub.thanks.feedbackBody":
-    "Đã nhận góp ý của bạn. Admin PetCare sẽ xem xét và phản hồi khi cần.",
+    "Đã nhận góp ý của bạn. Admin Pethub sẽ xem xét và phản hồi khi cần.",
   "supportHub.thanks.scamBody":
-    "Đã nhận báo cáo của bạn. Admin PetCare sẽ xem xét bằng chứng và xử lý nếu phù hợp.",
+    "Đã nhận báo cáo của bạn. Admin Pethub sẽ xem xét bằng chứng và xử lý nếu phù hợp.",
   "supportHub.thanks.close": "Đã hiểu",
   "supportHub.blacklist.title": "Tra cứu công khai",
   "supportHub.blacklist.liveBadge": "Live + demo",
@@ -277,7 +277,7 @@ const vi: Record<EnKey, string> = {
   "supportHub.scam.photosTooMany": "Chỉ đính kèm tối đa 5 ảnh bằng chứng.",
   "supportHub.scam.evidenceConfirm": "Tôi xác nhận các ảnh này là bằng chứng chính xác.",
   "supportHub.scam.privacy":
-    "Báo cáo gửi tới admin PetCare. Bằng chứng chỉ dùng để kiểm duyệt và yêu cầu hợp pháp.",
+    "Báo cáo gửi tới admin Pethub. Bằng chứng chỉ dùng để kiểm duyệt và yêu cầu hợp pháp.",
 
   "feed.loadError": "Không tải được danh sách tin",
   "feed.loadMore": "Tải thêm",
@@ -807,7 +807,7 @@ const vi: Record<EnKey, string> = {
 
   "app.banner.need": "Cần theo dõi sức khỏe thú cưng?",
   "app.banner.desc":
-    "Tải app PetCare: Pet Marketplace — AI sàng lọc sơ bộ, nhắc vaccine, nhật ký sức khỏe đầy đủ.",
+    "Tải app Pethub: Pet Marketplace — AI sàng lọc sơ bộ, nhắc vaccine, nhật ký sức khỏe đầy đủ.",
 
   "auth.login": "Đăng nhập",
   "auth.signup": "Đăng ký",
@@ -929,12 +929,12 @@ const vi: Record<EnKey, string> = {
   "account.breederProfile": "Hồ sơ breeder",
   "account.template": "Giao diện trang trại",
   "account.notLoggedIn": "Vui lòng đăng nhập để quản lý tài khoản.",
-  "account.myRole": "Vai trò trên PetCare: Pet Marketplace",
+  "account.myRole": "Vai trò trên Pethub: Pet Marketplace",
   "account.shortcuts": "Lối tắt",
   "account.requestBreeder": "Đăng ký Breeder",
   "account.openAdminReview": "Mở Admin Console",
   "account.communitySafety":
-    "Tin đăng cần minh bạch và tôn trọng. PetCare: Pet Marketplace không xử lý thanh toán và không thay thế xác minh trực tiếp với breeder.",
+    "Tin đăng cần minh bạch và tôn trọng. Pethub: Pet Marketplace không xử lý thanh toán và không thay thế xác minh trực tiếp với breeder.",
   "account.breederSafety":
     "Tin đăng cần ảnh rõ, video ngắn, thông tin vaccine/tẩy giun và điều kiện nhận bé minh bạch. Không cam kết sức khỏe tuyệt đối nếu chưa có xác nhận thú y.",
   "account.vetSummary":
@@ -969,7 +969,7 @@ const vi: Record<EnKey, string> = {
   "account.senStatus.helper.pending_review":
     "Admin đang xem xét yêu cầu. Bạn có thể hủy và gửi lại nếu thông tin chưa đúng.",
   "account.senStatus.helper.verified":
-    "Tài khoản đã dùng được tính năng Breeder trên PetCare: Pet Marketplace.",
+    "Tài khoản đã dùng được tính năng Breeder trên Pethub: Pet Marketplace.",
   "account.senStatus.helper.rejected":
     "Bổ sung thông tin rõ hơn rồi gửi lại để admin xem xét.",
   "account.senStatus.helper.suspended":
@@ -1036,7 +1036,7 @@ const vi: Record<EnKey, string> = {
   "transparencyWarning.appealed": "Đã gửi kháng cáo. Tài khoản vẫn hoạt động trong lúc admin xem xét.",
   "account.roles.sen.title": "Sen (chủ nuôi)",
   "account.roles.sen.body":
-    "Xem tin có cấu trúc, lưu thú cưng và nhắn tin breeder trên PetCare: Pet Marketplace.",
+    "Xem tin có cấu trúc, lưu thú cưng và nhắn tin breeder trên Pethub: Pet Marketplace.",
   "account.roles.breeder.title": "Breeder",
   "account.roles.breeder.body":
     "Tạo hồ sơ trại uy tín và tin đăng có cấu trúc để admin duyệt.",
@@ -1138,9 +1138,9 @@ const vi: Record<EnKey, string> = {
   "breederForm.commitment.accurate_information":
     "Tôi xác nhận thông tin gửi đi là chính xác và có thể kiểm chứng.",
   "breederForm.commitment.app_only_verification":
-    "Tôi hiểu xác minh chỉ để đăng tin trên PetCare: Pet Marketplace, không thay thế kiểm tra trực tiếp.",
+    "Tôi hiểu xác minh chỉ để đăng tin trên Pethub: Pet Marketplace, không thay thế kiểm tra trực tiếp.",
   "breederForm.commitment.combinedBefore":
-    "Tôi xác nhận thông tin gửi đi là chính xác và có thể kiểm chứng; hiểu xác minh chỉ để đăng tin trên PetCare: Pet Marketplace, không thay thế kiểm tra trực tiếp. Tôi đã đọc và hiểu ",
+    "Tôi xác nhận thông tin gửi đi là chính xác và có thể kiểm chứng; hiểu xác minh chỉ để đăng tin trên Pethub: Pet Marketplace, không thay thế kiểm tra trực tiếp. Tôi đã đọc và hiểu ",
   "breederForm.commitment.termsLink": "Điều khoản dịch vụ",
   "breederForm.commitment.and": " và ",
   "breederForm.commitment.guidelinesLink": "Nội quy Marketplace",
@@ -1164,7 +1164,7 @@ const vi: Record<EnKey, string> = {
   "listing.statusModal.subtitle": "Chọn trạng thái mới cho bài đăng của bạn",
   "listing.statusModal.saleChannelHint": "Chọn kênh bán để hoàn tất cập nhật",
   "listing.statusModal.saleChannel": "Bán trong hay ngoài sàn?",
-  "listing.statusModal.onPlatform": "Trong sàn PetCare",
+  "listing.statusModal.onPlatform": "Trong sàn Pethub",
   "listing.statusModal.offPlatform": "Ngoài sàn",
   "listing.statusModal.buyerEmailOptional": "Email Sen (tuỳ chọn, để mời đánh giá)",
   "listing.statusModal.buyerEmailPlaceholder": "sen@email.com",
@@ -1184,7 +1184,7 @@ const vi: Record<EnKey, string> = {
   "listing.new.termsBefore": "Tôi đã đọc và đồng ý với ",
   "listing.new.termsAnd": " và ",
   "listing.new.termsAfter":
-    ", đồng thời xác nhận thông tin tin đăng là chính xác và trung thực. Tôi tự chịu trách nhiệm về đăng ký kinh doanh, giấy phép chăn nuôi/vệ sinh thú y (nếu thuộc diện), nguồn gốc hợp pháp của thú, và mọi khoản thanh toán ngoài ứng dụng. PetCare không giữ tiền mua bán thú.",
+    ", đồng thời xác nhận thông tin tin đăng là chính xác và trung thực. Tôi tự chịu trách nhiệm về đăng ký kinh doanh, giấy phép chăn nuôi/vệ sinh thú y (nếu thuộc diện), nguồn gốc hợp pháp của thú, và mọi khoản thanh toán ngoài ứng dụng. Pethub không giữ tiền mua bán thú.",
   "listing.new.photos": "Ảnh (tối đa 6)",
   "listing.new.photosHint": "Ảnh rõ mặt + toàn thân giúp duyệt nhanh hơn.",
   "listing.new.video": "Video ngắn (bắt buộc)",
@@ -1766,7 +1766,7 @@ const vi: Record<EnKey, string> = {
   "admin.features.marketplace_escrow.title": "Escrow Marketplace (thử nghiệm)",
   "admin.features.marketplace_escrow.desc":
     "Bảng đặt cọc / deal trên tin đăng. Tắt = chỉ kết nối rao vặt (chat/gọi). Giữ tắt đến khi sẵn sàng đối tác thanh toán.",
-  "admin.news.title": "Đăng tin PetCare: Pet Marketplace",
+  "admin.news.title": "Đăng tin Pethub: Pet Marketplace",
   "admin.news.note":
     "Bài này hiện ở tab Tin tức trên menu chính, không phải tin bán.",
   "admin.news.category": "Loại nội dung",
@@ -1813,7 +1813,7 @@ const vi: Record<EnKey, string> = {
 
   "legal.title": "Hỗ trợ và chính sách",
   "legal.body":
-    "Xem cách PetCare: Pet Marketplace xử lý quyền riêng tư, điều khoản, nội quy marketplace và yêu cầu hỗ trợ.",
+    "Xem cách Pethub: Pet Marketplace xử lý quyền riêng tư, điều khoản, nội quy marketplace và yêu cầu hỗ trợ.",
   "legal.privacy": "Chính sách bảo mật",
   "legal.terms": "Điều khoản dịch vụ",
   "legal.guidelines": "Nội quy Marketplace",
