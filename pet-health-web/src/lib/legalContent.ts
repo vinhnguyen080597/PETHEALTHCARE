@@ -365,13 +365,32 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
         ],
       },
       {
-        heading: "Disputes, scams, and financial claims",
+        heading: "Disputes, complaints, and financial claims",
+        paragraphs: [
+          "Pethub is a connection marketplace and does not hold pet-sale payments. Complaint handling on the platform covers content and account moderation—not refunding or settling money between Users.",
+        ],
         bullets: [
-          `Because Pethub does not hold or manage deposits or pet-sale funds, the platform has no obligation to refund, compensate, or financially settle any deposit scam or payment dispute between Users.`,
-          `If you suspect fraud or a Marketplace Guideline violation: tap Report in the app or email ${LEGAL_SUPPORT_EMAIL} with evidence (chat screenshots, listing URL, payment proof if any).`,
-          "Within 3 business days, administration will review on-platform history where available and may permanently ban the violating account.",
-          "We may provide chat/listing extracts to the police upon a valid request when there are signs of fraud or appropriation of property.",
-          "Pethub does not replace civil or criminal remedies Users may pursue against each other off-platform.",
+          "On-platform complaints (we handle): false listings, hidden illness or fake vaccine/health papers, scam or prohibited content, harassment, or fake trust/verification signals — use Report in the app or email " +
+            LEGAL_SUPPORT_EMAIL +
+            " with evidence (chat screenshots, listing URL, payment proof if any).",
+          "Intake: we acknowledge support emails within 24–48 business hours. For Report/support cases with enough evidence, Admin reviews on-platform history within 3 business days and may remove the listing and/or suspend or permanently ban the account.",
+          "Urgent illegal listings (e.g. prohibited wildlife, clear fraud): Admin may remove content within 24 hours after a valid report.",
+          "Off-platform money disputes (we do not settle): deposits, sale price, delivery fees, or any payment made directly between Buyer and Seller. Pethub has no obligation to refund, compensate, or financially settle those disputes.",
+          "Users may still pursue civil or criminal remedies against each other. Upon a valid lawful request, we may provide chat/listing extracts to the police when there are signs of fraud or appropriation of property.",
+        ],
+      },
+      {
+        heading: "Warranty, returns, and “refunds” (Seller-published)",
+        paragraphs: [
+          "Pethub does not sell the pet, does not take pets back, and does not process refunds for pet sales. Any health warranty or return arrangement is declared and performed by the Seller.",
+        ],
+        bullets: [
+          "If a Seller publishes a warranty or return policy on a listing or farm profile, that text must be clear and accurate; the Seller alone is responsible for honoring it with the Buyer.",
+          "Typical health warranty (if offered) covers only what the Seller wrote (e.g. congenital disease window, vaccine book). It is not a platform guarantee.",
+          "Returns / exchanges of a pet, if any, are agreed directly between Buyer and Seller (including transport risk and cost). Pethub does not receive returned pets or act as a return warehouse.",
+          "“Refund” of deposits or purchase money, if any, is paid directly by the Seller to the Buyer outside the app. Pethub does not hold or reverse those payments.",
+          "Buyers should meet the pet in person and check the vaccine book, health, and papers before transferring money. Skipping that check is at the Buyer’s own risk.",
+          "If a Seller posts a false warranty, hides illness, or refuses a warranty they themselves published in a way that also violates these Guidelines, the Buyer may Report the listing; Admin may remove the listing and restrict the account — this is not a money refund by Pethub.",
         ],
       },
       {
@@ -449,13 +468,32 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
         ],
       },
       {
-        heading: "Tranh chấp, lừa đảo và khiếu nại tài chính",
+        heading: "Giải quyết tranh chấp, khiếu nại và khiếu nại tài chính",
+        paragraphs: [
+          "Pethub là sàn kết nối, không giữ tiền mua bán thú. Việc tiếp nhận khiếu nại trên Sàn nhằm kiểm duyệt nội dung và tài khoản — không phải hoàn tiền hay phân xử tiền giữa Người dùng.",
+        ],
         bullets: [
-          "Do Pethub không thu giữ hay quản lý tiền cọc/thanh toán mua thú, Sàn không có nghĩa vụ hoàn tiền, bồi thường hay giải quyết đền bù tài chính cho bất kỳ tranh chấp cọc/lừa đảo nào giữa hai bên.",
-          `Khi nghi ngờ lừa đảo hoặc vi phạm Nội quy: bấm “Báo cáo” trên app hoặc gửi email tới ${LEGAL_SUPPORT_EMAIL} kèm bằng chứng (ảnh chat, URL tin đăng, chứng từ thanh toán nếu có).`,
-          "Trong vòng 03 ngày làm việc, Ban quản trị sẽ rà soát lịch sử trên Sàn (nếu có) và có thể khóa tài khoản vi phạm vĩnh viễn.",
-          "Hỗ trợ cung cấp trích xuất dữ liệu lịch sử chat/tin đăng cho Cơ quan Công an khi có yêu cầu hợp lệ nếu có dấu hiệu lừa đảo chiếm đoạt tài sản.",
-          "Pethub không thay thế các biện pháp dân sự hoặc hình sự mà Người dùng có thể tự theo đuổi ngoài nền tảng.",
+          "Khiếu nại thuộc phạm vi Sàn (chúng tôi xử lý): tin sai sự thật, che giấu bệnh / giả sổ tiêm–giấy tờ sức khỏe, lừa đảo hoặc nội dung cấm, quấy rối, giả mạo xác minh/uy tín — bấm “Báo cáo” trên app hoặc gửi email tới " +
+            LEGAL_SUPPORT_EMAIL +
+            " kèm bằng chứng (ảnh chat, URL tin đăng, chứng từ thanh toán nếu có).",
+          "Tiếp nhận: email hỗ trợ được phản hồi trong 24–48 giờ làm việc. Với Báo cáo/khiếu nại đủ bằng chứng, Ban quản trị rà soát lịch sử trên Sàn trong 03 ngày làm việc và có thể gỡ tin và/hoặc tạm khóa hoặc khóa vĩnh viễn tài khoản.",
+          "Tin vi phạm nghiêm trọng (ví dụ động vật cấm, dấu hiệu lừa đảo rõ): Admin có thể gỡ nội dung trong vòng 24 giờ sau báo cáo hợp lệ.",
+          "Tranh chấp tiền ngoài Sàn (chúng tôi không giải quyết tài chính): tiền cọc, giá mua bán, phí vận chuyển hoặc mọi khoản thanh toán trực tiếp giữa Người mua và Người bán. Pethub không có nghĩa vụ hoàn tiền, bồi thường hay kết toán thay cho các bên.",
+          "Người dùng vẫn có quyền theo đuổi biện pháp dân sự hoặc hình sự với nhau. Khi có yêu cầu hợp lệ của cơ quan có thẩm quyền, chúng tôi có thể cung cấp trích xuất chat/tin đăng nếu có dấu hiệu lừa đảo chiếm đoạt tài sản.",
+        ],
+      },
+      {
+        heading: "Bảo hành, đổi trả và “hoàn tiền” (do Người bán công bố)",
+        paragraphs: [
+          "Pethub không phải bên bán thú, không nhận trả thú và không thực hiện hoàn tiền mua bán thú. Mọi cam kết bảo hành sức khỏe hoặc đổi trả do Người bán tự công bố và tự thực hiện với Người mua.",
+        ],
+        bullets: [
+          "Nếu Người bán niêm yết chính sách bảo hành/đổi trả trên tin đăng hoặc hồ sơ trại, nội dung phải rõ ràng, chính xác; Người bán tự chịu trách nhiệm thực hiện đúng cam kết đó với Người mua.",
+          "Bảo hành sức khỏe (nếu có) chỉ theo phạm vi Người bán đã ghi (ví dụ thời gian bệnh bẩm sinh, sổ tiêm). Đó không phải bảo lãnh của Sàn.",
+          "Đổi/trả thú (nếu có) do hai bên tự thỏa thuận trực tiếp (kể cả rủi ro và chi phí vận chuyển). Pethub không nhận thú trả lại và không làm kho đổi trả.",
+          "“Hoàn tiền” cọc hoặc tiền mua (nếu có) do Người bán chi trả trực tiếp cho Người mua ngoài ứng dụng. Pethub không giữ và không đảo ngược các khoản thanh toán đó.",
+          "Người mua nên gặp trực tiếp thú, kiểm tra sổ tiêm, sức khỏe và giấy tờ trước khi chuyển tiền. Bỏ qua bước này là rủi ro của Người mua.",
+          "Nếu Người bán đăng bảo hành giả, che giấu bệnh, hoặc không thực hiện bảo hành đã tự công bố theo cách đồng thời vi phạm Nội quy này, Người mua có thể Báo cáo tin; Admin có thể gỡ tin và hạn chế tài khoản — đây không phải hoàn tiền từ Pethub.",
         ],
       },
       {

@@ -53,6 +53,10 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   const guideVi = flattenLegalDoc(marketplaceGuidelinesContent.VI);
   assert.match(guideVi, /Tìm kiếm & liên hệ/);
   assert.match(guideVi, /tranh chấp/);
+  assert.match(guideVi, /Giải quyết tranh chấp, khiếu nại/);
+  assert.match(guideVi, /24–48 giờ làm việc/);
+  assert.match(guideVi, /Bảo hành, đổi trả/);
+  assert.match(guideVi, /không nhận thú trả lại/);
   assert.match(guideVi, /Sách Đỏ Việt Nam/);
   assert.match(guideVi, /CITES/);
   assert.match(guideVi, /miễn trừ toàn bộ trách nhiệm/);
@@ -68,6 +72,14 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(
     flattenLegalDoc(marketplaceGuidelinesContent.EN),
     /does NOT receive, hold, or manage deposits/i,
+  );
+  assert.match(
+    flattenLegalDoc(marketplaceGuidelinesContent.EN),
+    /Warranty, returns, and “refunds”/i,
+  );
+  assert.match(
+    flattenLegalDoc(marketplaceGuidelinesContent.EN),
+    /24–48 business hours/,
   );
   assert.doesNotMatch(guideVi, /Quy trình 4 bước bàn giao & giải ngân cọc/);
   assert.doesNotMatch(guideVi, /Hệ thống giữ cọc/);
