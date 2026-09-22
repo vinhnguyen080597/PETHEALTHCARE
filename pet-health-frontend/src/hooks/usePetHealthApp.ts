@@ -4673,6 +4673,14 @@ export function usePetHealthApp() {
     setScreen('account');
   }
 
+  function openAboutOperator() {
+    setScreen('about-operator');
+  }
+
+  function backFromAboutOperator() {
+    setScreen('account');
+  }
+
   function backFromUpdateAccount() {
     setScreen('account');
   }
@@ -5208,6 +5216,8 @@ export function usePetHealthApp() {
     openUpdateAccount,
     openLanguageSelection,
     backFromLanguageSelection,
+    openAboutOperator,
+    backFromAboutOperator,
     backFromUpdateAccount,
     backToUpdateAccount,
     openUpdateAccountChangeLogin,

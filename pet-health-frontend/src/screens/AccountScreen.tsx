@@ -165,6 +165,7 @@ type AccountScreenProps = {
   onOpenAdminReview?: () => void;
   onOpenUpdateAccount: () => void;
   onOpenLanguageSelection: () => void;
+  onOpenAboutOperator: () => void;
   onUpdateBreederStatus: (
     userId: string,
     verificationStatus: string,
@@ -246,6 +247,7 @@ export function AccountScreen({
   onOpenAdminReview,
   onOpenUpdateAccount,
   onOpenLanguageSelection,
+  onOpenAboutOperator,
   onUpdateBreederStatus,
   onUpdatePostStatus,
   onUpdateReportStatus,
@@ -1432,6 +1434,12 @@ export function AccountScreen({
           <Text className="text-base font-bold text-slate-900">{t('legal.title')}</Text>
           <Text className="mt-1 text-sm leading-5 text-slate-500">{t('legal.body')}</Text>
           <View className="mt-3 gap-2">
+            <LegalLinkButton
+              label={t('legal.operatorLink')}
+              onPress={onOpenAboutOperator}
+              testID="account-about-operator-button"
+              external={false}
+            />
             <LegalLinkButton label={t('legal.privacy')} url={APP_LINKS.privacyPolicy} />
             <LegalLinkButton label={t('legal.terms')} url={APP_LINKS.termsOfService} />
             <LegalLinkButton label={t('legal.marketplaceGuidelines')} url={APP_LINKS.marketplaceGuidelines} />
@@ -1854,15 +1862,31 @@ function MyListingRow({
   );
 }
 
-function LegalLinkButton({ label, url }: { label: string; url: string }) {
+function LegalLinkButton({
+  label,
+  url,
+  onPress,
+  testID,
+  external = true,
+}: {
+  label: string;
+  url?: string;
+  onPress?: () => void;
+  testID?: string;
+  external?: boolean;
+}) {
   return (
     <Pressable
-      accessibilityRole="link"
+      testID={testID}
+      accessibilityRole={external ? 'link' : 'button'}
       className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-3 active:bg-slate-100"
-      onPress={() => void Linking.openURL(url)}
+      onPress={() => {
+        if (onPress) onPress();
+        else if (url) void Linking.openURL(url);
+      }}
     >
-      <Text className="text-sm font-semibold text-slate-700">{label}</Text>
-      <Ionicons name="open-outline" size={17} color="#64748b" />
+      <Text className="min-w-0 flex-1 pr-3 text-sm font-semibold text-slate-700">{label}</Text>
+      <Ionicons name={external ? 'open-outline' : 'chevron-forward'} size={17} color="#64748b" />
     </Pressable>
   );
 }

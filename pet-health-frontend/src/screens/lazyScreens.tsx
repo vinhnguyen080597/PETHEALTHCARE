@@ -61,6 +61,7 @@ export const HealthCheckScreen = lazyNamed(() => import('./HealthCheckScreen'), 
 export const HistoryScreen = lazyNamed(() => import('./HistoryScreen'), 'HistoryScreen');
 export const ForgotPasswordScreen = lazyNamed(() => import('./ForgotPasswordScreen'), 'ForgotPasswordScreen');
 export const LanguageSelectionScreen = lazyNamed(() => import('./LanguageSelectionScreen'), 'LanguageSelectionScreen');
+export const AboutOperatorScreen = lazyNamed(() => import('./AboutOperatorScreen'), 'AboutOperatorScreen');
 export const SignUpOtpVerificationScreen = lazyNamed(
   () => import('./SignUpOtpVerificationScreen'),
   'SignUpOtpVerificationScreen',

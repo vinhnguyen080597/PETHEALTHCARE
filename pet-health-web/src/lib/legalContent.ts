@@ -27,6 +27,14 @@ export const LEGAL_REPRESENTATIVE_TITLE_EN = "Director";
 /** Company phone listed on GCN ĐKKD. */
 export const LEGAL_COMPANY_PHONE = "0354311254";
 
+/**
+ * MoIT confirmation page. Replace with AppDetails/WebDetails URL after approval.
+ * Override via NEXT_PUBLIC_MOIT_CONFIRMATION_URL.
+ */
+export const LEGAL_MOIT_CONFIRMATION_URL = (
+  process.env.NEXT_PUBLIC_MOIT_CONFIRMATION_URL?.trim() || "https://online.gov.vn"
+).replace(/\/+$/, "");
+
 export type LegalSection = {
   heading?: string;
   paragraphs?: string[];

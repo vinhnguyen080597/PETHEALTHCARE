@@ -31,6 +31,8 @@ const DEV_APP_LINKS = {
   termsOfService: `${PUBLIC_SITE_ORIGIN}/terms-of-service/`,
   marketplaceGuidelines: `${PUBLIC_SITE_ORIGIN}/marketplace-guidelines/`,
   support: `${PUBLIC_SITE_ORIGIN}/support/`,
+  /** Replace with AppDetails/WebDetails URL after MoIT approval. */
+  moitConfirmation: 'https://online.gov.vn',
 };
 
 function resolveApiOrigin(): string {
@@ -76,4 +78,9 @@ export const APP_LINKS = {
     ['https:'],
   ),
   support: resolveAppLink('EXPO_PUBLIC_SUPPORT_URL', DEV_APP_LINKS.support, ['https:', 'mailto:']),
+  moitConfirmation: resolveAppLink(
+    'EXPO_PUBLIC_MOIT_CONFIRMATION_URL',
+    DEV_APP_LINKS.moitConfirmation,
+    ['https:'],
+  ),
 };
