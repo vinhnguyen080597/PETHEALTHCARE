@@ -1123,7 +1123,7 @@ export function FarmDetail({
                       hasLegalDisclosure: hasLegalFacility,
                     }) ? (
                       <>
-                        {hasLegalFacility ? (
+                        {hasLegalFacility && legalDisclosure ? (
                           <div>
                             <h3 className="text-sm font-semibold text-[#2B1E19] mb-2">
                               {t(lang, "farm.facility.legal")}
@@ -1134,7 +1134,9 @@ export function FarmDetail({
                                   <dt className="shrink-0 font-medium text-[#2B1E19]">
                                     {t(lang, "farm.facility.legalType")}
                                   </dt>
-                                  <dd className="text-[#6E5A51]">{t(lang, legalTypeKey)}</dd>
+                                  <dd className="text-[#6E5A51]">
+                                    {t(lang, legalTypeKey)}
+                                  </dd>
                                 </div>
                               ) : null}
                               {legalDisclosure.legalName ? (

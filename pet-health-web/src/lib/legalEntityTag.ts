@@ -98,7 +98,12 @@ export function vietnamBusinessLookupLinks(
   return links;
 }
 
-export function legalEntityI18nKey(tag: LegalEntityTag | null | undefined): string | null {
+export function legalEntityI18nKey(
+  tag: LegalEntityTag | null | undefined,
+):
+  | "farm.legalEntity.enterprise"
+  | "farm.legalEntity.householdBusiness"
+  | null {
   if (tag === "enterprise") return "farm.legalEntity.enterprise";
   if (tag === "household_business") return "farm.legalEntity.householdBusiness";
   return null;

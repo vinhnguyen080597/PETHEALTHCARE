@@ -25,13 +25,6 @@ import {
   splitBreederSpeciesForForm,
 } from "@/lib/breederSpeciesSelection";
 import {
-  normalizeRegistrationUnitSelection,
-  registrationUnitsForSpecies,
-  REGISTRATION_UNIT_OTHER,
-  splitRegistrationUnitForForm,
-} from "@/lib/breederRegistrationUnits";
-import { validateRegisteredKennelFields } from "@/lib/breederRegisteredKennelValidation";
-import {
   BREEDER_LEGAL_TYPES,
   isBusinessEntityBreederType,
   normalizeBreederLegalType,
@@ -136,27 +129,6 @@ export function BreederProfileForm({
     metaString(meta, "business_license_pending_url") ||
       metaString(meta, "business_license_url"),
   );
-  const [registeredKennelName, setRegisteredKennelName] = useState(
-    metaString(meta, "registeredKennelName") ||
-      metaString(meta, "registered_kennel_name"),
-  );
-  const initialRegistration = splitRegistrationUnitForForm({
-    unit: initial?.registration_unit,
-    other: initial?.registration_unit_other,
-    species: splitBreederSpeciesForForm(initial?.primary_species || []),
-    legacyMetadataUnit:
-      metaString(meta, "registrationUnit") ||
-      metaString(meta, "registration_unit"),
-  });
-  const [registrationUnit, setRegistrationUnit] = useState(
-    initialRegistration.registrationUnit,
-  );
-  const [registrationUnitOther, setRegistrationUnitOther] = useState(
-    initialRegistration.registrationUnitOther,
-  );
-  const [registeredAt, setRegisteredAt] = useState(
-    metaString(meta, "registeredAt") || metaString(meta, "registered_at"),
-  );
   const [primarySpecies, setPrimarySpecies] = useState<string>(
     splitBreederSpeciesForForm(initial?.primary_species || []),
   );
@@ -187,10 +159,6 @@ export function BreederProfileForm({
     displayName?: string;
     location?: string;
     species?: string;
-    registrationUnit?: string;
-    registrationUnitOther?: string;
-    registeredKennelName?: string;
-    registeredAt?: string;
     legalName?: string;
     registeredAddress?: string;
     taxId?: string;
@@ -211,11 +179,6 @@ export function BreederProfileForm({
       return next;
     });
   };
-
-  const registrationUnitOptions = useMemo(
-    () => registrationUnitsForSpecies(primarySpecies),
-    [primarySpecies],
-  );
 
   const title = useMemo(() => {
     if (isEdit) return t(lang, "breederForm.editTitle");
@@ -283,31 +246,6 @@ export function BreederProfileForm({
     if (!primarySpecies.trim()) {
       nextErrors.species = t(lang, "breederForm.field.speciesRequired");
     }
-    const registeredKennelErrors = validateRegisteredKennelFields(
-      {
-        breederType,
-        registrationUnit,
-        registrationUnitOther,
-        registeredKennelName,
-        registeredAt,
-      },
-      {
-        registrationUnitRequired: t(
-          lang,
-          "breederForm.field.registrationUnitRequired",
-        ),
-        registrationUnitOtherRequired: t(
-          lang,
-          "breederForm.field.registrationUnitOtherRequired",
-        ),
-        registeredKennelNameRequired: t(
-          lang,
-          "breederForm.field.registeredKennelNameRequired",
-        ),
-        registeredAtRequired: t(lang, "breederForm.field.registeredAtRequired"),
-      },
-    );
-    Object.assign(nextErrors, registeredKennelErrors);
     Object.assign(
       nextErrors,
       validateBusinessEntityFields(
@@ -362,14 +300,6 @@ export function BreederProfileForm({
       }
 
       const speciesPayload = breederSpeciesForSave(primarySpecies);
-      const registrationPayload =
-        breederType === "registered_kennel"
-          ? normalizeRegistrationUnitSelection({
-              species: primarySpecies,
-              unit: registrationUnit,
-              other: registrationUnitOther,
-            })
-          : { registrationUnit: "", registrationUnitOther: "" };
       const taxDigits = taxId.replace(/\D/g, "");
       const res = await fetch("/api/breeder/profile", {
         method: "PUT",
@@ -388,8 +318,8 @@ export function BreederProfileForm({
             zalo: zalo.trim(),
           },
           primarySpecies: speciesPayload.primarySpecies,
-          registrationUnit: registrationPayload.registrationUnit,
-          registrationUnitOther: registrationPayload.registrationUnitOther,
+          registrationUnit: "",
+          registrationUnitOther: "",
           mainBreeds: mainBreeds
             .split(",")
             .map((s) => s.trim())
@@ -397,10 +327,8 @@ export function BreederProfileForm({
           metadata: {
             ...meta,
             breederType,
-            registeredKennelName:
-              breederType === "registered_kennel" ? registeredKennelName : "",
-            registeredAt:
-              breederType === "registered_kennel" ? registeredAt : "",
+            registeredKennelName: "",
+            registeredAt: "",
             transparencyCommitments: commitments,
             ...(isBusinessEntityBreederType(breederType)
               ? {
@@ -660,16 +588,6 @@ export function BreederProfileForm({
                   type="button"
                   onClick={() => {
                     setPrimarySpecies(selectPrimarySpecies(primarySpecies, sp));
-                    const nextOptions = registrationUnitsForSpecies(sp);
-                    if (
-                      registrationUnit &&
-                      !nextOptions.includes(
-                        registrationUnit as (typeof nextOptions)[number],
-                      )
-                    ) {
-                      setRegistrationUnit("");
-                      setRegistrationUnitOther("");
-                    }
                     clearFieldError("species");
                   }}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
@@ -696,10 +614,6 @@ export function BreederProfileForm({
                 setBreederType(normalizeBreederLegalType(e.target.value));
                 setFieldErrors((prev) => {
                   const next = { ...prev };
-                  delete next.registrationUnit;
-                  delete next.registrationUnitOther;
-                  delete next.registeredKennelName;
-                  delete next.registeredAt;
                   delete next.legalName;
                   delete next.registeredAddress;
                   delete next.taxId;
@@ -817,83 +731,6 @@ export function BreederProfileForm({
                 </div>
               ) : null}
               <FieldError message={fieldErrors.licenseFile} />
-            </div>
-          </div>
-        ) : null}
-
-        {primarySpecies && breederType === "registered_kennel" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className={labelCls}>
-                {t(lang, "breederForm.registrationUnit")}
-                <RequiredMark />
-              </label>
-              <select
-                className={`${selectCls} ${fieldErrors.registrationUnit ? inputErrorCls : ""}`}
-                value={registrationUnit}
-                onChange={(e) => {
-                  setRegistrationUnit(e.target.value);
-                  clearFieldError("registrationUnit");
-                  clearFieldError("registrationUnitOther");
-                }}
-                aria-invalid={Boolean(fieldErrors.registrationUnit)}
-              >
-                <option value="" hidden disabled />
-                {registrationUnitOptions.map((unit) => (
-                  <option key={unit} value={unit}>
-                    {t(lang, `breederForm.registrationUnits.${unit}` as EnKey)}
-                  </option>
-                ))}
-              </select>
-              <FieldError message={fieldErrors.registrationUnit} />
-              {registrationUnit === REGISTRATION_UNIT_OTHER ? (
-                <>
-                  <input
-                    className={`${inputCls} mt-2 ${fieldErrors.registrationUnitOther ? inputErrorCls : ""}`}
-                    value={registrationUnitOther}
-                    onChange={(e) => {
-                      setRegistrationUnitOther(e.target.value);
-                      clearFieldError("registrationUnitOther");
-                    }}
-                    placeholder={t(lang, "breederForm.registrationUnitOtherPlaceholder")}
-                    aria-invalid={Boolean(fieldErrors.registrationUnitOther)}
-                  />
-                  <FieldError message={fieldErrors.registrationUnitOther} />
-                </>
-              ) : null}
-            </div>
-            <div>
-              <label className={labelCls}>
-                {t(lang, "breederForm.kennelName")}
-                <RequiredMark />
-              </label>
-              <input
-                className={`${inputCls} ${fieldErrors.registeredKennelName ? inputErrorCls : ""}`}
-                value={registeredKennelName}
-                onChange={(e) => {
-                  setRegisteredKennelName(e.target.value);
-                  clearFieldError("registeredKennelName");
-                }}
-                aria-invalid={Boolean(fieldErrors.registeredKennelName)}
-              />
-              <FieldError message={fieldErrors.registeredKennelName} />
-            </div>
-            <div>
-              <label className={labelCls}>
-                {t(lang, "breederForm.registeredAt")}
-                <RequiredMark />
-              </label>
-              <input
-                className={`${inputCls} ${fieldErrors.registeredAt ? inputErrorCls : ""}`}
-                value={registeredAt}
-                onChange={(e) => {
-                  setRegisteredAt(e.target.value);
-                  clearFieldError("registeredAt");
-                }}
-                placeholder="YYYY"
-                aria-invalid={Boolean(fieldErrors.registeredAt)}
-              />
-              <FieldError message={fieldErrors.registeredAt} />
             </div>
           </div>
         ) : null}
