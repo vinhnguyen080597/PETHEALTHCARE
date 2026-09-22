@@ -205,16 +205,6 @@ export function ListingCard({
           <span className="truncate text-xs font-medium text-[#2B1E19]">
             {listing.breeder.name}
           </span>
-          {listing.breeder.legalEntityTag === "enterprise" ? (
-            <span className="shrink-0 rounded bg-[#EEF2FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#3730A3]">
-              {t(lang, "farm.legalEntity.enterprise")}
-            </span>
-          ) : null}
-          {listing.breeder.legalEntityTag === "household_business" ? (
-            <span className="shrink-0 rounded bg-[#ECFDF5] px-1.5 py-0.5 text-[10px] font-semibold text-[#065F46]">
-              {t(lang, "farm.legalEntity.householdBusiness")}
-            </span>
-          ) : null}
         </div>
         {breederFooter.ratingText ? (
           <span className="shrink-0 whitespace-nowrap text-[11px] font-medium text-[#2B1E19]/55">

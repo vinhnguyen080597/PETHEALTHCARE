@@ -85,6 +85,8 @@ test("applyPendingBusinessLicenseOnProfileVerify awards +30 pack on verify", () 
     "2026-09-22T00:00:00.000Z",
   );
   assert.equal(next.legal_entity_tag, "household_business");
+  assert.equal(next.legal_name, "Nguyen Van A");
+  assert.equal(next.registered_address, "Ha Noi");
   assert.equal(next.business_license_trust_awarded, true);
   assert.equal(next.business_license_url, "https://cdn.example/license.jpg");
 });
@@ -106,6 +108,8 @@ test("applyApprovedBreederSubmission sets legal_entity_tag and private identity"
     "2026-09-22T00:00:00.000Z",
   );
   assert.equal(merged.metadata.legal_entity_tag, "enterprise");
+  assert.equal(merged.metadata.legal_name, "Pet Farm Co Ltd");
+  assert.equal(merged.metadata.registered_address, "HCM");
   assert.equal(merged.metadata.business_license_trust_awarded, true);
   assert.equal(merged.metadata.identity.tax_id, "0312345678");
   assert.equal(merged.metadata.business_license_url, "https://cdn.example/license.jpg");

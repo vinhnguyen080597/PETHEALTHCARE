@@ -99,6 +99,10 @@ export interface BreederProfile {
   facilityVideoUrl?: string | null;
   /** Public legal entity tag after admin-approved GPKD pack (no MST digits). */
   legalEntityTag?: "household_business" | "enterprise" | null;
+  /** Public legal name from approved GPKD (never tax id). */
+  legalName?: string | null;
+  /** Public registered address from approved GPKD. */
+  registeredAddress?: string | null;
 }
 
 export interface WarrantyPolicy {

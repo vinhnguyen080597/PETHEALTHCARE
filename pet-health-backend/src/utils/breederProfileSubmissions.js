@@ -336,6 +336,8 @@ export function applyApprovedBreederSubmission(profile, submission, reviewedAt) 
     metadata.business_license_url = url;
     metadata.business_license_approved_at = now;
     if (legalEntityTag) metadata.legal_entity_tag = legalEntityTag;
+    if (identity.legalName) metadata.legal_name = identity.legalName;
+    if (identity.registeredAddress) metadata.registered_address = identity.registeredAddress;
     metadata.identity = {
       seller_legal_type: legalEntityTag || identity.sellerLegalType,
       legal_name: identity.legalName,
@@ -498,6 +500,8 @@ export function applyPendingBusinessLicenseOnProfileVerify(metadata, reviewedAt)
   next.business_license_approved_at = now;
   next.business_license_trust_awarded = true;
   next.legal_entity_tag = sellerType;
+  next.legal_name = legalName;
+  next.registered_address = registeredAddress;
   next.identity = {
     ...identity,
     seller_legal_type: sellerType,

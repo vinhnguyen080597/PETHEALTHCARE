@@ -103,6 +103,15 @@ test('farmFacilitySocialLinks masks Zalo and keeps https socials', () => {
   assert.equal(maskZaloPublicDisplay('84901234567'), '090***567');
   assert.equal(farmFacilityHasContent({ bio: 'Hello', socialCount: 0 }), true);
   assert.equal(farmFacilityHasContent({ bio: '', socialCount: 0, videoUrl: null }), false);
+  assert.equal(
+    farmFacilityHasContent({
+      bio: '',
+      socialCount: 0,
+      videoUrl: null,
+      hasLegalDisclosure: true,
+    }),
+    true,
+  );
 });
 
 test('farm detail tabs exclude dedicated reviews tab', () => {

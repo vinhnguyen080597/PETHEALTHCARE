@@ -679,6 +679,10 @@
     },
     "facility": {
       "about": "Giới thiệu trại",
+      "legal": "Giấy phép kinh doanh",
+      "legalType": "Loại hình",
+      "legalName": "Tên pháp lý",
+      "registeredAddress": "Địa chỉ đăng ký",
       "social": "Mạng xã hội",
       "facebook": "Facebook",
       "zalo": "Zalo",

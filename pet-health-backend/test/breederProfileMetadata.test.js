@@ -55,18 +55,25 @@ test('mergeBreederProfileMetadata keeps trust awards when form omits them', () =
   assert.equal(merged.scaleRange, undefined);
 });
 
-test('toPublicBreederMetadata strips identity and license URL, keeps tag', () => {
+test('toPublicBreederMetadata strips identity secrets, keeps public legal name', () => {
   const publicMeta = toPublicBreederMetadata({
     legal_entity_tag: 'household_business',
     business_license_verified: true,
     business_license_url: 'https://cdn.example/secret.jpg',
     business_license_pending_url: 'https://cdn.example/pending.jpg',
-    identity: { tax_id: '0123456789', legal_name: 'Secret' },
+    identity: {
+      tax_id: '0123456789',
+      legal_name: 'HKD Nguyen Van A',
+      registered_address: '1 Nguyen Hue, HCMC',
+    },
   });
   assert.equal(publicMeta.legal_entity_tag, 'household_business');
   assert.equal(publicMeta.business_license_verified, true);
   assert.equal(publicMeta.business_license_url, undefined);
   assert.equal(publicMeta.business_license_pending_url, undefined);
   assert.equal(publicMeta.identity, undefined);
+  assert.equal(publicMeta.tax_id, undefined);
+  assert.equal(publicMeta.legal_name, 'HKD Nguyen Van A');
+  assert.equal(publicMeta.registered_address, '1 Nguyen Hue, HCMC');
   assert.equal(hasApprovedLegalEntityTag(publicMeta), true);
 });

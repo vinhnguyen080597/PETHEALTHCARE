@@ -28,7 +28,10 @@ import {
   isComplianceVerifiedStripped,
 } from "./breederComplianceScore";
 import { parseReviewStatsFromMeta } from "./breederDealReviews";
-import { legalEntityTagFromMeta } from "./legalEntityTag";
+import {
+  legalEntityTagFromMeta,
+  publicLegalDisclosureFromMeta,
+} from "./legalEntityTag";
 import {
   coverUrlFromMetadata,
   resolveBreederAvatarUrl,
@@ -310,6 +313,7 @@ export function mapApiBreeder(
   const warrantyPolicies = mapWarrantyPolicies(
     profile?.warranty_policies ?? meta.warranty_policies,
   );
+  const legalDisclosure = publicLegalDisclosureFromMeta(meta);
 
   return {
     id: profile?.id || "unknown",
@@ -347,7 +351,9 @@ export function mapApiBreeder(
       Boolean(profile?.warranty_policy_trust_awarded) ||
       activity.hasFirstWarrantyPolicy,
     facilityVideoUrl: publicFacilityVideoUrl(meta),
-    legalEntityTag: legalEntityTagFromMeta(meta),
+    legalEntityTag: legalDisclosure?.tag ?? legalEntityTagFromMeta(meta),
+    legalName: legalDisclosure?.legalName || null,
+    registeredAddress: legalDisclosure?.registeredAddress || null,
   };
 }
 

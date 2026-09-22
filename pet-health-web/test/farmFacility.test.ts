@@ -82,6 +82,15 @@ test("farm facility overview order and video frame stay compact 16:9", () => {
     }),
     true,
   );
+  assert.equal(
+    farmFacilityHasContent({
+      bio: "",
+      socialCount: 0,
+      videoUrl: null,
+      hasLegalDisclosure: true,
+    }),
+    true,
+  );
 });
 
 test("farm facility social i18n exists in EN and VI", () => {
@@ -94,6 +103,10 @@ test("farm facility social i18n exists in EN and VI", () => {
     "farm.facility.tiktok",
     "farm.facility.instagram",
     "farm.facility.video",
+    "farm.facility.legal",
+    "farm.facility.legalType",
+    "farm.facility.legalName",
+    "farm.facility.registeredAddress",
   ] as const) {
     assert.ok(enDict[key], `missing EN ${key}`);
     assert.ok(viDict[key], `missing VI ${key}`);

@@ -29,6 +29,10 @@ import {
   farmFacilitySocialLinks,
 } from "@/lib/farmFacility";
 import {
+  legalEntityI18nKey,
+  publicLegalDisclosureHasContent,
+} from "@/lib/legalEntityTag";
+import {
   countFarmPetsByAvailability,
   countFarmPetsRehomed,
   farmPetTabCount,
@@ -547,6 +551,15 @@ export function FarmDetail({
   const cover = coverUrl || FALLBACK_COVER;
   const bioText = (lang === "VI" ? breeder.bioVI : breeder.bio).trim();
   const facilitySocials = farmFacilitySocialLinks(breeder.contact);
+  const legalDisclosure = breeder.legalEntityTag
+    ? {
+        tag: breeder.legalEntityTag,
+        legalName: String(breeder.legalName || "").trim(),
+        registeredAddress: String(breeder.registeredAddress || "").trim(),
+      }
+    : null;
+  const hasLegalFacility = publicLegalDisclosureHasContent(legalDisclosure);
+  const legalTypeKey = legalEntityI18nKey(breeder.legalEntityTag);
 
   const clearReviewFocusFromUrl = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -1023,16 +1036,6 @@ export function FarmDetail({
                       ? "📍 Việt Nam"
                       : "📍 Vietnam"}
                 </p>
-                {breeder.legalEntityTag === "enterprise" ? (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#EEF2FF] text-[#3730A3] text-[11px] font-semibold border border-indigo-100">
-                    {t(lang, "farm.legalEntity.enterprise")}
-                  </span>
-                ) : null}
-                {breeder.legalEntityTag === "household_business" ? (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#ECFDF5] text-[#065F46] text-[11px] font-semibold border border-emerald-100">
-                    {t(lang, "farm.legalEntity.householdBusiness")}
-                  </span>
-                ) : null}
               </div>
               {isOwner ? (
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -1117,8 +1120,46 @@ export function FarmDetail({
                       bio: bioText,
                       socialCount: facilitySocials.length,
                       videoUrl: breeder.facilityVideoUrl,
+                      hasLegalDisclosure: hasLegalFacility,
                     }) ? (
                       <>
+                        {hasLegalFacility ? (
+                          <div>
+                            <h3 className="text-sm font-semibold text-[#2B1E19] mb-2">
+                              {t(lang, "farm.facility.legal")}
+                            </h3>
+                            <dl className="space-y-2 text-sm">
+                              {legalTypeKey ? (
+                                <div className="flex flex-col sm:flex-row sm:gap-2">
+                                  <dt className="shrink-0 font-medium text-[#2B1E19]">
+                                    {t(lang, "farm.facility.legalType")}
+                                  </dt>
+                                  <dd className="text-[#6E5A51]">{t(lang, legalTypeKey)}</dd>
+                                </div>
+                              ) : null}
+                              {legalDisclosure.legalName ? (
+                                <div className="flex flex-col sm:flex-row sm:gap-2">
+                                  <dt className="shrink-0 font-medium text-[#2B1E19]">
+                                    {t(lang, "farm.facility.legalName")}
+                                  </dt>
+                                  <dd className="text-[#6E5A51] break-words">
+                                    {legalDisclosure.legalName}
+                                  </dd>
+                                </div>
+                              ) : null}
+                              {legalDisclosure.registeredAddress ? (
+                                <div className="flex flex-col sm:flex-row sm:gap-2">
+                                  <dt className="shrink-0 font-medium text-[#2B1E19]">
+                                    {t(lang, "farm.facility.registeredAddress")}
+                                  </dt>
+                                  <dd className="text-[#6E5A51] break-words">
+                                    {legalDisclosure.registeredAddress}
+                                  </dd>
+                                </div>
+                              ) : null}
+                            </dl>
+                          </div>
+                        ) : null}
                         {!isBlankDisplayValue(bioText) ? (
                           <div>
                             <h3 className="text-sm font-semibold text-[#2B1E19] mb-1">

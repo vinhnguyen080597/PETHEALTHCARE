@@ -679,6 +679,10 @@
     },
     "facility": {
       "about": "About the kennel",
+      "legal": "Business registration",
+      "legalType": "Legal form",
+      "legalName": "Legal name",
+      "registeredAddress": "Registered address",
       "social": "Social",
       "facebook": "Facebook",
       "zalo": "Zalo",

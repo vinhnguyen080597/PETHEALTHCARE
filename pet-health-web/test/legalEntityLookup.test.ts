@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizeTaxIdDigits,
+  publicLegalDisclosureFromMeta,
+  publicLegalDisclosureHasContent,
   vietnamBusinessLookupLinks,
   vietnamMasothueLookupHref,
   vietnamTaxPortalLookupHref,
@@ -35,5 +37,24 @@ test("vietnamBusinessLookupLinks includes official portals", () => {
   assert.deepEqual(
     withoutTax.map((link) => link.id),
     ["gdt", "dkkd"],
+  );
+});
+
+test("publicLegalDisclosureFromMeta exposes name/address without tax id", () => {
+  const disclosure = publicLegalDisclosureFromMeta({
+    legal_entity_tag: "enterprise",
+    legal_name: "Pet Farm Co Ltd",
+    registered_address: "HCM",
+    identity: { tax_id: "0312345678" },
+  });
+  assert.equal(disclosure?.tag, "enterprise");
+  assert.equal(disclosure?.legalName, "Pet Farm Co Ltd");
+  assert.equal(disclosure?.registeredAddress, "HCM");
+  assert.equal(publicLegalDisclosureHasContent(disclosure), true);
+  assert.equal(
+    publicLegalDisclosureHasContent(
+      publicLegalDisclosureFromMeta({ legal_entity_tag: "enterprise" }),
+    ),
+    false,
   );
 });

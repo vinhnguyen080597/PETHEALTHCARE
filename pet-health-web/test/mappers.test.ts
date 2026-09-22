@@ -47,11 +47,19 @@ test("mapApiBreeder exposes public legalEntityTag without identity numbers", () 
     verification_status: "verified",
     metadata: {
       legal_entity_tag: "household_business",
+      legal_name: "HKD Nguyen Van A",
+      registered_address: "1 Nguyen Hue, HCMC",
       business_license_trust_awarded: true,
       identity: { tax_id: "0123456789" },
     },
   });
   assert.equal(mapped.legalEntityTag, "household_business");
+  assert.equal(mapped.legalName, "HKD Nguyen Van A");
+  assert.equal(mapped.registeredAddress, "1 Nguyen Hue, HCMC");
+  assert.equal(
+    JSON.stringify(mapped).includes("0123456789"),
+    false,
+  );
 });
 
 test("mapApiBreeder uses signal-based trust when metadata trust_score is absent", () => {

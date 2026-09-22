@@ -36,3 +36,44 @@ export function legalEntityI18nKey(tag: LegalEntityTag | null | undefined): stri
   if (tag === 'household_business') return 'farm.legalEntity.householdBusiness';
   return null;
 }
+
+/** Public GPKD fields after admin approve — never includes tax id. */
+export type PublicLegalDisclosure = {
+  tag: LegalEntityTag;
+  legalName: string;
+  registeredAddress: string;
+};
+
+function metaString(meta: Record<string, unknown>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = meta[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
+export function publicLegalDisclosureFromMeta(
+  meta: Record<string, unknown> | null | undefined,
+): PublicLegalDisclosure | null {
+  const record = meta && typeof meta === 'object' ? meta : {};
+  const tag = legalEntityTagFromMeta(record);
+  if (!tag) return null;
+  const identity =
+    record.identity && typeof record.identity === 'object' && !Array.isArray(record.identity)
+      ? (record.identity as Record<string, unknown>)
+      : {};
+  const legalName =
+    metaString(record, 'legal_name', 'legalName') ||
+    metaString(identity, 'legal_name', 'legalName');
+  const registeredAddress =
+    metaString(record, 'registered_address', 'registeredAddress') ||
+    metaString(identity, 'registered_address', 'registeredAddress');
+  return { tag, legalName, registeredAddress };
+}
+
+export function publicLegalDisclosureHasContent(
+  disclosure: PublicLegalDisclosure | null | undefined,
+): boolean {
+  if (!disclosure) return false;
+  return Boolean(disclosure.legalName || disclosure.registeredAddress);
+}

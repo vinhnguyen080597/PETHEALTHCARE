@@ -30,7 +30,11 @@ import {
   listMyWarrantyPolicies,
 } from '../api';
 import { pendingWarrantyUploadsFromSubmissions } from '../utils/breederProfileSubmissions';
-import { legalEntityTagFromMeta } from '../utils/legalEntityTag';
+import {
+  legalEntityI18nKey,
+  publicLegalDisclosureFromMeta,
+  publicLegalDisclosureHasContent,
+} from '../utils/legalEntityTag';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { mapFarmReviewThreads, formatBreederReviewLabel, farmReviewAuthorLabel, isSaleFarmReviewKind, type FarmReviewThreadPreview } from '../utils/farmReview';
 import { initialsFromName } from '../utils/breederTrustLevel';
@@ -166,10 +170,16 @@ export function BreederDetailScreen({
   const score = effectiveTrustScore(profile, listingPosts);
   const facilitySocials = farmFacilitySocialLinks(profile.contact || {});
   const facilityVideoUrl = publicFacilityVideoUrl(profile.metadata);
+  const legalDisclosure = publicLegalDisclosureFromMeta(
+    (profile.metadata ?? {}) as Record<string, unknown>,
+  );
+  const hasLegalFacility = publicLegalDisclosureHasContent(legalDisclosure);
+  const legalTypeKey = legalEntityI18nKey(legalDisclosure?.tag);
   const hasFacility = farmFacilityHasContent({
     bio: profile.bio,
     socialCount: facilitySocials.length,
     videoUrl: facilityVideoUrl,
+    hasLegalDisclosure: hasLegalFacility,
   });
   const warranties = libraryPolicies ?? farmWarrantyPoliciesFromProfile(profile);
   const firstWarrantyAwarded = parseTrustAwardedFromMeta(
@@ -502,40 +512,6 @@ export function BreederDetailScreen({
                 <Text style={{ flexShrink: 1, fontSize: 13, color: FARM_MUTED }} numberOfLines={1}>
                   📍 {locationLabel}
                 </Text>
-                {legalEntityTagFromMeta(profile.metadata as Record<string, unknown>) ===
-                'enterprise' ? (
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: '700',
-                      color: '#3730A3',
-                      backgroundColor: '#EEF2FF',
-                      overflow: 'hidden',
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 6,
-                    }}
-                  >
-                    {t('farm.legalEntity.enterprise')}
-                  </Text>
-                ) : null}
-                {legalEntityTagFromMeta(profile.metadata as Record<string, unknown>) ===
-                'household_business' ? (
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: '700',
-                      color: '#065F46',
-                      backgroundColor: '#ECFDF5',
-                      overflow: 'hidden',
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 6,
-                    }}
-                  >
-                    {t('farm.legalEntity.householdBusiness')}
-                  </Text>
-                ) : null}
                 {isOwnProfile && allowTemplateChange && onOpenTemplatePicker ? (
                   <OwnerChip
                     testID="farm-owner-change-template"
@@ -624,6 +600,43 @@ export function BreederDetailScreen({
               <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: FARM_BORDER, padding: 16, gap: 14 }}>
                 {hasFacility ? (
                   <>
+                    {hasLegalFacility && legalDisclosure ? (
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: FARM_TEXT, marginBottom: 8 }}>
+                          {t('farm.facility.legal')}
+                        </Text>
+                        {legalTypeKey ? (
+                          <View style={{ marginBottom: 6 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: FARM_TEXT }}>
+                              {t('farm.facility.legalType')}
+                            </Text>
+                            <Text style={{ fontSize: 13, color: FARM_MUTED, marginTop: 2 }}>
+                              {t(legalTypeKey)}
+                            </Text>
+                          </View>
+                        ) : null}
+                        {legalDisclosure.legalName ? (
+                          <View style={{ marginBottom: 6 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: FARM_TEXT }}>
+                              {t('farm.facility.legalName')}
+                            </Text>
+                            <Text style={{ fontSize: 13, color: FARM_MUTED, marginTop: 2 }}>
+                              {legalDisclosure.legalName}
+                            </Text>
+                          </View>
+                        ) : null}
+                        {legalDisclosure.registeredAddress ? (
+                          <View>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: FARM_TEXT }}>
+                              {t('farm.facility.registeredAddress')}
+                            </Text>
+                            <Text style={{ fontSize: 13, color: FARM_MUTED, marginTop: 2 }}>
+                              {legalDisclosure.registeredAddress}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    ) : null}
                     {profile.bio?.trim() ? (
                       <View>
                         <Text style={{ fontSize: 13, fontWeight: '700', color: FARM_TEXT, marginBottom: 4 }}>

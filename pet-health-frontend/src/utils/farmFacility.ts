@@ -84,8 +84,11 @@ export function farmFacilityHasContent(input: {
   bio?: string;
   socialCount?: number;
   videoUrl?: string | null;
+  /** Approved GPKD legal name / registered address (no MST). */
+  hasLegalDisclosure?: boolean;
 }): boolean {
   if (String(input.bio || '').trim()) return true;
   if ((input.socialCount ?? 0) > 0) return true;
+  if (input.hasLegalDisclosure) return true;
   return Boolean(input.videoUrl);
 }
