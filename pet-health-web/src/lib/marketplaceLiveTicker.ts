@@ -167,15 +167,13 @@ function titleOf(listing: Listing): string {
 /**
  * Build a short live-activity feed from real listing states, then pad with
  * demo pulses so the ticker always has up to `limit` items (default 10).
- * Deposit pulses stay off unless `includeDepositEvents` (marketplace_escrow).
+ * Deposit-hold listings are skipped (no deposit marketing in the ticker).
  */
 export function buildLiveTickerItems(
   listings: Listing[],
   now = Date.now(),
   limit = 10,
-  options?: { includeDepositEvents?: boolean },
 ): LiveTickerItem[] {
-  const includeDepositEvents = options?.includeDepositEvents === true;
   const items: LiveTickerItem[] = [];
 
   for (const listing of listings) {
@@ -187,17 +185,6 @@ export function buildLiveTickerItems(
     const petTitle = titleOf(listing);
 
     if (availability === "deposit_hold") {
-      if (includeDepositEvents) {
-        items.push({
-          id: `deposit-${listing.id}`,
-          kind: "deposit",
-          listingId: listing.id,
-          breederName,
-          location,
-          petTitle,
-          minutesAgo: mins,
-        });
-      }
       continue;
     }
 

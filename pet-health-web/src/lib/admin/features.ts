@@ -6,7 +6,6 @@ export const ADMIN_FEATURE_CORE_KEYS = [
   "rewarded_ads",
   "subscription",
   "farm_template_change",
-  "marketplace_escrow",
 ] as const satisfies readonly (keyof AppFeatureFlags)[];
 
 export type AdminFeatureCoreKey = (typeof ADMIN_FEATURE_CORE_KEYS)[number];

@@ -11,7 +11,6 @@ import {
 } from "../src/lib/marketplaceSocialProof";
 import { buildLiveTickerItems, DEMO_LIVE_TICKER_ITEMS, liveTickerDisplayText, MARKETPLACE_BLOCK_GAP_CLASS, MARKETPLACE_PAGE_SHELL_CLASS, MARKETPLACE_PAGE_TOP_GAP_CLASS } from "../src/lib/marketplaceLiveTicker";
 import {
-  feedExtraToEscrowOnly,
   feedExtraToGender,
   parseFeedExtraFilter,
 } from "../src/lib/marketplaceFeedFilters";
@@ -79,7 +78,6 @@ function listing(overrides: Partial<Listing> = {}): Listing {
     breeder,
     saved: false,
     favoriteCount: 0,
-    escrowEnabled: false,
     ...overrides,
   };
 }
@@ -174,7 +172,7 @@ test("listingPreviewImages dedupes and caps", () => {
   );
 });
 
-test("buildLiveTickerItems prefers deposit and sold from real states", () => {
+test("buildLiveTickerItems prefers sold and new from real states", () => {
   const now = Date.parse("2026-08-16T12:00:00.000Z");
   const items = buildLiveTickerItems(
     [
@@ -196,14 +194,13 @@ test("buildLiveTickerItems prefers deposit and sold from real states", () => {
     ],
     now,
     5,
-    { includeDepositEvents: true },
   );
-  assert.ok(items.some((i) => i.kind === "deposit"));
+  assert.ok(!items.some((i) => i.kind === "deposit"));
   assert.ok(items.some((i) => i.kind === "sold"));
   assert.ok(items.some((i) => i.kind === "new_listing"));
 });
 
-test("buildLiveTickerItems hides deposit events when escrow off", () => {
+test("buildLiveTickerItems never emits deposit events", () => {
   const now = Date.parse("2026-08-16T12:00:00.000Z");
   const items = buildLiveTickerItems(
     [
@@ -215,7 +212,6 @@ test("buildLiveTickerItems hides deposit events when escrow off", () => {
     ],
     now,
     5,
-    { includeDepositEvents: false },
   );
   assert.ok(!items.some((i) => i.kind === "deposit"));
 });
@@ -343,11 +339,11 @@ test("demo live ticker copy stays classified (no deposit pitch)", () => {
   }
 });
 
-test("feed extra filter merges gender and escrow", () => {
-  assert.equal(parseFeedExtraFilter("escrow"), "escrow");
-  assert.equal(feedExtraToEscrowOnly("escrow"), true);
+test("feed extra filter maps gender values", () => {
+  assert.equal(parseFeedExtraFilter("escrow"), "all");
+  assert.equal(parseFeedExtraFilter("male"), "male");
   assert.equal(feedExtraToGender("male"), "male");
-  assert.equal(feedExtraToGender("escrow"), "all");
+  assert.equal(feedExtraToGender("all"), "all");
 });
 
 test("breederActivityCue never claims online presence", () => {

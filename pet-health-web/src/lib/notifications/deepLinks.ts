@@ -321,7 +321,7 @@ export function farmReviewedNotificationHref(
 export function isDealActionNotification(
   _item: NotificationDeepLinkInput | string | null | undefined,
 ) {
-  // Escrow/deposit CTAs removed — legacy deal notifications open the listing only.
+  // Deposit CTAs removed — legacy deal notifications open the listing only.
   return false;
 }
 

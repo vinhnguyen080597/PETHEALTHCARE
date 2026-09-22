@@ -49,8 +49,6 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(termsVi, /hủy bỏ tài khoản vi phạm/);
   assert.match(flattenLegalDoc(termsOfServiceContent.EN), /No money-holding/);
   assert.match(flattenLegalDoc(termsOfServiceContent.EN), /without prior notice/);
-  assert.match(termsVi, /Dịch vụ thanh toán \/ giữ cọc trong tương lai/);
-  assert.match(termsVi, /15–30 ngày/);
 
   const guideVi = flattenLegalDoc(marketplaceGuidelinesContent.VI);
   assert.match(guideVi, /Tìm kiếm & liên hệ/);

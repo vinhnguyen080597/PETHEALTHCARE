@@ -327,7 +327,6 @@
       "new": "Mới lên sàn",
       "video": "Có video",
       "warranty": "Bảo hành {{n}} ngày",
-      "escrow": "Giữ cọc an toàn",
       "chat": "Chat ngay",
       "onlineTrust": "Trại đã xác minh",
       "pendingReview": "Chờ admin duyệt",
@@ -553,7 +552,7 @@
       "archived": "Đã lưu trữ",
       "sold": "Đã bán",
       "cancelled": "Đã hủy",
-      "deposit_hold": "Đang giữ cọc"
+      "deposit_hold": "Đã cọc"
     }
   },
   "breederDetail": {
@@ -650,7 +649,7 @@
     "violationsTitle": "Vi phạm / điểm lỗi",
     "violationsEmpty": "Chưa có báo cáo được xác nhận.",
     "penaltyApplied": "−{{points}} từ vi phạm đã xác nhận",
-    "stakeRemediationCta": "Ký quỹ khôi phục",
+    "stakeRemediationCta": "Khôi phục uy tín",
     "signalDetails": "Chi tiết tín hiệu",
     "tipsTitle": "Cải thiện điểm",
     "tipChecklist": "Hoàn thiện checklist chăm sóc (+15)",
@@ -1648,7 +1647,7 @@
         "all": "Tất cả",
         "pending_review": "Chờ duyệt",
         "published": "Đã đăng",
-        "deposit_hold": "Giữ cọc",
+        "deposit_hold": "Đã cọc",
         "sold": "Đã bán",
         "archived": "Đã ẩn"
       }
@@ -1731,10 +1730,6 @@
       "farm_template_change": {
         "title": "Đổi template trại",
         "description": "Nút để chủ trại đổi giao diện template hồ sơ."
-      },
-      "marketplace_escrow": {
-        "title": "Escrow Marketplace (thử nghiệm)",
-        "description": "Bảng đặt cọc / deal trên tin. Tắt = chỉ chat/gọi cho đến khi sẵn sàng đối tác thanh toán."
       }
     },
     "petFeedTabs": {
@@ -2793,7 +2788,7 @@
     }
   },
   "deal": {
-    "holdBadge": "Đang giữ cọc — chính sách bảo hành đã đóng băng",
+    "holdBadge": "Đã cọc — chính sách bảo hành đã đóng băng",
     "holdBadgeWithSen": "Sen {{name}} đã đặt cọc",
     "pendingBadge": "Đang chờ breeder xác nhận cọc",
     "pendingBadgeWithSen": "Sen {{name}} đang chờ xác nhận cọc",
@@ -2820,7 +2815,7 @@
     "senConfirmReceipt": "Xác nhận đã nhận bé",
     "senAbandonDeposit": "Huỷ cọc",
     "senAbandonTitle": "Huỷ cọc?",
-    "senAbandonHint": "Tin đăng sẽ trở lại đang bán. Khi có Escrow, tiền cọc sẽ được cộng cho breeder vì Sen bỏ cọc.",
+    "senAbandonHint": "Tin đăng sẽ trở lại đang bán. Mọi khoản cọc ngoài sàn do hai bên tự thỏa thuận — Pethub không giữ hay giải ngân tiền.",
     "cancel": "Hủy cọc",
     "cancelRequestTitle": "Yêu cầu hủy cọc",
     "cancelRequestHint": "Cho Sen biết lý do hủy. Sen xác nhận thì tin chuyển sang đã hủy, không chốt cọc lại được.",

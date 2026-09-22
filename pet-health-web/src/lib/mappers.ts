@@ -219,16 +219,6 @@ function petsRehomedFromMeta(meta: Record<string, unknown>): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
 }
 
-function parseEscrowEnabled(meta: Record<string, unknown>): boolean {
-  return Boolean(
-    meta.escrow_enabled ??
-      meta.escrowEnabled ??
-      meta.accept_escrow ??
-      meta.acceptEscrow ??
-      meta.petcoin_escrow,
-  );
-}
-
 function normalizeGender(value?: string): string {
   const g = (value || "").trim().toLowerCase();
   if (!g) return "";
@@ -490,7 +480,6 @@ export function mapApiPost(post: ApiPetFeedPost): Listing {
     ctaUrl: String(meta.ctaUrl || meta.cta_url || "").trim() || undefined,
     favoriteCount: Number(post.favorite_count) || 0,
     commentCount: Number(post.comment_count) || 0,
-    escrowEnabled: parseEscrowEnabled(meta),
     metadataSold: !ownerDeleted && (status === "sold" || metadataSold),
     metadataCancelled:
       !ownerDeleted && (status === "cancelled" || metadataCancelled),

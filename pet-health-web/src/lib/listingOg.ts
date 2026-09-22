@@ -61,7 +61,7 @@ export function buildListingOgCopy(listing: Listing): {
   if (breederName && breederName !== "Breeder") {
     parts.push(`🏠 ${breederName}`);
   }
-  // Escrow OG pitch is gated off until marketplace_escrow ships (classified model).
+  // Classified model: no escrow OG pitch.
 
   const description = (
     parts.length

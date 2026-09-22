@@ -41,7 +41,7 @@ export function breederCardSpecialtyLabel(
   return lang === "VI" ? "🐱 Chuyên: Thú cưng" : "🐱 Specialty: Pets";
 }
 
-/** Escrow deposit CTA is deferred — never invent "accepts deposit" from verified alone. */
+/** Never invent "accepts deposit" from verified alone — deposit acceptance is explicit. */
 export function breederCardShowsDepositBadge(_breeder: BreederProfile): boolean {
   return false;
 }

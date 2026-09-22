@@ -76,7 +76,6 @@ function sampleListing(overrides: Partial<Listing> = {}): Listing {
     },
     ownerUserId: "u1",
     saved: false,
-    escrowEnabled: false,
     ...overrides,
   };
 }

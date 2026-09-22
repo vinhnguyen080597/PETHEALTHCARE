@@ -52,8 +52,6 @@ export type AppFeatureFlags = {
   pet_feed_listings: boolean;
   pet_feed_breeders: boolean;
   farm_template_change: boolean;
-  /** Platform escrow / deposit-hold UI — opt-in only (classified model when off). */
-  marketplace_escrow: boolean;
 };
 
 export type AuthSession = {

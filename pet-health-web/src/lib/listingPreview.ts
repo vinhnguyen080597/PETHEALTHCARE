@@ -16,7 +16,6 @@ export type ListingPreviewInput = {
   mediaUrl: string;
   breeder: BreederProfile;
   warrantyPolicy?: WarrantyPolicy | null;
-  escrowEnabled?: boolean;
 };
 
 /** Build a Listing shaped like New Pets cards for create-form review preview. */
@@ -44,7 +43,6 @@ export function buildListingPreview(input: ListingPreviewInput): Listing {
     status: "pending_review",
     breeder: input.breeder,
     saved: false,
-    escrowEnabled: Boolean(input.escrowEnabled),
     warrantyPolicy: input.warrantyPolicy ?? null,
     deal: null,
   };

@@ -232,12 +232,6 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
         ],
       },
       {
-        heading: "Future payment and escrow services",
-        paragraphs: [
-          "Pethub may add or upgrade optional payment-support services in the future (for example deposit hold / escrow through a licensed payment partner). We will publish an update on the website/app and notify Users at least 15–30 days before such services take effect. When activated, Users may need to accept the updated Terms before continuing to use payment-related features.",
-        ],
-      },
-      {
         heading: "Contact",
         paragraphs: [`Questions about these Terms: ${LEGAL_CONTACT_EMAIL}`],
       },
@@ -300,12 +294,6 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
         heading: "Tài khoản và kiểm duyệt",
         paragraphs: [
           "Chúng tôi có thể duyệt hồ sơ xác minh Breeder và tin đăng, gỡ nội dung, hoặc tạm khóa tài khoản vi phạm Điều khoản, Nội quy hoặc pháp luật. Tính năng và sản phẩm hiển thị trả phí có thể thay đổi khi sản phẩm được cải thiện.",
-        ],
-      },
-      {
-        heading: "Dịch vụ thanh toán / giữ cọc trong tương lai",
-        paragraphs: [
-          "Pethub có quyền bổ sung hoặc nâng cấp các dịch vụ hỗ trợ thanh toán tùy chọn trong tương lai (ví dụ giữ cọc/escrow thông qua đối tác thanh toán được cấp phép). Chúng tôi sẽ công bố trên website/ứng dụng và thông báo cho Người dùng ít nhất 15–30 ngày trước khi dịch vụ có hiệu lực. Khi kích hoạt, Người dùng có thể cần chấp nhận lại Điều khoản cập nhật trước khi tiếp tục dùng các tính năng liên quan thanh toán.",
         ],
       },
       {

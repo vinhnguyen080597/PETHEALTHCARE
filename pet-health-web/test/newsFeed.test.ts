@@ -40,7 +40,6 @@ function stubPost(partial: Partial<Listing>): Listing {
     breeder: {} as Listing["breeder"],
     saved: false,
     postKind: "announcement",
-    escrowEnabled: false,
     ...partial,
   };
 }

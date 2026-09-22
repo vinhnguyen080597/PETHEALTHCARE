@@ -9,7 +9,6 @@ export const FEATURE_FLAG_KEYS = [
   'pet_feed_listings',
   'pet_feed_breeders',
   'farm_template_change',
-  'marketplace_escrow',
 ];
 
 export const PET_FEED_TAB_FLAG_KEYS = ['pet_feed_news', 'pet_feed_listings', 'pet_feed_breeders'];
@@ -24,7 +23,6 @@ export const DEFAULT_FEATURE_FLAGS = {
   pet_feed_listings: true,
   pet_feed_breeders: true,
   farm_template_change: true,
-  marketplace_escrow: false,
 };
 
 const SETTINGS_KEY = 'feature_flags';
@@ -41,7 +39,6 @@ export function normalizeFeatureFlags(raw) {
     pet_feed_listings: source.pet_feed_listings !== false,
     pet_feed_breeders: source.pet_feed_breeders !== false,
     farm_template_change: source.farm_template_change !== false,
-    marketplace_escrow: source.marketplace_escrow === true,
   };
 }
 
@@ -77,7 +74,7 @@ export async function updateFeatureFlags(patch, updatedBy = null) {
   const merged = { ...current };
   for (const key of FEATURE_FLAG_KEYS) {
     if (key in patch) {
-      merged[key] = key === 'marketplace_escrow' ? patch[key] === true : patch[key] !== false;
+      merged[key] = patch[key] !== false;
     }
   }
   const next = normalizeFeatureFlags(merged);

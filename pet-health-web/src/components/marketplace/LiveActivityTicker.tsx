@@ -30,20 +30,15 @@ export function LiveActivityTicker({
   listings,
   labelKey = "feed.live.label",
   className = MARKETPLACE_BLOCK_GAP_CLASS,
-  showEscrowUi = false,
 }: {
   lang: Lang;
   listings: Listing[];
   labelKey?: "feed.live.label" | "breeders.live.label";
   className?: string;
-  showEscrowUi?: boolean;
 }) {
   const items = useMemo(
-    () =>
-      buildLiveTickerItems(listings, Date.now(), 10, {
-        includeDepositEvents: showEscrowUi,
-      }),
-    [listings, showEscrowUi],
+    () => buildLiveTickerItems(listings, Date.now(), 10),
+    [listings],
   );
 
   const templates = useMemo(

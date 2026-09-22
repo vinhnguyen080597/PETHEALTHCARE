@@ -327,7 +327,6 @@
       "new": "New on floor",
       "video": "Has video",
       "warranty": "{{n}}-day health cover",
-      "escrow": "Safe deposit",
       "chat": "Chat now",
       "onlineTrust": "Verified farm",
       "pendingReview": "Pending admin review",
@@ -553,7 +552,7 @@
       "archived": "Archived",
       "sold": "Sold",
       "cancelled": "Cancelled",
-      "deposit_hold": "On deposit hold"
+      "deposit_hold": "Reserved"
     }
   },
   "breederDetail": {
@@ -650,7 +649,7 @@
     "violationsTitle": "Violations / penalty points",
     "violationsEmpty": "No confirmed reports yet.",
     "penaltyApplied": "−{{points}} from confirmed violations",
-    "stakeRemediationCta": "Stake to restore trust",
+    "stakeRemediationCta": "Restore trust",
     "signalDetails": "Signal details",
     "tipsTitle": "Improve your score",
     "tipChecklist": "Complete the care checklist (+15)",
@@ -674,7 +673,7 @@
       "filterEmpty": "No pets in this status.",
       "status": {
         "for_sale": "Available",
-        "deposit_hold": "On deposit",
+        "deposit_hold": "Reserved",
         "completed": "Sold"
       }
     },
@@ -1648,7 +1647,7 @@
         "all": "All",
         "pending_review": "Pending",
         "published": "Published",
-        "deposit_hold": "Deposit hold",
+        "deposit_hold": "Reserved",
         "sold": "Sold",
         "archived": "Archived"
       }
@@ -1731,10 +1730,6 @@
       "farm_template_change": {
         "title": "Change farm template",
         "description": "Owner button to switch farm profile template layouts."
-      },
-      "marketplace_escrow": {
-        "title": "Marketplace escrow (pilot)",
-        "description": "Deposit-hold / deal panel on listings. Off = connect-only via chat/call until payment partner is ready."
       }
     },
     "petFeedTabs": {
@@ -2796,7 +2791,7 @@
     }
   },
   "deal": {
-    "holdBadge": "On deposit hold — warranty policy is frozen",
+    "holdBadge": "Reserved — warranty policy is frozen",
     "holdBadgeWithSen": "Sen {{name}} has placed a deposit",
     "pendingBadge": "Waiting for the breeder to confirm the deposit",
     "pendingBadgeWithSen": "Sen {{name}} is waiting for deposit confirmation",
@@ -2823,7 +2818,7 @@
     "senConfirmReceipt": "Confirm I received the pet",
     "senAbandonDeposit": "Cancel deposit",
     "senAbandonTitle": "Cancel this deposit?",
-    "senAbandonHint": "The listing will go back on sale. When Escrow is live, the held deposit is credited to the breeder because the buyer walked away.",
+    "senAbandonHint": "The listing will go back on sale. Any off-platform deposit is between you and the breeder — Pethub does not hold or release money.",
     "cancel": "Cancel deposit",
     "cancelRequestTitle": "Request deposit cancel",
     "cancelRequestHint": "Tell Sen why you are canceling. After they confirm, the listing is marked cancelled and cannot take another deposit.",
@@ -3005,7 +3000,7 @@
     },
     "statusChoice": {
       "published": "Available",
-      "deposit_hold": "Deposit received",
+      "deposit_hold": "Reserved",
       "sold": "Sold"
     },
     "statusModal": {

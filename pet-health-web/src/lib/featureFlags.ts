@@ -9,8 +9,6 @@ export type AppFeatureFlags = {
   pet_feed_listings: boolean;
   pet_feed_breeders: boolean;
   farm_template_change: boolean;
-  /** Platform escrow / deposit-hold UI — opt-in only (classified model when off). */
-  marketplace_escrow: boolean;
 };
 
 export const DEFAULT_APP_FEATURE_FLAGS: AppFeatureFlags = {
@@ -22,7 +20,6 @@ export const DEFAULT_APP_FEATURE_FLAGS: AppFeatureFlags = {
   pet_feed_listings: true,
   pet_feed_breeders: true,
   farm_template_change: true,
-  marketplace_escrow: false,
 };
 
 export const APP_FEATURE_FLAG_KEYS = [
@@ -34,7 +31,6 @@ export const APP_FEATURE_FLAG_KEYS = [
   "pet_feed_listings",
   "pet_feed_breeders",
   "farm_template_change",
-  "marketplace_escrow",
 ] as const satisfies readonly (keyof AppFeatureFlags)[];
 
 /** Merge API/partial payloads onto defaults. Unknown keys are ignored. */
@@ -61,11 +57,4 @@ export function isFarmTemplateChangeEnabled(
 ): boolean {
   if (isAdmin) return true;
   return flags?.farm_template_change !== false;
-}
-
-/** Escrow/deposit UI is explicit opt-in. When off, users only see connect (chat/call). */
-export function isMarketplaceEscrowEnabled(
-  flags: Partial<AppFeatureFlags> | null | undefined,
-): boolean {
-  return flags?.marketplace_escrow === true;
 }

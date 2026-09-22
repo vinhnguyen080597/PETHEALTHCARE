@@ -25,7 +25,6 @@ export function ListingCard({
   showFavorite = false,
   interactive = true,
   compact = false,
-  showEscrowUi = false,
   isLoggedIn = true,
   onFavoriteChange,
 }: {
@@ -36,8 +35,6 @@ export function ListingCard({
   interactive?: boolean;
   /** Narrower rail cards (horizontal marketplace sections). */
   compact?: boolean;
-  /** Escrow/deposit marketing — only when marketplace_escrow is on. */
-  showEscrowUi?: boolean;
   isLoggedIn?: boolean;
   /** Lift favorite state so rails + grid stay in sync for the same post. */
   onFavoriteChange?: (next: {

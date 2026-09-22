@@ -13,27 +13,23 @@ import {
 import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
 
-test("core flags include ads, subscription, and escrow", () => {
+test("core flags include ads, subscription, and farm template", () => {
   assert.ok(ADMIN_FEATURE_CORE_KEYS.includes("rewarded_ads"));
   assert.ok(ADMIN_FEATURE_CORE_KEYS.includes("subscription"));
-  assert.ok(ADMIN_FEATURE_CORE_KEYS.includes("marketplace_escrow"));
+  assert.ok(ADMIN_FEATURE_CORE_KEYS.includes("farm_template_change"));
+  assert.ok(!(ADMIN_FEATURE_CORE_KEYS as readonly string[]).includes("marketplace_escrow"));
 });
 
-test("mergeAppFeatureFlags keeps escrow off unless explicitly true", () => {
-  assert.equal(mergeAppFeatureFlags(null).marketplace_escrow, false);
+test("mergeAppFeatureFlags merges known keys onto defaults", () => {
   assert.equal(
     mergeAppFeatureFlags({ breed_recognition: false }).breed_recognition,
     false,
   );
   assert.equal(
-    mergeAppFeatureFlags({ marketplace_escrow: true }).marketplace_escrow,
-    true,
-  );
-  assert.equal(
     mergeAppFeatureFlags(
-      { marketplace_escrow: false },
-      { marketplace_escrow: true },
-    ).marketplace_escrow,
+      { farm_template_change: false },
+      { farm_template_change: true },
+    ).farm_template_change,
     true,
   );
   assert.equal(

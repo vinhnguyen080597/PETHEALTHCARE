@@ -84,7 +84,7 @@ test("mapApiBreeder marks Verified as stripped under compliance restrictions", (
   assert.equal(mapped.complianceVerifiedStripped, true);
 });
 
-test("mapApiPost formats price gender and escrow", () => {
+test("mapApiPost formats price gender and evidence", () => {
   const post: ApiPetFeedPost = {
     id: "p1",
     title: "Kitten",
@@ -101,7 +101,6 @@ test("mapApiPost formats price gender and escrow", () => {
     media_urls: ["https://cdn.example/a.jpg"],
     status: "pending_review",
     metadata: {
-      escrow_enabled: true,
       health_evidence_urls: ["https://cdn.example/e.jpg"],
     },
     breeder_profile: {
@@ -117,7 +116,6 @@ test("mapApiPost formats price gender and escrow", () => {
   assert.equal(listing.gender, "male");
   assert.equal(listing.status, "pending_review");
   assert.equal(listing.saved, true);
-  assert.equal(listing.escrowEnabled, true);
   assert.equal(listing.evidenceUrls?.[0], "https://cdn.example/e.jpg");
   assert.match(listing.price, /VNĐ|5\.000\.000|5000000/);
 });

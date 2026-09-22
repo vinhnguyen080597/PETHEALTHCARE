@@ -50,7 +50,6 @@ function sampleListing(overrides: Partial<Listing> = {}): Listing {
       verificationTier: 2,
     },
     saved: false,
-    escrowEnabled: true,
     ...overrides,
   };
 }

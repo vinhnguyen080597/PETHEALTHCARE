@@ -85,7 +85,6 @@ const en = {
   "feed.province": "Province",
   "feed.province.all": "Nationwide",
   "feed.perks": "Perks",
-  "feed.escrow": "Contact seller directly",
   "feed.showingPrefix": "Showing",
   "feed.showingSuffix": "matching pets",
   "feed.all": "All",
@@ -305,7 +304,6 @@ const en = {
   "feed.card.pendingReview": "Pending review",
   "feed.card.video": "Has video",
   "feed.card.warranty": "{{n}}-day health cover",
-  "feed.card.escrow": "Safe deposit",
   "feed.card.chat": "Chat now",
   "feed.card.onlineTrust": "Verified farm",
 
@@ -320,7 +318,6 @@ const en = {
   "breeders.sort.listings": "Active listings",
   "breeders.sort.sold": "Pets rehomed",
   "breeders.sort.name": "Name A–Z",
-  "breeders.card.escrowBadge": "Kennel accepts escrow deposit",
   "breeders.card.reviews": "reviews",
   "breeders.card.sold": "pets rehomed",
   "breeders.card.trustIndex": "Transparency",
@@ -347,9 +344,6 @@ const en = {
 
   "farm.badge.inspected": "Inspected kennel",
   "farm.badge.idVerified": "ID verified",
-  "farm.escrow.title": "Place a deposit via Escrow:",
-  "farm.escrow.body":
-    "Your deposit is held for the hold period. Release/refund follows the kennel’s stated terms — we help track the process.",
   "farm.tab.overview": "Overview",
   "farm.tab.listings": "Pets",
   "farm.tab.reviews": "Buyer reviews",
@@ -579,7 +573,7 @@ const en = {
   "listing.new.dewormingShort.not_yet": "Not yet",
   "listing.new.dewormingShort.recent": "Done",
   "listing.new.dewormingShort.due": "Due soon",
-  "deal.holdBadge": "On deposit hold — warranty policy is frozen",
+  "deal.holdBadge": "Reserved — warranty policy is frozen",
   "deal.holdBadgeWithSen": "Sen {name} has placed a deposit",
   "deal.pendingBadge": "Waiting for the breeder to confirm the deposit",
   "deal.pendingBadgeWithSen": "Sen {name} is waiting for deposit confirmation",
@@ -625,7 +619,7 @@ const en = {
   "deal.senAbandonDeposit": "Cancel deposit",
   "deal.senAbandonTitle": "Cancel this deposit?",
   "deal.senAbandonHint":
-    "The listing will go back on sale. When Escrow is live, the held deposit is credited to the breeder because the buyer walked away.",
+    "The listing will go back on sale. Any off-platform deposit is between you and the breeder — Pethub does not hold or release money.",
   "deal.cancel": "Cancel deposit",
   "deal.cancelRequestTitle": "Request deposit cancel",
   "deal.cancelRequestHint":
@@ -739,12 +733,6 @@ const en = {
   "farm.owner.template": "Change template",
   "farm.owner.editProfile": "Edit profile",
   "farm.owner.health": "Farm health",
-
-  "escrow.card.title": "Deposit via PetCoin Escrow",
-  "escrow.card.body":
-    "Hold deposit for the hold period; refund/release per seller terms. Not a platform illness guarantee.",
-  "escrow.card.cta": "Request escrow deposit",
-  "escrow.card.soon": "Escrow coming soon",
 
   "landing.species": "Species",
   "landing.species.all": "All species",
@@ -885,7 +873,7 @@ const en = {
   "auth.heroTitle": "Welcome a new family member home with peace of mind",
   "auth.heroSub":
     "Connect with trusted breeders, clear health profiles, and more transparent contact.",
-  "auth.escrowBadge": "Classified connect · No payment holding",
+  "auth.connectBadge": "Classified connect · No payment holding",
   "auth.continueGoogle": "Continue with Google",
   "auth.continueFacebook": "Continue with Facebook",
   "auth.continueApple": "Continue with Apple",
@@ -1149,12 +1137,12 @@ const en = {
   "listing.status.archived": "Archived",
   "listing.status.sold": "Sold",
   "listing.status.cancelled": "Cancelled",
-  "listing.status.deposit_hold": "Deposit hold",
+  "listing.status.deposit_hold": "Reserved",
   "listing.status.reserved": "Reserved",
   "listing.availability.available": "Available",
   "listing.availability.depositHold": "Reserved",
   "listing.statusChoice.published": "Available",
-  "listing.statusChoice.deposit_hold": "Deposit received",
+  "listing.statusChoice.deposit_hold": "Reserved",
   "listing.statusChoice.sold": "Sold",
   "listing.statusModal.open": "Update status",
   "listing.statusModal.title": "Update listing status",
@@ -1761,9 +1749,6 @@ const en = {
   "admin.features.farm_template_change.title": "Change farm template",
   "admin.features.farm_template_change.desc":
     "Owner button to switch farm profile template layouts.",
-  "admin.features.marketplace_escrow.title": "Marketplace escrow (pilot)",
-  "admin.features.marketplace_escrow.desc":
-    "Deposit-hold / deal panel on listings. Off = classified connect-only (chat/call). Keep off until payment partner is ready.",
   "admin.news.title": "Post Pethub: Pet Marketplace news",
   "admin.news.note":
     "This post appears under Tin tức / News (header tab), not in sale listings.",

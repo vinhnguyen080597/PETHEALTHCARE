@@ -1136,7 +1136,6 @@ export function usePetHealthApp() {
         pet_feed_listings: true,
         pet_feed_breeders: true,
         farm_template_change: true,
-        marketplace_escrow: false,
       });
     } finally {
       setFeatureFlagsLoading(false);
@@ -1146,9 +1145,6 @@ export function usePetHealthApp() {
   function isFeatureEnabled(key: keyof AppFeatureFlags) {
     if (!RELEASE_MONETIZATION_ENABLED && (key === 'rewarded_ads' || key === 'subscription')) {
       return false;
-    }
-    if (key === 'marketplace_escrow') {
-      return appFeatureFlags?.marketplace_escrow === true;
     }
     if (accountProfile?.primary_role === 'admin') return true;
     return appFeatureFlags?.[key] !== false;

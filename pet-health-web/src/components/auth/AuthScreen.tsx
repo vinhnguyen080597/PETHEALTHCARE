@@ -513,7 +513,7 @@ export function AuthScreen({
         </div>
         <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-2xl px-4 py-3.5 shadow-lg shadow-stone-900/15 max-w-sm">
           <p className="text-white text-sm font-medium leading-snug">
-            {t(lang, "auth.escrowBadge")}
+            {t(lang, "auth.connectBadge")}
           </p>
         </div>
       </div>

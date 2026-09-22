@@ -87,7 +87,6 @@ const vi: Record<EnKey, string> = {
   "feed.province": "Khu vực",
   "feed.province.all": "Toàn quốc",
   "feed.perks": "Đặc quyền",
-  "feed.escrow": "Liên hệ người bán trực tiếp",
   "feed.showingPrefix": "Hiển thị",
   "feed.showingSuffix": "bé cưng phù hợp",
   "feed.all": "Tất cả",
@@ -309,7 +308,6 @@ const vi: Record<EnKey, string> = {
   "feed.card.pendingReview": "Chờ admin duyệt",
   "feed.card.video": "Có video",
   "feed.card.warranty": "Bảo hành {{n}} ngày",
-  "feed.card.escrow": "Giữ cọc an toàn",
   "feed.card.chat": "Chat ngay",
   "feed.card.onlineTrust": "Trại đã xác minh",
 
@@ -324,7 +322,6 @@ const vi: Record<EnKey, string> = {
   "breeders.sort.listings": "Số bé đang đăng",
   "breeders.sort.sold": "Số lượt bán",
   "breeders.sort.name": "Tên A–Z",
-  "breeders.card.escrowBadge": "Trại chấp nhận đặt cọc",
   "breeders.card.reviews": "đánh giá",
   "breeders.card.sold": "Bé đã có nhà",
   "breeders.card.trustIndex": "Điểm minh bạch",
@@ -351,9 +348,6 @@ const vi: Record<EnKey, string> = {
 
   "farm.badge.inspected": "Trại Giống Kiểm Định",
   "farm.badge.idVerified": "Đã Xác Minh ID",
-  "farm.escrow.title": "Đặt cọc an tâm qua Escrow:",
-  "farm.escrow.body":
-    "Khoản cọc được giữ trong thời gian hold. Giải ngân/hoàn theo điều khoản cam kết của trại — chúng tôi đồng hành theo dõi quy trình.",
   "farm.tab.overview": "Tổng quan",
   "farm.tab.listings": "Thú cưng",
   "farm.tab.reviews": "Đánh giá từ khách",
@@ -367,7 +361,7 @@ const vi: Record<EnKey, string> = {
   "farm.listings.filter": "Lọc",
   "farm.listings.filterAll": "Tất cả",
   "farm.listings.status.for_sale": "đang tìm chủ",
-  "farm.listings.status.deposit_hold": "đã giữ chỗ",
+  "farm.listings.status.deposit_hold": "đã cọc",
   "farm.listings.status.completed": "đã hoàn thành",
   "farm.listings.filterEmpty": "Không có thú cưng ở trạng thái này.",
   "farm.reviews.empty": "Chưa có đánh giá từ khách",
@@ -584,7 +578,7 @@ const vi: Record<EnKey, string> = {
   "listing.new.dewormingShort.not_yet": "Chưa tẩy",
   "listing.new.dewormingShort.recent": "Đã tẩy",
   "listing.new.dewormingShort.due": "Sắp tới",
-  "deal.holdBadge": "Đang được cọc — chính sách bảo hành đã đóng băng",
+  "deal.holdBadge": "Đã cọc — chính sách bảo hành đã đóng băng",
   "deal.holdBadgeWithSen": "Sen {name} đã đặt cọc",
   "deal.pendingBadge": "Đang chờ breeder xác nhận cọc",
   "deal.pendingBadgeWithSen": "Sen {name} đang chờ xác nhận cọc",
@@ -628,7 +622,7 @@ const vi: Record<EnKey, string> = {
   "deal.senAbandonDeposit": "Huỷ cọc",
   "deal.senAbandonTitle": "Huỷ cọc?",
   "deal.senAbandonHint":
-    "Tin đăng sẽ trở lại đang bán. Khi có Escrow, tiền cọc sẽ được cộng cho breeder vì Sen bỏ cọc.",
+    "Tin đăng sẽ trở lại đang bán. Mọi khoản cọc ngoài sàn do hai bên tự thỏa thuận — Pethub không giữ hay giải ngân tiền.",
   "deal.cancel": "Hủy cọc",
   "deal.cancelRequestTitle": "Yêu cầu hủy cọc",
   "deal.cancelRequestHint":
@@ -741,12 +735,6 @@ const vi: Record<EnKey, string> = {
   "farm.owner.template": "Đổi template",
   "farm.owner.editProfile": "Chỉnh sửa hồ sơ",
   "farm.owner.health": "Sức khỏe trại",
-
-  "escrow.card.title": "Đặt cọc qua PetCoin Escrow",
-  "escrow.card.body":
-    "Giữ cọc theo thời gian hold; hoàn/giải ngân theo điều khoản của người bán. Không phải bảo lãnh bệnh từ nền tảng.",
-  "escrow.card.cta": "Yêu cầu đặt cọc",
-  "escrow.card.soon": "Escrow sắp ra mắt",
 
   "landing.species": "Loài",
   "landing.species.all": "Mọi loài",
@@ -886,7 +874,7 @@ const vi: Record<EnKey, string> = {
   "auth.heroTitle": "An tâm đón thành viên mới về nhà",
   "auth.heroSub":
     "Đồng hành kết nối với trại giống uy tín, hồ sơ rõ ràng và giao dịch minh bạch hơn.",
-  "auth.escrowBadge": "Nơi khởi đầu cho những hành trình yêu thương",
+  "auth.connectBadge": "Kết nối rao vặt · Không giữ tiền",
   "auth.continueGoogle": "Tiếp tục với Google",
   "auth.continueFacebook": "Tiếp tục với Facebook",
   "auth.continueApple": "Tiếp tục với Apple",
@@ -960,9 +948,9 @@ const vi: Record<EnKey, string> = {
   "account.senDeposited.title": "Thú cưng đã cọc",
   "account.senDeposited.empty":
     "Các bé bạn đã cọc sẽ hiện ở đây để theo dõi bàn giao.",
-  "account.senDeposited.titleReserved": "Thú cưng đã giữ chỗ",
+  "account.senDeposited.titleReserved": "Thú cưng đã cọc",
   "account.senDeposited.emptyReserved":
-    "Các bé bạn đã giữ chỗ với breeder sẽ hiện ở đây để theo dõi bàn giao.",
+    "Các bé bạn đã cọc với breeder sẽ hiện ở đây để theo dõi bàn giao.",
   "account.senStatus.title": "Trạng thái Breeder",
   "account.senStatus.helper.unverified":
     "Gửi thông tin xác minh khi bạn muốn đăng tin tìm nhà mới cho thú cưng.",
@@ -1152,8 +1140,8 @@ const vi: Record<EnKey, string> = {
   "listing.status.archived": "Đã ẩn",
   "listing.status.sold": "Đã bán",
   "listing.status.cancelled": "Đã hủy",
-  "listing.status.deposit_hold": "Đang được cọc",
-  "listing.status.reserved": "Đã giữ chỗ",
+  "listing.status.deposit_hold": "Đã cọc",
+  "listing.status.reserved": "Đã cọc",
   "listing.availability.available": "Có sẵn",
   "listing.availability.depositHold": "Đã cọc",
   "listing.statusChoice.published": "Có sẵn",
@@ -1763,9 +1751,6 @@ const vi: Record<EnKey, string> = {
   "admin.features.farm_template_change.title": "Đổi template trại",
   "admin.features.farm_template_change.desc":
     "Nút để chủ trại đổi giao diện template hồ sơ.",
-  "admin.features.marketplace_escrow.title": "Escrow Marketplace (thử nghiệm)",
-  "admin.features.marketplace_escrow.desc":
-    "Bảng đặt cọc / deal trên tin đăng. Tắt = chỉ kết nối rao vặt (chat/gọi). Giữ tắt đến khi sẵn sàng đối tác thanh toán.",
   "admin.news.title": "Đăng tin Pethub: Pet Marketplace",
   "admin.news.note":
     "Bài này hiện ở tab Tin tức trên menu chính, không phải tin bán.",

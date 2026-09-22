@@ -62,7 +62,6 @@ function listing(
       verificationTier: 1,
     },
     saved: false,
-    escrowEnabled: false,
     ...overrides,
   };
 }
