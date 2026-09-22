@@ -19,6 +19,7 @@ import {
   earnModalView,
   type TrustGuideEarnAction,
 } from "@/lib/trustGuideEarnStatus";
+import type { LegalEntityTag } from "@/lib/legalEntityTag";
 import { DialogActions } from "@/components/ui/DialogActions";
 import { LoadingPopup } from "@/components/ui/LoadingPopup";
 
@@ -52,11 +53,25 @@ export function TrustGuideEarnModal({
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [socialUrl, setSocialUrl] = useState("");
+  const [sellerLegalType, setSellerLegalType] = useState<LegalEntityTag | "">(
+    "",
+  );
+  const [legalName, setLegalName] = useState("");
+  const [registeredAddress, setRegisteredAddress] = useState("");
+  const [taxId, setTaxId] = useState("");
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [identityAck, setIdentityAck] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setError("");
       setSocialUrl("");
+      setSellerLegalType("");
+      setLegalName("");
+      setRegisteredAddress("");
+      setTaxId("");
+      setLicenseFile(null);
+      setIdentityAck(false);
       setBusy(false);
       setSubmitted(false);
     }
@@ -92,12 +107,12 @@ export function TrustGuideEarnModal({
     }
   };
 
-  const uploadMedia = async (type: "facility_video" | "business_license", file: File) => {
+  const uploadFacilityVideo = async (file: File) => {
     setBusy(true);
     setError("");
     try {
       const formData = new FormData();
-      formData.append("kind", type);
+      formData.append("kind", "facility_video");
       formData.append("file", file, file.name);
       const uploadRes = await fetch("/api/breeder/submissions/upload", {
         method: "POST",
@@ -111,7 +126,74 @@ export function TrustGuideEarnModal({
       const submitRes = await fetch("/api/breeder/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionType: type, url: publicUrl }),
+        body: JSON.stringify({
+          submissionType: "facility_video",
+          url: publicUrl,
+        }),
+      });
+      if (!submitRes.ok) throw await readApiError(submitRes, lang);
+      setSubmitted(true);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t(lang, "common.error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitBusinessLicense = async () => {
+    if (!sellerLegalType) {
+      setError(t(lang, "account.breederDetails.license.legalTypeRequired"));
+      return;
+    }
+    if (!legalName.trim()) {
+      setError(t(lang, "account.breederDetails.license.legalNameRequired"));
+      return;
+    }
+    if (!registeredAddress.trim()) {
+      setError(t(lang, "account.breederDetails.license.addressRequired"));
+      return;
+    }
+    const digits = taxId.replace(/\D/g, "");
+    if (!/^\d{8,14}$/.test(digits)) {
+      setError(t(lang, "account.breederDetails.license.taxIdInvalid"));
+      return;
+    }
+    if (!licenseFile) {
+      setError(t(lang, "account.breederDetails.license.fileRequired"));
+      return;
+    }
+    if (!identityAck) {
+      setError(t(lang, "account.breederDetails.license.ackRequired"));
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("kind", "business_license");
+      formData.append("file", licenseFile, licenseFile.name);
+      const uploadRes = await fetch("/api/breeder/submissions/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadRes.ok) throw await readApiError(uploadRes, lang);
+      const uploaded = await uploadRes.json();
+      const publicUrl = uploaded?.data?.publicUrl;
+      if (!publicUrl) throw new Error(t(lang, "common.error"));
+
+      const submitRes = await fetch("/api/breeder/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionType: "business_license",
+          url: publicUrl,
+          sellerLegalType,
+          legalName: legalName.trim(),
+          registeredAddress: registeredAddress.trim(),
+          taxId: digits,
+        }),
       });
       if (!submitRes.ok) throw await readApiError(submitRes, lang);
       setSubmitted(true);
@@ -132,9 +214,9 @@ export function TrustGuideEarnModal({
   const isSocial = Boolean(
     submissionType && isSocialSubmissionType(submissionType),
   );
-  const isUpload =
-    submissionType === "facility_video" ||
-    submissionType === "business_license";
+  const isFacility = submissionType === "facility_video";
+  const isLicense = submissionType === "business_license";
+  const isUpload = isFacility || isLicense;
   const view = earnModalView({ busy, submitted });
   const loadingLabel = isUpload
     ? t(lang, "account.breederDetails.uploading")
@@ -208,22 +290,16 @@ export function TrustGuideEarnModal({
                   />
                 ) : null}
 
-                {isUpload && submissionType ? (
+                {isFacility ? (
                   <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#E8D5B5] bg-[#FFFBF5] px-4 py-8 cursor-pointer hover:border-[#D97706]">
                     <input
                       type="file"
-                      accept={
-                        submissionType === "facility_video"
-                          ? "video/mp4,video/webm,video/quicktime"
-                          : "image/*,application/pdf"
-                      }
+                      accept="video/mp4,video/webm,video/quicktime"
                       className="sr-only"
                       disabled={busy}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          void uploadMedia(submissionType, file);
-                        }
+                        if (file) void uploadFacilityVideo(file);
                         e.target.value = "";
                       }}
                     />
@@ -231,14 +307,99 @@ export function TrustGuideEarnModal({
                       {t(lang, "account.breederDetails.chooseFile")}
                     </span>
                     <span className="text-xs text-center text-[#6E5A51]">
-                      {t(
-                        lang,
-                        submissionType === "facility_video"
-                          ? "account.breederDetails.facilityHint"
-                          : "account.breederDetails.licenseHint",
-                      )}
+                      {t(lang, "account.breederDetails.facilityHint")}
                     </span>
                   </label>
+                ) : null}
+
+                {isLicense ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(
+                        [
+                          ["household_business", "farm.legalEntity.householdBusiness"],
+                          ["enterprise", "farm.legalEntity.enterprise"],
+                        ] as const
+                      ).map(([value, key]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setSellerLegalType(value)}
+                          className={`rounded-xl border px-3 py-2.5 text-sm font-semibold ${
+                            sellerLegalType === value
+                              ? "border-[#D97706] bg-amber-50 text-[#B45309]"
+                              : "border-[#F0E6D8] bg-white text-[#5C4A3A]"
+                          }`}
+                        >
+                          {t(lang, key)}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      className={inputCls}
+                      placeholder={t(
+                        lang,
+                        "account.breederDetails.license.legalNamePlaceholder",
+                      )}
+                      value={legalName}
+                      disabled={busy}
+                      onChange={(e) => setLegalName(e.target.value)}
+                    />
+                    <input
+                      className={inputCls}
+                      placeholder={t(
+                        lang,
+                        "account.breederDetails.license.addressPlaceholder",
+                      )}
+                      value={registeredAddress}
+                      disabled={busy}
+                      onChange={(e) => setRegisteredAddress(e.target.value)}
+                    />
+                    <input
+                      className={inputCls}
+                      inputMode="numeric"
+                      placeholder={t(
+                        lang,
+                        "account.breederDetails.license.taxIdPlaceholder",
+                      )}
+                      value={taxId}
+                      disabled={busy}
+                      onChange={(e) => setTaxId(e.target.value)}
+                    />
+                    <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#E8D5B5] bg-[#FFFBF5] px-4 py-6 cursor-pointer hover:border-[#D97706]">
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="sr-only"
+                        disabled={busy}
+                        onChange={(e) => {
+                          setLicenseFile(e.target.files?.[0] ?? null);
+                          e.target.value = "";
+                        }}
+                      />
+                      <span className="text-sm font-semibold text-[#D97706]">
+                        {licenseFile
+                          ? licenseFile.name
+                          : t(lang, "account.breederDetails.chooseFile")}
+                      </span>
+                      <span className="text-xs text-center text-[#6E5A51]">
+                        {t(lang, "account.breederDetails.licenseHint")}
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2 text-xs text-[#5C4A3A]">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={identityAck}
+                        disabled={busy}
+                        onChange={(e) => setIdentityAck(e.target.checked)}
+                      />
+                      <span>
+                        {t(lang, "account.breederDetails.license.ackLabel")}
+                      </span>
+                    </label>
+                  </>
                 ) : null}
               </div>
 
@@ -277,6 +438,16 @@ export function TrustGuideEarnModal({
                     className="flex-1 rounded-xl bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                   >
                     {t(lang, "account.breederDetails.submit")}
+                  </button>
+                ) : null}
+                {isLicense ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void submitBusinessLicense()}
+                    className="flex-1 rounded-xl bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {t(lang, "account.breederDetails.uploadSubmit")}
                   </button>
                 ) : null}
               </DialogActions>

@@ -30,7 +30,7 @@ test("mapApiBreeder normalizes verification and trust defaults", () => {
   assert.equal(mapped.verified, true);
   assert.equal(mapped.complianceVerifiedStripped, false);
   assert.equal(mapped.verificationStatus, "verified");
-  assert.equal(mapped.breederType, "registered_kennel");
+  assert.equal(mapped.breederType, "enterprise");
   // Verified base 30 + approved business license 30
   assert.equal(mapped.trustScore, 60);
   assert.equal(mapped.verificationTier, 3);
@@ -38,6 +38,20 @@ test("mapApiBreeder normalizes verification and trust defaults", () => {
   assert.equal(mapped.activeListings, 3);
   assert.equal(mapped.checklist[0]?.label, "Vaccine");
   assert.equal(mapped.facilityVideoUrl, null);
+});
+
+test("mapApiBreeder exposes public legalEntityTag without identity numbers", () => {
+  const mapped = mapApiBreeder({
+    id: "bp-legal",
+    display_name: "Legal Farm",
+    verification_status: "verified",
+    metadata: {
+      legal_entity_tag: "household_business",
+      business_license_trust_awarded: true,
+      identity: { tax_id: "0123456789" },
+    },
+  });
+  assert.equal(mapped.legalEntityTag, "household_business");
 });
 
 test("mapApiBreeder uses signal-based trust when metadata trust_score is absent", () => {

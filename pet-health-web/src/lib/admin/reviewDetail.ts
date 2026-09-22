@@ -148,8 +148,48 @@ export function adminListingSpecRows(post: AdminReviewPost): AdminReviewSpec[] {
   return rows;
 }
 
+export function adminBreederCoverUrl(
+  profile: Pick<AdminReviewBreeder, "metadata">,
+): string {
+  const meta = profile.metadata;
+  if (!meta || typeof meta !== "object") return "";
+  for (const key of ["cover_url", "coverUrl", "coverImageUrl", "cover_image_url"]) {
+    const value = meta[key];
+    if (typeof value === "string" && /^https?:\/\//i.test(value.trim())) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
+export function adminBreederAvatarUrl(
+  profile: Pick<AdminReviewBreeder, "avatar_url" | "metadata">,
+): string {
+  const direct = String(profile.avatar_url || "").trim();
+  if (/^https?:\/\//i.test(direct)) return direct;
+  const meta = profile.metadata;
+  if (!meta || typeof meta !== "object") return "";
+  for (const key of ["avatar_url", "avatarUrl"]) {
+    const value = meta[key];
+    if (typeof value === "string" && /^https?:\/\//i.test(value.trim())) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
 export function adminBreederSpecRows(profile: AdminReviewBreeder): AdminReviewSpec[] {
   const rows: AdminReviewSpec[] = [];
+  const meta =
+    profile.metadata && typeof profile.metadata === "object" ? profile.metadata : {};
+  const breederType = String(meta.breederType || meta.breeder_type || "").trim();
+  if (breederType) {
+    rows.push({
+      id: "breederType",
+      labelKey: "admin.review.breederType",
+      value: breederType,
+    });
+  }
   if (profile.location?.trim()) {
     rows.push({
       id: "location",
@@ -182,11 +222,43 @@ export function adminBreederSpecRows(profile: AdminReviewBreeder): AdminReviewSp
           : registrationUnit,
     });
   }
+  const kennelName = String(
+    meta.registeredKennelName || meta.registered_kennel_name || "",
+  ).trim();
+  if (kennelName) {
+    rows.push({
+      id: "registeredKennelName",
+      labelKey: "admin.review.registeredKennelName",
+      value: kennelName,
+    });
+  }
+  const registeredAt = String(meta.registeredAt || meta.registered_at || "").trim();
+  if (registeredAt) {
+    rows.push({
+      id: "registeredAt",
+      labelKey: "admin.review.registeredAt",
+      value: registeredAt,
+    });
+  }
   if ((profile.main_breeds || []).length) {
     rows.push({
       id: "breeds",
       labelKey: "admin.review.mainBreeds",
       value: (profile.main_breeds || []).join(", "),
+    });
+  }
+  if (profile.verification_status?.trim()) {
+    rows.push({
+      id: "status",
+      labelKey: "admin.review.verificationStatus",
+      value: profile.verification_status.trim(),
+    });
+  }
+  if (profile.created_at?.trim()) {
+    rows.push({
+      id: "createdAt",
+      labelKey: "admin.review.createdAt",
+      value: profile.created_at.trim(),
     });
   }
   if (profile.user_id?.trim()) {
@@ -197,6 +269,46 @@ export function adminBreederSpecRows(profile: AdminReviewBreeder): AdminReviewSp
     });
   }
   return rows;
+}
+
+export function adminBreederCommitmentLabels(
+  profile: Pick<AdminReviewBreeder, "metadata">,
+): string[] {
+  const meta = profile.metadata;
+  if (!meta || typeof meta !== "object") return [];
+  const raw =
+    meta.transparencyCommitments ?? meta.transparency_commitments;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+}
+
+/** i18n key for a stored commitment id, or null if unknown. */
+export function adminBreederCommitmentLabelKey(
+  commitmentId: string,
+): string | null {
+  const id = String(commitmentId || "").trim();
+  if (!id) return null;
+  return `breederForm.commitment.${id}`;
+}
+
+/** i18n key for a species slug such as cat/dog. */
+export function adminSpeciesLabelKey(species: string): string | null {
+  const slug = String(species || "")
+    .trim()
+    .toLowerCase();
+  if (!slug) return null;
+  return `listing.new.species.${slug}`;
+}
+
+/** i18n key for breeder verification_status. */
+export function adminVerificationStatusLabelKey(status: string): string {
+  const slug = String(status || "")
+    .trim()
+    .toLowerCase();
+  if (!slug) return "admin.verification.unverified";
+  return `admin.verification.${slug}`;
 }
 
 export function toggleExpandedReviewId(

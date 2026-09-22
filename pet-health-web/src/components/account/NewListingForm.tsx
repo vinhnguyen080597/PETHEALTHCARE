@@ -594,6 +594,20 @@ export function NewListingForm({
         {t(lang, "listing.new.title")}
       </h1>
 
+      {!breeder.legalEntityTag ? (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-4 space-y-3">
+          <p className="text-sm font-medium text-amber-950">
+            {t(lang, "farm.legalEntity.suggest")}
+          </p>
+          <Link
+            href={`/app/breeders/${breeder.id}/trust`}
+            className="inline-flex items-center justify-center rounded-xl border border-[#D97706] bg-white px-4 py-2.5 text-sm font-semibold text-[#B45309]"
+          >
+            {t(lang, "farm.legalEntity.suggestCta")}
+          </Link>
+        </div>
+      ) : null}
+
       <form
         ref={formRef}
         onSubmit={(e) => {

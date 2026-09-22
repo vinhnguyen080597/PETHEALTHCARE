@@ -61,6 +61,7 @@ import {
   supportScamTargetLabelKey,
 } from "@/lib/admin/requestQueue";
 import {
+  adminSpeciesLabelKey,
   breederPublicHref,
   isDealDisputeReport,
   isOpenDealDisputeOnHold,
@@ -280,6 +281,22 @@ function formatDate(value?: string) {
   return date.toLocaleDateString();
 }
 
+function speciesListLabel(lang: Lang, species: string[] | string | null | undefined) {
+  const list = Array.isArray(species)
+    ? species
+    : String(species || "")
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+  return list
+    .map((slug) => {
+      const key = adminSpeciesLabelKey(slug);
+      return key ? t(lang, key as EnKey) : slug;
+    })
+    .filter(Boolean)
+    .join(", ");
+}
+
 function farmReviewKindLabel(kind: string, lang: Lang) {
   return t(lang, farmReviewKindI18nKey(kind) as EnKey);
 }
@@ -440,6 +457,12 @@ export function AdminConsole({
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
   const [farmReviewApproveBlocked, setFarmReviewApproveBlocked] = useState(false);
+  const [licenseVerifyById, setLicenseVerifyById] = useState<
+    Record<string, Record<string, boolean>>
+  >({});
+  const [licenseTypeOverrideById, setLicenseTypeOverrideById] = useState<
+    Record<string, "" | "household_business" | "enterprise">
+  >({});
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [focusRequestId, setFocusRequestId] = useState<string | null>(
@@ -634,7 +657,7 @@ export function AdminConsole({
       status: profile.verification_status || "unverified",
       createdAt: profile.created_at || "",
       title: profile.display_name || "—",
-      subtitle: [profile.location, (profile.primary_species || []).join(", ")]
+      subtitle: [profile.location, speciesListLabel(lang, profile.primary_species)]
         .filter(Boolean)
         .join(" · "),
       body:
@@ -651,7 +674,13 @@ export function AdminConsole({
       status: post.status || "pending_review",
       createdAt: post.created_at || "",
       title: post.title || "—",
-      subtitle: [post.species, post.breed, post.location].filter(Boolean).join(" · "),
+      subtitle: [
+        speciesListLabel(lang, post.species),
+        post.breed,
+        post.location,
+      ]
+        .filter(Boolean)
+        .join(" · "),
       body: post.description || post.vaccine_status || post.price_note || "",
       post,
     }));
@@ -1004,6 +1033,8 @@ export function AdminConsole({
       adminNote?: string;
       penaltyPoints?: number;
       penaltyKind?: "transparency" | "compliance" | "review";
+      verifyChecks?: Record<string, boolean>;
+      legalEntityTag?: string;
     },
   ) =>
     runAction(
@@ -1023,6 +1054,10 @@ export function AdminConsole({
                   penaltyPoints: extras.penaltyPoints,
                   penaltyKind: extras.penaltyKind,
                 }
+              : {}),
+            ...(extras?.verifyChecks ? { verifyChecks: extras.verifyChecks } : {}),
+            ...(extras?.legalEntityTag
+              ? { legalEntityTag: extras.legalEntityTag }
               : {}),
           }),
         }),
@@ -1370,13 +1405,44 @@ export function AdminConsole({
       );
     }
     if (item.type === "detail" && item.detail?.status === "pending" && item.detail.id) {
+      const isLicense = item.detail.submission_type === "business_license";
+      const checks = licenseVerifyById[item.detail.id] || {
+        mstPortalMatch: false,
+        documentReadable: false,
+        addressMatch: false,
+        subjectMatch: false,
+      };
+      const checksReady =
+        !isLicense ||
+        (checks.mstPortalMatch &&
+          checks.documentReadable &&
+          checks.addressMatch &&
+          checks.subjectMatch);
       return (
         <div className="flex flex-wrap gap-2 mt-3">
           <ActionButton
             label={t(lang, "admin.details.approve")}
             variant="success"
-            disabled={busyKey !== null}
-            onClick={() => void updateDetailSubmission(item.detail!.id, "approved")}
+            disabled={busyKey !== null || !checksReady}
+            onClick={() => {
+              if (!checksReady) {
+                setError(t(lang, "admin.details.verifyRequired"));
+                return;
+              }
+              void updateDetailSubmission(item.detail!.id, "approved", {
+                ...(isLicense
+                  ? {
+                      verifyChecks: checks,
+                      ...(licenseTypeOverrideById[item.detail!.id]
+                        ? {
+                            legalEntityTag:
+                              licenseTypeOverrideById[item.detail!.id],
+                          }
+                        : {}),
+                    }
+                  : {}),
+              });
+            }}
           />
           <ActionButton
             label={t(lang, "admin.details.reject")}
@@ -1720,7 +1786,37 @@ export function AdminConsole({
                     />
                   ) : null}
                   {detailsOpen && item.detail ? (
-                    <AdminBreederDetailSubmissionReview lang={lang} submission={item.detail} />
+                    <AdminBreederDetailSubmissionReview
+                      lang={lang}
+                      submission={item.detail}
+                      showApproveChecklist={
+                        item.detail.status === "pending" &&
+                        item.detail.submission_type === "business_license"
+                      }
+                      verifyChecks={
+                        licenseVerifyById[item.detail.id] || {
+                          mstPortalMatch: false,
+                          documentReadable: false,
+                          addressMatch: false,
+                          subjectMatch: false,
+                        }
+                      }
+                      onVerifyChecksChange={(next) =>
+                        setLicenseVerifyById((prev) => ({
+                          ...prev,
+                          [item.detail!.id]: next,
+                        }))
+                      }
+                      legalEntityOverride={
+                        licenseTypeOverrideById[item.detail.id] || ""
+                      }
+                      onLegalEntityOverrideChange={(next) =>
+                        setLicenseTypeOverrideById((prev) => ({
+                          ...prev,
+                          [item.detail!.id]: next,
+                        }))
+                      }
+                    />
                   ) : null}
                   {detailsOpen && item.farmReview ? (
                     <AdminFarmReviewDetail lang={lang} review={item.farmReview} />
@@ -2001,7 +2097,7 @@ export function AdminConsole({
                         {b.display_name || t(lang, "admin.breeders.viewPublic")}
                       </Link>
                       <p className="text-xs text-[#8B7355]">
-                        {[b.location, (b.primary_species || []).join(", ")]
+                        {[b.location, speciesListLabel(lang, b.primary_species)]
                           .filter(Boolean)
                           .join(" · ")}
                       </p>

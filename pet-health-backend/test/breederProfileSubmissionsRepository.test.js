@@ -96,7 +96,14 @@ test("reject submission requires rejection reason at route layer", async () => {
   await adminUpdateBreederProfileStatus(userId, "verified");
   const created = await createBreederProfileSubmission(
     userId,
-    { submissionType: "business_license", url: "https://cdn.example/license.jpg" },
+    {
+      submissionType: "business_license",
+      url: "https://cdn.example/license.jpg",
+      sellerLegalType: "household_business",
+      legalName: "Nguyen Van B",
+      registeredAddress: "Da Nang",
+      taxId: "0123456789",
+    },
     null,
   );
   await assert.rejects(

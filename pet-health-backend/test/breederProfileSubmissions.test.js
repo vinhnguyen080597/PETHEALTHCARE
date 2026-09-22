@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   applyApprovedBreederSubmission,
   applyApprovedWarrantyFileSubmissions,
+  applyPendingBusinessLicenseOnProfileVerify,
   approvedBreederDetailCtaHref,
   normalizeBreederSubmissionType,
   validateBreederSubmissionPayload,
@@ -49,6 +50,65 @@ test("validateBreederSubmissionPayload accepts platform profile URLs only", () =
     }).ok,
     true,
   );
+});
+
+test("validateBreederSubmissionPayload requires business license identity pack", () => {
+  const missing = validateBreederSubmissionPayload("business_license", {
+    url: "https://cdn.example/license.jpg",
+  });
+  assert.equal(missing.ok, false);
+  assert.equal(missing.code, "MISSING_SELLER_LEGAL_TYPE");
+
+  const good = validateBreederSubmissionPayload("business_license", {
+    url: "https://cdn.example/license.jpg",
+    sellerLegalType: "household_business",
+    legalName: "Nguyen Van A",
+    registeredAddress: "Ha Noi",
+    taxId: "0123456789",
+  });
+  assert.equal(good.ok, true);
+  assert.equal(good.payload.seller_legal_type, "household_business");
+  assert.equal(good.payload.tax_id, "0123456789");
+});
+
+test("applyPendingBusinessLicenseOnProfileVerify awards +30 pack on verify", () => {
+  const next = applyPendingBusinessLicenseOnProfileVerify(
+    {
+      breederType: "household_business",
+      business_license_pending_url: "https://cdn.example/license.jpg",
+      identity: {
+        legal_name: "Nguyen Van A",
+        registered_address: "Ha Noi",
+        tax_id: "0123456789",
+      },
+    },
+    "2026-09-22T00:00:00.000Z",
+  );
+  assert.equal(next.legal_entity_tag, "household_business");
+  assert.equal(next.business_license_trust_awarded, true);
+  assert.equal(next.business_license_url, "https://cdn.example/license.jpg");
+});
+
+test("applyApprovedBreederSubmission sets legal_entity_tag and private identity", () => {
+  const merged = applyApprovedBreederSubmission(
+    { contact: {}, metadata: {} },
+    {
+      submission_type: "business_license",
+      payload: {
+        url: "https://cdn.example/license.jpg",
+        seller_legal_type: "enterprise",
+        legal_name: "Pet Farm Co Ltd",
+        registered_address: "HCM",
+        tax_id: "0312345678",
+        admin_verify_checks: { mstPortalMatch: true },
+      },
+    },
+    "2026-09-22T00:00:00.000Z",
+  );
+  assert.equal(merged.metadata.legal_entity_tag, "enterprise");
+  assert.equal(merged.metadata.business_license_trust_awarded, true);
+  assert.equal(merged.metadata.identity.tax_id, "0312345678");
+  assert.equal(merged.metadata.business_license_url, "https://cdn.example/license.jpg");
 });
 
 test("applyApprovedBreederSubmission sets metadata flags and contact", () => {

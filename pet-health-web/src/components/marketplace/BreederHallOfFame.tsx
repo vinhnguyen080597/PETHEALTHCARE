@@ -63,14 +63,13 @@ function HallOfFameCardBody({
           </p>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#2B1E19]/80">
+      <div className="mt-3 flex flex-wrap justify-end gap-x-3 gap-y-1 text-xs text-[#2B1E19]/80">
+        <span>🛡️ {metrics.trustScore}/100</span>
         {metrics.rating != null && metrics.reviewCount > 0 ? (
           <span>
             ⭐ {metrics.rating.toFixed(1)}/5 ({metrics.reviewCount})
           </span>
         ) : null}
-        <span>🛡️ {metrics.trustScore}/100</span>
-        <span>⚖️ {metrics.complianceScore}/100</span>
       </div>
     </>
   );

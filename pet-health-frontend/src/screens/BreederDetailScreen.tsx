@@ -17,7 +17,7 @@ import { FarmReviewSupplementsList } from '../components/FarmReviewSupplementsLi
 import { FarmReviewModal } from '../components/FarmReviewModal';
 import { FarmReviewSectionSkeleton } from '../components/FarmReviewSectionSkeleton';
 import { FarmReviewStars } from '../components/FarmReviewStars';
-import { FarmScoreCard } from '../components/breeder/FarmScoreCard';
+import { FarmComplianceScoreCard, FarmScoreCard } from '../components/breeder/FarmScoreCard';
 import { WarrantyPolicyViewer } from '../components/WarrantyPolicyViewer';
 import {
   cancelMyBreederProfileSubmission,
@@ -30,6 +30,7 @@ import {
   listMyWarrantyPolicies,
 } from '../api';
 import { pendingWarrantyUploadsFromSubmissions } from '../utils/breederProfileSubmissions';
+import { legalEntityTagFromMeta } from '../utils/legalEntityTag';
 import type { BreederProfile, PetFeedPost } from '../types';
 import { mapFarmReviewThreads, formatBreederReviewLabel, farmReviewAuthorLabel, isSaleFarmReviewKind, type FarmReviewThreadPreview } from '../utils/farmReview';
 import { initialsFromName } from '../utils/breederTrustLevel';
@@ -501,6 +502,40 @@ export function BreederDetailScreen({
                 <Text style={{ flexShrink: 1, fontSize: 13, color: FARM_MUTED }} numberOfLines={1}>
                   📍 {locationLabel}
                 </Text>
+                {legalEntityTagFromMeta(profile.metadata as Record<string, unknown>) ===
+                'enterprise' ? (
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: '#3730A3',
+                      backgroundColor: '#EEF2FF',
+                      overflow: 'hidden',
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 6,
+                    }}
+                  >
+                    {t('farm.legalEntity.enterprise')}
+                  </Text>
+                ) : null}
+                {legalEntityTagFromMeta(profile.metadata as Record<string, unknown>) ===
+                'household_business' ? (
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: '#065F46',
+                      backgroundColor: '#ECFDF5',
+                      overflow: 'hidden',
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 6,
+                    }}
+                  >
+                    {t('farm.legalEntity.householdBusiness')}
+                  </Text>
+                ) : null}
                 {isOwnProfile && allowTemplateChange && onOpenTemplatePicker ? (
                   <OwnerChip
                     testID="farm-owner-change-template"
@@ -554,7 +589,6 @@ export function BreederDetailScreen({
               transparencyScore={score}
               isOwnProfile={isOwnProfile}
               onOpenTransparencyGuide={onOpenFarmHealth}
-              onOpenComplianceGuide={onOpenFarmCompliance}
             />
 
             <View
@@ -576,6 +610,12 @@ export function BreederDetailScreen({
                 📦 {petsRehomed} {t('farm.trust.adopted')}
               </Text>
             </View>
+
+            <FarmComplianceScoreCard
+              profile={profile}
+              isOwnProfile={isOwnProfile}
+              onOpenComplianceGuide={onOpenFarmCompliance}
+            />
 
             <View>
               <Text style={{ fontSize: 15, fontWeight: '700', color: FARM_TEXT, marginBottom: 10 }}>

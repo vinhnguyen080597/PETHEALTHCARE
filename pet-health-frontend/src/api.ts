@@ -803,7 +803,17 @@ export async function cancelMyBreederProfileSubmission(token: string, submission
 
 export async function createBreederProfileSubmission(
   token: string,
-  payload: { submissionType: string; url: string; note?: string },
+  payload: {
+    submissionType: string;
+    url: string;
+    note?: string;
+    sellerLegalType?: string;
+    legalName?: string;
+    registeredAddress?: string;
+    taxId?: string;
+    title?: string;
+    content_type?: string;
+  },
 ) {
   return requestJson<{ data: import('./utils/breederProfileSubmissions').BreederProfileSubmission }>(
     '/pet-feed/breeder-profile/me/submissions',

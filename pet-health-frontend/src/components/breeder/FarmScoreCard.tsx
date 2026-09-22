@@ -27,7 +27,6 @@ import { trustGuideLangFromLocale } from '../../utils/farmTrustGuide';
 import type { BreederProfile } from '../../types';
 
 const FARM_BORDER = '#F3E2C8';
-const FARM_BG = '#FDFBF7';
 const FARM_TEXT = '#0F172A';
 const FARM_MUTED = '#64748B';
 const FARM_ACCENT = '#B45309';
@@ -37,7 +36,6 @@ type FarmScoreCardProps = {
   transparencyScore: number;
   isOwnProfile?: boolean;
   onOpenTransparencyGuide?: () => void;
-  onOpenComplianceGuide?: () => void;
 };
 
 function ScoreColumn({
@@ -66,8 +64,6 @@ function ScoreColumn({
   return (
     <View
       style={{
-        flex: 1,
-        minWidth: 0,
         borderRadius: 14,
         borderWidth: 1,
         borderColor: '#F1F5F9',
@@ -79,7 +75,7 @@ function ScoreColumn({
 
       <View style={{ alignItems: 'center' }}>{gauge}</View>
 
-      <View style={{ marginTop: 12, gap: 6, flexGrow: 1 }}>
+      <View style={{ marginTop: 12, gap: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
           <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569', flex: 1 }} numberOfLines={1}>
             {metricLabel}
@@ -136,32 +132,48 @@ function ScoreColumn({
   );
 }
 
-function ScoreColumnWithTitle({
+function ScoreCardShell({
   title,
+  subtitle,
   children,
 }: {
   title: string;
+  subtitle: string;
   children: ReactNode;
 }) {
   return (
-    <View style={{ flex: 1, minWidth: 0 }}>
+    <View
+      style={{
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: FARM_BORDER,
+        padding: 16,
+      }}
+    >
       <Text
-        style={{ fontSize: 11, fontWeight: '800', color: '#334155', marginBottom: 8 }}
-        numberOfLines={2}
+        style={{
+          fontSize: 13,
+          fontWeight: '800',
+          color: FARM_TEXT,
+          textTransform: 'uppercase',
+          letterSpacing: 0.4,
+        }}
       >
         {title}
       </Text>
-      {children}
+      <Text style={{ marginTop: 6, fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>{subtitle}</Text>
+      <View style={{ marginTop: 14 }}>{children}</View>
     </View>
   );
 }
 
+/** Transparency score card for farm overview. */
 export function FarmScoreCard({
   profile,
   transparencyScore,
   isOwnProfile = false,
   onOpenTransparencyGuide,
-  onOpenComplianceGuide,
 }: FarmScoreCardProps) {
   const { t, i18n } = useTranslation();
   const lang = trustGuideLangFromLocale(i18n.language);
@@ -187,6 +199,49 @@ export function FarmScoreCard({
   const transparencyColor = transparencyScoreColor(transparencyScore);
   const transparencyHint = lang === 'VI' ? tier.meaningVI : tier.meaningEN;
 
+  return (
+    <ScoreCardShell title={t('farm.trust.sectionTitle')} subtitle={t('farm.trust.sectionSubtitle')}>
+      <Text
+        style={{ fontSize: 11, fontWeight: '800', color: '#334155', marginBottom: 8 }}
+        numberOfLines={2}
+      >
+        {t('farm.trust.gaugeCaption')}
+      </Text>
+      <ScoreColumn
+        badge={<TrustLevelChip level={tier.level} label={tierLabel} />}
+        gauge={
+          <TrustTicksGauge
+            score={transparencyScore}
+            caption={t('farm.trust.gaugeOutOf')}
+            size={148}
+          />
+        }
+        metricLabel={t('farm.trust.profileProgress')}
+        metricValue={`${profileProgress}%`}
+        metricPercent={profileProgress}
+        metricColor={transparencyColor}
+        hint={transparencyHint}
+        ctaLabel={isOwnProfile ? t('farm.trust.guideCta') : undefined}
+        ctaColor={FARM_ACCENT}
+        onPressCta={onOpenTransparencyGuide}
+      />
+    </ScoreCardShell>
+  );
+}
+
+/** Separate compliance score section (below trust metrics on farm overview). */
+export function FarmComplianceScoreCard({
+  profile,
+  isOwnProfile = false,
+  onOpenComplianceGuide,
+}: {
+  profile: BreederProfile;
+  isOwnProfile?: boolean;
+  onOpenComplianceGuide?: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const lang = trustGuideLangFromLocale(i18n.language);
+  const metadata = (profile.metadata ?? {}) as Record<string, unknown>;
   const complianceScore =
     typeof metadata.complianceScore === 'number'
       ? metadata.complianceScore
@@ -198,89 +253,50 @@ export function FarmScoreCard({
   const chipStyle = complianceBandChipStyle(complianceBand);
 
   return (
-    <View
-      style={{
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: FARM_BORDER,
-        padding: 16,
-      }}
+    <ScoreCardShell
+      title={t('farm.trust.complianceSectionTitle')}
+      subtitle={t('farm.trust.complianceSectionSubtitle')}
     >
       <Text
-        style={{
-          fontSize: 13,
-          fontWeight: '800',
-          color: FARM_TEXT,
-          textTransform: 'uppercase',
-          letterSpacing: 0.4,
-        }}
+        style={{ fontSize: 11, fontWeight: '800', color: '#334155', marginBottom: 8 }}
+        numberOfLines={2}
       >
-        {t('farm.trust.sectionTitle')}
+        {t('farm.trust.complianceGaugeCaption')}
       </Text>
-      <Text style={{ marginTop: 6, fontSize: 13, color: FARM_MUTED, lineHeight: 19 }}>
-        {t('farm.trust.sectionSubtitle')}
-      </Text>
-
-      <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 10, marginTop: 14 }}>
-        <ScoreColumnWithTitle title={t('farm.trust.gaugeCaption')}>
-          <ScoreColumn
-            badge={<TrustLevelChip level={tier.level} label={tierLabel} />}
-            gauge={
-              <TrustTicksGauge
-                score={transparencyScore}
-                caption={t('farm.trust.gaugeOutOf')}
-                size={132}
-              />
-            }
-            metricLabel={t('farm.trust.profileProgress')}
-            metricValue={`${profileProgress}%`}
-            metricPercent={profileProgress}
-            metricColor={transparencyColor}
-            hint={transparencyHint}
-            ctaLabel={isOwnProfile ? t('farm.trust.guideCta') : undefined}
-            ctaColor={FARM_ACCENT}
-            onPressCta={onOpenTransparencyGuide}
+      <ScoreColumn
+        badge={
+          <View
+            style={{
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: chipStyle.border,
+              backgroundColor: chipStyle.bg,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+            }}
+          >
+            <Text style={{ fontSize: 10, fontWeight: '700', color: chipStyle.text }} numberOfLines={1}>
+              {complianceBandText}
+            </Text>
+          </View>
+        }
+        gauge={
+          <TrustTicksGauge
+            score={complianceScore}
+            caption={t('farm.trust.gaugeOutOf')}
+            size={148}
+            tickColor={complianceTickColor}
           />
-        </ScoreColumnWithTitle>
-
-        <ScoreColumnWithTitle title={t('farm.trust.complianceGaugeCaption')}>
-          <ScoreColumn
-            badge={
-              <View
-                style={{
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: chipStyle.border,
-                  backgroundColor: chipStyle.bg,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                }}
-              >
-                <Text style={{ fontSize: 10, fontWeight: '700', color: chipStyle.text }} numberOfLines={1}>
-                  {complianceBandText}
-                </Text>
-              </View>
-            }
-            gauge={
-              <TrustTicksGauge
-                score={complianceScore}
-                caption={t('farm.trust.gaugeOutOf')}
-                size={132}
-                tickColor={complianceTickColor}
-              />
-            }
-            metricLabel={t('farm.trust.accountStatus')}
-            metricValue={complianceBandText}
-            metricPercent={complianceScore}
-            metricColor={complianceColor}
-            hint={`${complianceMeaning} ${t('farm.trust.complianceHint')}`}
-            ctaLabel={isOwnProfile ? t('farm.compliance.guideCta') : undefined}
-            ctaColor="#047857"
-            onPressCta={onOpenComplianceGuide}
-          />
-        </ScoreColumnWithTitle>
-      </View>
-    </View>
+        }
+        metricLabel={t('farm.trust.accountStatus')}
+        metricValue={complianceBandText}
+        metricPercent={complianceScore}
+        metricColor={complianceColor}
+        hint={`${complianceMeaning} ${t('farm.trust.complianceHint')}`}
+        ctaLabel={isOwnProfile ? t('farm.compliance.guideCta') : undefined}
+        ctaColor="#047857"
+        onPressCta={onOpenComplianceGuide}
+      />
+    </ScoreCardShell>
   );
 }

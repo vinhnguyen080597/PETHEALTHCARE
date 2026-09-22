@@ -14,6 +14,16 @@ export const BREEDER_SUBMISSION_TYPES = [
 
 export const BREEDER_SUBMISSION_STATUSES = ['pending', 'approved', 'rejected', 'cancelled'];
 
+/** Public farm tags after admin approves business_license pack. */
+export const LEGAL_ENTITY_TAGS = ['household_business', 'enterprise'];
+
+export const BUSINESS_LICENSE_VERIFY_CHECK_KEYS = [
+  'mstPortalMatch',
+  'documentReadable',
+  'addressMatch',
+  'subjectMatch',
+];
+
 const SOCIAL_TYPE_TO_CONTACT_KEY = {
   social_facebook: 'facebook',
   social_zalo: 'zalo',
@@ -66,7 +76,7 @@ export function breederSubmissionTypeLabel(type, locale = 'vi') {
   const labels = {
     vi: {
       facility_video: 'Video cơ sở',
-      business_license: 'Giấy phép kinh doanh',
+      business_license: 'Xác minh hộ kinh doanh / doanh nghiệp',
       warranty_policy_file: 'Chính sách bảo hành upload',
       social_facebook: 'Facebook',
       social_zalo: 'Zalo',
@@ -75,7 +85,7 @@ export function breederSubmissionTypeLabel(type, locale = 'vi') {
     },
     en: {
       facility_video: 'Facility video',
-      business_license: 'Business license',
+      business_license: 'Household business / enterprise verification',
       warranty_policy_file: 'Uploaded warranty policy',
       social_facebook: 'Facebook',
       social_zalo: 'Zalo',
@@ -85,6 +95,63 @@ export function breederSubmissionTypeLabel(type, locale = 'vi') {
   };
   const lang = locale === 'en' ? 'en' : 'vi';
   return labels[lang][type] || type;
+}
+
+export function normalizeLegalEntityTag(value) {
+  const raw = trimText(value, 64).toLowerCase();
+  return LEGAL_ENTITY_TAGS.includes(raw) ? raw : '';
+}
+
+export function legalEntityTagPublicLabel(tag, locale = 'vi') {
+  const normalized = normalizeLegalEntityTag(tag);
+  if (!normalized) return '';
+  if (locale === 'en') {
+    return normalized === 'enterprise' ? 'Enterprise' : 'Household business';
+  }
+  return normalized === 'enterprise' ? 'Doanh nghiệp' : 'Hộ kinh doanh';
+}
+
+export function maskTaxId(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length < 4) return digits ? '••••' : '';
+  return `${digits.slice(0, 2)}${'•'.repeat(Math.max(digits.length - 4, 2))}${digits.slice(-2)}`;
+}
+
+function normalizeBusinessLicenseIdentity(payload = {}) {
+  const sellerLegalType = normalizeLegalEntityTag(
+    payload.seller_legal_type ?? payload.sellerLegalType,
+  );
+  const legalName = trimText(
+    payload.legal_name ?? payload.legalName ?? payload.company_legal_name,
+    200,
+  );
+  const registeredAddress = trimText(
+    payload.registered_address ?? payload.registeredAddress,
+    300,
+  );
+  const taxId = String(payload.tax_id ?? payload.taxId ?? payload.mst ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 14);
+  return { sellerLegalType, legalName, registeredAddress, taxId };
+}
+
+export function validateBusinessLicenseVerifyChecks(checks) {
+  const source = checks && typeof checks === 'object' ? checks : {};
+  const normalized = {};
+  for (const key of BUSINESS_LICENSE_VERIFY_CHECK_KEYS) {
+    const raw = source[key] ?? source[key.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`)];
+    normalized[key] = raw === true || raw === 'true' || raw === 1 || raw === '1';
+  }
+  const missing = BUSINESS_LICENSE_VERIFY_CHECK_KEYS.filter((key) => !normalized[key]);
+  if (missing.length) {
+    return {
+      ok: false,
+      code: 'MISSING_VERIFY_CHECKS',
+      error: 'All business license verification checks must be confirmed before approve.',
+      missing,
+    };
+  }
+  return { ok: true, checks: normalized };
 }
 
 function hostnameOf(url) {
@@ -188,6 +255,44 @@ export function validateBreederSubmissionPayload(submissionType, payload = {}) {
     if (!/^https?:\/\//i.test(url)) {
       return { ok: false, code: 'INVALID_LICENSE_URL', error: 'Invalid business license URL' };
     }
+    const identity = normalizeBusinessLicenseIdentity(payload);
+    if (!identity.sellerLegalType) {
+      return {
+        ok: false,
+        code: 'MISSING_SELLER_LEGAL_TYPE',
+        error: 'seller_legal_type must be household_business or enterprise',
+      };
+    }
+    if (!identity.legalName) {
+      return { ok: false, code: 'MISSING_LEGAL_NAME', error: 'legal_name is required' };
+    }
+    if (!identity.registeredAddress) {
+      return {
+        ok: false,
+        code: 'MISSING_REGISTERED_ADDRESS',
+        error: 'registered_address is required',
+      };
+    }
+    if (!/^\d{8,14}$/.test(identity.taxId)) {
+      return {
+        ok: false,
+        code: 'INVALID_TAX_ID',
+        error: 'tax_id must be 8–14 digits (MST / registration number)',
+      };
+    }
+    return {
+      ok: true,
+      payload: {
+        url,
+        title: trimText(payload.title, 160),
+        content_type: trimText(payload.content_type ?? payload.contentType, 120).toLowerCase(),
+        seller_legal_type: identity.sellerLegalType,
+        legal_name: identity.legalName,
+        registered_address: identity.registeredAddress,
+        tax_id: identity.taxId,
+        ...(note ? { note } : {}),
+      },
+    };
   } else if (submissionType === 'warranty_policy_file') {
     if (!/^https?:\/\//i.test(url)) {
       return { ok: false, code: 'INVALID_WARRANTY_URL', error: 'Invalid warranty policy file URL' };
@@ -222,10 +327,25 @@ export function applyApprovedBreederSubmission(profile, submission, reviewedAt) 
     metadata.facility_video_approved_at = now;
     markTrustAwarded(metadata, SUBMISSION_TYPE_TO_TRUST_AWARDED.facility_video);
   } else if (submissionType === 'business_license') {
+    const identity = normalizeBusinessLicenseIdentity(payload);
+    const legalEntityTag =
+      normalizeLegalEntityTag(payload.legal_entity_tag ?? payload.legalEntityTag)
+      || identity.sellerLegalType;
     metadata.business_license_verified = true;
     metadata.business_license_approved = true;
     metadata.business_license_url = url;
     metadata.business_license_approved_at = now;
+    if (legalEntityTag) metadata.legal_entity_tag = legalEntityTag;
+    metadata.identity = {
+      seller_legal_type: legalEntityTag || identity.sellerLegalType,
+      legal_name: identity.legalName,
+      registered_address: identity.registeredAddress,
+      tax_id: identity.taxId,
+      verified_at: now,
+    };
+    if (payload.admin_verify_checks && typeof payload.admin_verify_checks === 'object') {
+      metadata.identity.admin_verify_checks = payload.admin_verify_checks;
+    }
     markTrustAwarded(metadata, SUBMISSION_TYPE_TO_TRUST_AWARDED.business_license);
   } else if (submissionType === 'warranty_policy_file') {
     const rawPolicies = Array.isArray(metadata.warranty_policies)
@@ -337,4 +457,55 @@ export function approvedBreederDetailCtaHref(breederProfileId, submissionType) {
   return normalizeBreederSubmissionType(submissionType) === 'warranty_policy_file'
     ? `${base}?tab=warranty`
     : base;
+}
+
+/** Apply pending HKD/DN pack from profile metadata when admin verifies the kennel. */
+export function applyPendingBusinessLicenseOnProfileVerify(metadata, reviewedAt) {
+  const next = metadata && typeof metadata === 'object' ? { ...metadata } : {};
+  if (next.business_license_trust_awarded) return next;
+
+  const breederType = String(next.breederType ?? next.breeder_type ?? '')
+    .trim()
+    .toLowerCase();
+  const sellerType =
+    breederType === 'enterprise' || breederType === 'household_business'
+      ? breederType
+      : '';
+  if (!sellerType) return next;
+
+  const identity =
+    next.identity && typeof next.identity === 'object' ? { ...next.identity } : {};
+  const legalName = String(identity.legal_name || identity.legalName || '').trim();
+  const registeredAddress = String(
+    identity.registered_address || identity.registeredAddress || '',
+  ).trim();
+  const taxId = String(identity.tax_id || identity.taxId || '').replace(/\D/g, '');
+  const url = String(
+    next.business_license_pending_url
+      || next.business_license_url
+      || identity.license_url
+      || '',
+  ).trim();
+
+  if (!legalName || !registeredAddress || !/^\d{8,14}$/.test(taxId) || !/^https?:\/\//i.test(url)) {
+    return next;
+  }
+
+  const now = reviewedAt || new Date().toISOString();
+  next.business_license_verified = true;
+  next.business_license_approved = true;
+  next.business_license_url = url;
+  next.business_license_approved_at = now;
+  next.business_license_trust_awarded = true;
+  next.legal_entity_tag = sellerType;
+  next.identity = {
+    ...identity,
+    seller_legal_type: sellerType,
+    legal_name: legalName,
+    registered_address: registeredAddress,
+    tax_id: taxId,
+    verified_at: now,
+  };
+  delete next.business_license_pending_url;
+  return next;
 }

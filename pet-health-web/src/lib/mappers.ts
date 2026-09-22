@@ -28,6 +28,7 @@ import {
   isComplianceVerifiedStripped,
 } from "./breederComplianceScore";
 import { parseReviewStatsFromMeta } from "./breederDealReviews";
+import { legalEntityTagFromMeta } from "./legalEntityTag";
 import {
   coverUrlFromMetadata,
   resolveBreederAvatarUrl,
@@ -129,16 +130,19 @@ function normalizeVerification(status?: string): VerificationStatus {
 
 function normalizeBreederType(value: unknown): BreederType {
   const s = String(value || "other").toLowerCase();
+  if (s === "enterprise" || s === "household_business" || s === "individual") {
+    return s;
+  }
+  if (s === "registered_kennel") return "enterprise";
   if (
-    s === "registered_kennel" ||
     s === "home_breeder" ||
     s === "rescue_foster" ||
     s === "rehoming" ||
     s === "other"
   ) {
-    return s;
+    return "individual";
   }
-  return "other";
+  return "individual";
 }
 
 function parseChecklist(meta: Record<string, unknown>): ChecklistItem[] {
@@ -343,6 +347,7 @@ export function mapApiBreeder(
       Boolean(profile?.warranty_policy_trust_awarded) ||
       activity.hasFirstWarrantyPolicy,
     facilityVideoUrl: publicFacilityVideoUrl(meta),
+    legalEntityTag: legalEntityTagFromMeta(meta),
   };
 }
 

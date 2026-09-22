@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import type { Lang } from "@/lib/types";
-import { t, type EnKey } from "@/i18n";
+import { t, type EnKey, genderLabel } from "@/i18n";
 import {
+  adminBreederAvatarUrl,
+  adminBreederCommitmentLabelKey,
+  adminBreederCommitmentLabels,
+  adminBreederCoverUrl,
   adminBreederSpecRows,
   adminListingContactEntries,
   adminListingMediaUrls,
   adminListingSpecRows,
+  adminSpeciesLabelKey,
+  adminVerificationStatusLabelKey,
   breederPublicHref,
   dealDisputeFromPost,
   healthEvidenceUrlsFromMetadata,
@@ -31,6 +38,7 @@ import { breederSubmissionTypeLabel } from "@/lib/breederProfileSubmissions";
 import { reportReasonLabelKey, reportTargetHref } from "@/lib/admin/reportDisplay";
 import type { BreederProfileSubmission } from "@/lib/breederProfileSubmissions";
 import type { TransparencyWarning } from "@/lib/transparencyWarnings";
+import { maskTaxId, vietnamBusinessLookupLinks } from "@/lib/legalEntityTag";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -84,6 +92,40 @@ function Section({
   );
 }
 
+function AdminBusinessLookupLinks({
+  lang,
+  taxId,
+}: {
+  lang: Lang;
+  taxId: string;
+}) {
+  const links = vietnamBusinessLookupLinks(taxId);
+  if (!links.length) return null;
+  return (
+    <div className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8B7355]">
+        {t(lang, "admin.details.lookupTitle")}
+      </p>
+      <p className="mt-1 text-[11px] leading-4 text-[#8B7355]">
+        {t(lang, "admin.details.lookupHint")}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {links.map((link) => (
+          <a
+            key={link.id}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center rounded-full border border-[#F0E6D8] bg-[#FFFBF5] px-2.5 py-1 text-[11px] font-semibold text-[#B45309] hover:border-[#D97706] hover:bg-[#FFF7ED]"
+          >
+            {t(lang, link.labelKey as EnKey)} ↗
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AdminListingReviewDetail({
   lang,
   post,
@@ -91,7 +133,16 @@ export function AdminListingReviewDetail({
   lang: Lang;
   post: AdminReviewPost;
 }) {
-  const specs = adminListingSpecRows(post);
+  const specs = adminListingSpecRows(post).map((row) => {
+    if (row.id === "species") {
+      const key = adminSpeciesLabelKey(row.value);
+      return { ...row, value: key ? t(lang, key as EnKey) : row.value };
+    }
+    if (row.id === "gender") {
+      return { ...row, value: genderLabel(lang, row.value) };
+    }
+    return row;
+  });
   const media = adminListingMediaUrls(post).filter(isSafeHttpUrl);
   const video = String(post.video_url || "").trim();
   const videoSafe = isSafeHttpUrl(video) ? video : "";
@@ -231,39 +282,135 @@ export function AdminBreederReviewDetail({
   lang: Lang;
   profile: AdminReviewBreeder;
 }) {
-  const specs = adminBreederSpecRows(profile);
+  const locale = lang === "VI" ? "vi-VN" : "en-US";
+  const specs = adminBreederSpecRows(profile).map((row) => {
+    if (row.id === "breederType") {
+      const type = row.value;
+      const label =
+        type === "enterprise"
+          ? t(lang, "farm.legalEntity.enterprise")
+          : type === "household_business"
+            ? t(lang, "farm.legalEntity.householdBusiness")
+            : type === "individual"
+              ? t(lang, "breederForm.types.individual")
+              : t(lang, (`breederForm.types.` + type) as EnKey);
+      return { ...row, value: label };
+    }
+    if (row.id === "primarySpecies") {
+      const value = row.value
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((slug) => {
+          const key = adminSpeciesLabelKey(slug);
+          return key ? t(lang, key as EnKey) : slug;
+        })
+        .join(", ");
+      return { ...row, value };
+    }
+    if (row.id === "status") {
+      return {
+        ...row,
+        value: t(lang, adminVerificationStatusLabelKey(row.value) as EnKey),
+      };
+    }
+    if (row.id === "createdAt") {
+      const date = new Date(row.value);
+      if (!Number.isNaN(date.getTime())) {
+        return {
+          ...row,
+          value: date.toLocaleString(locale, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }),
+        };
+      }
+    }
+    return row;
+  });
   const contact = adminListingContactEntries(profile.contact);
   const policies = (profile.warranty_policies || []).filter((p) => p?.title);
-  const avatar = String(profile.avatar_url || "").trim();
+  const commitments = adminBreederCommitmentLabels(profile).map((id) => {
+    const key = adminBreederCommitmentLabelKey(id);
+    return key ? t(lang, key as EnKey) : id;
+  });
+  const avatar = adminBreederAvatarUrl(profile);
   const avatarSafe = isSafeHttpUrl(avatar) ? avatar : "";
+  const cover = adminBreederCoverUrl(profile);
+  const coverSafe = isSafeHttpUrl(cover) ? cover : "";
+  const meta =
+    profile.metadata && typeof profile.metadata === "object"
+      ? (profile.metadata as Record<string, unknown>)
+      : {};
+  const identity =
+    meta.identity && typeof meta.identity === "object" && !Array.isArray(meta.identity)
+      ? (meta.identity as Record<string, unknown>)
+      : {};
+  const legalName = String(identity.legal_name || identity.legalName || "").trim();
+  const registeredAddress = String(
+    identity.registered_address || identity.registeredAddress || "",
+  ).trim();
+  const taxId = String(identity.tax_id || identity.taxId || "").trim();
+  const licenseUrl = String(
+    meta.business_license_pending_url || meta.business_license_url || "",
+  ).trim();
+  const [showTaxId, setShowTaxId] = useState(false);
 
   return (
     <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
-      <div className="flex items-start gap-3">
-        {avatarSafe ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarSafe}
-            alt=""
-            className="h-14 w-14 rounded-full object-cover border border-[#E8DFD0]"
-          />
-        ) : (
-          <div className="h-14 w-14 rounded-full bg-[#F3EDE3] border border-[#E8DFD0]" />
-        )}
-        <div className="min-w-0">
-          <p className="font-semibold text-sm text-[#2B1E19]">
-            {profile.display_name || "—"}
-          </p>
-          {profile.id ? (
-            <Link
-              href={breederPublicHref(profile.id)}
-              className="text-xs font-semibold text-[#B45309] hover:underline"
-            >
-              {t(lang, "admin.review.breeder")}
-            </Link>
-          ) : null}
+      <Section title={t(lang, "admin.review.photos")}>
+        <div className="overflow-hidden rounded-xl border border-[#E8DFD0] bg-white">
+          {coverSafe ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={coverSafe}
+              alt=""
+              className="h-36 w-full object-cover bg-[#F3EDE3]"
+            />
+          ) : (
+            <div className="flex h-28 items-center justify-center bg-[#F3EDE3] text-xs font-medium text-[#8B7355]">
+              {t(lang, "admin.review.noCover")}
+            </div>
+          )}
+          <div className="flex items-end gap-3 px-4 pb-4 -mt-8">
+            {avatarSafe ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarSafe}
+                alt=""
+                className="h-16 w-16 rounded-full object-cover border-[3px] border-white bg-[#F3EDE3] shadow"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-white bg-[#F3EDE3] text-[10px] font-medium text-[#8B7355] shadow">
+                {t(lang, "admin.review.noAvatar")}
+              </div>
+            )}
+            <div className="min-w-0 pb-1">
+              <p className="font-semibold text-sm text-[#2B1E19]">
+                {profile.display_name || "—"}
+              </p>
+              {profile.id ? (
+                <Link
+                  href={breederPublicHref(profile.id)}
+                  className="text-xs font-semibold text-[#B45309] hover:underline"
+                >
+                  {t(lang, "admin.review.breeder")}
+                </Link>
+              ) : null}
+            </div>
+          </div>
         </div>
-      </div>
+        <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-[#8B7355]">
+          <span>
+            {t(lang, "admin.review.cover")}:{" "}
+            {coverSafe ? "✓" : t(lang, "admin.review.noCover")}
+          </span>
+          <span>
+            {t(lang, "admin.review.avatar")}:{" "}
+            {avatarSafe ? "✓" : t(lang, "admin.review.noAvatar")}
+          </span>
+        </div>
+      </Section>
 
       <SpecGrid lang={lang} rows={specs} />
 
@@ -272,6 +419,72 @@ export function AdminBreederReviewDetail({
           <p className="text-sm text-[#5C4A3A] whitespace-pre-wrap">
             {profile.bio.trim()}
           </p>
+        </Section>
+      ) : null}
+
+      {(legalName || taxId || licenseUrl) ? (
+        <Section title={t(lang, "admin.details.identityTitle")}>
+          <div className="space-y-2 text-sm text-[#5C4A3A]">
+            {legalName ? (
+              <p>
+                <span className="font-semibold text-[#2B1E19]">
+                  {t(lang, "admin.details.legalName")}:{" "}
+                </span>
+                {legalName}
+              </p>
+            ) : null}
+            {registeredAddress ? (
+              <p>
+                <span className="font-semibold text-[#2B1E19]">
+                  {t(lang, "admin.details.registeredAddress")}:{" "}
+                </span>
+                {registeredAddress}
+              </p>
+            ) : null}
+            {taxId ? (
+              <p className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-[#2B1E19]">
+                  {t(lang, "admin.details.taxId")}:{" "}
+                </span>
+                <span className="font-mono">
+                  {showTaxId ? taxId : maskTaxId(taxId)}
+                </span>
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-[#B45309] hover:underline"
+                  onClick={() => setShowTaxId((v) => !v)}
+                >
+                  {t(
+                    lang,
+                    showTaxId
+                      ? "admin.details.hideTaxId"
+                      : "admin.details.showTaxId",
+                  )}
+                </button>
+              </p>
+            ) : null}
+            {taxId || legalName ? (
+              <AdminBusinessLookupLinks lang={lang} taxId={taxId} />
+            ) : null}
+            {licenseUrl && isSafeHttpUrl(licenseUrl) ? (
+              <a
+                href={licenseUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-[#B45309] break-all hover:underline"
+              >
+                {licenseUrl}
+              </a>
+            ) : null}
+            {licenseUrl && /\.(jpe?g|png|webp|gif)(\?|$)/i.test(licenseUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={licenseUrl}
+                alt=""
+                className="mt-2 max-h-64 rounded-xl object-contain bg-white"
+              />
+            ) : null}
+          </div>
         </Section>
       ) : null}
 
@@ -285,6 +498,16 @@ export function AdminBreederReviewDetail({
               </p>
             ))}
           </div>
+        </Section>
+      ) : null}
+
+      {commitments.length > 0 ? (
+        <Section title={t(lang, "admin.review.commitments")}>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-[#5C4A3A]">
+            {commitments.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         </Section>
       ) : null}
 
@@ -451,16 +674,39 @@ export type AdminReviewBreederDetailSubmission = BreederProfileSubmission;
 export function AdminBreederDetailSubmissionReview({
   lang,
   submission,
+  verifyChecks,
+  onVerifyChecksChange,
+  legalEntityOverride,
+  onLegalEntityOverrideChange,
+  showApproveChecklist,
 }: {
   lang: Lang;
   submission: AdminReviewBreederDetailSubmission;
+  verifyChecks?: Record<string, boolean>;
+  onVerifyChecksChange?: (next: Record<string, boolean>) => void;
+  legalEntityOverride?: "" | "household_business" | "enterprise";
+  onLegalEntityOverrideChange?: (next: "" | "household_business" | "enterprise") => void;
+  showApproveChecklist?: boolean;
 }) {
   const url = submission.payload?.url?.trim() || "";
   const href = submissionPayloadHref(url, submission.submission_type);
   const isVideo = submission.submission_type === "facility_video";
+  const isLicense = submission.submission_type === "business_license";
   const farmId = submission.breeder_profile?.id || submission.breeder_profile_id;
   const breederName =
     submission.breeder_profile?.display_name || farmId || "—";
+  const [showTaxId, setShowTaxId] = useState(false);
+  const taxId = submission.payload?.tax_id?.trim() || "";
+  const legalType =
+    submission.payload?.seller_legal_type ||
+    submission.payload?.legal_entity_tag ||
+    "";
+  const checks = verifyChecks || {
+    mstPortalMatch: false,
+    documentReadable: false,
+    addressMatch: false,
+    subjectMatch: false,
+  };
 
   return (
     <div className="mt-4 space-y-4 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7] p-4">
@@ -479,6 +725,57 @@ export function AdminBreederDetailSubmissionReview({
       <Section title={t(lang, "admin.review.detailType")}>
         <Chip>{breederSubmissionTypeLabel(submission.submission_type, lang)}</Chip>
       </Section>
+      {isLicense ? (
+        <Section title={t(lang, "admin.details.identityTitle")}>
+          <div className="space-y-2 text-sm text-[#5C4A3A]">
+            <p>
+              <span className="font-semibold text-[#2B1E19]">
+                {t(lang, "admin.details.legalType")}:{" "}
+              </span>
+              {legalType === "enterprise"
+                ? t(lang, "farm.legalEntity.enterprise")
+                : legalType === "household_business"
+                  ? t(lang, "farm.legalEntity.householdBusiness")
+                  : "—"}
+            </p>
+            <p>
+              <span className="font-semibold text-[#2B1E19]">
+                {t(lang, "admin.details.legalName")}:{" "}
+              </span>
+              {submission.payload?.legal_name?.trim() || "—"}
+            </p>
+            <p>
+              <span className="font-semibold text-[#2B1E19]">
+                {t(lang, "admin.details.registeredAddress")}:{" "}
+              </span>
+              {submission.payload?.registered_address?.trim() || "—"}
+            </p>
+            <p className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-[#2B1E19]">
+                {t(lang, "admin.details.taxId")}:{" "}
+              </span>
+              <span className="font-mono">
+                {showTaxId ? taxId || "—" : maskTaxId(taxId) || "—"}
+              </span>
+              {taxId ? (
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-[#B45309] hover:underline"
+                  onClick={() => setShowTaxId((v) => !v)}
+                >
+                  {t(
+                    lang,
+                    showTaxId
+                      ? "admin.details.hideTaxId"
+                      : "admin.details.showTaxId",
+                  )}
+                </button>
+              ) : null}
+            </p>
+            <AdminBusinessLookupLinks lang={lang} taxId={taxId} />
+          </div>
+        </Section>
+      ) : null}
       {url ? (
         <Section title={t(lang, "admin.review.detailUrl")}>
           {href ? (
@@ -503,6 +800,67 @@ export function AdminBreederDetailSubmissionReview({
           {href && !isVideo && /\.(jpe?g|png|webp|gif)(\?|$)/i.test(href) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={href} alt="" className="mt-3 max-h-64 rounded-xl object-contain bg-white" />
+          ) : null}
+        </Section>
+      ) : null}
+      {showApproveChecklist && isLicense && onVerifyChecksChange ? (
+        <Section title={t(lang, "admin.details.verifyChecksTitle")}>
+          <div className="space-y-2">
+            {(
+              [
+                ["mstPortalMatch", "admin.details.verify.mstPortalMatch"],
+                ["documentReadable", "admin.details.verify.documentReadable"],
+                ["addressMatch", "admin.details.verify.addressMatch"],
+                ["subjectMatch", "admin.details.verify.subjectMatch"],
+              ] as const
+            ).map(([key, labelKey]) => (
+              <label
+                key={key}
+                className="flex items-start gap-2 text-sm text-[#5C4A3A]"
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={Boolean(checks[key])}
+                  onChange={(e) =>
+                    onVerifyChecksChange({
+                      ...checks,
+                      [key]: e.target.checked,
+                    })
+                  }
+                />
+                <span>{t(lang, labelKey)}</span>
+              </label>
+            ))}
+          </div>
+          {onLegalEntityOverrideChange ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-semibold text-[#8B7355]">
+                {t(lang, "admin.details.overrideLegalType")}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    ["", "—"],
+                    ["household_business", "farm.legalEntity.householdBusiness"],
+                    ["enterprise", "farm.legalEntity.enterprise"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value || "keep"}
+                    type="button"
+                    onClick={() => onLegalEntityOverrideChange(value)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                      (legalEntityOverride || "") === value
+                        ? "border-[#D97706] bg-amber-50 text-[#B45309]"
+                        : "border-[#F0E6D8] text-[#5C4A3A]"
+                    }`}
+                  >
+                    {value ? t(lang, label) : label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : null}
         </Section>
       ) : null}

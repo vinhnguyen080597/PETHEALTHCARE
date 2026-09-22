@@ -696,6 +696,7 @@ function AppContent() {
               <View style={{ flex: 1, minHeight: 0 }}>
                 <BreederProfileScreen
                   profile={app.breederProfile}
+                  token={app.token}
                   onBack={app.closeBreederProfile}
                   onSaveProfile={app.saveBreederProfile}
                   onUploadPhoto={app.uploadBreederFormPhoto}

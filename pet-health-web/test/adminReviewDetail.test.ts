@@ -3,10 +3,16 @@ import assert from "node:assert/strict";
 import en from "../src/i18n/en";
 import vi from "../src/i18n/vi";
 import {
+  adminBreederAvatarUrl,
+  adminBreederCommitmentLabelKey,
+  adminBreederCommitmentLabels,
+  adminBreederCoverUrl,
   adminBreederSpecRows,
   adminListingContactEntries,
   adminListingMediaUrls,
   adminListingSpecRows,
+  adminSpeciesLabelKey,
+  adminVerificationStatusLabelKey,
   breederPublicHref,
   dealDisputeFromPost,
   healthEvidenceUrlsFromMetadata,
@@ -38,6 +44,17 @@ const KEYS = [
   "admin.review.userId",
   "admin.review.bio",
   "admin.review.careEnvironment",
+  "admin.review.breederType",
+  "admin.review.registeredKennelName",
+  "admin.review.registeredAt",
+  "admin.review.verificationStatus",
+  "admin.review.createdAt",
+  "admin.review.cover",
+  "admin.review.avatar",
+  "admin.review.photos",
+  "admin.review.commitments",
+  "admin.review.noCover",
+  "admin.review.noAvatar",
   "admin.review.reportTarget",
   "admin.review.reportNote",
   "admin.review.dealDispute",
@@ -107,10 +124,54 @@ test("adminBreederSpecRows and expand toggle", () => {
     care_environment: "Indoor",
     primary_species: ["cat"],
     main_breeds: ["Mèo ta"],
+    metadata: {
+      breederType: "enterprise",
+      registeredKennelName: "Happy Kennel",
+      registeredAt: "2020",
+      cover_url: "https://cdn.example/cover.jpg",
+      transparencyCommitments: ["visit_ok", ""],
+    },
   });
   assert.deepEqual(
     rows.map((row) => row.id),
-    ["location", "careEnvironment", "primarySpecies", "breeds", "user"],
+    [
+      "breederType",
+      "location",
+      "careEnvironment",
+      "primarySpecies",
+      "registeredKennelName",
+      "registeredAt",
+      "breeds",
+      "user",
+    ],
+  );
+  assert.equal(
+    adminBreederCoverUrl({
+      metadata: { coverUrl: "https://cdn.example/cover.jpg" },
+    }),
+    "https://cdn.example/cover.jpg",
+  );
+  assert.equal(
+    adminBreederAvatarUrl({
+      avatar_url: null,
+      metadata: { avatar_url: "https://cdn.example/avatar.jpg" },
+    }),
+    "https://cdn.example/avatar.jpg",
+  );
+  assert.deepEqual(
+    adminBreederCommitmentLabels({
+      metadata: { transparencyCommitments: ["visit_ok", ""] },
+    }),
+    ["visit_ok"],
+  );
+  assert.equal(
+    adminBreederCommitmentLabelKey("accurate_information"),
+    "breederForm.commitment.accurate_information",
+  );
+  assert.equal(adminSpeciesLabelKey("cat"), "listing.new.species.cat");
+  assert.equal(
+    adminVerificationStatusLabelKey("pending_review"),
+    "admin.verification.pending_review",
   );
   assert.equal(toggleExpandedReviewId(null, "post-1"), "post-1");
   assert.equal(toggleExpandedReviewId("post-1", "post-1"), null);

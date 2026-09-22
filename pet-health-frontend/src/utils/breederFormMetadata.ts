@@ -1,5 +1,7 @@
 /** Read breeder profile metadata with camelCase + snake_case fallbacks (web parity). */
 
+import { normalizeBreederLegalType } from './breederLegalTypes';
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -37,7 +39,9 @@ export function breederMetaStringArray(
 
 export function readBreederFormMetadata(metadata: Record<string, unknown> | null | undefined) {
   return {
-    breederType: breederMetaString(metadata, 'breederType', 'breeder_type') || 'home_breeder',
+    breederType: normalizeBreederLegalType(
+      breederMetaString(metadata, 'breederType', 'breeder_type'),
+    ),
     registeredKennelName: breederMetaString(
       metadata,
       'registeredKennelName',

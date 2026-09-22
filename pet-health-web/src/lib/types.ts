@@ -3,6 +3,9 @@ export type Lang = "VI" | "EN";
 export type TemplateId = "T1" | "T2" | "T3" | "T4" | "T5";
 
 export type BreederType =
+  | "enterprise"
+  | "household_business"
+  | "individual"
   | "registered_kennel"
   | "home_breeder"
   | "rescue_foster"
@@ -94,6 +97,8 @@ export interface BreederProfile {
   warrantyPolicyTrustAwarded?: boolean;
   /** Public farm tour video (admin-approved only). */
   facilityVideoUrl?: string | null;
+  /** Public legal entity tag after admin-approved GPKD pack (no MST digits). */
+  legalEntityTag?: "household_business" | "enterprise" | null;
 }
 
 export interface WarrantyPolicy {

@@ -32,10 +32,38 @@ export async function POST(req: Request) {
     const submissionType = String(body.submissionType || body.submission_type || "").trim();
     const url = String(body.url || "").trim();
     const note = typeof body.note === "string" ? body.note.trim() : undefined;
+    const sellerLegalType =
+      typeof body.sellerLegalType === "string"
+        ? body.sellerLegalType.trim()
+        : typeof body.seller_legal_type === "string"
+          ? body.seller_legal_type.trim()
+          : undefined;
+    const legalName =
+      typeof body.legalName === "string"
+        ? body.legalName.trim()
+        : typeof body.legal_name === "string"
+          ? body.legal_name.trim()
+          : undefined;
+    const registeredAddress =
+      typeof body.registeredAddress === "string"
+        ? body.registeredAddress.trim()
+        : typeof body.registered_address === "string"
+          ? body.registered_address.trim()
+          : undefined;
+    const taxId =
+      typeof body.taxId === "string"
+        ? body.taxId.trim()
+        : typeof body.tax_id === "string"
+          ? body.tax_id.trim()
+          : undefined;
     const result = await createBreederProfileSubmission(token, {
       submissionType,
       url,
       ...(note ? { note } : {}),
+      ...(sellerLegalType ? { sellerLegalType } : {}),
+      ...(legalName ? { legalName } : {}),
+      ...(registeredAddress ? { registeredAddress } : {}),
+      ...(taxId ? { taxId } : {}),
     });
     return NextResponse.json(result, { status: 201 });
   } catch (err) {

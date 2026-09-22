@@ -47,6 +47,14 @@ import {
   validateRegisteredKennelFields,
   type RegisteredKennelFieldErrors,
 } from '../utils/breederRegisteredKennelValidation';
+import {
+  isBusinessEntityBreederType,
+  normalizeBreederLegalType,
+  validateBusinessEntityFields,
+  type BusinessEntityFieldErrors,
+  type BreederLegalType,
+} from '../utils/breederLegalTypes';
+import { uploadBreederTransparencyMedia } from '../api';
 import { breederFormChipTone } from '../utils/breederFormChips';
 import { farmPhotoPickerAspect, farmPhotoResizeWidth, type FarmPhotoKind } from '../utils/farmPhotos';
 import type { CoverCropSource } from '../utils/farmCoverCrop';
@@ -58,9 +66,9 @@ import {
 
 const PRIMARY = '#D97706';
 
-type BreederType = 'registered_kennel' | 'home_breeder' | 'rescue_foster' | 'rehoming' | 'other';
+type BreederType = BreederLegalType;
 
-const BREEDER_TYPES: BreederType[] = ['registered_kennel', 'home_breeder', 'rescue_foster', 'rehoming', 'other'];
+const BREEDER_TYPES: BreederType[] = ['enterprise', 'household_business', 'individual'];
 const SPECIES_OPTIONS = [...ACTIVE_BREEDER_SPECIES_OPTIONS];
 
 /** Web BreederProfileForm parity: label + white input + warm border. */
@@ -71,14 +79,16 @@ function inputBorderClass(hasError: boolean) {
   return hasError ? 'border-red-400' : 'border-[#F0E6D8]';
 }
 
-type BreederFieldErrors = RegisteredKennelFieldErrors & {
-  displayName?: string;
-  location?: string;
-  species?: string;
-};
+type BreederFieldErrors = RegisteredKennelFieldErrors &
+  BusinessEntityFieldErrors & {
+    displayName?: string;
+    location?: string;
+    species?: string;
+  };
 
 type BreederProfileScreenProps = {
   profile: BreederProfile | null;
+  token?: string | null;
   onBack: () => void;
   onSaveProfile: (payload: UpsertBreederProfilePayload) => Promise<void>;
   onUploadPhoto: (kind: FarmPhotoKind, imageUri: string) => Promise<string>;
@@ -94,10 +104,16 @@ function metadataString(metadata: Record<string, unknown> | undefined, key: stri
 }
 
 function isBreederType(value: string): value is BreederType {
-  return (BREEDER_TYPES as readonly string[]).includes(value);
+  return (BREEDER_TYPES as readonly string[]).includes(value as BreederType);
 }
 
-export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadPhoto }: BreederProfileScreenProps) {
+export function BreederProfileScreen({
+  profile,
+  token,
+  onBack,
+  onSaveProfile,
+  onUploadPhoto,
+}: BreederProfileScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const metadata = profile?.metadata ?? {};
@@ -123,7 +139,21 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
   const facebook = String(profile?.contact?.facebook ?? '');
   const zalo = String(profile?.contact?.zalo ?? '');
   const [breederType, setBreederType] = useState<BreederType>(
-    isBreederType(formMeta.breederType) ? formMeta.breederType : 'home_breeder',
+    normalizeBreederLegalType(formMeta.breederType),
+  );
+  const identityMeta =
+    metadata.identity && typeof metadata.identity === 'object' && !Array.isArray(metadata.identity)
+      ? (metadata.identity as Record<string, unknown>)
+      : {};
+  const [legalName, setLegalName] = useState(metadataString(identityMeta, 'legal_name'));
+  const [registeredAddress, setRegisteredAddress] = useState(
+    metadataString(identityMeta, 'registered_address'),
+  );
+  const [taxId, setTaxId] = useState(metadataString(identityMeta, 'tax_id'));
+  const [licenseUri, setLicenseUri] = useState('');
+  const [existingLicenseUrl, setExistingLicenseUrl] = useState(
+    metadataString(metadata, 'business_license_pending_url') ||
+      metadataString(metadata, 'business_license_url'),
   );
   const [registeredAt, setRegisteredAt] = useState(formMeta.registeredAt);
   const [registrationUnit, setRegistrationUnit] = useState(initialRegistration.registrationUnit);
@@ -175,9 +205,21 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
     setBio(profile?.bio ?? '');
     setPrimarySpecies(nextPrimary);
     setMainBreeds((profile?.main_breeds ?? []).join(', '));
-    setBreederType(
-      isBreederType(nextFormMeta.breederType) ? nextFormMeta.breederType : 'home_breeder',
+    setBreederType(normalizeBreederLegalType(nextFormMeta.breederType));
+    const nextIdentity =
+      nextMetadata.identity &&
+      typeof nextMetadata.identity === 'object' &&
+      !Array.isArray(nextMetadata.identity)
+        ? (nextMetadata.identity as Record<string, unknown>)
+        : {};
+    setLegalName(metadataString(nextIdentity, 'legal_name'));
+    setRegisteredAddress(metadataString(nextIdentity, 'registered_address'));
+    setTaxId(metadataString(nextIdentity, 'tax_id'));
+    setExistingLicenseUrl(
+      metadataString(nextMetadata, 'business_license_pending_url') ||
+        metadataString(nextMetadata, 'business_license_url'),
     );
+    setLicenseUri('');
     setRegisteredAt(nextFormMeta.registeredAt);
     setRegistrationUnit(nextRegistration.registrationUnit);
     setRegistrationUnitOther(nextRegistration.registrationUnitOther);
@@ -261,19 +303,19 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
     }
     Object.assign(
       nextErrors,
-      validateRegisteredKennelFields(
+      validateBusinessEntityFields(
         {
           breederType,
-          registrationUnit,
-          registrationUnitOther,
-          registeredKennelName,
-          registeredAt,
+          legalName,
+          registeredAddress,
+          taxId,
+          hasLicenseFile: Boolean(licenseUri || existingLicenseUrl),
         },
         {
-          registrationUnitRequired: t('breederProfile.errors.registrationUnitRequired'),
-          registrationUnitOtherRequired: t('breederProfile.errors.registrationUnitOtherRequired'),
-          registeredKennelNameRequired: t('breederProfile.errors.registeredKennelNameRequired'),
-          registeredAtRequired: t('breederProfile.errors.registeredAtRequired'),
+          legalNameRequired: t('breederProfile.errors.legalNameRequired'),
+          addressRequired: t('breederProfile.errors.addressRequired'),
+          taxIdInvalid: t('breederProfile.errors.taxIdInvalid'),
+          licenseFileRequired: t('breederProfile.errors.licenseFileRequired'),
         },
       ),
     );
@@ -294,15 +336,21 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
     const publishesImmediately = breederProfileSavePublishesImmediately(status);
     setSubmitting(true);
     try {
+      let licenseUrl = existingLicenseUrl;
+      if (isBusinessEntityBreederType(breederType) && licenseUri) {
+        if (!token) throw new Error(t('common.unknownError'));
+        const uploaded = await uploadBreederTransparencyMedia(token, 'business_license', licenseUri, {
+          mimeHint: 'image/jpeg',
+        });
+        const publicUrl = uploaded.data?.publicUrl;
+        if (!publicUrl) throw new Error(t('common.unknownError'));
+        licenseUrl = publicUrl;
+        setExistingLicenseUrl(publicUrl);
+        setLicenseUri('');
+      }
       const speciesPayload = breederSpeciesForSave(primarySpecies);
-      const registrationPayload =
-        breederType === 'registered_kennel'
-          ? normalizeRegistrationUnitSelection({
-              species: primarySpecies,
-              unit: registrationUnit,
-              other: registrationUnitOther,
-            })
-          : { registrationUnit: '', registrationUnitOther: '' };
+      const registrationPayload = { registrationUnit: '', registrationUnitOther: '' };
+      const taxDigits = taxId.replace(/\D/g, '');
       await onSaveProfile({
         displayName: displayName.trim(),
         bio: bio.trim(),
@@ -316,10 +364,23 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
         metadata: {
           ...metadata,
           breederType,
-          registeredAt: breederType === 'registered_kennel' ? registeredAt.trim() : '',
-          registeredKennelName:
-            breederType === 'registered_kennel' ? registeredKennelName.trim() : '',
+          registeredAt: '',
+          registeredKennelName: '',
           transparencyCommitments: commitments,
+          ...(isBusinessEntityBreederType(breederType)
+            ? {
+                identity: {
+                  seller_legal_type: breederType,
+                  legal_name: legalName.trim(),
+                  registered_address: registeredAddress.trim(),
+                  tax_id: taxDigits,
+                },
+                business_license_pending_url: licenseUrl,
+              }
+            : {
+                identity: null,
+                business_license_pending_url: null,
+              }),
           ...(coverUrl
             ? { cover_url: coverUrl, coverUrl, coverImageUrl: coverUrl }
             : {}),
@@ -548,18 +609,20 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
                   label: t(`breederProfile.breederTypes.${item}`),
                 }))}
                 onChange={(value) => {
-                  const nextType = value as BreederType;
+                  const nextType = normalizeBreederLegalType(value);
                   setBreederType(nextType);
-                  if (nextType !== 'registered_kennel') {
-                    setRegistrationUnit('');
-                    setRegistrationUnitOther('');
-                  }
+                  setRegistrationUnit('');
+                  setRegistrationUnitOther('');
                   setFieldErrors((prev) => {
                     const next = { ...prev };
                     delete next.registrationUnit;
                     delete next.registrationUnitOther;
                     delete next.registeredKennelName;
                     delete next.registeredAt;
+                    delete next.legalName;
+                    delete next.registeredAddress;
+                    delete next.taxId;
+                    delete next.licenseFile;
                     return next;
                   });
                 }}
@@ -567,71 +630,96 @@ export function BreederProfileScreen({ profile, onBack, onSaveProfile, onUploadP
             </View>
           ) : null}
 
-          {primarySpecies && breederType === 'registered_kennel' ? (
-            <View className="mt-2">
-              <FormSelectField
-                testID="breeder-profile-registration-unit-select"
-                label={t('breederProfile.registrationUnit')}
-                value={registrationUnit}
-                required
-                placeholder={t('breederProfile.registrationUnitPlaceholder')}
-                error={fieldErrors.registrationUnit}
-                options={registrationUnitOptions.map((item) => ({
-                  value: item,
-                  label: t(`breederProfile.registrationUnits.${item}`),
-                }))}
-                onChange={(value) => {
-                  setRegistrationUnit(value);
-                  if (value !== REGISTRATION_UNIT_OTHER) {
-                    setRegistrationUnitOther('');
-                  }
-                  clearFieldError('registrationUnit');
-                  clearFieldError('registrationUnitOther');
-                }}
-              />
-              {registrationUnit === REGISTRATION_UNIT_OTHER ? (
-                <View className="mt-2">
-                  <TextInput
-                    className={`rounded-xl border bg-white px-4 py-2.5 text-sm text-[#2B1E19] ${inputBorderClass(Boolean(fieldErrors.registrationUnitOther))}`}
-                    placeholder={t('breederProfile.registrationUnitOtherPlaceholder')}
-                    value={registrationUnitOther}
-                    onChangeText={(value) => {
-                      setRegistrationUnitOther(value);
-                      clearFieldError('registrationUnitOther');
-                    }}
-                  />
-                  <FieldError message={fieldErrors.registrationUnitOther} />
-                </View>
-              ) : null}
-
+          {primarySpecies && isBusinessEntityBreederType(breederType) ? (
+            <View className="mt-3 rounded-2xl border border-[#F0E6D8] bg-[#FFFBF5] p-4">
+              <Text className="text-sm font-bold text-[#2B1E19]">
+                {t('breederProfile.legalPackTitle')}
+              </Text>
+              <Text className="mt-1 text-xs leading-4 text-[#6E5A51]">
+                {t('breederProfile.legalPackHint')}
+              </Text>
               <View className="mt-3">
-                <FieldLabel label={t('breederProfile.registeredKennelName')} required />
+                <FieldLabel label={t('breederProfile.legalName')} required />
                 <TextInput
-                  className={`${INPUT_CLASS} ${inputBorderClass(Boolean(fieldErrors.registeredKennelName))}`}
-                  value={registeredKennelName}
+                  className={`${INPUT_CLASS} ${inputBorderClass(Boolean(fieldErrors.legalName))}`}
+                  value={legalName}
                   onChangeText={(value) => {
-                    setRegisteredKennelName(value);
-                    clearFieldError('registeredKennelName');
+                    setLegalName(value);
+                    clearFieldError('legalName');
                   }}
                 />
-                <FieldError message={fieldErrors.registeredKennelName} />
+                <FieldError message={fieldErrors.legalName} />
               </View>
-
               <View className="mt-3">
-                <FieldLabel label={t('breederProfile.registeredAt')} required />
+                <FieldLabel label={t('breederProfile.registeredAddress')} required />
                 <TextInput
-                  className={`${INPUT_CLASS} ${inputBorderClass(Boolean(fieldErrors.registeredAt))}`}
-                  placeholder={t('breederProfile.registeredAtPlaceholder')}
+                  className={`${INPUT_CLASS} ${inputBorderClass(Boolean(fieldErrors.registeredAddress))}`}
+                  value={registeredAddress}
+                  onChangeText={(value) => {
+                    setRegisteredAddress(value);
+                    clearFieldError('registeredAddress');
+                  }}
+                />
+                <FieldError message={fieldErrors.registeredAddress} />
+              </View>
+              <View className="mt-3">
+                <FieldLabel label={t('breederProfile.taxId')} required />
+                <TextInput
+                  className={`${INPUT_CLASS} ${inputBorderClass(Boolean(fieldErrors.taxId))}`}
                   keyboardType="number-pad"
-                  maxLength={4}
-                  value={registeredAt}
+                  value={taxId}
                   onChangeText={(value) => {
-                    setRegisteredAt(value.replace(/[^\d]/g, '').slice(0, 4));
-                    clearFieldError('registeredAt');
+                    setTaxId(value);
+                    clearFieldError('taxId');
                   }}
                 />
-                <FieldError message={fieldErrors.registeredAt} />
+                <FieldError message={fieldErrors.taxId} />
               </View>
+              <Pressable
+                className="mt-3 overflow-hidden rounded-xl border-2 border-dashed border-[#E8D5B5] bg-white"
+                onPress={async () => {
+                  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                  if (!permission.granted) return;
+                  const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    quality: 0.85,
+                  });
+                  if (result.canceled || !result.assets?.[0]?.uri) return;
+                  setLicenseUri(result.assets[0].uri);
+                  clearFieldError('licenseFile');
+                }}
+              >
+                {licenseUri || existingLicenseUrl ? (
+                  <View>
+                    <Image
+                      source={{ uri: licenseUri || existingLicenseUrl }}
+                      style={{ width: '100%', height: 160, backgroundColor: '#F3EDE3' }}
+                      contentFit="contain"
+                    />
+                    <View className="gap-0.5 px-4 py-3">
+                      <Text className="text-sm font-bold text-[#D97706]">
+                        {t('breederProfile.licenseFile')}
+                      </Text>
+                      <Text className="text-xs text-[#6E5A51]">
+                        {t('breederProfile.licenseUploadedPending')}
+                      </Text>
+                      <Text className="text-[11px] text-[#8B7355]">
+                        {t('breederProfile.licenseTapReplace')}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View className="items-center px-4 py-6">
+                    <Text className="text-sm font-bold text-[#D97706]">
+                      {t('breederProfile.licenseFile')}
+                    </Text>
+                    <Text className="mt-1 text-xs text-[#6E5A51]">
+                      {t('account.breederDetails.chooseFile')}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+              <FieldError message={fieldErrors.licenseFile} />
             </View>
           ) : null}
 

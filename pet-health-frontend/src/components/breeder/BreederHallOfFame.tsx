@@ -11,7 +11,6 @@ import {
   hallOfFameMonthKey,
   type HallOfFameMedal,
 } from '../../utils/breederHallOfFame';
-import { getComplianceScoreFromMetadata } from '../../utils/breederComplianceScore';
 import { farmImageSource, resolveFarmAvatarUrl } from '../../utils/farmProfileDisplay';
 
 export type BreederHallOfFameEntry = {
@@ -71,7 +70,6 @@ function HallCard({
     entry.rating != null && entry.reviewCount > 0
       ? `${entry.rating.toFixed(1)}/5 (${entry.reviewCount})`
       : null;
-  const complianceScore = getComplianceScoreFromMetadata(profile.metadata);
 
   const body = (
     <>
@@ -103,18 +101,15 @@ function HallCard({
           </Text>
         </View>
       </View>
-      <View className="mt-3 flex-row flex-wrap" style={{ gap: 12 }}>
+      <View className="mt-3 flex-row flex-wrap justify-end" style={{ gap: 12 }}>
+        <Text className="text-xs" style={{ color: 'rgba(43,30,25,0.8)' }}>
+          {`🛡️ ${entry.trustScore}/100`}
+        </Text>
         {ratingText ? (
           <Text className="text-xs" style={{ color: 'rgba(43,30,25,0.8)' }}>
             {`⭐ ${ratingText}`}
           </Text>
         ) : null}
-        <Text className="text-xs" style={{ color: 'rgba(43,30,25,0.8)' }}>
-          {`🛡️ ${entry.trustScore}/100`}
-        </Text>
-        <Text className="text-xs" style={{ color: 'rgba(43,30,25,0.8)' }}>
-          {`⚖️ ${complianceScore}/100`}
-        </Text>
       </View>
     </>
   );

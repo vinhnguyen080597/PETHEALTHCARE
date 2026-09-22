@@ -336,7 +336,17 @@ export async function listMyBreederProfileSubmissions(token: string) {
 
 export async function createBreederProfileSubmission(
   token: string,
-  payload: { submissionType: string; url: string; note?: string },
+  payload: {
+    submissionType: string;
+    url: string;
+    note?: string;
+    sellerLegalType?: string;
+    legalName?: string;
+    registeredAddress?: string;
+    taxId?: string;
+    title?: string;
+    content_type?: string;
+  },
 ) {
   return fetchJson<{ data: import("../breederProfileSubmissions").BreederProfileSubmission }>(
     "/pet-feed/breeder-profile/me/submissions",

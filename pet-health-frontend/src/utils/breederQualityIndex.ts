@@ -140,7 +140,7 @@ export function effectiveTrustScore(profile: BreederProfile, posts: PetFeedPost[
 export function isHomeBreederEligible(profile: BreederProfile, trustScore: number): boolean {
   if (trustScore < HOME_BREEDER_TRUST_MIN) return false;
   const type = metadataString(profile.metadata, 'breederType');
-  return type === 'home_breeder';
+  return type === 'home_breeder' || type === 'individual';
 }
 
 /**

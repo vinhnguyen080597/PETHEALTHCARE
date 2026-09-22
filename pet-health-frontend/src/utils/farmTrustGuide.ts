@@ -56,10 +56,12 @@ export const TRUST_GUIDE_HOW_TO_EARN: TrustGuideHowToEarn[] = [
   {
     id: 'businessLicense',
     points: TRANSPARENCY_POINTS.businessLicense,
-    titleVI: 'Giấy phép kinh doanh / trại giống',
-    titleEN: 'Business / kennel license',
-    howVI: 'Upload ảnh giấy phép hợp lệ, admin duyệt (+30).',
-    howEN: 'Upload a valid license image for admin review (+30).',
+    titleVI: 'Xác minh hộ kinh doanh / doanh nghiệp',
+    titleEN: 'Verify household business / enterprise',
+    howVI:
+      'Chọn loại hình, điền tên–địa chỉ–MST trên giấy, upload ảnh/PDF. Admin duyệt → +30 và gắn tag công khai Hộ kinh doanh / Doanh nghiệp (không hiện số MST).',
+    howEN:
+      'Choose entity type, enter name–address–tax ID from the document, upload image/PDF. Admin approval grants +30 and a public Household business / Enterprise tag (tax ID stays private).',
   },
   {
     id: 'farmFacility',

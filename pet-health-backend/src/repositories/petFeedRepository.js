@@ -41,6 +41,7 @@ import {
 import {
   mergeBreederProfileMetadata,
   sanitizeBreederProfileMetadata,
+  toPublicBreederMetadata,
   verificationStatusAfterProfileSave,
 } from '../utils/breederProfileMetadata.js';
 import { resolvePrivateMediaUrls } from '../services/imageStorageService.js';
@@ -48,9 +49,12 @@ import { normalizeRegistrationUnitPayload } from '../utils/breederRegistrationUn
 import {
   applyApprovedBreederSubmission,
   applyApprovedWarrantyFileSubmissions,
+  applyPendingBusinessLicenseOnProfileVerify,
   normalizeBreederSubmissionStatus,
   normalizeBreederSubmissionType,
+  normalizeLegalEntityTag,
   validateBreederSubmissionPayload,
+  validateBusinessLicenseVerifyChecks,
 } from '../utils/breederProfileSubmissions.js';
 import {
   bindBreederDealReviewMemoryPosts,
@@ -1435,10 +1439,13 @@ function toPublicDetailPost(row) {
 function toPublicBreeder(profile, { includeContact = false } = {}) {
   const mapped = toProfile(profile);
   if (!mapped) return mapped;
+  const publicMeta = toPublicBreederMetadata(mapped.metadata);
   const withPolicies = {
     ...mapped,
-    warranty_policies: listWarrantyPoliciesFromMetadata(mapped.metadata),
-    warranty_policy_trust_awarded: Boolean(asObject(mapped.metadata).warranty_policy_trust_awarded),
+    metadata: publicMeta,
+    warranty_policies: listWarrantyPoliciesFromMetadata(publicMeta),
+    warranty_policy_trust_awarded: Boolean(asObject(publicMeta).warranty_policy_trust_awarded),
+    legal_entity_tag: normalizeLegalEntityTag(publicMeta.legal_entity_tag) || null,
   };
   if (includeContact) return withPolicies;
   const stripped = stripContactFromProfile(withPolicies);
@@ -2731,6 +2738,7 @@ export async function adminUpdateBreederProfileStatus(userId, verificationStatus
       delete metadata.rejected_at;
       metadata.verified_at = now;
       metadata.verified_base_trust_awarded = Boolean(metadata.verified_base_trust_awarded) || true;
+      Object.assign(metadata, applyPendingBusinessLicenseOnProfileVerify(metadata, now));
     }
     memoryProfiles[idx] = {
       ...existing,
@@ -2766,6 +2774,7 @@ export async function adminUpdateBreederProfileStatus(userId, verificationStatus
     delete metadata.rejected_at;
     metadata.verified_at = now;
     metadata.verified_base_trust_awarded = Boolean(metadata.verified_base_trust_awarded) || true;
+    Object.assign(metadata, applyPendingBusinessLicenseOnProfileVerify(metadata, now));
   }
 
   const { data, error } = await supabase
@@ -3458,8 +3467,10 @@ export async function adminReviewBreederProfileSubmission(
     if (existing.status !== 'pending') {
       throw httpError('Submission is not pending review.', 400, 'SUBMISSION_NOT_PENDING');
     }
+    const enrichedPayload = enrichBusinessLicensePayloadForApprove(existing, options, safeStatus);
     memorySubmissions[idx] = {
       ...existing,
+      payload: enrichedPayload,
       status: safeStatus,
       rejection_reason: safeStatus === 'rejected' ? rejectionReason : '',
       admin_note: adminNote,
@@ -3516,10 +3527,13 @@ export async function adminReviewBreederProfileSubmission(
     );
   }
 
+  const enrichedPayload = enrichBusinessLicensePayloadForApprove(existing, options, safeStatus);
+
   const { data: updatedSubmission, error: updateError } = await supabase
     .from('breeder_profile_submissions')
     .update({
       status: safeStatus,
+      payload: enrichedPayload,
       rejection_reason: safeStatus === 'rejected' ? rejectionReason : '',
       admin_note: adminNote,
       reviewed_at: now,
@@ -3530,7 +3544,11 @@ export async function adminReviewBreederProfileSubmission(
   if (updateError) throw updateError;
 
   if (safeStatus === 'approved' && profile) {
-    const merged = applyApprovedBreederSubmission(profile, toBreederSubmission(existing), now);
+    const merged = applyApprovedBreederSubmission(
+      profile,
+      toBreederSubmission({ ...existing, payload: enrichedPayload }),
+      now,
+    );
     const { data: updatedProfile, error: profileError } = await supabase
       .from('breeder_profiles')
       .update({
@@ -3549,9 +3567,9 @@ export async function adminReviewBreederProfileSubmission(
   }
 
   if (safeStatus === 'rejected' && profile) {
-    const profile = toProfile(existing.breeder_profile);
+    const profileRow = toProfile(existing.breeder_profile);
     const nextMetadata = sanitizeBreederProfileMetadata(
-      applyOptionalScorePenalty(profile.metadata, options, now, rejectionReason),
+      applyOptionalScorePenalty(profileRow.metadata, options, now, rejectionReason),
     );
     const { data: updatedProfile, error: profileError } = await supabase
       .from('breeder_profiles')
@@ -3559,7 +3577,7 @@ export async function adminReviewBreederProfileSubmission(
         metadata: nextMetadata,
         updated_at: now,
       })
-      .eq('id', profile.id)
+      .eq('id', profileRow.id)
       .select('*')
       .single();
     if (profileError) throw profileError;
@@ -3570,6 +3588,29 @@ export async function adminReviewBreederProfileSubmission(
   }
 
   return toBreederSubmission(updatedSubmission);
+}
+
+function enrichBusinessLicensePayloadForApprove(existing, options, safeStatus) {
+  const basePayload =
+    existing?.payload && typeof existing.payload === 'object' ? { ...existing.payload } : {};
+  if (safeStatus !== 'approved') return basePayload;
+  if (normalizeBreederSubmissionType(existing?.submission_type) !== 'business_license') {
+    return basePayload;
+  }
+  const checks = validateBusinessLicenseVerifyChecks(
+    options.verifyChecks ?? options.verify_checks ?? options.adminVerifyChecks,
+  );
+  if (!checks.ok) {
+    throw httpError(checks.error, 400, checks.code);
+  }
+  const overrideTag = normalizeLegalEntityTag(
+    options.legalEntityTag ?? options.legal_entity_tag,
+  );
+  return {
+    ...basePayload,
+    ...(overrideTag ? { legal_entity_tag: overrideTag, seller_legal_type: overrideTag } : {}),
+    admin_verify_checks: checks.checks,
+  };
 }
 
 const OWNER_LISTING_STATUSES = new Set(['published', 'deposit_hold', 'sold']);

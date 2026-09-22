@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   mergeBreederProfileMetadata,
   sanitizeBreederProfileMetadata,
+  toPublicBreederMetadata,
+  hasApprovedLegalEntityTag,
   verificationStatusAfterProfileSave,
 } from '../src/utils/breederProfileMetadata.js';
 
@@ -51,4 +53,20 @@ test('mergeBreederProfileMetadata keeps trust awards when form omits them', () =
   assert.equal(merged.cover_url, 'https://cdn.example/cover.jpg');
   assert.equal(merged.breederType, 'home_breeder');
   assert.equal(merged.scaleRange, undefined);
+});
+
+test('toPublicBreederMetadata strips identity and license URL, keeps tag', () => {
+  const publicMeta = toPublicBreederMetadata({
+    legal_entity_tag: 'household_business',
+    business_license_verified: true,
+    business_license_url: 'https://cdn.example/secret.jpg',
+    business_license_pending_url: 'https://cdn.example/pending.jpg',
+    identity: { tax_id: '0123456789', legal_name: 'Secret' },
+  });
+  assert.equal(publicMeta.legal_entity_tag, 'household_business');
+  assert.equal(publicMeta.business_license_verified, true);
+  assert.equal(publicMeta.business_license_url, undefined);
+  assert.equal(publicMeta.business_license_pending_url, undefined);
+  assert.equal(publicMeta.identity, undefined);
+  assert.equal(hasApprovedLegalEntityTag(publicMeta), true);
 });

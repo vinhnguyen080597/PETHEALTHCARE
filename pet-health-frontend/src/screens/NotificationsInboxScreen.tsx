@@ -14,8 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PetFeedNotification } from '../types';
 import { resolveRejectionNotice } from '../utils/rejectionNotice';
 import { notificationInboxCta } from '../utils/notificationInboxCta';
-
-const PRIMARY = '#1E6FE8';
+import { BRAND } from '../theme/brand';
 
 type NotificationsInboxScreenProps = {
   notifications: PetFeedNotification[];
@@ -288,6 +287,48 @@ export function NotificationsInboxScreen({
     return 'chatbubble-ellipses-outline' as const;
   };
 
+  const iconColorFor = (type: string) => {
+    if (
+      type === 'breeder_verified' ||
+      type === 'listing_approved' ||
+      type === 'breeder_detail_approved' ||
+      type === 'transparency_warning_resolved'
+    ) {
+      return BRAND.verified;
+    }
+    if (
+      type === 'breeder_rejected' ||
+      type === 'listing_rejected' ||
+      type === 'breeder_detail_rejected' ||
+      type === 'farm_review_rejected' ||
+      type === 'transparency_warning'
+    ) {
+      return BRAND.logout;
+    }
+    return BRAND.btnPrimary;
+  };
+
+  const iconSurfaceFor = (type: string) => {
+    if (
+      type === 'breeder_verified' ||
+      type === 'listing_approved' ||
+      type === 'breeder_detail_approved' ||
+      type === 'transparency_warning_resolved'
+    ) {
+      return BRAND.verifiedSoft;
+    }
+    if (
+      type === 'breeder_rejected' ||
+      type === 'listing_rejected' ||
+      type === 'breeder_detail_rejected' ||
+      type === 'farm_review_rejected' ||
+      type === 'transparency_warning'
+    ) {
+      return '#FEF2F2';
+    }
+    return BRAND.surfaceLight;
+  };
+
   const handleOpen = (item: PetFeedNotification) => {
     if (
       notificationType(item) === 'breeder_rejected' ||
@@ -306,17 +347,20 @@ export function NotificationsInboxScreen({
   const adminNote = rejectionNotice.adminNote;
 
   return (
-    <View className="flex-1 bg-[#F2F4F8]">
-      <View className="flex-row items-center border-b border-gray-200 bg-white px-2 pb-2 pt-2">
+    <View className="flex-1" style={{ backgroundColor: BRAND.appBackground }}>
+      <View
+        className="flex-row items-center border-b bg-white px-2 pb-2 pt-2"
+        style={{ borderBottomColor: BRAND.borderCard }}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
-          className="w-14 rounded-lg p-2 active:bg-slate-100"
+          className="w-14 rounded-lg p-2 active:opacity-80"
           onPress={onBack}
         >
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
+          <Ionicons name="arrow-back" size={24} color={BRAND.textPrimary} />
         </Pressable>
-        <Text className="flex-1 text-center text-lg font-semibold text-slate-900">
+        <Text className="flex-1 text-center text-lg font-semibold" style={{ color: BRAND.textPrimary }}>
           {t('petFeed.notifications.inboxTitle')}
         </Text>
         <View className="w-14" />
@@ -329,59 +373,92 @@ export function NotificationsInboxScreen({
           data={notifications}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24, flexGrow: 1 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={PRIMARY} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void handleRefresh()}
+              tintColor={BRAND.loadingSpinner}
+            />
+          }
           ListEmptyComponent={
             <View className="items-center px-6 py-16">
-              <Ionicons name="notifications-outline" size={40} color="#94a3b8" />
-              <Text className="mt-3 text-base font-bold text-slate-800">{t('petFeed.notifications.emptyTitle')}</Text>
-              <Text className="mt-1 text-center text-sm leading-5 text-slate-500">{t('petFeed.notifications.emptyBody')}</Text>
-              {error ? <Text className="mt-3 text-center text-sm text-red-600">{error}</Text> : null}
+              <Ionicons name="notifications-outline" size={40} color={BRAND.textMuted} />
+              <Text className="mt-3 text-base font-bold" style={{ color: BRAND.textPrimary }}>
+                {t('petFeed.notifications.emptyTitle')}
+              </Text>
+              <Text className="mt-1 text-center text-sm leading-5" style={{ color: BRAND.textMuted }}>
+                {t('petFeed.notifications.emptyBody')}
+              </Text>
+              {error ? (
+                <Text className="mt-3 text-center text-sm" style={{ color: BRAND.logout }}>
+                  {error}
+                </Text>
+              ) : null}
             </View>
           }
           renderItem={({ item }) => {
             const type = notificationType(item);
             const cta = ctaFor(item);
+            const unread = item.is_unread;
             return (
               <Pressable
                 accessibilityRole="button"
-                className={`mb-3 flex-row gap-3 rounded-2xl border p-3 active:opacity-95 ${
-                  item.is_unread ? 'border-blue-100 bg-blue-50/60' : 'border-gray-200 bg-white'
-                }`}
+                className="mb-3 flex-row gap-3 rounded-2xl border p-3 active:opacity-95"
+                style={{
+                  borderColor: unread ? BRAND.borderBrand : BRAND.borderCard,
+                  backgroundColor: unread ? BRAND.surfaceLight : BRAND.card,
+                }}
                 onPress={() => handleOpen(item)}
               >
-                <View className="h-14 w-14 overflow-hidden rounded-xl bg-blue-50">
+                <View
+                  className="h-14 w-14 overflow-hidden rounded-xl"
+                  style={{ backgroundColor: iconSurfaceFor(type) }}
+                >
                   {item.post_thumb_url ? (
                     <Image source={{ uri: item.post_thumb_url }} style={{ width: '100%', height: '100%' }} />
                   ) : (
                     <View className="h-full w-full items-center justify-center">
-                      <Ionicons name={iconFor(type)} size={22} color={PRIMARY} />
+                      <Ionicons name={iconFor(type)} size={22} color={iconColorFor(type)} />
                     </View>
                   )}
                 </View>
                 <View className="min-w-0 flex-1">
                   <View className="flex-row items-start justify-between gap-2">
                     <Text
-                      className={`min-w-0 flex-1 text-sm ${item.is_unread ? 'font-black text-slate-900' : 'font-bold text-slate-900'}`}
+                      className={`min-w-0 flex-1 text-sm ${unread ? 'font-black' : 'font-bold'}`}
+                      style={{ color: BRAND.textPrimary }}
                       numberOfLines={1}
                     >
                       {titleFor(item)}
                     </Text>
                     <View className="flex-row items-center gap-1.5">
-                      <Text className="text-xs text-slate-400">{formatNotificationTime(item.created_at, i18n.language)}</Text>
-                      {item.is_unread ? <View className="h-2.5 w-2.5 rounded-full bg-blue-600" /> : null}
+                      <Text className="text-xs" style={{ color: BRAND.textMuted }}>
+                        {formatNotificationTime(item.created_at, i18n.language)}
+                      </Text>
+                      {unread ? (
+                        <View
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: BRAND.headerBadge }}
+                        />
+                      ) : null}
                     </View>
                   </View>
-                  <Text className="mt-0.5 text-xs font-medium text-slate-500" numberOfLines={1}>
+                  <Text className="mt-0.5 text-xs font-medium" style={{ color: BRAND.textMuted }} numberOfLines={1}>
                     {subtitleFor(item)}
                   </Text>
                   <Text
-                    className={`mt-1 text-sm ${item.is_unread ? 'font-semibold text-slate-800' : 'text-slate-600'}`}
+                    className={`mt-1 text-sm ${unread ? 'font-semibold' : ''}`}
+                    style={{ color: unread ? BRAND.textSecondary : BRAND.textMuted }}
                     numberOfLines={2}
                   >
                     {bodyFor(item)}
                   </Text>
                   {cta ? (
-                    <Text className="mt-1.5 text-xs font-bold text-blue-600" numberOfLines={1}>
+                    <Text
+                      className="mt-1.5 text-xs font-bold"
+                      style={{ color: BRAND.textBrandLink }}
+                      numberOfLines={1}
+                    >
                       {cta}
                     </Text>
                   ) : null}
@@ -400,10 +477,11 @@ export function NotificationsInboxScreen({
       >
         <Pressable className="flex-1 items-center justify-center bg-black/40 px-5" onPress={() => setReasonItem(null)}>
           <Pressable
-            className="w-full max-w-md rounded-2xl bg-white p-4"
+            className="w-full max-w-md rounded-2xl border bg-white p-4"
+            style={{ borderColor: BRAND.borderBrand }}
             onPress={(event) => event.stopPropagation?.()}
           >
-            <Text className="text-base font-bold text-slate-900">
+            <Text className="text-base font-bold" style={{ color: BRAND.textPrimary }}>
               {reasonItem && notificationType(reasonItem) === 'listing_rejected'
                 ? t('petFeed.notifications.listingRejectedTitle')
                 : reasonItem && notificationType(reasonItem) === 'breeder_detail_rejected'
@@ -412,10 +490,13 @@ export function NotificationsInboxScreen({
                     ? t('petFeed.notifications.farmReviewRejectedTitle')
                   : t('petFeed.notifications.rejectedTitle')}
             </Text>
-            <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">
+            <Text
+              className="mt-3 text-xs font-semibold uppercase"
+              style={{ color: BRAND.textMuted }}
+            >
               {t('petFeed.notifications.rejectionReason')}
             </Text>
-            <Text className="mt-1 text-sm leading-5 text-slate-800">
+            <Text className="mt-1 text-sm leading-5" style={{ color: BRAND.textSecondary }}>
               {rejectionReason ||
                 (reasonItem && notificationType(reasonItem) === 'listing_rejected'
                   ? t('petFeed.notifications.listingRejectedReasonMissing')
@@ -427,18 +508,28 @@ export function NotificationsInboxScreen({
             </Text>
             {adminAction ? (
               <>
-                <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">
+                <Text
+                  className="mt-3 text-xs font-semibold uppercase"
+                  style={{ color: BRAND.textMuted }}
+                >
                   {t('petFeed.notifications.adminAction')}
                 </Text>
-                <Text className="mt-1 text-sm leading-5 text-slate-800">{adminAction}</Text>
+                <Text className="mt-1 text-sm leading-5" style={{ color: BRAND.textSecondary }}>
+                  {adminAction}
+                </Text>
               </>
             ) : null}
             {adminNote ? (
               <>
-                <Text className="mt-3 text-xs font-semibold uppercase text-slate-500">
+                <Text
+                  className="mt-3 text-xs font-semibold uppercase"
+                  style={{ color: BRAND.textMuted }}
+                >
                   {t('petFeed.notifications.adminNote')}
                 </Text>
-                <Text className="mt-1 text-sm leading-5 text-slate-800">{adminNote}</Text>
+                <Text className="mt-1 text-sm leading-5" style={{ color: BRAND.textSecondary }}>
+                  {adminNote}
+                </Text>
               </>
             ) : null}
             <View className="mt-4 gap-2">
@@ -446,22 +537,26 @@ export function NotificationsInboxScreen({
               notificationType(reasonItem) === 'breeder_rejected' &&
               onOpenBreederProfile ? (
                 <Pressable
-                  className="rounded-xl bg-blue-600 py-3 active:opacity-90"
+                  className="rounded-xl py-3 active:opacity-90"
+                  style={{ backgroundColor: BRAND.btnPrimary }}
                   onPress={() => {
                     setReasonItem(null);
                     onOpenBreederProfile();
                   }}
                 >
-                  <Text className="text-center text-sm font-bold text-white">
+                  <Text className="text-center text-sm font-bold" style={{ color: BRAND.textInverse }}>
                     {t('petFeed.notifications.editBreederProfile')}
                   </Text>
                 </Pressable>
               ) : null}
               <Pressable
-                className="rounded-xl bg-slate-100 py-3 active:opacity-90"
+                className="rounded-xl py-3 active:opacity-90"
+                style={{ backgroundColor: BRAND.btnSecondary }}
                 onPress={() => setReasonItem(null)}
               >
-                <Text className="text-center text-sm font-bold text-slate-700">{t('common.done')}</Text>
+                <Text className="text-center text-sm font-bold" style={{ color: BRAND.textSecondary }}>
+                  {t('common.done')}
+                </Text>
               </Pressable>
             </View>
           </Pressable>

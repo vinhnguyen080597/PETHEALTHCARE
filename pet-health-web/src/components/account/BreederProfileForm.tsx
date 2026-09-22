@@ -31,16 +31,16 @@ import {
   splitRegistrationUnitForForm,
 } from "@/lib/breederRegistrationUnits";
 import { validateRegisteredKennelFields } from "@/lib/breederRegisteredKennelValidation";
+import {
+  BREEDER_LEGAL_TYPES,
+  isBusinessEntityBreederType,
+  normalizeBreederLegalType,
+  validateBusinessEntityFields,
+} from "@/lib/breederLegalTypes";
 import { breederProfileSavePublishesImmediately, showAccountBreederStatusBadge } from "@/lib/accountBreederStatusBadge";
 import { TransparencyWarningModal } from "@/components/account/TransparencyWarningModal";
 
-const BREEDER_TYPES = [
-  "registered_kennel",
-  "home_breeder",
-  "rescue_foster",
-  "rehoming",
-  "other",
-] as const;
+const BREEDER_TYPES = BREEDER_LEGAL_TYPES;
 const SPECIES_OPTIONS = LISTING_SPECIES;
 
 const inputCls =
@@ -112,10 +112,29 @@ export function BreederProfileForm({
   const [phone] = useState(initial?.contact?.phone || "");
   const [facebook] = useState(initial?.contact?.facebook || "");
   const [zalo] = useState(initial?.contact?.zalo || "");
+  const identityMeta =
+    meta.identity && typeof meta.identity === "object" && !Array.isArray(meta.identity)
+      ? (meta.identity as Record<string, unknown>)
+      : {};
   const [breederType, setBreederType] = useState(
-    metaString(meta, "breederType") ||
-      metaString(meta, "breeder_type") ||
-      "home_breeder",
+    normalizeBreederLegalType(
+      metaString(meta, "breederType") || metaString(meta, "breeder_type"),
+    ),
+  );
+  const [legalName, setLegalName] = useState(
+    metaString(identityMeta, "legal_name") || metaString(identityMeta, "legalName"),
+  );
+  const [registeredAddress, setRegisteredAddress] = useState(
+    metaString(identityMeta, "registered_address") ||
+      metaString(identityMeta, "registeredAddress"),
+  );
+  const [taxId, setTaxId] = useState(
+    metaString(identityMeta, "tax_id") || metaString(identityMeta, "taxId"),
+  );
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [existingLicenseUrl, setExistingLicenseUrl] = useState(
+    metaString(meta, "business_license_pending_url") ||
+      metaString(meta, "business_license_url"),
   );
   const [registeredKennelName, setRegisteredKennelName] = useState(
     metaString(meta, "registeredKennelName") ||
@@ -172,6 +191,10 @@ export function BreederProfileForm({
     registrationUnitOther?: string;
     registeredKennelName?: string;
     registeredAt?: string;
+    legalName?: string;
+    registeredAddress?: string;
+    taxId?: string;
+    licenseFile?: string;
   }>({});
 
   const status = initial?.verification_status || "unverified";
@@ -285,6 +308,24 @@ export function BreederProfileForm({
       },
     );
     Object.assign(nextErrors, registeredKennelErrors);
+    Object.assign(
+      nextErrors,
+      validateBusinessEntityFields(
+        {
+          breederType,
+          legalName,
+          registeredAddress,
+          taxId,
+          hasLicenseFile: Boolean(licenseFile || existingLicenseUrl),
+        },
+        {
+          legalNameRequired: t(lang, "breederForm.field.legalNameRequired"),
+          addressRequired: t(lang, "breederForm.field.addressRequired"),
+          taxIdInvalid: t(lang, "breederForm.field.taxIdInvalid"),
+          licenseFileRequired: t(lang, "breederForm.field.licenseFileRequired"),
+        },
+      ),
+    );
     if (Object.keys(nextErrors).length > 0) {
       setFieldErrors(nextErrors);
       return;
@@ -296,6 +337,30 @@ export function BreederProfileForm({
     }
     setBusy(true);
     try {
+      let licenseUrl = existingLicenseUrl;
+      if (isBusinessEntityBreederType(breederType) && licenseFile) {
+        const formData = new FormData();
+        formData.append("kind", "business_license");
+        formData.append("file", licenseFile, licenseFile.name);
+        const uploadRes = await fetch("/api/breeder/submissions/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const uploaded = await uploadRes.json().catch(() => ({}));
+        if (!uploadRes.ok) {
+          throw new Error(
+            typeof uploaded.error === "string"
+              ? uploaded.error
+              : t(lang, "breederForm.uploadFailed"),
+          );
+        }
+        const publicUrl = uploaded?.data?.publicUrl;
+        if (!publicUrl) throw new Error(t(lang, "breederForm.uploadFailed"));
+        licenseUrl = publicUrl;
+        setExistingLicenseUrl(publicUrl);
+        setLicenseFile(null);
+      }
+
       const speciesPayload = breederSpeciesForSave(primarySpecies);
       const registrationPayload =
         breederType === "registered_kennel"
@@ -305,6 +370,7 @@ export function BreederProfileForm({
               other: registrationUnitOther,
             })
           : { registrationUnit: "", registrationUnitOther: "" };
+      const taxDigits = taxId.replace(/\D/g, "");
       const res = await fetch("/api/breeder/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -336,11 +402,28 @@ export function BreederProfileForm({
             registeredAt:
               breederType === "registered_kennel" ? registeredAt : "",
             transparencyCommitments: commitments,
+            ...(isBusinessEntityBreederType(breederType)
+              ? {
+                  identity: {
+                    seller_legal_type: breederType,
+                    legal_name: legalName.trim(),
+                    registered_address: registeredAddress.trim(),
+                    tax_id: taxDigits,
+                  },
+                  business_license_pending_url: licenseUrl,
+                }
+              : {}),
             ...(coverUrl && coverUrl !== DEFAULT_BREEDER_COVER_PATH
               ? {
                   cover_url: coverUrl,
                   coverUrl,
                   coverImageUrl: coverUrl,
+                }
+              : {}),
+            ...(!isBusinessEntityBreederType(breederType)
+              ? {
+                  identity: null,
+                  business_license_pending_url: null,
                 }
               : {}),
           },
@@ -610,13 +693,17 @@ export function BreederProfileForm({
               className={selectCls}
               value={breederType}
               onChange={(e) => {
-                setBreederType(e.target.value);
+                setBreederType(normalizeBreederLegalType(e.target.value));
                 setFieldErrors((prev) => {
                   const next = { ...prev };
                   delete next.registrationUnit;
                   delete next.registrationUnitOther;
                   delete next.registeredKennelName;
                   delete next.registeredAt;
+                  delete next.legalName;
+                  delete next.registeredAddress;
+                  delete next.taxId;
+                  delete next.licenseFile;
                   return next;
                 });
               }}
@@ -627,6 +714,110 @@ export function BreederProfileForm({
                 </option>
               ))}
             </select>
+          </div>
+        ) : null}
+
+        {primarySpecies && isBusinessEntityBreederType(breederType) ? (
+          <div className="space-y-3 rounded-2xl border border-[#F0E6D8] bg-[#FFFBF5] p-4">
+            <div>
+              <p className="text-sm font-semibold text-[#2B1E19]">
+                {t(lang, "breederForm.legalPackTitle")}
+              </p>
+              <p className="mt-1 text-xs text-[#6E5A51]">
+                {t(lang, "breederForm.legalPackHint")}
+              </p>
+            </div>
+            <div>
+              <label className={labelCls}>
+                {t(lang, "breederForm.field.legalName")}
+                <RequiredMark />
+              </label>
+              <input
+                className={`${inputCls} ${fieldErrors.legalName ? inputErrorCls : ""}`}
+                value={legalName}
+                onChange={(e) => {
+                  setLegalName(e.target.value);
+                  clearFieldError("legalName");
+                }}
+              />
+              <FieldError message={fieldErrors.legalName} />
+            </div>
+            <div>
+              <label className={labelCls}>
+                {t(lang, "breederForm.field.registeredAddress")}
+                <RequiredMark />
+              </label>
+              <input
+                className={`${inputCls} ${fieldErrors.registeredAddress ? inputErrorCls : ""}`}
+                value={registeredAddress}
+                onChange={(e) => {
+                  setRegisteredAddress(e.target.value);
+                  clearFieldError("registeredAddress");
+                }}
+              />
+              <FieldError message={fieldErrors.registeredAddress} />
+            </div>
+            <div>
+              <label className={labelCls}>
+                {t(lang, "breederForm.field.taxId")}
+                <RequiredMark />
+              </label>
+              <input
+                className={`${inputCls} ${fieldErrors.taxId ? inputErrorCls : ""}`}
+                inputMode="numeric"
+                value={taxId}
+                onChange={(e) => {
+                  setTaxId(e.target.value);
+                  clearFieldError("taxId");
+                }}
+              />
+              <FieldError message={fieldErrors.taxId} />
+            </div>
+            <div>
+              <label className={labelCls}>
+                {t(lang, "breederForm.field.licenseFile")}
+                <RequiredMark />
+              </label>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="block w-full text-sm text-[#5C4A3A]"
+                onChange={(e) => {
+                  setLicenseFile(e.target.files?.[0] ?? null);
+                  clearFieldError("licenseFile");
+                }}
+              />
+              {licenseFile ? (
+                <p className="mt-1 text-xs text-[#6E5A51]">
+                  {licenseFile.name}
+                </p>
+              ) : null}
+              {existingLicenseUrl && !licenseFile ? (
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs font-medium text-[#B45309]">
+                    {t(lang, "breederForm.field.licenseUploadedPending")}
+                  </p>
+                  {/\.(jpe?g|png|webp|gif)(\?|$)/i.test(existingLicenseUrl) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={existingLicenseUrl}
+                      alt=""
+                      className="max-h-48 rounded-xl border border-[#E8DFD0] object-contain bg-white"
+                    />
+                  ) : (
+                    <a
+                      href={existingLicenseUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-semibold text-[#B45309] hover:underline break-all"
+                    >
+                      {existingLicenseUrl}
+                    </a>
+                  )}
+                </div>
+              ) : null}
+              <FieldError message={fieldErrors.licenseFile} />
+            </div>
           </div>
         ) : null}
 

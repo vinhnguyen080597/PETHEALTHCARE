@@ -189,44 +189,44 @@ export function FarmHealth({
   );
 
   const body = (
-    <div
-      className={
-        embedded
-          ? "bg-white rounded-2xl border border-[#F3E2C8] p-5 lg:p-6"
-          : "bg-white rounded-2xl border border-slate-100 p-5 lg:p-8"
-      }
-    >
-      <div className="mb-5">
-        <h2 className="text-sm font-bold tracking-wide text-slate-900 uppercase">
-          {t(lang, "farm.trust.sectionTitle")}
-        </h2>
-        <p className="mt-1 text-xs leading-relaxed text-slate-500 max-w-2xl">
-          {t(lang, "farm.trust.sectionSubtitle")}
-        </p>
-      </div>
-
-      {isPending && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 flex items-center gap-3">
-          <span className="text-amber-500 text-lg">⏳</span>
-          <p className="text-sm text-amber-800 font-medium">
-            {lang === "VI"
-              ? "Hồ sơ đang chờ admin xác minh. Điểm sẽ cập nhật sau khi được duyệt."
-              : "Profile is pending admin review. Score updates after approval."}
+    <div className={embedded ? "space-y-6" : "space-y-6"}>
+      <div
+        className={
+          embedded
+            ? "bg-white rounded-2xl border border-[#F3E2C8] p-5 lg:p-6"
+            : "bg-white rounded-2xl border border-slate-100 p-5 lg:p-8"
+        }
+      >
+        <div className="mb-5">
+          <h2 className="text-sm font-bold tracking-wide text-slate-900 uppercase">
+            {t(lang, "farm.trust.sectionTitle")}
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 max-w-2xl">
+            {t(lang, "farm.trust.sectionSubtitle")}
           </p>
         </div>
-      )}
-      {isRejected && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5 flex items-center gap-3">
-          <span className="text-red-500 text-lg">⛔</span>
-          <p className="text-sm text-red-800 font-medium">
-            {lang === "VI"
-              ? "Hồ sơ bị từ chối / tạm khóa. Liên hệ hỗ trợ để biết thêm chi tiết."
-              : "Profile rejected or suspended. Contact support for details."}
-          </p>
-        </div>
-      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+        {isPending && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 flex items-center gap-3">
+            <span className="text-amber-500 text-lg">⏳</span>
+            <p className="text-sm text-amber-800 font-medium">
+              {lang === "VI"
+                ? "Hồ sơ đang chờ admin xác minh. Điểm sẽ cập nhật sau khi được duyệt."
+                : "Profile is pending admin review. Score updates after approval."}
+            </p>
+          </div>
+        )}
+        {isRejected && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5 flex items-center gap-3">
+            <span className="text-red-500 text-lg">⛔</span>
+            <p className="text-sm text-red-800 font-medium">
+              {lang === "VI"
+                ? "Hồ sơ bị từ chối / tạm khóa. Liên hệ hỗ trợ để biết thêm chi tiết."
+                : "Profile rejected or suspended. Contact support for details."}
+            </p>
+          </div>
+        )}
+
         <ScoreColumn
           icon={<TransparencyIcon />}
           title={t(lang, "farm.trust.gaugeCaption")}
@@ -261,6 +261,23 @@ export function FarmHealth({
             ) : null
           }
         />
+      </div>
+
+      <div
+        className={
+          embedded
+            ? "bg-white rounded-2xl border border-[#F3E2C8] p-5 lg:p-6"
+            : "bg-white rounded-2xl border border-slate-100 p-5 lg:p-8"
+        }
+      >
+        <div className="mb-5">
+          <h2 className="text-sm font-bold tracking-wide text-slate-900 uppercase">
+            {t(lang, "farm.trust.complianceSectionTitle")}
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 max-w-2xl">
+            {t(lang, "farm.trust.complianceSectionSubtitle")}
+          </p>
+        </div>
 
         <ScoreColumn
           icon={<ComplianceIcon />}

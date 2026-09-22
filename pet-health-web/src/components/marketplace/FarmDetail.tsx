@@ -1015,13 +1015,25 @@ export function FarmDetail({
               {breeder.name}
             </h1>
             <div className="mt-1 sm:mt-0 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <p className="text-sm text-[#6E5A51]">
-                {breeder.location
-                  ? `📍 ${breeder.location}`
-                  : lang === "VI"
-                    ? "📍 Việt Nam"
-                    : "📍 Vietnam"}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm text-[#6E5A51]">
+                  {breeder.location
+                    ? `📍 ${breeder.location}`
+                    : lang === "VI"
+                      ? "📍 Việt Nam"
+                      : "📍 Vietnam"}
+                </p>
+                {breeder.legalEntityTag === "enterprise" ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#EEF2FF] text-[#3730A3] text-[11px] font-semibold border border-indigo-100">
+                    {t(lang, "farm.legalEntity.enterprise")}
+                  </span>
+                ) : null}
+                {breeder.legalEntityTag === "household_business" ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#ECFDF5] text-[#065F46] text-[11px] font-semibold border border-emerald-100">
+                    {t(lang, "farm.legalEntity.householdBusiness")}
+                  </span>
+                ) : null}
+              </div>
               {isOwner ? (
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <Link

@@ -19,7 +19,18 @@ export type BreederProfileSubmission = {
   breeder_profile_id: string;
   user_id: string;
   submission_type: BreederSubmissionType;
-  payload: { url?: string; note?: string; title?: string; content_type?: string };
+  payload: {
+    url?: string;
+    note?: string;
+    title?: string;
+    content_type?: string;
+    seller_legal_type?: 'household_business' | 'enterprise';
+    legal_name?: string;
+    registered_address?: string;
+    tax_id?: string;
+    legal_entity_tag?: 'household_business' | 'enterprise';
+    admin_verify_checks?: Record<string, boolean>;
+  };
   status: BreederSubmissionStatus;
   rejection_reason?: string;
   admin_note?: string;

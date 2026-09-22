@@ -330,11 +330,30 @@ export function earnModalView(state: { busy: boolean; submitted: boolean }): Ear
 
 export function breederSubmissionErrorI18nKey(
   code: string,
-): 'farm.trust.guide.earnAlreadyPending' | null {
-  if (code === 'SUBMISSION_ALREADY_PENDING') {
-    return 'farm.trust.guide.earnAlreadyPending';
+):
+  | 'farm.trust.guide.earnAlreadyPending'
+  | 'account.breederDetails.license.legalTypeRequired'
+  | 'account.breederDetails.license.legalNameRequired'
+  | 'account.breederDetails.license.addressRequired'
+  | 'account.breederDetails.license.taxIdInvalid'
+  | 'farm.legalEntity.required'
+  | null {
+  switch (code) {
+    case 'SUBMISSION_ALREADY_PENDING':
+      return 'farm.trust.guide.earnAlreadyPending';
+    case 'MISSING_SELLER_LEGAL_TYPE':
+      return 'account.breederDetails.license.legalTypeRequired';
+    case 'MISSING_LEGAL_NAME':
+      return 'account.breederDetails.license.legalNameRequired';
+    case 'MISSING_REGISTERED_ADDRESS':
+      return 'account.breederDetails.license.addressRequired';
+    case 'INVALID_TAX_ID':
+      return 'account.breederDetails.license.taxIdInvalid';
+    case 'LEGAL_ENTITY_REQUIRED':
+      return 'farm.legalEntity.required';
+    default:
+      return null;
   }
-  return null;
 }
 
 export function isUploadSubmissionType(type: string): boolean {

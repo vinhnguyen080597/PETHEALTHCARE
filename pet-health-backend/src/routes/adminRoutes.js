@@ -512,6 +512,8 @@ router.put('/breeder-submissions/:submissionId/status', requireAdminOrSecret, as
       adminNote,
       penaltyPoints: parsedPenalty.penaltyPoints,
       penaltyKind: parsedPenalty.penaltyKind,
+      verifyChecks: req.body?.verifyChecks ?? req.body?.verify_checks,
+      legalEntityTag: req.body?.legalEntityTag ?? req.body?.legal_entity_tag,
     });
     if (!submission) {
       return res.status(404).json({ error: 'Submission not found', code: 'SUBMISSION_NOT_FOUND' });

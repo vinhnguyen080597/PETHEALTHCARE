@@ -51,6 +51,7 @@ import {
   adminReportReasonLabel,
   adminReportTargetSubtitle,
 } from '../utils/adminModerationDisplay';
+import { resolveFarmAvatarUrl, resolveFarmCoverUrl } from '../utils/farmProfileDisplay';
 import { BRAND } from '../theme/brand';
 
 type BreederStatusOptions = {
@@ -560,40 +561,114 @@ export function AdminConsoleScreen({
             {queueExtraLoading ? <ActivityIndicator color={BRAND.primary} className="mb-3" /> : null}
 
             {(requestType === 'all' || requestType === 'breeder')
-              && pendingBreeders.map((profile) => (
-                <View key={`b-${profile.user_id}`} className={CARD}>
-                  <View className="mb-2 flex-row flex-wrap items-center gap-2">
-                    <StatusPill label={t('adminConsole.requests.types.breeder')} tone="amber" />
-                    {profile.avatar_url ? (
-                      <Image
-                        source={{ uri: profile.avatar_url }}
-                        style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#F3EDE3' }}
-                        contentFit="cover"
-                      />
+              && pendingBreeders.map((profile) => {
+                const coverUrl = resolveFarmCoverUrl(profile);
+                const avatarUrl = resolveFarmAvatarUrl(profile);
+                const meta =
+                  profile.metadata && typeof profile.metadata === 'object'
+                    ? profile.metadata
+                    : {};
+                const breederType = String(meta.breederType || meta.breeder_type || '').trim();
+                const typeLabel = breederType
+                  ? t(`breederForm.breederTypes.${breederType}`, {
+                      defaultValue: breederType,
+                    })
+                  : '';
+                const breeds = (profile.main_breeds || []).filter(Boolean).join(', ');
+                const identity =
+                  meta.identity && typeof meta.identity === 'object' && !Array.isArray(meta.identity)
+                    ? (meta.identity as Record<string, unknown>)
+                    : {};
+                const legalName = String(identity.legal_name || identity.legalName || '').trim();
+                return (
+                  <View key={`b-${profile.user_id}`} className={CARD}>
+                    <View className="mb-2 flex-row flex-wrap items-center gap-2">
+                      <StatusPill label={t('adminConsole.requests.types.breeder')} tone="amber" />
+                    </View>
+                    <View className="overflow-hidden rounded-xl border border-[#E8DFD0] bg-white">
+                      {coverUrl ? (
+                        <Image
+                          source={{ uri: coverUrl }}
+                          style={{ width: '100%', height: 112, backgroundColor: '#F3EDE3' }}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View className="h-20 items-center justify-center bg-[#F3EDE3]">
+                          <Text className="text-[11px] font-medium text-[#8B7355]">
+                            {t('adminReview.noCover')}
+                          </Text>
+                        </View>
+                      )}
+                      <View className="-mt-7 flex-row items-end gap-3 px-3 pb-3">
+                        {avatarUrl ? (
+                          <Image
+                            source={{ uri: avatarUrl }}
+                            style={{
+                              width: 56,
+                              height: 56,
+                              borderRadius: 28,
+                              borderWidth: 3,
+                              borderColor: '#FFFFFF',
+                              backgroundColor: '#F3EDE3',
+                            }}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View className="h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-[#FFF1DE]">
+                            <Ionicons name="person-outline" size={22} color="#D97706" />
+                          </View>
+                        )}
+                        <View className="min-w-0 flex-1 pb-1">
+                          <Text className="font-bold text-[#2B1E19]" numberOfLines={2}>
+                            {profile.display_name}
+                          </Text>
+                          {typeLabel ? (
+                            <Text className="mt-0.5 text-xs font-semibold text-[#B45309]" numberOfLines={1}>
+                              {typeLabel}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    </View>
+                    {profile.location ? (
+                      <Text className="mt-2 text-xs text-[#8B7355]" numberOfLines={1}>
+                        {profile.location}
+                      </Text>
                     ) : null}
+                    {breeds ? (
+                      <Text className="mt-1 text-xs text-[#5C4A3A]" numberOfLines={2}>
+                        {breeds}
+                      </Text>
+                    ) : null}
+                    {legalName ? (
+                      <Text className="mt-1 text-xs text-[#5C4A3A]" numberOfLines={1}>
+                        {legalName}
+                      </Text>
+                    ) : null}
+                    {profile.bio ? (
+                      <Text className="mt-2 text-sm leading-5 text-[#5C4A3A]" numberOfLines={4}>
+                        {profile.bio}
+                      </Text>
+                    ) : null}
+                    <ActionRow>
+                      <ActionBtn
+                        label={t('adminReview.approve')}
+                        tone="success"
+                        disabled={Boolean(busyKey)}
+                        onPress={() =>
+                          void runAction(`bv-${profile.user_id}`, () => onUpdateBreederStatus(profile.user_id, 'verified'), t('adminReview.updateSuccess'))
+                        }
+                      />
+                      <ActionBtn
+                        label={t('adminReview.reject')}
+                        tone="danger"
+                        disabled={Boolean(busyKey)}
+                        onPress={() => setRejectBreederId(profile.user_id)}
+                      />
+                    </ActionRow>
                   </View>
-                  <Text className="font-bold text-[#2B1E19]" numberOfLines={2}>{profile.display_name}</Text>
-                  {profile.location ? (
-                    <Text className="mt-1 text-xs text-[#8B7355]" numberOfLines={1}>{profile.location}</Text>
-                  ) : null}
-                  <ActionRow>
-                    <ActionBtn
-                      label={t('adminReview.approve')}
-                      tone="success"
-                      disabled={Boolean(busyKey)}
-                      onPress={() =>
-                        void runAction(`bv-${profile.user_id}`, () => onUpdateBreederStatus(profile.user_id, 'verified'), t('adminReview.updateSuccess'))
-                      }
-                    />
-                    <ActionBtn
-                      label={t('adminReview.reject')}
-                      tone="danger"
-                      disabled={Boolean(busyKey)}
-                      onPress={() => setRejectBreederId(profile.user_id)}
-                    />
-                  </ActionRow>
-                </View>
-              ))}
+                );
+              })}
 
             {(requestType === 'all' || requestType === 'post')
               && pendingPosts.map((post) => {
@@ -947,12 +1022,42 @@ export function AdminConsoleScreen({
             {filteredBreeders.length === 0 ? <EmptyState message={t('adminConsole.empty')} /> : null}
             {filteredBreeders.map((profile) => {
               const summary = adminBreederPenaltySummary(profile);
+              const coverUrl = resolveFarmCoverUrl(profile);
+              const avatarUrl = resolveFarmAvatarUrl(profile);
+              const meta =
+                profile.metadata && typeof profile.metadata === 'object'
+                  ? profile.metadata
+                  : {};
+              const breederType = String(meta.breederType || meta.breeder_type || '').trim();
+              const typeLabel = breederType
+                ? t(`breederForm.breederTypes.${breederType}`, {
+                    defaultValue: breederType,
+                  })
+                : '';
+              const breeds = (profile.main_breeds || []).filter(Boolean).join(', ');
               return (
                 <View key={profile.user_id} className={CARD}>
+                  {profile.verification_status === 'pending_review' ? (
+                    <View className="mb-3 overflow-hidden rounded-xl border border-[#E8DFD0] bg-white">
+                      {coverUrl ? (
+                        <Image
+                          source={{ uri: coverUrl }}
+                          style={{ width: '100%', height: 96, backgroundColor: '#F3EDE3' }}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View className="h-16 items-center justify-center bg-[#F3EDE3]">
+                          <Text className="text-[11px] font-medium text-[#8B7355]">
+                            {t('adminReview.noCover')}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : null}
                   <View className="flex-row gap-3">
-                    {profile.avatar_url ? (
+                    {avatarUrl ? (
                       <Image
-                        source={{ uri: profile.avatar_url }}
+                        source={{ uri: avatarUrl }}
                         style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#F3EDE3' }}
                         contentFit="cover"
                       />
@@ -971,9 +1076,24 @@ export function AdminConsoleScreen({
                       <Text className="font-bold text-[#2B1E19]" numberOfLines={1}>
                         {profile.display_name}
                       </Text>
+                      {typeLabel ? (
+                        <Text className="mt-0.5 text-xs font-semibold text-[#B45309]" numberOfLines={1}>
+                          {typeLabel}
+                        </Text>
+                      ) : null}
                       {profile.location ? (
                         <Text className="mt-1 text-xs text-[#8B7355]" numberOfLines={1}>
                           {profile.location}
+                        </Text>
+                      ) : null}
+                      {breeds ? (
+                        <Text className="mt-1 text-xs text-[#5C4A3A]" numberOfLines={2}>
+                          {breeds}
+                        </Text>
+                      ) : null}
+                      {profile.bio && profile.verification_status === 'pending_review' ? (
+                        <Text className="mt-1 text-sm leading-5 text-[#5C4A3A]" numberOfLines={3}>
+                          {profile.bio}
                         </Text>
                       ) : null}
                       {summary.points > 0 || summary.violations > 0 ? (
