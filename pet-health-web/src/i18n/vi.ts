@@ -1882,7 +1882,7 @@ const vi: Record<EnKey, string> = {
   "legal.operatorHotline": "Hotline",
   "legal.operatorEmail": "Email liên hệ",
   "legal.moitBadgeTitle": "Đã đăng ký với Bộ Công Thương",
-  "legal.moitBadgeHint": "Chỗ dành cho logo xác nhận — nhấn để mở trang online.gov.vn",
+  "legal.moitBadgeHint": "Chỗ dành cho logo xác nhận (chờ BCT xét duyệt) — nhấn để mở trang online.gov.vn",
   "legal.moitBadgeA11y": "Mở trang xác nhận đăng ký Bộ Công Thương trên online.gov.vn",
   "legal.dismissDisclaimer": "Đóng thông báo marketplace",
 
