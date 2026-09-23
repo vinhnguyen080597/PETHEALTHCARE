@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
 import type { Lang } from "@/lib/types";
 import {
   breederCardSpecialtyLabel,
@@ -75,25 +74,34 @@ function HallOfFameCardBody({
   );
 }
 
-function HallOfFameCardShell({
-  medal,
+/** Shared podium card — used by directory Hall of Fame and home featured breeders. */
+export function BreederHallOfFameCard({
+  lang,
+  entry,
   href,
-  children,
+  layout = "rail",
 }: {
-  medal: HallOfFameEntry["medal"];
+  lang: Lang;
+  entry: HallOfFameEntry;
   href: string | null;
-  children: ReactNode;
+  /** `rail` = fixed-width snap card; `grid` = fill parent cell. */
+  layout?: "rail" | "grid";
 }) {
-  const baseClassName = `w-[280px] sm:w-[300px] shrink-0 snap-start rounded-2xl border-2 ring-1 p-4 ${MEDAL_RING[medal]}`;
+  const sizeClass =
+    layout === "grid"
+      ? "w-full"
+      : "w-[280px] sm:w-[300px] shrink-0 snap-start";
+  const className = `${sizeClass} rounded-2xl border-2 ring-1 p-4 ${MEDAL_RING[entry.medal]}`;
+  const body = <HallOfFameCardBody lang={lang} entry={entry} />;
   if (!href) {
-    return <div className={baseClassName}>{children}</div>;
+    return <div className={className}>{body}</div>;
   }
   return (
     <Link
       href={href}
-      className={`${baseClassName} transition-transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-22px_rgba(217,119,6,0.45)]`}
+      className={`${className} transition-transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-22px_rgba(217,119,6,0.45)]`}
     >
-      {children}
+      {body}
     </Link>
   );
 }
@@ -122,17 +130,16 @@ export function BreederHallOfFame({
       </div>
       <div className="-mx-1 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
         {entries.map((entry) => (
-          <HallOfFameCardShell
+          <BreederHallOfFameCard
             key={entry.breeder.id}
-            medal={entry.medal}
+            lang={lang}
+            entry={entry}
             href={hallOfFameFarmDetailHref(
               dock?.currentUserId,
               entry.breeder.userId,
               entry.breeder.id,
             )}
-          >
-            <HallOfFameCardBody lang={lang} entry={entry} />
-          </HallOfFameCardShell>
+          />
         ))}
       </div>
     </section>

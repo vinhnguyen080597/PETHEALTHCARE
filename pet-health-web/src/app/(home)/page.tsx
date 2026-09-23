@@ -5,8 +5,8 @@ import { getLang, t } from "@/i18n";
 import { COOKIE_LANG, getSessionUser } from "@/lib/session";
 import { listPublicBreeders, listPublicPosts } from "@/lib/api/public";
 import { ListingCard } from "@/components/marketplace/ListingCard";
-import { VerifiedBadge } from "@/components/marketplace/Badges";
-import { showBreederVerifiedBadge } from "@/lib/breederVerificationUi";
+import { BreederHallOfFameCard } from "@/components/marketplace/BreederHallOfFame";
+import { pickHallOfFameBreeders } from "@/lib/marketplaceFeedSections";
 import { HomeValueProps } from "@/components/marketplace/HomeValueProps";
 import { HomeSearchSection } from "@/components/marketplace/HomeSearchSection";
 import { HomeGuestGate } from "@/components/marketplace/HomeGuestGate";
@@ -66,6 +66,7 @@ async function HomeLatestListings({
           key={l.id}
           listing={l}
           lang={lang}
+          showFavorite
           isLoggedIn={isLoggedIn}
         />
       ))}
@@ -76,41 +77,30 @@ async function HomeLatestListings({
 async function HomeFeaturedBreeders({ lang }: { lang: Lang }) {
   let breeders: Awaited<ReturnType<typeof listPublicBreeders>> = [];
   try {
-    breeders = await listPublicBreeders({ limit: 4 });
+    breeders = await listPublicBreeders({ limit: 24 });
   } catch {
     // API may be offline
   }
 
+  const entries = pickHallOfFameBreeders(breeders, 3);
+  if (entries.length === 0) {
+    return (
+      <p className="text-sm text-stone-400 text-center py-8">
+        {t(lang, "breeders.empty")}
+      </p>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {breeders.map((b) => (
-        <Link
-          key={b.id}
-          href={`/app/breeders/${b.id}`}
-          className="bg-white/80 rounded-2xl border border-[#F0E6D8] p-4 text-left hover:shadow-[0_10px_30px_-18px_rgba(180,83,9,0.35)] hover:border-amber-200 transition-all"
-        >
-          <div className="flex items-center gap-3 mb-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={b.avatar}
-              alt={b.name}
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-50"
-            />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-stone-900 truncate">
-                {b.name}
-              </p>
-              <p className="text-xs text-stone-400 truncate">{b.location}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {showBreederVerifiedBadge(b.verified, {
-              complianceStripped: b.complianceVerifiedStripped,
-              gated: false,
-            }) && <VerifiedBadge size="xs" />}
-            <span className="text-xs text-stone-400">{b.trustScore}/100</span>
-          </div>
-        </Link>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {entries.map((entry) => (
+        <BreederHallOfFameCard
+          key={entry.breeder.id}
+          lang={lang}
+          entry={entry}
+          href={`/app/breeders/${entry.breeder.id}`}
+          layout="grid"
+        />
       ))}
     </div>
   );
@@ -212,7 +202,7 @@ export default async function HomePage() {
             </h2>
             <Link
               href="/app/breeders"
-              className="text-sm text-amber-800 font-medium hover:text-[#B45309] transition-colors"
+              className="text-sm text-[#D97706] font-medium hover:text-[#B45309] transition-colors"
             >
               {t(lang, "landing.viewAll")}
             </Link>

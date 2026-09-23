@@ -205,7 +205,7 @@ export function SiteFooter({ lang }: { lang: Lang }) {
                   {t(lang, "legal.guidelines")}
                 </Link>
                 <Link
-                  href="/app/support"
+                  href="/support"
                   className="block text-stone-400 text-sm hover:text-amber-200 transition-colors"
                 >
                   {t(lang, "legal.support")}
