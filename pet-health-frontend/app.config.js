@@ -15,7 +15,7 @@ const baseConfig = {
   name: 'Pethub: Pet Marketplace',
   slug: 'pet-health-care',
   scheme: 'pethealthcare',
-  version: '1.1.4',
+  version: '1.1.5',
   orientation: 'portrait',
   icon: './assets/brand/PetMarketAvatar.png',
   userInterfaceStyle: 'light',
@@ -27,7 +27,7 @@ const baseConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.pethealthcare.app',
-    buildNumber: '4',
+    buildNumber: '45',
     associatedDomains: ['applinks:pet-marketplace.org', 'applinks:www.pet-marketplace.org'],
     infoPlist: {
       CFBundleDisplayName: 'Pethub',
