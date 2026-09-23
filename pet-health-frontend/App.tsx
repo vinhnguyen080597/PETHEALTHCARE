@@ -54,7 +54,6 @@ import {
   HealthCheckScreen,
   HistoryScreen,
   LanguageSelectionScreen,
-  AboutOperatorScreen,
   OnboardingHealthPromptScreen,
   OnboardingIntroScreen,
   PetBreedRecognitionScreen,
@@ -267,7 +266,6 @@ function AppContent() {
       onOpenAdminReview={app.openAdminReview}
       onOpenUpdateAccount={app.openUpdateAccount}
       onOpenLanguageSelection={app.openLanguageSelection}
-      onOpenAboutOperator={app.openAboutOperator}
       onUpdateBreederStatus={app.updateAdminBreederStatus}
       onUpdatePostStatus={app.updateAdminPostStatus}
       onUpdateReportStatus={app.updateAdminReportStatus}
@@ -623,10 +621,6 @@ function AppContent() {
 
             {app.screen === 'language-selection' && !isAdmin ? (
               <LanguageSelectionScreen onBack={app.backFromLanguageSelection} />
-            ) : null}
-
-            {app.screen === 'about-operator' && !isAdmin ? (
-              <AboutOperatorScreen onBack={app.backFromAboutOperator} />
             ) : null}
 
             {app.screen === 'update-account-change-login' && !isAdmin ? (

@@ -577,6 +577,20 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
       "We help with Pethub: Pet Marketplace accounts, Breeder verification, listings, chat, advertising/listing fees, and reports.",
     sections: [
       {
+        heading: "Business information",
+        paragraphs: [
+          "Operator disclosure required under Vietnamese e-commerce law.",
+        ],
+        bullets: [
+          `Company name: ${LEGAL_OPERATOR_NAME_EN} (${LEGAL_OPERATOR_NAME_ABBR})`,
+          `Tax / enterprise code: ${LEGAL_ENTERPRISE_CODE}`,
+          `Registered address: ${LEGAL_REGISTERED_ADDRESS_EN}`,
+          `Hotline: ${LEGAL_COMPANY_PHONE}`,
+          `Contact email: ${LEGAL_SUPPORT_EMAIL}`,
+          "[Reserved slot for MoIT registration badge]",
+        ],
+      },
+      {
         heading: "Contact",
         bullets: [
           `Customer support: ${LEGAL_SUPPORT_EMAIL}`,
@@ -607,6 +621,20 @@ export const supportContent: Record<"EN" | "VI", LegalDoc> = {
     intro:
       "Chúng tôi hỗ trợ tài khoản Pethub: Pet Marketplace, xác minh Breeder, tin đăng, chat, phí đăng tin/quảng cáo và tiếp nhận báo cáo.",
     sections: [
+      {
+        heading: "Thông tin doanh nghiệp",
+        paragraphs: [
+          "Thông tin đơn vị vận hành sàn theo yêu cầu công bố của pháp luật thương mại điện tử.",
+        ],
+        bullets: [
+          `Tên công ty: ${LEGAL_OPERATOR_NAME_VI} (${LEGAL_OPERATOR_NAME_ABBR})`,
+          `Mã số thuế: ${LEGAL_ENTERPRISE_CODE}`,
+          `Địa chỉ trụ sở: ${LEGAL_REGISTERED_ADDRESS_VI}`,
+          `Hotline: ${LEGAL_COMPANY_PHONE}`,
+          `Email liên hệ: ${LEGAL_SUPPORT_EMAIL}`,
+          "[Vị trí đính kèm Logo Đăng ký Bộ Công Thương]",
+        ],
+      },
       {
         heading: "Thông tin hỗ trợ & tiếp nhận phản ánh",
         bullets: [

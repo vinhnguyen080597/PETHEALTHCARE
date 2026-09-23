@@ -165,7 +165,6 @@ type AccountScreenProps = {
   onOpenAdminReview?: () => void;
   onOpenUpdateAccount: () => void;
   onOpenLanguageSelection: () => void;
-  onOpenAboutOperator: () => void;
   onUpdateBreederStatus: (
     userId: string,
     verificationStatus: string,
@@ -247,7 +246,6 @@ export function AccountScreen({
   onOpenAdminReview,
   onOpenUpdateAccount,
   onOpenLanguageSelection,
-  onOpenAboutOperator,
   onUpdateBreederStatus,
   onUpdatePostStatus,
   onUpdateReportStatus,
@@ -1434,12 +1432,6 @@ export function AccountScreen({
           <Text className="text-base font-bold text-slate-900">{t('legal.title')}</Text>
           <Text className="mt-1 text-sm leading-5 text-slate-500">{t('legal.body')}</Text>
           <View className="mt-3 gap-2">
-            <LegalLinkButton
-              label={t('legal.operatorLink')}
-              onPress={onOpenAboutOperator}
-              testID="account-about-operator-button"
-              external={false}
-            />
             <LegalLinkButton label={t('legal.privacy')} url={APP_LINKS.privacyPolicy} />
             <LegalLinkButton label={t('legal.terms')} url={APP_LINKS.termsOfService} />
             <LegalLinkButton label={t('legal.marketplaceGuidelines')} url={APP_LINKS.marketplaceGuidelines} />

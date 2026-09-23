@@ -114,6 +114,9 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(supportVi, /08:30/);
   assert.match(supportVi, /24 đến 48 giờ/);
   assert.match(supportVi, /không giữ cọc/);
+  assert.match(supportVi, /Thông tin doanh nghiệp/);
+  assert.match(supportVi, /2100720164/);
+  assert.match(supportVi, /Vị trí đính kèm Logo Đăng ký Bộ Công Thương/);
 });
 
 test("Vietnamese legal markdown export includes BCT operator and classified model", () => {
