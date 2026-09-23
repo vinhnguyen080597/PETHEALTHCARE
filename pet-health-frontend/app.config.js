@@ -20,9 +20,9 @@ const baseConfig = {
   icon: './assets/brand/PetMarketAvatar.png',
   userInterfaceStyle: 'light',
   splash: {
-    image: './assets/brand/PetMarketAvatar.png',
-    resizeMode: 'contain',
-    backgroundColor: '#ffffff',
+    image: './assets/brand/PetMarketSplash.png',
+    resizeMode: 'cover',
+    backgroundColor: '#F66E00',
   },
   ios: {
     supportsTablet: false,
@@ -40,7 +40,7 @@ const baseConfig = {
     package: 'com.pethealthcare.app',
     adaptiveIcon: {
       foregroundImage: './assets/brand/PetMarketAvatar.png',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#F66E00',
     },
     predictiveBackGestureEnabled: false,
     intentFilters: [
@@ -75,10 +75,9 @@ const baseConfig = {
     [
       'expo-splash-screen',
       {
-        image: './assets/brand/PetMarketAvatar.png',
-        resizeMode: 'contain',
-        backgroundColor: '#ffffff',
-        imageWidth: 200,
+        image: './assets/brand/PetMarketSplash.png',
+        resizeMode: 'cover',
+        backgroundColor: '#F66E00',
       },
     ],
     'expo-video',

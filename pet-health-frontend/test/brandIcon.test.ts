@@ -16,15 +16,20 @@ function sha256(relPath: string): string {
 
 test('mobile store icons use the marketplace brand avatar', () => {
   const brand = 'assets/brand/PetMarketAvatar.png';
+  const splash = 'assets/brand/PetMarketSplash.png';
   assert.ok(existsSync(path.join(root, brand)), 'missing PetMarketAvatar.png');
+  assert.ok(existsSync(path.join(root, splash)), 'missing PetMarketSplash.png');
   const brandHash = sha256(brand);
 
   assert.equal(appConfig.expo.icon, './assets/brand/PetMarketAvatar.png');
-  assert.equal(appConfig.expo.splash.image, './assets/brand/PetMarketAvatar.png');
+  assert.equal(appConfig.expo.splash.image, './assets/brand/PetMarketSplash.png');
+  assert.equal(appConfig.expo.splash.backgroundColor, '#F66E00');
+  assert.equal(appConfig.expo.splash.resizeMode, 'cover');
   assert.equal(
     appConfig.expo.android.adaptiveIcon.foregroundImage,
     './assets/brand/PetMarketAvatar.png',
   );
+  assert.equal(appConfig.expo.android.adaptiveIcon.backgroundColor, '#F66E00');
   assert.equal(sha256('assets/icon.png'), brandHash);
   assert.equal(sha256('assets/adaptive-icon.png'), brandHash);
   assert.equal(sha256('assets/splash-icon.png'), brandHash);
