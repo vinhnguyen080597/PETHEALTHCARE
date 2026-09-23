@@ -1880,8 +1880,10 @@ const en = {
   "legal.operatorHotline": "Hotline",
   "legal.operatorEmail": "Contact email",
   "legal.moitBadgeTitle": "Registered with the Ministry of Industry and Trade",
-  "legal.moitBadgeHint": "Reserved for the official badge (pending MoIT review) — open online.gov.vn",
+  "legal.moitBadgeHint": "Open the confirmation page on online.gov.vn",
   "legal.moitBadgeA11y": "Open Ministry of Industry and Trade registration confirmation on online.gov.vn",
+  "legal.moitBadgeSlot": "[Reserved slot for MoIT registration badge]",
+  "legal.moitBadgeSlotA11y": "Reserved slot for the MoIT registration badge after approval",
   "legal.dismissDisclaimer": "Dismiss marketplace notice",
 
   "common.mo": "mo",

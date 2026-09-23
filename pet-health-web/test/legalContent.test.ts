@@ -6,6 +6,7 @@ import {
   LEGAL_CONTACT_EMAIL,
   LEGAL_SUPPORT_EMAIL,
   flattenLegalDoc,
+  isMoitBadgeLive,
   legalDocFor,
   marketplaceGuidelinesContent,
   privacyPolicyContent,
@@ -142,4 +143,14 @@ test("footer legal labels stay in EN/VI parity", () => {
   assert.ok(vi["supportHub.contactEmailLabel"]);
   assert.ok(en["supportHub.legalEmailLabel"]);
   assert.ok(vi["supportHub.legalEmailLabel"]);
+  assert.match(vi["legal.moitBadgeSlot"], /Vị trí đính kèm Logo Đăng ký Bộ Công Thương/);
+  assert.ok(en["legal.moitBadgeSlot"]);
+});
+
+test("MoIT badge is live only for issued AppDetails/WebDetails URLs", () => {
+  assert.equal(isMoitBadgeLive(""), false);
+  assert.equal(isMoitBadgeLive("https://online.gov.vn"), false);
+  assert.equal(isMoitBadgeLive("https://online.gov.vn/"), false);
+  assert.equal(isMoitBadgeLive("https://online.gov.vn/Home/WebDetails/123"), true);
+  assert.equal(isMoitBadgeLive("https://online.gov.vn/Home/AppDetails/456"), true);
 });

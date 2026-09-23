@@ -28,12 +28,17 @@ export const LEGAL_REPRESENTATIVE_TITLE_EN = "Director";
 export const LEGAL_COMPANY_PHONE = "0354311254";
 
 /**
- * MoIT confirmation page. Replace with AppDetails/WebDetails URL after approval.
- * Override via NEXT_PUBLIC_MOIT_CONFIRMATION_URL.
+ * MoIT confirmation page — set ONLY after BCT issues AppDetails/WebDetails URL.
+ * Leave empty until approved; do not default to online.gov.vn (illegal pre-claim).
  */
 export const LEGAL_MOIT_CONFIRMATION_URL = (
-  process.env.NEXT_PUBLIC_MOIT_CONFIRMATION_URL?.trim() || "https://online.gov.vn"
+  process.env.NEXT_PUBLIC_MOIT_CONFIRMATION_URL?.trim() || ""
 ).replace(/\/+$/, "");
+
+/** True only when env points at an issued MoIT confirmation page. */
+export function isMoitBadgeLive(url = LEGAL_MOIT_CONFIRMATION_URL): boolean {
+  return /online\.gov\.vn\/Home\/(Web|App)Details\//i.test(url);
+}
 
 export type LegalSection = {
   heading?: string;

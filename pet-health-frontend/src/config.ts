@@ -31,8 +31,6 @@ const DEV_APP_LINKS = {
   termsOfService: `${PUBLIC_SITE_ORIGIN}/terms-of-service/`,
   marketplaceGuidelines: `${PUBLIC_SITE_ORIGIN}/marketplace-guidelines/`,
   support: `${PUBLIC_SITE_ORIGIN}/support/`,
-  /** Replace with AppDetails/WebDetails URL after MoIT approval. */
-  moitConfirmation: 'https://online.gov.vn',
 };
 
 function resolveApiOrigin(): string {
@@ -61,6 +59,13 @@ function resolveAppLink(envName: string, devFallback: string, allowedProtocols: 
   return devFallback;
 }
 
+/** Optional MoIT URL — empty until BCT issues AppDetails/WebDetails (do not default to online.gov.vn). */
+function resolveOptionalAppLink(envName: string, allowedProtocols: string[]): string {
+  const configured = publicEnv[envName]?.trim();
+  if (!configured) return '';
+  return validatePublicLink(configured, envName, allowedProtocols);
+}
+
 export const API_BASE_URL = trimTrailingSlash(configuredApiBaseUrl || `${apiOrigin}/api/v1`);
 
 export const API_HEALTH_URL = trimTrailingSlash(configuredApiHealthUrl || `${apiOrigin}/health`);
@@ -78,9 +83,10 @@ export const APP_LINKS = {
     ['https:'],
   ),
   support: resolveAppLink('EXPO_PUBLIC_SUPPORT_URL', DEV_APP_LINKS.support, ['https:', 'mailto:']),
-  moitConfirmation: resolveAppLink(
-    'EXPO_PUBLIC_MOIT_CONFIRMATION_URL',
-    DEV_APP_LINKS.moitConfirmation,
-    ['https:'],
-  ),
+  moitConfirmation: resolveOptionalAppLink('EXPO_PUBLIC_MOIT_CONFIRMATION_URL', ['https:']),
 };
+
+/** True only when env points at an issued MoIT confirmation page. */
+export function isMoitBadgeLive(url = APP_LINKS.moitConfirmation): boolean {
+  return /online\.gov\.vn\/Home\/(Web|App)Details\//i.test(url);
+}

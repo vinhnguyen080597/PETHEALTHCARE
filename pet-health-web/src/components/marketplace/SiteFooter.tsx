@@ -15,6 +15,7 @@ import {
   LEGAL_REGISTERED_ADDRESS_EN,
   LEGAL_REGISTERED_ADDRESS_VI,
   LEGAL_SUPPORT_EMAIL,
+  isMoitBadgeLive,
 } from "@/lib/legalContent";
 
 const STATS = [
@@ -86,25 +87,36 @@ function OperatorFooterBlock({ lang }: { lang: Lang }) {
             </div>
           </div>
         </dl>
-        <a
-          href={LEGAL_MOIT_CONFIRMATION_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 flex items-center gap-3 rounded-lg border border-dashed border-emerald-500/50 bg-emerald-950/40 px-3 py-2.5 transition-colors hover:border-emerald-400/70 hover:bg-emerald-950/70"
-          aria-label={t(lang, "legal.moitBadgeA11y")}
-        >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-bold text-white">
-            BCT
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-emerald-100">
-              {t(lang, "legal.moitBadgeTitle")}
+        {isMoitBadgeLive() ? (
+          <a
+            href={LEGAL_MOIT_CONFIRMATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex items-center gap-3 rounded-lg border border-dashed border-emerald-500/50 bg-emerald-950/40 px-3 py-2.5 transition-colors hover:border-emerald-400/70 hover:bg-emerald-950/70"
+            aria-label={t(lang, "legal.moitBadgeA11y")}
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-bold text-white">
+              BCT
             </span>
-            <span className="block text-[11px] leading-4 text-emerald-200/70">
-              {t(lang, "legal.moitBadgeHint")}
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-emerald-100">
+                {t(lang, "legal.moitBadgeTitle")}
+              </span>
+              <span className="block text-[11px] leading-4 text-emerald-200/70">
+                {t(lang, "legal.moitBadgeHint")}
+              </span>
             </span>
-          </span>
-        </a>
+          </a>
+        ) : (
+          <div
+            className="mt-3 rounded-lg border border-dashed border-stone-500/60 px-3 py-3 text-center"
+            aria-label={t(lang, "legal.moitBadgeSlotA11y")}
+          >
+            <p className="text-[11px] leading-4 text-stone-400">
+              {t(lang, "legal.moitBadgeSlot")}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

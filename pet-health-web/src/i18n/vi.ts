@@ -1882,8 +1882,10 @@ const vi: Record<EnKey, string> = {
   "legal.operatorHotline": "Hotline",
   "legal.operatorEmail": "Email liên hệ",
   "legal.moitBadgeTitle": "Đã đăng ký với Bộ Công Thương",
-  "legal.moitBadgeHint": "Chỗ dành cho logo xác nhận (chờ BCT xét duyệt) — nhấn để mở trang online.gov.vn",
+  "legal.moitBadgeHint": "Nhấn để mở trang xác nhận trên online.gov.vn",
   "legal.moitBadgeA11y": "Mở trang xác nhận đăng ký Bộ Công Thương trên online.gov.vn",
+  "legal.moitBadgeSlot": "[Vị trí đính kèm Logo Đăng ký Bộ Công Thương]",
+  "legal.moitBadgeSlotA11y": "Vị trí dành sẵn để đính kèm logo đăng ký Bộ Công Thương sau khi được cấp",
   "legal.dismissDisclaimer": "Đóng thông báo marketplace",
 
   "common.mo": "tháng",
