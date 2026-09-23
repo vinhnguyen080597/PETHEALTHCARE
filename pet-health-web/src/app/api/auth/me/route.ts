@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
-import { clearSessionCookies, getAccessToken, getSessionUser } from "@/lib/session";
+import {
+  clearSessionCookies,
+  getAccessToken,
+  getSessionTokens,
+  getSessionUser,
+} from "@/lib/session";
 import { deleteMyAccount } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 
 export async function GET() {
   const session = await getSessionUser();
-  if (!session.isLoggedIn || !session.token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session.isLoggedIn || !session.token || !session.account) {
+    const res = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tokens = await getSessionTokens();
+    if (tokens.accessToken || tokens.refreshToken) {
+      clearSessionCookies(res);
+    }
+    return res;
   }
   return NextResponse.json({
     data: session.account,

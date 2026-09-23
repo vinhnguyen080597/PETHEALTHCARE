@@ -14,11 +14,12 @@ import { SITE_MAIN_NAV } from "@/lib/siteNav";
 import { requestToggleInbox } from "@/lib/messages";
 import { requestToggleNotifications } from "@/lib/notifications/inbox";
 import { maybeLoginHref } from "@/lib/loginHref";
+import { fetchWithSession } from "@/lib/fetchWithSession";
 
 export function SiteHeader({
   lang,
-  isAdmin = false,
-  isLoggedIn = false,
+  isAdmin: isAdminProp = false,
+  isLoggedIn: isLoggedInProp = false,
   unreadNotificationCount = 0,
 }: {
   lang: Lang;
@@ -27,6 +28,8 @@ export function SiteHeader({
   unreadNotificationCount?: number;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(isLoggedInProp);
+  const [isAdmin, setIsAdmin] = useState(isAdminProp);
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,6 +39,38 @@ export function SiteHeader({
     pathname === "/signup" ||
     pathname.startsWith("/login/") ||
     pathname.startsWith("/signup/");
+
+  useEffect(() => {
+    setIsLoggedIn(isLoggedInProp);
+    setIsAdmin(isAdminProp);
+  }, [isLoggedInProp, isAdminProp]);
+
+  /** Re-check session on navigation — layout can keep a stale logged-in header after logout/expiry. */
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetchWithSession("/api/auth/me", { cache: "no-store" });
+        if (cancelled) return;
+        if (!res.ok) {
+          setIsLoggedIn(false);
+          setIsAdmin(false);
+          return;
+        }
+        const json = (await res.json()) as { isAdmin?: boolean; data?: unknown };
+        setIsLoggedIn(Boolean(json?.data));
+        setIsAdmin(Boolean(json?.isAdmin));
+      } catch {
+        if (!cancelled) {
+          setIsLoggedIn(false);
+          setIsAdmin(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (pathname.startsWith("/app/pet-feed")) {

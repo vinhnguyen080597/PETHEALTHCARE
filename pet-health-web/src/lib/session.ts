@@ -144,6 +144,9 @@ export async function getSessionUser(): Promise<{
       res && typeof res === "object" && "data" in res
         ? ((res as { data?: ApiAccount }).data ?? null)
         : (res as ApiAccount);
+    if (!account || typeof account !== "object") {
+      return { token: null, account: null, isAdmin: false, isLoggedIn: false };
+    }
     const role = (account?.primary_role || "").toLowerCase();
     const roles = (account?.roles || []).map((r) => String(r).toLowerCase());
     const isAdmin = role === "admin" || roles.includes("admin");
