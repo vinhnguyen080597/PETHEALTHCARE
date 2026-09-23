@@ -42,6 +42,11 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(termsVi, /đăng tin/);
   assert.match(termsVi, /KHÔNG tiếp nhận, giữ tiền cọc/);
   assert.match(termsVi, /24 giờ/);
+  assert.match(termsVi, /24–48 giờ/);
+  assert.match(termsVi, /Nghị định 85\/2021/);
+  assert.match(termsVi, /Nghị định 06\/2019/);
+  assert.match(termsVi, /Nghị định 84\/2021/);
+  assert.match(termsVi, /hồ sơ xác minh\/KYC/);
   assert.match(termsVi, /động vật hoang dã/);
   assert.match(termsVi, /đăng ký kinh doanh/);
   assert.match(termsVi, /quảng bá, truyền thông/);
@@ -50,12 +55,21 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(termsVi, /hủy bỏ tài khoản vi phạm/);
   assert.match(flattenLegalDoc(termsOfServiceContent.EN), /No money-holding/);
   assert.match(flattenLegalDoc(termsOfServiceContent.EN), /without prior notice/);
+  assert.match(flattenLegalDoc(termsOfServiceContent.EN), /Decree 85\/2021/);
+  assert.match(flattenLegalDoc(termsOfServiceContent.EN), /verification\/KYC/);
 
   const guideVi = flattenLegalDoc(marketplaceGuidelinesContent.VI);
   assert.match(guideVi, /Tìm kiếm & liên hệ/);
   assert.match(guideVi, /tranh chấp/);
   assert.match(guideVi, /Giải quyết tranh chấp, khiếu nại/);
-  assert.match(guideVi, /24–48 giờ làm việc/);
+  assert.match(guideVi, /24–48 giờ/);
+  assert.match(guideVi, /Nghị định 85\/2021/);
+  assert.match(guideVi, /hồ sơ xác minh\/KYC/);
+  assert.match(guideVi, /Kiểm duyệt thú cưng & tiêu chuẩn thú y/);
+  assert.match(guideVi, /8 tuần tuổi/);
+  assert.match(guideVi, /1 mũi vắc-xin/);
+  assert.match(guideVi, /Nghị định 06\/2019/);
+  assert.match(guideVi, /Nghị định 84\/2021/);
   assert.match(guideVi, /Bảo hành, đổi trả/);
   assert.match(guideVi, /không nhận thú trả lại/);
   assert.match(guideVi, /Sách Đỏ Việt Nam/);
@@ -63,6 +77,8 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   assert.match(guideVi, /miễn trừ toàn bộ trách nhiệm/);
   assert.match(guideVi, /không có nghĩa vụ hoàn tiền/);
   assert.match(flattenLegalDoc(marketplaceGuidelinesContent.EN), /CITES/);
+  assert.match(flattenLegalDoc(marketplaceGuidelinesContent.EN), /8 weeks/);
+  assert.match(flattenLegalDoc(marketplaceGuidelinesContent.EN), /Decrees 06\/2019/);
   assert.match(guideVi, /KHÔNG trực tiếp cung cấp dịch vụ vận chuyển/);
   assert.match(guideVi, /03 ngày làm việc/);
   assert.match(guideVi, /quảng bá, truyền thông/);
@@ -80,7 +96,7 @@ test("legal docs are bilingual and mention marketplace product context", () => {
   );
   assert.match(
     flattenLegalDoc(marketplaceGuidelinesContent.EN),
-    /24–48 business hours/,
+    /24–48 hours/,
   );
   assert.doesNotMatch(guideVi, /Quy trình 4 bước bàn giao & giải ngân cọc/);
   assert.doesNotMatch(guideVi, /Hệ thống giữ cọc/);
@@ -120,6 +136,9 @@ test("Vietnamese legal markdown export includes BCT operator and classified mode
   assert.doesNotMatch(md, /support@pet-marketplace\.org/);
   assert.doesNotMatch(md, /contact@pet-marketplace\.org/);
   assert.match(md, /CITES/);
+  assert.match(md, /Nghị định 06\/2019/);
+  assert.match(md, /Nghị định 85\/2021/);
+  assert.match(md, /8 tuần tuổi/);
   assert.match(md, /Cơ chế miễn trừ trách nhiệm nội dung/);
   assert.match(md, /KHÔNG tiếp nhận, giữ tiền cọc/);
   assert.doesNotMatch(md, /Quy trình 4 bước bàn giao & giải ngân cọc/);

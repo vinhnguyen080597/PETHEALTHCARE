@@ -212,8 +212,21 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "24-hour takedown of violating listings",
         bullets: [
-          "It is strictly forbidden to list wildlife, endangered, rare, or otherwise legally prohibited animals under Vietnamese law.",
-          "When we receive a violation report (scam, fake photos, prohibited content) from a user or a competent authority, the administration commits to review and remove the violating listing within 24 hours where the report is valid.",
+          "It is strictly forbidden to list wildlife, endangered, rare, or otherwise legally prohibited animals under Vietnamese law, including species covered by Decrees 06/2019/NĐ-CP and 84/2021/NĐ-CP.",
+          "When we receive a violation report (scam, fake photos, prohibited content, sick or dead pet after a deal connected via the marketplace) from a user or a competent authority, the administration commits to acknowledge and begin review within 24–48 hours, and to remove the violating listing within 24 hours where the report is valid.",
+        ],
+      },
+      {
+        heading: "Platform assistance in disputes (Decree 85/2021/NĐ-CP)",
+        paragraphs: [
+          "Although Pethub does not hold pet-sale money, as an e-commerce marketplace intermediary we assist Users and competent authorities in resolving disputes related to listings and accounts on the platform.",
+        ],
+        bullets: [
+          "Complaint intake: reports of scam, fraud, fake health/vaccine papers, or a pet that is seriously ill or dies in connection with a marketplace listing are acknowledged within 24–48 hours of receipt (in-app Report or email to " +
+            LEGAL_SUPPORT_EMAIL +
+            ").",
+          "Where there are clear signs of serious fraud or legal violation, we may provide the Breeder’s public contact details and available verification/KYC materials to competent state authorities upon a valid lawful request, and may share contact details (and, where appropriate, a summary of verification status) with the affected Buyer to support their complaint or legal action — without making Pethub a party to the off-platform sale contract or a refund agent.",
+          "Detailed complaint and enforcement steps are set out in the Marketplace Guidelines.",
         ],
       },
       {
@@ -277,8 +290,21 @@ export const termsOfServiceContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Cơ chế kiểm duyệt & gỡ bỏ tin vi phạm trong 24 giờ",
         bullets: [
-          "Nghiêm cấm mua bán các loài động vật thuộc danh mục động vật hoang dã, động vật nguy cấp, quý, hiếm bị cấm giao dịch theo pháp luật Việt Nam.",
-          "Khi nhận được báo cáo vi phạm (lừa đảo, hình ảnh giả mạo, nội dung cấm) từ người dùng hoặc cơ quan chức năng, Ban quản trị cam kết thẩm định và gỡ bỏ tin đăng vi phạm trong vòng 24 giờ khi báo cáo hợp lệ.",
+          "Nghiêm cấm mua bán các loài động vật thuộc danh mục động vật hoang dã, động vật nguy cấp, quý, hiếm bị cấm giao dịch theo pháp luật Việt Nam, bao gồm các loài thuộc phạm vi Nghị định 06/2019/NĐ-CP và Nghị định 84/2021/NĐ-CP.",
+          "Khi nhận được báo cáo vi phạm (lừa đảo, hình ảnh giả mạo, nội dung cấm, thú cưng bệnh nặng hoặc chết liên quan giao dịch kết nối qua Sàn) từ người dùng hoặc cơ quan chức năng, Ban quản trị cam kết tiếp nhận và bắt đầu xử lý trong vòng 24–48 giờ, đồng thời gỡ bỏ tin đăng vi phạm trong vòng 24 giờ khi báo cáo hợp lệ.",
+        ],
+      },
+      {
+        heading: "Hỗ trợ giải quyết tranh chấp của Sàn (Nghị định 85/2021/NĐ-CP)",
+        paragraphs: [
+          "Mặc dù Pethub không giữ tiền mua bán thú, với tư cách sàn TMĐT trung gian chúng tôi có trách nhiệm hỗ trợ Người dùng và cơ quan có thẩm quyền giải quyết tranh chấp liên quan tin đăng và tài khoản trên Sàn.",
+        ],
+        bullets: [
+          "Tiếp nhận khiếu nại: báo cáo lừa đảo, gian lận, giả sổ tiêm/giấy tờ sức khỏe, hoặc thú cưng bệnh nặng/chết liên quan tin đăng trên Sàn được tiếp nhận trong vòng 24–48 giờ kể từ khi nhận (qua Báo cáo trong app hoặc email " +
+            LEGAL_SUPPORT_EMAIL +
+            ").",
+          "Khi có dấu hiệu lừa đảo hoặc vi phạm pháp luật nghiêm trọng, chúng tôi có thể cung cấp thông tin liên hệ và hồ sơ xác minh/KYC của Breeder cho Cơ quan Nhà nước có thẩm quyền theo yêu cầu hợp lệ; đồng thời có thể cung cấp thông tin liên hệ (và, khi phù hợp, tóm tắt trạng thái xác minh) cho Người mua bị ảnh hưởng để hỗ trợ khiếu nại hoặc khởi kiện — mà không làm Pethub trở thành bên trong hợp đồng mua bán ngoài Sàn hay bên hoàn tiền.",
+          "Chi tiết quy trình khiếu nại và xử lý vi phạm được quy định tại Nội quy Marketplace.",
         ],
       },
       {
@@ -325,6 +351,18 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
         ],
       },
       {
+        heading: "Pet listing moderation and veterinary standards",
+        paragraphs: [
+          "Pet marketplace listings are subject to Vietnamese veterinary and animal-husbandry rules. Sellers must meet the following minimum standards before a listing may be approved for the public feed.",
+        ],
+        bullets: [
+          "Prohibited species: it is strictly forbidden to list any endangered, rare, or precious wildlife species under Decrees 06/2019/NĐ-CP and 84/2021/NĐ-CP, Vietnam’s Red Data Book, the CITES Appendices, or any other Vietnamese or international ban on harvest or commercial trade.",
+          "Minimum age: companion animals offered for sale must be at least 8 weeks old (2 months). Younger animals may not be listed.",
+          "Vaccination: the pet must have received at least one vaccine dose appropriate to its species, evidenced by photos of the vaccination book and/or a veterinary certificate uploaded with the listing.",
+          "Admin may reject or remove listings that omit age/vaccine proof, show animals under 8 weeks, or appear to involve prohibited wildlife.",
+        ],
+      },
+      {
         heading: "Breeder legal and permit responsibility",
         paragraphs: [
           "By posting, the Breeder / Seller warrants that they alone are responsible for all licenses and compliance required to offer the animal, including (where applicable) business registration, tax obligations, veterinary hygiene conditions, breeding permits, lawful origin/ownership documents, and vaccination records.",
@@ -338,7 +376,7 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Prohibited animals and poster liability",
         paragraphs: [
-          "Absolute prohibition: it is strictly forbidden to post, buy, sell, or otherwise trade any wildlife, endangered, rare, or precious species listed in Vietnam’s Red Data Book, the CITES Appendices, or any species whose harvest or commercial trade is prohibited under Vietnamese or international law.",
+          "Absolute prohibition: it is strictly forbidden to post, buy, sell, or otherwise trade any wildlife, endangered, rare, or precious species listed under Decrees 06/2019/NĐ-CP and 84/2021/NĐ-CP, Vietnam’s Red Data Book, the CITES Appendices, or any species whose harvest or commercial trade is prohibited under Vietnamese or international law.",
         ],
         bullets: [
           "The listing poster (Breeder / Seller) is solely legally responsible for the origin, lawfulness, and ownership of the pet or animal they list.",
@@ -372,16 +410,17 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Disputes, complaints, and financial claims",
         paragraphs: [
-          "Pethub is a connection marketplace and does not hold pet-sale payments. Complaint handling on the platform covers content and account moderation—not refunding or settling money between Users.",
+          "Pethub is a connection marketplace and does not hold pet-sale payments. Complaint handling on the platform covers content and account moderation and assistance required of e-commerce marketplaces under Decree 85/2021/NĐ-CP—not refunding or settling money between Users.",
         ],
         bullets: [
-          "On-platform complaints (we handle): false listings, hidden illness or fake vaccine/health papers, scam or prohibited content, harassment, or fake trust/verification signals — use Report in the app or email " +
+          "On-platform complaints (we handle): false listings, hidden illness or fake vaccine/health papers, scam or prohibited content, a pet that is seriously ill or dies after a deal connected via the marketplace, harassment, or fake trust/verification signals — use Report in the app or email " +
             LEGAL_SUPPORT_EMAIL +
             " with evidence (chat screenshots, listing URL, payment proof if any).",
-          "Intake: we acknowledge support emails within 24–48 business hours. For Report/support cases with enough evidence, Admin reviews on-platform history within 3 business days and may remove the listing and/or suspend or permanently ban the account.",
+          "Intake window: we acknowledge scam, fraud, or sick/dead-pet reports within 24–48 hours of receipt. For Report/support cases with enough evidence, Admin reviews on-platform history within 3 business days and may remove the listing and/or suspend or permanently ban the account.",
           "Urgent illegal listings (e.g. prohibited wildlife, clear fraud): Admin may remove content within 24 hours after a valid report.",
+          "Assistance to authorities and Buyers: upon a valid lawful request from a competent state authority, or where there are clear signs of serious fraud or legal violation, we may provide the Breeder’s contact details and verification/KYC materials to that authority, and may share contact details (and, where appropriate, verification-status summary) with the affected Buyer to support their complaint — without settling money or taking the pet back.",
           "Off-platform money disputes (we do not settle): deposits, sale price, delivery fees, or any payment made directly between Buyer and Seller. Pethub has no obligation to refund, compensate, or financially settle those disputes.",
-          "Users may still pursue civil or criminal remedies against each other. Upon a valid lawful request, we may provide chat/listing extracts to the police when there are signs of fraud or appropriation of property.",
+          "Users may still pursue civil or criminal remedies against each other.",
         ],
       },
       {
@@ -428,6 +467,18 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
         ],
       },
       {
+        heading: "Kiểm duyệt thú cưng & tiêu chuẩn thú y",
+        paragraphs: [
+          "Tin đăng thú cưng trên Sàn chịu sự điều chỉnh của pháp luật về thú y và chăn nuôi. Người bán phải đáp ứng các tiêu chuẩn tối thiểu sau trước khi tin được duyệt lên feed công khai.",
+        ],
+        bullets: [
+          "Nghiêm cấm đăng tải: các loài động vật hoang dã nguy cấp, quý, hiếm theo Nghị định 06/2019/NĐ-CP và Nghị định 84/2021/NĐ-CP, Danh mục Sách Đỏ Việt Nam, Phụ lục CITES, hoặc bất kỳ loài nào bị cấm khai thác/kinh doanh theo pháp luật Việt Nam và quốc tế.",
+          "Tuổi tối thiểu: thú cưng xuất bán phải tối thiểu 8 tuần tuổi (2 tháng tuổi). Không được đăng thú dưới 8 tuần.",
+          "Vắc-xin: thú phải đã được tiêm tối thiểu 1 mũi vắc-xin phù hợp loài, kèm hình ảnh sổ tiêm chủng và/hoặc giấy chứng nhận thú y đính kèm tin đăng.",
+          "Admin có quyền từ chối hoặc gỡ tin thiếu bằng chứng tuổi/vắc-xin, đăng thú dưới 8 tuần, hoặc có dấu hiệu động vật hoang dã cấm.",
+        ],
+      },
+      {
         heading: "Trách nhiệm pháp lý & giấy phép của Breeder",
         paragraphs: [
           "Khi đăng tin, Breeder / Người bán cam kết tự chịu hoàn toàn trách nhiệm về mọi giấy phép và nghĩa vụ pháp lý cần thiết để chào bán thú, bao gồm (nếu thuộc diện áp dụng): đăng ký kinh doanh, nghĩa vụ thuế, điều kiện vệ sinh thú y, giấy phép chăn nuôi, giấy tờ nguồn gốc/quyền sở hữu hợp pháp và sổ tiêm.",
@@ -441,7 +492,7 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Danh mục động vật cấm giao dịch và bảo hành trách nhiệm",
         paragraphs: [
-          "Nghiêm cấm tuyệt đối: nghiêm cấm đăng tải, mua bán, giao dịch tất cả các loài động vật hoang dã, động vật nguy cấp, quý, hiếm thuộc Danh mục Sách Đỏ Việt Nam, Danh mục CITES, hoặc bất kỳ loài động vật nào bị cấm khai thác, cấm kinh doanh theo quy định của pháp luật Việt Nam và quốc tế.",
+          "Nghiêm cấm tuyệt đối: nghiêm cấm đăng tải, mua bán, giao dịch tất cả các loài động vật hoang dã, động vật nguy cấp, quý, hiếm theo Nghị định 06/2019/NĐ-CP và Nghị định 84/2021/NĐ-CP, thuộc Danh mục Sách Đỏ Việt Nam, Danh mục CITES, hoặc bất kỳ loài động vật nào bị cấm khai thác, cấm kinh doanh theo quy định của pháp luật Việt Nam và quốc tế.",
         ],
         bullets: [
           "Người đăng tin (Breeder/Người bán) phải tự chịu hoàn toàn trách nhiệm trước pháp luật về nguồn gốc, tính hợp pháp và quyền sở hữu đối với thú cưng/vật nuôi do mình đăng bán.",
@@ -475,16 +526,17 @@ export const marketplaceGuidelinesContent: Record<"EN" | "VI", LegalDoc> = {
       {
         heading: "Giải quyết tranh chấp, khiếu nại và khiếu nại tài chính",
         paragraphs: [
-          "Pethub là sàn kết nối, không giữ tiền mua bán thú. Việc tiếp nhận khiếu nại trên Sàn nhằm kiểm duyệt nội dung và tài khoản — không phải hoàn tiền hay phân xử tiền giữa Người dùng.",
+          "Pethub là sàn kết nối, không giữ tiền mua bán thú. Việc tiếp nhận khiếu nại trên Sàn nhằm kiểm duyệt nội dung và tài khoản, đồng thời thực hiện nghĩa vụ hỗ trợ giải quyết tranh chấp của sàn TMĐT theo Nghị định 85/2021/NĐ-CP — không phải hoàn tiền hay phân xử tiền giữa Người dùng.",
         ],
         bullets: [
-          "Khiếu nại thuộc phạm vi Sàn (chúng tôi xử lý): tin sai sự thật, che giấu bệnh / giả sổ tiêm–giấy tờ sức khỏe, lừa đảo hoặc nội dung cấm, quấy rối, giả mạo xác minh/uy tín — bấm “Báo cáo” trên app hoặc gửi email tới " +
+          "Khiếu nại thuộc phạm vi Sàn (chúng tôi xử lý): tin sai sự thật, che giấu bệnh / giả sổ tiêm–giấy tờ sức khỏe, lừa đảo hoặc nội dung cấm, thú cưng bệnh nặng hoặc chết sau giao dịch kết nối qua Sàn, quấy rối, giả mạo xác minh/uy tín — bấm “Báo cáo” trên app hoặc gửi email tới " +
             LEGAL_SUPPORT_EMAIL +
             " kèm bằng chứng (ảnh chat, URL tin đăng, chứng từ thanh toán nếu có).",
-          "Tiếp nhận: email hỗ trợ được phản hồi trong 24–48 giờ làm việc. Với Báo cáo/khiếu nại đủ bằng chứng, Ban quản trị rà soát lịch sử trên Sàn trong 03 ngày làm việc và có thể gỡ tin và/hoặc tạm khóa hoặc khóa vĩnh viễn tài khoản.",
+          "Thời gian tiếp nhận: báo cáo lừa đảo, gian lận hoặc thú bệnh/chết được tiếp nhận trong vòng 24–48 giờ kể từ khi nhận. Với Báo cáo/khiếu nại đủ bằng chứng, Ban quản trị rà soát lịch sử trên Sàn trong 03 ngày làm việc và có thể gỡ tin và/hoặc tạm khóa hoặc khóa vĩnh viễn tài khoản.",
           "Tin vi phạm nghiêm trọng (ví dụ động vật cấm, dấu hiệu lừa đảo rõ): Admin có thể gỡ nội dung trong vòng 24 giờ sau báo cáo hợp lệ.",
+          "Hỗ trợ Cơ quan Nhà nước và Người mua: khi có yêu cầu hợp lệ của cơ quan có thẩm quyền, hoặc khi có dấu hiệu lừa đảo/vi phạm pháp luật nghiêm trọng, chúng tôi có thể cung cấp thông tin liên hệ và hồ sơ xác minh/KYC của Breeder cho Cơ quan Nhà nước; đồng thời có thể cung cấp thông tin liên hệ (và, khi phù hợp, tóm tắt trạng thái xác minh) cho Người mua bị ảnh hưởng để hỗ trợ khiếu nại — mà không hoàn tiền hay nhận trả thú thay các bên.",
           "Tranh chấp tiền ngoài Sàn (chúng tôi không giải quyết tài chính): tiền cọc, giá mua bán, phí vận chuyển hoặc mọi khoản thanh toán trực tiếp giữa Người mua và Người bán. Pethub không có nghĩa vụ hoàn tiền, bồi thường hay kết toán thay cho các bên.",
-          "Người dùng vẫn có quyền theo đuổi biện pháp dân sự hoặc hình sự với nhau. Khi có yêu cầu hợp lệ của cơ quan có thẩm quyền, chúng tôi có thể cung cấp trích xuất chat/tin đăng nếu có dấu hiệu lừa đảo chiếm đoạt tài sản.",
+          "Người dùng vẫn có quyền theo đuổi biện pháp dân sự hoặc hình sự với nhau.",
         ],
       },
       {
