@@ -26,7 +26,7 @@ API: Render backend `https://pet-health-backend-serb.onrender.com`
 | `NEXT_PUBLIC_SITE_ORIGIN` | `https://pet-marketplace.org` |
 | `NEXT_PUBLIC_SUPABASE_URL` | Same `SUPABASE_URL` as Render backend |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same `SUPABASE_ANON_KEY` as Render backend (public) |
-| `NEXT_PUBLIC_IOS_APP_STORE_URL` | `https://apps.apple.com/vn/app/pethub-trung-t%C3%A2m-th%C3%BA-c%C6%B0ng/id6778684107` |
+| `NEXT_PUBLIC_IOS_APP_STORE_URL` | `https://apps.apple.com/vn/app/id6778684107` |
 | `NEXT_PUBLIC_IOS_APP_STORE_ID` | `6778684107` |
 
 **Preview** (optional): đặt `NEXT_PUBLIC_SITE_ORIGIN` = URL `*.vercel.app`, và thêm origin đó vào `CORS_ORIGINS` trên Render. Thêm luôn `https://*.vercel.app/api/auth/oauth/callback` (hoặc URL preview cụ thể) vào Supabase Redirect URLs.

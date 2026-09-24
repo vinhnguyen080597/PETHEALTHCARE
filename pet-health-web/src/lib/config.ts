@@ -47,7 +47,7 @@ export function isSupabaseConfigured() {
 
 export const IOS_APP_STORE_URL =
   process.env.NEXT_PUBLIC_IOS_APP_STORE_URL ||
-  "https://apps.apple.com/vn/app/pethub-trung-t%C3%A2m-th%C3%BA-c%C6%B0ng/id6778684107";
+  "https://apps.apple.com/vn/app/id6778684107";
 
 export const IOS_APP_STORE_ID =
   process.env.NEXT_PUBLIC_IOS_APP_STORE_ID || "6778684107";
