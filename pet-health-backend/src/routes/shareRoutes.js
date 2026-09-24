@@ -5,7 +5,8 @@ const router = Router();
 
 const SITE_ORIGIN = (process.env.PUBLIC_SITE_ORIGIN || 'https://pet-marketplace.org').replace(/\/+$/, '');
 const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/og-share.png`;
-const IOS_STORE = 'https://apps.apple.com/app/id6778684107';
+const IOS_STORE =
+  'https://apps.apple.com/vn/app/pethub-trung-t%C3%A2m-th%C3%BA-c%C6%B0ng/id6778684107';
 const IOS_APP_ID = '6778684107';
 
 function cleanId(value) {

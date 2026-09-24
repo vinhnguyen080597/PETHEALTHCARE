@@ -35,7 +35,7 @@ const landing = `<!doctype html>
     </style>
     <script>
       window.__PHC_IOS_APP_ID__='6778684107';
-      window.__PHC_IOS_STORE__='https://apps.apple.com/app/id6778684107';
+      window.__PHC_IOS_STORE__='https://apps.apple.com/vn/app/pethub-trung-t%C3%A2m-th%C3%BA-c%C6%B0ng/id6778684107';
       window.__PHC_ANDROID_STORE__='';
       window.__PHC_PUBLIC_API_ORIGIN__='https://pet-health-backend-serb.onrender.com';
     </script>
